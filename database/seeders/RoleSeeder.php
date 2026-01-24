@@ -5,13 +5,14 @@ namespace Database\Seeders;
 use Illuminate\Database\Seeder;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
+use Spatie\Permission\PermissionRegistrar;
 
 class RoleSeeder extends Seeder
 {
     public function run()
     {
-        // Limpiar cache de permisos y roles
-        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+        // Limpiar cache
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
 
         // Lista de permisos
         $permisos = [
@@ -34,12 +35,15 @@ class RoleSeeder extends Seeder
             'gestionar configuracion',
         ];
 
-        // Crear permisos si no existen
+        // Crear permisos con guard web
         foreach ($permisos as $permiso) {
-            Permission::firstOrCreate(['name' => $permiso]);
+            Permission::firstOrCreate([
+                'name' => $permiso,
+                'guard_name' => 'web',
+            ]);
         }
 
-        // Crear roles y asignar permisos
+        // Roles y permisos
         $roles = [
             'admin' => Permission::all(),
             'ingeniero_mantenimiento' => [
@@ -60,8 +64,12 @@ class RoleSeeder extends Seeder
         ];
 
         foreach ($roles as $rol => $perms) {
-            $role = Role::firstOrCreate(['name' => $rol]);
-            $role->syncPermissions($perms); // Sincroniza permisos y evita duplicados
+            $role = Role::firstOrCreate([
+                'name' => $rol,
+                'guard_name' => 'web',
+            ]);
+
+            $role->syncPermissions($perms);
         }
     }
 }

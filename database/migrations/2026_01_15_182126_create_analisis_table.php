@@ -23,7 +23,9 @@ return new class extends Migration
     }
 
     public function down(): void
-    {
-        Schema::dropIfExists('analisis');
-    }
+{
+    Schema::table('analisis', function (Blueprint $table) {
+        $table->dropColumn('elongacion_promedio');
+    });
+}
 };

@@ -2,62 +2,97 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Analisis;
+use App\Models\Elongacion;
 use Illuminate\Http\Request;
 
 class ElongacionController extends Controller
 {
-    public function create(Analisis $analisis)
+   public function index()
+{
+    $elongaciones = Elongacion::orderBy('created_at', 'desc')
+        ->paginate(10); // 👈 IMPORTANTE
+
+    return view('elongaciones.index', compact('elongaciones'));
+}
+
+
+    public function create()
     {
-        return view('analisis.elongacion.create', compact('analisis'));
+        return view('elongaciones.create');
     }
 
-    public function store(Request $request, Analisis $analisis)
+    public function store(Request $request)
     {
-        $bombas = array_filter($request->bombas_mediciones ?? []);
-        $vapor  = array_filter($request->vapor_mediciones ?? []);
-
-        $resBombas = $this->calcularElongacion($bombas);
-        $resVapor  = $this->calcularElongacion($vapor);
-
-        $analisis->elongacion()->create([
-            'horometro' => $request->horometro,
-            'mediciones_bombas' => $bombas,
-            'mediciones_vapor' => $vapor,
-            'juego_rodaja_bombas' => $request->juego_rodaja_bombas,
-            'juego_rodaja_vapor' => $request->juego_rodaja_vapor,
-            'elongacion_bombas_mm' => $resBombas['mm'],
-            'elongacion_bombas_pct' => $resBombas['pct'],
-            'estado_bombas' => $resBombas['estado'],
-            'elongacion_vapor_mm' => $resVapor['mm'],
-            'elongacion_vapor_pct' => $resVapor['pct'],
-            'estado_vapor' => $resVapor['estado'],
+        $request->validate([
+            'hodometro' => 'required|integer|min:0',
         ]);
 
-        return redirect()->route('analisis.show', $analisis)
-            ->with('success','Elongación calculada correctamente');
+        // Obtener mediciones lado bombas
+        $bombasMediciones = [];
+        for ($i = 1; $i <= 8; $i++) {
+            $field = "bombas_{$i}";
+            $bombasMediciones[] = $request->$field ?? null;
+        }
+        
+        // Calcular promedio lado bombas
+        $bombasPromedio = Elongacion::calcularPromedio($bombasMediciones);
+        $bombasPorcentaje = Elongacion::calcularPorcentaje($bombasPromedio);
+        
+        // Obtener mediciones lado vapor
+        $vaporMediciones = [];
+        for ($i = 1; $i <= 4; $i++) {
+            $field = "vapor_{$i}";
+            $vaporMediciones[] = $request->$field ?? null;
+        }
+        
+        // Calcular promedio lado vapor
+        $vaporPromedio = Elongacion::calcularPromedio($vaporMediciones);
+        $vaporPorcentaje = Elongacion::calcularPorcentaje($vaporPromedio);
+
+        // Crear registro
+        $elongacion = Elongacion::create([
+            'linea' => $request->linea ?? 'L-07',
+            'seccion' => $request->seccion ?? 'LAVADORA',
+            
+            // Lado bombas
+            'bombas_1' => $request->bombas_1,
+            'bombas_2' => $request->bombas_2,
+            'bombas_3' => $request->bombas_3,
+            'bombas_4' => $request->bombas_4,
+            'bombas_5' => $request->bombas_5,
+            'bombas_6' => $request->bombas_6,
+            'bombas_7' => $request->bombas_7,
+            'bombas_8' => $request->bombas_8,
+            'bombas_promedio' => $bombasPromedio,
+            'bombas_porcentaje' => $bombasPorcentaje,
+            
+            // Lado vapor
+            'vapor_1' => $request->vapor_1,
+            'vapor_2' => $request->vapor_2,
+            'vapor_3' => $request->vapor_3,
+            'vapor_4' => $request->vapor_4,
+            'vapor_promedio' => $vaporPromedio,
+            'vapor_porcentaje' => $vaporPorcentaje,
+            
+            // Hodómetro y juego de rodaja
+            'hodometro' => $request->hodometro,
+            'juego_rodaja_bombas' => $request->juego_rodaja_bombas,
+            'juego_rodaja_vapor' => $request->juego_rodaja_vapor,
+        ]);
+
+        return redirect()->route('elongaciones.index')
+            ->with('success', 'Registro guardado exitosamente');
     }
 
-    private function calcularElongacion(array $mediciones)
+    public function show(Elongacion $elongacion)
     {
-        $paso = 173;
+        return view('elongaciones.show', compact('elongacion'));
+    }
 
-        if (count($mediciones) === 0) {
-            return ['mm'=>0,'pct'=>0,'estado'=>'SIN DATOS'];
-        }
-
-        $promedio = array_sum($mediciones)/count($mediciones);
-        $elongacionMm = $promedio - $paso;
-        $elongacionPct = ($elongacionMm/$paso)*100;
-
-        if ($elongacionPct <= 2) $estado='BUENO';
-        elseif ($elongacionPct <=3) $estado='ALERTA';
-        else $estado='CRITICO';
-
-        return [
-            'mm'=>round($elongacionMm,2),
-            'pct'=>round($elongacionPct,2),
-            'estado'=>$estado
-        ];
+    public function destroy(Elongacion $elongacion)
+    {
+        $elongacion->delete();
+        return redirect()->route('elongaciones.index')
+            ->with('success', 'Registro eliminado exitosamente');
     }
 }

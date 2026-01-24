@@ -2,30 +2,50 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
 class Linea extends Model
 {
     use HasFactory;
 
+    protected $table = 'lineas';
+    
     protected $fillable = [
         'nombre',
         'descripcion',
-        'activa',
+        'activo',
     ];
 
-    /* =======================
-     | Relaciones
-     ======================= */
+    protected $casts = [
+        'activo' => 'boolean',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
+    ];
 
-    public function analisis()
+    /**
+     * Relación con análisis de componentes
+     */
+    public function analisisComponentes()
     {
-        return $this->hasMany(Analisis::class);
+        return $this->hasMany(AnalisisComponente::class);
     }
 
-    public function paros()
+    /**
+     * Relación con componentes a través de análisis_componentes
+     */
+    public function componentes()
     {
-        return $this->hasMany(Paro::class);
+        return $this->belongsToMany(Componente::class, 'analisis_componentes')
+                    ->withPivot('actividad', 'reductor', 'numero_orden', 'evidencia_fotos')
+                    ->withTimestamps();
+    }
+
+    /**
+     * Scope para filtrar líneas activas
+     */
+    public function scopeActivos($query)
+    {
+        return $query->where('activo', true);
     }
 }

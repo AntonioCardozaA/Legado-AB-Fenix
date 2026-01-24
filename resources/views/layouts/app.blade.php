@@ -76,18 +76,21 @@
                 <i class="fas fa-chart-line w-5 mr-3"></i>
                 Dashboard
             </a>
-
             <a href="{{ route('analisis.index') }}"
                class="nav-link flex items-center px-4 py-3 rounded-lg {{ request()->routeIs('analisis.*') ? 'nav-active' : '' }}">
                 <i class="fas fa-clipboard-check w-5 mr-3"></i>
-                Análisis
+                Analisis General
             </a>
-            <a href="{{ route('analisis.index') }}"
-               class="nav-link flex items-center px-4 py-3 rounded-lg {{ request()->routeIs('analisis.*') ? 'nav-active' : '' }}">
+            <a href="{{ route('analisis-componentes.index') }}"
+               class="nav-link flex items-center px-4 py-3 rounded-lg {{ request()->routeIs('analisis-componentes.*') ? 'nav-active' : '' }}">
+                <i class="fas fa-clipboard-check w-5 mr-3"></i>
+                Análisis de Componentes
+            </a>
+            <a href="{{ route('elongaciones.index') }}"
+               class="nav-link flex items-center px-4 py-3 rounded-lg {{ request()->routeIs('elongaciones.*') ? 'nav-active' : '' }}">
                 <i class="fas fa-clipboard-check w-5 mr-3"></i>
                 Elongación
             </a>
-
             <a href="{{ route('paros.index') }}"
                class="nav-link flex items-center px-4 py-3 rounded-lg {{ request()->routeIs('paros.*') ? 'nav-active' : '' }}">
                 <i class="fas fa-tools w-5 mr-3"></i>

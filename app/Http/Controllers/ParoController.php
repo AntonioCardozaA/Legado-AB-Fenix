@@ -21,7 +21,7 @@ class ParoController extends Controller
     
     public function create()
     {
-        $lineas = Linea::where('activa', true)->get();
+        $lineas = Linea::where('activo', true)->get();
         return view('paros.create', compact('lineas'));
     }
     

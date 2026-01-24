@@ -10,18 +10,26 @@ return new class extends Migration
     {
         Schema::create('analisis_componentes', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('analisis_id')->constrained('analisis')->onDelete('cascade');
-            $table->foreignId('componente_id')->constrained('componentes');
-            $table->integer('cantidad_revisada')->default(0);
-            $table->enum('estado', ['BUENO', 'REGULAR', 'DAÑADO', 'REEMPLAZADO']);
-            $table->string('actividad')->nullable();
-            $table->text('observaciones')->nullable();
-            $table->json('evidencia_fotos')->nullable();
-            $table->timestamps();
             
-            // Índices
-            $table->index('analisis_id');
-            $table->index('componente_id');
+            // Relaciones
+            $table->foreignId('linea_id')
+                ->constrained('lineas')
+                ->cascadeOnDelete();
+                
+            $table->foreignId('componente_id')
+                ->constrained('componentes')
+                ->cascadeOnDelete();
+
+            // Datos específicos del análisis
+            $table->string('reductor');
+            $table->date('fecha_analisis');
+            $table->string('numero_orden');
+            $table->string('actividad');
+            
+            // Evidencia
+            $table->json('evidencia_fotos')->nullable();
+
+            $table->timestamps();
         });
     }
 

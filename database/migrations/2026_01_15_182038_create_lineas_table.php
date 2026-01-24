@@ -12,7 +12,7 @@ return new class extends Migration
             $table->id();
             $table->string('nombre')->unique(); // L-01, L-02, etc.
             $table->string('descripcion')->nullable();
-            $table->boolean('activa')->default(true);
+            $table->boolean('activo')->default(true); // CORREGIDO: 'activo'
             $table->timestamps();
         });
     }
@@ -22,3 +22,4 @@ return new class extends Migration
         Schema::dropIfExists('lineas');
     }
 };
+
