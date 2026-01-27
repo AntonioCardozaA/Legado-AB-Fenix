@@ -29,7 +29,7 @@ class ElongacionController extends Controller
 
         // Obtener mediciones lado bombas
         $bombasMediciones = [];
-        for ($i = 1; $i <= 8; $i++) {
+        for ($i = 1; $i <= 10; $i++) {
             $field = "bombas_{$i}";
             $bombasMediciones[] = $request->$field ?? null;
         }
@@ -40,7 +40,7 @@ class ElongacionController extends Controller
         
         // Obtener mediciones lado vapor
         $vaporMediciones = [];
-        for ($i = 1; $i <= 4; $i++) {
+        for ($i = 1; $i <= 10; $i++) {
             $field = "vapor_{$i}";
             $vaporMediciones[] = $request->$field ?? null;
         }
@@ -51,7 +51,7 @@ class ElongacionController extends Controller
 
         // Crear registro
         $elongacion = Elongacion::create([
-            'linea' => $request->linea ?? 'L-07',
+            'linea' => $request->linea ?? 'linea',
             'seccion' => $request->seccion ?? 'LAVADORA',
             
             // Lado bombas
@@ -63,6 +63,8 @@ class ElongacionController extends Controller
             'bombas_6' => $request->bombas_6,
             'bombas_7' => $request->bombas_7,
             'bombas_8' => $request->bombas_8,
+            'bombas_9' => $request->bombas_9,
+            'bombas_10' => $request->bombas_10,
             'bombas_promedio' => $bombasPromedio,
             'bombas_porcentaje' => $bombasPorcentaje,
             
@@ -71,6 +73,12 @@ class ElongacionController extends Controller
             'vapor_2' => $request->vapor_2,
             'vapor_3' => $request->vapor_3,
             'vapor_4' => $request->vapor_4,
+            'vapor_5' => $request->vapor_5,
+            'vapor_6' => $request->vapor_6,
+            'vapor_7' => $request->vapor_7,
+            'vapor_8' => $request->vapor_8,
+            'vapor_9' => $request->vapor_9, 
+            'vapor_10' => $request->vapor_10,
             'vapor_promedio' => $vaporPromedio,
             'vapor_porcentaje' => $vaporPorcentaje,
             

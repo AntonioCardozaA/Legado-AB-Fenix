@@ -75,7 +75,11 @@
                 <input type="text" 
                        name="numero_orden" 
                        required
-                       placeholder="Ej: 123456"
+                       maxlength="8"
+                       pattern="\d{8}"
+                       inputmode="numeric"
+                       placeholder="Ej: 12345678"
+                       title="Debe contener exactamente 8 dígitos numéricos"
                        class="w-full rounded-lg border-gray-300 focus:border-amber-500 focus:ring-amber-500 shadow-sm
                        @error('numero_orden') border-red-500 @enderror">
                 @error('numero_orden')
@@ -83,39 +87,41 @@
                 @enderror
             </div>
             
-            {{-- Actividad --}}
+            {{-- ESTADO (antes llamado "Actividad / Estado") --}}
             <div>
                 <label class="block text-sm font-semibold text-gray-700 mb-2">
-                    <i class="fas fa-tasks text-amber-600 mr-1"></i>
-                    Actividad / Estado *
+                    <i class="fas fa-clipboard-check text-amber-600 mr-1"></i>
+                    Estado del Componente *
                 </label>
-                <select name="actividad" 
+                <select name="estado" 
                         required
                         class="w-full rounded-lg border-gray-300 focus:border-amber-500 focus:ring-amber-500 shadow-sm
-                        @error('actividad') border-red-500 @enderror">
+                        @error('estado') border-red-500 @enderror">
                     <option value="">Seleccionar estado...</option>
-                    <option value="Buen estado" {{ old('actividad') == 'Buen estado' ? 'selected' : '' }}>✅ Buen estado</option>
-                    <option value="Desgaste moderado" {{ old('actividad') == 'Desgaste moderado' ? 'selected' : '' }}>⚠️ Desgaste moderado</option>
-                    <option value="Desgaste severo" {{ old('actividad') == 'Desgaste severo' ? 'selected' : '' }}>⚠️ Desgaste severo</option>
-                    <option value="Dañado - Requiere cambio" {{ old('actividad') == 'Dañado - Requiere cambio' ? 'selected' : '' }}>❌ Dañado - Requiere cambio</option>
-                    <option value="Dañado - Cambiado" {{ old('actividad') == 'Dañado - Cambiado' ? 'selected' : '' }}>🔄 Dañado - Cambiado</option>
+                    <option value="Buen estado" {{ old('estado') == 'Buen estado' ? 'selected' : '' }}>✅ Buen estado</option>
+                    <option value="Desgaste moderado" {{ old('estado') == 'Desgaste moderado' ? 'selected' : '' }}>⚠️ Desgaste moderado</option>
+                    <option value="Desgaste severo" {{ old('estado') == 'Desgaste severo' ? 'selected' : '' }}>⚠️ Desgaste severo</option>
+                    <option value="Dañado - Requiere cambio" {{ old('estado') == 'Dañado - Requiere cambio' ? 'selected' : '' }}>❌ Dañado - Requiere cambio</option>
+                    <option value="Dañado - Cambiado" {{ old('estado') == 'Dañado - Cambiado' ? 'selected' : '' }}>🔄 Dañado - Cambiado</option>
                 </select>
-                @error('actividad')
+                @error('estado')
                     <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
                 @enderror
             </div>
             
-            {{-- Observaciones --}}
+            {{-- ACTIVIDAD (Observaciones/descripción) --}}
             <div>
                 <label class="block text-sm font-semibold text-gray-700 mb-2">
                     <i class="fas fa-sticky-note text-amber-600 mr-1"></i>
-                    Actividad
+                    Actividad / Observaciones *
                 </label>
                 <textarea name="actividad" 
-                          rows="3"
-                          placeholder="Notas adicionales sobre el componente..."
+                          rows="4"
+                          placeholder="Describa la actividad realizada, observaciones o notas adicionales sobre el componente..."
                           class="w-full rounded-lg border-gray-300 focus:border-amber-500 focus:ring-amber-500 shadow-sm
-                          @error('actividad') border-red-500 @enderror">{{ old('actividad') }}</textarea>
+                          @error('actividad') border-red-500 @enderror"
+                          required>{{ old('actividad') }}</textarea>
+                <p class="text-xs text-gray-500 mt-1">Describa lo que se realizó durante el análisis o mantenimiento</p>
                 @error('actividad')
                     <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
                 @enderror
@@ -159,13 +165,16 @@
         </form>
     </div>
 </div>
+@endsection
 
-{{-- Script para vista previa de imágenes --}}
+@section('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const inputFotos = document.getElementById('evidencia_fotos');
     const previewFotos = document.getElementById('preview_fotos');
+    const numeroOrdenInput = document.querySelector('input[name="numero_orden"]');
 
+    // Vista previa de imágenes
     inputFotos.addEventListener('change', function() {
         previewFotos.innerHTML = ''; // Limpiar previews anteriores
         const files = Array.from(this.files);
@@ -191,11 +200,21 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Botón para eliminar (opcional)
                 const removeBtn = document.createElement('button');
                 removeBtn.type = 'button';
-                removeBtn.className = 'absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 opacity-0 group-hover:opacity-100 transition-opacity';
+                removeBtn.className = 'absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 opacity-0 group-hover:opacity-100 transition-opacity text-xs';
                 removeBtn.innerHTML = '×';
                 removeBtn.onclick = function() {
                     imgContainer.remove();
-                    // Aquí podrías eliminar el archivo del input también
+                    // También eliminar el archivo del input
+                    const dt = new DataTransfer();
+                    const inputFiles = inputFotos.files;
+                    
+                    for (let i = 0; i < inputFiles.length; i++) {
+                        if (inputFiles[i] !== file) {
+                            dt.items.add(inputFiles[i]);
+                        }
+                    }
+                    
+                    inputFotos.files = dt.files;
                 };
                 
                 imgContainer.appendChild(img);
@@ -204,6 +223,16 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             reader.readAsDataURL(file);
         });
+    });
+
+    // Validación de número de orden (solo números, máximo 8)
+    numeroOrdenInput.addEventListener('input', function(e) {
+        // Solo permite números
+        this.value = this.value.replace(/[^0-9]/g, '');
+        // Limita a 8 caracteres
+        if (this.value.length > 8) {
+            this.value = this.value.slice(0, 8);
+        }
     });
 });
 </script>

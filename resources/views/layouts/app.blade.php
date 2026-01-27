@@ -1,4 +1,3 @@
-<!-- resources/views/layouts/app.blade.php -->
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -139,8 +138,7 @@
         </main>
 
     </div>
-</div>
-
+    </div>
 @yield('scripts')
 </body>
 </html>

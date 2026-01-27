@@ -10,7 +10,7 @@
         <div class="flex items-center gap-3 mb-2">
             <i class="fas fa-ruler-combined text-3xl text-blue-600"></i>
             <h1 class="text-3xl font-bold text-gray-800">
-                Registro de Elongaciones - Línea 7
+                Registro de Elongaciones
             </h1>
         </div>
         <p class="text-gray-600">
@@ -24,14 +24,70 @@
         <form method="POST" action="{{ route('elongaciones.store') }}" id="elongacionForm">
             @csrf
 
-            {{-- Sección LAVADORA LINEA 7 --}}
+            {{-- Selector de Línea --}}
+            <div class="mb-8">
+                <div class="flex items-center gap-2 mb-4 pb-2 border-b border-gray-200">
+                    <i class="fas fa-industry text-xl text-blue-600"></i>
+                    <h2 class="text-xl font-semibold text-gray-800">
+                        Seleccionar Línea
+                    </h2>
+                </div>
+
+                <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-6">
+                    @php
+                        $lineas = [
+                            'L-01' => 'Línea 1',
+                            'L-02' => 'Línea 2', 
+                            'L-03' => 'Línea 3',
+                            'L-04' => 'Línea 4',
+                            'L-05' => 'Línea 5',
+                            'L-06' => 'Línea 6',
+                            'L-07' => 'Línea 7',
+                            'L-08' => 'Línea 8',
+                            'L-09' => 'Línea 9',
+                            'L-10' => 'Línea 10',
+                            'L-11' => 'Línea 11',
+                            'L-12' => 'Línea 12'
+                        ];
+                    @endphp
+                    
+                    @foreach($lineas as $codigo => $nombre)
+                        <div class="relative">
+                            <input type="radio" 
+                                   id="linea_{{ $loop->iteration }}" 
+                                   name="linea" 
+                                   value="{{ $codigo }}"
+                                   class="hidden peer"
+                                   {{ old('linea', 'L-07') == $codigo ? 'checked' : '' }}
+                                   required>
+                            <label for="linea_{{ $loop->iteration }}" 
+                                   class="flex flex-col items-center justify-center p-4 border-2 border-gray-200 rounded-xl cursor-pointer hover:border-blue-400 peer-checked:border-blue-500 peer-checked:bg-blue-50 transition-all duration-200">
+                                <div class="text-lg font-semibold text-gray-700 mb-1">
+                                    {{ $codigo }}
+                                </div>
+                                <div class="text-sm text-gray-500 text-center">
+                                    {{ $nombre }}
+                                </div>
+                                <div class="absolute top-2 right-2 hidden peer-checked:block">
+                                    <i class="fas fa-check-circle text-blue-500"></i>
+                                </div>
+                            </label>
+                        </div>
+                    @endforeach
+                </div>
+
+                {{-- Input oculto para mantener compatibilidad --}}
+                <input type="hidden" id="linea_seleccionada" name="linea_seleccionada" value="{{ old('linea', 'L-07') }}">
+            </div>
+
+            {{-- Sección LAVADORA --}}
             <div class="mb-8">
                 <div class="flex items-center gap-2 mb-4 pb-2 border-b border-gray-200">
                     <i class="fas fa-washer text-xl text-blue-600"></i>
                     <h2 class="text-xl font-semibold text-gray-800">
-                        LAVADORA LINEA 7
+                        LAVADORA <span id="linea_display">LÍNEA 7</span>
                     </h2>
-                    <span class="ml-2 px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded-full">
+                    <span id="linea_badge" class="ml-2 px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded-full">
                         L-07
                     </span>
                 </div>
@@ -155,9 +211,11 @@
                                 HORAS
                             </span>
                         </div>
-                        <p class="text-gray-400 text-sm text-center mt-2">
-                            Última lectura: {{ $ultimaLectura ?? 'Sin registro' }}
-                        </p>
+                        <div id="ultima_lectura_container">
+                            <p class="text-gray-400 text-sm text-center mt-2">
+                                Última lectura: <span id="ultima_lectura">{{ $ultimaLectura ?? 'Sin registro' }}</span>
+                            </p>
+                        </div>
                     </div>
                 </div>
 
@@ -259,7 +317,7 @@
                                 <tbody class="bg-white divide-y divide-gray-200">
                                     <tr>
                                         <td class="px-4 py-4 whitespace-nowrap">
-                                            <span class="px-3 py-1 bg-blue-100 text-blue-800 text-sm font-medium rounded-full">
+                                            <span id="juego_linea_badge" class="px-3 py-1 bg-blue-100 text-blue-800 text-sm font-medium rounded-full">
                                                 L-07
                                             </span>
                                         </td>
@@ -381,6 +439,14 @@ document.addEventListener('DOMContentLoaded', function() {
     const btnCancelarModal = document.getElementById('btnCancelarModal');
     const btnConfirmar = document.getElementById('btnConfirmar');
     
+    // Elementos para selección de línea
+    const lineaInputs = document.querySelectorAll('input[name="linea"]');
+    const lineaSeleccionadaInput = document.getElementById('linea_seleccionada');
+    const lineaDisplay = document.getElementById('linea_display');
+    const lineaBadge = document.getElementById('linea_badge');
+    const juegoLineaBadge = document.getElementById('juego_linea_badge');
+    const ultimaLecturaSpan = document.getElementById('ultima_lectura');
+    
     // Configuración
     const PASO_INICIAL = 173; // mm
     const LIMITE_ADVERTENCIA = 2; // %
@@ -393,8 +459,52 @@ document.addEventListener('DOMContentLoaded', function() {
     // Estado de la aplicación
     let estadoApp = {
         calculando: false,
-        datosGuardados: false
+        datosGuardados: false,
+        lineaActual: lineaSeleccionadaInput.value
     };
+    
+    // ========== FUNCIONES DE SELECCIÓN DE LÍNEA ==========
+    
+    function actualizarLineaSeleccionada() {
+        const lineaSeleccionada = document.querySelector('input[name="linea"]:checked').value;
+        estadoApp.lineaActual = lineaSeleccionada;
+        lineaSeleccionadaInput.value = lineaSeleccionada;
+        
+        // Actualizar UI
+        const numeroLinea = lineaSeleccionada.replace('L-', '');
+        lineaDisplay.textContent = `LÍNEA ${numeroLinea}`;
+        lineaBadge.textContent = lineaSeleccionada;
+        juegoLineaBadge.textContent = lineaSeleccionada;
+        
+        // Cargar última lectura para esta línea
+        cargarUltimaLectura(lineaSeleccionada);
+        
+        // Actualizar datos guardados en localStorage
+        cargarDatosGuardados();
+    }
+    
+    async function cargarUltimaLectura(linea) {
+        try {
+            // Aquí puedes hacer una petición AJAX para obtener la última lectura
+            // Por ahora, mostraremos un mensaje genérico
+            ultimaLecturaSpan.textContent = 'Cargando...';
+            
+            // Simulación de carga (en producción, reemplazar con petición real)
+            setTimeout(() => {
+                ultimaLecturaSpan.textContent = 'Sin registro para esta línea';
+                // En producción, usarías algo como:
+                // fetch(`/api/ultima-lectura/${linea}`)
+                //     .then(response => response.json())
+                //     .then(data => {
+                //         ultimaLecturaSpan.textContent = data.lectura || 'Sin registro';
+                //     });
+            }, 500);
+            
+        } catch (error) {
+            console.error('Error al cargar última lectura:', error);
+            ultimaLecturaSpan.textContent = 'Error al cargar';
+        }
+    }
     
     // ========== FUNCIONES DE CÁLCULO ==========
     
@@ -622,6 +732,12 @@ document.addEventListener('DOMContentLoaded', function() {
     function validarFormulario() {
         let errores = [];
         
+        // Validar línea seleccionada
+        const lineaSeleccionada = document.querySelector('input[name="linea"]:checked');
+        if (!lineaSeleccionada) {
+            errores.push('Debe seleccionar una línea');
+        }
+        
         // Validar hodómetro
         if (!hodometro.value) {
             errores.push('El hodómetro es requerido');
@@ -665,8 +781,14 @@ document.addEventListener('DOMContentLoaded', function() {
             if (document.getElementById(id).value) medicionesVapor++;
         });
         
+        const lineaSeleccionada = document.querySelector('input[name="linea"]:checked').value;
+        
         const resumenHTML = `
             <div class="space-y-3">
+                <div class="flex justify-between items-center">
+                    <span class="text-sm font-medium text-gray-700">Línea:</span>
+                    <span class="text-sm font-semibold text-gray-900">${lineaSeleccionada}</span>
+                </div>
                 <div class="flex justify-between items-center">
                     <span class="text-sm font-medium text-gray-700">Hodómetro:</span>
                     <span class="text-sm font-semibold text-gray-900">${hodometro.value || 'No ingresado'} horas</span>
@@ -779,6 +901,11 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // ========== EVENT LISTENERS ==========
     
+    // Escuchar cambios en la selección de línea
+    lineaInputs.forEach(input => {
+        input.addEventListener('change', actualizarLineaSeleccionada);
+    });
+    
     // Escuchar cambios en las 10 mediciones de bombas
     bombasFields.forEach(id => {
         const field = document.getElementById(id);
@@ -867,50 +994,13 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
     
-    // ========== INICIALIZACIÓN ==========
+    // ========== LOCALSTORAGE Y DATOS ==========
     
-    // Cargar datos del localStorage si existen
-    function cargarDatosGuardados() {
-        const datos = localStorage.getItem('elongacionDraft');
-        if (datos) {
-            try {
-                const parsed = JSON.parse(datos);
-                
-                // Cargar hodómetro
-                if (parsed.hodometro) {
-                    hodometro.value = parsed.hodometro;
-                }
-                
-                // Cargar bombas (ahora 10)
-                if (parsed.bombas) {
-                    Object.entries(parsed.bombas).forEach(([id, value]) => {
-                        const field = document.getElementById(id);
-                        if (field) field.value = value;
-                    });
-                }
-                
-                // Cargar vapor (ahora 10)
-                if (parsed.vapor) {
-                    Object.entries(parsed.vapor).forEach(([id, value]) => {
-                        const field = document.getElementById(id);
-                        if (field) field.value = value;
-                    });
-                }
-                
-                actualizarCalculos();
-                mostrarMensaje('Información', 'Datos recuperados del borrador anterior', 'info');
-                
-            } catch (error) {
-                console.error('Error al cargar datos:', error);
-            }
-        }
-    }
-    
-    // Guardar datos automáticamente (ahora con 10 mediciones)
     function guardarDatos() {
         if (estadoApp.datosGuardados) return;
         
         const datos = {
+            linea: estadoApp.lineaActual,
             hodometro: hodometro.value,
             bombas: bombasFields.reduce((acc, id) => {
                 acc[id] = document.getElementById(id).value;
@@ -920,21 +1010,71 @@ document.addEventListener('DOMContentLoaded', function() {
                 acc[id] = document.getElementById(id).value;
                 return acc;
             }, {}),
+            juego_rodaja_bombas: document.getElementById('juego_rodaja_bombas').value,
+            juego_rodaja_vapor: document.getElementById('juego_rodaja_vapor').value,
             timestamp: new Date().toISOString()
         };
         
         localStorage.setItem('elongacionDraft', JSON.stringify(datos));
     }
     
-    // Limpiar localStorage después de enviar
+    function cargarDatosGuardados() {
+        const datos = localStorage.getItem('elongacionDraft');
+        if (datos) {
+            try {
+                const parsed = JSON.parse(datos);
+                
+                // Verificar si los datos son para la línea actual
+                if (parsed.linea === estadoApp.lineaActual) {
+                    // Cargar hodómetro
+                    if (parsed.hodometro) {
+                        hodometro.value = parsed.hodometro;
+                    }
+                    
+                    // Cargar bombas (ahora 10)
+                    if (parsed.bombas) {
+                        Object.entries(parsed.bombas).forEach(([id, value]) => {
+                            const field = document.getElementById(id);
+                            if (field) field.value = value;
+                        });
+                    }
+                    
+                    // Cargar vapor (ahora 10)
+                    if (parsed.vapor) {
+                        Object.entries(parsed.vapor).forEach(([id, value]) => {
+                            const field = document.getElementById(id);
+                            if (field) field.value = value;
+                        });
+                    }
+                    
+                    // Cargar juego de rodaja
+                    if (parsed.juego_rodaja_bombas) {
+                        document.getElementById('juego_rodaja_bombas').value = parsed.juego_rodaja_bombas;
+                    }
+                    
+                    if (parsed.juego_rodaja_vapor) {
+                        document.getElementById('juego_rodaja_vapor').value = parsed.juego_rodaja_vapor;
+                    }
+                    
+                    actualizarCalculos();
+                }
+                
+            } catch (error) {
+                console.error('Error al cargar datos:', error);
+            }
+        }
+    }
+    
     function limpiarLocalStorage() {
         localStorage.removeItem('elongacionDraft');
         estadoApp.datosGuardados = true;
     }
     
-    // Inicializar aplicación
+    // ========== INICIALIZACIÓN ==========
+    
     function inicializar() {
-        cargarDatosGuardados();
+        // Actualizar línea seleccionada inicialmente
+        actualizarLineaSeleccionada();
         actualizarCalculos();
         
         // Guardar datos cada 30 segundos
@@ -1022,16 +1162,34 @@ document.addEventListener('DOMContentLoaded', function() {
         background-color: #fef2f2;
     }
     
+    /* Estilos para selector de línea */
+    input[name="linea"] + label:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+    
+    input[name="linea"]:checked + label {
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+    
     /* Responsive adjustments para 10 columnas */
     @media (max-width: 768px) {
         .grid-cols-5 {
             grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+        
+        .grid-cols-6 {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
         }
     }
     
     @media (min-width: 768px) and (max-width: 1024px) {
         .grid-cols-5 {
             grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+        
+        .grid-cols-6 {
+            grid-template-columns: repeat(4, minmax(0, 1fr));
         }
     }
 </style>

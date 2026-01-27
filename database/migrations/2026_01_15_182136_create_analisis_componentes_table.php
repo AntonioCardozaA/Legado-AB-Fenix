@@ -25,7 +25,9 @@ return new class extends Migration
             $table->date('fecha_analisis');
             $table->string('numero_orden');
             $table->string('actividad');
-            
+            $table->string('estado', 50)
+                  ->default('Buen estado')
+                  ->comment('Estado del componente: Buen estado, Desgaste moderado, Desgaste severo, Dañado - Requiere cambio, Dañado - Cambiado');
             // Evidencia
             $table->json('evidencia_fotos')->nullable();
 

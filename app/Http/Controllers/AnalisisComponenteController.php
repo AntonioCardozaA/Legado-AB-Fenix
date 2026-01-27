@@ -90,7 +90,7 @@ public function index(Request $request)
     /**
      * GUARDAR ANÁLISIS
      */
-  public function store(Request $request)
+    public function store(Request $request)
 {
     $validated = $request->validate([
         'linea_id' => 'required|exists:lineas,id',
@@ -99,6 +99,7 @@ public function index(Request $request)
         'fecha_analisis' => 'required|date',
         'numero_orden' => 'required|string|max:50',
         'actividad' => 'required|string',
+        'estado' => 'required|string|max:255', // ✅ AQUÍ AGREGAR ESTO
         'evidencia_fotos.*' => 'image|max:2048',
     ]);
 
@@ -167,6 +168,7 @@ public function index(Request $request)
         'fecha_analisis' => 'required|date',
         'numero_orden' => 'required|string|max:50',
         'actividad' => 'required|string',
+        'estado' => 'required|string|max:255', // ✅ AQUÍ AGREGAR ESTO
         'evidencia_fotos.*' => 'image|max:2048',
     ]);
 

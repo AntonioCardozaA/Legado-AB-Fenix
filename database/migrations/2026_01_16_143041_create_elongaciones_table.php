@@ -23,6 +23,8 @@ return new class extends Migration
             $table->decimal('bombas_6', 5, 1)->nullable();
             $table->decimal('bombas_7', 5, 1)->nullable();
             $table->decimal('bombas_8', 5, 1)->nullable();
+            $table->decimal('bombas_9', 5, 1)->nullable();
+            $table->decimal('bombas_10', 5, 1)->nullable();
             $table->decimal('bombas_promedio', 5, 2)->nullable();
             $table->decimal('bombas_porcentaje', 5, 2)->nullable();
             
@@ -31,6 +33,12 @@ return new class extends Migration
             $table->decimal('vapor_2', 5, 1)->nullable();
             $table->decimal('vapor_3', 5, 1)->nullable();
             $table->decimal('vapor_4', 5, 1)->nullable();
+            $table->decimal('vapor_5', 5, 1)->nullable();
+            $table->decimal('vapor_6', 5, 1)->nullable();
+            $table->decimal('vapor_7', 5, 1)->nullable();
+            $table->decimal('vapor_8', 5, 1)->nullable();
+            $table->decimal('vapor_9', 5, 1)->nullable();
+            $table->decimal('vapor_10', 5, 1)->nullable();
             $table->decimal('vapor_promedio', 5, 2)->nullable();
             $table->decimal('vapor_porcentaje', 5, 2)->nullable();
             

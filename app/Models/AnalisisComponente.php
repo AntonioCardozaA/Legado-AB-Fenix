@@ -18,6 +18,7 @@ class AnalisisComponente extends Model
         'fecha_analisis',
         'numero_orden',
         'actividad',
+        'estado',
         'evidencia_fotos',
     ];
 
