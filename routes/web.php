@@ -37,51 +37,62 @@ Route::middleware(['auth'])->group(function () {
 
     /*
     |--------------------------------------------------------------------------
-    | FLUJO DE ANÁLISIS DE COMPONENTES
+    | FLUJO DE ANÁLISIS DE COMPONENTES (CORREGIDO)
     |--------------------------------------------------------------------------
     */
     Route::prefix('analisis-componentes')->name('analisis-componentes.')->group(function () {
-
+        
+        // Rutas principales
         Route::get('/', [AnalisisComponenteController::class, 'index'])
             ->name('index');
-
-        Route::get('/crear-rapido', [AnalisisComponenteController::class, 'createQuick'])
-            ->name('create-quick');
-
+        
         Route::get('/seleccionar-linea', [AnalisisComponenteController::class, 'selectLinea'])
             ->name('select-linea');
-
+        
         Route::get('/crear/{linea}', [AnalisisComponenteController::class, 'createWithLinea'])
             ->name('create');
-
+        
+        Route::get('/crear-rapido', [AnalisisComponenteController::class, 'createQuick'])
+            ->name('create-quick');
+        
         Route::post('/', [AnalisisComponenteController::class, 'store'])
             ->name('store');
-
+        
+        // Rutas de recursos (CRUD)
         Route::get('/{analisisComponente}', [AnalisisComponenteController::class, 'show'])
             ->name('show');
-
+        
         Route::get('/{analisisComponente}/editar', [AnalisisComponenteController::class, 'edit'])
             ->name('edit');
+       Route::put('/{analisisComponente}', [AnalisisComponenteController::class, 'update'])
+    ->name('update');
 
-        Route::put('/{analisisComponente}', [AnalisisComponenteController::class, 'update'])
-            ->name('update');
-
+        
         Route::delete('/{analisisComponente}', [AnalisisComponenteController::class, 'destroy'])
             ->name('destroy');
-
+        
+        // Exportación
         Route::get('/export/excel', [AnalisisComponenteController::class, 'exportExcel'])
             ->name('export.excel');
-
+        
         Route::get('/export/pdf', [AnalisisComponenteController::class, 'exportPdf'])
             ->name('export.pdf');
-
+        
+        // Eliminar foto
         Route::delete('/{analisisComponente}/foto/{fotoIndex}', [AnalisisComponenteController::class, 'deleteFoto'])
             ->name('delete-foto');
+        
+        // API para componentes y reductores
+        Route::get('/get-componentes-por-linea', [AnalisisComponenteController::class, 'getComponentesPorLineaAjax'])
+            ->name('get-componentes-por-linea');
+        
+        Route::get('/get-reductores-por-linea', [AnalisisComponenteController::class, 'getReductoresPorLineaPublic'])
+            ->name('get-reductores-por-linea');
     });
 
     /*
     |--------------------------------------------------------------------------
-    | FLUJO DE ANÁLISIS
+    | FLUJO DE ANÁLISIS (original)
     |--------------------------------------------------------------------------
     */
     Route::prefix('analisis')->name('analisis.')->group(function () {
@@ -143,20 +154,6 @@ Route::middleware(['auth'])->group(function () {
 
     /*
     |--------------------------------------------------------------------------
-    | Análisis de Componentes (CRUD adicional)
-    |--------------------------------------------------------------------------
-    */
-    Route::resource('analisis.componentes', AnalisisComponenteController::class)
-        ->except(['index'])
-        ->shallow();
-
-    Route::get(
-        'analisis/{analisis}/componentes/create/{categoria}',
-        [AnalisisComponenteController::class, 'createWithCategoria']
-    )->name('analisis.componentes.create-with-categoria');
-
-    /*
-    |--------------------------------------------------------------------------
     | API
     |--------------------------------------------------------------------------
     */
@@ -167,6 +164,10 @@ Route::middleware(['auth'])->group(function () {
         Route::get('estadisticas/dashboard', [ApiController::class, 'dashboard']);
         Route::get('analisis/tendencia/{linea}', [ApiController::class, 'tendenciaLinea']);
         Route::get('analisis/danos-tendencia', [ApiController::class, 'danosTendencia']);
+        
+        // API específica para análisis de componentes
+        Route::get('analisis-componentes/componentes-por-linea', [AnalisisComponenteController::class, 'getComponentesPorLineaAjax']);
+        Route::get('analisis-componentes/reductores-por-linea', [AnalisisComponenteController::class, 'getReductoresPorLineaPublic']);
     });
 
     /*
@@ -222,7 +223,7 @@ Route::middleware(['web'])->group(function () {
         ->name('elongaciones.edit');
     
     Route::put('/elongaciones/{elongacion}', [ElongacionController::class, 'update'])
-        ->name('elongaciones.update');
+            ->name('elongaciones.update');
     
     Route::delete('/elongaciones/{elongacion}', [ElongacionController::class, 'destroy'])
         ->name('elongaciones.destroy');

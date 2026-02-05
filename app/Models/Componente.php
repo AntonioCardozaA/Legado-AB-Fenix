@@ -60,4 +60,8 @@ class Componente extends Model
             $q->where('linea_id', $lineaId);
         });
     }
+    public function numeroR()
+    {
+        return $this->belongsTo(NumeroR::class, 'numero_r_id', 'id');
+    }
 }

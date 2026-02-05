@@ -45,9 +45,26 @@
             
             {{-- Campos ocultos con datos pre-establecidos --}}
             <input type="hidden" name="linea_id" value="{{ $linea->id }}">
-            <input type="hidden" name="componente_id" value="{{ $componente->id }}">
+            
+            {{-- IMPORTANTE: Pasar el código base del componente, no el código completo --}}
+            @php
+                // Extraer el código base del componente
+                $codigoBase = $componente->codigo;
+                $codigosBase = ['SERVO_CHICO', 'SERVO_GRANDE', 'BUJE_ESPIGA', 
+                               'GUI_INF_TANQUE', 'GUI_INF_VAPOR_PASILLO', 
+                               'GUI_SUP_TANQUE', 'CATARINAS', 'RV200', 'RV200_SIN_FIN'];
+                
+                foreach ($codigosBase as $codigo) {
+                    if (str_contains($componente->codigo, $codigo)) {
+                        $codigoBase = $codigo;
+                        break;
+                    }
+                }
+            @endphp
+            
+            <input type="hidden" name="componente_codigo" value="{{ $codigoBase }}">
             <input type="hidden" name="reductor" value="{{ $reductor }}">
-            <input type="hidden" name="redirect_to" value="{{ url()->previous() }}">
+            <input type="hidden" name="redirect_to" value="{{ $redirect_to }}">
             
             {{-- Fecha del análisis --}}
             <div>
@@ -87,7 +104,7 @@
                 @enderror
             </div>
             
-            {{-- ESTADO (antes llamado "Actividad / Estado") --}}
+            {{-- ESTADO --}}
             <div>
                 <label class="block text-sm font-semibold text-gray-700 mb-2">
                     <i class="fas fa-clipboard-check text-amber-600 mr-1"></i>
@@ -127,7 +144,7 @@
                 @enderror
             </div>
             
-            {{-- Evidencia Fotográfica (múltiples imágenes) --}}
+            {{-- Evidencia Fotográfica --}}
             <div>
                 <label class="block text-sm font-semibold text-gray-700 mb-2">
                     <i class="fas fa-camera text-amber-600 mr-1"></i>
@@ -232,6 +249,16 @@ document.addEventListener('DOMContentLoaded', function() {
         // Limita a 8 caracteres
         if (this.value.length > 8) {
             this.value = this.value.slice(0, 8);
+        }
+    });
+    
+    // Validar que el número de orden tenga 8 dígitos al enviar el formulario
+    document.querySelector('form').addEventListener('submit', function(e) {
+        const ordenValue = numeroOrdenInput.value.trim();
+        if (ordenValue.length !== 8) {
+            e.preventDefault();
+            alert('El número de orden debe tener exactamente 8 dígitos.');
+            numeroOrdenInput.focus();
         }
     });
 });

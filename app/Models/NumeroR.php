@@ -12,20 +12,26 @@ class NumeroR extends Model
     protected $table = 'numeros_r';
     
     protected $fillable = [
-        'categoria_id',
+        'categoria_id', // aquí puedes usar la relación con Linea si quieres
         'codigo',
         'descripcion',
         'activo',
     ];
 
     /* =======================
-     | Relaciones
-     ======================= */
-
+       Relaciones
+    ======================= */
+    
     public function categoria()
     {
-        return $this->belongsTo(Categoria::class);
+        return $this->belongsTo(Linea::class, 'categoria_id'); // asumiendo que categoria = Linea
     }
+
+    public function componentes()
+{
+    return $this->hasMany(Componente::class, 'numero_r_id', 'id');
+}
+
 
     public function analisis()
     {
@@ -38,8 +44,8 @@ class NumeroR extends Model
     }
 
     /* =======================
-     | Scopes
-     ======================= */
+       Scopes
+    ======================= */
 
     public function scopeActivos($query)
     {
@@ -52,8 +58,8 @@ class NumeroR extends Model
     }
 
     /* =======================
-     | Accessors
-     ======================= */
+       Accessors
+    ======================= */
 
     public function getNombreCompletoAttribute()
     {

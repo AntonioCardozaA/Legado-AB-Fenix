@@ -45,25 +45,25 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 {{-- Componente --}}
                 <div>
-                    <label for="componente_id" class="block text-sm font-medium text-gray-700 mb-1">
+                    <label for="componente_codigo" class="block text-sm font-medium text-gray-700 mb-1">
                         <i class="fas fa-cog text-blue-600 mr-1"></i>
                         Componente *
                     </label>
-                    <select id="componente_id" name="componente_id"
+                    <select id="componente_codigo" name="componente_codigo"
                             class="block w-full rounded-lg border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm
-                                   @error('componente_id') border-red-500 @enderror"
+                                   @error('componente_codigo') border-red-500 @enderror"
                             required
                             onchange="actualizarInformacion()">
                         <option value="">Seleccionar componente...</option>
-                        @foreach($componentes as $componente)
-                            <option value="{{ $componente->id }}"
-                                {{ old('componente_id') == $componente->id ? 'selected' : '' }}
-                                data-nombre="{{ $componente->nombre }}">
-                                {{ $componente->nombre }}
+                        @foreach($componentesDisponibles as $codigo => $nombre)
+                            <option value="{{ $codigo }}"
+                                {{ old('componente_codigo') == $codigo ? 'selected' : '' }}
+                                data-nombre="{{ $nombre }}">
+                                {{ $nombre }} ({{ $codigo }})
                             </option>
                         @endforeach
                     </select>
-                    @error('componente_id')
+                    @error('componente_codigo')
                         <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
                     @enderror
                 </div>
@@ -120,6 +120,7 @@
                     <input type="text" 
                            id="numero_orden"
                            name="numero_orden" 
+                           value="{{ old('numero_orden') }}"
                            required
                            maxlength="8"
                            pattern="\d{8}"
@@ -275,14 +276,14 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // Actualizar información al cargar la página si hay valores previos
-    if (document.getElementById('componente_id').value || document.getElementById('reductor').value) {
+    if (document.getElementById('componente_codigo').value || document.getElementById('reductor').value) {
         actualizarInformacion();
     }
 });
 
 // Función para actualizar la información del encabezado
 function actualizarInformacion() {
-    const componenteSelect = document.getElementById('componente_id');
+    const componenteSelect = document.getElementById('componente_codigo');
     const reductorSelect = document.getElementById('reductor');
     
     const componenteInfo = document.getElementById('componente-info');

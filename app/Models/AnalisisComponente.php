@@ -44,7 +44,7 @@ class AnalisisComponente extends Model
     }
 
     /**
-     * Relación con análisis general (para el futuro)
+     * Relación futura
      */
     public function analisisGeneral()
     {
@@ -52,23 +52,7 @@ class AnalisisComponente extends Model
     }
 
     /**
-     * Obtener las fotos como array
-     */
-    public function getEvidenciaFotosAttribute($value)
-    {
-        return $value ? json_decode($value, true) : [];
-    }
-
-    /**
-     * Establecer las fotos como JSON
-     */
-    public function setEvidenciaFotosAttribute($value)
-    {
-        $this->attributes['evidencia_fotos'] = $value ? json_encode($value) : null;
-    }
-
-    /**
-     * Scope para filtrar por línea
+     * Scopes
      */
     public function scopeLinea($query, $lineaId)
     {
@@ -78,9 +62,6 @@ class AnalisisComponente extends Model
         return $query;
     }
 
-    /**
-     * Scope para filtrar por componente
-     */
     public function scopeComponente($query, $componenteId)
     {
         if ($componenteId) {
@@ -89,9 +70,6 @@ class AnalisisComponente extends Model
         return $query;
     }
 
-    /**
-     * Scope para filtrar por reductor
-     */
     public function scopeReductor($query, $reductor)
     {
         if ($reductor) {
@@ -100,9 +78,6 @@ class AnalisisComponente extends Model
         return $query;
     }
 
-    /**
-     * Scope para filtrar por mes y año
-     */
     public function scopeMes($query, $fecha)
     {
         if ($fecha) {

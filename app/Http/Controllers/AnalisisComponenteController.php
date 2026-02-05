@@ -7,183 +7,630 @@ use App\Models\Linea;
 use App\Models\Componente;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
-use Symfony\Component\HttpFoundation\StreamedResponse;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 use App\Exports\AnalisisComponentesExport;
 use Maatwebsite\Excel\Facades\Excel;
 use Barryvdh\DomPDF\Facade\Pdf;
-
 
 class AnalisisComponenteController extends Controller
 {
     /**
      * LISTADO + FILTROS
      */
-public function index(Request $request) 
-{
-    $query = AnalisisComponente::with(['linea', 'componente'])
-        ->orderBy('fecha_analisis', 'desc');
+    public function index(Request $request)
+    {
+        $query = AnalisisComponente::with(['linea', 'componente'])
+            ->orderBy('fecha_analisis', 'desc')
+            ->orderBy('created_at', 'desc');
 
-    // 🔍 Filtros
-    if ($request->filled('linea_id')) {
-        $query->where('linea_id', $request->linea_id);
+        if ($request->filled('linea_id')) {
+            $query->where('linea_id', $request->linea_id);
+        }
+
+        if ($request->filled('componente_id')) {
+            $query->whereHas('componente', function ($q) use ($request) {
+                $q->where('codigo', 'like', '%' . $request->componente_id . '%');
+            });
+        }
+
+        if ($request->filled('reductor')) {
+            $query->where('reductor', 'like', '%' . $request->reductor . '%');
+        }
+
+        if ($request->filled('estado')) {
+            $query->where('estado', $request->estado);
+        }
+
+        if ($request->filled('fecha')) {
+            $query->whereMonth('fecha_analisis', substr($request->fecha, 5, 2))
+                  ->whereYear('fecha_analisis', substr($request->fecha, 0, 4));
+        }
+
+        $analisis = $query->paginate(10)->withQueryString();
+
+        // Obtener componentes por línea para la vista
+        $componentesPorLinea = $this->getComponentesPorLinea();
+        
+        // Obtener todos los componentes posibles para el filtro
+        $todosComponentes = $this->getTodosComponentes();
+
+        // Si hay filtro de línea, obtener reductores específicos
+        $reductoresMostrar = [];
+        if ($request->filled('linea_id')) {
+            $linea = Linea::find($request->linea_id);
+            if ($linea) {
+                $reductoresMostrar = $this->getReductoresPorLinea($linea->nombre);
+            }
+        }
+
+        return view('analisis-componentes.index', [
+            'analisis' => $analisis,
+            'lineas' => Linea::where('activo', true)->orderBy('nombre')->get(),
+            'componentesPorLinea' => $componentesPorLinea,
+            'todosComponentes' => $todosComponentes,
+            'reductores' => AnalisisComponente::select('reductor')
+                ->whereNotNull('reductor')
+                ->distinct()
+                ->orderBy('reductor')
+                ->pluck('reductor'),
+            'reductoresMostrar' => $reductoresMostrar,
+            'filtros' => $request->all(),
+        ]);
     }
-
-    if ($request->filled('componente_id')) {
-        $query->where('componente_id', $request->componente_id);
-    }
-
-    if ($request->filled('reductor')) {
-        $query->where('reductor', $request->reductor);
-    }
-
-    if ($request->filled('fecha')) {
-        $query->whereMonth('fecha_analisis', substr($request->fecha, 5, 2))
-              ->whereYear('fecha_analisis', substr($request->fecha, 0, 4));
-    }
-
-    // 📄 Resultados
-    $analisis = $query->paginate(10)->withQueryString();
-
-    // ✅ Listas para filtros
-    $lineas = Linea::orderBy('nombre')->get();
-    $componentes = Componente::orderBy('nombre')->get();
-
-    $reductores = AnalisisComponente::select('reductor')
-        ->whereNotNull('reductor')
-        ->distinct()
-        ->orderBy('reductor')
-        ->pluck('reductor');
-
-    // ✅ Retorno con filtros actuales
-    return view('analisis-componentes.index', [
-        'analisis'    => $analisis,
-        'lineas'      => $lineas,
-        'componentes' => $componentes,
-        'reductores'  => $reductores,
-        'filtros'     => $request->all(), // 🔥 AQUÍ LO QUE FALTABA
-    ]);
-}
-
-
 
     /**
-     * SELECCIONAR LAVADORA
+     * Obtener componentes organizados por línea para la tabla.
+     */
+    private function getComponentesPorLinea(): array
+    {
+        return [
+            'L-04' => [
+                'SERVO_CHICO' => 'Servo Chico',
+                'SERVO_GRANDE' => 'Servo Grande',
+                'BUJE_ESPIGA' => 'Buje Baquelita-Espiga',
+                'GUI_INF_TANQUE' => 'Guía Inf Tanque',
+                'GUI_INF_VAPOR_PASILLO' => 'Guía Inf Vapor/Pasillo',
+                'GUI_SUP_TANQUE' => 'Guía Sup Tanque',
+                'CATARINAS' => 'Catarinas',
+            ],
+            'L-05' => [
+                'RV200' => 'Reductor RV200',
+                'BUJE_ESPIGA' => 'Buje Baquelita-Espiga',
+                'GUI_INF_TANQUE' => 'Guía Inf Tanque',
+                'GUI_INF_VAPOR_PASILLO' => 'Guía Inf Vapor/Pasillo',
+                'GUI_SUP_TANQUE' => 'Guía Sup Tanque',
+                'CATARINAS' => 'Catarinas',
+            ],
+            'L-06' => [
+                'SERVO_CHICO' => 'Servo Chico',
+                'SERVO_GRANDE' => 'Servo Grande',
+                'BUJE_ESPIGA' => 'Buje Baquelita-Espiga',
+                'GUI_INF_TANQUE' => 'Guía Inf Tanque',
+                'GUI_INF_VAPOR_PASILLO' => 'Guía Inf Vapor/Pasillo',
+                'GUI_SUP_TANQUE' => 'Guía Sup Tanque',
+                'CATARINAS' => 'Catarinas',
+            ],
+            'L-07' => [
+                'SERVO_CHICO' => 'Servo Chico',
+                'SERVO_GRANDE' => 'Servo Grande',
+                'BUJE_ESPIGA' => 'Buje Baquelita-Espiga',
+                'GUI_INF_TANQUE' => 'Guía Inf Tanque',
+                'GUI_INF_VAPOR_PASILLO' => 'Guía Inf Vapor/Pasillo',
+                'GUI_SUP_TANQUE' => 'Guía Sup Tanque',
+                'CATARINAS' => 'Catarinas',
+            ],
+            'L-08' => [
+                'SERVO_CHICO' => 'Servo Chico',
+                'SERVO_GRANDE' => 'Servo Grande',
+                'BUJE_ESPIGA' => 'Buje Baquelita-Espiga',
+                'GUI_INF_TANQUE' => 'Guía Inf Tanque',
+                'GUI_INF_VAPOR_PASILLO' => 'Guía Inf Vapor/Pasillo',
+                'GUI_SUP_TANQUE' => 'Guía Sup Tanque',
+                'CATARINAS' => 'Catarinas',
+            ],
+            'L-09' => [
+                'SERVO_CHICO' => 'Servo Chico',
+                'SERVO_GRANDE' => 'Servo Grande',
+                'BUJE_ESPIGA' => 'Buje Baquelita-Espiga',
+                'GUI_INF_TANQUE' => 'Guía Inf Tanque',
+                'GUI_INF_VAPOR_PASILLO' => 'Guía Inf Vapor/Pasillo',
+                'GUI_SUP_TANQUE' => 'Guía Sup Tanque',
+                'CATARINAS' => 'Catarinas',
+            ],
+            'L-12' => [
+                'RV200_SIN_FIN' => 'Reductor Sin Fin-Corona RV200',
+                'BUJE_ESPIGA' => 'Buje Baquelita-Espiga',
+                'GUI_INF_TANQUE' => 'Guía Inf Tanque',
+                'GUI_INF_VAPOR_PASILLO' => 'Guía Inf Vapor/Pasillo',
+                'GUI_SUP_TANQUE' => 'Guía Sup Tanque',
+                'CATARINAS' => 'Catarinas',
+            ],
+            'L-13' => [
+                'RV200' => 'Reductor RV200',
+                'BUJE_ESPIGA' => 'Buje Baquelita-Espiga',
+                'GUI_INF_TANQUE' => 'Guía Inf Tanque',
+                'GUI_INF_VAPOR_PASILLO' => 'Guía Inf Vapor/Pasillo',
+                'GUI_SUP_TANQUE' => 'Guía Sup Tanque',
+                'CATARINAS' => 'Catarinas',
+            ],
+        ];
+    }
+    
+    /**
+     * Obtener todos los componentes posibles para el filtro.
+     */
+    private function getTodosComponentes(): array
+    {
+        return [
+            'SERVO_CHICO' => 'Servo Chico',
+            'SERVO_GRANDE' => 'Servo Grande',
+            'BUJE_ESPIGA' => 'Buje Baquelita-Espiga',
+            'GUI_INF_TANQUE' => 'Guía Inf Tanque',
+            'GUI_INF_VAPOR_PASILLO' => 'Guía Inf Vapor/Pasillo',
+            'GUI_SUP_TANQUE' => 'Guía Sup Tanque',
+            'CATARINAS' => 'Catarinas',
+            'RV200' => 'Reductor RV200',
+            'RV200_SIN_FIN' => 'Reductor Sin Fin-Corona RV200'
+        ];
+    }
+
+    /**
+     * Obtener todos los reductores posibles para una línea específica
+     */
+    private function getReductoresPorLinea(string $lineaNombre): array
+    {
+        $reductoresPorLinea = [
+            'L-04' => ['Reductor 1', 'Reductor 9', 'Reductor 10', 'Reductor 11', 'Reductor 12', 
+                      'Reductor 13', 'Reductor 14', 'Reductor 15', 'Reductor 16', 'Reductor 17', 
+                      'Reductor 18', 'Reductor 19', 'Reductor Loca'],
+            'L-05' => ['Reductor 1', 'Reductor 2', 'Reductor 3', 'Reductor 4', 'Reductor 5', 
+                      'Reductor 6', 'Reductor 7', 'Reductor 8', 'Reductor 9', 'Reductor 10', 
+                      'Reductor 11', 'Reductor 12', 'Reductor Principal', 'Reductor Loca'],
+            'L-06' => ['Reductor 1', 'Reductor 9', 'Reductor 10', 'Reductor 11', 'Reductor 12', 
+                      'Reductor 13', 'Reductor 14', 'Reductor 15', 'Reductor 16', 'Reductor 17', 
+                      'Reductor 18', 'Reductor 19', 'Reductor 20', 'Reductor 21', 'Reductor 22'],
+            'L-07' => ['Reductor 1', 'Reductor 9', 'Reductor 10', 'Reductor 11', 'Reductor 12', 
+                      'Reductor 13', 'Reductor 14', 'Reductor 15', 'Reductor 16', 'Reductor 17', 
+                      'Reductor 18', 'Reductor 19', 'Reductor 20', 'Reductor 21', 'Reductor 22'],
+            'L-08' => ['Reductor 1', 'Reductor 9', 'Reductor 10', 'Reductor 11', 'Reductor 12', 
+                      'Reductor 13', 'Reductor 14', 'Reductor 15', 'Reductor 16', 'Reductor 17', 
+                      'Reductor 18', 'Reductor 19', 'Reductor Loca'],
+            'L-09' => ['Reductor 1', 'Reductor 9', 'Reductor 10', 'Reductor 11', 'Reductor 12', 
+                      'Reductor 13', 'Reductor 14', 'Reductor 15', 'Reductor 16', 'Reductor 17', 
+                      'Reductor 18', 'Reductor 19', 'Reductor Loca'],
+            'L-12' => ['Reductor 1', 'Reductor 2', 'Reductor 3', 'Reductor 4', 'Reductor 5', 
+                      'Reductor 6', 'Reductor 7', 'Reductor 8', 'Reductor 9', 'Reductor 10', 
+                      'Reductor 11', 'Reductor 12', 'Reductor Loca'],
+            'L-13' => ['Reductor 1', 'Reductor 2', 'Reductor 3', 'Reductor 4', 'Reductor 5', 
+                      'Reductor 6', 'Reductor 7', 'Reductor 8', 'Reductor 9', 'Reductor 10', 
+                      'Reductor 11', 'Reductor 12', 'Reductor Loca', 'Reductor Principal']
+        ];
+
+        return $reductoresPorLinea[$lineaNombre] ?? ['Reductor 1', 'Reductor 2', 'Reductor 3'];
+    }
+
+    /**
+     * SELECCIONAR LÍNEA (LAVADORA)
      */
     public function selectLinea()
     {
-        $lineas = Linea::orderBy('nombre')->get();
+        $lineas = Linea::whereIn('nombre', [
+            'L-04','L-05','L-06','L-07','L-08','L-09','L-12','L-13'
+        ])->get();
+
         return view('analisis-componentes.select-linea', compact('lineas'));
     }
 
     /**
-     * CREAR ANÁLISIS (CON LAVADORA)
+     * CREAR ANÁLISIS CON LÍNEA
      */
-    public function createWithLinea(Linea $linea)
+    public function createWithLinea($lineaId)
     {
-        return view('analisis-componentes.create', [
-            'linea' => $linea,
-            'componentes' => Componente::orderBy('nombre')->get(),
-            'reductores' => ['Reductor 1', 'Reductor 2', 'Reductor 3', 'Reductor 4'],
+        $linea = Linea::findOrFail($lineaId);
+
+        // Obtener componentes disponibles para esta línea
+        $componentesPorLinea = $this->getComponentesPorLinea();
+        $componentesDisponibles = $componentesPorLinea[$linea->nombre] ?? [];
+
+        // Obtener reductores únicos para esta línea
+        $reductores = Componente::where('linea', $linea->nombre)
+            ->where('activo', true)
+            ->whereNotNull('reductor')
+            ->select('reductor')
+            ->distinct()
+            ->orderBy('reductor')
+            ->pluck('reductor');
+
+        return view('analisis-componentes.create', compact(
+            'linea',
+            'componentesDisponibles',
+            'reductores'
+        ));
+    }
+
+    /**
+     * CREAR ANÁLISIS RÁPIDO
+     */
+    public function createQuick(Request $request)
+    {
+        // Validar que los parámetros requeridos están presentes
+        $request->validate([
+            'linea_id'           => 'required|exists:lineas,id',
+            'componente_codigo'  => 'required|string',
+            'reductor'           => 'required|string',
+        ]);
+
+        Log::info('Creando análisis rápido con:', $request->all());
+
+        $linea = Linea::findOrFail($request->linea_id);
+        
+        // Buscar el componente por código (sin filtrar por línea primero)
+        $componente = Componente::where('codigo', $request->componente_codigo)
+            ->first();
+
+        // Si no existe el componente en la base de datos
+        if (!$componente) {
+            Log::info('Componente no encontrado, creando nuevo: ' . $request->componente_codigo);
+            
+            try {
+                $componente = Componente::create([
+                    'codigo' => $request->componente_codigo,
+                    'nombre' => $this->getNombreComponente($request->componente_codigo),
+                    'reductor' => $request->reductor,
+                    'ubicacion' => $request->reductor,
+                    'linea' => $linea->nombre,
+                    'cantidad_total' => 1,
+                    'activo' => true,
+                ]);
+                
+                Log::info('Componente creado con ID: ' . $componente->id);
+            } catch (\Illuminate\Database\QueryException $e) {
+                // Si hay error de duplicado, buscar el componente existente
+                if ($e->getCode() == '23000') {
+                    Log::warning('Error de duplicado, buscando componente existente...');
+                    $componente = Componente::where('codigo', $request->componente_codigo)
+                        ->first();
+                    
+                    if ($componente) {
+                        Log::info('Componente encontrado después de error de duplicado: ' . $componente->id);
+                    } else {
+                        Log::error('No se pudo encontrar el componente después del error de duplicado');
+                        return back()->withErrors(['error' => 'Error al crear el componente. Ya existe un componente con este código.']);
+                    }
+                } else {
+                    Log::error('Error al crear componente:', ['error' => $e->getMessage()]);
+                    return back()->withErrors(['error' => 'Error al crear el componente: ' . $e->getMessage()]);
+                }
+            }
+        } else {
+            Log::info('Componente encontrado con ID: ' . $componente->id);
+            
+            // Si el componente existe pero no tiene la línea correcta, actualizarlo
+            if ($componente->linea !== $linea->nombre) {
+                Log::info('Actualizando línea del componente de ' . $componente->linea . ' a ' . $linea->nombre);
+                
+                // Crear un nuevo componente específico para esta línea
+                try {
+                    $nuevoComponente = Componente::create([
+                        'codigo' => $request->componente_codigo . '_' . str_replace('-', '_', $linea->nombre),
+                        'nombre' => $this->getNombreComponente($request->componente_codigo),
+                        'reductor' => $request->reductor,
+                        'ubicacion' => $request->reductor,
+                        'linea' => $linea->nombre,
+                        'cantidad_total' => 1,
+                        'activo' => true,
+                    ]);
+                    
+                    $componente = $nuevoComponente;
+                    Log::info('Nuevo componente creado para línea específica con ID: ' . $componente->id);
+                } catch (\Exception $e) {
+                    Log::error('Error al crear componente para línea específica:', ['error' => $e->getMessage()]);
+                }
+            }
+        }
+
+        return view('analisis-componentes.create-quick', [
+            'linea'          => $linea,
+            'componente'     => $componente,
+            'reductor'       => $request->reductor,
+            'fecha_sugerida' => $request->fecha ?? now()->toDateString(),
+            'redirect_to'    => url()->previous(),
         ]);
     }
 
     /**
-     * GUARDAR ANÁLISIS
+     * GUARDAR ANÁLISIS (NORMAL + RÁPIDO)
      */
     public function store(Request $request)
 {
-    $validated = $request->validate([
-        'linea_id' => 'required|exists:lineas,id',
-        'componente_id' => 'required|exists:componentes,id',
-        'reductor' => 'required|string|max:255',
-        'fecha_analisis' => 'required|date',
-        'numero_orden' => 'required|string|max:50',
-        'actividad' => 'required|string',
-        'estado' => 'required|string|max:255', // ✅ AQUÍ AGREGAR ESTO
-        'evidencia_fotos.*' => 'image|max:2048',
+    Log::info('Iniciando store', $request->except(['evidencia_fotos']));
+
+    /**
+     * ===============================
+     * 1️⃣ VALIDACIÓN
+     * ===============================
+     */
+    $validator = Validator::make($request->all(), [
+        'linea_id'          => 'required|exists:lineas,id',
+        'componente_codigo' => 'nullable|string',
+        'componente_id'     => 'nullable|exists:componentes,id',
+        'reductor'          => 'required|string|max:255',
+        'fecha_analisis'    => 'required|date',
+        'numero_orden'      => 'required|string|max:20', // 🔥 YA NO digits:8
+        'estado'            => 'required|string|max:255',
+        'actividad'         => 'required|string',
+        'evidencia_fotos.*' => 'nullable|image|max:2048',
+        'redirect_to'       => 'nullable|string',
     ]);
 
-    // 📸 Manejo de fotos
-    $fotos = [];
+    if ($validator->fails()) {
+        Log::error('Errores de validación', $validator->errors()->toArray());
+        return back()->withErrors($validator)->withInput();
+    }
 
-    if ($request->hasFile('evidencia_fotos')) {
-        foreach ($request->file('evidencia_fotos') as $foto) {
-            $fotos[] = $foto->store(
-                'evidencias/analisis-componentes',
-                'public'
-            );
+    // Debe venir al menos un componente
+    if (!$request->filled('componente_codigo') && !$request->filled('componente_id')) {
+        return back()->withErrors([
+            'componente_codigo' => 'Debe especificar un componente'
+        ])->withInput();
+    }
+
+    /**
+     * ===============================
+     * 2️⃣ LÍNEA
+     * ===============================
+     */
+    $linea = Linea::findOrFail($request->linea_id);
+    Log::info('Línea:', [$linea->nombre]);
+
+    $componente = null;
+
+    /**
+     * ===============================
+     * 3️⃣ DETERMINAR COMPONENTE
+     * ===============================
+     */
+
+    // 🔹 CASO A: CREATE RÁPIDO (componente_codigo)
+    if ($request->filled('componente_codigo')) {
+
+        $codigoBase = trim($request->componente_codigo);
+
+        // Código específico por línea (ESTÁNDAR)
+        $codigoLinea = $codigoBase . '_' . str_replace('-', '_', $linea->nombre);
+
+        Log::info('Buscando/creando componente rápido', [
+            'codigo_base' => $codigoBase,
+            'codigo_linea' => $codigoLinea
+        ]);
+
+        // Buscar nombre base
+        $nombreComponente = $this->getNombreComponente($codigoBase);
+
+        // 🔥 CLAVE: firstOrCreate (nunca duplica)
+        $componente = Componente::firstOrCreate(
+            ['codigo' => $codigoLinea],
+            [
+                'nombre'          => $nombreComponente,
+                'reductor'        => $request->reductor,
+                'ubicacion'       => $request->reductor,
+                'linea'           => $linea->nombre,
+                'cantidad_total'  => 1,
+                'activo'          => true,
+            ]
+        );
+
+        Log::info('Componente usado (rápido)', [
+            'id' => $componente->id,
+            'codigo' => $componente->codigo
+        ]);
+    }
+
+    // 🔹 CASO B: CREATE NORMAL (componente_id)
+    if ($request->filled('componente_id')) {
+
+        $componente = Componente::findOrFail($request->componente_id);
+
+        if ($componente->linea !== $linea->nombre) {
+            return back()->withErrors([
+                'componente_id' => 'El componente no pertenece a esta línea'
+            ])->withInput();
         }
-    }
 
-    $validated['evidencia_fotos'] = $fotos;
-
-    // 💾 Guardar análisis
-    AnalisisComponente::create($validated);
-
-    // 🔁 Redirección según origen
-    if ($request->filled('redirect_to')) {
-        return redirect($request->redirect_to)
-            ->with('success', 'Análisis agregado correctamente.');
-    }
-
-    // 🔙 Redirección por defecto
-    return redirect()
-        ->route('analisis-componentes.index')
-        ->with('success', 'Análisis agregado correctamente.');
-}
-
-
-
-    /**
-     * VER ANÁLISIS
-     */
-    public function show(AnalisisComponente $analisisComponente)
-    {
-        $analisisComponente->load(['linea', 'componente']);
-        return view('analisis-componentes.show', compact('analisisComponente'));
-    }
-
-    /**
-     * EDITAR
-     */
-    public function edit(AnalisisComponente $analisisComponente)
-    {
-        return view('analisis-componentes.edit', [
-            'analisisComponente' => $analisisComponente,
-            'lineas' => Linea::orderBy('nombre')->get(),
-            'componentes' => Componente::orderBy('nombre')->get(),
-            'reductores' => ['Reductor 1', 'Reductor 2', 'Reductor 3', 'Reductor 4'],
+        Log::info('Componente usado (normal)', [
+            'id' => $componente->id,
+            'codigo' => $componente->codigo
         ]);
     }
 
     /**
-     * ACTUALIZAR
+     * ===============================
+     * 4️⃣ CREAR ANÁLISIS
+     * ===============================
      */
-    public function update(Request $request, AnalisisComponente $analisisComponente)
+    try {
+        $analisis = AnalisisComponente::create([
+            'linea_id'       => $linea->id,
+            'componente_id'  => $componente->id,
+            'reductor'       => $request->reductor,
+            'fecha_analisis' => $request->fecha_analisis,
+            'numero_orden'   => $request->numero_orden,
+            'estado'         => $request->estado,
+            'actividad'      => $request->actividad,
+        ]);
+
+        Log::info('Análisis creado', ['id' => $analisis->id]);
+
+    } catch (\Exception $e) {
+        Log::error('Error al crear análisis', [
+            'error' => $e->getMessage()
+        ]);
+
+        return back()->withErrors([
+            'error' => 'Error al guardar el análisis'
+        ])->withInput();
+    }
+
+    /**
+     * ===============================
+     * 5️⃣ GUARDAR EVIDENCIAS
+     * ===============================
+     */
+    if ($request->hasFile('evidencia_fotos')) {
+        $fotos = [];
+
+        foreach ($request->file('evidencia_fotos') as $foto) {
+            $fotos[] = $foto->store('analisis-evidencias', 'public');
+        }
+
+        $analisis->update([
+            'evidencia_fotos' => json_encode($fotos),
+        ]);
+    }
+
+    /**
+     * ===============================
+     * 6️⃣ REDIRECCIÓN INTELIGENTE
+     * ===============================
+     */
+    if ($request->filled('redirect_to')) {
+        return redirect($request->redirect_to)
+            ->with('success', 'Análisis rápido registrado correctamente.');
+    }
+
+    return redirect()
+        ->route('analisis-componentes.index')
+        ->with('success', 'Análisis registrado correctamente.');
+}
+
+
+    /**
+     * Helper para obtener el nombre del componente
+     */
+    private function getNombreComponente($codigo)
+    {
+        $nombres = [
+            'SERVO_CHICO' => 'Servo Chico',
+            'SERVO_GRANDE' => 'Servo Grande',
+            'BUJE_ESPIGA' => 'Buje Baquelita-Espiga',
+            'GUI_INF_TANQUE' => 'Guía Inf Tanque',
+            'GUI_INF_VAPOR_PASILLO' => 'Guía Inf Vapor/Pasillo',
+            'GUI_SUP_TANQUE' => 'Guía Sup Tanque',
+            'CATARINAS' => 'Catarinas',
+            'RV200' => 'Reductor RV200',
+            'RV200_SIN_FIN' => 'Reductor Sin Fin-Corona RV200',
+        ];
+
+        return $nombres[$codigo] ?? $codigo;
+    }
+
+    /**
+     * EDITAR ANÁLISIS
+     */
+public function edit($id)
 {
-    $validated = $request->validate([
-        'linea_id' => 'required|exists:lineas,id',
+    $analisisComponente = AnalisisComponente::with(['linea', 'componente'])
+        ->findOrFail($id);
+
+    $componentes = Componente::where('linea', $analisisComponente->linea->nombre)
+        ->where('activo', true)
+        ->orderBy('nombre')
+        ->get();
+
+    return view('analisis-componentes.edit', compact('analisisComponente', 'componentes'));
+}
+
+
+    /**
+     * ACTUALIZAR ANÁLISIS
+     */
+/**
+ * ACTUALIZAR ANÁLISIS
+ */
+public function update(Request $request, $id)
+{
+    $analisis = AnalisisComponente::findOrFail($id);
+
+    $validator = Validator::make($request->all(), [
         'componente_id' => 'required|exists:componentes,id',
         'reductor' => 'required|string|max:255',
         'fecha_analisis' => 'required|date',
-        'numero_orden' => 'required|string|max:50',
+        'numero_orden' => 'required|string|max:20',
+        'estado' => 'required|string|max:255',
         'actividad' => 'required|string',
-        'estado' => 'required|string|max:255', // ✅ AQUÍ AGREGAR ESTO
-        'evidencia_fotos.*' => 'image|max:2048',
+        'evidencia_fotos.*' => 'nullable|image|max:2048',
+        'eliminar_fotos' => 'nullable|array',
+        'eliminar_fotos.*' => 'integer',
     ]);
 
-    $fotos = $analisisComponente->evidencia_fotos ?? [];
+    if ($validator->fails()) {
+        return back()
+            ->withErrors($validator)
+            ->withInput();
+    }
 
+    // Validar que el componente pertenezca a la misma línea
+    $componente = Componente::findOrFail($request->componente_id);
+
+    if ($componente->linea !== optional($analisis->linea)->nombre) {
+        return back()
+            ->withErrors([
+                'componente_id' => 'El componente no pertenece a esta línea'
+            ])
+            ->withInput();
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Manejo de evidencias
+    |--------------------------------------------------------------------------
+    */
+
+    // Fotos existentes
+    $fotosExistentes = json_decode($analisis->evidencia_fotos ?? '[]', true) ?? [];
+
+    // Eliminar fotos seleccionadas
+    if ($request->filled('eliminar_fotos')) {
+        foreach ($request->eliminar_fotos as $index) {
+            if (isset($fotosExistentes[$index])) {
+                Storage::disk('public')->delete($fotosExistentes[$index]);
+                unset($fotosExistentes[$index]);
+            }
+        }
+        $fotosExistentes = array_values($fotosExistentes);
+    }
+
+    // Agregar nuevas fotos
     if ($request->hasFile('evidencia_fotos')) {
         foreach ($request->file('evidencia_fotos') as $foto) {
-            $fotos[] = $foto->store('evidencias/analisis-componentes', 'public');
+            $fotosExistentes[] = $foto->store('analisis-evidencias', 'public');
         }
     }
 
-    $validated['evidencia_fotos'] = $fotos;
+    /*
+    |--------------------------------------------------------------------------
+    | Actualizar análisis
+    |--------------------------------------------------------------------------
+    */
+    $analisis->update([
+        'componente_id' => $request->componente_id,
+        'reductor' => $request->reductor,
+        'fecha_analisis' => $request->fecha_analisis,
+        'numero_orden' => $request->numero_orden,
+        'estado' => $request->estado,
+        'actividad' => $request->actividad,
+        'evidencia_fotos' => !empty($fotosExistentes)
+            ? json_encode($fotosExistentes)
+            : null,
+    ]);
 
-    $analisisComponente->update($validated);
-
+    /*
+    |--------------------------------------------------------------------------
+    | Redirección final (SIEMPRE AL INDEX)
+    |--------------------------------------------------------------------------
+    */
     return redirect()
         ->route('analisis-componentes.index')
         ->with('success', 'Análisis actualizado correctamente.');
@@ -191,11 +638,21 @@ public function index(Request $request)
 
 
     /**
+     * VER
+     */
+    public function show(AnalisisComponente $analisisComponente)
+    {
+        $analisisComponente->load(['linea', 'componente']);
+        return view('analisis-componentes.show', compact('analisisComponente'));
+    }
+    
+    /**
      * ELIMINAR
      */
     public function destroy(AnalisisComponente $analisisComponente)
     {
-        foreach ($analisisComponente->evidencia_fotos ?? [] as $foto) {
+        $fotos = json_decode($analisisComponente->evidencia_fotos ?? '[]', true) ?? [];
+        foreach ($fotos as $foto) {
             Storage::disk('public')->delete($foto);
         }
 
@@ -205,128 +662,90 @@ public function index(Request $request)
     }
 
     /**
-     * EXPORTAR A EXCEL (CSV)
+     * EXPORTAR EXCEL
      */
-    public function export(Request $request)
-    {
-        $query = AnalisisComponente::with(['linea', 'componente'])
-            ->orderBy('fecha_analisis', 'desc');
-
-        // mismos filtros que index
-        if ($request->filled('linea_id')) {
-            $query->where('linea_id', $request->linea_id);
-        }
-
-        if ($request->filled('componente_id')) {
-            $query->where('componente_id', $request->componente_id);
-        }
-
-        if ($request->filled('reductor')) {
-            $query->where('reductor', $request->reductor);
-        }
-
-        if ($request->filled('fecha')) {
-            $query->whereMonth('fecha_analisis', substr($request->fecha, 5, 2))
-                  ->whereYear('fecha_analisis', substr($request->fecha, 0, 4));
-        }
-
-        $analisis = $query->get();
-
-        $response = new StreamedResponse(function () use ($analisis) {
-            $handle = fopen('php://output', 'w');
-
-            fputcsv($handle, [
-                'ID',
-                'Lavadora',
-                'Componente',
-                'Reductor',
-                'Fecha Análisis',
-                'Número Orden',
-                'Actividad',
-            ]);
-
-            foreach ($analisis as $item) {
-                fputcsv($handle, [
-                    $item->id,
-                    $item->linea->nombre ?? 'Lavadora ' . $item->linea_id,
-                    $item->componente->nombre ?? 'N/A',
-                    $item->reductor,
-                    optional($item->fecha_analisis)->format('d/m/Y'),
-                    $item->numero_orden,
-                    $item->actividad,
-                ]);
-            }
-
-            fclose($handle);
-        });
-
-        $fileName = 'analisis_componentes_' . now()->format('Ymd_His') . '.csv';
-
-        $response->headers->set('Content-Type', 'text/csv');
-        $response->headers->set(
-            'Content-Disposition',
-            "attachment; filename={$fileName}"
-        );
-
-        return $response;
-    }
     public function exportExcel(Request $request)
-{
-    return Excel::download(
-        new AnalisisComponentesExport($request),
-        'analisis_componentes.xlsx'
-    );
-}
+    {
+        return Excel::download(
+            new AnalisisComponentesExport($request),
+            'analisis_componentes.xlsx'
+        );
+    }
+
+    /**
+     * EXPORTAR PDF
+     */
     public function exportPdf(Request $request)
-{
-    $query = AnalisisComponente::with(['linea', 'componente']);
+    {
+        $analisisAgrupados = AnalisisComponente::with(['linea', 'componente'])
+            ->get()
+            ->groupBy(fn ($a) => $a->linea->nombre ?? 'Sin línea');
 
-    if ($request->filled('linea_id')) {
-        $query->where('linea_id', $request->linea_id);
+        return Pdf::loadView(
+            'analisis-componentes.export-pdf',
+            compact('analisisAgrupados')
+        )->setPaper('a4', 'landscape')
+         ->download('analisis_componentes.pdf');
     }
 
-    if ($request->filled('componente_id')) {
-        $query->where('componente_id', $request->componente_id);
+    /**
+     * OBTENER COMPONENTES POR LÍNEA (Para AJAX)
+     */
+    public function getComponentesPorLineaAjax(Request $request)
+    {
+        $request->validate([
+            'linea_id' => 'required|exists:lineas,id'
+        ]);
+
+        $linea = Linea::findOrFail($request->linea_id);
+        
+        // Obtener componentes según la línea seleccionada
+        $componentesPorLinea = $this->getComponentesPorLinea();
+        $componentes = $componentesPorLinea[$linea->nombre] ?? [];
+
+        return response()->json($componentes);
     }
 
-    if ($request->filled('reductor')) {
-        $query->where('reductor', $request->reductor);
+    /**
+     * OBTENER REDUCTORES POR LÍNEA (Para AJAX)
+     */
+    public function getReductoresPorLineaPublic(Request $request)
+    {
+        $request->validate([
+            'linea_id' => 'required|exists:lineas,id'
+        ]);
+
+        $linea = Linea::findOrFail($request->linea_id);
+
+        $reductores = Componente::where('linea', $linea->nombre)
+            ->where('activo', true)
+            ->whereNotNull('reductor')
+            ->select('reductor')
+            ->distinct()
+            ->orderBy('reductor')
+            ->pluck('reductor');
+
+        return response()->json($reductores);
     }
 
-    if ($request->filled('fecha')) {
-        $query->whereMonth('fecha_analisis', substr($request->fecha, 5, 2))
-              ->whereYear('fecha_analisis', substr($request->fecha, 0, 4));
+    /**
+     * ELIMINAR FOTO
+     */
+    public function deleteFoto(AnalisisComponente $analisisComponente, $fotoIndex)
+    {
+        $fotos = json_decode($analisisComponente->evidencia_fotos ?? '[]', true) ?? [];
+        
+        if (isset($fotos[$fotoIndex])) {
+            Storage::disk('public')->delete($fotos[$fotoIndex]);
+            unset($fotos[$fotoIndex]);
+            
+            $analisisComponente->update([
+                'evidencia_fotos' => json_encode(array_values($fotos))
+            ]);
+            
+            return back()->with('success', 'Foto eliminada correctamente.');
+        }
+        
+        return back()->with('error', 'Foto no encontrada.');
     }
-
-    $analisisAgrupados = $query->get()
-        ->groupBy(fn ($a) => $a->linea->nombre ?? 'Sin línea');
-
-    $pdf = Pdf::loadView('analisis-componentes.export-pdf', compact('analisisAgrupados'))
-        ->setPaper('a4', 'landscape');
-
-    return $pdf->download('analisis_componentes.pdf');
-}
-
-    public function createQuick(Request $request)
-{
-    // Validar que venga el contexto
-    $request->validate([
-        'linea_id' => 'required|exists:lineas,id',
-        'componente_id' => 'required|exists:componentes,id',
-        'reductor' => 'required|string',
-    ]);
-
-    $linea = Linea::findOrFail($request->linea_id);
-    $componente = Componente::findOrFail($request->componente_id);
-    $reductor = $request->reductor;
-
-    return view('analisis-componentes.create-quick', [
-        'linea' => $linea,
-        'componente' => $componente,
-        'reductor' => $reductor,
-        'fecha_sugerida' => now()->toDateString(),
-        'redirect_to' => url()->previous(),
-    ]);
-}
-
 }
