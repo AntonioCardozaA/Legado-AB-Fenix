@@ -34,62 +34,96 @@ Route::middleware(['auth'])->group(function () {
     */
     Route::get('/dashboard', [DashboardController::class, 'index'])
         ->name('dashboard');
-
-    /*
-    |--------------------------------------------------------------------------
-    | FLUJO DE ANÁLISIS DE COMPONENTES (CORREGIDO)
-    |--------------------------------------------------------------------------
-    */
-    Route::prefix('analisis-componentes')->name('analisis-componentes.')->group(function () {
-        
-        // Rutas principales
-        Route::get('/', [AnalisisComponenteController::class, 'index'])
-            ->name('index');
-        
-        Route::get('/seleccionar-linea', [AnalisisComponenteController::class, 'selectLinea'])
-            ->name('select-linea');
-        
-        Route::get('/crear/{linea}', [AnalisisComponenteController::class, 'createWithLinea'])
-            ->name('create');
-        
-        Route::get('/crear-rapido', [AnalisisComponenteController::class, 'createQuick'])
-            ->name('create-quick');
-        
-        Route::post('/', [AnalisisComponenteController::class, 'store'])
-            ->name('store');
-        
-        // Rutas de recursos (CRUD)
-        Route::get('/{analisisComponente}', [AnalisisComponenteController::class, 'show'])
-            ->name('show');
-        
-        Route::get('/{analisisComponente}/editar', [AnalisisComponenteController::class, 'edit'])
-            ->name('edit');
-       Route::put('/{analisisComponente}', [AnalisisComponenteController::class, 'update'])
-    ->name('update');
-
-        
-        Route::delete('/{analisisComponente}', [AnalisisComponenteController::class, 'destroy'])
-            ->name('destroy');
-        
-        // Exportación
-        Route::get('/export/excel', [AnalisisComponenteController::class, 'exportExcel'])
-            ->name('export.excel');
-        
-        Route::get('/export/pdf', [AnalisisComponenteController::class, 'exportPdf'])
-            ->name('export.pdf');
-        
-        // Eliminar foto
-        Route::delete('/{analisisComponente}/foto/{fotoIndex}', [AnalisisComponenteController::class, 'deleteFoto'])
-            ->name('delete-foto');
-        
-        // API para componentes y reductores
-        Route::get('/get-componentes-por-linea', [AnalisisComponenteController::class, 'getComponentesPorLineaAjax'])
-            ->name('get-componentes-por-linea');
-        
-        Route::get('/get-reductores-por-linea', [AnalisisComponenteController::class, 'getReductoresPorLineaPublic'])
-            ->name('get-reductores-por-linea');
-    });
-
+/*
+|--------------------------------------------------------------------------
+| FLUJO DE ANÁLISIS DE COMPONENTES (CORREGIDO Y ORGANIZADO)
+|--------------------------------------------------------------------------
+*/
+Route::prefix('analisis-componentes')->name('analisis-componentes.')->group(function () {
+    
+    // ============================================
+    // RUTAS DE VISTA Y CREACIÓN
+    // ============================================
+    
+    // Página principal (índice)
+    Route::get('/', [AnalisisComponenteController::class, 'index'])
+        ->name('index');
+    
+    // Selección de línea
+    Route::get('/seleccionar-linea', [AnalisisComponenteController::class, 'selectLinea'])
+        ->name('select-linea');
+    
+    // Crear con línea específica
+    Route::get('/crear/{linea}', [AnalisisComponenteController::class, 'createWithLinea'])
+        ->name('create')
+        ->where('linea', '[0-9]+'); // Solo números para ID
+    
+    // Creación rápida
+    Route::get('/crear-rapido', [AnalisisComponenteController::class, 'createQuick'])
+        ->name('create-quick');
+    
+    // Almacenar nuevo análisis
+    Route::post('/', [AnalisisComponenteController::class, 'store'])
+        ->name('store');
+    
+    // ============================================
+    // RUTAS ESPECÍFICAS (ANTES DE LAS GENERALES)
+    // ============================================
+    
+    // Editar análisis (ESPECÍFICA - va primero)
+    Route::get('/{analisisComponente}/editar', [AnalisisComponenteController::class, 'edit'])
+        ->name('edit')
+        ->where('analisisComponente', '[0-9]+'); // Solo números
+    
+    // Eliminar foto específica
+    Route::delete('/{analisisComponente}/foto/{fotoIndex}', [AnalisisComponenteController::class, 'deleteFoto'])
+        ->name('delete-foto')
+        ->where('analisisComponente', '[0-9]+')
+        ->where('fotoIndex', '[0-9]+');
+    
+    // ============================================
+    // RUTAS GENERALES (DESPUÉS DE LAS ESPECÍFICAS)
+    // ============================================
+    
+    // Actualizar análisis
+    Route::put('/{analisisComponente}', [AnalisisComponenteController::class, 'update'])
+        ->name('update')
+        ->where('analisisComponente', '[0-9]+');
+    
+    // Eliminar análisis
+    Route::delete('/{analisisComponente}', [AnalisisComponenteController::class, 'destroy'])
+        ->name('destroy')
+        ->where('analisisComponente', '[0-9]+');
+    
+    // Mostrar análisis (GENERAL - va al final)
+    Route::get('/{analisisComponente}', [AnalisisComponenteController::class, 'show'])
+        ->name('show')
+        ->where('analisisComponente', '[0-9]+');
+    
+    // ============================================
+    // RUTAS DE EXPORTACIÓN
+    // ============================================
+    
+    // Exportar a Excel
+    Route::get('/export/excel', [AnalisisComponenteController::class, 'exportExcel'])
+        ->name('export.excel');
+    
+    // Exportar a PDF
+    Route::get('/export/pdf', [AnalisisComponenteController::class, 'exportPdf'])
+        ->name('export.pdf');
+    
+    // ============================================
+    // RUTAS API/AJAX
+    // ============================================
+    
+    // Obtener componentes por línea (AJAX)
+    Route::get('/get-componentes-por-linea', [AnalisisComponenteController::class, 'getComponentesPorLineaAjax'])
+        ->name('get-componentes-por-linea');
+    
+    // Obtener reductores por línea (Público)
+    Route::get('/get-reductores-por-linea', [AnalisisComponenteController::class, 'getReductoresPorLineaPublic'])
+        ->name('get-reductores-por-linea');
+});
     /*
     |--------------------------------------------------------------------------
     | FLUJO DE ANÁLISIS (original)

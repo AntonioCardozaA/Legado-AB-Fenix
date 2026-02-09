@@ -526,9 +526,9 @@ class AnalisisComponenteController extends Controller
         return $nombres[$codigo] ?? $codigo;
     }
 
-    /**
-     * EDITAR ANÁLISIS
-     */
+/**
+ * EDITAR ANÁLISIS
+ */
 public function edit($id)
 {
     $analisisComponente = AnalisisComponente::with(['linea', 'componente'])
@@ -539,59 +539,37 @@ public function edit($id)
         ->orderBy('nombre')
         ->get();
 
-    return view('analisis-componentes.edit', compact('analisisComponente', 'componentes'));
+    return view('analisis-componentes.edit', compact(
+        'analisisComponente',
+        'componentes'
+    ));
 }
 
 
-    /**
-     * ACTUALIZAR ANÁLISIS
-     */
-/**
- * ACTUALIZAR ANÁLISIS
- */
 public function update(Request $request, $id)
 {
     $analisis = AnalisisComponente::findOrFail($id);
 
     $validator = Validator::make($request->all(), [
-        'componente_id' => 'required|exists:componentes,id',
-        'reductor' => 'required|string|max:255',
-        'fecha_analisis' => 'required|date',
-        'numero_orden' => 'required|string|max:20',
-        'estado' => 'required|string|max:255',
-        'actividad' => 'required|string',
+        'fecha_analisis'    => 'required|date',
+        'numero_orden'      => 'required|string|max:20',
+        'estado'            => 'required|string|max:255',
+        'actividad'         => 'required|string',
         'evidencia_fotos.*' => 'nullable|image|max:2048',
-        'eliminar_fotos' => 'nullable|array',
-        'eliminar_fotos.*' => 'integer',
+        'eliminar_fotos'    => 'nullable|array',
+        'eliminar_fotos.*'  => 'integer',
     ]);
 
     if ($validator->fails()) {
-        return back()
-            ->withErrors($validator)
-            ->withInput();
+        return back()->withErrors($validator)->withInput();
     }
 
-    // Validar que el componente pertenezca a la misma línea
-    $componente = Componente::findOrFail($request->componente_id);
+    /* =====================================================
+     | MANEJO DE EVIDENCIAS
+     ===================================================== */
+    $fotosExistentes = $analisis->evidencia_fotos ?? [];
 
-    if ($componente->linea !== optional($analisis->linea)->nombre) {
-        return back()
-            ->withErrors([
-                'componente_id' => 'El componente no pertenece a esta línea'
-            ])
-            ->withInput();
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | Manejo de evidencias
-    |--------------------------------------------------------------------------
-    */
-
-    // Fotos existentes
-    $fotosExistentes = json_decode($analisis->evidencia_fotos ?? '[]', true) ?? [];
-
-    // Eliminar fotos seleccionadas
+    // Eliminar fotos marcadas
     if ($request->filled('eliminar_fotos')) {
         foreach ($request->eliminar_fotos as $index) {
             if (isset($fotosExistentes[$index])) {
@@ -609,33 +587,27 @@ public function update(Request $request, $id)
         }
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Actualizar análisis
-    |--------------------------------------------------------------------------
-    */
+    /* =====================================================
+     | ACTUALIZAR REGISTRO
+     ===================================================== */
     $analisis->update([
-        'componente_id' => $request->componente_id,
-        'reductor' => $request->reductor,
-        'fecha_analisis' => $request->fecha_analisis,
-        'numero_orden' => $request->numero_orden,
-        'estado' => $request->estado,
-        'actividad' => $request->actividad,
-        'evidencia_fotos' => !empty($fotosExistentes)
-            ? json_encode($fotosExistentes)
-            : null,
+        'componente_id'   => $analisis->componente_id, // Mantener el mismo
+        'reductor'        => $analisis->reductor, // Mantener el mismo
+        'fecha_analisis'  => $request->fecha_analisis,
+        'numero_orden'    => $request->numero_orden,
+        'estado'          => $request->estado,
+        'actividad'       => $request->actividad,
+        'evidencia_fotos' => $fotosExistentes,
     ]);
 
-    /*
-    |--------------------------------------------------------------------------
-    | Redirección final (SIEMPRE AL INDEX)
-    |--------------------------------------------------------------------------
-    */
-    return redirect()
-        ->route('analisis-componentes.index')
+    /* =====================================================
+     | REDIRECCIÓN - CORREGIDA
+     ===================================================== */
+    $redirectUrl = $request->input('redirect_to') ?? route('analisis-componentes.index');
+    
+    return redirect($redirectUrl)
         ->with('success', 'Análisis actualizado correctamente.');
 }
-
 
     /**
      * VER

@@ -4,13 +4,26 @@
 
 @section('content')
 <style>
+    /* VARIABLES CSS PARA CONSISTENCIA */
+    :root {
+        --primary-blue: #3b82f6;
+        --success-green: #10b981;
+        --warning-yellow: #f59e0b;
+        --danger-red: #ef4444;
+        --changed-blue: #3b82f6; /* Nuevo color para "Dañado - Cambiado" */
+        --light-gray: #f9fafb;
+        --medium-gray: #e5e7eb;
+        --dark-gray: #6b7280;
+    }
+    
     .sticky-top { position: sticky; top: 0; z-index: 30; }
     .sticky-left { position: sticky; left: 0; z-index: 20; }
     .sticky-top-left { position: sticky; top: 0; left: 0; z-index: 40; }
-    .cell-ok { background-color: #f0f9ff; border-left: 4px solid #10b981; }
-    .cell-warning { background-color: #fffbeb; border-left: 4px solid #f59e0b; }
-    .cell-danger { background-color: #fef2f2; border-left: 4px solid #ef4444; }
-    .cell-empty { background-color: #f9fafb; }
+    .cell-ok { background-color: #f0f9ff; border-left: 4px solid var(--success-green); }
+    .cell-warning { background-color: #fffbeb; border-left: 4px solid var(--warning-yellow); }
+    .cell-danger { background-color: #fef2f2; border-left: 4px solid var(--danger-red); }
+    .cell-changed { background-color: #eff6ff; border-left: 4px solid var(--changed-blue); } /* Nuevo estilo */
+    .cell-empty { background-color: var(--light-gray); }
     .cell-header { background-color: #eff6ff; }
     
     .compact-table td, .compact-table th {
@@ -38,13 +51,13 @@
         position: relative;
         border-radius: 8px;
         overflow: hidden;
-        border: 2px solid #e5e7eb;
+        border: 2px solid var(--medium-gray);
         transition: all 0.3s ease;
         background: white;
     }
     
     .image-item:hover {
-        border-color: #3b82f6;
+        border-color: var(--primary-blue);
         transform: translateY(-2px);
         box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
     }
@@ -84,7 +97,7 @@
         width: 100%;
         padding: 6px;
         margin-top: 8px;
-        background: #3b82f6;
+        background: var(--primary-blue);
         color: white;
         border: none;
         border-radius: 4px;
@@ -102,7 +115,7 @@
         align-items: center;
         gap: 8px;
         padding: 10px 20px;
-        background: #10b981;
+        background: var(--success-green);
         color: white;
         border: none;
         border-radius: 6px;
@@ -118,7 +131,7 @@
     .empty-images {
         text-align: center;
         padding: 40px;
-        color: #6b7280;
+        color: var(--dark-gray);
     }
     
     .analysis-cell {
@@ -146,7 +159,7 @@
         border-radius: 4px;
         padding: 2px 6px;
         font-size: 10px;
-        color: #3b82f6;
+        color: var(--primary-blue);
         opacity: 0;
         transition: opacity 0.2s ease;
     }
@@ -167,13 +180,13 @@
         border-radius: 10px;
         padding: 20px;
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        border: 1px solid #e5e7eb;
+        border: 1px solid var(--medium-gray);
     }
     
     .detail-card h4 {
         font-size: 14px;
         font-weight: 600;
-        color: #6b7280;
+        color: var(--dark-gray);
         margin-bottom: 10px;
         text-transform: uppercase;
         letter-spacing: 0.5px;
@@ -190,7 +203,7 @@
         border-radius: 8px;
         padding: 15px;
         margin-top: 5px;
-        border-left: 4px solid #3b82f6;
+        border-left: 4px solid var(--primary-blue);
     }
     
     .activity-content p {
@@ -223,12 +236,17 @@
         color: #991b1b;
     }
     
+    .status-badge.changed {
+        background-color: #dbeafe;
+        color: #1e40af;
+    }
+    
     .detail-images-container {
         background: white;
         border-radius: 10px;
         padding: 20px;
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        border: 1px solid #e5e7eb;
+        border: 1px solid var(--medium-gray);
         margin-top: 20px;
     }
     
@@ -246,14 +264,14 @@
         align-items: center;
         justify-content: center;
         text-align: center;
-        color: #6b7280;
+        color: var(--dark-gray);
         padding: 10px;
     }
     
     .no-records {
         text-align: center;
         padding: 20px;
-        color: #6b7280;
+        color: var(--dark-gray);
     }
     
     .empty-cell-icon {
@@ -281,7 +299,7 @@
     
     .component-code {
         font-size: 9px;
-        color: #6b7280;
+        color: var(--dark-gray);
         background: #f3f4f6;
         padding: 2px 4px;
         border-radius: 3px;
@@ -306,7 +324,7 @@
     
     .reductor-label {
         font-size: 9px;
-        color: #6b7280;
+        color: var(--dark-gray);
         background: #f3f4f6;
         padding: 2px 4px;
         border-radius: 3px;
@@ -315,7 +333,7 @@
     .table-wrapper {
         position: relative;
         overflow: auto;
-        border: 1px solid #e5e7eb;
+        border: 1px solid var(--medium-gray);
         border-radius: 8px;
     }
     
@@ -341,277 +359,647 @@
     .table-wrapper:hover .scroll-indicator {
         display: block;
     }
+    
+    /* MEJORAS VISUALES */
+    .cell-highlight {
+        animation: highlight-pulse 2s ease-out;
+    }
+    
+    @keyframes highlight-pulse {
+        0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4); }
+        70% { box-shadow: 0 0 0 10px rgba(59, 130, 246, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+    }
+    
+    .badge-new {
+        position: absolute;
+        top: 5px;
+        right: 5px;
+        background: #ef4444;
+        color: white;
+        font-size: 8px;
+        padding: 2px 6px;
+        border-radius: 10px;
+        z-index: 5;
+    }
+    
+    .loading-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(255, 255, 255, 0.8);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 100;
+    }
+    
+    /* NUEVOS ESTILOS PARA MEJOR ORGANIZACIÓN */
+    .filter-card {
+        background: white;
+        border-radius: 10px;
+        padding: 1.5rem;
+        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+        border: 1px solid var(--medium-gray);
+    }
+    
+    .filter-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+    }
+    
+    .filter-actions {
+        display: flex;
+        gap: 0.75rem;
+        margin-top: 1rem;
+    }
+    
+    .header-with-icon {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .header-with-icon i {
+        color: var(--primary-blue);
+    }
+    
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 0.75rem;
+    }
+    
+    .stat-card {
+        background: white;
+        border-radius: 8px;
+        padding: 1rem;
+        box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+        border: 1px solid var(--medium-gray);
+        text-align: center;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    
+    .stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+    
+    .stat-value {
+        font-size: 1.5rem;
+        font-weight: bold;
+        margin-top: 0.25rem;
+    }
+    
+    .table-header-container {
+        background: linear-gradient(135deg, var(--primary-blue), #1d4ed8);
+        color: white;
+        padding: 1.5rem;
+        border-radius: 10px 10px 0 0;
+    }
+    
+    .table-header-content {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+    
+    .table-title-section {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+    
+    .table-icon-container {
+        width: 60px;
+        height: 60px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .table-info-section {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1.5rem;
+        align-items: center;
+    }
+    
+    .table-stats {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        align-items: center;
+    }
+    
+    .stat-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        background: rgba(255, 255, 255, 0.1);
+        padding: 0.5rem 0.75rem;
+        border-radius: 20px;
+    }
+    
+    .table-controls {
+        display: flex;
+        gap: 0.5rem;
+        margin-left: auto;
+    }
+    
+    .control-btn {
+        width: 40px;
+        height: 40px;
+        background: rgba(255, 255, 255, 0.1);
+        border: none;
+        border-radius: 8px;
+        color: white;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .control-btn:hover {
+        background: rgba(255, 255, 255, 0.2);
+        transform: translateY(-1px);
+    }
+    
+    /* RESPONSIVE ADJUSTMENTS */
+    @media (max-width: 768px) {
+        .compact-table td, .compact-table th {
+            min-width: 100px;
+            font-size: 0.7rem !important;
+            padding: 6px !important;
+        }
+        
+        .detail-actions {
+            flex-direction: column;
+        }
+        
+        .image-grid {
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        }
+        
+        .filter-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .table-header-content {
+            gap: 0.75rem;
+        }
+        
+        .table-title-section {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.5rem;
+        }
+        
+        .table-info-section {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.75rem;
+        }
+        
+        .table-controls {
+            margin-left: 0;
+            width: 100%;
+            justify-content: flex-start;
+        }
+        
+        .stats-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+    
+    @media (max-width: 480px) {
+        .compact-table td, .compact-table th {
+            min-width: 90px;
+        }
+        
+        .image-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .stats-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+    
+    /* ESTADO DE CARGA */
+    .skeleton-loading {
+        background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+        background-size: 200% 100%;
+        animation: loading 1.5s infinite;
+    }
+    
+    @keyframes loading {
+        0% { background-position: 200% 0; }
+        100% { background-position: -200% 0; }
+    }
 </style>
 
 <div class="max-w-full mx-auto px-4 py-6">
-    {{-- HEADER --}}
+    {{-- HEADER MEJORADO --}}
     <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
         <div>
-            <h1 class="text-2xl font-bold text-gray-800">
-                <i class="fas fa-chart-bar text-yellow-500 mr-2"></i>
-                Análisis de Componentes de Lavadoras
+            <h1 class="text-2xl font-bold text-gray-800 flex items-center gap-2">
+                <i class="fas fa-chart-bar text-yellow-500"></i>
+                Análisis de Componentes
             </h1>
-            <p class="text-gray-600 text-sm mt-1">Sistema de monitoreo y mantenimiento</p>
+            <p class="text-gray-600 text-sm mt-1">Gestión y seguimiento de análisis de componentes</p>
         </div>
 
         <div class="flex flex-wrap gap-2">
             <a href="{{ route('analisis-componentes.select-linea') }}"
-               class="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition flex items-center gap-2">
+               class="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition flex items-center gap-2 shadow-sm hover:shadow-md">
                 <i class="fas fa-plus"></i>
                 Nuevo Análisis
-            </a>
-
-            <a href="{{ route('analisis-componentes.export.excel', request()->query()) }}"
-               class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center gap-2">
-                <i class="fas fa-file-excel"></i>
-                Exportar Excel
-            </a>
-
-            <a href="{{ route('analisis-componentes.export.pdf', request()->query()) }}"
-               class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition flex items-center gap-2">
-                <i class="fas fa-file-pdf"></i>
-                Exportar PDF
             </a>
         </div>
     </div>
 
-    {{-- FILTROS --}}
-    <form method="GET" action="{{ route('analisis-componentes.index') }}"
-          class="bg-white rounded-lg shadow-sm p-4 mb-6 border border-gray-200">
-        <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">
-                    <i class="fas fa-washing-machine text-blue-600 mr-1"></i>
-                    Lavadora
-                </label>
-                <select name="linea_id" id="lineaSelect" class="w-full text-sm border-gray-300 rounded focus:border-blue-500 focus:ring-blue-500">
-                    <option value="">Todas las lavadoras</option>
-                    @foreach($lineas as $l)
-                        <option value="{{ $l->id }}" {{ request('linea_id') == $l->id ? 'selected' : '' }}>
-                            {{ $l->nombre }}
-                        </option>
-                    @endforeach
-                </select>
-            </div>
-
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">
-                    <i class="fas fa-cog text-blue-600 mr-1"></i>
-                    Componente
-                </label>
-                <select name="componente_id" class="w-full text-sm border-gray-300 rounded focus:border-blue-500 focus:ring-blue-500">
-                    <option value="">Todos los componentes</option>
-                    @foreach($todosComponentes as $key => $nombre)
-                        <option value="{{ $key }}" {{ request('componente_id') == $key ? 'selected' : '' }}>
-                            {{ $nombre }}
-                        </option>
-                    @endforeach
-                </select>
-            </div>
-
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">
-                    <i class="fas fa-compress-alt text-blue-600 mr-1"></i>
-                    Reductor
-                </label>
-                <select name="reductor" class="w-full text-sm border-gray-300 rounded focus:border-blue-500 focus:ring-blue-500">
-                    <option value="">Todos los reductores</option>
-                    @php
-                        // Obtener TODOS los reductores de TODAS las líneas
-                        $todosReductores = [];
-                        $reductoresPorLinea = [
-                            'L-04' => ['Reductor 1', 'Reductor 9', 'Reductor 10', 'Reductor 11', 'Reductor 12', 
-                                      'Reductor 13', 'Reductor 14', 'Reductor 15', 'Reductor 16', 'Reductor 17', 
-                                      'Reductor 18', 'Reductor 19', 'Reductor Loca'],
-                            'L-05' => ['Reductor 1', 'Reductor 2', 'Reductor 3', 'Reductor 4', 'Reductor 5', 
-                                      'Reductor 6', 'Reductor 7', 'Reductor 8', 'Reductor 9', 'Reductor 10', 
-                                      'Reductor 11', 'Reductor 12', 'Reductor Principal', 'Reductor Loca'],
-                            'L-06' => ['Reductor 1', 'Reductor 9', 'Reductor 10', 'Reductor 11', 'Reductor 12', 
-                                      'Reductor 13', 'Reductor 14', 'Reductor 15', 'Reductor 16', 'Reductor 17', 
-                                      'Reductor 18', 'Reductor 19', 'Reductor 20', 'Reductor 21', 'Reductor 22'],
-                            'L-07' => ['Reductor 1', 'Reductor 9', 'Reductor 10', 'Reductor 11', 'Reductor 12', 
-                                      'Reductor 13', 'Reductor 14', 'Reductor 15', 'Reductor 16', 'Reductor 17', 
-                                      'Reductor 18', 'Reductor 19', 'Reductor 20', 'Reductor 21', 'Reductor 22'],
-                            'L-08' => ['Reductor 1', 'Reductor 9', 'Reductor 10', 'Reductor 11', 'Reductor 12', 
-                                      'Reductor 13', 'Reductor 14', 'Reductor 15', 'Reductor 16', 'Reductor 17', 
-                                      'Reductor 18', 'Reductor 19', 'Reductor Loca'],
-                            'L-09' => ['Reductor 1', 'Reductor 9', 'Reductor 10', 'Reductor 11', 'Reductor 12', 
-                                      'Reductor 13', 'Reductor 14', 'Reductor 15', 'Reductor 16', 'Reductor 17', 
-                                      'Reductor 18', 'Reductor 19', 'Reductor Loca'],
-                            'L-12' => ['Reductor 1', 'Reductor 2', 'Reductor 3', 'Reductor 4', 'Reductor 5', 
-                                      'Reductor 6', 'Reductor 7', 'Reductor 8', 'Reductor 9', 'Reductor 10', 
-                                      'Reductor 11', 'Reductor 12', 'Reductor Loca'],
-                            'L-13' => ['Reductor 1', 'Reductor 2', 'Reductor 3', 'Reductor 4', 'Reductor 5', 
-                                      'Reductor 6', 'Reductor 7', 'Reductor 8', 'Reductor 9', 'Reductor 10', 
-                                      'Reductor 11', 'Reductor 12', 'Reductor Loca', 'Reductor Principal']
-                        ];
-                        
-                        // Combinar todos los reductores únicos
-                        foreach ($reductoresPorLinea as $lineaReductores) {
-                            foreach ($lineaReductores as $reductor) {
-                                $todosReductores[$reductor] = $reductor;
-                            }
-                        }
-                        
-                        // Ordenar alfabéticamente
-                        ksort($todosReductores);
-                    @endphp
-                    
-                    @foreach($todosReductores as $reductor)
-                        <option value="{{ $reductor }}" {{ request('reductor') == $reductor ? 'selected' : '' }}>
-                            {{ $reductor }}
-                        </option>
-                    @endforeach
-                </select>
-            </div>
-
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">
-                    <i class="far fa-calendar-alt text-blue-600 mr-1"></i>
-                    Mes / Año
-                </label>
-                <input type="month" name="fecha" value="{{ request('fecha') }}"
-                       class="w-full text-sm border-gray-300 rounded focus:border-blue-500 focus:ring-blue-500">
-            </div>
-
-            <div class="flex gap-2 items-end">
-                <button type="submit" 
-                        class="flex-1 bg-blue-600 text-white py-2 rounded text-sm hover:bg-blue-700 transition flex items-center justify-center gap-2">
-                    <i class="fas fa-search"></i>
-                    Filtrar
-                </button>
-                <a href="{{ route('analisis-componentes.index') }}"
-                   class="flex-1 bg-gray-200 text-gray-700 py-2 rounded text-sm hover:bg-gray-300 transition flex items-center justify-center gap-2">
-                    <i class="fas fa-eraser"></i>
-                    Limpiar
-                </a>
-            </div>
-        </div>
-    </form>
-
-    {{-- TABLA PRINCIPAL --}}
+    {{-- FILTROS MEJORADOS --}}
     @php
-        $analisisCollection = collect($analisis->items());
-        
-        // Determinar qué línea mostrar
-        $lineaMostrar = null;
-        if(request('linea_id')) {
-            $lineaMostrar = $lineas->firstWhere('id', request('linea_id'));
-        } elseif($analisisCollection->count() > 0) {
-            $lineaMostrar = $analisisCollection->first()->linea;
-        }
-        
-        // Obtener componentes para la tabla según la línea
-        $componentesParaTabla = [];
-        if ($lineaMostrar && isset($componentesPorLinea[$lineaMostrar->nombre])) {
-            $componentesLinea = $componentesPorLinea[$lineaMostrar->nombre];
-            foreach ($componentesLinea as $id => $nombre) {
-                $componentesParaTabla[] = (object) ['id' => $id, 'nombre' => $nombre];
-            }
-        }
-        
-        // Filtrar componentes si hay filtro específico
-        if(request('componente_id')) {
-            $componentesParaTabla = array_filter($componentesParaTabla, function($c) {
-                return $c->id == request('componente_id');
-            });
-            $componentesParaTabla = array_values($componentesParaTabla);
-        }
-        
-        // Determinar reductores a mostrar
-        if(request('linea_id') && isset($reductoresMostrar) && count($reductoresMostrar) > 0) {
-            $reductoresParaTabla = $reductoresMostrar;
-        } elseif($analisisCollection->count() > 0) {
-            $reductoresParaTabla = $analisisCollection->pluck('reductor')
-                ->unique()
-                ->sort()
-                ->values()
-                ->toArray();
-        } else {
-            $reductoresParaTabla = ['Reductor 1', 'Reductor 2', 'Reductor 3'];
-        }
-        
-        // Filtrar reductores si hay filtro específico
-        if(request('reductor')) {
-            $reductoresParaTabla = array_filter($reductoresParaTabla, function($r) {
-                return $r == request('reductor');
-            });
-            $reductoresParaTabla = array_values($reductoresParaTabla);
-        }
-        
-        // Obtener análisis agrupados por reductor y componente - CORREGIDO
+        $lineas = $lineas ?? collect([]);
+        $todosComponentes = $todosComponentes ?? [];
+        $componentesPorLinea = $componentesPorLinea ?? [];
+        $analisis = $analisis ?? null;
+        $reductoresMostrar = $reductoresMostrar ?? [];
+    @endphp
+    
+    @if(isset($lineas) && $lineas->count() > 0)
+        <div class="filter-card mb-6">
+            <form method="GET" action="{{ route('analisis-componentes.index') }}">
+                <div class="filter-grid mb-4">
+                    <div>
+                        <div class="header-with-icon">
+                            <i class="fas fa-washing-machine"></i>
+                            <label class="block text-sm font-medium text-gray-700">Lavadora</label>
+                        </div>
+                        <select name="linea_id" id="lineaSelect" 
+                                class="w-full text-sm border-gray-300 rounded-lg focus:border-blue-500 focus:ring-blue-500 shadow-sm p-2.5"
+                                onchange="updateComponentes(this.value)">
+                            <option value="">Todas las lavadoras</option>
+                            @foreach($lineas as $l)
+                                <option value="{{ $l->id }}" {{ request('linea_id') == $l->id ? 'selected' : '' }}>
+                                    {{ $l->nombre }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div>
+                        <div class="header-with-icon">
+                            <i class="fas fa-cog"></i>
+                            <label class="block text-sm font-medium text-gray-700">Componente</label>
+                        </div>
+                        <select name="componente_id" id="componenteSelect" 
+                                class="w-full text-sm border-gray-300 rounded-lg focus:border-blue-500 focus:ring-blue-500 shadow-sm p-2.5">
+                            <option value="">Todos los componentes</option>
+                            @foreach(($todosComponentes ?? []) as $key => $nombre)
+                                <option value="{{ $key }}" {{ request('componente_id') == $key ? 'selected' : '' }}>
+                                    {{ $nombre }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div>
+                        <div class="header-with-icon">
+                            <i class="fas fa-compress-alt"></i>
+                            <label class="block text-sm font-medium text-gray-700">Reductor</label>
+                        </div>
+                        <select name="reductor" id="reductorSelect" 
+                                class="w-full text-sm border-gray-300 rounded-lg focus:border-blue-500 focus:ring-blue-500 shadow-sm p-2.5">
+                            <option value="">Todos los reductores</option>
+                            @php
+                                $reductoresPorLinea = [
+                                    'L-04' => ['Reductor 1', 'Reductor 9', 'Reductor 10', 'Reductor 11', 'Reductor 12', 
+                                              'Reductor 13', 'Reductor 14', 'Reductor 15', 'Reductor 16', 'Reductor 17', 
+                                              'Reductor 18', 'Reductor 19', 'Reductor Loca'],
+                                    'L-05' => ['Reductor 1', 'Reductor 2', 'Reductor 3', 'Reductor 4', 'Reductor 5', 
+                                              'Reductor 6', 'Reductor 7', 'Reductor 8', 'Reductor 9', 'Reductor 10', 
+                                              'Reductor 11', 'Reductor 12', 'Reductor Principal', 'Reductor Loca'],
+                                    'L-06' => ['Reductor 1', 'Reductor 9', 'Reductor 10', 'Reductor 11', 'Reductor 12', 
+                                              'Reductor 13', 'Reductor 14', 'Reductor 15', 'Reductor 16', 'Reductor 17', 
+                                              'Reductor 18', 'Reductor 19', 'Reductor 20', 'Reductor 21', 'Reductor 22'],
+                                    'L-07' => ['Reductor 1', 'Reductor 9', 'Reductor 10', 'Reductor 11', 'Reductor 12', 
+                                              'Reductor 13', 'Reductor 14', 'Reductor 15', 'Reductor 16', 'Reductor 17', 
+                                              'Reductor 18', 'Reductor 19', 'Reductor 20', 'Reductor 21', 'Reductor 22'],
+                                    'L-08' => ['Reductor 1', 'Reductor 9', 'Reductor 10', 'Reductor 11', 'Reductor 12', 
+                                              'Reductor 13', 'Reductor 14', 'Reductor 15', 'Reductor 16', 'Reductor 17', 
+                                              'Reductor 18', 'Reductor 19', 'Reductor Loca'],
+                                    'L-09' => ['Reductor 1', 'Reductor 9', 'Reductor 10', 'Reductor 11', 'Reductor 12', 
+                                              'Reductor 13', 'Reductor 14', 'Reductor 15', 'Reductor 16', 'Reductor 17', 
+                                              'Reductor 18', 'Reductor 19', 'Reductor Loca'],
+                                    'L-12' => ['Reductor 1', 'Reductor 2', 'Reductor 3', 'Reductor 4', 'Reductor 5', 
+                                              'Reductor 6', 'Reductor 7', 'Reductor 8', 'Reductor 9', 'Reductor 10', 
+                                              'Reductor 11', 'Reductor 12', 'Reductor Loca'],
+                                    'L-13' => ['Reductor 1', 'Reductor 2', 'Reductor 3', 'Reductor 4', 'Reductor 5', 
+                                              'Reductor 6', 'Reductor 7', 'Reductor 8', 'Reductor 9', 'Reductor 10', 
+                                              'Reductor 11', 'Reductor 12', 'Reductor Loca', 'Reductor Principal']
+                                ];
+                                
+                                $todosReductores = [];
+                                foreach ($reductoresPorLinea as $lineaReductores) {
+                                    foreach ($lineaReductores as $reductor) {
+                                        $todosReductores[$reductor] = $reductor;
+                                    }
+                                }
+                                ksort($todosReductores);
+                            @endphp
+                            
+                            @foreach($todosReductores as $reductor)
+                                <option value="{{ $reductor }}" {{ request('reductor') == $reductor ? 'selected' : '' }}>
+                                    {{ $reductor }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div>
+                        <div class="header-with-icon">
+                            <i class="far fa-calendar-alt"></i>
+                            <label class="block text-sm font-medium text-gray-700">Mes / Año</label>
+                        </div>
+                        <input type="month" name="fecha" value="{{ request('fecha') }}"
+                               class="w-full text-sm border-gray-300 rounded-lg focus:border-blue-500 focus:ring-blue-500 shadow-sm p-2.5">
+                    </div>
+                </div>
+                
+                {{-- FILTROS AVANZADOS (COLAPSABLE) --}}
+                <div class="mt-4 pt-4 border-t border-gray-200">
+                    <button type="button" onclick="toggleAdvancedFilters()"
+                            class="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1 transition-colors">
+                        <i class="fas fa-sliders-h"></i>
+                        Filtros avanzados
+                        <i id="advancedFiltersIcon" class="fas fa-chevron-down ml-1 transition-transform duration-200"></i>
+                    </button>
+                    
+                    <div id="advancedFilters" class="hidden mt-3 grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <div class="header-with-icon">
+                                <i class="fas fa-clipboard-check"></i>
+                                <label class="block text-xs font-medium text-gray-600">Estado</label>
+                            </div>
+                            <select name="estado" class="w-full text-sm border-gray-300 rounded-lg focus:border-blue-500 focus:ring-blue-500 p-2.5">
+                                <option value="">Todos los estados</option>
+                                <option value="Buen estado" {{ old('estado') == 'Buen estado' ? 'selected' : '' }}>✅ Buen estado</option>
+                                <option value="Desgaste moderado" {{ old('estado') == 'Desgaste moderado' ? 'selected' : '' }}>⚠️ Desgaste moderado</option>
+                                <option value="Desgaste severo" {{ old('estado') == 'Desgaste severo' ? 'selected' : '' }}>⚠️ Desgaste severo</option>
+                                <option value="Dañado - Requiere cambio" {{ old('estado') == 'Dañado - Requiere cambio' ? 'selected' : '' }}>❌ Dañado - Requiere cambio</option>
+                                <option value="Dañado - Cambiado" {{ old('estado') == 'Dañado - Cambiado' ? 'selected' : '' }}>🔄 Dañado - Cambiado</option>
+                            </select>
+                        </div>
+                        
+                    </div>
+                </div>
+                
+                <div class="filter-actions">
+                    <button type="submit" 
+                            class="flex-1 bg-blue-600 text-white py-2.5 rounded-lg hover:bg-blue-700 transition flex items-center justify-center gap-2 shadow-sm hover:shadow-md font-medium">
+                        <i class="fas fa-search"></i>
+                        Aplicar Filtros
+                    </button>
+                    <a href="{{ route('analisis-componentes.index') }}"
+                       class="flex-1 bg-gray-200 text-gray-700 py-2.5 rounded-lg hover:bg-gray-300 transition flex items-center justify-center gap-2 shadow-sm hover:shadow-md font-medium">
+                        <i class="fas fa-eraser"></i>
+                        Limpiar Filtros
+                    </a>
+                </div>
+            </form>
+        </div>
+    @endif
+
+    {{-- RESÚMENES Y ESTADÍSTICAS --}}
+    @php
+    $analisisCollection = isset($analisis) ? collect($analisis->items() ?? []) : collect([]);
+
+    if ($analisisCollection->count() > 0) {
+        $estadisticas = [
+            'total' => $analisisCollection->count(),
+
+            'buen_estado' => $analisisCollection
+                ->where('estado', 'Buen estado')
+                ->count(),
+
+            'desgaste' => $analisisCollection
+                ->whereIn('estado', ['Desgaste moderado', 'Desgaste severo'])
+                ->count(),
+
+            'danado_requiere' => $analisisCollection
+                ->where('estado', 'Dañado - Requiere cambio')
+                ->count(),
+
+            'danado_cambiado' => $analisisCollection
+                ->where('estado', 'Dañado - Cambiado')
+                ->count(),
+
+            'danado' => $analisisCollection
+                ->whereIn('estado', ['Dañado - Requiere cambio', 'Dañado - Cambiado'])
+                ->count(),
+
+            'recientes' => $analisisCollection->filter(function ($item) {
+                return $item->created_at && $item->created_at->gt(now()->subDays(7));
+            })->count(),
+        ];
+    }
+@endphp
 
 
-    // Obtener análisis agrupados por reductor y componente - CORREGIDO
+    @if($analisisCollection->count() > 0)
+    <div class="stats-grid mb-6">
+        <div class="stat-card">
+            <div class="text-sm text-gray-600 font-medium">Total</div>
+            <div class="stat-value text-blue-700">{{ $estadisticas['total'] ?? 0 }}</div>
+        </div>
+        <div class="stat-card">
+            <div class="text-sm text-gray-600 font-medium">Buen estado</div>
+            <div class="stat-value text-green-600">{{ $estadisticas['buen_estado'] ?? 0 }}</div>
+        </div>
+        <div class="stat-card">
+            <div class="text-sm text-gray-600 font-medium">Desgaste</div>
+            <div class="stat-value text-yellow-600">{{ $estadisticas['desgaste'] ?? 0 }}</div>
+        </div>
+        <div class="stat-card">
+            <div class="text-sm text-gray-600 font-medium">Dañado (Requiere)</div>
+            <div class="stat-value text-red-600">{{ $estadisticas['danado_requiere'] ?? 0 }}</div>
+        </div>
+        <div class="stat-card">
+            <div class="text-sm text-gray-600 font-medium">Dañado (Cambiado)</div>
+            <div class="stat-value text-blue-600">{{ $estadisticas['danado_cambiado'] ?? 0 }}</div>
+        </div>
+    </div>
+    @endif
+
+    {{-- TABLA PRINCIPAL MEJORADA --}}
+    @php
+    /* ===============================
+    LINEA A MOSTRAR
+    =============================== */
+    $lineaMostrar =
+        (request('linea_id') && isset($lineas))
+            ? $lineas->firstWhere('id', request('linea_id'))
+            : ($analisisCollection->first()->linea ?? null);
+
+    /* ===============================
+    COMPONENTES PARA TABLA
+    =============================== */
+    $componentesParaTabla = collect();
+
+    if ($lineaMostrar && isset($componentesPorLinea[$lineaMostrar->nombre])) {
+        foreach ($componentesPorLinea[$lineaMostrar->nombre] as $id => $nombre) {
+            $componentesParaTabla->push((object)[
+                'id'     => $id,
+                'nombre' => $nombre,
+                'icono'  => asset("images/componentes/{$id}.png"),
+            ]);
+        }
+    }
+
+    if (request('componente_id')) {
+        $componentesParaTabla = $componentesParaTabla
+            ->where('id', request('componente_id'))
+            ->values();
+    }
+
+    /* ===============================
+    REDUCTORES PARA TABLA
+    =============================== */
+    $reductoresParaTabla = collect();
+
+    if (request('linea_id') && !empty($reductoresMostrar)) {
+        $reductoresParaTabla = collect($reductoresMostrar);
+    } elseif ($analisisCollection->count() > 0) {
+        $reductoresParaTabla = $analisisCollection
+            ->pluck('reductor')
+            ->unique()
+            ->sort()
+            ->values();
+    }
+
+    if (request('reductor')) {
+        $reductoresParaTabla = $reductoresParaTabla
+            ->where(fn($r) => $r == request('reductor'))
+            ->values();
+    }
+
+    /* ===============================
+    AGRUPAR ANALISIS
+    =============================== */
     $analisisAgrupados = [];
-    foreach($analisisCollection as $analisisItem) {
-        $reductor = $analisisItem->reductor;
-        $componente = $analisisItem->componente;
-        
-        if (!$componente) {
-            continue;
-        }
-        
-        // Obtener el código base del componente (sin sufijos)
-        $componenteCodigo = $componente->codigo;
-        $codigoBase = $componenteCodigo;
-        
-        // Extraer el código base (sin sufijos como _L_04)
-        foreach ($componentesPorLinea as $lineaCodigos) {
-            foreach ($lineaCodigos as $codKey => $nombre) {
-                if (str_contains($componenteCodigo, $codKey)) {
-                    $codigoBase = $codKey;
-                    break 2;
+
+    foreach ($analisisCollection as $item) {
+        if (!$item->componente) continue;
+
+        $reductor = $item->reductor;
+        $codigo   = $item->componente->codigo ?? '';
+        $codigoBase = $codigo;
+
+        if (isset($componentesPorLinea)) {
+            foreach ($componentesPorLinea as $lineaCodigos) {
+                foreach ($lineaCodigos as $key => $nombre) {
+                    if (str_contains($codigo, $key)) {
+                        $codigoBase = $key;
+                        break 2;
+                    }
                 }
             }
         }
-        
-        if(!isset($analisisAgrupados[$reductor])) {
-            $analisisAgrupados[$reductor] = [];
-        }
-        
-        // Usar el código base como clave
-        $analisisAgrupados[$reductor][$codigoBase] = $analisisItem;
-    }
-    
-    // DEBUG (opcional para verificar)
-    // \Log::info('Analisis agrupados:', $analisisAgrupados);
 
+        $analisisAgrupados[$reductor][$codigoBase] = $item;
+    }
     @endphp
 
-    @if($lineaMostrar || $analisis->total() > 0)
+    @if((isset($lineaMostrar) && $lineas->count() > 0) || (isset($analisis) && $analisis->total() > 0))
         <div class="mb-8 bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-            {{-- ENCABEZADO DE LÍNEA --}}
-            <div class="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-4 py-3">
-                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-                    <h2 class="font-bold text-lg">
-                        <i class="fas fa-washing-machine mr-2"></i>
-                        Lavadora: {{ $lineaMostrar->nombre ?? 'Seleccione una lavadora' }}
-                        @if(request('componente_id'))
-                            <span class="text-sm font-normal ml-2">
-                                | Componente: {{ $todosComponentes[request('componente_id')] ?? request('componente_id') }}
-                            </span>
+            {{-- ENCABEZADO DE TABLA MEJORADO --}}
+            <div class="table-header-container">
+                <div class="table-header-content">
+                    <div class="table-title-section">
+                           {{-- Ícono de máquina --}}
+        <div class="flex justify-center md:justify-start">
+            <div class="w-20 h-20">
+                <img 
+                    src="{{ asset('images/icono-maquina.png') }}" 
+                    alt="Icono de lavadora"
+                    class="w-full h-full object-contain">
+            </div>
+        </div>
+                      <div>
+                            <h2 class="font-bold text-xl text-white">
+                                {{ $lineaMostrar->nombre ?? 'Análisis de Componentes' }}
+                            </h2>
+                            <div class="text-blue-100 text-sm mt-1 flex flex-wrap gap-2">
+                                @if(request('componente_id') && isset($todosComponentes))
+                                    <span class="flex items-center gap-1">
+                                        <i class="fas fa-cog"></i>
+                                        Componente: {{ $todosComponentes[request('componente_id')] ?? request('componente_id') }}
+                                    </span>
+                                @endif
+                                
+                                @if(request('reductor'))
+                                    <span class="flex items-center gap-1">
+                                        <i class="fas fa-sliders-h"></i>
+                                        Reductor: {{ request('reductor') }}
+                                    </span>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                    <div class="table-info-section">
+                        @if(isset($componentesParaTabla) && isset($reductoresParaTabla) && isset($estadisticas))
+                            <div class="table-stats">
+                                <div class="stat-item">
+                                    <i class="fas fa-check-circle text-green-300"></i>
+                                    <span class="text-sm font-medium">{{ $estadisticas['buen_estado'] ?? 0 }}</span>
+                                </div>
+                                <div class="stat-item">
+                                    <i class="fas fa-exclamation-triangle text-yellow-300"></i>
+                                    <span class="text-sm font-medium">{{ $estadisticas['desgaste'] ?? 0 }}</span>
+                                </div>
+                                <div class="stat-item">
+                                    <i class="fas fa-times-circle text-red-300"></i>
+                                    <span class="text-sm font-medium">{{ $estadisticas['danado_requiere'] ?? 0 }}</span>
+                                </div>
+                                <div class="stat-item">
+                                    <i class="fas fa-exchange-alt text-blue-300"></i>
+                                    <span class="text-sm font-medium">{{ $estadisticas['danado_cambiado'] ?? 0 }}</span>
+                                </div>
+                            </div>
                         @endif
-                        @if(request('reductor'))
-                            <span class="text-sm font-normal ml-2">
-                                | Reductor: {{ request('reductor') }}
-                            </span>
-                        @endif
-                    </h2>
-                    <div class="text-sm text-blue-100">
-                        <i class="fas fa-table mr-1"></i>
-                        {{ count($componentesParaTabla) }} componentes × {{ count($reductoresParaTabla) }} reductores
+                        
+                        <div class="table-controls">
+                            <button onclick="toggleViewMode()" 
+                                    class="control-btn"
+                                    title="Cambiar vista">
+                                <i id="viewModeIcon" class="fas fa-table"></i>
+                            </button>
+                            <button onclick="toggleCompactView()" 
+                                    class="control-btn"
+                                    title="Vista compacta">
+                                <i id="compactViewIcon" class="fas fa-compress-alt"></i>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            {{-- TABLA COMPACTA --}}
-            @if(count($componentesParaTabla) > 0 && count($reductoresParaTabla) > 0)
-                <div class="table-wrapper">
+            {{-- TABLA COMPACTA CON MEJORAS --}}
+            @if(isset($componentesParaTabla) && isset($reductoresParaTabla) && count($componentesParaTabla) > 0 && count($reductoresParaTabla) > 0)
+                <div class="table-wrapper" id="mainTable">
                     <div class="scroll-indicator">
                         <i class="fas fa-arrows-alt-h mr-1"></i> Desplázate para ver más
                     </div>
-                    <table class="w-full compact-table border-collapse">
+                    <table class="w-full compact-table border-collapse" id="analysisTable">
                         <thead>
                             <tr class="bg-gray-50 border-b border-gray-200">
                                 <th class="sticky-top-left sticky-top cell-header text-blue-900 font-bold px-3 py-2 border text-center whitespace-nowrap text-sm table-corner">
@@ -621,10 +1009,59 @@
                                     </div>
                                 </th>
                                 @foreach($componentesParaTabla as $c)
+                                    @php
+                                        $conteoEstado = [
+                                            'ok' => 0,
+                                            'warning' => 0,
+                                            'danger' => 0,
+                                            'changed' => 0,
+                                            'empty' => count($reductoresParaTabla)
+                                        ];
+                                        
+                                        foreach($reductoresParaTabla as $r) {
+                                            if(isset($analisisAgrupados[$r][$c->id])) {
+                                                $registro = $analisisAgrupados[$r][$c->id];
+                                                $estado = $registro->estado ?? 'Buen estado';
+                                                if (str_contains($estado, 'Dañado - Cambiado')) {
+                                                    $conteoEstado['changed']++;
+                                                    $conteoEstado['empty']--;
+                                                } elseif(str_contains($estado, 'Dañado')) {
+                                                    $conteoEstado['danger']++;
+                                                    $conteoEstado['empty']--;
+                                                } elseif(str_contains($estado, 'Desgaste')) {
+                                                    $conteoEstado['warning']++;
+                                                    $conteoEstado['empty']--;
+                                                } else {
+                                                    $conteoEstado['ok']++;
+                                                    $conteoEstado['empty']--;
+                                                }
+                                            }
+                                        }
+                                    @endphp
                                     <th class="sticky-top cell-header text-blue-900 font-bold px-3 py-2 border text-center whitespace-nowrap text-sm">
                                         <div class="component-header">
                                             <div class="component-name">{{ $c->nombre }}</div>
                                             <div class="component-code">{{ $c->id }}</div>
+                                            <img
+                                                src="{{ $c->icono }}"
+                                                alt="Icono {{ $c->nombre }}"
+                                                class="w-20 h-20 object-contain hover:scale-110 transition-transform"
+                                                onerror="this.src='{{ asset('images/componentes/Buje Baquelita-Espiga.png') }}'">
+
+                                            <div class="flex justify-center gap-1 mt-1">
+                                                @if($conteoEstado['ok'] > 0)
+                                                    <span class="w-1 h-1 bg-green-500 rounded-full"></span>
+                                                @endif
+                                                @if($conteoEstado['warning'] > 0)
+                                                    <span class="w-1 h-1 bg-yellow-500 rounded-full"></span>
+                                                @endif
+                                                @if($conteoEstado['danger'] > 0)
+                                                    <span class="w-1 h-1 bg-red-500 rounded-full"></span>
+                                                @endif
+                                                @if($conteoEstado['changed'] > 0)
+                                                    <span class="w-1 h-1 bg-blue-500 rounded-full"></span>
+                                                @endif
+                                            </div>
                                         </div>
                                     </th>
                                 @endforeach
@@ -632,39 +1069,69 @@
                         </thead>
                         <tbody>
                             @foreach($reductoresParaTabla as $r)
+                                @php
+                                    $conteoReductor = [
+                                        'total' => 0,
+                                        'ok' => 0,
+                                        'warning' => 0,
+                                        'danger' => 0,
+                                        'changed' => 0
+                                    ];
+                                    
+                                    foreach($componentesParaTabla as $c) {
+                                        if(isset($analisisAgrupados[$r][$c->id])) {
+                                            $conteoReductor['total']++;
+                                            $registro = $analisisAgrupados[$r][$c->id];
+                                            $estado = $registro->estado ?? 'Buen estado';
+                                            if (str_contains($estado, 'Dañado - Cambiado')) {
+                                                $conteoReductor['changed']++;
+                                            } elseif(str_contains($estado, 'Dañado')) {
+                                                $conteoReductor['danger']++;
+                                            } elseif(str_contains($estado, 'Desgaste')) {
+                                                $conteoReductor['warning']++;
+                                            } else {
+                                                $conteoReductor['ok']++;
+                                            }
+                                        }
+                                    }
+                                @endphp
                                 <tr>
                                     <th class="sticky-left cell-header text-blue-900 font-bold px-3 py-2 border text-center whitespace-nowrap text-sm align-top">
                                         <div class="reductor-header">
                                             <div class="reductor-name">{{ $r }}</div>
                                             <div class="reductor-label">Reductor</div>
+                                            <div class="text-xs text-gray-500 mt-1">
+                                                {{ $conteoReductor['total'] }}/{{ count($componentesParaTabla) }}
+                                            </div>
                                         </div>
                                     </th>
                                     
                                     @foreach($componentesParaTabla as $c)
                                         @php
-                                            // Buscar si existe registro para este reductor y componente
-                                            $registro = null;
-                                            if(isset($analisisAgrupados[$r])) {
-                                                // Buscar por código del componente (ej: 'SERVO_CHICO')
-                                                foreach($analisisAgrupados[$r] as $codigoComponente => $analisisItem) {
-                                                    if($codigoComponente == $c->id) {
-                                                        $registro = $analisisItem;
-                                                        break;
-                                                    }
-                                                }
-                                            }
-                                            
+                                            $registro = $analisisAgrupados[$r][$c->id] ?? null;
                                             $hasData = !empty($registro);
                                             $color = '';
-                                            $totalImagenes = 0;
+                                            $isNew = false;
                                             
                                             if($hasData){
                                                 $estadoActual = $registro->estado ?? 'Buen estado';
-                                                $color = str_contains($estadoActual, 'Dañado') ? 'cell-danger'
-                                                       : (str_contains($estadoActual, 'Desgaste') ? 'cell-warning' : 'cell-ok');
+                                                
+                                                // Determinar color de la celda
+                                                if (str_contains($estadoActual, 'Dañado - Cambiado')) {
+                                                    $color = 'cell-changed';
+                                                } elseif (str_contains($estadoActual, 'Dañado')) {
+                                                    $color = 'cell-danger';
+                                                } elseif (str_contains($estadoActual, 'Desgaste')) {
+                                                    $color = 'cell-warning';
+                                                } else {
+                                                    $color = 'cell-ok';
+                                                }
+                                                
+                                                if($registro->created_at && $registro->created_at->gt(now()->subDays(3))) {
+                                                    $isNew = true;
+                                                }
                                                 
                                                 $imagenes = $registro->evidencia_fotos ?? null;
-                                                
                                                 if (is_string($imagenes)) {
                                                     $imagenes = json_decode($imagenes, true) ?? [];
                                                 } elseif (is_array($imagenes)) {
@@ -672,8 +1139,6 @@
                                                 } else {
                                                     $imagenes = [];
                                                 }
-                                                
-                                                $totalImagenes = count($imagenes);
                                             }
                                         @endphp
                                         
@@ -683,25 +1148,31 @@
                                                 'id' => $registro->id,
                                                 'linea' => $registro->linea->nombre ?? 'Sin nombre',
                                                 'componente' => $registro->componente->nombre ?? 'Sin nombre',
+                                                'componente_codigo' => $registro->componente->codigo ?? '',
                                                 'reductor' => $registro->reductor,
-                                                'fecha_analisis' => $registro->fecha_analisis->format('d/m/Y'),
+                                                'fecha_analisis' => isset($registro->fecha_analisis) ? $registro->fecha_analisis->format('d/m/Y') : '',
                                                 'numero_orden' => $registro->numero_orden,
                                                 'estado' => $registro->estado ?? 'Buen estado',
                                                 'actividad' => $registro->actividad,
-                                                'imagenes' => $imagenes,
+                                                'imagenes' => $imagenes ?? [],
                                                 'color' => $color,
-                                                'created_at' => $registro->created_at->format('d/m/Y H:i'),
-                                                'updated_at' => $registro->updated_at->format('d/m/Y H:i'),
+                                                'created_at' => isset($registro->created_at) ? $registro->created_at->format('d/m/Y H:i') : '',
+                                                'updated_at' => isset($registro->updated_at) ? $registro->updated_at->format('d/m/Y H:i') : '',
+                                                'is_new' => $isNew
                                             ]) }})"
                                             @endif>
                                             
                                             @if($hasData)
+                                                @if($isNew)
+                                                    <div class="badge-new">NUEVO</div>
+                                                @endif
+                                                
                                                 <div class="space-y-2">
                                                     <div class="flex flex-col">
                                                         <div class="flex items-center gap-1 mb-1">
                                                             <i class="fas fa-calendar text-blue-600 text-xs"></i>
                                                             <span class="text-xs font-semibold text-gray-700">
-                                                                {{ $registro->fecha_analisis->format('d/m/Y') }}
+                                                                {{ isset($registro->fecha_analisis) ? $registro->fecha_analisis->format('d/m/Y') : '' }}
                                                             </span>
                                                         </div>
                                                         <div class="flex items-center gap-1">
@@ -715,15 +1186,25 @@
                                                     <div class="mb-2">
                                                         @php
                                                             $estadoActual = $registro->estado ?? 'Buen estado';
-                                                            $statusClass = $color == 'cell-ok' ? 'bg-green-100 text-green-800 border-green-200' 
-                                                               : ($color == 'cell-warning' ? 'bg-yellow-100 text-yellow-800 border-yellow-200' 
-                                                               : 'bg-red-100 text-red-800 border-red-200');
-                                                            $icon = $color == 'cell-ok' ? 'fa-check-circle' 
-                                                               : ($color == 'cell-warning' ? 'fa-exclamation-triangle' : 'fa-times-circle');
+                                                            
+                                                            // Determinar clase de color según el estado
+                                                            if (str_contains($estadoActual, 'Dañado - Cambiado')) {
+                                                                $statusClass = 'bg-blue-100 text-blue-800 border-blue-200';
+                                                                $icon = 'fa-exchange-alt';
+                                                            } elseif (str_contains($estadoActual, 'Dañado')) {
+                                                                $statusClass = 'bg-red-100 text-red-800 border-red-200';
+                                                                $icon = 'fa-times-circle';
+                                                            } elseif (str_contains($estadoActual, 'Desgaste')) {
+                                                                $statusClass = 'bg-yellow-100 text-yellow-800 border-yellow-200';
+                                                                $icon = 'fa-exclamation-triangle';
+                                                            } else {
+                                                                $statusClass = 'bg-green-100 text-green-800 border-green-200';
+                                                                $icon = 'fa-check-circle';
+                                                            }
                                                         @endphp
                                                         <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium {{ $statusClass }}">
                                                             <i class="fas {{ $icon }} mr-1"></i>
-                                                            {{ $estadoActual }}
+                                                            {{ Str::limit($estadoActual, 20) }}
                                                         </span>
                                                     </div>
                                                     
@@ -734,33 +1215,49 @@
                                                     </div>
                                                     
                                                     <div class="flex flex-col gap-1 mt-3">
-                                                        @if($totalImagenes > 0)
+                                                        @if(!empty($imagenes) && count($imagenes) > 0)
                                                             <button onclick="event.stopPropagation(); openAllImages({{ json_encode($imagenes) }}, 
-                                                                    '{{ $registro->fecha_analisis->format('d/m/Y') }}', 
+                                                                    '{{ isset($registro->fecha_analisis) ? $registro->fecha_analisis->format('d/m/Y') : '' }}', 
                                                                     '{{ $registro->numero_orden }}', 
                                                                     '{{ $registro->estado ?? 'Buen estado' }}')"
                                                                     class="inline-flex items-center justify-center gap-1 px-3 py-1.5 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition text-xs font-medium">
-                                                                @if($totalImagenes > 1)
-                                                                    <i class="fas fa-images mr-1"></i>
-                                                                    Ver {{ $totalImagenes }} Imágenes
-                                                                @else
-                                                                    <i class="fas fa-image mr-1"></i>
-                                                                    Ver Imagen
-                                                                @endif
+                                                                <i class="fas fa-images mr-1"></i>
+                                                                {{ count($imagenes) }} img
                                                             </button>
                                                         @endif
                                                         
-                                                        <a href="{{ route('analisis-componentes.edit', $registro->id) }}"
-                                                           class="inline-flex items-center justify-center gap-1 px-3 py-1.5 bg-yellow-100 text-yellow-700 rounded hover:bg-yellow-200 transition text-xs font-medium"
-                                                           onclick="event.stopPropagation();">
+                                                        <a href="{{ route('analisis-componentes.edit', [
+                                                            'analisisComponente' => $registro->id,
+                                                            'linea_id' => request('linea_id', ''),
+                                                            'componente_id' => request('componente_id', ''),
+                                                            'reductor' => request('reductor', ''),
+                                                            'fecha' => request('fecha', '')
+                                                        ]) }}"
+                                                        class="inline-flex items-center justify-center gap-1 px-3 py-1.5 bg-yellow-100 text-yellow-700 rounded hover:bg-yellow-200 transition text-xs font-medium"
+                                                        onclick="event.stopPropagation();">
                                                             <i class="fas fa-edit"></i>
-                                                            Editar Registro
+                                                            Editar
                                                         </a>
+                                                        
+                                                        <form action="{{ route('analisis-componentes.destroy', $registro->id) }}" 
+                                                              method="POST" 
+                                                              class="inline"
+                                                              onsubmit="return confirmDelete(event)">
+                                                            @csrf
+                                                            @method('DELETE')
+                                                            <input type="hidden" name="redirect_params" value="{{ json_encode(request()->query()) }}">
+                                                            <button type="submit" 
+                                                                    onclick="event.stopPropagation();"
+                                                                    class="w-full inline-flex items-center justify-center gap-1 px-3 py-1.5 bg-red-100 text-red-700 rounded hover:bg-red-200 transition text-xs font-medium">
+                                                                <i class="fas fa-trash"></i>
+                                                                Eliminar
+                                                            </button>
+                                                        </form>
                                                     </div>
                                                     
                                                     @if($hasData)
                                                         <div class="click-indicator">
-                                                            <i class="fas fa-search-plus mr-1"></i> Ver detalles
+                                                            <i class="fas fa-search-plus mr-1"></i> Detalles
                                                         </div>
                                                     @endif
                                                 </div>
@@ -769,25 +1266,25 @@
                                                     <div class="empty-cell-icon">
                                                         <i class="fas fa-clipboard"></i>
                                                     </div>
-                                                    <p class="text-gray-500 text-xs mb-3">Sin análisis registrado</p>
+                                                    <p class="text-gray-500 text-xs mb-3">Sin análisis</p>
                                                     
                                                     @if($lineaMostrar)
                                                         <a href="{{ route('analisis-componentes.create-quick',[
                                                             'linea_id' => $lineaMostrar->id,
-                                                            'componente_codigo' => $c->codigo ?? $c->id,
+                                                            'componente_codigo' => $c->id,
                                                             'reductor' => $r,
                                                             'fecha' => request('fecha', now()->format('Y-m'))]) }}"
                                                         class="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 transition text-xs font-medium"
                                                         onclick="event.stopPropagation();">
                                                             <i class="fas fa-plus"></i>
-                                                            Agregar Análisis
+                                                            Agregar
                                                         </a>
                                                     @else
                                                         <a href="{{ route('analisis-componentes.select-linea') }}"
                                                         class="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 transition text-xs font-medium"
                                                         onclick="event.stopPropagation();">
                                                             <i class="fas fa-plus"></i>
-                                                            Seleccionar Lavadora
+                                                            Nuevo
                                                         </a>
                                                     @endif
                                                 </div>
@@ -807,44 +1304,59 @@
             @endif
         </div>
         
-        {{-- PAGINACIÓN --}}
-        @if($analisis->total() > 0)
+        {{-- PAGINACIÓN MEJORADA --}}
+        @if(isset($analisis) && $analisis->total() > 0)
             <div class="mt-6 bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-                <div class="flex justify-between items-center">
+                <div class="flex flex-col md:flex-row justify-between items-center gap-4">
                     <div class="text-sm text-gray-600">
                         Mostrando {{ $analisis->firstItem() }} - {{ $analisis->lastItem() }} de {{ $analisis->total() }} registros
                     </div>
-                    <div class="flex gap-2">
-                        {{ $analisis->links() }}
+                    <div class="flex flex-wrap gap-2">
+                        {{ $analisis->appends(request()->query())->links() }}
                     </div>
                 </div>
             </div>
         @endif
     @else
-        {{-- VISTA INICIAL SIN FILTROS --}}
+        {{-- VISTA INICIAL MEJORADA --}}
         <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center">
-            <div class="text-gray-400 mb-4">
-                <i class="fas fa-clipboard-list text-4xl"></i>
+            <div class="text-blue-400 mb-4">
+                <i class="fas fa-clipboard-list text-5xl"></i>
             </div>
-            <h3 class="text-lg font-medium text-gray-700 mb-2">Seleccione una lavadora para comenzar</h3>
-            <p class="text-gray-500 mb-4">Utilice los filtros para ver los análisis de componentes.</p>
-            <p class="text-sm text-gray-400 mb-6">
-                <i class="fas fa-info-circle mr-1"></i>
-                La tabla mostrará todos los componentes y reductores disponibles, incluso si no tienen registros.
-            </p>
+            <h3 class="text-lg font-medium text-gray-700 mb-2">Bienvenido al Sistema de Análisis de Componentes</h3>
+            <p class="text-gray-500 mb-4">Seleccione una lavadora para ver los análisis o cree uno nuevo.</p>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div class="p-4 bg-blue-50 rounded-lg">
+                    <i class="fas fa-search text-blue-600 text-xl mb-2"></i>
+                    <h4 class="font-medium text-gray-700">Filtrar</h4>
+                    <p class="text-sm text-gray-500">Use filtros para encontrar análisis específicos</p>
+                </div>
+                <div class="p-4 bg-green-50 rounded-lg">
+                    <i class="fas fa-plus text-green-600 text-xl mb-2"></i>
+                    <h4 class="font-medium text-gray-700">Crear</h4>
+                    <p class="text-sm text-gray-500">Agregue nuevos análisis de componentes</p>
+                </div>
+                <div class="p-4 bg-yellow-50 rounded-lg">
+                    <i class="fas fa-chart-bar text-yellow-600 text-xl mb-2"></i>
+                    <h4 class="font-medium text-gray-700">Analizar</h4>
+                    <p class="text-sm text-gray-500">Vea estadísticas y tendencias</p>
+                </div>
+            </div>
+            
             <a href="{{ route('analisis-componentes.select-linea') }}"
-               class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
+               class="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition shadow-lg hover:shadow-xl">
                 <i class="fas fa-plus"></i>
-                Crear Nuevo Análisis
+                Comenzar Nuevo Análisis
             </a>
         </div>
     @endif
 </div>
 
-{{-- MODALES --}}
+{{-- MODALES MEJORADOS --}}
 <div id="analysisDetailModal" class="fixed inset-0 bg-black/80 hidden items-center justify-center z-50 p-4"
      onclick="closeAnalysisDetailModal()">
-    <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden transform transition-all duration-300">
+    <div class="bg-white rounded-lg shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden transform transition-all duration-300">
         <div class="flex justify-between items-center bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-4">
             <div>
                 <h3 class="font-bold text-lg">
@@ -856,7 +1368,7 @@
                 </div>
             </div>
             <button onclick="closeAnalysisDetailModal()"
-                    class="text-white hover:text-yellow-300 text-2xl transition">
+                    class="text-white hover:text-yellow-300 text-2xl transition transform hover:scale-110">
                 <i class="fas fa-times"></i>
             </button>
         </div>
@@ -871,6 +1383,7 @@
                 <div class="detail-card">
                     <h4><i class="fas fa-cog mr-2"></i>Componente</h4>
                     <p id="detail-componente" class="font-semibold text-lg"></p>
+                    <p id="detail-componente-codigo" class="text-sm text-gray-500 mt-1"></p>
                 </div>
                 
                 <div class="detail-card">
@@ -885,12 +1398,12 @@
                 
                 <div class="detail-card">
                     <h4><i class="fas fa-hashtag mr-2"></i>Número de Orden</h4>
-                    <p id="detail-orden" class="font-semibold text-lg"></p>
+                    <p id="detail-orden" class="font-semibold text-lg text-blue-700"></p>
                 </div>
                 
                 <div class="detail-card">
                     <h4><i class="fas fa-clipboard-check mr-2"></i>Estado</h4>
-                    <div id="detail-estado" class="status-badge ok mt-2"></div>
+                    <div id="detail-estado" class="status-badge ok mt-2 inline-flex"></div>
                 </div>
                 
                 <div class="detail-card">
@@ -908,33 +1421,46 @@
             <div class="detail-card mt-6">
                 <h4><i class="fas fa-sticky-note mr-2"></i>Actividad / Observaciones</h4>
                 <div class="activity-content">
-                    <p id="detail-actividad"></p>
+                    <p id="detail-actividad" class="whitespace-pre-line"></p>
                 </div>
             </div>
             
             {{-- Imágenes --}}
             <div id="detail-images-section" class="detail-images-container hidden">
-                <h4 class="text-lg font-semibold text-gray-800 mb-4">
-                    <i class="fas fa-images mr-2"></i>Evidencia Fotográfica
-                </h4>
+                <div class="flex justify-between items-center mb-4">
+                    <h4 class="text-lg font-semibold text-gray-800">
+                        <i class="fas fa-images mr-2"></i>Evidencia Fotográfica
+                    </h4>
+                    <button id="toggleDetailImages" onclick="toggleDetailImages()" 
+                            class="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1">
+                        <i class="fas fa-expand-alt"></i>
+                        Expandir
+                    </button>
+                </div>
                 <div id="detail-image-grid" class="image-grid"></div>
             </div>
             
             <div class="detail-actions">
                 <a id="detail-edit-btn" href="#"
-                   class="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition flex items-center gap-2">
+                   class="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition flex items-center gap-2 shadow-sm hover:shadow-md">
                     <i class="fas fa-edit"></i>
                     Editar Registro
                 </a>
                 
                 <button id="detail-images-btn" onclick="showDetailImages()"
-                        class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center gap-2">
+                        class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center gap-2 shadow-sm hover:shadow-md">
                     <i class="fas fa-images"></i>
                     Ver Imágenes
                 </button>
                 
+                <button id="detail-print-btn" onclick="printDetail()"
+                        class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition flex items-center gap-2 shadow-sm hover:shadow-md">
+                    <i class="fas fa-print"></i>
+                    Imprimir
+                </button>
+                
                 <button onclick="closeAnalysisDetailModal()"
-                        class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition flex items-center gap-2">
+                        class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition flex items-center gap-2 shadow-sm hover:shadow-md">
                     <i class="fas fa-times"></i>
                     Cerrar
                 </button>
@@ -946,7 +1472,7 @@
 {{-- MODAL PARA IMÁGENES --}}
 <div id="allImagesModal" class="fixed inset-0 bg-black/80 hidden items-center justify-center z-50 p-4"
      onclick="closeAllImagesModal()">
-    <div class="bg-white rounded-lg shadow-xl max-w-6xl w-full max-h-[90vh] overflow-hidden transform transition-all duration-300">
+    <div class="bg-white rounded-lg shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden transform transition-all duration-300">
         <div class="flex justify-between items-center bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-4">
             <div>
                 <h3 class="font-bold text-lg">
@@ -960,7 +1486,7 @@
                 </div>
             </div>
             <button onclick="closeAllImagesModal()"
-                    class="text-white hover:text-yellow-300 text-2xl transition">
+                    class="text-white hover:text-yellow-300 text-2xl transition transform hover:scale-110">
                 <i class="fas fa-times"></i>
             </button>
         </div>
@@ -969,22 +1495,28 @@
             <div id="imageGrid" class="image-grid"></div>
             
             <div id="emptyImages" class="empty-images hidden">
-                <i class="fas fa-image"></i>
-                <p class="text-lg font-medium">No hay imágenes disponibles</p>
-                <p class="text-sm text-gray-500 mt-2">Este registro no tiene imágenes adjuntas</p>
+                <i class="fas fa-image text-4xl mb-4 text-gray-300"></i>
+                <p class="text-lg font-medium text-gray-500">No hay imágenes disponibles</p>
+                <p class="text-sm text-gray-400 mt-2">Este registro no tiene imágenes adjuntas</p>
             </div>
             
             <div class="flex flex-wrap gap-3 mt-6 justify-center">
                 <button onclick="closeAllImagesModal()"
-                        class="px-5 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition flex items-center gap-2">
+                        class="px-5 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition flex items-center gap-2 shadow-sm hover:shadow-md">
                     <i class="fas fa-times"></i>
                     Cerrar
                 </button>
                 
                 <button id="downloadAllImagesBtn" onclick="downloadAllImages()"
-                        class="download-all-btn">
+                        class="download-all-btn shadow-sm hover:shadow-md">
                     <i class="fas fa-download"></i>
                     Descargar Todas las Imágenes
+                </button>
+                
+                <button onclick="printImages()"
+                        class="px-5 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition flex items-center gap-2 shadow-sm hover:shadow-md">
+                    <i class="fas fa-print"></i>
+                    Imprimir Imágenes
                 </button>
             </div>
         </div>
@@ -995,13 +1527,38 @@
 <div id="singleImageModal" class="fixed inset-0 bg-black/90 hidden items-center justify-center z-[60] p-4"
      onclick="closeSingleImageModal()">
     <div class="relative max-w-5xl w-full max-h-[90vh]">
-        <img id="singleModalImg" class="max-w-full max-h-[80vh] object-contain rounded-lg mx-auto"
+        <div class="flex justify-between items-center mb-4">
+            <div class="text-white text-sm opacity-75">
+                <i class="fas fa-image mr-2"></i>
+                <span id="singleImageTitle">Imagen</span>
+            </div>
+            <button onclick="closeSingleImageModal()"
+                    class="text-white hover:text-yellow-300 text-2xl transition transform hover:scale-110">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <img id="singleModalImg" class="max-w-full max-h-[80vh] object-contain rounded-lg mx-auto shadow-2xl"
              onerror="this.onerror=null; this.src='https://via.placeholder.com/800x600?text=Imagen+no+disponible';">
         
-        <button onclick="closeSingleImageModal()"
-                class="absolute top-4 right-4 text-white hover:text-yellow-300 text-3xl transition">
-            <i class="fas fa-times"></i>
-        </button>
+        <div class="flex justify-between mt-4">
+            <button onclick="navigateImage(-1)" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                <i class="fas fa-chevron-left"></i> Anterior
+            </button>
+            <button onclick="downloadCurrentImage()" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
+                <i class="fas fa-download"></i> Descargar
+            </button>
+            <button onclick="navigateImage(1)" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                Siguiente <i class="fas fa-chevron-right"></i>
+            </button>
+        </div>
+    </div>
+</div>
+
+{{-- LOADING OVERLAY --}}
+<div id="loadingOverlay" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-[100]">
+    <div class="bg-white rounded-lg p-8 shadow-2xl flex flex-col items-center">
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
+        <p class="text-gray-700">Cargando...</p>
     </div>
 </div>
 
@@ -1009,13 +1566,19 @@
 let currentImages = [];
 let currentModalInfo = {};
 let currentAnalysisData = null;
+let currentImageIndex = 0;
+let isCompactView = false;
+let isListView = false;
 
+// FUNCIONES PRINCIPALES
 function openAnalysisDetail(analysisData) {
+    showLoading();
     currentAnalysisData = analysisData;
     const modal = document.getElementById('analysisDetailModal');
     
     document.getElementById('detail-linea').textContent = analysisData.linea;
     document.getElementById('detail-componente').textContent = analysisData.componente;
+    document.getElementById('detail-componente-codigo').textContent = analysisData.componente_codigo;
     document.getElementById('detail-reductor').textContent = analysisData.reductor;
     document.getElementById('detail-fecha').textContent = analysisData.fecha_analisis;
     document.getElementById('detail-orden').textContent = analysisData.numero_orden;
@@ -1029,7 +1592,7 @@ function openAnalysisDetail(analysisData) {
     const estadoElement = document.getElementById('detail-estado');
     estadoElement.textContent = analysisData.estado;
     
-    estadoElement.classList.remove('ok', 'warning', 'danger');
+    estadoElement.classList.remove('ok', 'warning', 'danger', 'changed');
     
     if (analysisData.color === 'cell-ok') {
         estadoElement.classList.add('ok');
@@ -1037,6 +1600,8 @@ function openAnalysisDetail(analysisData) {
         estadoElement.classList.add('warning');
     } else if (analysisData.color === 'cell-danger') {
         estadoElement.classList.add('danger');
+    } else if (analysisData.color === 'cell-changed') {
+        estadoElement.classList.add('changed');
     }
     
     const imagesBtn = document.getElementById('detail-images-btn');
@@ -1053,6 +1618,7 @@ function openAnalysisDetail(analysisData) {
     
     modal.classList.remove('hidden');
     document.body.style.overflow = 'hidden';
+    hideLoading();
 }
 
 function buildDetailImageGrid(imagenes) {
@@ -1074,7 +1640,7 @@ function buildDetailImageGrid(imagenes) {
         img.onerror = function() {
             this.src = 'https://via.placeholder.com/200x150?text=Imagen+no+disponible';
         };
-        img.onclick = () => openSingleImage(imagePath);
+        img.onclick = () => openSingleImage(imagePath, index);
         
         const imageInfo = document.createElement('div');
         imageInfo.className = 'image-info';
@@ -1122,6 +1688,7 @@ function closeAnalysisDetailModal() {
 }
 
 function openAllImages(imagenes, fecha, orden, estado) {
+    showLoading();
     const modal = document.getElementById('allImagesModal');
     
     currentImages = Array.isArray(imagenes) ? imagenes.filter(img => img && img.trim() !== '') : [];
@@ -1153,6 +1720,7 @@ function openAllImages(imagenes, fecha, orden, estado) {
     
     modal.classList.remove('hidden');
     document.body.style.overflow = 'hidden';
+    hideLoading();
 }
 
 function buildImageGrid() {
@@ -1174,7 +1742,7 @@ function buildImageGrid() {
         img.onerror = function() {
             this.src = 'https://via.placeholder.com/200x150?text=Imagen+no+disponible';
         };
-        img.onclick = () => openSingleImage(imagePath);
+        img.onclick = () => openSingleImage(imagePath, index);
         
         const imageInfo = document.createElement('div');
         imageInfo.className = 'image-info';
@@ -1204,16 +1772,34 @@ function buildImageGrid() {
     });
 }
 
-function openSingleImage(imagePath) {
+function openSingleImage(imagePath, index) {
+    currentImageIndex = index;
     const modal = document.getElementById('singleImageModal');
     const imgElement = document.getElementById('singleModalImg');
+    const titleElement = document.getElementById('singleImageTitle');
     
     imgElement.src = `{{ Storage::url('') }}${imagePath}`;
+    titleElement.textContent = `Imagen ${index + 1} de ${currentImages.length}`;
     modal.classList.remove('hidden');
     document.body.style.overflow = 'hidden';
 }
 
+function navigateImage(direction) {
+    if (currentImages.length === 0) return;
+    
+    currentImageIndex += direction;
+    
+    if (currentImageIndex < 0) {
+        currentImageIndex = currentImages.length - 1;
+    } else if (currentImageIndex >= currentImages.length) {
+        currentImageIndex = 0;
+    }
+    
+    openSingleImage(currentImages[currentImageIndex], currentImageIndex);
+}
+
 function downloadSingleImage(imagePath, index) {
+    showLoading();
     const link = document.createElement('a');
     link.href = `{{ Storage::url('') }}${imagePath}`;
     const fileName = imagePath.split('/').pop() || `imagen-${index + 1}-${Date.now()}.jpg`;
@@ -1222,9 +1808,17 @@ function downloadSingleImage(imagePath, index) {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    setTimeout(hideLoading, 500);
+}
+
+function downloadCurrentImage() {
+    if (currentImages.length > 0 && currentImageIndex >= 0) {
+        downloadSingleImage(currentImages[currentImageIndex], currentImageIndex);
+    }
 }
 
 function downloadAllImages() {
+    showLoading();
     currentImages.forEach((imagePath, index) => {
         setTimeout(() => {
             const link = document.createElement('a');
@@ -1237,6 +1831,7 @@ function downloadAllImages() {
             document.body.removeChild(link);
         }, index * 300);
     });
+    setTimeout(hideLoading, 500);
 }
 
 function closeAllImagesModal() {
@@ -1249,6 +1844,122 @@ function closeSingleImageModal() {
     document.getElementById('singleImageModal').classList.add('hidden');
 }
 
+// FUNCIONES DE INTERFAZ
+function toggleAdvancedFilters() {
+    const filters = document.getElementById('advancedFilters');
+    const icon = document.getElementById('advancedFiltersIcon');
+    filters.classList.toggle('hidden');
+    icon.classList.toggle('fa-chevron-down');
+    icon.classList.toggle('fa-chevron-up');
+}
+
+function toggleViewMode() {
+    const tableView = document.getElementById('mainTable');
+    const listView = document.getElementById('listView');
+    const icon = document.getElementById('viewModeIcon');
+    
+    isListView = !isListView;
+    
+    if (isListView) {
+        tableView.classList.add('hidden');
+        listView.classList.remove('hidden');
+        icon.classList.remove('fa-table');
+        icon.classList.add('fa-list');
+    } else {
+        tableView.classList.remove('hidden');
+        listView.classList.add('hidden');
+        icon.classList.remove('fa-list');
+        icon.classList.add('fa-table');
+    }
+}
+
+function toggleCompactView() {
+    const cells = document.querySelectorAll('.analysis-cell');
+    const icon = document.getElementById('compactViewIcon');
+    
+    isCompactView = !isCompactView;
+    
+    cells.forEach(cell => {
+        if (isCompactView) {
+            cell.classList.add('compact-mode');
+            cell.querySelectorAll('button, a, .click-indicator, .empty-cell-icon').forEach(el => {
+                if (!el.closest('.badge-new')) {
+                    el.style.display = 'none';
+                }
+            });
+        } else {
+            cell.classList.remove('compact-mode');
+            cell.querySelectorAll('button, a, .click-indicator, .empty-cell-icon').forEach(el => {
+                el.style.display = '';
+            });
+        }
+    });
+    
+    icon.classList.toggle('fa-compress-alt');
+    icon.classList.toggle('fa-expand-alt');
+}
+
+function printTable() {
+    window.print();
+}
+
+function printDetail() {
+    const printContent = document.getElementById('analysisDetailModal').innerHTML;
+    const originalContent = document.body.innerHTML;
+    
+    document.body.innerHTML = printContent;
+    window.print();
+    document.body.innerHTML = originalContent;
+    location.reload();
+}
+
+function printImages() {
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write('<html><head><title>Impresión de Imágenes</title>');
+    printWindow.document.write('<style>img { max-width: 100%; margin: 10px; }</style></head><body>');
+    
+    currentImages.forEach(imagePath => {
+        printWindow.document.write(`<img src="{{ Storage::url('') }}${imagePath}" />`);
+    });
+    
+    printWindow.document.write('</body></html>');
+    printWindow.document.close();
+    printWindow.print();
+}
+
+function confirmDelete(event) {
+    event.preventDefault();
+    if (confirm('¿Está seguro de eliminar este análisis? Esta acción no se puede deshacer.')) {
+        showLoading();
+        event.target.submit();
+    }
+    return false;
+}
+
+function showLoading() {
+    document.getElementById('loadingOverlay').classList.remove('hidden');
+}
+
+function hideLoading() {
+    document.getElementById('loadingOverlay').classList.add('hidden');
+}
+
+function toggleDetailImages() {
+    const grid = document.getElementById('detail-image-grid');
+    const toggleBtn = document.getElementById('toggleDetailImages');
+    
+    if (grid.classList.contains('expanded')) {
+        grid.classList.remove('expanded');
+        grid.style.maxHeight = '60vh';
+        toggleBtn.innerHTML = '<i class="fas fa-expand-alt"></i> Expandir';
+    } else {
+        grid.classList.add('expanded');
+        grid.style.maxHeight = 'none';
+        toggleBtn.innerHTML = '<i class="fas fa-compress-alt"></i> Contraer';
+    }
+}
+
+// EVENT LISTENERS
 document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') {
         if (!document.getElementById('singleImageModal').classList.contains('hidden')) {
@@ -1258,6 +1969,10 @@ document.addEventListener('keydown', function(e) {
         } else if (!document.getElementById('analysisDetailModal').classList.contains('hidden')) {
             closeAnalysisDetailModal();
         }
+    } else if (e.key === 'ArrowLeft' && !document.getElementById('singleImageModal').classList.contains('hidden')) {
+        navigateImage(-1);
+    } else if (e.key === 'ArrowRight' && !document.getElementById('singleImageModal').classList.contains('hidden')) {
+        navigateImage(1);
     }
 });
 
@@ -1268,15 +1983,33 @@ document.querySelectorAll('#allImagesModal > div, #singleImageModal > div, #anal
 });
 
 document.addEventListener('DOMContentLoaded', function() {
-    document.querySelectorAll('.cell-ok, .cell-warning, .cell-danger').forEach(celda => {
+    // Ocultar botones de agregar en celdas ya analizadas
+    document.querySelectorAll('.cell-ok, .cell-warning, .cell-danger, .cell-changed').forEach(celda => {
         const botonesAgregar = celda.querySelectorAll('a[href*="create-quick"]');
         botonesAgregar.forEach(boton => boton.style.display = 'none');
     });
+    
+    if (window.location.hash === '#new') {
+        const newCells = document.querySelectorAll('.badge-new');
+        if (newCells.length > 0) {
+            newCells[0].closest('.analysis-cell').classList.add('cell-highlight');
+        }
+    }
 });
 
 document.addEventListener('click', function(e) {
     if (e.target.tagName === 'BUTTON' || e.target.tagName === 'A' || e.target.closest('button') || e.target.closest('a')) {
         e.stopPropagation();
+    }
+});
+
+// AUTO-SCROLL PARA NUEVOS REGISTROS
+window.addEventListener('load', function() {
+    const newRecord = document.querySelector('.badge-new');
+    if (newRecord) {
+        setTimeout(() => {
+            newRecord.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 500);
     }
 });
 </script>

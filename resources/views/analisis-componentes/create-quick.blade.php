@@ -17,24 +17,49 @@
                 </h1>
             </div>
             
-            {{-- Información del contexto --}}
-            <div class="bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl p-4 border border-gray-200">
-                <div class="grid grid-cols-3 gap-4 text-sm">
-                    <div>
-                        <p class="text-gray-600 font-semibold">Lavadora</p>
-                        <p class="text-gray-800">{{ $linea->nombre }}</p>
-                    </div>
-                    <div>
-                        <p class="text-gray-600 font-semibold">Componente</p>
-                        <p class="text-gray-800">{{ $componente->nombre }}</p>
-                    </div>
-                    <div>
-                        <p class="text-gray-600 font-semibold">Reductor</p>
-                        <p class="text-gray-800">{{ $reductor }}</p>
-                    </div>
-                </div>
+          {{-- Información del contexto --}}
+<div class="bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl p-4 border border-gray-200">
+    <div class="flex flex-col md:flex-row items-center gap-6">
+        {{-- Icono de máquina --}}
+        <div class="flex-shrink-0">
+            <div class="w-20 h-20 mx-auto md:mx-0">
+                <img src="{{ asset('images/icono-maquina.png') }}" 
+                     alt="Icono de lavadora" 
+                     class="w-full h-full object-contain">
             </div>
         </div>
+
+        {{-- Información en grid --}}
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 flex-grow">
+            {{-- Lavadora --}}
+            <div class="text-center md:text-left">
+                <p class="text-gray-600 font-semibold text-sm mb-1">
+                    <i class="fas fa-washing-machine mr-1"></i>
+                    Lavadora
+                </p>
+                <p class="text-gray-800 font-medium">{{ $linea->nombre }}</p>
+            </div>
+
+            {{-- Componente --}}
+            <div class="text-center md:text-left">
+                <p class="text-gray-600 font-semibold text-sm mb-1">
+                    <i class="fas fa-cog mr-1"></i>
+                    Componente
+                </p>
+                <p class="text-gray-800 font-medium">{{ $componente->nombre }}</p>
+            </div>  
+
+            {{-- Reductor --}}
+            <div class="text-center md:text-left">
+                <p class="text-gray-600 font-semibold text-sm mb-1">
+                    <i class="fas fa-sliders-h mr-1"></i>
+                    Reductor
+                </p>
+                <p class="text-gray-800 font-medium">{{ $reductor }}</p>
+            </div>
+        </div>
+    </div>
+</div>
         
         {{-- Formulario --}}
         <form action="{{ route('analisis-componentes.store') }}" 

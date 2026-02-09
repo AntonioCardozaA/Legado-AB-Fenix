@@ -17,8 +17,8 @@ class AnalisisComponente extends Model
         'reductor',
         'fecha_analisis',
         'numero_orden',
-        'actividad',
         'estado',
+        'actividad',
         'evidencia_fotos',
     ];
 

@@ -12,13 +12,20 @@
                 <i class="fas fa-arrow-left text-xl"></i>
             </a>
             <h1 class="text-3xl font-bold text-gray-800">
-                Crear Análisis Rápido
+                Crear Análisis
             </h1>
         </div>
         
         {{-- Información del contexto --}}
         <div class="bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl p-4 border border-gray-200">
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                <div class="flex items-center gap-3">
+    {{-- Icono de máquina --}}
+    <div class="w-20 h-20 flex-shrink-0">
+        <img src="{{ asset('images/icono-maquina.png') }}" 
+             alt="Icono de lavadora" 
+             class="w-full h-full object-contain">
+    </div>
                 <div>
                     <p class="text-gray-600 font-semibold">Lavadora</p>
                     <p class="text-gray-800">{{ $linea->nombre ?? 'Lavadora ' . $linea->id }}</p>
