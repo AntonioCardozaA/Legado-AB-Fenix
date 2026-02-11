@@ -272,7 +272,7 @@
                                     ¡ATENCIÓN! LÍMITE DE CAMBIO
                                 </h4>
                                 <p class="text-xs text-amber-600">
-                                    Máximo 3% de elongación para cambio de cadena
+                                    Máximo 2.4% de elongación para cambio de cadena
                                 </p>
                             </div>
                             <span class="px-3 py-1 bg-amber-100 text-amber-800 text-sm font-medium rounded-full">
@@ -450,7 +450,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Configuración
     const PASO_INICIAL = 173; // mm
     const LIMITE_ADVERTENCIA = 2; // %
-    const LIMITE_PELIGRO = 3; // %
+    const LIMITE_PELIGRO = 2.4; // %
     
     // Arrays de campos - AHORA 10 MEDICIONES CADA UNO
     const bombasFields = Array.from({length: 10}, (_, i) => `bombas_${i + 1}`);

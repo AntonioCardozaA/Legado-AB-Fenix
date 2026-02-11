@@ -47,8 +47,8 @@ class AnalisisComponenteController extends Controller
             $query->whereMonth('fecha_analisis', substr($request->fecha, 5, 2))
                   ->whereYear('fecha_analisis', substr($request->fecha, 0, 4));
         }
-
-        $analisis = $query->paginate(10)->withQueryString();
+    
+        $analisis = $query->get();
 
         // Obtener componentes por línea para la vista
         $componentesPorLinea = $this->getComponentesPorLinea();
@@ -720,4 +720,25 @@ public function update(Request $request, $id)
         
         return back()->with('error', 'Foto no encontrada.');
     }
+        public function historial(Request $request)
+    {
+        $request->validate([
+            'linea_id' => 'required|exists:lineas,id',
+            'componente_id' => 'required|string',
+            'reductor' => 'required|string',
+        ]);
+
+        $analisis = AnalisisComponente::with(['linea', 'componente'])
+            ->where('linea_id', $request->linea_id)
+            ->where('reductor', $request->reductor)
+            ->whereHas('componente', function ($q) use ($request) {
+                $q->where('codigo', 'like', '%' . $request->componente_id . '%');
+            })
+            ->orderByDesc('fecha_analisis')
+            ->orderByDesc('created_at')
+            ->get();
+
+        return view('analisis-componentes.historial', compact('analisis'));
+    }
+
 }

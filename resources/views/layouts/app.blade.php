@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LEGADO AB FÉNIX - Sistema de Gestión</title>
+    <title>LEGADO AVE FÉNIX - Sistema de Gestión</title>
 
     <link rel="icon" type="image/png" href="{{ asset('images/logo.png') }}">
 
@@ -67,7 +67,7 @@
                     class="w-20 h-20 mb-3 drop-shadow-lg"
                 >
                 <h1 class="text-sm font-semibold tracking-wide leading-tight">
-                    LEGADO AB<br>
+                    LEGADO AVE<br>
                     <span class="text-yellow-400 font-bold">FÉNIX</span>
                 </h1>
             </div>
