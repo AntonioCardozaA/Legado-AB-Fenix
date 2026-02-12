@@ -5,20 +5,32 @@
 @section('content')
 <div class="max-w-7xl mx-auto px-4">
 
-    {{-- Encabezado --}}
-    <div class="mb-10">
-        <h1 class="text-3xl font-bold text-gray-800">
-            Seleccionar Lavadora
-        </h1>
-        <p class="text-gray-600 mt-1">
-             Seleccione la lavadora para realizar el análisis
-        </p>
+    {{-- Encabezado con botón de volver --}}
+    <div class="mb-10 flex items-center justify-between">
+        <div class="flex items-center gap-4">
+            {{-- Botón de volver al index principal --}}
+            <a href="{{ route('analisis-lavadora.index') }}" 
+               class="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 
+                      bg-gray-100 hover:bg-gray-200 rounded-lg transition-all duration-300
+                      group">
+                <svg class="w-5 h-5 group-hover:-translate-x-1 transition-transform" 
+                     fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                          d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                </svg>
+                <span class="font-medium">Volver al Inicio</span>
+            </a>
+            
+            <h1 class="text-3xl font-bold text-gray-800">
+                Seleccionar Lavadora
+            </h1>
+        </div>
     </div>
 
     {{-- Grid de lavadoras --}}
     <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
         @foreach($lineas as $linea)
-            <a href="{{ route('analisis-componentes.create', $linea->id) }}"
+            <a href="{{ route('analisis-lavadora.create', $linea->id) }}"
                class="group">
 
                 <div class="bg-white rounded-xl border border-gray-100 p-6
@@ -80,6 +92,18 @@
             <p class="text-sm text-gray-500 mt-1">
                 No se encontraron líneas de lavado activas.
             </p>
+            
+            {{-- Botón de volver en estado vacío --}}
+            <a href="{{ url('/') }}" 
+               class="inline-flex items-center gap-2 mt-6 px-6 py-3 bg-blue-600 hover:bg-blue-700 
+                      text-white font-medium rounded-lg transition-all duration-300
+                      hover:-translate-y-1 hover:shadow-lg">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                          d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                </svg>
+                Volver al Inicio
+            </a>
         </div>
     @endif
 

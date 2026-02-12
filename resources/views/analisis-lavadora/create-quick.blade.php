@@ -8,7 +8,7 @@
         {{-- Encabezado --}}
         <div class="mb-8">
             <div class="flex items-center gap-3 mb-4">
-                <a href="{{ route('analisis-componentes.index', request()->query()) }}"
+                <a href="{{ route('analisis-lavadora.index', request()->query()) }}"
                    class="text-gray-400 hover:text-amber-600 transition">
                     <i class="fas fa-arrow-left text-xl"></i>
                 </a>
@@ -62,7 +62,7 @@
 </div>
         
         {{-- Formulario --}}
-        <form action="{{ route('analisis-componentes.store') }}" 
+        <form action="{{ route('analisis-lavadora.store') }}" 
               method="POST"
               enctype="multipart/form-data"
               class="space-y-6">
@@ -194,7 +194,7 @@
             
             {{-- Botones --}}
             <div class="flex gap-4 pt-6 border-t border-gray-200">
-                <a href="{{ route('analisis-componentes.index', request()->query()) }}"
+                <a href="{{ route('analisis-lavadora.index', request()->query()) }}"
                    class="flex-1 bg-gray-200 text-gray-700 rounded-lg px-5 py-3 text-center hover:bg-gray-300 transition-all shadow-md">
                     Cancelar
                 </a>

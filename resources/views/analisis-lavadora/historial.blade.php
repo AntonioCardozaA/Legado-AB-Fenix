@@ -12,7 +12,7 @@
             Historial de Registros
         </h1>
 
-        <a href="{{ route('analisis-componentes.index') }}"
+        <a href="{{ route('analisis-lavadora.index') }}"
            class="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 text-sm">
             ← Volver
         </a>
@@ -70,12 +70,12 @@
                         </div>
 
                         <div class="mt-4 flex gap-2">
-                            <a href="{{ route('analisis-componentes.edit', $item->id) }}"
+                            <a href="{{ route('analisis-lavadora.edit', $item->id) }}"
                                class="px-3 py-1 bg-yellow-100 text-yellow-700 rounded text-xs hover:bg-yellow-200">
                                 <i class="fas fa-edit"></i> Editar
                             </a>
 
-                            <a href="{{ route('analisis-componentes.create-quick', [
+                            <a href="{{ route('analisis-lavadora.create-quick', [
                                 'linea_id' => $item->linea_id,
                                 'componente_codigo' => $item->componente->codigo,
                                 'reductor' => $item->reductor

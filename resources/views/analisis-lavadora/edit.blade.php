@@ -10,7 +10,7 @@
             @php
                 $backUrl = request()->has('redirect_to') 
                     ? request()->input('redirect_to')
-                    : route('analisis-componentes.index', request()->query());
+                    : route('analisis-lavadora.index', request()->query());
             @endphp
             <a href="{{ $backUrl }}"
                class="text-gray-400 hover:text-blue-600 transition">
@@ -112,7 +112,7 @@
     {{-- Card Form --}}
     <div class="bg-white rounded-2xl shadow-lg p-8">
         <form method="POST" 
-              action="{{ route('analisis-componentes.update', $analisisComponente->id) }}" 
+              action="{{ route('analisis-lavadora.update', $analisisComponente->id) }}" 
               enctype="multipart/form-data"
               id="editarAnalisisForm">
             @csrf
@@ -269,7 +269,7 @@
                 @php
                     $cancelUrl = request()->has('redirect_to') 
                         ? request()->input('redirect_to')
-                        : route('analisis-componentes.index', request()->query());
+                        : route('analisis-lavadora.index', request()->query());
                 @endphp
                 <a href="{{ $cancelUrl }}"
                    class="flex-1 bg-gray-200 text-gray-700 rounded-lg px-5 py-3 text-center hover:bg-gray-300 transition-all shadow-md">
@@ -328,7 +328,7 @@
                 </button>
                 <form id="deleteForm" 
                       method="POST" 
-                      action="{{ route('analisis-componentes.destroy', $analisisComponente->id) }}"
+                      action="{{ route('analisis-lavadora.destroy', $analisisComponente->id) }}"
                       class="flex-1">
                     @csrf
                     @method('DELETE')

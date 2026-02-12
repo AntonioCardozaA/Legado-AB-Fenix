@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Análisis de Componentes')
+@section('title', 'Análisis de Lavadoras')
 
 @section('content')
 <style>
@@ -810,13 +810,12 @@
         <div>
             <h1 class="text-2xl font-bold text-gray-800 flex items-center gap-2">
                 <i class="fas fa-chart-pie text-blue-600"></i>
-                Análisis de Componentes
+                Análisis de Lavadoras
             </h1>
-            <p class="text-sm text-gray-500 mt-1">Gestión y monitoreo de análisis de componentes por lavadora</p>
         </div>
 
         <div class="flex flex-wrap gap-2">
-            <a href="{{ route('analisis-componentes.select-linea') }}"
+            <a href="{{ route('analisis-lavadora.select-linea') }}"
                class="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 transition flex items-center gap-2 shadow-lg shadow-blue-500/20">
                 <i class="fas fa-plus-circle"></i>
                 Nuevo Análisis
@@ -852,7 +851,7 @@
                 LÍNEAS:
             </div>
             
-            <form method="GET" action="{{ route('analisis-componentes.index') }}" id="filterForm">
+            <form method="GET" action="{{ route('analisis-lavadora.index') }}" id="filterForm">
                 <div class="lineas-grid">
                     @foreach($lineasFiltradas as $l)
                         <div class="linea-item {{ request('linea_id') == $l->id ? 'active' : '' }}" 
@@ -893,7 +892,7 @@
                         Aplicar filtros
                     </button>
                     
-                    <a href="{{ route('analisis-componentes.index') }}" class="btn-clear">
+                    <a href="{{ route('analisis-lavadora.index') }}" class="btn-clear">
                         <i class="fas fa-times"></i>
                         Limpiar
                     </a>
@@ -1045,7 +1044,7 @@
         /* ===============================
         LINEA A MOSTRAR
         =============================== */
-        $lineaMostrar = null;
+        $analisisCollection = collect($analisis ?? []);
         
         if (request('linea_id') && isset($lineas)) {
             $lineaMostrar = $lineas->firstWhere('id', request('linea_id'));
@@ -1063,7 +1062,7 @@
                 $componentesParaTabla->push((object)[
                     'id'     => $id,
                     'nombre' => $nombre,
-                    'icono'  => asset("images/componentes/{$id}.png"),
+                    'icono'  => asset("images/componentes-lavadora/{$id}.png"),
                 ]);
             }
         }
@@ -1242,7 +1241,7 @@
                                                 src="{{ $c->icono }}"
                                                 alt="Icono {{ $c->nombre }}"
                                                 class="w-20 h-20 object-contain hover:scale-110 transition-transform"
-                                                onerror="this.src='{{ asset('images/componentes/Buje Baquelita-Espiga.png') }}'">
+                                                onerror="this.src='{{ asset('images/componentes-lavadora/Buje Baquelita-Espiga.png') }}'">
                                             <div class="flex justify-center gap-1 mt-1">
                                                 @if($conteoEstado['ok'] > 0)
                                                     <span class="w-1.5 h-1.5 bg-green-500 rounded-full"></span>
@@ -1425,8 +1424,8 @@
                                                             </button>
                                                         @endif
                                                         
-                                                        <a href="{{ route('analisis-componentes.edit', [
-                                                            'analisisComponente' => $registro->id,
+                                                        <a href="{{ route('analisis-lavadora.edit', [
+                                                            'analisislavadora' => $registro->id,
                                                             'linea_id' => request('linea_id', ''),
                                                             'componente_id' => request('componente_id', ''),
                                                             'reductor' => request('reductor', ''),
@@ -1438,7 +1437,7 @@
                                                             Editar
                                                         </a>
                                                         
-                                                        <a href="{{ route('analisis-componentes.create-quick', [
+                                                        <a href="{{ route('analisis-lavadora.create-quick', [
                                                                 'linea_id' => $registro->linea_id,
                                                                 'componente_codigo' => $c->id,
                                                                 'reductor' => $r,
@@ -1451,7 +1450,7 @@
                                                         </a>
                                                         
                                                         @if($totalHistorial > 1)
-                                                            <a href="{{ route('analisis-componentes.historial', [
+                                                            <a href="{{ route('analisis-lavadora.historial', [
                                                                     'linea_id' => $registro->linea_id,
                                                                     'componente_id' => $c->id,
                                                                     'reductor' => $r
@@ -1464,9 +1463,8 @@
                                                         @endif
                                                     </div>
                                                     
-                                                    <div class="click-indicator">
-                                                        <i class="fas fa-search-plus mr-1"></i> Detalles
-                                                    </div>
+                                                    
+
                                                 </div>
                                             @else
                                                 <div class="empty-cell">
@@ -1476,7 +1474,7 @@
                                                     <p class="text-gray-500 text-xs mb-3">Sin análisis</p>
                                                     
                                                     @if($lineaMostrar)
-                                                        <a href="{{ route('analisis-componentes.create-quick',[
+                                                        <a href="{{ route('analisis-lavadora.create-quick',[
                                                             'linea_id' => $lineaMostrar->id,
                                                             'componente_codigo' => $c->id,
                                                             'reductor' => $r,
@@ -1487,7 +1485,7 @@
                                                             Agregar
                                                         </a>
                                                     @else
-                                                        <a href="{{ route('analisis-componentes.select-linea') }}"
+                                                        <a href="{{ route('analisis-lavadora.select-linea') }}"
                                                         class="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 transition text-xs font-medium"
                                                         onclick="event.stopPropagation();">
                                                             <i class="fas fa-plus"></i>
@@ -1541,7 +1539,7 @@
 
 {{-- MODALES --}}
 <div id="analysisDetailModal" class="fixed inset-0 bg-black/80 hidden items-center justify-center z-50 p-4"
-     onclick="closeAnalysisDetailModal()">
+     onclick="event.stopPropagation()">
     <div class="bg-white rounded-lg shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
         <div class="flex justify-between items-center bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-4">
             <div>
@@ -1550,7 +1548,7 @@
                     <span id="detailModalTitle">Detalle del Análisis</span>
                 </h3>
             </div>
-            <button onclick="closeAnalysisDetailModal()" class="text-white hover:text-yellow-300 text-2xl">
+            <button onclick="event.stopPropagation(); closeAnalysisDetailModal()" class="text-white hover:text-yellow-300 text-2xl">
                 <i class="fas fa-times"></i>
             </button>
         </div>
@@ -1597,8 +1595,8 @@
                 </h4>
                 <div id="detail-image-grid" class="image-grid"></div>
             </div>
-            
-            <div class="detail-actions">
+
+            <div class="flex justify-end gap-3 mt-6">
                 <a id="detail-edit-btn" href="#" class="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600">
                     <i class="fas fa-edit"></i> Editar
                 </a>
@@ -1712,7 +1710,7 @@ function openAnalysisDetail(analysisData) {
          analysisData.color === 'cell-warning' ? 'warning' : 
          analysisData.color === 'cell-danger' ? 'danger' : 'changed');
     
-    document.getElementById('detail-edit-btn').href = `/analisis-componentes/${analysisData.id}/edit`;
+    document.getElementById('detail-edit-btn').href = `/analisis-lavadora/${analysisData.id}/edit`;
     
     const imagesSection = document.getElementById('detail-images-section');
     if (analysisData.imagenes && analysisData.imagenes.length > 0) {

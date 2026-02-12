@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\AnalisisComponente;
+use App\Models\AnalisisLavadora;
 use App\Models\Linea;
 use App\Models\Componente;
 use Illuminate\Http\Request;
@@ -14,14 +14,14 @@ use App\Exports\AnalisisComponentesExport;
 use Maatwebsite\Excel\Facades\Excel;
 use Barryvdh\DomPDF\Facade\Pdf;
 
-class AnalisisComponenteController extends Controller
+class AnalisisLavadoraController extends Controller
 {
     /**
      * LISTADO + FILTROS
      */
     public function index(Request $request)
     {
-        $query = AnalisisComponente::with(['linea', 'componente'])
+        $query = AnalisisLavadora::with(['linea', 'componente'])
             ->orderBy('fecha_analisis', 'desc')
             ->orderBy('created_at', 'desc');
 
@@ -65,12 +65,12 @@ class AnalisisComponenteController extends Controller
             }
         }
 
-        return view('analisis-componentes.index', [
+        return view('analisis-lavadora.index', [
             'analisis' => $analisis,
             'lineas' => Linea::where('activo', true)->orderBy('nombre')->get(),
             'componentesPorLinea' => $componentesPorLinea,
             'todosComponentes' => $todosComponentes,
-            'reductores' => AnalisisComponente::select('reductor')
+            'reductores' => AnalisisLavadora::select('reductor')
                 ->whereNotNull('reductor')
                 ->distinct()
                 ->orderBy('reductor')
@@ -220,7 +220,7 @@ class AnalisisComponenteController extends Controller
             'L-04','L-05','L-06','L-07','L-08','L-09','L-12','L-13'
         ])->get();
 
-        return view('analisis-componentes.select-linea', compact('lineas'));
+        return view('analisis-lavadora.select-linea', compact('lineas'));
     }
 
     /**
@@ -243,7 +243,7 @@ class AnalisisComponenteController extends Controller
             ->orderBy('reductor')
             ->pluck('reductor');
 
-        return view('analisis-componentes.create', compact(
+        return view('analisis-lavadora.create', compact(
             'linea',
             'componentesDisponibles',
             'reductores'
@@ -331,7 +331,7 @@ class AnalisisComponenteController extends Controller
             }
         }
 
-        return view('analisis-componentes.create-quick', [
+        return view('analisis-lavadora.create-quick', [
             'linea'          => $linea,
             'componente'     => $componente,
             'reductor'       => $request->reductor,
@@ -451,7 +451,7 @@ class AnalisisComponenteController extends Controller
      * ===============================
      */
     try {
-        $analisis = AnalisisComponente::create([
+        $analisis = AnalisisLavadora::create([
             'linea_id'       => $linea->id,
             'componente_id'  => $componente->id,
             'reductor'       => $request->reductor,
@@ -501,7 +501,7 @@ class AnalisisComponenteController extends Controller
     }
 
     return redirect()
-        ->route('analisis-componentes.index')
+        ->route('analisis-lavadora.index')
         ->with('success', 'Análisis registrado correctamente.');
 }
 
@@ -531,7 +531,7 @@ class AnalisisComponenteController extends Controller
  */
 public function edit($id)
 {
-    $analisisComponente = AnalisisComponente::with(['linea', 'componente'])
+    $analisisComponente = AnalisisLavadora::with(['linea', 'componente'])
         ->findOrFail($id);
 
     $componentes = Componente::where('linea', $analisisComponente->linea->nombre)
@@ -539,7 +539,7 @@ public function edit($id)
         ->orderBy('nombre')
         ->get();
 
-    return view('analisis-componentes.edit', compact(
+    return view('analisis-lavadora.edit', compact(
         'analisisComponente',
         'componentes'
     ));
@@ -548,7 +548,7 @@ public function edit($id)
 
 public function update(Request $request, $id)
 {
-    $analisis = AnalisisComponente::findOrFail($id);
+    $analisis = AnalisisLavadora::findOrFail($id);
 
     $validator = Validator::make($request->all(), [
         'fecha_analisis'    => 'required|date',
@@ -603,7 +603,7 @@ public function update(Request $request, $id)
     /* =====================================================
      | REDIRECCIÓN - CORREGIDA
      ===================================================== */
-    $redirectUrl = $request->input('redirect_to') ?? route('analisis-componentes.index');
+    $redirectUrl = $request->input('redirect_to') ?? route('analisis-lavadora.index');
     
     return redirect($redirectUrl)
         ->with('success', 'Análisis actualizado correctamente.');
@@ -612,16 +612,16 @@ public function update(Request $request, $id)
     /**
      * VER
      */
-    public function show(AnalisisComponente $analisisComponente)
+    public function show(AnalisisLavadora $analisislavadora)
     {
-        $analisisComponente->load(['linea', 'componente']);
-        return view('analisis-componentes.show', compact('analisisComponente'));
+        $analisislavadora->load(['linea', 'componente']);
+        return view('analisis-lavadora.show', compact('analisislavadora'));
     }
     
     /**
      * ELIMINAR
      */
-    public function destroy(AnalisisComponente $analisisComponente)
+    public function destroy(AnalisisLavadora $analisisComponente)
     {
         $fotos = json_decode($analisisComponente->evidencia_fotos ?? '[]', true) ?? [];
         foreach ($fotos as $foto) {
@@ -639,8 +639,8 @@ public function update(Request $request, $id)
     public function exportExcel(Request $request)
     {
         return Excel::download(
-            new AnalisisComponentesExport($request),
-            'analisis_componentes.xlsx'
+            new AnalisisLavadoraExport($request),
+            'analisis_lavadora.xlsx'
         );
     }
 
@@ -649,15 +649,15 @@ public function update(Request $request, $id)
      */
     public function exportPdf(Request $request)
     {
-        $analisisAgrupados = AnalisisComponente::with(['linea', 'componente'])
+        $analisisAgrupados = AnalisisLavadora::with(['linea', 'componente'])
             ->get()
             ->groupBy(fn ($a) => $a->linea->nombre ?? 'Sin línea');
 
         return Pdf::loadView(
-            'analisis-componentes.export-pdf',
+            'analisis-lavadora.export-pdf',
             compact('analisisAgrupados')
         )->setPaper('a4', 'landscape')
-         ->download('analisis_componentes.pdf');
+         ->download('analisis_lavadora.pdf');
     }
 
     /**
@@ -728,7 +728,7 @@ public function update(Request $request, $id)
             'reductor' => 'required|string',
         ]);
 
-        $analisis = AnalisisComponente::with(['linea', 'componente'])
+        $analisis = AnalisisLavadora::with(['linea', 'componente'])
             ->where('linea_id', $request->linea_id)
             ->where('reductor', $request->reductor)
             ->whereHas('componente', function ($q) use ($request) {
@@ -738,7 +738,7 @@ public function update(Request $request, $id)
             ->orderByDesc('created_at')
             ->get();
 
-        return view('analisis-componentes.historial', compact('analisis'));
+        return view('analisis-lavadora.historial', compact('analisis'));
     }
 
 }

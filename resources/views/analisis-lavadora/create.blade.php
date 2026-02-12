@@ -7,7 +7,7 @@
     {{-- Header mejorado --}}
     <div class="mb-8">
         <div class="flex items-center gap-3 mb-4">
-            <a href="{{ route('analisis-componentes.select-linea') }}"
+            <a href="{{ route('analisis-lavadora.select-linea') }}"
                class="text-gray-400 hover:text-blue-600 transition">
                 <i class="fas fa-arrow-left text-xl"></i>
             </a>
@@ -44,7 +44,7 @@
 
     {{-- Card Form --}}
     <div class="bg-white rounded-2xl shadow-lg p-8">
-        <form method="POST" action="{{ route('analisis-componentes.store') }}" enctype="multipart/form-data">
+        <form method="POST" action="{{ route('analisis-lavadora.store') }}" enctype="multipart/form-data">
             @csrf
             <input type="hidden" name="linea_id" value="{{ $linea->id }}">
 
@@ -209,7 +209,7 @@
 
             {{-- Botones --}}
             <div class="flex gap-4 pt-6 border-t border-gray-200">
-                <a href="{{ route('analisis-componentes.select-linea') }}"
+                <a href="{{ route('analisis-lavadora.select-linea') }}"
                    class="flex-1 bg-gray-200 text-gray-700 rounded-lg px-5 py-3 text-center hover:bg-gray-300 transition-all shadow-md">
                     <i class="fas fa-times mr-2"></i>Cancelar
                 </a>

@@ -3,7 +3,8 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\AnalisisController;
-use App\Http\Controllers\AnalisisComponenteController;
+use App\Http\Controllers\AnalisisLavadoraController;
+use App\Http\Controllers\AnalisisPasteurizadoraController; // <-- AGREGAR
 use App\Http\Controllers\ElongacionController;
 use App\Http\Controllers\ParoController;
 use App\Http\Controllers\PlanAccionController;
@@ -37,71 +38,160 @@ Route::middleware(['auth'])->group(function () {
 
     /*
     |--------------------------------------------------------------------------
-    | ANALISIS DE COMPONENTES
+    | ANALISIS DE COMPONENTES - LAVADORA
     |--------------------------------------------------------------------------
     */
-    Route::prefix('analisis-componentes')
-        ->name('analisis-componentes.')
+    Route::prefix('analisis-lavadora')
+        ->name('analisis-lavadora.')
         ->group(function () {
 
         // ===============================
         // PRINCIPALES
         // ===============================
-        Route::get('/', [AnalisisComponenteController::class, 'index'])->name('index');
-        Route::get('/seleccionar-linea', [AnalisisComponenteController::class, 'selectLinea'])->name('select-linea');
-        Route::get('/crear/{linea}', [AnalisisComponenteController::class, 'createWithLinea'])
+        Route::get('/', [AnalisisLavadoraController::class, 'index'])->name('index');
+        Route::get('/seleccionar-linea', [AnalisisLavadoraController::class, 'selectLinea'])->name('select-linea');
+        Route::get('/crear/{linea}', [AnalisisLavadoraController::class, 'createWithLinea'])
             ->where('linea', '[0-9]+')
             ->name('create');
-        Route::get('/crear-rapido', [AnalisisComponenteController::class, 'createQuick'])->name('create-quick');
-        Route::post('/', [AnalisisComponenteController::class, 'store'])->name('store');
+        Route::get('/crear-rapido', [AnalisisLavadoraController::class, 'createQuick'])->name('create-quick');
+        Route::post('/', [AnalisisLavadoraController::class, 'store'])->name('store');
 
         // ===============================
-        // HISTORIAL (CORREGIDO)
+        // HISTORIAL
         // ===============================
-        Route::get('/historial', [AnalisisComponenteController::class, 'historial'])
+        Route::get('/historial', [AnalisisLavadoraController::class, 'historial'])
             ->name('historial');
 
         // ===============================
         // EXPORTACIONES
         // ===============================
-        Route::get('/export/excel', [AnalisisComponenteController::class, 'exportExcel'])->name('export.excel');
-        Route::get('/export/pdf', [AnalisisComponenteController::class, 'exportPdf'])->name('export.pdf');
+        Route::get('/export/excel', [AnalisisLavadoraController::class, 'exportExcel'])->name('export.excel');
+        Route::get('/export/pdf', [AnalisisLavadoraController::class, 'exportPdf'])->name('export.pdf');
 
         // ===============================
         // AJAX
         // ===============================
-        Route::get('/get-componentes-por-linea', [AnalisisComponenteController::class, 'getComponentesPorLineaAjax'])
+        Route::get('/get-componentes-por-linea', [AnalisisLavadoraController::class, 'getComponentesPorLineaAjax'])
             ->name('get-componentes-por-linea');
 
-        Route::get('/get-reductores-por-linea', [AnalisisComponenteController::class, 'getReductoresPorLineaPublic'])
+        Route::get('/get-reductores-por-linea', [AnalisisLavadoraController::class, 'getReductoresPorLineaPublic'])
             ->name('get-reductores-por-linea');
 
         // ===============================
-        // ESPECÍFICAS (ANTES DE GENERALES)
+        // ESPECÍFICAS
         // ===============================
-        Route::get('/{analisisComponente}/editar', [AnalisisComponenteController::class, 'edit'])
-            ->where('analisisComponente', '[0-9]+')
+        Route::get('/{analisislavadora}/editar', [AnalisisLavadoraController::class, 'edit'])
+            ->where('analisislavadora', '[0-9]+')
             ->name('edit');
 
-        Route::delete('/{analisisComponente}/foto/{fotoIndex}', [AnalisisComponenteController::class, 'deleteFoto'])
-            ->where('analisisComponente', '[0-9]+')
+        Route::delete('/{analisislavadora}/foto/{fotoIndex}', [AnalisisLavadoraController::class, 'deleteFoto'])
+            ->where('analisislavadora', '[0-9]+')
             ->where('fotoIndex', '[0-9]+')
             ->name('delete-foto');
 
         // ===============================
-        // GENERALES (AL FINAL)
+        // GENERALES
         // ===============================
-        Route::put('/{analisisComponente}', [AnalisisComponenteController::class, 'update'])
-            ->where('analisisComponente', '[0-9]+')
+        Route::put('/{analisislavadora}', [AnalisisLavadoraController::class, 'update'])
+            ->where('analisislavadora', '[0-9]+')
             ->name('update');
 
-        Route::delete('/{analisisComponente}', [AnalisisComponenteController::class, 'destroy'])
-            ->where('analisisComponente', '[0-9]+')
+        Route::delete('/{analisislavadora}', [AnalisisLavadoraController::class, 'destroy'])
+            ->where('analisislavadora', '[0-9]+')
             ->name('destroy');
 
-        Route::get('/{analisisComponente}', [AnalisisComponenteController::class, 'show'])
-            ->where('analisisComponente', '[0-9]+')
+        Route::get('/{analisislavadora}', [AnalisisLavadoraController::class, 'show'])
+            ->where('analisislavadora', '[0-9]+')
             ->name('show');
+        Route::get('/analisis-lavadora/{id}', [AnalisisLavadoraController::class, 'show'])
+    ->name('analisis-lavadora.show');
+
+    });
+
+    /*
+    |--------------------------------------------------------------------------
+    | ANALISIS DE COMPONENTES - PASTEURIZADORA (NUEVO)
+    |--------------------------------------------------------------------------
+    */
+    Route::prefix('analisis-pasteurizadora')
+        ->name('analisis-pasteurizadora.')
+        ->group(function () {
+
+        // ===============================
+        // PRINCIPALES
+        // ===============================
+        Route::get('/', [AnalisisPasteurizadoraController::class, 'index'])->name('index');
+       // Route::get('/seleccionar-linea', [AnalisisPasteurizadoraController::class, 'selectLinea'])->name('select-linea');
+        //Route::get('/crear/{linea}', [AnalisisPasteurizadoraController::class, 'createWithLinea'])
+           // ->where('linea', 'L-07|L-08')
+         //   ->name('create');
+       // Route::get('/crear-rapido', [AnalisisPasteurizadoraController::class, 'createQuick'])->name('create-quick');
+       // Route::post('/', [AnalisisPasteurizadoraController::class, 'store'])->name('store');
+      //  Route::post('/store-quick', [AnalisisPasteurizadoraController::class, 'storeQuick'])->name('store-quick');
+
+        // ===============================
+        // PLAN DE ACCIÓN (Basado en Excel)
+        // ===============================
+        //Route::get('/plan-accion', [AnalisisPasteurizadoraController::class, 'planAccion'])->name('plan-accion');
+       // Route::post('/plan-accion/update', [AnalisisPasteurizadoraController::class, 'updatePlanAccion'])->name('plan-accion.update');
+
+        // ===============================
+        // ANÁLISIS 52-12-4 (Basado en Excel)
+        // ===============================
+       // Route::get('/analisis-52-12-4', [AnalisisPasteurizadoraController::class, 'analisis52124'])->name('analisis-52-12-4');
+       // Route::post('/analisis-52-12-4/update', [AnalisisPasteurizadoraController::class, 'updateAnalisis52124'])->name('analisis-52-12-4.update');
+
+        // ===============================
+        // HISTORIAL DE REVISADOS
+        // ===============================
+       // Route::get('/historial', [AnalisisPasteurizadoraController::class, 'historial'])
+       //     ->name('historial');
+      //  Route::get('/historico-revisados', [AnalisisPasteurizadoraController::class, 'historicoRevisados'])
+         //   ->name('historico-revisados');
+
+        // ===============================
+        // EXPORTACIONES
+        // ===============================
+       // Route::get('/export/excel', [AnalisisPasteurizadoraController::class, 'exportExcel'])->name('export.excel');
+       // Route::get('/export/pdf', [AnalisisPasteurizadoraController::class, 'exportPdf'])->name('export.pdf');
+       // Route::post('/export-process', [AnalisisPasteurizadoraController::class, 'exportProcess'])->name('export-process');
+
+        // ===============================
+        // AJAX - COMPONENTES ESPECÍFICOS DE PASTEURIZADORA
+        // ===============================
+       // Route::get('/get-componentes-por-linea', [AnalisisPasteurizadoraController::class, 'getComponentesPorLineaAjax'])
+       //     ->name('get-componentes-por-linea');
+       // Route::get('/get-actividades-por-modulo', [AnalisisPasteurizadoraController::class, 'getActividadesPorModulo'])
+        //    ->name('get-actividades-por-modulo');
+        //Route::get('/get-estadisticas-componentes', [AnalisisPasteurizadoraController::class, 'getEstadisticasComponentes'])
+         //   ->name('get-estadisticas-componentes');
+
+        // ===============================
+        // ESPECÍFICAS
+        // ===============================
+        //Route::get('/{analisispasteurizadora}/editar', [AnalisisPasteurizadoraController::class, 'edit'])
+           // ->where('analisispasteurizadora', '[0-9]+')
+           // ->name('edit');
+
+       // Route::delete('/{analisispasteurizadora}/foto/{fotoIndex}', [AnalisisPasteurizadoraController::class, 'deleteFoto'])
+           // ->where('analisispasteurizadora', '[0-9]+')
+          //  ->where('fotoIndex', '[0-9]+')
+           // ->name('delete-foto');
+
+        // ===============================
+        // GENERALES
+        // ===============================
+        //Route::put('/{analisispasteurizadora}', [AnalisisPasteurizadoraController::class, 'update'])
+          //  ->where('analisispasteurizadora', '[0-9]+')
+          //  ->name('update');
+
+       // Route::delete('/{analisispasteurizadora}', [AnalisisPasteurizadoraController::class, 'destroy'])
+           // ->where('analisispasteurizadora', '[0-9]+')
+           // ->name('destroy');
+
+      //  Route::get('/{analisispasteurizadora}', [AnalisisPasteurizadoraController::class, 'show'])
+           // ->where('analisispasteurizadora', '[0-9]+')
+            //->name('show');
     });
 
     /*
@@ -159,6 +249,13 @@ Route::middleware(['auth'])->group(function () {
         Route::get('analisis/danos-tendencia', [ApiController::class, 'danosTendencia']);
         Route::get('analisis-componentes/componentes-por-linea', [AnalisisComponenteController::class, 'getComponentesPorLineaAjax']);
         Route::get('analisis-componentes/reductores-por-linea', [AnalisisComponenteController::class, 'getReductoresPorLineaPublic']);
+        
+        // API para Pasteurizadora
+        Route::prefix('pasteurizadora')->group(function () {
+            Route::get('componentes/{linea}', [AnalisisPasteurizadoraController::class, 'apiGetComponentes']);
+            Route::get('estadisticas/{linea}', [AnalisisPasteurizadoraController::class, 'apiGetEstadisticas']);
+            Route::get('analisis-52-12-4', [AnalisisPasteurizadoraController::class, 'apiGetAnalisis52124']);
+        });
     });
 
     /*
@@ -170,6 +267,13 @@ Route::middleware(['auth'])->group(function () {
 
     /*
     |--------------------------------------------------------------------------
+    | PLAN DE ACCIÓN (General)
+    |--------------------------------------------------------------------------
+    */
+    Route::resource('plan-accion', PlanAccionController::class);
+
+    /*
+    |--------------------------------------------------------------------------
     | REPORTES
     |--------------------------------------------------------------------------
     */
@@ -178,6 +282,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/elongacion', [ReporteController::class, 'elongacion'])->name('reportes.elongacion');
         Route::get('/componentes', [ReporteController::class, 'componentes'])->name('reportes.componentes');
         Route::get('/paros', [ReporteController::class, 'paros'])->name('reportes.paros');
+        Route::get('/pasteurizadora', [ReporteController::class, 'pasteurizadora'])->name('reportes.pasteurizadora'); // Nuevo
     });
 
     /*

@@ -14,19 +14,19 @@
                             <i class="fas fa-microscope fa-2x"></i>
                         </div>
                         <div>
-                            <h1 class="mb-0">Análisis #{{ $analisisComponente->id }}</h1>
+                            <h1 class="mb-0">Análisis Lavadora {{ $analisislavadora->id }}</h1>
                             <p class="text-muted mb-0">
                                 <i class="far fa-calendar-alt me-1"></i>
-                                {{ $analisisComponente->fecha_analisis->format('d/m/Y') }}
+                                {{ $analisislavadora->fecha_analisis->format('d/m/Y') }}
                             </p>
                         </div>
                     </div>
                     <div class="btn-group">
-                        <a href="{{ route('analisis-componentes.edit', $analisisComponente) }}" 
+                        <a href="{{ route('analisis-lavadora.edit', $analisislavadora) }}" 
                            class="btn btn-warning btn-lg">
-                            <i class="fas fa-edit me-2"></i> Editar
+                            <i class="fas fa-edit me-2"></i> Editarrrrrrrrrrrrr
                         </a>
-                        <a href="{{ route('analisis-componentes.index') }}" class="btn btn-secondary btn-lg">
+                        <a href="{{ route('analisis-lavadora.index') }}" class="btn btn-secondary btn-lg">
                             <i class="fas fa-arrow-left me-2"></i> Volver
                         </a>
                     </div>
@@ -55,7 +55,7 @@
                                             </div>
                                             <div class="info-value">
                                                 <span class="badge bg-primary-light text-primary">
-                                                    {{ $analisisComponente->linea->nombre ?? 'Lavadora ' . $analisisComponente->linea_id }}
+                                                    {{ $analisislavadora->linea->nombre ?? 'Lavadora ' . $analisisComponente->linea_id }}
                                                 </span>
                                             </div>
                                         </div>
@@ -79,7 +79,7 @@
                                             </div>
                                             <div class="info-value">
                                                 <span class="badge bg-warning-light text-warning">
-                                                    {{ $analisisComponente->reductor }}
+                                                    {{ $analisislavadora->reductor }}
                                                 </span>
                                             </div>
                                         </div>
@@ -91,7 +91,7 @@
                                             </div>
                                             <div class="info-value">
                                                 <span class="badge bg-info-light text-info">
-                                                    {{ $analisisComponente->numero_orden }}
+                                                    {{ $analisislavadora->numero_orden }}
                                                 </span>
                                             </div>
                                         </div>
@@ -115,7 +115,7 @@
                                             <i class="fas fa-clipboard-check text-success"></i>
                                         </div>
                                         <div class="actividad-text">
-                                            {{ $analisisComponente->actividad }}
+                                            {{ $analisislavadora->actividad }}
                                         </div>
                                     </div>
                                 </div>
@@ -130,7 +130,7 @@
                                 <div class="section-header mb-4">
                                     <h3>
                                         <i class="fas fa-camera me-2 text-danger"></i>
-                                        Evidencia Fotográfica
+                                        Evidencia Fotográficaaaaaaaaaaa
                                         <span class="badge bg-danger ms-2">
                                             {{ count($analisisComponente->evidencia_fotos) }}
                                         </span>
@@ -183,12 +183,7 @@
                     <div class="row mt-5">
                         <div class="col-12">
                             <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <a href="{{ route('analisis-componentes.create') }}" class="btn btn-primary btn-lg">
-                                        <i class="fas fa-plus-circle me-2"></i>
-                                        Nuevo Análisis
-                                    </a>
-                                </div>
+                            
                                 
                                 <div class="d-flex gap-2">
                                     <button class="btn btn-outline-info">

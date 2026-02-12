@@ -89,11 +89,18 @@
                 Análisis General
             </a>
 
-            <a href="{{ route('analisis-componentes.index') }}"
+            <a href="{{ route('analisis-lavadora.index') }}"
                aria-label="Análisis de Componentes"
-               class="nav-link flex items-center px-4 py-3 rounded-lg {{ request()->routeIs('analisis-componentes.*') ? 'nav-active' : '' }}">
+               class="nav-link flex items-center px-4 py-3 rounded-lg {{ request()->routeIs('analisis-lavadora.*') ? 'nav-active' : '' }}">
                 <i class="fas fa-puzzle-piece w-5 mr-3"></i>
-                Análisis de Componentes
+                Análisis de Lavadora
+            </a>
+
+               <a href="{{ route('analisis-pasteurizadora.index') }}"
+               aria-label="Análisis de Componentes"
+               class="nav-link flex items-center px-4 py-3 rounded-lg {{ request()->routeIs('analisis-lavadora.*') ? 'nav-active' : '' }}">
+                <i class="fas fa-puzzle-piece w-5 mr-3"></i>
+                Análisis de Pateurizadora
             </a>
 
             <a href="{{ route('elongaciones.index') }}"
