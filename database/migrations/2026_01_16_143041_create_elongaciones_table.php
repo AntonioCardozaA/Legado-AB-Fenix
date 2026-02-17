@@ -10,11 +10,10 @@ return new class extends Migration
     {
         Schema::create('elongaciones', function (Blueprint $table) {
             $table->id();
-            $table->string('linea')->default('L-07'); // Por defecto L-07 como en la imagen
-            $table->string('seccion')->default('LAVADORA'); // Por defecto LAVADORA
-            $table->enum('tipo', ['bombas', 'vapor']);
+            $table->string('linea'); // Sin valor por defecto
+            $table->string('seccion')->default('LAVADORA');
             
-            // Mediciones lado bombas (8 mediciones como en la imagen)
+            // Mediciones lado bombas (10 mediciones)
             $table->decimal('bombas_1', 5, 1)->nullable();
             $table->decimal('bombas_2', 5, 1)->nullable();
             $table->decimal('bombas_3', 5, 1)->nullable();
@@ -28,7 +27,7 @@ return new class extends Migration
             $table->decimal('bombas_promedio', 5, 2)->nullable();
             $table->decimal('bombas_porcentaje', 5, 2)->nullable();
             
-            // Mediciones lado vapor (4 mediciones como en la imagen)
+            // Mediciones lado vapor (10 mediciones)
             $table->decimal('vapor_1', 5, 1)->nullable();
             $table->decimal('vapor_2', 5, 1)->nullable();
             $table->decimal('vapor_3', 5, 1)->nullable();
@@ -48,6 +47,9 @@ return new class extends Migration
             $table->decimal('juego_rodaja_vapor', 5, 2)->nullable();
             
             $table->timestamps();
+            
+            // Índice para búsquedas por línea
+            $table->index('linea');
         });
     }
 

@@ -35,7 +35,9 @@ Route::middleware(['auth'])->group(function () {
     */
     Route::get('/dashboard', [DashboardController::class, 'index'])
         ->name('dashboard');
-
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+Route::get('/lavadora/dashboard', [DashboardController::class, 'Lavadora'])->name('lavadora.dashboard');
+    
     /*
     |--------------------------------------------------------------------------
     | ANALISIS DE COMPONENTES - LAVADORA
@@ -62,11 +64,9 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/historial', [AnalisisLavadoraController::class, 'historial'])
             ->name('historial');
 
-        // ===============================
-        // EXPORTACIONES
-        // ===============================
-        Route::get('/export/excel', [AnalisisLavadoraController::class, 'exportExcel'])->name('export.excel');
-        Route::get('/export/pdf', [AnalisisLavadoraController::class, 'exportPdf'])->name('export.pdf');
+      //Analsis 52-12-4
+        
+    
 
         // ===============================
         // AJAX
@@ -107,7 +107,14 @@ Route::middleware(['auth'])->group(function () {
     ->name('analisis-lavadora.show');
 
     });
-
+    //Analsis 52-12-4
+    Route::prefix('analisis-52-12-4')
+        ->name('analisis-52-12-4.')
+        ->group(function ()
+        {
+            Route::get('/', [AnalisisLavadoraController::class, 'analisis52124'])->name('index');
+        
+        });
     /*
     |--------------------------------------------------------------------------
     | ANALISIS DE COMPONENTES - PASTEURIZADORA (NUEVO)
@@ -271,7 +278,14 @@ Route::middleware(['auth'])->group(function () {
     |--------------------------------------------------------------------------
     */
     Route::resource('plan-accion', PlanAccionController::class);
-
+    Route::get('/plan-accion/dashboard', [PlanAccionController::class, 'dashboard'])->name('plan-accion.dashboard');
+    Route::get('/plan-accion/por-lavadora/{lavadora}', [PlanAccionController::class, 'porLavadora'])->name('plan-accion.por-lavadora');
+    /*
+    |--------------------------------------------------------------------------
+    | HISTORICO DE REVISADOS
+    |--------------------------------------------------------------------------
+    */
+    Route::get('/historico-revisados', [App\Http\Controllers\HistoricoRevisadosController::class, 'index'])->name('historico-revisados.index');
     /*
     |--------------------------------------------------------------------------
     | REPORTES
@@ -283,6 +297,11 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/componentes', [ReporteController::class, 'componentes'])->name('reportes.componentes');
         Route::get('/paros', [ReporteController::class, 'paros'])->name('reportes.paros');
         Route::get('/pasteurizadora', [ReporteController::class, 'pasteurizadora'])->name('reportes.pasteurizadora'); // Nuevo
+          // ===============================
+        // EXPORTACIONES
+        // ===============================
+        Route::get('/export/excel', [ReporteController::class, 'exportExcel'])->name('export.excel');
+        Route::get('/export/pdf', [ReporteController::class, 'exportPdf'])->name('export.pdf');
     });
 
     /*

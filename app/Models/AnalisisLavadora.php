@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
+
 class AnalisisLavadora extends Model
 {
     use HasFactory;
@@ -85,5 +86,42 @@ class AnalisisLavadora extends Model
                          ->whereYear('fecha_analisis', date('Y', strtotime($fecha)));
         }
         return $query;
+    }
+    public function planAccion()
+    {
+        return $this->hasMany(PlanAccion::class);
+    }
+
+    public function getNombreCompletoAttribute()
+    {
+    return 'Línea ' . $this->linea_id;
+    }
+
+
+    public function getActividadesPendientesAttribute()
+    {
+        return $this->planAccion()
+                    ->whereIn('estado', ['pendiente', 'en_proceso'])
+                    ->count();
+    }
+
+    public function getProximasActividadesAttribute()
+    {
+        return $this->planAccion()
+                    ->where(function($query) {
+                        $query->whereDate('fecha_pcm1', '>=', now())
+                              ->orWhereDate('fecha_pcm2', '>=', now())
+                              ->orWhereDate('fecha_pcm3', '>=', now())
+                              ->orWhereDate('fecha_pcm4', '>=', now());
+                    })
+                    ->where('estado', '!=', 'completada')
+                    ->orderByRaw('LEAST(
+                        COALESCE(fecha_pcm1, "9999-12-31"),
+                        COALESCE(fecha_pcm2, "9999-12-31"),
+                        COALESCE(fecha_pcm3, "9999-12-31"),
+                        COALESCE(fecha_pcm4, "9999-12-31")
+                    ) ASC')
+                    ->limit(5)
+                    ->get();
     }
 }

@@ -50,11 +50,7 @@ class DashboardController extends Controller
             : 0;
         
         // Paros pendientes
-        $parosPendientes = Paro::where('fecha_inicio', '>', Carbon::now())
-            ->orWhereHas('planesAccion', function($query) {
-                $query->where('estado', 'PENDIENTE');
-            })->count();
-        
+       
         // Análisis recientes
         $analisisRecientes = Analisis::with('linea')
             ->orderBy('fecha_analisis', 'desc')
@@ -105,7 +101,6 @@ class DashboardController extends Controller
             'ultimoAnalisis',
             'porcentajeBuenos',
             'totalDanados',
-            'parosPendientes',
             'analisisRecientes',
             'tendenciaLabels',
             'tendenciaDatasets'
@@ -123,4 +118,14 @@ class DashboardController extends Controller
         
         return $colors[$id % count($colors)];
     }
+     public function lavadora()
+    {
+        // CORRECCIÓN: El método debe llamarse exactamente como en la ruta
+        // En tu ruta tienes: [DashboardController::class, 'Lavadora']
+        // Pero en el controlador el método debe estar en minúscula o con la misma capitalización
+        
+        // Lógica para el dashboard de lavadora
+        return view('lavadora.dashboard-lavadora'); // O la vista que corresponda
+    }
+    
 }

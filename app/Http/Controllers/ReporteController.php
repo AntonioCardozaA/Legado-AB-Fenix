@@ -5,17 +5,27 @@ namespace App\Http\Controllers;
 use App\Models\Analisis;
 use App\Models\Linea;
 use App\Models\Componente;
-use App\Models\AnalisisComponente;
+use App\Models\AnalisisLavadora;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 
 class ReporteController extends Controller
 {
-    public function index()
-    {
-        $lineas = Linea::withCount('analisis')->get();
-        return view('reportes.index', compact('lineas'));
-    }
+   public function index()
+{
+    $lineasLavadoras = Linea::withCount('analisisLavadora')->get();
+
+    return view('reportes.index', compact('lineasLavadoras'));
+
+
+    //$lineasPasteurizadoras = Linea::where('tipo', 'pasteurizadora')
+      //  ->get();
+
+    return view('reportes.index', compact(
+        'lineasLavadoras',
+       // 'lineasPasteurizadoras'
+    ));
+}
     
     public function elongacion()
     {
@@ -47,14 +57,14 @@ class ReporteController extends Controller
         $reporte = [];
         
         foreach ($componentes as $componente) {
-            $totalRevisado = AnalisisComponente::where('componente_id', $componente->id)
-                ->whereHas('analisis', function($query) {
+            $totalRevisado = AnalisisLavadora::where('componente_id', $componente->id)
+                ->whereHas('componente', function($query) {
                     $query->where('fecha_analisis', '>=', Carbon::now()->subMonth());
                 })
                 ->count();
             
-            $estados = AnalisisComponente::where('componente_id', $componente->id)
-                ->whereHas('analisis', function($query) {
+            $estados = AnalisisLavadora::where('componente_id', $componente->id)
+                ->whereHas('componente', function($query) {
                     $query->where('fecha_analisis', '>=', Carbon::now()->subMonth());
                 })
                 ->selectRaw('estado, count(*) as total')

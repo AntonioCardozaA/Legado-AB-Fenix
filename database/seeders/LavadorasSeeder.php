@@ -111,7 +111,7 @@ class LavadorasSeeder extends Seeder
             'SERVO_GRANDE' => 'Servo Grande',
             'BUJE_ESPIGA' => 'Buje Baquelita-Espiga',
             'GUI_INF_TANQUE' => 'Guía Inf Tanque',
-            'GUI_INF_VAPOR_PASILLO' => 'Guía Inf Vapor/Pasillo',
+            'GUI_INT_TANQUE' => 'Guía Int Tanque',
             'GUI_SUP_TANQUE' => 'Guía Sup Tanque',
             'CATARINAS' => 'Catarinas',
             'RV200' => 'Reductor RV200',
@@ -181,7 +181,7 @@ class LavadorasSeeder extends Seeder
 
             // Guía inferior (lado vapor, lado pasillo)
             $this->createComponente([
-                'codigo' => $this->generateCodigo('L04', $reductor, 'GUI_INF_VAPOR_PASILLO'),
+                'codigo' => $this->generateCodigo('L04', $reductor, 'GUI_INT_TANQUE'),
                 'nombre' => 'Guía Inf Vapor/Pasillo', // SIN reductor
                 'reductor' => $reductor,
                 'ubicacion' => $reductor,
@@ -263,7 +263,7 @@ class LavadorasSeeder extends Seeder
 
             // Guía inferior (lado vapor, lado pasillo)
             $this->createComponente([
-                'codigo' => $this->generateCodigo('L05', $reductor, 'GUI_INF_VAPOR_PASILLO'),
+                'codigo' => $this->generateCodigo('L05', $reductor, 'GUI_INT_TANQUE'),
                 'nombre' => 'Guía Inf Vapor/Pasillo', // SIN reductor
                 'reductor' => $reductor,
                 'ubicacion' => $reductor,
@@ -356,7 +356,7 @@ class LavadorasSeeder extends Seeder
 
             // Guía inferior (lado vapor, lado pasillo)
             $this->createComponente([
-                'codigo' => $this->generateCodigo('L06', $reductor, 'GUI_INF_VAPOR_PASILLO'),
+                'codigo' => $this->generateCodigo('L06', $reductor, 'GUI_INT_TANQUE'),
                 'nombre' => 'Guía Inf Vapor/Pasillo', // SIN reductor
                 'reductor' => $reductor,
                 'ubicacion' => $reductor,
@@ -449,7 +449,7 @@ class LavadorasSeeder extends Seeder
 
             // Guía inferior (lado vapor, lado pasillo)
             $this->createComponente([
-                'codigo' => $this->generateCodigo('L07', $reductor, 'GUI_INF_VAPOR_PASILLO'),
+                'codigo' => $this->generateCodigo('L07', $reductor, 'GUI_INT_TANQUE'),
                 'nombre' => 'Guía Inf Vapor/Pasillo', // SIN reductor
                 'reductor' => $reductor,
                 'ubicacion' => $reductor,
@@ -542,7 +542,7 @@ class LavadorasSeeder extends Seeder
 
             // Guía inferior (lado vapor, lado pasillo)
             $this->createComponente([
-                'codigo' => $this->generateCodigo('L08', $reductor, 'GUI_INF_VAPOR_PASILLO'),
+                'codigo' => $this->generateCodigo('L08', $reductor, 'GUI_INT_TANQUE'),
                 'nombre' => 'Guía Inf Vapor/Pasillo', // SIN reductor
                 'reductor' => $reductor,
                 'ubicacion' => $reductor,
@@ -635,7 +635,7 @@ class LavadorasSeeder extends Seeder
 
             // Guía inferior (lado vapor, lado pasillo)
             $this->createComponente([
-                'codigo' => $this->generateCodigo('L09', $reductor, 'GUI_INF_VAPOR_PASILLO'),
+                'codigo' => $this->generateCodigo('L09', $reductor, 'GUI_INT_TANQUE'),
                 'nombre' => 'Guía Inf Vapor/Pasillo', // SIN reductor
                 'reductor' => $reductor,
                 'ubicacion' => $reductor,
@@ -717,7 +717,7 @@ class LavadorasSeeder extends Seeder
 
             // Guía inferior (lado vapor, lado pasillo)
             $this->createComponente([
-                'codigo' => $this->generateCodigo('L12', $reductor, 'GUI_INF_VAPOR_PASILLO'),
+                'codigo' => $this->generateCodigo('L12', $reductor, 'GUI_INT_TANQUE'),
                 'nombre' => 'Guía Inf Vapor/Pasillo', // SIN reductor
                 'reductor' => $reductor,
                 'ubicacion' => $reductor,
@@ -799,7 +799,7 @@ class LavadorasSeeder extends Seeder
 
             // Guía inferior (lado vapor, lado pasillo)
             $this->createComponente([
-                'codigo' => $this->generateCodigo('L13', $reductor, 'GUI_INF_VAPOR_PASILLO'),
+                'codigo' => $this->generateCodigo('L13', $reductor, 'GUI_INT_TANQUE'),
                 'nombre' => 'Guía Inf Vapor/Pasillo', // SIN reductor
                 'reductor' => $reductor,
                 'ubicacion' => $reductor,

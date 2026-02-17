@@ -76,7 +76,7 @@
                 // Extraer el código base del componente
                 $codigoBase = $componente->codigo;
                 $codigosBase = ['SERVO_CHICO', 'SERVO_GRANDE', 'BUJE_ESPIGA', 
-                               'GUI_INF_TANQUE', 'GUI_INF_VAPOR_PASILLO', 
+                               'GUI_INF_TANQUE', 'GUI_INT_TANQUE', 
                                'GUI_SUP_TANQUE', 'CATARINAS', 'RV200', 'RV200_SIN_FIN'];
                 
                 foreach ($codigosBase as $codigo) {

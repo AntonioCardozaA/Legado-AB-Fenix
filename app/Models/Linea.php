@@ -26,9 +26,9 @@ class Linea extends Model
     /**
      * Relación con análisis de componentes
      */
-    public function analisisComponentes()
+    public function analisisLavadora()
     {
-        return $this->hasMany(AnalisisComponente::class);
+        return $this->hasMany(AnalisisLavadora::class);
     }
 
     /**
@@ -47,5 +47,9 @@ class Linea extends Model
     public function scopeActivos($query)
     {
         return $query->where('activo', true);
+    }
+     public function planesAccion()
+    {
+        return $this->hasMany(PlanAccion::class, 'linea_id');
     }
 }

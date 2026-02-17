@@ -20,65 +20,72 @@ class AnalisisLavadoraController extends Controller
      * LISTADO + FILTROS
      */
     public function index(Request $request)
-    {
-        $query = AnalisisLavadora::with(['linea', 'componente'])
-            ->orderBy('fecha_analisis', 'desc')
-            ->orderBy('created_at', 'desc');
+{
+    $query = AnalisisLavadora::with(['linea', 'componente'])
+        ->orderBy('fecha_analisis', 'desc')
+        ->orderBy('created_at', 'desc');
 
-        if ($request->filled('linea_id')) {
-            $query->where('linea_id', $request->linea_id);
-        }
-
-        if ($request->filled('componente_id')) {
-            $query->whereHas('componente', function ($q) use ($request) {
-                $q->where('codigo', 'like', '%' . $request->componente_id . '%');
-            });
-        }
-
-        if ($request->filled('reductor')) {
-            $query->where('reductor', 'like', '%' . $request->reductor . '%');
-        }
-
-        if ($request->filled('estado')) {
-            $query->where('estado', $request->estado);
-        }
-
-        if ($request->filled('fecha')) {
-            $query->whereMonth('fecha_analisis', substr($request->fecha, 5, 2))
-                  ->whereYear('fecha_analisis', substr($request->fecha, 0, 4));
-        }
-    
-        $analisis = $query->get();
-
-        // Obtener componentes por línea para la vista
-        $componentesPorLinea = $this->getComponentesPorLinea();
-        
-        // Obtener todos los componentes posibles para el filtro
-        $todosComponentes = $this->getTodosComponentes();
-
-        // Si hay filtro de línea, obtener reductores específicos
-        $reductoresMostrar = [];
-        if ($request->filled('linea_id')) {
-            $linea = Linea::find($request->linea_id);
-            if ($linea) {
-                $reductoresMostrar = $this->getReductoresPorLinea($linea->nombre);
-            }
-        }
-
-        return view('analisis-lavadora.index', [
-            'analisis' => $analisis,
-            'lineas' => Linea::where('activo', true)->orderBy('nombre')->get(),
-            'componentesPorLinea' => $componentesPorLinea,
-            'todosComponentes' => $todosComponentes,
-            'reductores' => AnalisisLavadora::select('reductor')
-                ->whereNotNull('reductor')
-                ->distinct()
-                ->orderBy('reductor')
-                ->pluck('reductor'),
-            'reductoresMostrar' => $reductoresMostrar,
-            'filtros' => $request->all(),
-        ]);
+    if ($request->filled('linea_id')) {
+        $query->where('linea_id', $request->linea_id);
     }
+
+    if ($request->filled('componente_id')) {
+        $query->whereHas('componente', function ($q) use ($request) {
+            $q->where('codigo', 'like', '%' . $request->componente_id . '%');
+        });
+    }
+
+    if ($request->filled('reductor')) {
+        $query->where('reductor', 'like', '%' . $request->reductor . '%');
+    }
+
+    if ($request->filled('estado')) {
+        $query->where('estado', $request->estado);
+    }
+
+    if ($request->filled('fecha')) {
+        $query->whereMonth('fecha_analisis', substr($request->fecha, 5, 2))
+              ->whereYear('fecha_analisis', substr($request->fecha, 0, 4));
+    }
+
+    $analisis = $query->get();
+
+    // Obtener componentes por línea
+    $componentesPorLinea = $this->getComponentesPorLinea();
+
+    // Obtener todos los componentes
+    $todosComponentes = $this->getTodosComponentes();
+
+    // 🔹 Variable para mostrar nombre de línea seleccionada
+    $lineaMostrar = 'Todas las líneas';
+
+    if ($request->filled('linea_id')) {
+        $linea = Linea::find($request->linea_id);
+    
+    }
+
+    // Reductores por línea
+    $reductoresMostrar = [];
+    if ($request->filled('linea_id') && isset($linea)) {
+        $reductoresMostrar = $this->getReductoresPorLinea($linea->nombre);
+    }
+
+    return view('lavadora/analisis-lavadora.index', [
+        'analisis' => $analisis,
+        'lineas' => Linea::where('activo', true)->orderBy('nombre')->get(),
+        'componentesPorLinea' => $componentesPorLinea,
+        'todosComponentes' => $todosComponentes,
+        'reductores' => AnalisisLavadora::select('reductor')
+            ->whereNotNull('reductor')
+            ->distinct()
+            ->orderBy('reductor')
+            ->pluck('reductor'),
+        'reductoresMostrar' => $reductoresMostrar,
+        'lineaMostrar' => $lineaMostrar, // 👈 YA SE ENVÍA A LA VISTA
+        'filtros' => $request->all(),
+    ]);
+}
+
 
     /**
      * Obtener componentes organizados por línea para la tabla.
@@ -89,70 +96,70 @@ class AnalisisLavadoraController extends Controller
             'L-04' => [
                 'SERVO_CHICO' => 'Servo Chico',
                 'SERVO_GRANDE' => 'Servo Grande',
-                'BUJE_ESPIGA' => 'Buje Baquelita-Espiga',
-                'GUI_INF_TANQUE' => 'Guía Inf Tanque',
-                'GUI_INF_VAPOR_PASILLO' => 'Guía Inf Vapor/Pasillo',
-                'GUI_SUP_TANQUE' => 'Guía Sup Tanque',
+                'BUJE_ESPIGA' => 'Buje Baquelita-Espiga de flecha',
+                'GUI_INF_TANQUE' => 'Guía Inferior ',
+                'GUI_INT_TANQUE' => 'Guía Intermedia ',
+                'GUI_SUP_TANQUE' => 'Guía Superior ',
                 'CATARINAS' => 'Catarinas',
             ],
             'L-05' => [
                 'RV200' => 'Reductor RV200',
-                'BUJE_ESPIGA' => 'Buje Baquelita-Espiga',
-                'GUI_INF_TANQUE' => 'Guía Inf Tanque',
-                'GUI_INF_VAPOR_PASILLO' => 'Guía Inf Vapor/Pasillo',
-                'GUI_SUP_TANQUE' => 'Guía Sup Tanque',
+                'BUJE_ESPIGA' => 'Buje Baquelita-Espiga de flecha',
+                'GUI_INF_TANQUE' => 'Guía Inferior ',
+                'GUI_INT_TANQUE' => 'Guía Intermedia ',
+                'GUI_SUP_TANQUE' => 'Guía Superior ',
                 'CATARINAS' => 'Catarinas',
             ],
             'L-06' => [
                 'SERVO_CHICO' => 'Servo Chico',
                 'SERVO_GRANDE' => 'Servo Grande',
-                'BUJE_ESPIGA' => 'Buje Baquelita-Espiga',
-                'GUI_INF_TANQUE' => 'Guía Inf Tanque',
-                'GUI_INF_VAPOR_PASILLO' => 'Guía Inf Vapor/Pasillo',
-                'GUI_SUP_TANQUE' => 'Guía Sup Tanque',
+                'BUJE_ESPIGA' => 'Buje Baquelita-Espiga de flecha',
+                'GUI_INF_TANQUE' => 'Guía Inferior ',
+                'GUI_INT_TANQUE' => 'Guía Intermedia ',
+                'GUI_SUP_TANQUE' => 'Guía Superior ',
                 'CATARINAS' => 'Catarinas',
             ],
             'L-07' => [
                 'SERVO_CHICO' => 'Servo Chico',
                 'SERVO_GRANDE' => 'Servo Grande',
-                'BUJE_ESPIGA' => 'Buje Baquelita-Espiga',
-                'GUI_INF_TANQUE' => 'Guía Inf Tanque',
-                'GUI_INF_VAPOR_PASILLO' => 'Guía Inf Vapor/Pasillo',
-                'GUI_SUP_TANQUE' => 'Guía Sup Tanque',
+                'BUJE_ESPIGA' => 'Buje Baquelita-Espiga de flecha',
+                'GUI_INF_TANQUE' => 'Guía Inferior ',
+                'GUI_INT_TANQUE' => 'Guía Intermedia ',
+                'GUI_SUP_TANQUE' => 'Guía Superior ',
                 'CATARINAS' => 'Catarinas',
             ],
             'L-08' => [
                 'SERVO_CHICO' => 'Servo Chico',
                 'SERVO_GRANDE' => 'Servo Grande',
-                'BUJE_ESPIGA' => 'Buje Baquelita-Espiga',
-                'GUI_INF_TANQUE' => 'Guía Inf Tanque',
-                'GUI_INF_VAPOR_PASILLO' => 'Guía Inf Vapor/Pasillo',
-                'GUI_SUP_TANQUE' => 'Guía Sup Tanque',
+                'BUJE_ESPIGA' => 'Buje Baquelita-Espiga de flecha',
+                'GUI_INF_TANQUE' => 'Guía Inferior ',
+                'GUI_INT_TANQUE' => 'Guía Intermedia ',
+                'GUI_SUP_TANQUE' => 'Guía Superior ',
                 'CATARINAS' => 'Catarinas',
             ],
             'L-09' => [
                 'SERVO_CHICO' => 'Servo Chico',
                 'SERVO_GRANDE' => 'Servo Grande',
-                'BUJE_ESPIGA' => 'Buje Baquelita-Espiga',
-                'GUI_INF_TANQUE' => 'Guía Inf Tanque',
-                'GUI_INF_VAPOR_PASILLO' => 'Guía Inf Vapor/Pasillo',
-                'GUI_SUP_TANQUE' => 'Guía Sup Tanque',
+                'BUJE_ESPIGA' => 'Buje Baquelita-Espiga de flecha',
+                'GUI_INF_TANQUE' => 'Guía Inferior ',
+                'GUI_INT_TANQUE' => 'Guía Intermedia ',
+                'GUI_SUP_TANQUE' => 'Guía Superior ',
                 'CATARINAS' => 'Catarinas',
             ],
             'L-12' => [
                 'RV200_SIN_FIN' => 'Reductor Sin Fin-Corona RV200',
-                'BUJE_ESPIGA' => 'Buje Baquelita-Espiga',
-                'GUI_INF_TANQUE' => 'Guía Inf Tanque',
-                'GUI_INF_VAPOR_PASILLO' => 'Guía Inf Vapor/Pasillo',
-                'GUI_SUP_TANQUE' => 'Guía Sup Tanque',
+                'BUJE_ESPIGA' => 'Buje Baquelita-Espiga de flecha',
+                'GUI_INF_TANQUE' => 'Guía Inferior ',
+                'GUI_INT_TANQUE' => 'Guía Intermedia ',
+                'GUI_SUP_TANQUE' => 'Guía Superior ',
                 'CATARINAS' => 'Catarinas',
             ],
             'L-13' => [
                 'RV200' => 'Reductor RV200',
-                'BUJE_ESPIGA' => 'Buje Baquelita-Espiga',
-                'GUI_INF_TANQUE' => 'Guía Inf Tanque',
-                'GUI_INF_VAPOR_PASILLO' => 'Guía Inf Vapor/Pasillo',
-                'GUI_SUP_TANQUE' => 'Guía Sup Tanque',
+                'BUJE_ESPIGA' => 'Buje Baquelita-Espiga de flecha',
+                'GUI_INF_TANQUE' => 'Guía Inferior',
+                'GUI_INT_TANQUE' => 'Guía Intermedia',
+                'GUI_SUP_TANQUE' => 'Guía Superior',
                 'CATARINAS' => 'Catarinas',
             ],
         ];
@@ -166,10 +173,10 @@ class AnalisisLavadoraController extends Controller
         return [
             'SERVO_CHICO' => 'Servo Chico',
             'SERVO_GRANDE' => 'Servo Grande',
-            'BUJE_ESPIGA' => 'Buje Baquelita-Espiga',
-            'GUI_INF_TANQUE' => 'Guía Inf Tanque',
-            'GUI_INF_VAPOR_PASILLO' => 'Guía Inf Vapor/Pasillo',
-            'GUI_SUP_TANQUE' => 'Guía Sup Tanque',
+            'BUJE_ESPIGA' => 'Buje Baquelita-Espiga de flecha',
+            'GUI_INF_TANQUE' => 'Guía Inferior ',
+            'GUI_INT_TANQUE' => 'Guía Intermedia ',
+            'GUI_SUP_TANQUE' => 'Guía Superior',
             'CATARINAS' => 'Catarinas',
             'RV200' => 'Reductor RV200',
             'RV200_SIN_FIN' => 'Reductor Sin Fin-Corona RV200'
@@ -220,7 +227,7 @@ class AnalisisLavadoraController extends Controller
             'L-04','L-05','L-06','L-07','L-08','L-09','L-12','L-13'
         ])->get();
 
-        return view('analisis-lavadora.select-linea', compact('lineas'));
+        return view('lavadora/analisis-lavadora.select-linea', compact('lineas'));
     }
 
     /**
@@ -243,7 +250,7 @@ class AnalisisLavadoraController extends Controller
             ->orderBy('reductor')
             ->pluck('reductor');
 
-        return view('analisis-lavadora.create', compact(
+        return view('lavadora/analisis-lavadora.create', compact(
             'linea',
             'componentesDisponibles',
             'reductores'
@@ -331,7 +338,7 @@ class AnalisisLavadoraController extends Controller
             }
         }
 
-        return view('analisis-lavadora.create-quick', [
+        return view('lavadora/analisis-lavadora.create-quick', [
             'linea'          => $linea,
             'componente'     => $componente,
             'reductor'       => $request->reductor,
@@ -515,8 +522,8 @@ class AnalisisLavadoraController extends Controller
             'SERVO_CHICO' => 'Servo Chico',
             'SERVO_GRANDE' => 'Servo Grande',
             'BUJE_ESPIGA' => 'Buje Baquelita-Espiga',
-            'GUI_INF_TANQUE' => 'Guía Inf Tanque',
-            'GUI_INF_VAPOR_PASILLO' => 'Guía Inf Vapor/Pasillo',
+            'GUI_INT_TANQUE' => 'Guía Int Tanque',
+            'GUI_INT_TAQNQUE' => 'Guía Int Tanque',
             'GUI_SUP_TANQUE' => 'Guía Sup Tanque',
             'CATARINAS' => 'Catarinas',
             'RV200' => 'Reductor RV200',
@@ -539,7 +546,7 @@ public function edit($id)
         ->orderBy('nombre')
         ->get();
 
-    return view('analisis-lavadora.edit', compact(
+    return view('lavadora/analisis-lavadora.edit', compact(
         'analisisComponente',
         'componentes'
     ));
@@ -615,7 +622,7 @@ public function update(Request $request, $id)
     public function show(AnalisisLavadora $analisislavadora)
     {
         $analisislavadora->load(['linea', 'componente']);
-        return view('analisis-lavadora.show', compact('analisislavadora'));
+        return view('lavadora/analisis-lavadora.show', compact('analisislavadora'));
     }
     
     /**
@@ -721,24 +728,40 @@ public function update(Request $request, $id)
         return back()->with('error', 'Foto no encontrada.');
     }
         public function historial(Request $request)
-    {
-        $request->validate([
-            'linea_id' => 'required|exists:lineas,id',
-            'componente_id' => 'required|string',
-            'reductor' => 'required|string',
-        ]);
+{
+    $request->validate([
+        'linea_id' => 'required|exists:lineas,id',
+        'componente_id' => 'required|string',
+        'reductor' => 'required|string',
+    ]);
 
-        $analisis = AnalisisLavadora::with(['linea', 'componente'])
-            ->where('linea_id', $request->linea_id)
-            ->where('reductor', $request->reductor)
-            ->whereHas('componente', function ($q) use ($request) {
-                $q->where('codigo', 'like', '%' . $request->componente_id . '%');
-            })
-            ->orderByDesc('fecha_analisis')
-            ->orderByDesc('created_at')
-            ->get();
+    // Construir la consulta
+    $query = AnalisisLavadora::with(['linea', 'componente'])
+        ->where('linea_id', $request->linea_id)
+        ->where('reductor', $request->reductor)
+        ->whereHas('componente', function ($q) use ($request) {
+            $q->where('codigo', 'like', '%' . $request->componente_id . '%');
+        })
+        ->orderByDesc('fecha_analisis')
+        ->orderByDesc('created_at');
 
-        return view('analisis-lavadora.historial', compact('analisis'));
-    }
+    // Paginar los resultados (10 por página)
+    $analisis = $query->paginate(10)->withQueryString();
 
+    return view('lavadora/analisis-lavadora.historial', compact('analisis'));
+}
+public function analisis52124 (Request $request)
+{
+    $analisis = AnalisisLavadora::with(['linea', 'componente'])
+        ->where('linea_id', 1) // L-04
+        ->where('reductor', 'Reductor 1')
+        ->whereHas('componente', function ($q) {
+            $q->where('codigo', 'like', '%SERVO_CHICO%');
+        })
+        ->orderByDesc('fecha_analisis')
+        ->orderByDesc('created_at')
+        ->get();
+
+    return view('analisis-52-12-4.index', compact('analisis'));
+}
 }

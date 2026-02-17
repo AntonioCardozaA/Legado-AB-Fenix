@@ -56,14 +56,14 @@
 <div class="flex min-h-screen">
 
     <!-- SIDEBAR -->
-    <aside class="sidebar w-52 text-white flex flex-col h-screen sticky top-0">
+    <aside class="sidebar w-64 text-white flex flex-col h-screen sticky top-0">
 
         <!-- Logo -->
         <div class="px-6 py-6 border-b border-blue-800">
             <div class="flex flex-col items-center text-center">
                 <img 
                     src="{{ asset('images/logo.png') }}" 
-                    alt="Logo"
+                    alt="Logo Legado Ave Fénix"
                     class="w-20 h-20 mb-3 drop-shadow-lg"
                 >
                 <h1 class="text-sm font-semibold tracking-wide leading-tight">
@@ -81,49 +81,30 @@
                 <i class="fas fa-chart-line w-5 mr-3"></i>
                 Dashboard
             </a>
-
             <a href="{{ route('analisis.index') }}"
                aria-label="Análisis General"
                class="nav-link flex items-center px-4 py-3 rounded-lg {{ request()->routeIs('analisis.*') ? 'nav-active' : '' }}">
                 <i class="fas fa-clipboard-list w-5 mr-3"></i>
                 Análisis General
             </a>
-
-            <a href="{{ route('analisis-lavadora.index') }}"
-               aria-label="Análisis de Componentes"
-               class="nav-link flex items-center px-4 py-3 rounded-lg {{ request()->routeIs('analisis-lavadora.*') ? 'nav-active' : '' }}">
+            <a href="{{ route('lavadora.dashboard') }}"
+                aria-label="Dashboard de Lavadora"
+                class="nav-link flex items-center px-4 py-3 rounded-lg {{ request()->routeIs('lavadora.dashboard') ? 'nav-active' : '' }}">
                 <i class="fas fa-puzzle-piece w-5 mr-3"></i>
-                Análisis de Lavadora
+                Lavadora
             </a>
-
-               <a href="{{ route('analisis-pasteurizadora.index') }}"
-               aria-label="Análisis de Componentes"
-               class="nav-link flex items-center px-4 py-3 rounded-lg {{ request()->routeIs('analisis-lavadora.*') ? 'nav-active' : '' }}">
+            <a href="{{ route('analisis-pasteurizadora.index') }}"
+               aria-label="Análisis de Pasteurizadora"
+               class="nav-link flex items-center px-4 py-3 rounded-lg {{ request()->routeIs('analisis-pasteurizadora.*') ? 'nav-active' : '' }}">
                 <i class="fas fa-puzzle-piece w-5 mr-3"></i>
-                Análisis de Pateurizadora
+                Pasteurizadora
             </a>
-
-            <a href="{{ route('elongaciones.index') }}"
-               aria-label="Elongación"
-               class="nav-link flex items-center px-4 py-3 rounded-lg {{ request()->routeIs('elongaciones.*') ? 'nav-active' : '' }}">
-                <i class="fas fa-arrows-alt-h w-5 mr-3"></i>
-                Elongación
-            </a>
-            <!--
-            <a href="{{ route('paros.index') }}"
-               aria-label="Paros de Máquina"
-               class="nav-link flex items-center px-4 py-3 rounded-lg {{ request()->routeIs('paros.*') ? 'nav-active' : '' }}">
-                <i class="fas fa-triangle-exclamation w-5 mr-3"></i>
-                Paros de Máquina
-            </a>
-            -->
             <a href="{{ route('lineas.index') }}"
                aria-label="Líneas"
                class="nav-link flex items-center px-4 py-3 rounded-lg {{ request()->routeIs('lineas.*') ? 'nav-active' : '' }}">
                 <i class="fas fa-industry w-5 mr-3"></i>
                 Líneas
             </a>
-
             <a href="{{ route('reportes.index') }}"
                aria-label="Reportes"
                class="nav-link flex items-center px-4 py-3 rounded-lg {{ request()->routeIs('reportes.*') ? 'nav-active' : '' }}">
@@ -140,12 +121,12 @@
         <header class="bg-white shadow-sm border-b px-6 py-4">
             <div class="flex justify-between items-center">
                 <h2 class="text-xl font-semibold text-gray-800">
-                    @yield('title')
+                    @yield('title', 'Legado Ave Fénix')
                 </h2>
 
                 <div class="flex items-center space-x-4">
                     <span class="text-sm text-gray-600">
-                        {{ auth()->user()->name }}
+                        {{ auth()->check() ? auth()->user()->name : 'Invitado' }}
                     </span>
 
                     <button aria-label="Perfil de usuario"
@@ -165,7 +146,9 @@
 
 </div>
 
-@yield('scripts')
+@hasSection('scripts')
+    @yield('scripts')
+@endif
 
 </body>
 </html>

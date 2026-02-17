@@ -808,6 +808,17 @@
     {{-- HEADER --}}
     <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
         <div>
+        <a href="{{ route('lavadora.dashboard') }}" 
+               class="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 
+                      bg-gray-100 hover:bg-gray-200 rounded-lg transition-all duration-300
+                      group">
+                <svg class="w-5 h-5 group-hover:-translate-x-1 transition-transform" 
+                     fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                          d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                </svg>
+                <span class="font-medium">Volver</span>
+            </a>
             <h1 class="text-2xl font-bold text-gray-800 flex items-center gap-2">
                 <i class="fas fa-chart-pie text-blue-600"></i>
                 Análisis de Lavadoras
@@ -1013,32 +1024,86 @@
             ];
         }
     @endphp
-
     @if($analisisCollection->count() > 0)
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-label">Total análisis</div>
-                <div class="stat-value text-blue-700">{{ $estadisticas['total'] ?? 0 }}</div>
-                <div class="stat-trend">{{ $estadisticas['recientes'] ?? 0 }} nuevos (7d)</div>
+    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-6 mb-8">
+
+        {{-- TOTAL ANÁLISIS --}}
+        <div class="bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 p-6 border-t-4 border-gray-600 flex items-center justify-between min-h-[120px]">
+        <div>
+                <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                    Total análisis
+                </p>
+                <h3 class="text-3xl font-bold text-gray-700 mt-2">
+                    {{ $estadisticas['total'] ?? 0 }}
+                </h3>
             </div>
-            <div class="stat-card">
-                <div class="stat-label">Buen estado</div>
-                <div class="stat-value text-green-600">{{ $estadisticas['buen_estado'] ?? 0 }}</div>
-                <div class="stat-trend">Componentes óptimos</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">Desgaste</div>
-                <div class="stat-value text-yellow-600">{{ $estadisticas['desgaste'] ?? 0 }}</div>
-                <div class="stat-trend">Moderado/Severo</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">Dañados</div>
-                <div class="stat-value text-red-600">{{ ($estadisticas['danado_requiere'] ?? 0) + ($estadisticas['danado_cambiado'] ?? 0) }}</div>
-                <div class="stat-trend">{{ $estadisticas['danado_requiere'] ?? 0 }} requieren cambio</div>
+            <div class="bg-gray-100 text-gray-600 p-3 rounded-full">
+                <i class="fas fa-chart-line text-lg"></i>
             </div>
         </div>
-    @endif
 
+        {{-- BUEN ESTADO --}}
+        <div class="bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 p-6 border-t-4 border-green-600 flex items-center justify-between min-h-[120px]">
+            <div>
+                <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                    Buen estado
+                </p>
+                <h3 class="text-3xl font-bold text-green-600 mt-2">
+                    {{ $estadisticas['buen_estado'] ?? 0 }}
+                </h3>
+            </div>
+            <div class="bg-green-100 text-green-600 p-3 rounded-full">
+                <i class="fas fa-check-circle text-lg"></i>
+            </div>
+        </div>
+
+        {{-- DESGASTE --}}
+        <div class="bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 p-6 border-t-4 border-yellow-500 flex items-center justify-between min-h-[120px]">
+            <div>
+                <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                    Desgaste
+                </p>
+                <h3 class="text-3xl font-bold text-yellow-500 mt-2">
+                    {{ $estadisticas['desgaste'] ?? 0 }}
+                </h3>
+            </div>
+            <div class="bg-yellow-100 text-yellow-600 p-3 rounded-full">
+                <i class="fas fa-exclamation-triangle text-lg"></i>
+            </div>
+        </div>
+
+        {{-- DAÑADOS --}}
+        <div class="bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 p-6 border-t-4 border-red-600 flex items-center justify-between min-h-[120px]">
+            <div>
+                <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                    Dañados
+                </p>
+                <h3 class="text-3xl font-bold text-red-600 mt-2">
+                    {{ ($estadisticas['danado_requiere'] ?? 0) + ($estadisticas['danado_cambiado'] ?? 0) }}
+                </h3>
+            </div>
+            <div class="bg-red-100 text-red-600 p-3 rounded-full">
+                <i class="fas fa-times-circle text-lg"></i>
+            </div>
+        </div>
+
+        {{-- DAÑADO CAMBIADO --}}
+        <div class="bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 p-6 border-t-4 border-blue-600 flex items-center justify-between min-h-[120px]">
+            <div>
+                <p class="text-xs font-semibold text--500 uppercase tracking-wide">
+                    Cambiados
+                </p>
+                <h3 class="text-3xl font-bold text-blue-700 mt-2">
+                    {{ $estadisticas['danado_cambiado'] ?? 0 }}
+                </h3>
+            </div>
+            <div class="bg-blue-100 text-blue-600 p-3 rounded-full">
+                <i class="fas fa-sync-alt text-lg"></i>
+            </div>
+        </div>
+
+    </div>
+@endif
     {{-- TABLA PRINCIPAL --}}
     @php
         /* ===============================
@@ -1236,12 +1301,12 @@
                                     <th class="sticky-top cell-header text-blue-900 font-bold px-3 py-2 border text-center whitespace-nowrap text-sm">
                                         <div class="component-header">
                                             <div class="component-name">{{ $c->nombre }}</div>
-                                            <div class="component-code">{{ $c->id }}</div>
+                                          
                                             <img
                                                 src="{{ $c->icono }}"
                                                 alt="Icono {{ $c->nombre }}"
                                                 class="w-20 h-20 object-contain hover:scale-110 transition-transform"
-                                                onerror="this.src='{{ asset('images/componentes-lavadora/Buje Baquelita-Espiga.png') }}'">
+                                                onerror="this.src='{{ asset('images/extras/sin imagen.png') }}'">
                                             <div class="flex justify-center gap-1 mt-1">
                                                 @if($conteoEstado['ok'] > 0)
                                                     <span class="w-1.5 h-1.5 bg-green-500 rounded-full"></span>
@@ -1355,7 +1420,16 @@
                                                 'color' => $color,
                                                 'created_at' => isset($registro->created_at) ? $registro->created_at->format('d/m/Y H:i') : '',
                                                 'updated_at' => isset($registro->updated_at) ? $registro->updated_at->format('d/m/Y H:i') : '',
-                                                'is_new' => $isNew
+                                                'is_new' => $isNew,
+                                                'total_historial' => $totalHistorial,
+                                                'edit_url' => route('analisis-lavadora.edit', [
+                                                    'analisislavadora' => $registro->id
+                                                ]),
+                                                'historial_url' => route('analisis-lavadora.historial', [
+                                                    'linea_id' => $registro->linea_id,
+                                                    'componente_id' => $c->id,
+                                                    'reductor' => $r
+                                                ])
                                             ]) }})"
                                             @endif>
                                             
@@ -1423,7 +1497,7 @@
                                                                 {{ count($imagenes) }} img
                                                             </button>
                                                         @endif
-                                                        
+                                                        {{--    
                                                         <a href="{{ route('analisis-lavadora.edit', [
                                                             'analisislavadora' => $registro->id,
                                                             'linea_id' => request('linea_id', ''),
@@ -1436,7 +1510,7 @@
                                                             <i class="fas fa-edit"></i>
                                                             Editar
                                                         </a>
-                                                        
+                                                        --}}
                                                         <a href="{{ route('analisis-lavadora.create-quick', [
                                                                 'linea_id' => $registro->linea_id,
                                                                 'componente_codigo' => $c->id,
@@ -1448,7 +1522,8 @@
                                                                     <i class="fas fa-plus"></i>
                                                                     Nuevo Registro
                                                         </a>
-                                                        
+                                                        {{--
+                                                         
                                                         @if($totalHistorial > 1)
                                                             <a href="{{ route('analisis-lavadora.historial', [
                                                                     'linea_id' => $registro->linea_id,
@@ -1461,10 +1536,9 @@
                                                                 Historial ({{ $totalHistorial }})
                                                             </a>
                                                         @endif
+                                                        --}}
                                                     </div>
                                                     
-                                                    
-
                                                 </div>
                                             @else
                                                 <div class="empty-cell">
@@ -1482,7 +1556,7 @@
                                                         class="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 transition text-xs font-medium"
                                                         onclick="event.stopPropagation();">
                                                             <i class="fas fa-plus"></i>
-                                                            Agregar
+                                                            
                                                         </a>
                                                     @else
                                                         <a href="{{ route('analisis-lavadora.select-linea') }}"
@@ -1528,7 +1602,7 @@
                 @endforeach
             </div>
             
-            <a href="{{ route('analisis-componentes.select-linea') }}"
+            <a href="{{ route('analisis-lavadora.select-linea') }}"
                class="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition shadow-lg hover:shadow-xl">
                 <i class="fas fa-plus-circle"></i>
                 Comenzar Nuevo Análisis
@@ -1596,9 +1670,16 @@
                 <div id="detail-image-grid" class="image-grid"></div>
             </div>
 
+            {{-- BOTONES DE ACCIÓN --}}
             <div class="flex justify-end gap-3 mt-6">
                 <a id="detail-edit-btn" href="#" class="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600">
                     <i class="fas fa-edit"></i> Editar
+                </a>
+                <a id="detail-historial-btn"
+                href="#"
+                class="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 hidden">
+                    <i class="fas fa-history"></i>
+                    <span id="detail-historial-text">Ver Historial</span>
                 </a>
                 <button onclick="closeAnalysisDetailModal()" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300">
                     <i class="fas fa-times"></i> Cerrar
@@ -1710,7 +1791,17 @@ function openAnalysisDetail(analysisData) {
          analysisData.color === 'cell-warning' ? 'warning' : 
          analysisData.color === 'cell-danger' ? 'danger' : 'changed');
     
-    document.getElementById('detail-edit-btn').href = `/analisis-lavadora/${analysisData.id}/edit`;
+    document.getElementById('detail-edit-btn').href = analysisData.edit_url;
+    const historialBtn = document.getElementById('detail-historial-btn');
+    const historialText = document.getElementById('detail-historial-text');
+
+    if (analysisData.total_historial > 1) {
+        historialBtn.classList.remove('hidden');
+        historialBtn.href = analysisData.historial_url;
+        historialText.textContent = `Ver Historial (${analysisData.total_historial})`;
+    } else {
+        historialBtn.classList.add('hidden');
+    }
     
     const imagesSection = document.getElementById('detail-images-section');
     if (analysisData.imagenes && analysisData.imagenes.length > 0) {

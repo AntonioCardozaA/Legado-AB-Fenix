@@ -44,7 +44,7 @@
             <div class="flex justify-between items-start">
                 <div>
                     <p class="text-sm opacity-90">Paros Pendientes</p>
-                    <p class="text-3xl font-bold mt-2">{{ $parosPendientes }}</p>
+                
                 </div>
                 <i class="fas fa-tools text-2xl opacity-80"></i>
             </div>
