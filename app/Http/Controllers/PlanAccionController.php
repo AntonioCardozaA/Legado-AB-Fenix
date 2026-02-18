@@ -14,41 +14,83 @@ class PlanAccionController extends Controller
 {
     public function index(Request $request)
     {
-        $lavadoraId = $request->get('linea_id');
-        $estado = $request->get('estado');
+        // Obtener parámetros de filtro
+        $tipo = $request->get('tipo', 'lavadora'); // Por defecto mostrar lavadoras
+        $lineaId = $request->get('linea_id');
         
-        $lavadoras = Linea::orderBy('nombre')->get();
+        // Definir IDs específicos para lavadoras (líneas 4,5,6,7,8,9,12,13)
+        $lineasLavadoraIds = [4, 5, 6, 7, 8, 9, 12, 13];
         
+        // Obtener líneas según el tipo seleccionado
+        if ($tipo == 'lavadora') {
+            // Solo mostrar las líneas de lavadora específicas
+            $lineasTipo = Linea::whereIn('id', $lineasLavadoraIds)
+                                ->orderBy('nombre')
+                                ->get();
+        } else {
+            // Mostrar todas las líneas para pasteurizadora
+            $lineasTipo = Linea::orderBy('nombre')->get();
+        }
+        
+        // Construir query de planes de acción
         $query = PlanAccion::with(['linea', 'responsable']);
         
-        if ($lavadoraId) {
-            $query->where('linea_id', $lavadoraId);
+        // Aplicar filtros según tipo y línea
+        if ($lineaId) {
+            // Si se seleccionó una línea específica
+            $query->where('linea_id', $lineaId);
+        } else {
+            // Si no hay línea específica, filtrar por el tipo seleccionado
+            if ($tipo == 'lavadora') {
+                $query->whereIn('linea_id', $lineasLavadoraIds);
+            } else {
+                // Para pasteurizadora, mostrar todas las líneas
+                // No aplicamos filtro adicional
+            }
         }
         
-        if ($estado && $estado != 'todos') {
-            $query->where('estado', $estado);
-        }
-        
+        // Ordenar por fecha de creación
         $planes = $query->orderBy('created_at', 'desc')->paginate(15);
         
         // Alertas globales
         $alertas = $this->obtenerAlertasGlobales();
         
-        // Estadísticas
-        $estadisticas = $this->obtenerEstadisticas();
+        // Estadísticas actualizadas
+        $estadisticas = $this->obtenerEstadisticas($lineasLavadoraIds);
         
-        return view('plan-accion.index', compact('lavadoras', 'planes', 'alertas', 'estadisticas', 'lavadoraId', 'estado'));
+        return view('plan-accion.index', compact(
+            'lineasTipo', 
+            'planes', 
+            'alertas', 
+            'estadisticas', 
+            'tipo',
+            'lineaId'
+        ));
     }
 
-    public function create()
+    public function create(Request $request)
     {
-        $lineas = Linea::where('activo', true)
-                        ->orderBy('nombre')
-                        ->get();
+        $tipo = $request->get('tipo', 'lavadora');
+        
+        // Definir IDs específicos para lavadoras
+        $lineasLavadoraIds = [4, 5, 6, 7, 8, 9, 12, 13];
+        
+        if ($tipo == 'lavadora') {
+            // Solo mostrar líneas de lavadora
+            $lineas = Linea::whereIn('id', $lineasLavadoraIds)
+                            ->where('activo', true)
+                            ->orderBy('nombre')
+                            ->get();
+        } else {
+            // Mostrar todas las líneas para pasteurizadora
+            $lineas = Linea::where('activo', true)
+                            ->orderBy('nombre')
+                            ->get();
+        }
 
         $responsables = User::where('activo', true)->get();
         
-        return view('plan-accion.create', compact('lineas', 'responsables'));
+        return view('plan-accion.create', compact('lineas', 'responsables', 'tipo'));
     }
 
     public function store(Request $request)
@@ -63,7 +105,7 @@ class PlanAccionController extends Controller
             'estado' => 'required|in:pendiente,en_proceso,completada,atrasada',
             'responsable_id' => 'nullable|exists:users,id',
             'observaciones' => 'nullable|string',
-            'tipo_maquina' => 'nullable|array' // Validación para el checklist
+            'tipo_maquina' => 'nullable|array'
         ]);
 
         // Convertir el array a JSON para guardar
@@ -73,7 +115,12 @@ class PlanAccionController extends Controller
 
         PlanAccion::create($validated);
 
-        return redirect()->route('plan-accion.index')
+        // Obtener el tipo de la línea para redireccionar
+        $linea = Linea::find($validated['linea_id']);
+        $lineasLavadoraIds = [4, 5, 6, 7, 8, 9, 12, 13];
+        $tipo = in_array($linea->id, $lineasLavadoraIds) ? 'lavadora' : 'pasteurizadora';
+
+        return redirect()->route('plan-accion.index', ['tipo' => $tipo])
             ->with('success', 'Actividad creada correctamente');
     }
 
@@ -84,16 +131,33 @@ class PlanAccionController extends Controller
         return response()->json($plan);
     }
 
-    public function edit($id)
+    public function edit(Request $request, $id)
     {
         $plan = PlanAccion::findOrFail($id);
-        $lavadoras = Linea::orderBy('nombre')->get();
+        $tipo = $request->get('tipo', 'lavadora');
+        
+        // Definir IDs específicos para lavadoras
+        $lineasLavadoraIds = [4, 5, 6, 7, 8, 9, 12, 13];
+        
+        if ($tipo == 'lavadora') {
+            // Solo mostrar líneas de lavadora
+            $lavadoras = Linea::whereIn('id', $lineasLavadoraIds)
+                                ->where('activo', true)
+                                ->orderBy('nombre')
+                                ->get();
+        } else {
+            // Mostrar todas las líneas para pasteurizadora
+            $lavadoras = Linea::where('activo', true)
+                                ->orderBy('nombre')
+                                ->get();
+        }
+        
         $responsables = User::where('activo', true)->get();
         
         // Decodificar los tipos de máquina para mostrarlos en el formulario
         $tiposMaquinaSeleccionados = $plan->tipo_maquina ? json_decode($plan->tipo_maquina, true) : [];
         
-        return view('plan-accion.edit', compact('plan', 'lavadoras', 'responsables', 'tiposMaquinaSeleccionados'));
+        return view('plan-accion.edit', compact('plan', 'lavadoras', 'responsables', 'tiposMaquinaSeleccionados', 'tipo'));
     }
 
     public function update(Request $request, $id)
@@ -125,16 +189,23 @@ class PlanAccionController extends Controller
         // Actualizar estado automáticamente
         $plan->actualizarEstado();
 
-        return redirect()->route('plan-accion.index')
+        // Obtener el tipo de la línea para redireccionar
+        $linea = Linea::find($validated['linea_id']);
+        $lineasLavadoraIds = [4, 5, 6, 7, 8, 9, 12, 13];
+        $tipo = in_array($linea->id, $lineasLavadoraIds) ? 'lavadora' : 'pasteurizadora';
+
+        return redirect()->route('plan-accion.index', ['tipo' => $tipo])
                          ->with('success', 'Actividad actualizada exitosamente');
     }
 
-    public function destroy($id)
+    public function destroy(Request $request, $id)
     {
         $plan = PlanAccion::findOrFail($id);
+        $tipo = $request->get('tipo', 'lavadora');
+        
         $plan->delete();
 
-        return redirect()->route('plan-accion.index')
+        return redirect()->route('plan-accion.index', ['tipo' => $tipo])
                          ->with('success', 'Actividad eliminada exitosamente');
     }
 
@@ -223,14 +294,30 @@ class PlanAccionController extends Controller
         return $alertas;
     }
 
-    private function obtenerEstadisticas()
+    private function obtenerEstadisticas($lineasLavadoraIds = [])
     {
+        // Total de lavadoras (solo las líneas específicas)
+        $totalLavadoras = Linea::whereIn('id', $lineasLavadoraIds)->count();
+        
+        // Total de pasteurizadoras (todas las líneas)
+        $totalPasteurizadoras = Linea::count();
+        
+        // Actividades pendientes (sin filtrar por tipo)
+        $actividadesPendientes = PlanAccion::whereIn('estado', ['pendiente', 'en_proceso'])->count();
+        
+        // Actividades completadas
+        $actividadesCompletadas = PlanAccion::where('estado', 'completada')->count();
+        
+        // Actividades atrasadas
+        $actividadesAtrasadas = PlanAccion::where('estado', 'atrasada')->count();
+        
         return [
-            'total_lavadoras' => Linea::count(),
+            'total_lavadoras' => $totalLavadoras,
+            'total_pasteurizadoras' => $totalPasteurizadoras,
             'total_actividades' => PlanAccion::count(),
-            'actividades_pendientes' => PlanAccion::whereIn('estado', ['pendiente', 'en_proceso'])->count(),
-            'actividades_completadas' => PlanAccion::where('estado', 'completada')->count(),
-            'actividades_atrasadas' => PlanAccion::where('estado', 'atrasada')->count(),
+            'actividades_pendientes' => $actividadesPendientes,
+            'actividades_completadas' => $actividadesCompletadas,
+            'actividades_atrasadas' => $actividadesAtrasadas,
             'proximas_7_dias' => $this->contarActividadesProximas(7),
             'proximas_30_dias' => $this->contarActividadesProximas(30)
         ];

@@ -115,6 +115,13 @@ Route::get('/lavadora/dashboard', [DashboardController::class, 'Lavadora'])->nam
             Route::get('/', [AnalisisLavadoraController::class, 'analisis52124'])->name('index');
         
         });
+
+
+        // ===============================
+    // HISTORICO DE REVISADOS
+    // ===============================
+    Route::get('/historico-revisados', [App\Http\Controllers\HistoricoRevisadosController::class, 'index'])->name('historico-revisados.index');
+    
     /*
     |--------------------------------------------------------------------------
     | ANALISIS DE COMPONENTES - PASTEURIZADORA (NUEVO)

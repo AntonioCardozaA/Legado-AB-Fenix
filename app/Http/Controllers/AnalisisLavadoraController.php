@@ -25,6 +25,7 @@ class AnalisisLavadoraController extends Controller
         ->orderBy('fecha_analisis', 'desc')
         ->orderBy('created_at', 'desc');
 
+    // FILTROS
     if ($request->filled('linea_id')) {
         $query->where('linea_id', $request->linea_id);
     }
@@ -50,41 +51,44 @@ class AnalisisLavadoraController extends Controller
 
     $analisis = $query->get();
 
-    // Obtener componentes por línea
-    $componentesPorLinea = $this->getComponentesPorLinea();
-
-    // Obtener todos los componentes
-    $todosComponentes = $this->getTodosComponentes();
-
-    // 🔹 Variable para mostrar nombre de línea seleccionada
+    // Obtener línea seleccionada
     $lineaMostrar = 'Todas las líneas';
+    $linea = null;
 
     if ($request->filled('linea_id')) {
         $linea = Linea::find($request->linea_id);
-    
+
+        if ($linea) {
+            $lineaMostrar = $linea->nombre;
+        }
     }
 
     // Reductores por línea
     $reductoresMostrar = [];
-    if ($request->filled('linea_id') && isset($linea)) {
-        $reductoresMostrar = $this->getReductoresPorLinea($linea->nombre);
-    }
+    if (!$request->filled('linea_id')) {
+    return redirect()->route('analisis-lavadora.index', [
+        'linea_id' => Linea::where('activo', true)->first()->id
+    ]);
+} else {
+    $reductoresMostrar = $this->getReductoresPorLinea($lineaMostrar);
+}
 
     return view('lavadora/analisis-lavadora.index', [
         'analisis' => $analisis,
         'lineas' => Linea::where('activo', true)->orderBy('nombre')->get(),
-        'componentesPorLinea' => $componentesPorLinea,
-        'todosComponentes' => $todosComponentes,
+        'componentesPorLinea' => $this->getComponentesPorLinea(),
+        'todosComponentes' => $this->getTodosComponentes(),
         'reductores' => AnalisisLavadora::select('reductor')
             ->whereNotNull('reductor')
             ->distinct()
             ->orderBy('reductor')
             ->pluck('reductor'),
         'reductoresMostrar' => $reductoresMostrar,
-        'lineaMostrar' => $lineaMostrar, // 👈 YA SE ENVÍA A LA VISTA
+        'lineaMostrar' => $lineaMostrar,
         'filtros' => $request->all(),
     ]);
 }
+
 
 
     /**
@@ -508,8 +512,11 @@ class AnalisisLavadoraController extends Controller
     }
 
     return redirect()
-        ->route('analisis-lavadora.index')
-        ->with('success', 'Análisis registrado correctamente.');
+    ->route('analisis-lavadora.index', [
+        'linea_id' => $linea->id
+    ])
+    ->with('success', 'Análisis registrado correctamente.');
+
 }
 
 
@@ -763,5 +770,157 @@ public function analisis52124 (Request $request)
         ->get();
 
     return view('analisis-52-12-4.index', compact('analisis'));
+}
+public function historicoRevisados(Request $request)
+{
+    // Obtener todas las líneas activas
+    $lineas = Linea::where('activo', true)
+        ->orderBy('nombre')
+        ->get();
+    
+    // Separar líneas por tipo (asumimos que líneas con L- son lavadoras, P- son pasteurizadoras)
+    $lineasLavadora = $lineas->filter(function($linea) {
+        return str_starts_with($linea->nombre, 'L-');
+    })->values();
+    
+    $lineasPasteurizadora = $lineas->filter(function($linea) {
+        return str_starts_with($linea->nombre, 'P-');
+    })->values();
+    
+    // Definir los componentes estándar con sus cantidades totales por línea
+    $componentesConfig = [
+        'SERVO_CHICO' => [
+            'nombre' => 'SERVO CHICO',
+            'cantidad_total' => 15,
+            'icono' => 'servo-chico.png'
+        ],
+        'SERVO_GRANDE' => [
+            'nombre' => 'SERVO GRANDE',
+            'cantidad_total' => 15,
+            'icono' => 'servo-grande.png'
+        ],
+        'BUJE_ESPIGA' => [
+            'nombre' => 'BUJE BAQUELITA Y ESPIGA',
+            'cantidad_total' => 15,
+            'icono' => 'buje-espiga.png'
+        ],
+        'GUI_INF_TANQUE' => [
+            'nombre' => 'GUÍA INFERIOR',
+            'cantidad_total' => 15,
+            'icono' => 'guia-inferior.png'
+        ],
+        'GUI_INT_TANQUE' => [
+            'nombre' => 'GUÍA INTERMEDIA',
+            'cantidad_total' => 15,
+            'icono' => 'guia-intermedia.png'
+        ],
+        'GUI_SUP_TANQUE' => [
+            'nombre' => 'GUÍA SUPERIOR',
+            'cantidad_total' => 15,
+            'icono' => 'guia-superior.png'
+        ],
+        'CATARINAS' => [
+            'nombre' => 'CATARINAS',
+            'cantidad_total' => 15,
+            'icono' => 'catarinas.png'
+        ],
+        'RV200' => [
+            'nombre' => 'REDUCTOR RV200',
+            'cantidad_total' => 15,
+            'icono' => 'reductor-rv200.png'
+        ],
+        'RV200_SIN_FIN' => [
+            'nombre' => 'REDUCTOR SIN FIN-CORONA',
+            'cantidad_total' => 15,
+            'icono' => 'reductor-sin-fin.png'
+        ],
+    ];
+    
+    // Línea seleccionada (por defecto la primera lavadora)
+    $lineaSeleccionadaId = $request->input('linea_id', $lineasLavadora->first()->id ?? null);
+    $lineaSeleccionada = $lineas->firstWhere('id', $lineaSeleccionadaId);
+    
+    // Tipo de máquina seleccionado (lavadora o pasteurizadora)
+    $tipoSeleccionado = $request->input('tipo', 'lavadora');
+    
+    // Obtener componentes según la línea seleccionada
+    $componentesPorLinea = $this->getComponentesPorLinea();
+    $componentesLinea = $componentesPorLinea[$lineaSeleccionada->nombre] ?? [];
+    
+    // Calcular cantidad revisada por componente
+    $estadisticas = [];
+    $totalGeneral = 0;
+    $revisadoGeneral = 0;
+    
+    foreach ($componentesLinea as $codigo => $nombre) {
+        // Buscar en la configuración o usar valores por defecto
+        $config = $componentesConfig[$codigo] ?? [
+            'nombre' => $nombre,
+            'cantidad_total' => 15
+        ];
+        
+        // Obtener cantidad total de este componente en la línea
+        $cantidadTotal = $config['cantidad_total'];
+        
+        // Calcular cuántos reductores tienen análisis para este componente
+        $reductoresConAnalisis = AnalisisLavadora::where('linea_id', $lineaSeleccionadaId)
+            ->whereHas('componente', function($q) use ($codigo) {
+                $q->where('codigo', 'like', '%' . $codigo . '%');
+            })
+            ->distinct('reductor')
+            ->count('reductor');
+        
+        // Limitar al máximo posible
+        $cantidadRevisada = min($reductoresConAnalisis, $cantidadTotal);
+        
+        // Calcular porcentaje
+        $porcentaje = $cantidadTotal > 0 ? round(($cantidadRevisada / $cantidadTotal) * 100, 1) : 0;
+        
+        // Determinar color según porcentaje
+        if ($porcentaje >= 80) {
+            $color = 'success'; // Verde
+        } elseif ($porcentaje >= 50) {
+            $color = 'info'; // Azul
+        } elseif ($porcentaje >= 20) {
+            $color = 'warning'; // Amarillo
+        } else {
+            $color = 'danger'; // Rojo
+        }
+        
+        $estadisticas[$codigo] = [
+            'nombre' => $config['nombre'],
+            'cantidad_total' => $cantidadTotal,
+            'cantidad_revisada' => $cantidadRevisada,
+            'porcentaje' => $porcentaje,
+            'color' => $color,
+            'reductores_detectados' => $reductoresConAnalisis,
+            'icono' => $config['icono'] ?? null
+        ];
+        
+        $totalGeneral += $cantidadTotal;
+        $revisadoGeneral += $cantidadRevisada;
+    }
+    
+    // Ordenar por nombre
+    uasort($estadisticas, function($a, $b) {
+        return strcmp($a['nombre'], $b['nombre']);
+    });
+    
+    // Calcular resumen general
+    $resumen = [
+        'total_general' => $totalGeneral,
+        'revisado_general' => $revisadoGeneral,
+        'porcentaje_general' => $totalGeneral > 0 ? round(($revisadoGeneral / $totalGeneral) * 100, 1) : 0
+    ];
+    
+    return view('/historico-revisados.index', compact(
+        'lineas',
+        'lineasLavadora',
+        'lineasPasteurizadora',
+        'lineaSeleccionada',
+        'tipoSeleccionado',
+        'estadisticas',
+        'resumen'
+    ));
 }
 }
