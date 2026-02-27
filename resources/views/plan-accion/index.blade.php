@@ -901,13 +901,13 @@
                                         </button>
 
                                         <!-- BOTÓN DE NOTIFICACIONES -->
-                                        <button type="button" 
-                                                class="btn-accion btn-notificar" 
-                                                style="background: #f59e0b;"
-                                                onclick="enviarNotificaciones({{ $plan->id }}, '{{ addslashes($plan->actividad) }}')"
-                                                title="Enviar notificaciones">
-                                            <i class="fas fa-bell"></i>
-                                        </button>
+                                     <button type="button" 
+                                            class="btn-accion btn-notificar" 
+                                            style="background: #f59e0b;"
+                                            onclick="enviarNotificaciones({{ $plan->id }}, '{{ addslashes($plan->actividad) }}')"
+                                            title="Enviar notificaciones">
+                                        <i class="fas fa-bell"></i>
+                                    </button>
 
                                         <button type="button" 
                                                 class="btn-accion btn-eliminar eliminar-btn" 
@@ -1248,4 +1248,74 @@ function enviarNotificaciones(id, actividad) {
     }
 }
 </script>
+@section('scripts')
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+function enviarNotificaciones(id, actividad) {
+    if (confirm(`¿Enviar notificaciones para la actividad: "${actividad}"?`)) {
+        const btn = event.currentTarget;
+        const originalHtml = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        btn.disabled = true;
+        
+        // Obtener el token CSRF
+        const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') 
+                    || document.querySelector('input[name="_token"]')?.value;
+        
+        if (!token) {
+            alert('Error: No se encontró token CSRF. Recarga la página.');
+            btn.innerHTML = originalHtml;
+            btn.disabled = false;
+            return;
+        }
+        
+        fetch(`/plan-accion/${id}/notificar`, {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': token,
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                if (response.status === 419) {
+                    throw new Error('Token CSRF expirado. Recarga la página.');
+                }
+                return response.json().then(err => { throw err; });
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                Swal.fire({
+                    icon: 'success',
+                    title: '¡Notificaciones enviadas!',
+                    html: data.message,
+                    confirmButtonColor: '#3085d6'
+                });
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: data.message || 'Error al enviar notificaciones'
+                });
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: error.message || 'Error al enviar notificaciones'
+            });
+        })
+        .finally(() => {
+            btn.innerHTML = originalHtml;
+            btn.disabled = false;
+        });
+    }
+}
+</script>
+@endsection
 @endsection

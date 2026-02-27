@@ -33,16 +33,7 @@
         font-family: 'Inter', system-ui, -apple-system, sans-serif;
     }
 
-    /* Header Industrial */
-    .industrial-header {
-        background: linear-gradient(135deg, var(--dark) 0%, var(--dark-light) 100%);
-        border-radius: 24px;
-        padding: 32px;
-        margin-bottom: 32px;
-        box-shadow: 0 20px 25px -5px rgba(255, 255, 255, 0.2), 0 8px 10px -6px rgba(255, 255, 255, 0.1);
-        position: relative;
-        overflow: hidden;
-    }    
+    /* Header Industrial */   
 
     .back-link {
         display: inline-flex;
@@ -89,7 +80,7 @@
     .title-content h1 {
         font-size: 32px;
         font-weight: 700;
-        color: white;
+        color: black;
         margin-bottom: 4px;
         letter-spacing: -0.5px;
     }
@@ -500,23 +491,22 @@
 
 <div class="max-w-7xl mx-auto px-4 py-8">
     {{-- Header Industrial --}}
-    <div class="industrial-header">
-        <a href="{{ route('lavadora.dashboard') }}" class="back-link">
-            <i class="fas fa-arrow-left"></i>
-            <span>VOLVER AL DASHBOARD</span>
-        </a>
-        
-        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-            <div class="header-title">
-                <div class="title-icon">
-                    <i class="fas fa-chart-line"></i>
-                </div>
-                <div class="title-content">
-                    <h1>ANÁLISIS DE TENDENCIAS 52-12-4</h1>
-                    <p>Monitoreo industrial de daños en lavadoras • Comparativa mensual</p>
-                </div>
-            </div>
-            
+    <div class="flex justify-between items-center mb-6">
+        <div>
+            <a href="{{ route('lavadora.dashboard') }}" 
+               class="inline-flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 
+                      bg-gray-100 hover:bg-gray-200 rounded-lg transition-all duration-300 mb-4">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                          d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                </svg>
+                <span class="font-medium">Volver</span>
+            </a>
+            <h1 class="text-2xl font-bold text-gray-800 flex items-center gap-2">
+                <i class="fas fa-chart-bar text-blue-600"></i>
+                Analisis 52-12-4
+            </h1>
+        </div>
             <a href="{{ route('analisis-tendencia-mensual-lavadora.create', $lineaSeleccionada ? ['linea_id' => $lineaSeleccionada] : []) }}" 
                class="btn-industrial">
                 <i class="fas fa-plus-circle"></i>
@@ -524,7 +514,7 @@
             </a>
         </div>
     </div>
-
+                  
     {{-- Filtros Industriales --}}
     <div class="industrial-filters">
         <div class="filters-header">

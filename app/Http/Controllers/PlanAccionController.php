@@ -7,17 +7,15 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 use App\Models\Linea;
-use App\Services\NotificationService; // Agregado para notificaciones
+use App\Services\NotificationService;
 use Illuminate\Http\JsonResponse;
 
 class PlanAccionController extends Controller
 {
     private $lineasLavadoraIds = [4, 5, 6, 7, 8, 9, 12, 13];
     
-    // Propiedad para el servicio de notificaciones
     protected $notificationService;
 
-    // Constructor para inyectar el servicio de notificaciones
     public function __construct(NotificationService $notificationService)
     {
         $this->notificationService = $notificationService;
@@ -85,7 +83,6 @@ class PlanAccionController extends Controller
         ));
     }
 
-    // Método store modificado para incluir notificaciones
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -98,7 +95,7 @@ class PlanAccionController extends Controller
             'responsable_id' => 'nullable|exists:users,id',
             'observaciones' => 'nullable|string',
             'tipo_maquina' => 'nullable|array',
-            'notificar_ahora' => 'nullable|boolean' // Nuevo campo para notificar inmediatamente
+            'notificar_ahora' => 'nullable|boolean'
         ]);
 
         if (isset($validated['tipo_maquina'])) {
@@ -107,7 +104,6 @@ class PlanAccionController extends Controller
 
         $plan = PlanAccion::create($validated);
 
-        // Si se solicita notificar inmediatamente
         if ($request->has('notificar_ahora') && $request->notificar_ahora) {
             $this->notificationService->notificarActividadManualmente($plan->id);
         }
@@ -195,137 +191,136 @@ class PlanAccionController extends Controller
      * Enviar notificaciones manualmente para una actividad específica
      */
     public function enviarNotificaciones($id): JsonResponse
-{
-    try {
-        $plan = PlanAccion::with('linea')->findOrFail($id);
-        
-        // Verificar si hay fechas próximas
-        $fechasProximas = false;
-        $pcmConFechas = [];
-        
-        foreach (['pcm1', 'pcm2', 'pcm3', 'pcm4'] as $pcm) {
-            $fechaCampo = 'fecha_' . $pcm;
-            if ($plan->$fechaCampo) {
-                $diasRestantes = now()->diffInDays($plan->$fechaCampo, false);
-                if ($diasRestantes <= 7) { // Solo notificar si está próximo (7 días o menos)
-                    $fechasProximas = true;
-                    $pcmConFechas[] = [
-                        'pcm' => $pcm,
-                        'fecha' => $plan->$fechaCampo->format('d/m/Y'),
-                        'dias' => $diasRestantes
+    {
+        try {
+            $plan = PlanAccion::with('linea')->findOrFail($id);
+            
+            // Verificar si hay fechas próximas
+            $fechasProximas = false;
+            $pcmConFechas = [];
+            
+            foreach (['pcm1', 'pcm2', 'pcm3', 'pcm4'] as $pcm) {
+                $fechaCampo = 'fecha_' . $pcm;
+                if ($plan->$fechaCampo) {
+                    $diasRestantes = now()->diffInDays($plan->$fechaCampo, false);
+                    if ($diasRestantes <= 7 && $diasRestantes >= 0) {
+                        $fechasProximas = true;
+                        $pcmConFechas[] = [
+                            'pcm' => $pcm,
+                            'fecha' => $plan->$fechaCampo->format('d/m/Y'),
+                            'dias' => $diasRestantes
+                        ];
+                    }
+                }
+            }
+            
+            if (!$fechasProximas) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No hay fechas próximas para notificar (próximos 7 días)'
+                ]);
+            }
+            
+            // Enviar notificaciones
+            $resultados = $this->notificationService->notificarActividadManualmente($id);
+            
+            // Contar éxitos
+            $exitosos = 0;
+            $fallidos = 0;
+            
+            foreach ($resultados as $resultado) {
+                if ($resultado === 'success') {
+                    $exitosos++;
+                } else {
+                    $fallidos++;
+                }
+            }
+            
+            return response()->json([
+                'success' => true,
+                'message' => "Notificaciones enviadas: {$exitosos} exitosas, {$fallidos} fallidas",
+                'data' => [
+                    'enviados' => $exitosos,
+                    'fallidos' => $fallidos,
+                    'pcm_notificados' => $pcmConFechas,
+                    'detalles' => $resultados
+                ]
+            ]);
+            
+        } catch (\Exception $e) {
+            \Log::error('Error enviando notificaciones: ' . $e->getMessage(), [
+                'plan_id' => $id,
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al enviar notificaciones: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    private function obtenerAlertasGlobales()
+    {
+        $alertas = [];
+        $hoy = Carbon::now();
+        $proximosDias = Carbon::now()->addDays(7);
+
+        $actividadesProximas = PlanAccion::with('linea')
+            ->where(function ($query) use ($hoy, $proximosDias) {
+                $query->whereBetween('fecha_pcm1', [$hoy, $proximosDias])
+                    ->orWhereBetween('fecha_pcm2', [$hoy, $proximosDias])
+                    ->orWhereBetween('fecha_pcm3', [$hoy, $proximosDias])
+                    ->orWhereBetween('fecha_pcm4', [$hoy, $proximosDias]);
+            })
+            ->get();
+
+        foreach ($actividadesProximas as $plan) {
+            foreach (['pcm1', 'pcm2', 'pcm3', 'pcm4'] as $pcm) {
+                $fechaCampo = 'fecha_' . $pcm;
+
+                if ($plan->$fechaCampo &&
+                    $plan->$fechaCampo >= $hoy &&
+                    $plan->$fechaCampo <= $proximosDias) {
+
+                    $diasRestantes = $hoy->diffInDays($plan->$fechaCampo, false);
+                    
+                    // Determinar prioridad basada en días restantes
+                    $prioridad = 'baja';
+                    if ($diasRestantes <= 1) {
+                        $prioridad = 'alta';
+                    } elseif ($diasRestantes <= 3) {
+                        $prioridad = 'media';
+                    }
+
+                    // Verificar si es mañana
+                    $esManana = $diasRestantes == 1;
+
+                    $alertas[] = [
+                        'id' => $plan->id,
+                        'linea' => optional($plan->linea)->nombre ?? 'Sin línea',
+                        'actividad' => $plan->actividad,
+                        'pcm' => strtoupper($pcm),
+                        'fecha' => Carbon::parse($plan->$fechaCampo)->format('d/m/Y'),
+                        'dias_restantes' => $diasRestantes,
+                        'es_manana' => $esManana,
+                        'prioridad' => $prioridad
                     ];
                 }
             }
         }
-        
-        if (!$fechasProximas) {
-            return response()->json([
-                'success' => false,
-                'message' => 'No hay fechas próximas para notificar (menos de 7 días)'
-            ]);
-        }
-        
-        // Enviar notificaciones usando el servicio
-        $notificationService = app(NotificationService::class);
-        $resultados = $notificationService->notificarActividadManualmente($id);
-        
-        // Contar éxitos
-        $exitosos = 0;
-        $fallidos = 0;
-        
-        foreach ($resultados as $usuarioId => $resultado) {
-            if ($resultado === 'success') {
-                $exitosos++;
-            } else {
-                $fallidos++;
+
+        // Ordenar alertas por prioridad (alta primero) y días restantes
+        usort($alertas, function($a, $b) {
+            $prioridades = ['alta' => 1, 'media' => 2, 'baja' => 3];
+            if ($prioridades[$a['prioridad']] == $prioridades[$b['prioridad']]) {
+                return $a['dias_restantes'] - $b['dias_restantes'];
             }
-        }
-        
-        return response()->json([
-            'success' => true,
-            'message' => "Notificaciones enviadas: {$exitosos} exitosas, {$fallidos} fallidas",
-            'data' => [
-                'enviados' => $exitosos,
-                'fallidos' => $fallidos,
-                'pcm_notificados' => $pcmConFechas,
-                'detalles' => $resultados
-            ]
-        ]);
-        
-    } catch (\Exception $e) {
-        \Log::error('Error enviando notificaciones: ' . $e->getMessage(), [
-            'plan_id' => $id,
-            'trace' => $e->getTraceAsString()
-        ]);
-        
-        return response()->json([
-            'success' => false,
-            'message' => 'Error al enviar notificaciones: ' . $e->getMessage()
-        ], 500);
+            return $prioridades[$a['prioridad']] - $prioridades[$b['prioridad']];
+        });
+
+        return $alertas;
     }
-}
-
- private function obtenerAlertasGlobales()
-{
-    $alertas = [];
-    $hoy = Carbon::now();
-    $proximosDias = Carbon::now()->addDays(7);
-
-    $actividadesProximas = PlanAccion::with('linea')
-        ->where(function ($query) use ($hoy, $proximosDias) {
-            $query->whereBetween('fecha_pcm1', [$hoy, $proximosDias])
-                ->orWhereBetween('fecha_pcm2', [$hoy, $proximosDias])
-                ->orWhereBetween('fecha_pcm3', [$hoy, $proximosDias])
-                ->orWhereBetween('fecha_pcm4', [$hoy, $proximosDias]);
-        })
-        ->get();
-
-    foreach ($actividadesProximas as $plan) {
-        foreach (['pcm1', 'pcm2', 'pcm3', 'pcm4'] as $pcm) {
-            $fechaCampo = 'fecha_' . $pcm;
-
-            if ($plan->$fechaCampo &&
-                $plan->$fechaCampo >= $hoy &&
-                $plan->$fechaCampo <= $proximosDias) {
-
-                $diasRestantes = $hoy->diffInDays($plan->$fechaCampo, false);
-                
-                // Determinar prioridad basada en días restantes
-                $prioridad = 'baja';
-                if ($diasRestantes <= 1) {
-                    $prioridad = 'alta';
-                } elseif ($diasRestantes <= 3) {
-                    $prioridad = 'media';
-                }
-
-                // Verificar si es mañana
-                $esManana = $diasRestantes == 1;
-
-                $alertas[] = [
-                    'id' => $plan->id,
-                    'linea' => optional($plan->linea)->nombre ?? 'Sin línea',
-                    'actividad' => $plan->actividad,
-                    'pcm' => strtoupper($pcm),
-                    'fecha' => Carbon::parse($plan->$fechaCampo)->format('d/m/Y'),
-                    'dias_restantes' => $diasRestantes,
-                    'es_manana' => $esManana,
-                    'prioridad' => $prioridad // ← ESTO ES LO QUE FALTABA
-                ];
-            }
-        }
-    }
-
-    // Ordenar alertas por prioridad (alta primero) y días restantes
-    usort($alertas, function($a, $b) {
-        $prioridades = ['alta' => 1, 'media' => 2, 'baja' => 3];
-        if ($prioridades[$a['prioridad']] == $prioridades[$b['prioridad']]) {
-            return $a['dias_restantes'] - $b['dias_restantes'];
-        }
-        return $prioridades[$a['prioridad']] - $prioridades[$b['prioridad']];
-    });
-
-    return $alertas;
-}
 
     private function obtenerEstadisticas()
     {
