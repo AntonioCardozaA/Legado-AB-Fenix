@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LEGADO AVE FÉNIX - Sistema de Gestión</title>
 
-    <link rel="icon" type="image/png" href="{{ asset('images/logo.png') }}">
+    <link rel="icon" type="image/png" href="{{ asset('images/logoo.png') }}">
 
     <!-- Tailwind -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -105,10 +105,10 @@
                 <img 
                     src="{{ asset('images/logo.png') }}" 
                     alt="Logo Legado Ave Fénix"
-                    class="w-20 h-20 mb-3 drop-shadow-lg"
+                    class="w-30 h-30 mb-0 drop-shadow-lg"
                 >
                 <h1 class="text-sm font-semibold tracking-wide leading-tight logo-text">
-                    LEGADO AVEee<br>
+                    LEGADO AVE<br>
                     <span class="text-yellow-500 font-bold">FÉNIX</span>
                 </h1>
             </div>

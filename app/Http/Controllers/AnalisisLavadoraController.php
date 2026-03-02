@@ -410,29 +410,25 @@ class AnalisisLavadoraController extends Controller
 
         $codigoBase = trim($request->componente_codigo);
 
-        // Código específico por línea (ESTÁNDAR)
-        $codigoLinea = $codigoBase . '_' . str_replace('-', '_', $linea->nombre);
+// Convertir L-04 → L04
+$lineaFormateada = str_replace('-', '', $linea->nombre);
 
-        Log::info('Buscando/creando componente rápido', [
-            'codigo_base' => $codigoBase,
-            'codigo_linea' => $codigoLinea
-        ]);
+// Convertir "Reductor 1" → reductor_1
+$reductorFormateado = strtolower(str_replace(' ', '_', $request->reductor));
 
-        // Buscar nombre base
-        $nombreComponente = $this->getNombreComponente($codigoBase);
+$codigoLinea = $lineaFormateada . '_' . $reductorFormateado . '_' . $codigoBase;
 
-        // 🔥 CLAVE: firstOrCreate (nunca duplica)
-        $componente = Componente::firstOrCreate(
-            ['codigo' => $codigoLinea],
-            [
-                'nombre'          => $nombreComponente,
-                'reductor'        => $request->reductor,
-                'ubicacion'       => $request->reductor,
-                'linea'           => $linea->nombre,
-                'cantidad_total'  => 1,
-                'activo'          => true,
-            ]
-        );
+$componente = Componente::firstOrCreate(
+    ['codigo' => $codigoLinea],
+    [
+        'nombre'          => $this->getNombreComponente($codigoBase),
+        'reductor'        => $request->reductor,
+        'ubicacion'       => $request->reductor,
+        'linea'           => $linea->nombre,
+        'cantidad_total'  => 1,
+        'activo'          => true,
+    ]
+);
 
         Log::info('Componente usado (rápido)', [
             'id' => $componente->id,

@@ -844,9 +844,6 @@
                                                 @php
                                                     $clases = [
                                                         'lavadora' => 'lavadora',
-                                                        'secadora' => 'secadora',
-                                                        'caldera' => 'caldera',
-                                                        'centrifuga' => 'centrifuga',
                                                     ];
                                                     $clase = $clases[$tipo] ?? '';
                                                 @endphp

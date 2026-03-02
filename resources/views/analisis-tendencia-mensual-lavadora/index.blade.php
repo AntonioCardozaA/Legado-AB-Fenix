@@ -518,8 +518,8 @@
     {{-- Filtros Industriales --}}
     <div class="industrial-filters">
         <div class="filters-header">
-            <i class="fas fa-washing-machine"></i>
-            <h2>SELECCIONAR LÍNEA DE PRODUCCIÓN</h2>
+            <img src="{{ asset('images/icono-maquina.png') }}" class="w-10 h-8 " alt="Icono de máquina">
+            <h2>SELECCIONAR LÍNEA </h2>
         </div>
         
         <div class="machine-grid">

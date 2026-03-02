@@ -43,39 +43,39 @@
             </div>
         </div>
 
-        {{-- GRID DE OPCIONES MEJORADO --}}
+        {{-- GRID DE OPCIONES MEJORADO CON COLOR RGB 31 35 72 --}}
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
             
             {{-- ANALISIS LAVADORA --}}
             <a href="{{ route('analisis-lavadora.index') }}" 
                class="group relative bg-white rounded-3xl shadow-lg hover:shadow-2xl transition-all duration-500 overflow-hidden hover:-translate-y-2">
                 
-                {{-- Barra superior degradada --}}
-                <div class="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-blue-600 to-blue-400"></div>
+                {{-- Barra superior con el color especificado --}}
+                <div class="absolute top-0 left-0 right-0 h-2" style="background-color: rgb(31, 35, 72);"></div>
                 
-                {{-- Efecto de brillo hover --}}
-                <div class="absolute inset-0 bg-gradient-to-r from-blue-600/0 via-blue-600/5 to-blue-600/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
+                {{-- Efecto de brillo hover con el color especificado --}}
+                <div class="absolute inset-0 bg-gradient-to-r from-transparent via-[rgba(31,35,72,0.1)] to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
                 
                 <div class="p-8 relative z-10">
                     <div class="flex flex-col items-center text-center">
-                        {{-- Icono con animación --}}
+                        {{-- Icono con animación usando el color especificado --}}
                         <div class="relative mb-6">
-                            <div class="absolute inset-0 bg-blue-500 rounded-full blur-lg opacity-50 group-hover:opacity-75 transition-opacity"></div>
-                            <div class="relative bg-gradient-to-br from-blue-500 to-blue-600 text-white p-5 rounded-2xl shadow-lg group-hover:scale-110 transition-transform duration-300 group-hover:rotate-3">
+                            <div class="absolute inset-0 rounded-full blur-lg opacity-50 group-hover:opacity-75 transition-opacity" style="background-color: rgba(31, 35, 72, 0.5);"></div>
+                            <div class="relative text-white p-5 rounded-2xl shadow-lg group-hover:scale-110 transition-transform duration-300 group-hover:rotate-3" style="background: linear-gradient(135deg, rgb(31, 35, 72), rgb(51, 55, 92));">
                                 <i class="fas fa-chart-pie text-3xl"></i>
                             </div>
                         </div>
                         
                         {{-- Contenido --}}
-                        <h3 class="text-xl font-bold text-gray-800 mb-3 group-hover:text-blue-600 transition-colors">
+                        <h3 class="text-xl font-bold text-gray-800 mb-3 group-hover" style="group-hover:color: rgb(31, 35, 72); transition: color 0.3s;">
                             ANÁLISIS LAVADORA
                         </h3>
                         <p class="text-gray-500 text-sm leading-relaxed">
                             Consulta y gestiona los análisis de componentes
                         </p>
                         
-                        {{-- Indicador de acción --}}
-                        <div class="mt-6 flex items-center gap-2 text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity">
+                        {{-- Indicador de acción con el color especificado --}}
+                        <div class="mt-6 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity" style="color: rgb(31, 35, 72);">
                             <span class="text-sm font-medium">Acceder</span>
                             <i class="fas fa-arrow-right transform group-hover:translate-x-1 transition-transform"></i>
                         </div>
@@ -87,26 +87,26 @@
             <a href="{{ route('elongaciones.index') }}" 
                class="group relative bg-white rounded-3xl shadow-lg hover:shadow-2xl transition-all duration-500 overflow-hidden hover:-translate-y-2">
                 
-                <div class="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-green-600 to-green-400"></div>
-                <div class="absolute inset-0 bg-gradient-to-r from-green-600/0 via-green-600/5 to-green-600/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
+                <div class="absolute top-0 left-0 right-0 h-2" style="background-color: rgb(31, 35, 72);"></div>
+                <div class="absolute inset-0 bg-gradient-to-r from-transparent via-[rgba(31,35,72,0.1)] to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
                 
                 <div class="p-8 relative z-10">
                     <div class="flex flex-col items-center text-center">
                         <div class="relative mb-6">
-                            <div class="absolute inset-0 bg-green-500 rounded-full blur-lg opacity-50 group-hover:opacity-75 transition-opacity"></div>
-                            <div class="relative bg-gradient-to-br from-green-500 to-green-600 text-white p-5 rounded-2xl shadow-lg group-hover:scale-110 transition-transform duration-300 group-hover:rotate-3">
+                            <div class="absolute inset-0 rounded-full blur-lg opacity-50 group-hover:opacity-75 transition-opacity" style="background-color: rgba(31, 35, 72, 0.5);"></div>
+                            <div class="relative text-white p-5 rounded-2xl shadow-lg group-hover:scale-110 transition-transform duration-300 group-hover:rotate-3" style="background: linear-gradient(135deg, rgb(31, 35, 72), rgb(51, 55, 92));">
                                 <i class="fas fa-ruler-combined text-3xl"></i>
                             </div>
                         </div>
                         
-                        <h3 class="text-xl font-bold text-gray-800 mb-3 group-hover:text-green-600 transition-colors">
+                        <h3 class="text-xl font-bold text-gray-800 mb-3 group-hover" style="group-hover:color: rgb(31, 35, 72); transition: color 0.3s;">
                             ELONGACIÓN LAVADORA
                         </h3>
                         <p class="text-gray-500 text-sm leading-relaxed">
                             Registro y seguimiento de elongaciones
                         </p>
                         
-                        <div class="mt-6 flex items-center gap-2 text-green-600 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div class="mt-6 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity" style="color: rgb(31, 35, 72);">
                             <span class="text-sm font-medium">Acceder</span>
                             <i class="fas fa-arrow-right transform group-hover:translate-x-1 transition-transform"></i>
                         </div>
@@ -118,26 +118,26 @@
             <a href="{{ route('historico-revisados.index') }}" 
                class="group relative bg-white rounded-3xl shadow-lg hover:shadow-2xl transition-all duration-500 overflow-hidden hover:-translate-y-2">
                 
-                <div class="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-purple-600 to-purple-400"></div>
-                <div class="absolute inset-0 bg-gradient-to-r from-purple-600/0 via-purple-600/5 to-purple-600/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
+                <div class="absolute top-0 left-0 right-0 h-2" style="background-color: rgb(31, 35, 72);"></div>
+                <div class="absolute inset-0 bg-gradient-to-r from-transparent via-[rgba(31,35,72,0.1)] to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
                 
                 <div class="p-8 relative z-10">
                     <div class="flex flex-col items-center text-center">
                         <div class="relative mb-6">
-                            <div class="absolute inset-0 bg-purple-500 rounded-full blur-lg opacity-50 group-hover:opacity-75 transition-opacity"></div>
-                            <div class="relative bg-gradient-to-br from-purple-500 to-purple-600 text-white p-5 rounded-2xl shadow-lg group-hover:scale-110 transition-transform duration-300 group-hover:rotate-3">
+                            <div class="absolute inset-0 rounded-full blur-lg opacity-50 group-hover:opacity-75 transition-opacity" style="background-color: rgba(31, 35, 72, 0.5);"></div>
+                            <div class="relative text-white p-5 rounded-2xl shadow-lg group-hover:scale-110 transition-transform duration-300 group-hover:rotate-3" style="background: linear-gradient(135deg, rgb(31, 35, 72), rgb(51, 55, 92));">
                                 <i class="fas fa-history text-3xl"></i>
                             </div>
                         </div>
                         
-                        <h3 class="text-xl font-bold text-gray-800 mb-3 group-hover:text-purple-600 transition-colors">
+                        <h3 class="text-xl font-bold text-gray-800 mb-3 group-hover" style="group-hover:color: rgb(31, 35, 72); transition: color 0.3s;">
                             HISTÓRICO DE REVISADOS
                         </h3>
                         <p class="text-gray-500 text-sm leading-relaxed">
                             Visualiza registros históricos y reportes anteriores
                         </p>
                         
-                        <div class="mt-6 flex items-center gap-2 text-purple-600 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div class="mt-6 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity" style="color: rgb(31, 35, 72);">
                             <span class="text-sm font-medium">Acceder</span>
                             <i class="fas fa-arrow-right transform group-hover:translate-x-1 transition-transform"></i>
                         </div>
@@ -149,56 +149,56 @@
             <a href="{{ route('plan-accion.index') }}" 
                class="group relative bg-white rounded-3xl shadow-lg hover:shadow-2xl transition-all duration-500 overflow-hidden hover:-translate-y-2">
                 
-                <div class="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-red-600 to-red-400"></div>
-                <div class="absolute inset-0 bg-gradient-to-r from-red-600/0 via-red-600/5 to-red-600/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
+                <div class="absolute top-0 left-0 right-0 h-2" style="background-color: rgb(31, 35, 72);"></div>
+                <div class="absolute inset-0 bg-gradient-to-r from-transparent via-[rgba(31,35,72,0.1)] to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
                 
                 <div class="p-8 relative z-10">
                     <div class="flex flex-col items-center text-center">
                         <div class="relative mb-6">
-                            <div class="absolute inset-0 bg-red-500 rounded-full blur-lg opacity-50 group-hover:opacity-75 transition-opacity"></div>
-                            <div class="relative bg-gradient-to-br from-red-500 to-red-600 text-white p-5 rounded-2xl shadow-lg group-hover:scale-110 transition-transform duration-300 group-hover:rotate-3">
+                            <div class="absolute inset-0 rounded-full blur-lg opacity-50 group-hover:opacity-75 transition-opacity" style="background-color: rgba(31, 35, 72, 0.5);"></div>
+                            <div class="relative text-white p-5 rounded-2xl shadow-lg group-hover:scale-110 transition-transform duration-300 group-hover:rotate-3" style="background: linear-gradient(135deg, rgb(31, 35, 72), rgb(51, 55, 92));">
                                 <i class="fas fa-tasks text-3xl"></i>
                             </div>
                         </div>
                         
-                        <h3 class="text-xl font-bold text-gray-800 mb-3 group-hover:text-red-600 transition-colors">
+                        <h3 class="text-xl font-bold text-gray-800 mb-3 group-hover" style="group-hover:color: rgb(31, 35, 72); transition: color 0.3s;">
                             PLAN DE ACCIÓN
                         </h3>
                         <p class="text-gray-500 text-sm leading-relaxed">
                             Administración y seguimiento de acciones correctivas
                         </p>
                         
-                        <div class="mt-6 flex items-center gap-2 text-red-600 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div class="mt-6 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity" style="color: rgb(31, 35, 72);">
                             <span class="text-sm font-medium">Acceder</span>
                             <i class="fas fa-arrow-right transform group-hover:translate-x-1 transition-transform"></i>
                         </div>
                     </div>
                 </div>
             </a>
-            {{--Analsis 52-12-4--}}
+
+            {{-- ANALISIS 52-12-4 --}}
             <a href="{{ route('analisis-tendencia-mensual-lavadora.index') }}" 
                class="group relative bg-white rounded-3xl shadow-lg hover:shadow-2xl transition-all duration-500 overflow-hidden hover:-translate-y-2">
                 
-                <div class="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-blue-600 to-blue-400"></div>
-                <div class="absolute inset-0 bg-gradient-to-r from-blue-600/0 via-blue-600/5 to-blue-600/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
+                <div class="absolute top-0 left-0 right-0 h-2" style="background-color: rgb(31, 35, 72);"></div>
+                <div class="absolute inset-0 bg-gradient-to-r from-transparent via-[rgba(31,35,72,0.1)] to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
                 
                 <div class="p-8 relative z-10">
                     <div class="flex flex-col items-center text-center">
                         <div class="relative mb-6">
-                            <div class="absolute inset-0 bg-blue-500 rounded-full blur-lg opacity-50 group-hover:opacity-75 transition-opacity"></div>
-                            <div class="relative bg-gradient-to-br from-blue-500 to-blue-600 text-white p-5 rounded-2xl shadow-lg group-hover:scale-110 transition-transform duration-300 group-hover:rotate-3">
+                            <div class="absolute inset-0 rounded-full blur-lg opacity-50 group-hover:opacity-75 transition-opacity" style="background-color: rgba(31, 35, 72, 0.5);"></div>
+                            <div class="relative text-white p-5 rounded-2xl shadow-lg group-hover:scale-110 transition-transform duration-300 group-hover:rotate-3" style="background: linear-gradient(135deg, rgb(31, 35, 72), rgb(51, 55, 92));">
                                 <i class="fas fa-search text-xl"></i>
                             </div>
                         </div>
                         
-                        <h3 class="text-xl font-bold text-gray-800 mb-3 group-hover:text-blue-600 transition-colors">
+                        <h3 class="text-xl font-bold text-gray-800 mb-3 group-hover" style="group-hover:color: rgb(31, 35, 72); transition: color 0.3s;">
                             ANÁLISIS 52 - 12 - 4
                         </h3>
                         <p class="text-gray-500 text-sm leading-relaxed">
                             Visualización de análisis de calidad del producto
                         </p>
-                        
-                        <div class="mt-6 flex items-center gap-2 text-blue-600 opacity-75 group-hover:opacity-100 transition-opacity">
+                        <div class="mt-6 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity" style="color: rgb(31, 35, 72);">
                             <span class="text-sm font-medium">Acceder</span>
                             <i class="fas fa-arrow-right transform group-hover:translate-x-1 transition-transform"></i>
                         </div>
@@ -230,8 +230,13 @@
     
     /* Mejoras de accesibilidad */
     a:focus-visible {
-        outline: 3px solid rgba(59, 130, 246, 0.5);
+        outline: 3px solid rgba(31, 35, 72, 0.5);
         outline-offset: 2px;
+    }
+
+    /* Estilo para el hover del título */
+    .group:hover h3 {
+        color: rgb(245, 192, 37) !important;
     }
 </style>
 @endsection
