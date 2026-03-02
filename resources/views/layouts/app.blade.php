@@ -25,22 +25,30 @@
         }
 
         .sidebar {
-            background: linear-gradient(180deg, #1e40af 0%, #1e3a8a 100%);
+            background: white;
+            border-right: 1px solid #e5e7eb;
         }
 
         .nav-link {
             transition: all 0.2s ease-in-out;
+            color: #374151;
         }
 
         .nav-link:hover {
-            background-color: rgba(255, 255, 255, 0.15);
+            background-color: #f3f4f6;
+            color: #1e40af;
             padding-left: 1.25rem;
         }
 
         .nav-active {
-            background-color: rgba(245, 158, 11, 0.25);
-            border-left: 4px solid var(--accent-yellow);
+            background-color: #e6f0ff;
+            border-left: 4px solid var(--primary-blue);
+            color: var(--primary-blue);
             font-weight: 600;
+        }
+
+        .nav-active i {
+            color: var(--primary-blue);
         }
 
         .card {
@@ -72,6 +80,15 @@
             font-size: 10px;
             transform: translate(-30%, -50%);
         }
+
+        /* Estilo para el texto del logo */
+        .logo-text {
+            color: #1e40af;
+        }
+        
+        .logo-text span {
+            color: #f59e0b;
+        }
     </style>
 </head>
 
@@ -79,20 +96,20 @@
 
 <div class="flex min-h-screen">
 
-    <!-- SIDEBAR -->
-    <aside class="sidebar w-64 text-white flex flex-col h-screen sticky top-0">
+    <!-- SIDEBAR - Fondo blanco con texto negro/azul -->
+    <aside class="sidebar w-64 flex flex-col h-screen sticky top-0 shadow-sm">
 
         <!-- Logo -->
-        <div class="px-6 py-6 border-b border-blue-800">
+        <div class="px-6 py-6 border-b border-gray-200">
             <div class="flex flex-col items-center text-center">
                 <img 
                     src="{{ asset('images/logo.png') }}" 
                     alt="Logo Legado Ave Fénix"
                     class="w-20 h-20 mb-3 drop-shadow-lg"
                 >
-                <h1 class="text-sm font-semibold tracking-wide leading-tight">
-                    LEGADO AVE<br>
-                    <span class="text-yellow-400 font-bold">FÉNIX</span>
+                <h1 class="text-sm font-semibold tracking-wide leading-tight logo-text">
+                    LEGADO AVEee<br>
+                    <span class="text-yellow-500 font-bold">FÉNIX</span>
                 </h1>
             </div>
         </div>
@@ -102,40 +119,48 @@
             <a href="{{ route('dashboard') }}"
                aria-label="Ir al Dashboard"
                class="nav-link flex items-center px-4 py-3 rounded-lg {{ request()->routeIs('dashboard') ? 'nav-active' : '' }}">
-                <i class="fas fa-chart-line w-5 mr-3"></i>
+                <i class="fas fa-chart-line w-5 mr-3 text-gray-500"></i>
                 Dashboard
             </a>
             <a href="{{ route('analisis.index') }}"
                aria-label="Análisis General"
                class="nav-link flex items-center px-4 py-3 rounded-lg {{ request()->routeIs('analisis.*') ? 'nav-active' : '' }}">
-                <i class="fas fa-clipboard-list w-5 mr-3"></i>
+                <i class="fas fa-clipboard-list w-5 mr-3 text-gray-500"></i>
                 Análisis General
             </a>
             <a href="{{ route('lavadora.dashboard') }}"
                 aria-label="Dashboard de Lavadora"
                 class="nav-link flex items-center px-4 py-3 rounded-lg {{ request()->routeIs('lavadora.dashboard') ? 'nav-active' : '' }}">
-                <i class="fas fa-puzzle-piece w-5 mr-3"></i>
+                <i class="fas fa-puzzle-piece w-5 mr-3 text-gray-500"></i>
                 Lavadora
             </a>
             <a href="{{ route('analisis-pasteurizadora.index') }}"
                aria-label="Análisis de Pasteurizadora"
                class="nav-link flex items-center px-4 py-3 rounded-lg {{ request()->routeIs('analisis-pasteurizadora.*') ? 'nav-active' : '' }}">
-                <i class="fas fa-puzzle-piece w-5 mr-3"></i>
+                <i class="fas fa-puzzle-piece w-5 mr-3 text-gray-500"></i>
                 Pasteurizadora
             </a>
             <a href="{{ route('lineas.index') }}"
                aria-label="Líneas"
                class="nav-link flex items-center px-4 py-3 rounded-lg {{ request()->routeIs('lineas.*') ? 'nav-active' : '' }}">
-                <i class="fas fa-industry w-5 mr-3"></i>
+                <i class="fas fa-industry w-5 mr-3 text-gray-500"></i>
                 Líneas
             </a>
             <a href="{{ route('reportes.index') }}"
                aria-label="Reportes"
                class="nav-link flex items-center px-4 py-3 rounded-lg {{ request()->routeIs('reportes.*') ? 'nav-active' : '' }}">
-                <i class="fas fa-chart-bar w-5 mr-3"></i>
+                <i class="fas fa-chart-bar w-5 mr-3 text-gray-500"></i>
                 Reportes
             </a>
         </nav>
+        
+        <!-- Footer del sidebar (opcional) -->
+        <div class="px-4 py-4 border-t border-gray-200">
+            <div class="flex items-center space-x-3 px-4 py-2 text-xs text-gray-500">
+                <i class="fas fa-copyright"></i>
+                <span>v1.0.0</span>
+            </div>
+        </div>
     </aside>
 
     <!-- CONTENIDO -->
