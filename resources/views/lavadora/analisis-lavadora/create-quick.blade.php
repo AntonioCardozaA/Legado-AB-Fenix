@@ -78,7 +78,7 @@
                 $codigoBase = $componente->codigo;
                 $codigosBase = ['SERVO_CHICO', 'SERVO_GRANDE', 'BUJE_ESPIGA', 
                                'GUI_INF_TANQUE', 'GUI_INT_TANQUE', 
-                               'GUI_SUP_TANQUE', 'CATARINAS', 'RV200', 'RV200_SIN_FIN'];
+                               'GUI_SUP_TANQUE', 'CATARINAS', 'RV200_SIN_FIN', 'RV200'];
                 
                 foreach ($codigosBase as $codigo) {
                     if (str_contains($componente->codigo, $codigo)) {

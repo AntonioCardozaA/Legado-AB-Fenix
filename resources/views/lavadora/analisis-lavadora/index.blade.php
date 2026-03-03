@@ -642,7 +642,7 @@
     .filter-select:focus, .filter-input:focus {
         border-color: #3b82f6;
         outline: none;
-        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        box-shadow: 0 0 0 3px rgba(16, 83, 192, 0.1);
     }
     
     /* MODAL PARA VER MÁS LAVADORAS */
@@ -686,7 +686,7 @@
     .lineas-modal-header h3 {
         font-size: 18px;
         font-weight: 700;
-        color: #1e293b;
+        color: #1363d3;
         display: flex;
         align-items: center;
         gap: 12px;
@@ -823,7 +823,7 @@
         }
     }
 
-    /* ESTILOS ADICIONALES PARA LOS MODALES MEJORADOS */
+    /* ESTILOS PARA EL MODAL INDUSTRIAL MONOCROMÁTICO */
     @keyframes modalIn {
         from {
             opacity: 0;
@@ -844,57 +844,44 @@
     }
     
     .custom-scrollbar::-webkit-scrollbar-track {
-        background: #f1f1f1;
+        background: #1363d3;
         border-radius: 10px;
     }
     
     .custom-scrollbar::-webkit-scrollbar-thumb {
-        background: #cbd5e1;
+        background: #1363d3;
         border-radius: 10px;
     }
     
     .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-        background: #94a3b8;
+        background: #1363d3;
     }
     
-    .status-badge-enhanced {
+    /* Badges monocromáticos para el lado */
+    .lado-badge {
         display: inline-flex;
         align-items: center;
-        justify-content: center;
-        gap: 8px;
-        padding: 8px 20px;
-        border-radius: 40px;
-        font-weight: 600;
-        font-size: 16px;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        border: 2px solid transparent;
-        transition: all 0.3s ease;
+        gap: 6px;
+        padding: 4px 12px;
+        border-radius: 4px;
+        font-weight: 500;
+        font-size: 12px;
+        font-family: monospace;
     }
     
-    .status-badge-enhanced.ok {
-        background: linear-gradient(135deg, #10b981, #059669);
-        color: white;
-        border-color: #d1fae5;
+    .lado-badge.vapor {
+        background-color: #f3f4f6;
+        color: #1363d3;
+        border: 1px solid #9ca3af;
     }
     
-    .status-badge-enhanced.warning {
-        background: linear-gradient(135deg, #f59e0b, #d97706);
-        color: white;
-        border-color: #fef3c7;
+    .lado-badge.pasillo {
+        background-color: #e5e7eb;
+        color: #1363d3;
+        border: 1px solid #6b7280;
     }
     
-    .status-badge-enhanced.danger {
-        background: linear-gradient(135deg, #ef4444, #dc2626);
-        color: white;
-        border-color: #fee2e2;
-    }
-    
-    .status-badge-enhanced.changed {
-        background: linear-gradient(135deg, #3b82f6, #2563eb);
-        color: white;
-        border-color: #dbeafe;
-    }
-    
+    /* Grid de imágenes mejorado para el modal monocromático */
     .image-grid-enhanced {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
@@ -903,73 +890,71 @@
     
     .image-grid-enhanced .image-item {
         position: relative;
-        border-radius: 12px;
+        border-radius: 8px;
         overflow: hidden;
-        background: white;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        border: 2px solid #e5e7eb;
         transition: all 0.3s ease;
-        border: 2px solid transparent;
+        background: white;
     }
     
     .image-grid-enhanced .image-item:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
-        border-color: #3b82f6;
+        border-color: #4b5563;
+        transform: translateY(-2px);
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2);
     }
     
     .image-grid-enhanced .grid-image {
         width: 100%;
-        height: 180px;
+        height: 150px;
         object-fit: cover;
         cursor: pointer;
-        transition: transform 0.5s ease;
+        transition: transform 0.3s ease;
     }
     
     .image-grid-enhanced .grid-image:hover {
-        transform: scale(1.1);
+        transform: scale(1.05);
     }
     
     .image-grid-enhanced .image-number {
         position: absolute;
-        top: 12px;
-        left: 12px;
-        background: rgba(0, 0, 0, 0.8);
+        top: 8px;
+        left: 8px;
+        background: rgba(31, 41, 55, 0.9);
         color: white;
-        font-size: 13px;
+        font-size: 12px;
         font-weight: bold;
-        padding: 4px 12px;
-        border-radius: 20px;
+        padding: 2px 8px;
+        border-radius: 4px;
         z-index: 10;
-        backdrop-filter: blur(4px);
-        border: 1px solid rgba(255, 255, 255, 0.2);
+        border: 1px solid #6b7280;
+        font-family: monospace;
     }
     
     .image-grid-enhanced .image-info {
-        padding: 12px;
+        padding: 8px;
         background: white;
         border-top: 1px solid #e5e7eb;
     }
     
     .image-grid-enhanced .download-image-btn {
         width: 100%;
-        padding: 8px;
-        background: linear-gradient(135deg, #3b82f6, #2563eb);
+        padding: 6px;
+        background: #374151;
         color: white;
         border: none;
-        border-radius: 8px;
+        border-radius: 4px;
         cursor: pointer;
-        font-size: 13px;
-        font-weight: 500;
-        transition: all 0.3s ease;
+        font-size: 12px;
+        font-family: monospace;
+        transition: background 0.3s ease;
         display: flex;
         align-items: center;
         justify-content: center;
-        gap: 6px;
+        gap: 4px;
     }
     
     .image-grid-enhanced .download-image-btn:hover {
-        background: linear-gradient(135deg, #2563eb, #1d4ed8);
-        transform: scale(1.02);
+        background: #1f2937;
     }
     
     .empty-images-enhanced {
@@ -977,42 +962,21 @@
         padding: 40px;
     }
     
-    .lado-badge {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        padding: 6px 16px;
-        border-radius: 30px;
-        font-weight: 600;
-        font-size: 14px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-    }
-    
-    .lado-badge.vapor {
-        background: linear-gradient(135deg, #fee2e2, #fecaca);
-        color: #991b1b;
-        border: 1px solid #fecaca;
-    }
-    
-    .lado-badge.pasillo {
-        background: linear-gradient(135deg, #dbeafe, #bfdbfe);
-        color: #1e40af;
-        border: 1px solid #bfdbfe;
-    }
-    
+    /* Ajustes responsive para el modal */
     @media (max-width: 768px) {
         .image-grid-enhanced {
-            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            grid-template-columns: repeat(2, 1fr);
             gap: 12px;
         }
         
         .image-grid-enhanced .grid-image {
-            height: 140px;
+            height: 120px;
         }
-        
-        .status-badge-enhanced {
-            padding: 6px 16px;
-            font-size: 14px;
+    }
+    
+    @media (max-width: 480px) {
+        .image-grid-enhanced {
+            grid-template-columns: 1fr;
         }
     }
 </style>
@@ -1021,7 +985,7 @@
     {{-- HEADER --}}
     <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
         <div>
-        <a href="{{ route('lavadora.dashboard') }}" 
+            <a href="{{ route('lavadora.dashboard') }}" 
                class="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 
                       bg-gray-100 hover:bg-gray-200 rounded-lg transition-all duration-300
                       group">
@@ -1211,6 +1175,10 @@
         </div>
     </div>
 
+    <h1 class="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+        <img src="{{ asset('images/Diagramas-Lavadoras/diagramalav.png') }}" alt="Diagrama Lavadora">
+    </h1>
+
     {{-- RESÚMENES Y ESTADÍSTICAS --}}
     @php
         $analisisCollection = isset($analisis) ? collect($analisis) : collect([]);
@@ -1237,86 +1205,86 @@
             ];
         }
     @endphp
+
     @if($analisisCollection->count() > 0)
-    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-6 mb-8">
-
-        {{-- TOTAL ANÁLISIS --}}
-        <div class="bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 p-6 border-t-4 border-gray-600 flex items-center justify-between min-h-[120px]">
-        <div>
-                <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                    Total análisis
-                </p>
-                <h3 class="text-3xl font-bold text-gray-700 mt-2">
-                    {{ $estadisticas['total'] ?? 0 }}
-                </h3>
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-6 mb-8">
+            {{-- TOTAL ANÁLISIS --}}
+            <div class="bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 p-6 border-t-4 border-gray-600 flex items-center justify-between min-h-[120px]">
+                <div>
+                    <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                        Total análisis
+                    </p>
+                    <h3 class="text-3xl font-bold text-gray-700 mt-2">
+                        {{ $estadisticas['total'] ?? 0 }}
+                    </h3>
+                </div>
+                <div class="bg-gray-100 text-gray-600 p-3 rounded-full">
+                    <i class="fas fa-chart-line text-lg"></i>
+                </div>
             </div>
-            <div class="bg-gray-100 text-gray-600 p-3 rounded-full">
-                <i class="fas fa-chart-line text-lg"></i>
+
+            {{-- BUEN ESTADO --}}
+            <div class="bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 p-6 border-t-4 border-green-600 flex items-center justify-between min-h-[120px]">
+                <div>
+                    <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                        Buen estado
+                    </p>
+                    <h3 class="text-3xl font-bold text-green-600 mt-2">
+                        {{ $estadisticas['buen_estado'] ?? 0 }}
+                    </h3>
+                </div>
+                <div class="bg-green-100 text-green-600 p-3 rounded-full">
+                    <i class="fas fa-check-circle text-lg"></i>
+                </div>
+            </div>
+
+            {{-- DESGASTE --}}
+            <div class="bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 p-6 border-t-4 border-yellow-500 flex items-center justify-between min-h-[120px]">
+                <div>
+                    <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                        Desgaste
+                    </p>
+                    <h3 class="text-3xl font-bold text-yellow-500 mt-2">
+                        {{ $estadisticas['desgaste'] ?? 0 }}
+                    </h3>
+                </div>
+                <div class="bg-yellow-100 text-yellow-600 p-3 rounded-full">
+                    <i class="fas fa-exclamation-triangle text-lg"></i>
+                </div>
+            </div>
+
+            {{-- DAÑADOS --}}
+            <div class="bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 p-6 border-t-4 border-red-600 flex items-center justify-between min-h-[120px]">
+                <div>
+                    <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                        Dañados
+                    </p>
+                    <h3 class="text-3xl font-bold text-red-600 mt-2">
+                        {{ ($estadisticas['danado_requiere'] ?? 0) + ($estadisticas['danado_cambiado'] ?? 0) }}
+                    </h3>
+                </div>
+                <div class="bg-red-100 text-red-600 p-3 rounded-full">
+                    <i class="fas fa-times-circle text-lg"></i>
+                </div>
+            </div>
+
+            {{-- DAÑADO CAMBIADO --}}
+            <div class="bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 p-6 border-t-4 border-blue-600 flex items-center justify-between min-h-[120px]">
+                <div>
+                    <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                        Cambiados
+                    </p>
+                    <h3 class="text-3xl font-bold text-blue-700 mt-2">
+                        {{ $estadisticas['danado_cambiado'] ?? 0 }}
+                    </h3>
+                </div>
+                <div class="bg-blue-100 text-blue-600 p-3 rounded-full">
+                    <i class="fas fa-sync-alt text-lg"></i>
+                </div>
             </div>
         </div>
+    @endif
 
-        {{-- BUEN ESTADO --}}
-        <div class="bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 p-6 border-t-4 border-green-600 flex items-center justify-between min-h-[120px]">
-            <div>
-                <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                    Buen estado
-                </p>
-                <h3 class="text-3xl font-bold text-green-600 mt-2">
-                    {{ $estadisticas['buen_estado'] ?? 0 }}
-                </h3>
-            </div>
-            <div class="bg-green-100 text-green-600 p-3 rounded-full">
-                <i class="fas fa-check-circle text-lg"></i>
-            </div>
-        </div>
-
-        {{-- DESGASTE --}}
-        <div class="bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 p-6 border-t-4 border-yellow-500 flex items-center justify-between min-h-[120px]">
-            <div>
-                <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                    Desgaste
-                </p>
-                <h3 class="text-3xl font-bold text-yellow-500 mt-2">
-                    {{ $estadisticas['desgaste'] ?? 0 }}
-                </h3>
-            </div>
-            <div class="bg-yellow-100 text-yellow-600 p-3 rounded-full">
-                <i class="fas fa-exclamation-triangle text-lg"></i>
-            </div>
-        </div>
-
-        {{-- DAÑADOS --}}
-        <div class="bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 p-6 border-t-4 border-red-600 flex items-center justify-between min-h-[120px]">
-            <div>
-                <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                    Dañados
-                </p>
-                <h3 class="text-3xl font-bold text-red-600 mt-2">
-                    {{ ($estadisticas['danado_requiere'] ?? 0) + ($estadisticas['danado_cambiado'] ?? 0) }}
-                </h3>
-            </div>
-            <div class="bg-red-100 text-red-600 p-3 rounded-full">
-                <i class="fas fa-times-circle text-lg"></i>
-            </div>
-        </div>
-
-        {{-- DAÑADO CAMBIADO --}}
-        <div class="bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 p-6 border-t-4 border-blue-600 flex items-center justify-between min-h-[120px]">
-            <div>
-                <p class="text-xs font-semibold text--500 uppercase tracking-wide">
-                    Cambiados
-                </p>
-                <h3 class="text-3xl font-bold text-blue-700 mt-2">
-                    {{ $estadisticas['danado_cambiado'] ?? 0 }}
-                </h3>
-            </div>
-            <div class="bg-blue-100 text-blue-600 p-3 rounded-full">
-                <i class="fas fa-sync-alt text-lg"></i>
-            </div>
-        </div>
-
-    </div>
-@endif
     {{-- TABLA PRINCIPAL --}}
     @php
         /* ===============================
@@ -1352,18 +1320,31 @@
         }
 
         /* ===============================
-        REDUCTORES PARA TABLA
+        REDUCTORES PARA TABLA - MEJORADO PARA L-12
         =============================== */
         $reductoresParaTabla = collect();
 
         if (request('linea_id') && !empty($reductoresMostrar)) {
             $reductoresParaTabla = collect($reductoresMostrar);
         } elseif ($analisisCollection->count() > 0) {
+            // Obtener los reductores únicos de los análisis y formatearlos
             $reductoresParaTabla = $analisisCollection
                 ->pluck('reductor')
+                ->map(function($r) {
+                    // Si es número, convertirlo a "Reductor X"
+                    if (is_numeric($r)) {
+                        return "Reductor {$r}";
+                    }
+                    return $r;
+                })
                 ->unique()
                 ->sort()
                 ->values();
+        }
+
+        // Si no hay reductores en los análisis, usar los reductores predefinidos de la línea
+        if ($reductoresParaTabla->isEmpty() && $lineaMostrar && isset($reductoresMostrar)) {
+            $reductoresParaTabla = collect($reductoresMostrar);
         }
 
         if (request('reductor')) {
@@ -1373,95 +1354,151 @@
         }
 
         /* ===============================
-        AGRUPAR ANALISIS
+        AGRUPAR ANALISIS - CORREGIDO PARA L-12 (SIN AFECTAR OTRAS LÍNEAS)
         =============================== */
         $analisisAgrupados = [];
+
+        // Crear un mapa de componentes para L-12
+        $mapaComponentesL12 = [];
+        
+        // Solo para L-12, construir el mapa de IDs de BD a códigos de vista
+        if ($lineaMostrar && $lineaMostrar->nombre == 'L-12') {
+            // Obtener todos los componentes de L-12 de la BD
+            $componentesL12 = \App\Models\Componente::where('linea', 'L-12')->get();
+            
+            foreach ($componentesL12 as $comp) {
+                // Mapear según el código que contenga
+                if (str_contains($comp->codigo, 'RV200_SIN_FIN') || str_contains($comp->nombre, 'RV200')) {
+                    $mapaComponentesL12[$comp->id] = 'RV200_SIN_FIN';
+                } elseif (str_contains($comp->codigo, 'BUJE_ESPIGA')) {
+                    $mapaComponentesL12[$comp->id] = 'BUJE_ESPIGA';
+                } elseif (str_contains($comp->codigo, 'GUI_INF_TANQUE')) {
+                    $mapaComponentesL12[$comp->id] = 'GUI_INF_TANQUE';
+                } elseif (str_contains($comp->codigo, 'GUI_INT_TANQUE')) {
+                    $mapaComponentesL12[$comp->id] = 'GUI_INT_TANQUE';
+                } elseif (str_contains($comp->codigo, 'GUI_SUP_TANQUE')) {
+                    $mapaComponentesL12[$comp->id] = 'GUI_SUP_TANQUE';
+                } elseif (str_contains($comp->codigo, 'CATARINAS')) {
+                    $mapaComponentesL12[$comp->id] = 'CATARINAS';
+                } else {
+                    // Por defecto, usar el código base
+                    $partes = explode('_', $comp->codigo);
+                    $mapaComponentesL12[$comp->id] = end($partes);
+                }
+            }
+        }
 
         foreach ($analisisCollection as $item) {
             if (!$item->componente) continue;
 
             $reductor = $item->reductor;
-            $codigo   = $item->componente->codigo ?? '';
-            $codigoBase = $codigo;
-
-            if (isset($componentesPorLinea)) {
-                foreach ($componentesPorLinea as $lineaCodigos) {
-                    foreach ($lineaCodigos as $key => $nombre) {
-                        if (str_contains($codigo, $key)) {
-                            $codigoBase = $key;
-                            break 2;
+            
+            // Convertir el reductor a formato "Reductor X" para la vista
+            if (is_numeric($reductor)) {
+                $reductorVista = "Reductor {$reductor}";
+            } else {
+                $reductorVista = $reductor;
+            }
+            
+            $componenteId = $item->componente_id;
+            
+            // Determinar la clave del componente para el agrupamiento
+            if ($lineaMostrar && $lineaMostrar->nombre == 'L-12' && isset($mapaComponentesL12[$componenteId])) {
+                // Para L-12, usar el código mapeado
+                $claveComponente = $mapaComponentesL12[$componenteId];
+            } else {
+                // Para otras líneas, usar la lógica original
+                $codigo = $item->componente->codigo ?? '';
+                $claveComponente = $codigo;
+                
+                if (isset($componentesPorLinea)) {
+                    foreach ($componentesPorLinea as $lineaCodigos) {
+                        foreach ($lineaCodigos as $key => $nombre) {
+                            if (str_contains($codigo, $key)) {
+                                $claveComponente = $key;
+                                break 2;
+                            }
                         }
                     }
                 }
             }
             
-            if (!isset($analisisAgrupados[$reductor][$codigoBase])) {
-                $analisisAgrupados[$reductor][$codigoBase] = collect();
+            if (!isset($analisisAgrupados[$reductorVista][$claveComponente])) {
+                $analisisAgrupados[$reductorVista][$claveComponente] = collect();
             }
 
-            $analisisAgrupados[$reductor][$codigoBase]->push($item);
+            $analisisAgrupados[$reductorVista][$claveComponente]->push($item);
+        }
+
+        // RESPALDO: Si no hay datos con el nuevo método, intentamos con la lógica anterior
+        if (empty($analisisAgrupados)) {
+            foreach ($analisisCollection as $item) {
+                if (!$item->componente) continue;
+                
+                $reductor = $item->reductor;
+                $reductorVista = is_numeric($reductor) ? "Reductor {$reductor}" : $reductor;
+                $codigo = $item->componente->codigo ?? '';
+                
+                if (!isset($analisisAgrupados[$reductorVista][$codigo])) {
+                    $analisisAgrupados[$reductorVista][$codigo] = collect();
+                }
+                
+                $analisisAgrupados[$reductorVista][$codigo]->push($item);
+            }
         }
     @endphp
 
     @if((isset($lineaMostrar) && $lineas->count() > 0) || ($analisisCollection->count() > 0))
         <div class="mb-8 bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
             {{-- ================= ENCABEZADO DE TABLA ================= --}}
-                <div class="table-header-container">
-                    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
-
-                        {{-- LADO IZQUIERDO: ICONO + TITULO + FILTROS --}}
-                        <div class="flex items-center gap-5">
-
-                            {{-- ICONO --}}
-                            <div class="flex-shrink-0">
-                                <div class="w-16 h-16 md:w-20 md:h-20">
-                                    <img src="{{ asset('images/icono-maquina.png') }}" 
-                                        alt="Icono de máquina" 
-                                        class="w-full h-full object-contain drop-shadow-lg">
-                                </div>
+            <div class="table-header-container">
+                <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+                    {{-- LADO IZQUIERDO: ICONO + TITULO + FILTROS --}}
+                    <div class="flex items-center gap-5">
+                        {{-- ICONO --}}
+                        <div class="flex-shrink-0">
+                            <div class="w-16 h-16 md:w-20 md:h-20">
+                                <img src="{{ asset('images/icono-maquina.png') }}" 
+                                    alt="Icono de máquina" 
+                                    class="w-full h-full object-contain drop-shadow-lg">
                             </div>
-
-                            {{-- TITULO Y FILTROS --}}
-                            <div>
-                                {{-- TITULO --}}
-                                <h2 class="font-bold text-2xl text-white leading-tight">
-                                    {{ $lineaMostrar->nombre ?? 'Análisis de Componentes' }}
-                                </h2>
-
-                                {{-- FILTROS ACTIVOS --}}
-                                <div class="flex flex-wrap gap-4 mt-2 text-blue-100 text-sm">
-
-                                    @if(request('componente_id') && isset($todosComponentes))
-                                        <span class="flex items-center gap-2 bg-white/10 px-3 py-1 rounded-full">
-                                            <i class="fas fa-cog text-xs"></i>
-                                            {{ $todosComponentes[request('componente_id')] ?? request('componente_id') }}
-                                        </span>
-                                    @endif
-
-                                    @if(request('reductor'))
-                                        <span class="flex items-center gap-2 bg-white/10 px-3 py-1 rounded-full">
-                                            <i class="fas fa-sliders-h text-xs"></i>
-                                            {{ request('reductor') }}
-                                        </span>
-                                    @endif
-
-                                    @if(request('fecha'))
-                                        <span class="flex items-center gap-2 bg-white/10 px-3 py-1 rounded-full">
-                                            <i class="far fa-calendar-alt text-xs"></i>
-                                            {{ request('fecha') }}
-                                        </span>
-                                    @endif
-
-                                </div>
-                            </div>
-
                         </div>
 
-                        {{-- LADO DERECHO (ESPACIO DISPONIBLE PARA BOTONES FUTUROS) --}}
-                        {{-- Aquí puedes agregar botones como Exportar, Nuevo Análisis, etc --}}
-                        
+                        {{-- TITULO Y FILTROS --}}
+                        <div>
+                            {{-- TITULO --}}
+                            <h2 class="font-bold text-2xl text-white leading-tight">
+                                {{ $lineaMostrar->nombre ?? 'Análisis de Componentes' }}
+                            </h2>
+
+                            {{-- FILTROS ACTIVOS --}}
+                            <div class="flex flex-wrap gap-4 mt-2 text-blue-100 text-sm">
+                                @if(request('componente_id') && isset($todosComponentes))
+                                    <span class="flex items-center gap-2 bg-white/10 px-3 py-1 rounded-full">
+                                        <i class="fas fa-cog text-xs"></i>
+                                        {{ $todosComponentes[request('componente_id')] ?? request('componente_id') }}
+                                    </span>
+                                @endif
+
+                                @if(request('reductor'))
+                                    <span class="flex items-center gap-2 bg-white/10 px-3 py-1 rounded-full">
+                                        <i class="fas fa-sliders-h text-xs"></i>
+                                        {{ request('reductor') }}
+                                    </span>
+                                @endif
+
+                                @if(request('fecha'))
+                                    <span class="flex items-center gap-2 bg-white/10 px-3 py-1 rounded-full">
+                                        <i class="far fa-calendar-alt text-xs"></i>
+                                        {{ request('fecha') }}
+                                    </span>
+                                @endif
+                            </div>
+                        </div>
                     </div>
                 </div>
+            </div>
+
             {{-- TABLA COMPACTA --}}
             @if(isset($componentesParaTabla) && isset($reductoresParaTabla) && count($componentesParaTabla) > 0 && count($reductoresParaTabla) > 0)
                 <div class="table-wrapper" id="mainTable">
@@ -1514,7 +1551,6 @@
                                     <th class="sticky-top cell-header text-blue-900 font-bold px-3 py-2 border text-center whitespace-nowrap text-sm">
                                         <div class="component-header">
                                             <div class="component-name">{{ $c->nombre }}</div>
-                                          
                                             <img
                                                 src="{{ $c->icono }}"
                                                 alt="Icono {{ $c->nombre }}"
@@ -1653,13 +1689,18 @@
                                                 @endif
                                                 
                                                 <div class="space-y-2">
-                                                    <div class="flex flex-col">
-                                                        <div class="flex items-center gap-1 mb-1">
-                                                            <i class="fas fa-calendar text-blue-600 text-xs"></i>
-                                                            <span class="text-xs font-semibold text-gray-700">
-                                                                {{ isset($registro->fecha_analisis) ? $registro->fecha_analisis->format('d/m/Y') : '' }}
+                                                    {{-- FECHA DE ANÁLISIS - MÁS VISIBLE --}}
+                                                    <div class="bg-blue-50 p-2 rounded mb-2">
+                                                        <div class="flex items-center gap-1">
+                                                            <i class="fas fa-calendar-alt text-blue-600"></i>
+                                                            <span class="text-xs font-bold text-blue-800">
+                                                                Fecha:
+                                                            </span>
+                                                            <span class="text-xs font-semibold bg-white px-2 py-0.5 rounded">
+                                                                {{ isset($registro->fecha_analisis) ? $registro->fecha_analisis->format('d/m/Y') : 'NO ESPECIFICADA' }}
                                                             </span>
                                                         </div>
+                                                    
                                                         <div class="flex items-center gap-1">
                                                             <i class="fas fa-hashtag text-blue-600 text-xs"></i>
                                                             <span class="text-xs font-bold text-gray-800">
@@ -1711,20 +1752,6 @@
                                                                 {{ count($imagenes) }} img
                                                             </button>
                                                         @endif
-                                                        {{--    
-                                                        <a href="{{ route('analisis-lavadora.edit', [
-                                                            'analisislavadora' => $registro->id,
-                                                            'linea_id' => request('linea_id', ''),
-                                                            'componente_id' => request('componente_id', ''),
-                                                            'reductor' => request('reductor', ''),
-                                                            'fecha' => request('fecha', '')
-                                                        ]) }}"
-                                                        class="inline-flex items-center justify-center gap-1 px-3 py-1.5 bg-yellow-100 text-yellow-700 rounded hover:bg-yellow-200 transition text-xs font-medium"
-                                                        onclick="event.stopPropagation();">
-                                                            <i class="fas fa-edit"></i>
-                                                            Editar
-                                                        </a>
-                                                        --}}
                                                         <a href="{{ route('analisis-lavadora.create-quick', [
                                                                 'linea_id' => $registro->linea_id,
                                                                 'componente_codigo' => $c->id,
@@ -1736,23 +1763,7 @@
                                                                     <i class="fas fa-plus"></i>
                                                                     Nuevo Registro
                                                         </a>
-                                                        {{--
-                                                         
-                                                        @if($totalHistorial > 1)
-                                                            <a href="{{ route('analisis-lavadora.historial', [
-                                                                    'linea_id' => $registro->linea_id,
-                                                                    'componente_id' => $c->id,
-                                                                    'reductor' => $r
-                                                                ]) }}"
-                                                            class="inline-flex items-center justify-center gap-1 px-3 py-1.5 bg-purple-100 text-purple-700 rounded hover:bg-purple-200 transition text-xs font-medium"
-                                                            onclick="event.stopPropagation();">
-                                                                <i class="fas fa-history"></i>
-                                                                Historial ({{ $totalHistorial }})
-                                                            </a>
-                                                        @endif
-                                                        --}}
                                                     </div>
-                                                    
                                                 </div>
                                             @else
                                                 <div class="empty-cell">
@@ -1769,8 +1780,7 @@
                                                             'fecha' => request('fecha', now()->format('Y-m'))]) }}"
                                                         class="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 transition text-xs font-medium"
                                                         onclick="event.stopPropagation();">
-                                                            <i class="fas fa-plus"></i>
-                                                            
+                                                            <i class="fas fa-plus"></i> Nuevo
                                                         </a>
                                                     @else
                                                         <a href="{{ route('analisis-lavadora.select-linea') }}"
@@ -1825,83 +1835,82 @@
     @endif
 </div>
 
-{{-- MODALES MEJORADOS --}}
-<div id="analysisDetailModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden items-center justify-center z-50 p-4 transition-all duration-300"
+{{-- MODAL DE DETALLES INDUSTRIAL CON AZUL #1363d3 --}}
+<div id="analysisDetailModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden items-center justify-center z-50 p-4 transition-all duration-300"
      onclick="event.stopPropagation()">
-    <div class="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden transform transition-all duration-300 scale-100 animate-modalIn">
-        {{-- HEADER CON GRADIENTE MEJORADO --}}
-       <div class="bg-gradient-to-r from-[#1F4E78] via-[#1F4E78] to-[#1F4E78] text-white px-8 py-5">
+    <div class="bg-white rounded-lg shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden transform transition-all duration-300 scale-100 border border-gray-200">
+        {{-- HEADER INDUSTRIAL CON AZUL #1363d3 --}}
+        <div class="bg-gradient-to-r from-[#1363d3] to-[#0f4fa8] text-white px-8 py-5">
             <div class="flex justify-between items-center">
                 <div class="flex items-center gap-4">
-                    <div class="bg-white/20 p-3 rounded-xl backdrop-blur-sm">
-                        <i class="fas fa-clipboard-list text-2xl"></i>
+                    <div class="bg-white/20 p-3 rounded-lg border border-white/30">
+                        <i class="fas fa-industry text-2xl"></i>
                     </div>
                     <div>
-                        <h3 class="font-bold text-xl">
-                            <span id="detailModalTitle">Detalle del Análisis</span>
+                        <h3 class="font-bold text-xl tracking-wide">
+                            <span id="detailModalTitle">DETALLE DE ANÁLISIS</span>
                         </h3>
-                        <p class="text-blue-100 text-sm mt-1">Información completa del registro</p>
                     </div>
                 </div>
                 <button onclick="event.stopPropagation(); closeAnalysisDetailModal()" 
-                        class="w-10 h-10 rounded-xl bg-white/20 hover:bg-white/30 transition-all flex items-center justify-center group">
+                        class="w-10 h-10 rounded-lg bg-white/20 hover:bg-white/30 transition-all flex items-center justify-center group border border-white/30">
                     <i class="fas fa-times text-xl group-hover:rotate-90 transition-transform"></i>
                 </button>
             </div>
         </div>
         
         {{-- CONTENIDO CON SCROLL PERSONALIZADO --}}
-        <div class="p-8 overflow-auto max-h-[calc(90vh-100px)] custom-scrollbar">
-            {{-- TARJETAS DE INFORMACIÓN MEJORADAS --}}
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        <div class="p-8 overflow-auto max-h-[calc(90vh-100px)] bg-gray-50">
+            {{-- TARJETAS DE INFORMACIÓN MONOCROMÁTICAS --}}
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {{-- Lavadora --}}
-                <div class="bg-gradient-to-br from-blue-50 to-white rounded-xl p-5 border border-blue-100 shadow-sm hover:shadow-md transition-all">
+                <div class="bg-white rounded-lg p-5 border-l-4 border-gray-700 shadow-sm hover:shadow-md transition-all">
                     <div class="flex items-start gap-3">
-                        <div class="bg-blue-100 p-3 rounded-lg">
-                            <i class="fas fa-washing-machine text-blue-600 text-xl"></i>
+                        <div class="bg-gray-100 p-3 rounded-lg">
+                            <i class="fas fa-washing-machine text-gray-700 text-xl"></i>
                         </div>
                         <div class="flex-1">
-                            <p class="text-xs font-semibold text-blue-600 uppercase tracking-wider">Lavadora</p>
+                            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider font-mono">Lavadora</p>
                             <p id="detail-linea" class="font-bold text-gray-800 text-lg mt-1"></p>
                         </div>
                     </div>
                 </div>
 
                 {{-- Componente --}}
-                <div class="bg-gradient-to-br from-purple-50 to-white rounded-xl p-5 border border-purple-100 shadow-sm hover:shadow-md transition-all">
+                <div class="bg-white rounded-lg p-5 border-l-4 border-gray-700 shadow-sm hover:shadow-md transition-all">
                     <div class="flex items-start gap-3">
-                        <div class="bg-purple-100 p-3 rounded-lg">
-                            <i class="fas fa-cog text-purple-600 text-xl"></i>
+                        <div class="bg-gray-100 p-3 rounded-lg">
+                            <i class="fas fa-cog text-gray-700 text-xl"></i>
                         </div>
                         <div class="flex-1">
-                            <p class="text-xs font-semibold text-purple-600 uppercase tracking-wider">Componente</p>
+                            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider font-mono">Componente</p>
                             <p id="detail-componente" class="font-bold text-gray-800 text-lg mt-1"></p>
-                            <p id="detail-componente-codigo" class="text-xs text-gray-500 mt-1"></p>
+                            <p id="detail-componente-codigo" class="text-xs text-gray-500 mt-1 font-mono"></p>
                         </div>
                     </div>
                 </div>
 
                 {{-- Reductor --}}
-                <div class="bg-gradient-to-br from-amber-50 to-white rounded-xl p-5 border border-amber-100 shadow-sm hover:shadow-md transition-all">
+                <div class="bg-white rounded-lg p-5 border-l-4 border-gray-700 shadow-sm hover:shadow-md transition-all">
                     <div class="flex items-start gap-3">
-                        <div class="bg-amber-100 p-3 rounded-lg">
-                            <i class="fas fa-compress-alt text-amber-600 text-xl"></i>
+                        <div class="bg-gray-100 p-3 rounded-lg">
+                            <i class="fas fa-compress-alt text-gray-700 text-xl"></i>
                         </div>
                         <div class="flex-1">
-                            <p class="text-xs font-semibold text-amber-600 uppercase tracking-wider">Reductor</p>
+                            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider font-mono">Reductor</p>
                             <p id="detail-reductor" class="font-bold text-gray-800 text-lg mt-1"></p>
                         </div>
                     </div>
                 </div>
 
                 {{-- Lado del Análisis --}}
-                <div class="bg-gradient-to-br from-emerald-50 to-white rounded-xl p-5 border border-emerald-100 shadow-sm hover:shadow-md transition-all">
+                <div class="bg-white rounded-lg p-5 border-l-4 border-gray-700 shadow-sm hover:shadow-md transition-all">
                     <div class="flex items-start gap-3">
-                        <div class="bg-emerald-100 p-3 rounded-lg">
-                            <i class="fas fa-arrows-alt-h text-emerald-600 text-xl"></i>
+                        <div class="bg-gray-100 p-3 rounded-lg">
+                            <i class="fas fa-arrows-alt-h text-gray-700 text-xl"></i>
                         </div>
                         <div class="flex-1">
-                            <p class="text-xs font-semibold text-emerald-600 uppercase tracking-wider">Lado</p>
+                            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider font-mono">Lado</p>
                             <p id="detail-lado" class="font-bold text-gray-800 text-lg mt-1"></p>
                             <div id="detail-lado-badge-container" class="mt-2"></div>
                         </div>
@@ -1909,95 +1918,95 @@
                 </div>
 
                 {{-- Fecha --}}
-                <div class="bg-gradient-to-br from-rose-50 to-white rounded-xl p-5 border border-rose-100 shadow-sm hover:shadow-md transition-all">
+                <div class="bg-white rounded-lg p-5 border-l-4 border-gray-700 shadow-sm hover:shadow-md transition-all">
                     <div class="flex items-start gap-3">
-                        <div class="bg-rose-100 p-3 rounded-lg">
-                            <i class="far fa-calendar-alt text-rose-600 text-xl"></i>
+                        <div class="bg-gray-100 p-3 rounded-lg">
+                            <i class="far fa-calendar-alt text-gray-700 text-xl"></i>
                         </div>
                         <div class="flex-1">
-                            <p class="text-xs font-semibold text-rose-600 uppercase tracking-wider">Fecha</p>
-                            <p id="detail-fecha" class="font-bold text-gray-800 text-lg mt-1"></p>
+                            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider font-mono">Fecha</p>
+                            <p id="detail-fecha" class="font-bold text-gray-800 text-lg mt-1 font-mono"></p>
                         </div>
                     </div>
                 </div>
 
                 {{-- Número de Orden --}}
-                <div class="bg-gradient-to-br from-indigo-50 to-white rounded-xl p-5 border border-indigo-100 shadow-sm hover:shadow-md transition-all">
+                <div class="bg-white rounded-lg p-5 border-l-4 border-gray-700 shadow-sm hover:shadow-md transition-all">
                     <div class="flex items-start gap-3">
-                        <div class="bg-indigo-100 p-3 rounded-lg">
-                            <i class="fas fa-hashtag text-indigo-600 text-xl"></i>
+                        <div class="bg-gray-100 p-3 rounded-lg">
+                            <i class="fas fa-hashtag text-gray-700 text-xl"></i>
                         </div>
                         <div class="flex-1">
-                            <p class="text-xs font-semibold text-indigo-600 uppercase tracking-wider">Orden</p>
-                            <p id="detail-orden" class="font-bold text-indigo-700 text-lg mt-1"></p>
+                            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider font-mono">Orden</p>
+                            <p id="detail-orden" class="font-bold text-gray-800 text-lg mt-1 font-mono"></p>
                         </div>
                     </div>
                 </div>
             </div>
 
-            {{-- ESTADO Y ACTIVIDAD EN TARJETAS DESTACADAS --}}
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mt-5">
+            {{-- ESTADO Y ACTIVIDAD EN TARJETAS INDUSTRIALES --}}
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                 {{-- Estado --}}
-                <div class="bg-gradient-to-br from-gray-50 to-white rounded-xl p-5 border border-gray-200 shadow-sm">
+                <div class="bg-white rounded-lg p-5 border border-green-600 shadow-sm">
                     <div class="flex items-center gap-3 mb-4">
-                        <div class="bg-gray-200 p-2 rounded-lg">
-                            <i class="fas fa-clipboard-check text-gray-700"></i>
+                        <div class="bg-green-600 p-2 rounded-lg">
+                            <i class="fas fa-clipboard-check text-gray-600"></i>
                         </div>
-                        <h4 class="font-semibold text-gray-700">Estado de Analisis</h4>
+                        <h4 class="font-semibold text-gray-600 border-green-600 border-b-2 uppercase tracking-wider text-sm font-mono">Estado</h4>
                     </div>
                     <div class="flex justify-center">
-                        <div id="detail-estado" class="status-badge-enhanced px-6 py-3 text-base"></div>
+                        <div id="detail-estado" class="px-6 py-3 bg-green-600 text-white rounded-lg font-mono text-sm tracking-wider w-full text-center"></div>
                     </div>
                 </div>
 
                 {{-- Actividad --}}
-                <div class="bg-gradient-to-br from-gray-50 to-white rounded-xl p-5 border border-gray-200 shadow-sm md:col-span-1">
+                <div class="bg-white rounded-lg p-5 border border-gray-200 shadow-sm">
                     <div class="flex items-center gap-3 mb-4">
                         <div class="bg-gray-200 p-2 rounded-lg">
                             <i class="fas fa-sticky-note text-gray-700"></i>
                         </div>
-                        <h4 class="font-semibold text-gray-700">Actividad</h4>
+                        <h4 class="font-semibold text-gray-700 uppercase tracking-wider text-sm font-mono">Actividad</h4>
                     </div>
-                    <div class="bg-white rounded-lg p-4 border-l-4 border-blue-500 shadow-inner">
-                        <p id="detail-actividad" class="text-gray-700 whitespace-pre-line leading-relaxed"></p>
+                    <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                        <p id="detail-actividad" class="text-gray-700 whitespace-pre-line leading-relaxed text-sm"></p>
                     </div>
                 </div>
             </div>
             
-            {{-- SECCIÓN DE IMÁGENES MEJORADA --}}
+            {{-- SECCIÓN DE IMÁGENES INDUSTRIAL --}}
             <div id="detail-images-section" class="mt-6 hidden">
-                <div class="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-4 rounded-t-xl">
+                <div class="bg-gray-800 text-white px-6 py-4">
                     <div class="flex items-center gap-3">
-                        <div class="bg-white/20 p-2 rounded-lg">
+                        <div class="bg-gray-700 p-2 rounded-lg">
                             <i class="fas fa-images text-xl"></i>
                         </div>
                         <div>
-                            <h4 class="font-bold text-lg">Evidencia Fotográfica</h4>
-                            <p class="text-blue-100 text-sm">Documentación visual del análisis</p>
+                            <h4 class="font-bold text-lg uppercase tracking-wider font-mono">Evidencia Fotográfica</h4>
+                            <p class="text-gray-300 text-sm">Documentación industrial del análisis</p>
                         </div>
                     </div>
                 </div>
-                <div class="bg-gray-50 rounded-b-xl p-6 border-x-2 border-b-2 border-gray-200">
+                <div class="bg-white p-6 border-x-2 border-b-2 border-gray-200">
                     <div id="detail-image-grid" class="image-grid-enhanced"></div>
                 </div>
             </div>
 
-            {{-- BOTONES DE ACCIÓN MEJORADOS --}}
+            {{-- BOTONES DE ACCIÓN INDUSTRIALES --}}
             <div class="flex justify-end gap-3 mt-8 pt-4 border-t border-gray-200">
                 <a id="detail-edit-btn" 
                    href="#" 
-                   class="px-6 py-3 bg-gradient-to-r from-amber-500 to-amber-600 text-white rounded-xl hover:from-amber-600 hover:to-amber-700 transition-all shadow-md hover:shadow-lg flex items-center gap-2 font-medium">
+                   class="px-6 py-3 bg-gray-800 text-white rounded-lg hover:bg-gray-900 transition-all shadow-md hover:shadow-lg flex items-center gap-2 font-medium border border-gray-700">
                     <i class="fas fa-edit"></i>
                     Editar Análisis
                 </a>
                 <a id="detail-historial-btn"
                    href="#"
-                   class="px-6 py-3 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-xl hover:from-purple-600 hover:to-purple-700 transition-all shadow-md hover:shadow-lg flex items-center gap-2 font-medium hidden">
-                    <i class="fas"></i>
+                   class="px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-all shadow-md hover:shadow-lg flex items-center gap-2 font-medium hidden border border-gray-500">
+                    <i class="fas fa-history"></i>
                     <span id="detail-historial-text">Ver Historial</span>
                 </a>
                 <button onclick="closeAnalysisDetailModal()" 
-                        class="px-6 py-3 bg-gray-200 text-gray-700 rounded-xl hover:bg-gray-300 transition-all shadow-md hover:shadow-lg flex items-center gap-2 font-medium">
+                        class="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-all shadow-md hover:shadow-lg flex items-center gap-2 font-medium border border-gray-300">
                     <i class="fas fa-times"></i>
                     Cerrar
                 </button>
@@ -2006,37 +2015,37 @@
     </div>
 </div>
 
-{{-- MODAL DE IMÁGENES MEJORADO --}}
+{{-- MODAL DE IMÁGENES MONOCROMÁTICO --}}
 <div id="allImagesModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden items-center justify-center z-50 p-4 transition-all duration-300"
      onclick="closeAllImagesModal()">
-    <div class="bg-white rounded-2xl shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden transform transition-all duration-300 scale-100 animate-modalIn">
-        <div class="bg-gradient-to-r from-blue-700 via-blue-600 to-indigo-700 text-white px-8 py-5">
+    <div class="bg-white rounded-lg shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden transform transition-all duration-300 scale-100 border border-gray-200">
+        <div class="bg-gradient-to-r from-gray-800 to-gray-900 text-white px-8 py-5">
             <div class="flex justify-between items-center">
                 <div class="flex items-center gap-4">
-                    <div class="bg-white/20 p-3 rounded-xl">
+                    <div class="bg-gray-700 p-3 rounded-lg border border-gray-600">
                         <i class="fas fa-images text-2xl"></i>
                     </div>
                     <div>
-                        <h3 class="font-bold text-xl">
-                            <span id="modalTitle">Galería de Imágenes</span>
+                        <h3 class="font-bold text-xl uppercase tracking-wider font-mono">
+                            <span id="modalTitle">Galería Industrial</span>
                         </h3>
-                        <p class="text-blue-100 text-sm">Evidencia fotográfica del análisis</p>
+                        <p class="text-gray-300 text-sm">Evidencia fotográfica del análisis</p>
                     </div>
                 </div>
                 <button onclick="closeAllImagesModal()" 
-                        class="w-10 h-10 rounded-xl bg-white/20 hover:bg-white/30 transition-all flex items-center justify-center group">
+                        class="w-10 h-10 rounded-lg bg-gray-700 hover:bg-gray-600 transition-all flex items-center justify-center group border border-gray-600">
                     <i class="fas fa-times text-xl group-hover:rotate-90 transition-transform"></i>
                 </button>
             </div>
         </div>
-        <div class="p-6 overflow-auto max-h-[calc(90vh-100px)] custom-scrollbar">
+        <div class="p-6 overflow-auto max-h-[calc(90vh-100px)] bg-gray-50">
             <div id="imageGrid" class="image-grid-enhanced"></div>
-            <div id="emptyImages" class="empty-images-enhanced hidden">
+            <div id="emptyImages" class="hidden">
                 <div class="text-center py-16">
-                    <div class="bg-gray-100 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <i class="fas fa-image text-4xl text-gray-400"></i>
+                    <div class="bg-gray-200 w-24 h-24 rounded-lg flex items-center justify-center mx-auto mb-4 border border-gray-300">
+                        <i class="fas fa-image text-4xl text-gray-500"></i>
                     </div>
-                    <p class="text-gray-500 text-lg">No hay imágenes disponibles</p>
+                    <p class="text-gray-600 text-lg font-mono">No hay imágenes disponibles</p>
                     <p class="text-gray-400 text-sm mt-2">Este análisis no cuenta con evidencia fotográfica</p>
                 </div>
             </div>
@@ -2044,17 +2053,17 @@
     </div>
 </div>
 
-{{-- MODAL DE IMAGEN INDIVIDUAL MEJORADO --}}
+{{-- MODAL DE IMAGEN INDIVIDUAL --}}
 <div id="singleImageModal" class="fixed inset-0 bg-black/95 hidden items-center justify-center z-[60] p-4 transition-all duration-300"
      onclick="closeSingleImageModal()">
     <div class="relative max-w-6xl w-full h-full flex items-center justify-center">
         <button onclick="closeSingleImageModal()" 
-                class="absolute top-6 right-6 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 text-white text-2xl flex items-center justify-center backdrop-blur-sm border border-white/30 transition-all z-10 group">
+                class="absolute top-6 right-6 w-12 h-12 rounded-lg bg-gray-800/50 hover:bg-gray-700/70 text-white text-2xl flex items-center justify-center backdrop-blur-sm border border-gray-600 transition-all z-10 group">
             <i class="fas fa-times group-hover:rotate-90 transition-transform"></i>
         </button>
         <div class="relative">
-            <img id="singleModalImg" class="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl border-4 border-white/20">
-            <div class="absolute bottom-6 left-1/2 transform -translate-x-1/2 bg-black/50 backdrop-blur-sm text-white px-4 py-2 rounded-full text-sm">
+            <img id="singleModalImg" class="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl border-4 border-gray-700">
+            <div class="absolute bottom-6 left-1/2 transform -translate-x-1/2 bg-gray-900/80 backdrop-blur-sm text-white px-4 py-2 rounded-lg text-sm font-mono border border-gray-700">
                 <span id="currentImageCounter"></span>
             </div>
         </div>
@@ -2148,25 +2157,20 @@ function openAnalysisDetail(analysisData) {
     const estadoElement = document.getElementById('detail-estado');
     estadoElement.textContent = analysisData.estado;
     
-    let estadoClass = '';
-    let estadoIcon = '';
-    
+    // Determinar clase según el color
+    let bgClass = 'bg-gray-800';
     if (analysisData.color === 'cell-ok') {
-        estadoClass = 'ok';
-        estadoIcon = '<i class="fas fa-check-circle mr-2"></i>';
+        bgClass = 'bg-green-800';
     } else if (analysisData.color === 'cell-warning') {
-        estadoClass = 'warning';
-        estadoIcon = '<i class="fas fa-exclamation-triangle mr-2"></i>';
+        bgClass = 'bg-yellow-700';
     } else if (analysisData.color === 'cell-danger') {
-        estadoClass = 'danger';
-        estadoIcon = '<i class="fas fa-times-circle mr-2"></i>';
-    } else {
-        estadoClass = 'changed';
-        estadoIcon = '<i class="fas fa-exchange-alt mr-2"></i>';
+        bgClass = 'bg-red-800';
+    } else if (analysisData.color === 'cell-changed') {
+        bgClass = 'bg-blue-800';
     }
     
-    estadoElement.className = `status-badge-enhanced ${estadoClass}`;
-    estadoElement.innerHTML = estadoIcon + analysisData.estado;
+    estadoElement.className = `px-6 py-3 ${bgClass} text-white rounded-lg font-mono text-sm tracking-wider w-full text-center`;
+    estadoElement.innerHTML = analysisData.estado;
     
     document.getElementById('detail-edit-btn').href = analysisData.edit_url;
     const historialBtn = document.getElementById('detail-historial-btn');

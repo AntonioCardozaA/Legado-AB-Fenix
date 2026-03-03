@@ -342,4 +342,23 @@ class PlanAccionController extends Controller
                 ->orWhereBetween('fecha_pcm4', [now(), $fechaLimite]);
         })->count();
     }
+    public function notificar($id)
+{
+    try {
+        $notificationService = new \App\Services\NotificationService();
+        $resultados = $notificationService->enviarNotificacionesManuales($id);
+        
+        return response()->json([
+            'success' => true,
+            'message' => $resultados['mensaje'],
+            'data' => $resultados
+        ]);
+        
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Error: ' . $e->getMessage()
+        ], 500);
+    }
+}
 }

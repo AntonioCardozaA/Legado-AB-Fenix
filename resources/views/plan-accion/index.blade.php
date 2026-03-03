@@ -250,14 +250,14 @@
 
     /* Columna acciones fija */
     .col-acciones {
-        width: 150px; /* Aumentado para acomodar el nuevo botón */
+        width: 120px;
     }
 
     .acciones {
         display: flex;
         gap: 8px;
         justify-content: center;
-        min-width: 140px; /* Aumentado para acomodar el nuevo botón */
+        min-width: 120px;
     }
 
     /* Fechas */
@@ -390,15 +390,6 @@
     .btn-ver:hover {
         background: #4b5563;
         box-shadow: 0 4px 8px rgba(75, 85, 99, 0.3);
-    }
-
-    .btn-notificar {
-        background: #f59e0b;
-    }
-
-    .btn-notificar:hover {
-        background: #d97706;
-        box-shadow: 0 4px 8px rgba(245, 158, 11, 0.3);
     }
 
     .btn-eliminar {
@@ -678,10 +669,28 @@
     .btn-agregar-rapido:hover i {
         animation: gentlePulse 1s infinite;
     }
+
+    /* Estilos para notificaciones */
+    .notificacion-panel {
+        max-height: 400px;
+        overflow-y: auto;
+    }
+    
+    .notificacion-item {
+        transition: all 0.2s ease;
+    }
+    
+    .notificacion-item:hover {
+        background-color: #f9fafb;
+    }
+    
+    #notificacionBadge {
+        animation: pulse 2s infinite;
+    }
 </style>
 
 <div class="plan-container">
-    <!-- Header con botón de volver y título -->
+    <!-- Header con botón de volver y título - MODIFICADO PARA INCLUIR NOTIFICACIONES -->
     <div class="flex justify-between items-center mb-6">
         <div>
             <a href="{{ route('lavadora.dashboard') }}" 
@@ -700,47 +709,94 @@
                 Plan de Acción - Lavadoras
             </h1>
         </div>
+       
+            <!-- Panel de notificaciones desplegable -->
+            <div id="notificacionesPanel" class="absolute right-0 mt-2 w-96 bg-white rounded-lg shadow-xl border border-gray-200 z-50 hidden" style="max-height: 400px; overflow-y: auto;">
+                <div class="p-4 border-b border-gray-200 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-t-lg sticky top-0">
+                    <h3 class="font-semibold flex items-center">
+                        <i class="fas fa-bell mr-2"></i>
+                        Notificaciones de fechas próximas
+                    </h3>
+                </div>
+                <div id="notificacionesLista" class="divide-y divide-gray-100">
+                    <!-- Las notificaciones se cargarán aquí dinámicamente -->
+                    <div class="p-4 text-center text-gray-500">
+                        <i class="fas fa-spinner fa-spin mr-2"></i>
+                        Cargando notificaciones...
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <!-- Alertas de fechas próximas -->
+ <!-- Notificación lateral de fechas próximas -->
 @if(count($alertas) > 0)
-<div class="alertas-container">
-    <button type="button" class="absolute top-4 right-4 text-yellow-600 hover:text-yellow-800" onclick="this.parentElement.remove()">
-        <i class="fas fa-times"></i>
-    </button>
-    <div class="flex items-start gap-3">
-        <i class="fas fa-exclamation-triangle text-yellow-600 text-2xl"></i>
-        <div class="flex-1">
-            <strong class="text-yellow-800">¡Atención! Fechas próximas a vencer ({{ count($alertas) }}):</strong>
-            <div class="mt-2 space-y-2">
-                @foreach($alertas as $alerta)
-                {{-- AQUÍ ESTÁ EL PROBLEMA --}}
-                <div class="alerta-item {{ $alerta['prioridad'] ?? 'media' }}"> {{-- CORREGIDO: agregué ?? 'media' --}}
-                    <div class="flex justify-between items-center">
-                        <div>
-                            <strong>{{ $alerta['linea'] ?? 'Sin línea' }}</strong> - 
-                            {{ Str::limit($alerta['actividad'] ?? 'Sin actividad', 50) }} - 
-                            <strong>{{ $alerta['pcm'] ?? 'PCM' }}</strong>
-                        </div>
-                        <div class="text-right">
-                            <span class="bg-white bg-opacity-20 px-2 py-1 rounded text-sm">
-                                {{ $alerta['fecha'] ?? 'Fecha no disponible' }}
-                            </span>
-                            @if($alerta['es_manana'] ?? false)
-                                <span class="bg-red-800 text-white px-2 py-1 rounded text-sm ml-2">¡MAÑANA!</span>
-                            @else
-                                <span class="bg-white bg-opacity-20 px-2 py-1 rounded text-sm ml-2">
-                                    {{ $alerta['dias_restantes'] ?? 0 }} día(s)
-                                </span>
-                            @endif
+<div class="fixed top-4 right-4 z-50 max-w-md w-full animate-slide-down" id="notificacionLateral">
+    <div class="bg-white rounded-lg shadow-xl border-l-4 border-yellow-400 overflow-hidden">
+        <div class="p-4">
+            <div class="flex items-start">
+                <div class="flex-shrink-0">
+                    <i class="fas fa-exclamation-triangle text-yellow-400 text-xl"></i>
+                </div>
+                <div class="ml-3 w-0 flex-1">
+                    <p class="text-sm font-medium text-gray-900">
+                        ¡Atención! Fechas próximas a vencer ({{ count($alertas) }})
+                    </p>
+                    <div class="mt-2 text-sm text-gray-600">
+                        <div class="max-h-60 overflow-y-auto space-y-2">
+                            @foreach($alertas as $alerta)
+                            <div class="p-2 {{ $alerta['prioridad'] == 'alta' ? 'bg-red-50' : ($alerta['prioridad'] == 'media' ? 'bg-yellow-50' : 'bg-blue-50') }} rounded">
+                                <div class="flex justify-between items-start">
+                                    <div>
+                                        <span class="font-semibold">{{ $alerta['linea'] ?? 'Sin línea' }}</span>
+                                        <span class="text-xs block">
+                                            {{ Str::limit($alerta['actividad'] ?? 'Sin actividad', 40) }}
+                                        </span>
+                                    </div>
+                                    <div class="text-right ml-2">
+                                        @if($alerta['es_manana'] ?? false)
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
+                                                ¡MAÑANA!
+                                            </span>
+                                        @else
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
+                                                {{ $alerta['dias_restantes'] ?? 0 }} día(s)
+                                            </span>
+                                        @endif
+                                    </div>
+                                </div>
+                            </div>
+                            @endforeach
                         </div>
                     </div>
                 </div>
-                @endforeach
+                <div class="ml-4 flex-shrink-0 flex">
+                    <button class="bg-white rounded-md inline-flex text-gray-400 hover:text-gray-500 focus:outline-none"
+                            onclick="document.getElementById('notificacionLateral').remove()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
             </div>
         </div>
     </div>
 </div>
+
+<style>
+@keyframes slideDown {
+    from {
+        transform: translateY(-100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.animate-slide-down {
+    animation: slideDown 0.3s ease-out;
+}
+</style>
 @endif
 
     <!-- SECCIÓN DE LÍNEAS DE LAVADORA - CON PNGs -->
@@ -881,7 +937,7 @@
                                     </td>
                                 @endforeach
 
-                                {{-- ACCIONES FIJAS CON BOTÓN DE NOTIFICACIONES --}}
+                                {{-- ACCIONES FIJAS (SIN BOTÓN DE NOTIFICACIONES) --}}
                                 <td class="text-center col-acciones">
                                     <div class="acciones">
                                         <a href="{{ route('plan-accion.edit', ['plan_accion' => $plan->id, 'tipo' => 'lavadora']) }}"  
@@ -896,15 +952,6 @@
                                                 title="Ver">
                                             <i class="fas fa-eye"></i>
                                         </button>
-
-                                        <!-- BOTÓN DE NOTIFICACIONES -->
-                                     <button type="button" 
-                                            class="btn-accion btn-notificar" 
-                                            style="background: #f59e0b;"
-                                            onclick="enviarNotificaciones({{ $plan->id }}, '{{ addslashes($plan->actividad) }}')"
-                                            title="Enviar notificaciones">
-                                        <i class="fas fa-bell"></i>
-                                    </button>
 
                                         <button type="button" 
                                                 class="btn-accion btn-eliminar eliminar-btn" 
@@ -1040,8 +1087,216 @@
     </div>
 </div>
 
+@endsection
+
+@section('scripts')
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
+// Variable para controlar el estado del panel
+let panelVisible = false;
+
+// Función para mostrar/ocultar el panel de notificaciones
+function toggleNotificaciones() {
+    const panel = document.getElementById('notificacionesPanel');
+    if (panelVisible) {
+        panel.classList.add('hidden');
+        panelVisible = false;
+    } else {
+        panel.classList.remove('hidden');
+        panelVisible = true;
+        cargarNotificaciones(); // Cargar notificaciones cuando se abre el panel
+    }
+}
+
+// Cerrar el panel al hacer clic fuera
+document.addEventListener('click', function(event) {
+    const container = document.getElementById('notificacionContainer');
+    const panel = document.getElementById('notificacionesPanel');
+    
+    if (!container.contains(event.target) && panelVisible) {
+        panel.classList.add('hidden');
+        panelVisible = false;
+    }
+});
+
+// Función para cargar notificaciones
+function cargarNotificaciones() {
+    const lista = document.getElementById('notificacionesLista');
+    
+    fetch('/plan-accion/notificaciones-pendientes', {
+        method: 'GET',
+        headers: {
+            'Accept': 'application/json',
+            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        actualizarBadge(data.total);
+        
+        if (data.notificaciones && data.notificaciones.length > 0) {
+            let html = '';
+            data.notificaciones.forEach(notif => {
+                const prioridadClass = notif.prioridad === 'alta' ? 'bg-red-50 border-l-4 border-red-500' :
+                                      notif.prioridad === 'media' ? 'bg-yellow-50 border-l-4 border-yellow-500' :
+                                      'bg-blue-50 border-l-4 border-blue-500';
+                
+                html += `
+                    <div class="p-4 ${prioridadClass} hover:bg-gray-50 transition cursor-pointer notificacion-item" onclick="verActividad(${notif.id})">
+                        <div class="flex justify-between items-start">
+                            <div class="flex-1">
+                                <p class="text-sm font-medium text-gray-900">${notif.linea}</p>
+                                <p class="text-xs text-gray-600 mt-1">${notif.actividad}</p>
+                                <div class="flex items-center mt-2 text-xs">
+                                    <span class="text-gray-500">PCM: ${notif.pcm}</span>
+                                    <span class="mx-2">•</span>
+                                    <span class="${notif.es_manana ? 'text-red-600 font-bold' : 'text-orange-600'}">
+                                        ${notif.es_manana ? '¡MAÑANA!' : notif.dias_restantes + ' día(s)'}
+                                    </span>
+                                </div>
+                                <p class="text-xs text-gray-500 mt-1">
+                                    <i class="far fa-calendar-alt mr-1"></i>
+                                    ${notif.fecha}
+                                </p>
+                            </div>
+                            <div class="flex space-x-1">
+                                <button onclick="enviarNotificacionIndividual(${notif.id}, '${notif.actividad.replace(/'/g, "\\'")}'); event.stopPropagation();" 
+                                        class="text-blue-600 hover:text-blue-800 p-1" title="Enviar notificación ahora">
+                                    <i class="fas fa-paper-plane text-xs"></i>
+                                </button>
+                                <button onclick="marcarComoLeida(${notif.id}); event.stopPropagation();" 
+                                        class="text-gray-400 hover:text-gray-600 p-1" title="Marcar como leída">
+                                    <i class="fas fa-check text-xs"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            lista.innerHTML = html;
+        } else {
+            lista.innerHTML = `
+                <div class="p-8 text-center text-gray-500">
+                    <i class="fas fa-check-circle text-4xl text-green-400 mb-3"></i>
+                    <p class="text-sm">No hay notificaciones pendientes</p>
+                    <p class="text-xs text-gray-400 mt-1">Todas las fechas están al día</p>
+                </div>
+            `;
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        lista.innerHTML = `
+            <div class="p-4 text-center text-red-500">
+                <i class="fas fa-exclamation-circle text-2xl mb-2"></i>
+                <p class="text-sm">Error al cargar notificaciones</p>
+            </div>
+        `;
+    });
+}
+
+// Actualizar el badge de notificaciones
+function actualizarBadge(total) {
+    const badge = document.getElementById('notificacionBadge');
+    if (total > 0) {
+        badge.style.display = 'inline-flex';
+        badge.textContent = total > 99 ? '99+' : total;
+    } else {
+        badge.style.display = 'none';
+    }
+}
+
+// Ver detalles de la actividad
+function verActividad(id) {
+    window.location.href = `/plan-accion/${id}`;
+}
+
+// Marcar notificación como leída
+function marcarComoLeida(id) {
+    fetch(`/plan-accion/notificacion/${id}/marcar-leida`, {
+        method: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            cargarNotificaciones(); // Recargar la lista
+            // Mostrar mensaje breve
+            Swal.fire({
+                icon: 'success',
+                title: 'Notificación marcada como leída',
+                showConfirmButton: false,
+                timer: 1500
+            });
+        }
+    });
+}
+
+// Enviar notificación individual
+function enviarNotificacionIndividual(id, actividad) {
+    if (confirm(`¿Enviar notificaciones para: "${actividad}"?`)) {
+        const btn = event.currentTarget;
+        const originalHtml = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        btn.disabled = true;
+        
+        fetch(`/plan-accion/${id}/notificar`, {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                Swal.fire({
+                    icon: 'success',
+                    title: '¡Enviado!',
+                    text: data.message,
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+                // Recargar notificaciones después de enviar
+                setTimeout(cargarNotificaciones, 2000);
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: data.message
+                });
+            }
+        })
+        .catch(error => {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Error al enviar la notificación'
+            });
+        })
+        .finally(() => {
+            btn.innerHTML = originalHtml;
+            btn.disabled = false;
+        });
+    }
+}
+
+// Función para enviar notificaciones desde otras partes (si se necesita)
+function enviarNotificaciones(id, actividad) {
+    enviarNotificacionIndividual(id, actividad);
+}
+
 document.addEventListener('DOMContentLoaded', function() {
+    // Cargar notificaciones automáticamente al entrar a la página
+    cargarNotificaciones();
+    
+    // Recargar notificaciones cada 5 minutos
+    setInterval(cargarNotificaciones, 300000);
+
+    // Modal functionality
     const verModal = document.getElementById('verActividadModal');
     const eliminarModal = document.getElementById('eliminarModal');
     
@@ -1129,14 +1384,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         }
                     });
                     
-                    const estadoColors = {
-                        'pendiente': 'bg-yellow-100 text-yellow-800',
-                        'en_proceso': 'bg-blue-100 text-blue-800',
-                        'completada': 'bg-green-100 text-green-800',
-                        'atrasada': 'bg-red-100 text-red-800'
-                    };
-                    
-                    
                     if (data.observaciones) {
                         html += `
                             <div class="mt-4 pt-4 border-t">
@@ -1175,144 +1422,5 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 });
-
-// Función para enviar notificaciones
-// En resources/views/plan-accion/index.blade.php - Reemplaza la función existente
-
-function enviarNotificaciones(id, actividad) {
-    if (confirm(`¿Enviar notificaciones para la actividad: "${actividad}"?`)) {
-        // Mostrar indicador de carga
-        const btn = event.currentTarget;
-        const originalHtml = btn.innerHTML;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-        btn.disabled = true;
-        
-        fetch(`/plan-accion/${id}/notificar`, {
-            method: 'POST',
-            headers: {
-                'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
-            }
-        })
-        .then(response => {
-            if (!response.ok) {
-                return response.json().then(err => { throw err; });
-            }
-            return response.json();
-        })
-        .then(data => {
-            if (data.success) {
-                // Mostrar mensaje de éxito con detalles
-                Swal.fire({
-                    icon: 'success',
-                    title: '¡Notificaciones enviadas!',
-                    html: `
-                        <p>${data.message}</p>
-                        ${data.data && data.data.pcm_notificados ? `
-                            <div class="mt-3 text-left">
-                                <strong>PCMs notificados:</strong><br>
-                                ${data.data.pcm_notificados.map(p => 
-                                    `- ${p.pcm.toUpperCase()}: ${p.fecha} (${p.dias} día${p.dias !== 1 ? 's' : ''})`
-                                ).join('<br>')}
-                            </div>
-                        ` : ''}
-                    `,
-                    confirmButtonColor: '#3085d6'
-                });
-            } else {
-                // Mostrar error
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: data.message || 'Error al enviar notificaciones'
-                });
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: error.message || 'Error al enviar notificaciones'
-            });
-        })
-        .finally(() => {
-            // Restaurar botón
-            btn.innerHTML = originalHtml;
-            btn.disabled = false;
-        });
-    }
-}
 </script>
-@section('scripts')
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-<script>
-function enviarNotificaciones(id, actividad) {
-    if (confirm(`¿Enviar notificaciones para la actividad: "${actividad}"?`)) {
-        const btn = event.currentTarget;
-        const originalHtml = btn.innerHTML;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-        btn.disabled = true;
-        
-        // Obtener el token CSRF
-        const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') 
-                    || document.querySelector('input[name="_token"]')?.value;
-        
-        if (!token) {
-            alert('Error: No se encontró token CSRF. Recarga la página.');
-            btn.innerHTML = originalHtml;
-            btn.disabled = false;
-            return;
-        }
-        
-        fetch(`/plan-accion/${id}/notificar`, {
-            method: 'POST',
-            headers: {
-                'X-CSRF-TOKEN': token,
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
-            }
-        })
-        .then(response => {
-            if (!response.ok) {
-                if (response.status === 419) {
-                    throw new Error('Token CSRF expirado. Recarga la página.');
-                }
-                return response.json().then(err => { throw err; });
-            }
-            return response.json();
-        })
-        .then(data => {
-            if (data.success) {
-                Swal.fire({
-                    icon: 'success',
-                    title: '¡Notificaciones enviadas!',
-                    html: data.message,
-                    confirmButtonColor: '#3085d6'
-                });
-            } else {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: data.message || 'Error al enviar notificaciones'
-                });
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: error.message || 'Error al enviar notificaciones'
-            });
-        })
-        .finally(() => {
-            btn.innerHTML = originalHtml;
-            btn.disabled = false;
-        });
-    }
-}
-</script>
-@endsection
 @endsection

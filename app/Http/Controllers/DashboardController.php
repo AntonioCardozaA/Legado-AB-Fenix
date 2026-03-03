@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Analisis;
 use App\Models\Componente;
 use App\Models\Paro;
-use App\Models\AnalisisComponente;
+use App\Models\AnalisisLavadora;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 
@@ -23,16 +23,16 @@ class DashboardController extends Controller
         // PRIMERO: Verifica si el modelo y relación existen
         try {
             // Intenta usar join en lugar de whereHas para evitar errores
-            $totalComponentesRevisados = AnalisisComponente::join('analisis', 'analisis_componentes.analisis_id', '=', 'analisis.id')
+            $totalComponentesRevisados = AnalisisLavadora::join('analisis', 'analisis_componentes.analisis_id', '=', 'analisis.id')
                 ->where('analisis.fecha_analisis', '>=', $fechaInicio)
                 ->count();
                 
-            $componentesBuenos = AnalisisComponente::join('analisis', 'analisis_componentes.analisis_id', '=', 'analisis.id')
+            $componentesBuenos = AnalisisLavadora::join('analisis', 'analisis_componentes.analisis_id', '=', 'analisis.id')
                 ->where('analisis.fecha_analisis', '>=', $fechaInicio)
                 ->where('analisis_componentes.estado', 'BUENO')
                 ->count();
                 
-            $totalDanados = AnalisisComponente::join('analisis', 'analisis_componentes.analisis_id', '=', 'analisis.id')
+            $totalDanados = AnalisisLavadora::join('analisis', 'analisis_componentes.analisis_id', '=', 'analisis.id')
                 ->where('analisis.fecha_analisis', '>=', $fechaInicio)
                 ->whereIn('analisis_componentes.estado', ['DAÑADO', 'REEMPLAZADO'])
                 ->count();

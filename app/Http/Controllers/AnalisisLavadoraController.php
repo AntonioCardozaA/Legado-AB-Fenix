@@ -31,9 +31,9 @@ class AnalisisLavadoraController extends Controller
     }
 
     if ($request->filled('componente_id')) {
-        $query->whereHas('componente', function ($q) use ($request) {
-            $q->where('codigo', 'like', '%' . $request->componente_id . '%');
-        });
+    $query->whereHas('componente', function ($q) use ($request) {
+        $q->where('codigo', 'like', '%_' . $request->componente_id);
+    });
     }
 
     if ($request->filled('reductor')) {
@@ -747,7 +747,7 @@ public function update(Request $request, $id)
         ->where('linea_id', $request->linea_id)
         ->where('reductor', $request->reductor)
         ->whereHas('componente', function ($q) use ($request) {
-            $q->where('codigo', 'like', '%' . $request->componente_id . '%');
+            $q->where('codigo', 'like', '%_' . $request->componente_id);
         })
         ->orderByDesc('fecha_analisis')
         ->orderByDesc('created_at');
@@ -865,7 +865,7 @@ public function historicoRevisados(Request $request)
         // Calcular cuántos reductores tienen análisis para este componente
         $reductoresConAnalisis = AnalisisLavadora::where('linea_id', $lineaSeleccionadaId)
             ->whereHas('componente', function($q) use ($codigo) {
-                $q->where('codigo', 'like', '%' . $codigo . '%');
+                $q->where('codigo', 'like', '%_' . $request->componente_id);
             })
             ->distinct('reductor')
             ->count('reductor');

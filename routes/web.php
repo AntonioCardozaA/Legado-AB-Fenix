@@ -288,8 +288,7 @@ Route::middleware(['auth'])->group(function () {
     Route::resource('plan-accion', PlanAccionController::class);
     Route::get('/plan-accion/dashboard', [PlanAccionController::class, 'dashboard'])->name('plan-accion.dashboard');
     Route::get('/plan-accion/por-lavadora/{lavadora}', [PlanAccionController::class, 'porLavadora'])->name('plan-accion.por-lavadora');
-    Route::post('/plan-accion/{id}/notificar', [App\Http\Controllers\PlanAccionController::class, 'enviarNotificaciones'])
-         ->name('plan-accion.notificar');
+ Route::post('/plan-accion/{id}/notificar', [PlanAccionController::class, 'notificar'])->name('plan-accion.notificar');
 
     /*
     |--------------------------------------------------------------------------
