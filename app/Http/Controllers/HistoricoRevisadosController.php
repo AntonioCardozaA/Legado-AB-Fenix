@@ -4,8 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Models\Linea;
 use App\Models\AnalisisLavadora;
+use App\Models\Componente;
+use App\Models\HistorialRestablecimiento;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 
 class HistoricoRevisadosController extends Controller
 {
@@ -171,58 +175,107 @@ class HistoricoRevisadosController extends Controller
     }
     
     /**
-     * Obtener estadísticas para lavadora usando la configuración proporcionada
+     * Obtener estadísticas para lavadora considerando la periodicidad
      */
- /**
- * Obtener estadísticas para lavadora usando la configuración proporcionada
- */
-private function getEstadisticasLavadora($linea)
-{
-    $estadisticas = [];
-    
-    // Verificar si la línea existe en la configuración
-    if (!isset($this->componentesLavadora[$linea->nombre])) {
+    private function getEstadisticasLavadora($linea)
+    {
+        $estadisticas = [];
+        
+        if (!isset($this->componentesLavadora[$linea->nombre])) {
+            return $estadisticas;
+        }
+        
+        $componentesLinea = $this->componentesLavadora[$linea->nombre];
+        
+        // Configuración de periodicidad (en meses)
+        $periodicidad = [
+            'CATARINAS' => 4,
+            'GUI_INF_TANQUE' => 4,
+            'GUI_INT_TANQUE' => 4,
+            'GUI_SUP_TANQUE' => 4,
+            'SERVO_CHICO' => 12,
+            'SERVO_GRANDE' => 12,
+            'BUJE_ESPIGA' => 12,
+            'RV200' => 12,
+            'RV200_SIN_FIN' => 12,
+        ];
+        
+        $fechaActual = Carbon::now();
+        
+        foreach ($componentesLinea as $codigo => $nombre) {
+            $cantidadTotal = $this->cantidadesTotales[$codigo] ?? 15;
+            $mesesPeriodo = $periodicidad[$codigo] ?? 12; // Por defecto anual
+            
+            // Fecha límite para considerar análisis vigentes
+            $fechaLimite = $fechaActual->copy()->subMonths($mesesPeriodo);
+            
+            // Obtener IDs de componentes que coincidan con el código
+            $componenteIds = Componente::where('codigo', 'like', '%' . $codigo . '%')
+                ->where('activo', true)
+                ->pluck('id')
+                ->toArray();
+            
+            // Calcular cantidad revisada solo de análisis en el periodo vigente
+            // y que no hayan sido restablecidos
+            $revisados = AnalisisLavadora::where('linea_id', $linea->id)
+                ->whereIn('componente_id', $componenteIds)
+                ->where('created_at', '>=', $fechaLimite)
+                ->whereNotExists(function ($query) {
+                    $query->select(DB::raw(1))
+                          ->from('historial_restablecimientos')
+                          ->whereRaw('analisis_id = analisis_componentes.id');
+                })
+                ->distinct('reductor')
+                ->count('reductor');
+            
+            $revisados = min($revisados, $cantidadTotal);
+            $porcentaje = $cantidadTotal > 0 ? round(($revisados / $cantidadTotal) * 100, 1) : 0;
+            $color = $this->getColorPorcentaje($porcentaje);
+            
+            // Calcular próximos vencimientos
+            $proximoVencimiento = $this->calcularProximoVencimiento($linea->id, $componenteIds, $mesesPeriodo);
+            
+            $estadisticas[$codigo] = [
+                'nombre' => $nombre,
+                'codigo' => $codigo,
+                'cantidad_total' => $cantidadTotal,
+                'cantidad_revisada' => $revisados,
+                'porcentaje' => $porcentaje,
+                'color' => $color,
+                'reductores_detectados' => $revisados,
+                'periodo_meses' => $mesesPeriodo,
+                'fecha_inicio_periodo' => $fechaLimite->format('Y-m-d'),
+                'fecha_fin_periodo' => $fechaActual->format('Y-m-d'),
+                'proximo_vencimiento' => $proximoVencimiento,
+            ];
+        }
+        
         return $estadisticas;
     }
-    
-    $componentesLinea = $this->componentesLavadora[$linea->nombre];
-    
-    // Crear un array vacío con el orden exacto
-    $estadisticasOrdenadas = [];
-    
-    foreach ($componentesLinea as $codigo => $nombre) {
-        // Obtener cantidad total para este componente
-        $cantidadTotal = $this->cantidadesTotales[$codigo] ?? 15;
-        
-        // Calcular cantidad revisada (distintos reductores con análisis)
-        $revisados = AnalisisLavadora::where('linea_id', $linea->id)
-            ->whereHas('componente', function($q) use ($codigo) {
-                $q->where('codigo', 'like', '%' . $codigo . '%');
+
+    /**
+     * Calcular próximo vencimiento para un componente
+     */
+    private function calcularProximoVencimiento($lineaId, $componenteIds, $periodoMeses)
+    {
+        $ultimoAnalisis = AnalisisLavadora::where('linea_id', $lineaId)
+            ->whereIn('componente_id', $componenteIds)
+            ->whereNotExists(function ($query) {
+                $query->select(DB::raw(1))
+                      ->from('historial_restablecimientos')
+                      ->whereRaw('analisis_id = analisis_componentes.id');
             })
-            ->distinct('reductor')
-            ->count('reductor');
+            ->orderBy('created_at', 'desc')
+            ->first();
         
-        // Limitar al máximo posible
-        $revisados = min($revisados, $cantidadTotal);
-        $porcentaje = $cantidadTotal > 0 ? round(($revisados / $cantidadTotal) * 100, 1) : 0;
+        if ($ultimoAnalisis) {
+            return Carbon::parse($ultimoAnalisis->created_at)
+                ->addMonths($periodoMeses)
+                ->format('Y-m-d');
+        }
         
-        // Determinar color según porcentaje
-        $color = $this->getColorPorcentaje($porcentaje);
-        
-        // Asignar al array manteniendo el orden original
-        $estadisticasOrdenadas[$codigo] = [
-            'nombre' => $nombre,
-            'codigo' => $codigo,
-            'cantidad_total' => $cantidadTotal,
-            'cantidad_revisada' => $revisados,
-            'porcentaje' => $porcentaje,
-            'color' => $color,
-            'reductores_detectados' => $revisados
-        ];
+        return null;
     }
-    
-    return $estadisticasOrdenadas;
-}
     
     /**
      * Obtener estadísticas para pasteurizadora
@@ -278,5 +331,121 @@ private function getEstadisticasLavadora($linea)
         } else {
             return 'danger';
         }
+    }
+
+    /**
+     * Forzar restablecimiento de estadísticas
+     */
+    public function resetEstadisticas(Request $request)
+    {
+        try {
+            // Verificar permisos (ajusta según tu sistema)
+            if (!auth()->user()->hasRole(['admin', 'ingeniero_mantenimiento'])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No tienes permisos para realizar esta acción'
+                ], 403);
+            }
+            
+            // Ejecutar el comando
+            $exitCode = \Artisan::call('componentes:reset-estadisticas');
+            $output = \Artisan::output();
+            
+            if ($exitCode === 0) {
+                // Log de la acción
+                Log::info('Reset de estadísticas realizado por: ' . auth()->user()->name);
+                
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Estadísticas restablecidas correctamente',
+                    'output' => $output
+                ]);
+            } else {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Error al restablecer estadísticas',
+                    'output' => $output
+                ], 500);
+            }
+        } catch (\Exception $e) {
+            Log::error('Error en reset de estadísticas: ' . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Error: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Verificar estado de restablecimiento programado
+     */
+    public function checkResetStatus()
+    {
+        $ultimoReset = DB::table('configuraciones')
+            ->where('clave', 'ultimo_reset_estadisticas')
+            ->first();
+        
+        $proximosResets = [];
+        $fechaActual = Carbon::now();
+        
+        // Calcular próximos resets para cada periodicidad
+        $periodicidades = [
+            '4_meses' => 4,
+            'anual' => 12
+        ];
+        
+        foreach ($periodicidades as $nombre => $meses) {
+            $ultimoResetPeriodo = $ultimoReset 
+                ? Carbon::parse($ultimoReset->valor) 
+                : $fechaActual->copy()->subMonths($meses);
+            
+            $proximoReset = $ultimoResetPeriodo->copy()->addMonths($meses);
+            
+            $diasRestantes = $fechaActual->diffInDays($proximoReset, false);
+            
+            $proximosResets[$nombre] = [
+                'fecha' => $proximoReset->format('d/m/Y'),
+                'dias_restantes' => $diasRestantes,
+                'estado' => $diasRestantes <= 0 ? 'pendiente' : 'programado',
+                'color' => $this->getColorDiasRestantes($diasRestantes)
+            ];
+        }
+        
+        // Estadísticas de restablecimientos
+        $statsRestablecimientos = [
+            'total_restablecidos' => HistorialRestablecimiento::count(),
+            'ultimos_30_dias' => HistorialRestablecimiento::where('created_at', '>=', Carbon::now()->subDays(30))->count(),
+            'por_componente' => HistorialRestablecimiento::select('componente_id', DB::raw('count(*) as total'))
+                ->with('componente')
+                ->groupBy('componente_id')
+                ->orderBy('total', 'desc')
+                ->limit(5)
+                ->get()
+                ->map(function($item) {
+                    return [
+                        'componente' => $item->componente ? $item->componente->nombre : 'N/A',
+                        'total' => $item->total
+                    ];
+                })
+        ];
+        
+        return response()->json([
+            'success' => true,
+            'ultimo_reset' => $ultimoReset ? Carbon::parse($ultimoReset->valor)->format('d/m/Y H:i:s') : null,
+            'proximos_resets' => $proximosResets,
+            'estadisticas' => $statsRestablecimientos
+        ]);
+    }
+
+    /**
+     * Obtener color según días restantes
+     */
+    private function getColorDiasRestantes($dias)
+    {
+        if ($dias <= 0) return 'danger';
+        if ($dias <= 7) return 'warning';
+        if ($dias <= 15) return 'info';
+        return 'success';
     }
 }

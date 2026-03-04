@@ -16,6 +16,7 @@ class AnalisisLavadora extends Model
         'linea_id',
         'componente_id',
         'reductor',
+        'lado',
         'fecha_analisis',
         'numero_orden',
         'estado',
@@ -123,5 +124,12 @@ class AnalisisLavadora extends Model
                     ) ASC')
                     ->limit(5)
                     ->get();
+    }
+        /**
+     * Relación con el historial de restablecimientos
+     */
+    public function historialRestablecimientos()
+    {
+        return $this->hasMany(HistorialRestablecimiento::class, 'analisis_id');
     }
 }

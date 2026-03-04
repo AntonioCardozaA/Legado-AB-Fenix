@@ -46,4 +46,32 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+    public function notificationSettings()
+{
+    return $this->hasOne(UserNotificationSetting::class);
+}
+
+public function getNotificationSettingsAttribute()
+{
+    return $this->notificationSettings()->firstOrCreate([
+        'user_id' => $this->id
+    ]);
+}
+
+// Método para obtener teléfono formateado para SMS
+public function getFormattedPhoneForSmsAttribute()
+{
+    $settings = $this->notificationSettings;
+    if (!$settings || !$settings->phone_number) {
+        return null;
+    }
+    
+    // Formatear según el proveedor de SMS (ejemplo para Colombia)
+    $phone = preg_replace('/[^0-9]/', '', $settings->phone_number);
+    if (substr($phone, 0, 1) === '3') {
+        $phone = '57' . $phone; // Código de Colombia
+    }
+    return $phone;
+}
+
 }

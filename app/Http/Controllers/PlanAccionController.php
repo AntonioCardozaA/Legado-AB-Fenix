@@ -2,67 +2,58 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\AnalisisLavadora;
 use App\Models\PlanAccion;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
-use Illuminate\Support\Facades\DB;
 use App\Models\Linea;
+use App\Services\NotificationService; // Agregado para notificaciones
+use Illuminate\Http\JsonResponse;
 
 class PlanAccionController extends Controller
 {
+    private $lineasLavadoraIds = [4, 5, 6, 7, 8, 9, 12, 13];
+    
+    // Propiedad para el servicio de notificaciones
+    protected $notificationService;
+
+    // Constructor para inyectar el servicio de notificaciones
+    public function __construct(NotificationService $notificationService)
+    {
+        $this->notificationService = $notificationService;
+    }
+
     public function index(Request $request)
     {
-        // Obtener parámetros de filtro
-        $tipo = $request->get('tipo', 'lavadora'); // Por defecto mostrar lavadoras
+        $tipo = $request->get('tipo', 'lavadora');
         $lineaId = $request->get('linea_id');
-        
-        // Definir IDs específicos para lavadoras (líneas 4,5,6,7,8,9,12,13)
-        $lineasLavadoraIds = [4, 5, 6, 7, 8, 9, 12, 13];
-        
-        // Obtener líneas según el tipo seleccionado
+
         if ($tipo == 'lavadora') {
-            // Solo mostrar las líneas de lavadora específicas
-            $lineasTipo = Linea::whereIn('id', $lineasLavadoraIds)
-                                ->orderBy('nombre')
-                                ->get();
+            $lineasTipo = Linea::whereIn('id', $this->lineasLavadoraIds)
+                ->orderBy('nombre')
+                ->get();
         } else {
-            // Mostrar todas las líneas para pasteurizadora
             $lineasTipo = Linea::orderBy('nombre')->get();
         }
-        
-        // Construir query de planes de acción
+
         $query = PlanAccion::with(['linea', 'responsable']);
-        
-        // Aplicar filtros según tipo y línea
+
         if ($lineaId) {
-            // Si se seleccionó una línea específica
             $query->where('linea_id', $lineaId);
-        } else {
-            // Si no hay línea específica, filtrar por el tipo seleccionado
-            if ($tipo == 'lavadora') {
-                $query->whereIn('linea_id', $lineasLavadoraIds);
-            } else {
-                // Para pasteurizadora, mostrar todas las líneas
-                // No aplicamos filtro adicional
-            }
+        } elseif ($tipo == 'lavadora') {
+            $query->whereIn('linea_id', $this->lineasLavadoraIds);
         }
-        
-        // Ordenar por fecha de creación
+
         $planes = $query->orderBy('created_at', 'desc')->paginate(15);
-        
-        // Alertas globales
+
         $alertas = $this->obtenerAlertasGlobales();
-        
-        // Estadísticas actualizadas
-        $estadisticas = $this->obtenerEstadisticas($lineasLavadoraIds);
-        
+        $estadisticas = $this->obtenerEstadisticas();
+
         return view('plan-accion.index', compact(
-            'lineasTipo', 
-            'planes', 
-            'alertas', 
-            'estadisticas', 
+            'lineasTipo',
+            'planes',
+            'alertas',
+            'estadisticas',
             'tipo',
             'lineaId'
         ));
@@ -71,28 +62,30 @@ class PlanAccionController extends Controller
     public function create(Request $request)
     {
         $tipo = $request->get('tipo', 'lavadora');
-        
-        // Definir IDs específicos para lavadoras
-        $lineasLavadoraIds = [4, 5, 6, 7, 8, 9, 12, 13];
-        
+        $lineaSeleccionada = $request->get('linea_id');
+
         if ($tipo == 'lavadora') {
-            // Solo mostrar líneas de lavadora
-            $lineas = Linea::whereIn('id', $lineasLavadoraIds)
-                            ->where('activo', true)
-                            ->orderBy('nombre')
-                            ->get();
+            $lineas = Linea::whereIn('id', $this->lineasLavadoraIds)
+                ->where('activo', true)
+                ->orderBy('nombre')
+                ->get();
         } else {
-            // Mostrar todas las líneas para pasteurizadora
             $lineas = Linea::where('activo', true)
-                            ->orderBy('nombre')
-                            ->get();
+                ->orderBy('nombre')
+                ->get();
         }
 
         $responsables = User::where('activo', true)->get();
-        
-        return view('plan-accion.create', compact('lineas', 'responsables', 'tipo'));
+
+        return view('plan-accion.create', compact(
+            'lineas',
+            'responsables',
+            'tipo',
+            'lineaSeleccionada'
+        ));
     }
 
+    // Método store modificado para incluir notificaciones
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -102,32 +95,31 @@ class PlanAccionController extends Controller
             'fecha_pcm2' => 'nullable|date',
             'fecha_pcm3' => 'nullable|date',
             'fecha_pcm4' => 'nullable|date',
-            'estado' => 'required|in:pendiente,en_proceso,completada,atrasada',
             'responsable_id' => 'nullable|exists:users,id',
             'observaciones' => 'nullable|string',
-            'tipo_maquina' => 'nullable|array'
+            'tipo_maquina' => 'nullable|array',
+            'notificar_ahora' => 'nullable|boolean' // Nuevo campo para notificar inmediatamente
         ]);
 
-        // Convertir el array a JSON para guardar
         if (isset($validated['tipo_maquina'])) {
             $validated['tipo_maquina'] = json_encode($validated['tipo_maquina']);
         }
 
-        PlanAccion::create($validated);
+        $plan = PlanAccion::create($validated);
 
-        // Obtener el tipo de la línea para redireccionar
-        $linea = Linea::find($validated['linea_id']);
-        $lineasLavadoraIds = [4, 5, 6, 7, 8, 9, 12, 13];
-        $tipo = in_array($linea->id, $lineasLavadoraIds) ? 'lavadora' : 'pasteurizadora';
+        // Si se solicita notificar inmediatamente
+        if ($request->has('notificar_ahora') && $request->notificar_ahora) {
+            $this->notificationService->notificarActividadManualmente($plan->id);
+        }
 
-        return redirect()->route('plan-accion.index', ['tipo' => $tipo])
-            ->with('success', 'Actividad creada correctamente');
+        return redirect()->route('plan-accion.index')
+            ->with('success', 'Actividad creada correctamente' . 
+                   ($request->notificar_ahora ? ' y notificaciones enviadas.' : ''));
     }
 
     public function show($id)
     {
         $plan = PlanAccion::with(['linea', 'responsable'])->findOrFail($id);
-        
         return response()->json($plan);
     }
 
@@ -135,49 +127,49 @@ class PlanAccionController extends Controller
     {
         $plan = PlanAccion::findOrFail($id);
         $tipo = $request->get('tipo', 'lavadora');
-        
-        // Definir IDs específicos para lavadoras
-        $lineasLavadoraIds = [4, 5, 6, 7, 8, 9, 12, 13];
-        
+
         if ($tipo == 'lavadora') {
-            // Solo mostrar líneas de lavadora
-            $lavadoras = Linea::whereIn('id', $lineasLavadoraIds)
-                                ->where('activo', true)
-                                ->orderBy('nombre')
-                                ->get();
+            $lavadoras = Linea::whereIn('id', $this->lineasLavadoraIds)
+                ->where('activo', true)
+                ->orderBy('nombre')
+                ->get();
         } else {
-            // Mostrar todas las líneas para pasteurizadora
             $lavadoras = Linea::where('activo', true)
-                                ->orderBy('nombre')
-                                ->get();
+                ->orderBy('nombre')
+                ->get();
         }
-        
+
         $responsables = User::where('activo', true)->get();
-        
-        // Decodificar los tipos de máquina para mostrarlos en el formulario
-        $tiposMaquinaSeleccionados = $plan->tipo_maquina ? json_decode($plan->tipo_maquina, true) : [];
-        
-        return view('plan-accion.edit', compact('plan', 'lavadoras', 'responsables', 'tiposMaquinaSeleccionados', 'tipo'));
+
+        $tiposMaquinaSeleccionados = $plan->tipo_maquina
+            ? json_decode($plan->tipo_maquina, true)
+            : [];
+
+        return view('plan-accion.edit', compact(
+            'plan',
+            'lavadoras',
+            'responsables',
+            'tiposMaquinaSeleccionados',
+            'tipo'
+        ));
     }
 
     public function update(Request $request, $id)
     {
         $plan = PlanAccion::findOrFail($id);
-        
+
         $validated = $request->validate([
             'linea_id' => 'required|exists:lineas,id',
-            'actividad' => 'required|string|max:500',
+            'actividad' => 'required|string|max:1000',
             'fecha_pcm1' => 'nullable|date',
             'fecha_pcm2' => 'nullable|date',
             'fecha_pcm3' => 'nullable|date',
             'fecha_pcm4' => 'nullable|date',
-            'estado' => 'required|in:pendiente,en_proceso,completada,atrasada',
             'responsable_id' => 'nullable|exists:users,id',
             'observaciones' => 'nullable|string',
             'tipo_maquina' => 'nullable|array'
         ]);
 
-        // Convertir el array a JSON para guardar
         if (isset($validated['tipo_maquina'])) {
             $validated['tipo_maquina'] = json_encode($validated['tipo_maquina']);
         } else {
@@ -185,160 +177,174 @@ class PlanAccionController extends Controller
         }
 
         $plan->update($validated);
-        
-        // Actualizar estado automáticamente
-        $plan->actualizarEstado();
 
-        // Obtener el tipo de la línea para redireccionar
-        $linea = Linea::find($validated['linea_id']);
-        $lineasLavadoraIds = [4, 5, 6, 7, 8, 9, 12, 13];
-        $tipo = in_array($linea->id, $lineasLavadoraIds) ? 'lavadora' : 'pasteurizadora';
-
-        return redirect()->route('plan-accion.index', ['tipo' => $tipo])
-                         ->with('success', 'Actividad actualizada exitosamente');
+        return redirect()->route('plan-accion.index')
+            ->with('success', 'Actividad actualizada exitosamente');
     }
 
-    public function destroy(Request $request, $id)
+    public function destroy($id)
     {
         $plan = PlanAccion::findOrFail($id);
-        $tipo = $request->get('tipo', 'lavadora');
-        
         $plan->delete();
 
-        return redirect()->route('plan-accion.index', ['tipo' => $tipo])
-                         ->with('success', 'Actividad eliminada exitosamente');
+        return redirect()->route('plan-accion.index')
+            ->with('success', 'Actividad eliminada exitosamente');
     }
 
-    public function dashboard()
-    {
-        $lavadoras = Linea::orderBy('nombre')->get();
-        $lavadoras = Linea::withCount(['planesAccion' => function($query) {
-            $query->where('estado', '!=', 'completada');
-        }])->get();
+    /**
+     * Enviar notificaciones manualmente para una actividad específica
+     */
+    public function enviarNotificaciones($id): JsonResponse
+{
+    try {
+        $plan = PlanAccion::with('linea')->findOrFail($id);
         
-        $actividadesProximas = PlanAccion::with('linea')
-            ->whereHas('linea', function($q) {
-                $q->where('activo', true);
-            })
-            ->whereIn('estado', ['pendiente', 'en_proceso'])
-            ->where(function($query) {
-                $query->whereDate('fecha_pcm1', '>=', now())
-                      ->orWhereDate('fecha_pcm2', '>=', now())
-                      ->orWhereDate('fecha_pcm3', '>=', now())
-                      ->orWhereDate('fecha_pcm4', '>=', now());
-            })
-            ->orderByRaw('LEAST(
-                COALESCE(fecha_pcm1, "9999-12-31"),
-                COALESCE(fecha_pcm2, "9999-12-31"),
-                COALESCE(fecha_pcm3, "9999-12-31"),
-                COALESCE(fecha_pcm4, "9999-12-31")
-            ) ASC')
-            ->limit(10)
-            ->get();
+        // Verificar si hay fechas próximas
+        $fechasProximas = false;
+        $pcmConFechas = [];
         
-        $alertas = $this->obtenerAlertasGlobales();
-        
-        return view('plan-accion.dashboard', compact('lavadoras', 'actividadesProximas', 'alertas'));
-    }
-
-    private function obtenerAlertasGlobales()
-    {
-        $alertas = [];
-        $hoy = Carbon::now();
-        $manana = Carbon::now()->addDay();
-        $proximosDias = Carbon::now()->addDays(7);
-        
-        $actividadesProximas = PlanAccion::with('linea')
-            ->whereIn('estado', ['pendiente', 'en_proceso'])
-            ->where(function($query) use ($hoy, $proximosDias) {
-                $query->whereBetween('fecha_pcm1', [$hoy, $proximosDias])
-                      ->orWhereBetween('fecha_pcm2', [$hoy, $proximosDias])
-                      ->orWhereBetween('fecha_pcm3', [$hoy, $proximosDias])
-                      ->orWhereBetween('fecha_pcm4', [$hoy, $proximosDias]);
-            })
-            ->get();
-        
-        foreach ($actividadesProximas as $plan) {
-            foreach (['pcm1', 'pcm2', 'pcm3', 'pcm4'] as $pcm) {
-                $fechaCampo = 'fecha_' . $pcm;
-                if ($plan->$fechaCampo && $plan->$fechaCampo >= $hoy && $plan->$fechaCampo <= $proximosDias) {
-                    $diasRestantes = $hoy->diffInDays($plan->$fechaCampo, false);
-                    
-                    // Determinar prioridad
-                    $prioridad = $diasRestantes <= 3 ? 'alta' : ($diasRestantes <= 5 ? 'media' : 'baja');
-                    
-                    $alertas[] = [
-                        'id' => $plan->id,
-                        'linea_id' => $plan->linea_id,
-                        'linea' => optional($plan->linea)->nombre ?? 'Sin línea',
-                        'actividad' => $plan->actividad,
-                        'pcm' => strtoupper($pcm),
+        foreach (['pcm1', 'pcm2', 'pcm3', 'pcm4'] as $pcm) {
+            $fechaCampo = 'fecha_' . $pcm;
+            if ($plan->$fechaCampo) {
+                $diasRestantes = now()->diffInDays($plan->$fechaCampo, false);
+                if ($diasRestantes <= 7) { // Solo notificar si está próximo (7 días o menos)
+                    $fechasProximas = true;
+                    $pcmConFechas[] = [
+                        'pcm' => $pcm,
                         'fecha' => $plan->$fechaCampo->format('d/m/Y'),
-                        'dias_restantes' => $diasRestantes,
-                        'prioridad' => $prioridad,
-                        'es_manana' => $plan->$fechaCampo->format('Y-m-d') == $manana->format('Y-m-d')
+                        'dias' => $diasRestantes
                     ];
                 }
             }
         }
         
-        // Ordenar por prioridad y días restantes
-        usort($alertas, function($a, $b) {
-            $prioridad = ['alta' => 1, 'media' => 2, 'baja' => 3];
-            if ($prioridad[$a['prioridad']] != $prioridad[$b['prioridad']]) {
-                return $prioridad[$a['prioridad']] - $prioridad[$b['prioridad']];
-            }
-            return $a['dias_restantes'] - $b['dias_restantes'];
-        });
+        if (!$fechasProximas) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No hay fechas próximas para notificar (menos de 7 días)'
+            ]);
+        }
         
-        return $alertas;
+        // Enviar notificaciones usando el servicio
+        $notificationService = app(NotificationService::class);
+        $resultados = $notificationService->notificarActividadManualmente($id);
+        
+        // Contar éxitos
+        $exitosos = 0;
+        $fallidos = 0;
+        
+        foreach ($resultados as $usuarioId => $resultado) {
+            if ($resultado === 'success') {
+                $exitosos++;
+            } else {
+                $fallidos++;
+            }
+        }
+        
+        return response()->json([
+            'success' => true,
+            'message' => "Notificaciones enviadas: {$exitosos} exitosas, {$fallidos} fallidas",
+            'data' => [
+                'enviados' => $exitosos,
+                'fallidos' => $fallidos,
+                'pcm_notificados' => $pcmConFechas,
+                'detalles' => $resultados
+            ]
+        ]);
+        
+    } catch (\Exception $e) {
+        \Log::error('Error enviando notificaciones: ' . $e->getMessage(), [
+            'plan_id' => $id,
+            'trace' => $e->getTraceAsString()
+        ]);
+        
+        return response()->json([
+            'success' => false,
+            'message' => 'Error al enviar notificaciones: ' . $e->getMessage()
+        ], 500);
+    }
+}
+
+ private function obtenerAlertasGlobales()
+{
+    $alertas = [];
+    $hoy = Carbon::now();
+    $proximosDias = Carbon::now()->addDays(7);
+
+    $actividadesProximas = PlanAccion::with('linea')
+        ->where(function ($query) use ($hoy, $proximosDias) {
+            $query->whereBetween('fecha_pcm1', [$hoy, $proximosDias])
+                ->orWhereBetween('fecha_pcm2', [$hoy, $proximosDias])
+                ->orWhereBetween('fecha_pcm3', [$hoy, $proximosDias])
+                ->orWhereBetween('fecha_pcm4', [$hoy, $proximosDias]);
+        })
+        ->get();
+
+    foreach ($actividadesProximas as $plan) {
+        foreach (['pcm1', 'pcm2', 'pcm3', 'pcm4'] as $pcm) {
+            $fechaCampo = 'fecha_' . $pcm;
+
+            if ($plan->$fechaCampo &&
+                $plan->$fechaCampo >= $hoy &&
+                $plan->$fechaCampo <= $proximosDias) {
+
+                $diasRestantes = $hoy->diffInDays($plan->$fechaCampo, false);
+                
+                // Determinar prioridad basada en días restantes
+                $prioridad = 'baja';
+                if ($diasRestantes <= 1) {
+                    $prioridad = 'alta';
+                } elseif ($diasRestantes <= 3) {
+                    $prioridad = 'media';
+                }
+
+                // Verificar si es mañana
+                $esManana = $diasRestantes == 1;
+
+                $alertas[] = [
+                    'id' => $plan->id,
+                    'linea' => optional($plan->linea)->nombre ?? 'Sin línea',
+                    'actividad' => $plan->actividad,
+                    'pcm' => strtoupper($pcm),
+                    'fecha' => Carbon::parse($plan->$fechaCampo)->format('d/m/Y'),
+                    'dias_restantes' => $diasRestantes,
+                    'es_manana' => $esManana,
+                    'prioridad' => $prioridad // ← ESTO ES LO QUE FALTABA
+                ];
+            }
+        }
     }
 
-    private function obtenerEstadisticas($lineasLavadoraIds = [])
+    // Ordenar alertas por prioridad (alta primero) y días restantes
+    usort($alertas, function($a, $b) {
+        $prioridades = ['alta' => 1, 'media' => 2, 'baja' => 3];
+        if ($prioridades[$a['prioridad']] == $prioridades[$b['prioridad']]) {
+            return $a['dias_restantes'] - $b['dias_restantes'];
+        }
+        return $prioridades[$a['prioridad']] - $prioridades[$b['prioridad']];
+    });
+
+    return $alertas;
+}
+
+    private function obtenerEstadisticas()
     {
-        // Total de lavadoras (solo las líneas específicas)
-        $totalLavadoras = Linea::whereIn('id', $lineasLavadoraIds)->count();
-        
-        // Total de pasteurizadoras (todas las líneas)
-        $totalPasteurizadoras = Linea::count();
-        
-        // Actividades pendientes (sin filtrar por tipo)
-        $actividadesPendientes = PlanAccion::whereIn('estado', ['pendiente', 'en_proceso'])->count();
-        
-        // Actividades completadas
-        $actividadesCompletadas = PlanAccion::where('estado', 'completada')->count();
-        
-        // Actividades atrasadas
-        $actividadesAtrasadas = PlanAccion::where('estado', 'atrasada')->count();
-        
         return [
-            'total_lavadoras' => $totalLavadoras,
-            'total_pasteurizadoras' => $totalPasteurizadoras,
             'total_actividades' => PlanAccion::count(),
-            'actividades_pendientes' => $actividadesPendientes,
-            'actividades_completadas' => $actividadesCompletadas,
-            'actividades_atrasadas' => $actividadesAtrasadas,
             'proximas_7_dias' => $this->contarActividadesProximas(7),
-            'proximas_30_dias' => $this->contarActividadesProximas(30)
+            'proximas_30_dias' => $this->contarActividadesProximas(30),
         ];
     }
 
     private function contarActividadesProximas($dias)
     {
         $fechaLimite = Carbon::now()->addDays($dias);
-        
-        return PlanAccion::whereIn('estado', ['pendiente', 'en_proceso'])
-            ->where(function($query) use ($fechaLimite) {
-                $query->whereBetween('fecha_pcm1', [now(), $fechaLimite])
-                      ->orWhereBetween('fecha_pcm2', [now(), $fechaLimite])
-                      ->orWhereBetween('fecha_pcm3', [now(), $fechaLimite])
-                      ->orWhereBetween('fecha_pcm4', [now(), $fechaLimite]);
-            })
-            ->count();
-    }
 
-    private function verificarNotificacionesIniciales($plan)
-    {
-        // Lógica para enviar notificaciones si es necesario
+        return PlanAccion::where(function ($query) use ($fechaLimite) {
+            $query->whereBetween('fecha_pcm1', [now(), $fechaLimite])
+                ->orWhereBetween('fecha_pcm2', [now(), $fechaLimite])
+                ->orWhereBetween('fecha_pcm3', [now(), $fechaLimite])
+                ->orWhereBetween('fecha_pcm4', [now(), $fechaLimite]);
+        })->count();
     }
 }

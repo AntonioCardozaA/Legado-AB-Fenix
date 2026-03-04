@@ -549,6 +549,26 @@
         background: #cbd5e1;
     }
 
+    .btn-warning {
+        background: linear-gradient(135deg, #f59e0b, #d97706);
+        color: white;
+    }
+
+    .btn-warning:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+    }
+
+    .btn-info {
+        background: linear-gradient(135deg, #3b82f6, #2563eb);
+        color: white;
+    }
+
+    .btn-info:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    }
+
     /* MODAL PARA DETALLE DE COMPONENTE */
     .modal {
         display: none;
@@ -700,7 +720,7 @@
                 <i class="fas fa-cubes"></i>
             </div>
             <div class="resumen-info">
-                <h4>Total Componentes</h4>
+                <h4>Total Análisis</h4>
                 <div class="valor">{{ $resumen['total_general'] }}</div>
                 <div class="subvalor">En toda la línea</div>
             </div>
@@ -711,9 +731,8 @@
                 <i class="fas fa-check-circle"></i>
             </div>
             <div class="resumen-info">
-                <h4>Componentes Revisados</h4>
+                <h4>Análisis Realizados</h4>
                 <div class="valor">{{ $resumen['revisado_general'] }}</div>
-                <div class="subvalor">Con análisis registrado</div>
             </div>
         </div>
 
@@ -724,7 +743,6 @@
             <div class="resumen-info">
                 <h4>Progreso General</h4>
                 <div class="valor">{{ $resumen['porcentaje_general'] }}%</div>
-                <div class="subvalor">Completado</div>
             </div>
         </div>
     </div>
@@ -749,11 +767,8 @@ $rutasImagenes = [
         <div class="table-header">
             <h3>
                 <i class="fas fa-clipboard-list"></i>
-                COMPONENTES DE {{ $lineaSeleccionada->nombre ?? 'LA LÍNEA SELECCIONADA' }}
+                ANÁLISIS DE {{ $lineaSeleccionada->nombre ?? 'LA LÍNEA SELECCIONADA' }}
             </h3>
-            <div class="badge">
-                <i class="fas fa-sync-alt"></i> Actualizado en tiempo real
-            </div>
         </div>
 
         <div class="table-responsive">
@@ -763,7 +778,6 @@ $rutasImagenes = [
                         <th>Componente</th>
                         <th>Cantidad Total</th>
                         <th>Cantidad Revisada</th>
-                        <th>Progreso</th>
                         <th>Acciones</th>
                     </tr>
                 </thead>
@@ -780,6 +794,14 @@ $rutasImagenes = [
                                     </div>
                                     <div class="componente-info">
                                         <span class="componente-nombre-texto">{{ $data['nombre'] }}</span>
+                                        @if(isset($data['periodo_meses']))
+                                            <span class="text-xs text-gray-500">
+                                                <i class="fas fa-clock"></i> Cada {{ $data['periodo_meses'] }} meses
+                                                @if(isset($data['proximo_vencimiento']))
+                                                    · Vence: {{ \Carbon\Carbon::parse($data['proximo_vencimiento'])->format('d/m/Y') }}
+                                                @endif
+                                            </span>
+                                        @endif
                                     </div>
                                 </div>
                             </td>
@@ -791,15 +813,7 @@ $rutasImagenes = [
                                     {{ $data['cantidad_revisada'] }} / {{ $data['cantidad_total'] }}
                                 </span>
                             </td>
-                            <td style="width: 40%;">
-                                <div class="progress-container">
-                                    <div class="progress-bar bg-{{ $data['color'] }}" 
-                                         style="width: {{ $data['porcentaje'] }}%;">
-                                        {{ $data['porcentaje'] }}%
-                                    </div>
-                                    <span class="progress-label">{{ $data['reductores_detectados'] }} reductores</span>
-                                </div>
-                            </td>
+                      
                             <td>
                                 <button class="btn btn-sm btn-primary" 
                                         style="padding: 6px 12px; font-size: 12px; background: #3b82f6; color: white; border: none; border-radius: 6px;"
@@ -826,7 +840,7 @@ $rutasImagenes = [
 <div class="grafica-section">
     <div class="grafica-title">
         <i class="fas fa-chart-bar text-blue-600"></i>
-        GRÁFICA DE AVANCE POR COMPONENTE
+        GRÁFICA DE AVANCE POR ANÁLISIS
     </div>
 
     <div class="grafica-vertical-container">
@@ -875,19 +889,19 @@ $rutasImagenes = [
     <div class="grafica-leyenda">
         <div class="leyenda-item">
             <div class="leyenda-color success"></div>
-            <span class="leyenda-texto">80-100% (Completo)</span>
+            <span class="leyenda-texto">80-100%</span>
         </div>
         <div class="leyenda-item">
             <div class="leyenda-color info"></div>
-            <span class="leyenda-texto">50-79% (Medio)</span>
+            <span class="leyenda-texto">50-79%</span>
         </div>
         <div class="leyenda-item">
             <div class="leyenda-color warning"></div>
-            <span class="leyenda-texto">20-49% (Bajo)</span>
+            <span class="leyenda-texto">20-49%</span>
         </div>
         <div class="leyenda-item">
             <div class="leyenda-color danger"></div>
-            <span class="leyenda-texto">0-19% (Crítico)</span>
+            <span class="leyenda-texto">0-19%</span>
         </div>
     </div>
 </div>
@@ -904,12 +918,42 @@ $rutasImagenes = [
             <i class="fas fa-sync-alt"></i>
             Actualizar Datos
         </button>
-        <a href="{{ route('historico-revisados.index') }}" class="btn btn-secondary">
-            <i class="fas fa-chart-bar"></i>
-            Ver Todas las Líneas
-        </a>
     </div>
+
+    {{-- GESTIÓN DE PERIODICIDAD (Solo para administradores e ingenieros de mantenimiento) --}}
+    @canany(['admin', 'ingeniero_mantenimiento'])
+    <div class="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+        <h4 class="font-semibold text-gray-700 mb-3 flex items-center gap-2">
+            <i class="fas fa-history text-blue-600"></i>
+            Gestión de Periodicidad
+        </h4>
+        
+        <div id="resetInfo" class="mb-3 text-sm">
+            <div class="flex items-center gap-2">
+                <div class="animate-pulse">
+                    <i class="fas fa-spinner fa-spin text-gray-400"></i>
+                </div>
+                <span class="text-gray-600">Cargando información de restablecimientos...</span>
+            </div>
+        </div>
+        
+        <div class="flex gap-3">
+            <button class="btn btn-warning" onclick="confirmarResetEstadisticas(event)" 
+                    style="background: linear-gradient(135deg, #f59e0b, #d97706); color: white;">
+                <i class="fas fa-sync-alt"></i>
+                Restablecer Estadísticas
+            </button>
+            
+            <button class="btn btn-info" onclick="verProximosResets()"
+                    style="background: linear-gradient(135deg, #3b82f6, #2563eb); color: white;">
+                <i class="fas fa-calendar-alt"></i>
+                Ver Próximos Resets
+            </button>
+        </div>
+    </div>
+    @endcanany
 </div>
+
 
 {{-- MODAL PARA DETALLE DE COMPONENTE --}}
 <div id="componenteModal" class="modal">
@@ -1014,6 +1058,123 @@ document.addEventListener('DOMContentLoaded', function() {
             barra.style.height = altura;
         }, 100);
     });
+    
+    // Cargar información de resets si existe el elemento
+    if (document.getElementById('resetInfo')) {
+        cargarInfoReset();
+    }
 });
+
+// Funciones para gestión de periodicidad
+function cargarInfoReset() {
+    fetch('{{ route("historico-revisados.check-reset-status") }}')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                let html = `
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="bg-white p-3 rounded-lg border">
+                            <div class="text-xs text-gray-500">Último Reset</div>
+                            <div class="font-semibold">${data.ultimo_reset || 'Nunca'}</div>
+                        </div>
+                `;
+                
+                for (const [key, reset] of Object.entries(data.proximos_resets)) {
+                    const nombre = key === '4_meses' ? '4 Meses' : 'Anual';
+                    let colorClass = 'text-gray-600';
+                    
+                    if (reset.color === 'success') colorClass = 'text-green-600';
+                    else if (reset.color === 'info') colorClass = 'text-blue-600';
+                    else if (reset.color === 'warning') colorClass = 'text-yellow-600';
+                    else if (reset.color === 'danger') colorClass = 'text-red-600';
+                    
+                    html += `
+                        <div class="bg-white p-3 rounded-lg border">
+                            <div class="text-xs text-gray-500">Próximo Reset ${nombre}</div>
+                            <div class="font-semibold">${reset.fecha}</div>
+                            <div class="text-xs ${colorClass}">
+                                ${reset.dias_restantes > 0 ? reset.dias_restantes + ' días' : 'Pendiente'}
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                html += '</div>';
+                
+                if (data.estadisticas && data.estadisticas.total_restablecidos > 0) {
+                    html += `
+                        <div class="mt-2 text-xs text-gray-600">
+                            Total restablecidos: ${data.estadisticas.total_restablecidos} 
+                            (${data.estadisticas.ultimos_30_dias} en últimos 30 días)
+                        </div>
+                    `;
+                }
+                
+                document.getElementById('resetInfo').innerHTML = html;
+            }
+        })
+        .catch(error => {
+            document.getElementById('resetInfo').innerHTML = `
+                <div class="text-red-600 text-sm">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    Error al cargar información
+                </div>
+            `;
+            console.error('Error:', error);
+        });
+}
+
+function confirmarResetEstadisticas(event) {
+    if (confirm('⚠️ ¿Estás seguro de restablecer las estadísticas?\n\n' +
+                '• Componentes de 4 meses: CATARINAS, GUÍAS\n' +
+                '• Componentes anuales: SERVOS, BUJES, REDUCTORES\n\n' +
+                'Los análisis fuera del periodo serán movidos al historial.')) {
+        
+        const btn = event.target.closest('button');
+        const originalHtml = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Procesando...';
+        btn.disabled = true;
+        
+        fetch('{{ route("historico-revisados.reset-estadisticas") }}', {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('✅ Estadísticas restablecidas correctamente');
+                location.reload();
+            } else {
+                alert('❌ Error: ' + data.message);
+                btn.innerHTML = originalHtml;
+                btn.disabled = false;
+            }
+        })
+        .catch(error => {
+            alert('❌ Error al restablecer estadísticas');
+            console.error(error);
+            btn.innerHTML = originalHtml;
+            btn.disabled = false;
+        });
+    }
+}
+
+function verProximosResets() {
+    cargarInfoReset();
+    // Mostrar notificación
+    const infoDiv = document.getElementById('resetInfo');
+    infoDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    
+    // Resaltar temporalmente
+    infoDiv.style.transition = 'background-color 0.5s ease';
+    infoDiv.style.backgroundColor = '#fef3c7';
+    setTimeout(() => {
+        infoDiv.style.backgroundColor = '';
+    }, 1000);
+}
 </script>
 @endsection

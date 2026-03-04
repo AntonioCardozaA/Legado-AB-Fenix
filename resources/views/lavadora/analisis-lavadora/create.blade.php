@@ -20,15 +20,15 @@
         <div class="bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl p-4 border border-gray-200">
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                 <div class="flex items-center gap-3">
-    {{-- Icono de máquina --}}
-    <div class="w-20 h-20 flex-shrink-0">
-        <img src="{{ asset('images/icono-maquina.png') }}" 
-             alt="Icono de lavadora" 
-             class="w-full h-full object-contain">
-    </div>
-                <div>
-                    <p class="text-gray-600 font-semibold">Lavadora</p>
-                    <p class="text-gray-800">{{ $linea->nombre ?? 'Lavadora ' . $linea->id }}</p>
+                    <div class="w-20 h-20 flex-shrink-0">
+                        <img src="{{ asset('images/icono-maquina.png') }}" 
+                             alt="Icono de lavadora" 
+                             class="w-full h-full object-contain">
+                    </div>
+                    <div>
+                        <p class="text-gray-600 font-semibold">Lavadora</p>
+                        <p class="text-gray-800">{{ $linea->nombre ?? 'Lavadora ' . $linea->id }}</p>
+                    </div>
                 </div>
                 <div id="componente-info" class="hidden">
                     <p class="text-gray-600 font-semibold">Componente</p>
@@ -60,7 +60,7 @@
                             class="block w-full rounded-lg border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm
                                    @error('componente_codigo') border-red-500 @enderror"
                             required
-                            onchange="actualizarInformacion()">
+                            onchange="actualizarInformacion(); toggleLadoSelector();">
                         <option value="">Seleccionar componente...</option>
                         @foreach($componentesDisponibles as $codigo => $nombre)
                             <option value="{{ $codigo }}"
@@ -98,6 +98,25 @@
                         <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
                     @enderror
                 </div>
+            </div>
+
+            {{-- NUEVO: Selector de Lado (solo para Guías y Catarinas) --}}
+            <div id="lado-selector-container" class="mb-6 hidden">
+                <label for="lado" class="block text-sm font-medium text-gray-700 mb-1">
+                    <i class="fas fa-arrows-alt-h text-blue-600 mr-1"></i>
+                    Lado del Análisis *
+                </label>
+                <select id="lado" name="lado"
+                        class="block w-full rounded-lg border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm
+                               @error('lado') border-red-500 @enderror">
+                    <option value="">Seleccionar lado...</option>
+                    <option value="VAPOR" {{ old('lado') == 'VAPOR' ? 'selected' : '' }}>💨 Lado Vapor</option>
+                    <option value="PASILLO" {{ old('lado') == 'PASILLO' ? 'selected' : '' }}>🚶 Lado Pasillo</option>
+                </select>
+                <p class="text-gray-500 text-xs mt-1">Indique si el análisis corresponde al lado vapor o lado pasillo</p>
+                @error('lado')
+                    <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+                @enderror
             </div>
 
             {{-- Fecha y Número de Orden --}}
@@ -146,7 +165,7 @@
             <div class="mb-6">
                 <label for="estado" class="block text-sm font-medium text-gray-700 mb-1">
                     <i class="fas fa-tasks text-blue-600 mr-1"></i>
-                    Estado / Condición *
+                    Estado *
                 </label>
                 <select name="estado" 
                         id="estado"
@@ -169,7 +188,7 @@
             <div class="mb-6">
                 <label for="actividad" class="block text-sm font-medium text-gray-700 mb-1">
                     <i class="fas fa-sticky-note text-blue-600 mr-1"></i>
-                    Actividad / Observaciones *
+                    Actividad*
                 </label>
                 <textarea id="actividad" name="actividad" rows="4"
                           placeholder="Describa la actividad realizada o notas adicionales sobre el componente..."
@@ -230,6 +249,30 @@ document.addEventListener('DOMContentLoaded', function() {
     const inputFotos = document.getElementById('evidencia_fotos');
     const previewFotos = document.getElementById('preview_fotos');
     const numeroOrdenInput = document.getElementById('numero_orden');
+    const componenteSelect = document.getElementById('componente_codigo');
+    const ladoSelector = document.getElementById('lado-selector-container');
+    const ladoInput = document.getElementById('lado');
+
+    // Función para mostrar/ocultar el selector de lado
+    function toggleLadoSelector() {
+        const componenteSeleccionado = componenteSelect.value;
+        // Códigos de componentes que requieren selección de lado
+        const componentesConLado = [
+            'GUI_SUP_TANQUE',    // Guía Superior
+            'GUI_INT_TANQUE',     // Guía Intermedia
+            'GUI_INF_TANQUE',     // Guía Inferior
+            'CATARINAS'           // Catarinas
+        ];
+        
+        if (componentesConLado.includes(componenteSeleccionado)) {
+            ladoSelector.classList.remove('hidden');
+            ladoInput.setAttribute('required', 'required');
+        } else {
+            ladoSelector.classList.add('hidden');
+            ladoInput.removeAttribute('required');
+            ladoInput.value = ''; // Limpiar el valor cuando se oculta
+        }
+    }
 
     // Vista previa de imágenes
     inputFotos.addEventListener('change', function() {
@@ -257,7 +300,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Botón para eliminar (opcional)
                 const removeBtn = document.createElement('button');
                 removeBtn.type = 'button';
-                removeBtn.className = 'absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 opacity-0 group-hover:opacity-100 transition-opacity text-xs';
+                removeBtn.className = 'absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 opacity-0 group-hover:opacity-100 transition-opacity text-xs flex items-center justify-center';
                 removeBtn.innerHTML = '×';
                 removeBtn.onclick = function() {
                     imgContainer.remove();
@@ -282,9 +325,15 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
+    // Escuchar cambios en el selector de componente
+    componenteSelect.addEventListener('change', function() {
+        toggleLadoSelector();
+    });
+
     // Actualizar información al cargar la página si hay valores previos
     if (document.getElementById('componente_codigo').value || document.getElementById('reductor').value) {
         actualizarInformacion();
+        toggleLadoSelector(); // Verificar si debe mostrarse el selector de lado
     }
 });
 

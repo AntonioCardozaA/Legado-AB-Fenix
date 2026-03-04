@@ -176,7 +176,7 @@
                 </div>
             </a>
             {{--Analsis 52-12-4--}}
-            <a href="{{ route('analisis-52-12-4.index') }}" 
+            <a href="{{ route('analisis-tendencia-mensual-lavadora.index') }}" 
                class="group relative bg-white rounded-3xl shadow-lg hover:shadow-2xl transition-all duration-500 overflow-hidden hover:-translate-y-2">
                 
                 <div class="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-blue-600 to-blue-400"></div>

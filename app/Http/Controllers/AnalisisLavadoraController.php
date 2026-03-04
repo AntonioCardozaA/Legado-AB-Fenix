@@ -374,6 +374,7 @@ class AnalisisLavadoraController extends Controller
         'actividad'         => 'required|string',
         'evidencia_fotos.*' => 'nullable|image|max:2048',
         'redirect_to'       => 'nullable|string',
+        'lado'               => 'nullable|string|in:VAPOR,PASILLO',
     ]);
 
     if ($validator->fails()) {
@@ -470,8 +471,11 @@ class AnalisisLavadoraController extends Controller
             'numero_orden'   => $request->numero_orden,
             'estado'         => $request->estado,
             'actividad'      => $request->actividad,
+            'lado'           => $request->lado ?? null,
         ]);
-
+        if ($request->filled('lado')) {
+            $data['lado'] = $request->lado;
+        }
         Log::info('Análisis creado', ['id' => $analisis->id]);
 
     } catch (\Exception $e) {

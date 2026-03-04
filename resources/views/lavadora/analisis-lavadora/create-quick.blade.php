@@ -17,49 +17,50 @@
                 </h1>
             </div>
             
-          {{-- Información del contexto --}}
-<div class="bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl p-4 border border-gray-200">
-    <div class="flex flex-col md:flex-row items-center gap-6">
-        {{-- Icono de máquina --}}
-        <div class="flex-shrink-0">
-            <div class="w-20 h-20 mx-auto md:mx-0">
-                <img src="{{ asset('images/icono-maquina.png') }}" 
-                     alt="Icono de lavadora" 
-                     class="w-full h-full object-contain">
+            {{-- Información del contexto --}}
+            <div class="bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl p-4 border border-gray-200">
+                <div class="flex flex-col md:flex-row items-center gap-6">
+                    {{-- Icono de máquina --}}
+                    <div class="flex-shrink-0">
+                        <div class="w-20 h-20 mx-auto md:mx-0">
+                            <img src="{{ asset('images/icono-maquina.png') }}" 
+                                 alt="Icono de lavadora" 
+                                 class="w-full h-full object-contain">
+                        </div>
+                    </div>
+
+                    {{-- Información en grid --}}
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 flex-grow">
+                        {{-- Lavadora --}}
+                        <div class="text-center md:text-left">
+                            <p class="text-gray-600 font-semibold text-sm mb-1">
+                                <i class="fas fa-washing-machine mr-1"></i>
+                                Lavadora
+                            </p>
+                            <p class="text-gray-800 font-medium">{{ $linea->nombre }}</p>
+                        </div>
+
+                        {{-- Componente --}}
+                        <div class="text-center md:text-left">
+                            <p class="text-gray-600 font-semibold text-sm mb-1">
+                                <i class="fas fa-cog mr-1"></i>
+                                Componente
+                            </p>
+                            <p class="text-gray-800 font-medium">{{ $componente->nombre }}</p>
+                        </div>  
+
+                        {{-- Reductor --}}
+                        <div class="text-center md:text-left">
+                            <p class="text-gray-600 font-semibold text-sm mb-1">
+                                <i class="fas fa-sliders-h mr-1"></i>
+                                Reductor
+                            </p>
+                            <p class="text-gray-800 font-medium">{{ $reductor }}</p>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
-
-        {{-- Información en grid --}}
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 flex-grow">
-            {{-- Lavadora --}}
-            <div class="text-center md:text-left">
-                <p class="text-gray-600 font-semibold text-sm mb-1">
-                    <i class="fas fa-washing-machine mr-1"></i>
-                    Lavadora
-                </p>
-                <p class="text-gray-800 font-medium">{{ $linea->nombre }}</p>
-            </div>
-
-            {{-- Componente --}}
-            <div class="text-center md:text-left">
-                <p class="text-gray-600 font-semibold text-sm mb-1">
-                    <i class="fas fa-cog mr-1"></i>
-                    Componente
-                </p>
-                <p class="text-gray-800 font-medium">{{ $componente->nombre }}</p>
-            </div>  
-
-            {{-- Reductor --}}
-            <div class="text-center md:text-left">
-                <p class="text-gray-600 font-semibold text-sm mb-1">
-                    <i class="fas fa-sliders-h mr-1"></i>
-                    Reductor
-                </p>
-                <p class="text-gray-800 font-medium">{{ $reductor }}</p>
-            </div>
-        </div>
-    </div>
-</div>
         
         {{-- Formulario --}}
         <form action="{{ route('analisis-lavadora.store') }}" 
@@ -90,6 +91,25 @@
             <input type="hidden" name="componente_codigo" value="{{ $codigoBase }}">
             <input type="hidden" name="reductor" value="{{ $reductor }}">
             <input type="hidden" name="redirect_to" value="{{ $redirect_to }}">
+            
+            {{-- NUEVO: Selector de Lado (solo para Guías y Catarinas) --}}
+            <div id="lado-selector-container" class="mb-6 hidden">
+                <label for="lado" class="block text-sm font-semibold text-gray-700 mb-2">
+                    <i class="fas fa-arrows-alt-h text-amber-600 mr-1"></i>
+                    Lado del Análisis *
+                </label>
+                <select id="lado" name="lado"
+                        class="block w-full rounded-lg border-gray-300 shadow-sm focus:ring-amber-500 focus:border-amber-500 sm:text-sm
+                               @error('lado') border-red-500 @enderror">
+                    <option value="">Seleccionar lado...</option>
+                    <option value="VAPOR" {{ old('lado') == 'VAPOR' ? 'selected' : '' }}>💨 Lado Vapor</option>
+                    <option value="PASILLO" {{ old('lado') == 'PASILLO' ? 'selected' : '' }}>🚶 Lado Pasillo</option>
+                </select>
+                <p class="text-gray-500 text-xs mt-1">Indique si el análisis corresponde al lado vapor o lado pasillo (solo para Guías y Catarinas)</p>
+                @error('lado')
+                    <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+                @enderror
+            </div>
             
             {{-- Fecha del análisis --}}
             <div>
@@ -215,6 +235,39 @@ document.addEventListener('DOMContentLoaded', function() {
     const inputFotos = document.getElementById('evidencia_fotos');
     const previewFotos = document.getElementById('preview_fotos');
     const numeroOrdenInput = document.querySelector('input[name="numero_orden"]');
+    
+    // Código del componente desde PHP
+    const componenteCodigo = '{{ $componente->codigo }}';
+    const ladoSelector = document.getElementById('lado-selector-container');
+    const ladoInput = document.getElementById('lado');
+    
+    // Códigos de componentes que requieren selección de lado
+    const componentesConLado = [
+        'GUI_SUP_TANQUE',
+        'GUI_INT_TANQUE', 
+        'GUI_INF_TANQUE',
+        'CATARINAS'
+    ];
+    
+    // Verificar si el componente actual requiere selector de lado
+    function checkComponenteLado() {
+        for (let codigo of componentesConLado) {
+            if (componenteCodigo.includes(codigo)) {
+                ladoSelector.classList.remove('hidden');
+                ladoInput.setAttribute('required', 'required');
+                
+                // Si hay un valor previo de old(), mantenerlo
+                @if(old('lado'))
+                    ladoInput.value = '{{ old('lado') }}';
+                @endif
+                
+                return;
+            }
+        }
+    }
+    
+    // Ejecutar verificación al cargar la página
+    checkComponenteLado();
 
     // Vista previa de imágenes
     inputFotos.addEventListener('change', function() {
@@ -239,10 +292,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 img.src = e.target.result;
                 img.className = 'w-24 h-24 object-cover rounded-lg border border-gray-200 shadow-sm';
                 
-                // Botón para eliminar (opcional)
+                // Botón para eliminar
                 const removeBtn = document.createElement('button');
                 removeBtn.type = 'button';
-                removeBtn.className = 'absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 opacity-0 group-hover:opacity-100 transition-opacity text-xs';
+                removeBtn.className = 'absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 opacity-0 group-hover:opacity-100 transition-opacity text-xs flex items-center justify-center';
                 removeBtn.innerHTML = '×';
                 removeBtn.onclick = function() {
                     imgContainer.remove();
@@ -284,6 +337,13 @@ document.addEventListener('DOMContentLoaded', function() {
             e.preventDefault();
             alert('El número de orden debe tener exactamente 8 dígitos.');
             numeroOrdenInput.focus();
+        }
+        
+        // Validar que se haya seleccionado un lado si el selector está visible
+        if (!ladoSelector.classList.contains('hidden') && !ladoInput.value) {
+            e.preventDefault();
+            alert('Debe seleccionar el lado del análisis (Vapor o Pasillo).');
+            ladoInput.focus();
         }
     });
 });

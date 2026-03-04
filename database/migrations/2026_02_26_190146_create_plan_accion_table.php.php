@@ -16,11 +16,8 @@ class CreatePlanAccionTable extends Migration
             $table->date('fecha_pcm2')->nullable();
             $table->date('fecha_pcm3')->nullable();
             $table->date('fecha_pcm4')->nullable();
-            $table->enum('estado', ['pendiente', 'en_proceso', 'completada', 'atrasada'])->default('pendiente');
-            $table->text('observaciones')->nullable();
             $table->boolean('notificacion_enviada')->default(false);
             $table->date('fecha_recordatorio')->nullable();
-            $table->integer('responsable_id')->nullable();
             $table->timestamps();
         });
     }

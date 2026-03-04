@@ -48,6 +48,30 @@
             border-radius: 12px;
             box-shadow: 0 6px 12px rgba(0, 0, 0, 0.08);
         }
+
+        /* Estilos para el dropdown de notificaciones */
+        .notifications-dropdown {
+            width: 350px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .notification-item {
+            transition: background-color 0.2s;
+        }
+        
+        .notification-item:hover {
+            background-color: #f3f4f6;
+        }
+        
+        .notification-unread {
+            background-color: #eff6ff;
+        }
+        
+        .badge-notification {
+            font-size: 10px;
+            transform: translate(-30%, -50%);
+        }
     </style>
 </head>
 
@@ -125,6 +149,87 @@
                 </h2>
 
                 <div class="flex items-center space-x-4">
+                    <!-- NOTIFICACIONES DROPDOWN -->
+                    @auth
+                    <div class="relative" x-data="{ open: false }">
+                        <button @click="open = !open" 
+                                @click.away="open = false"
+                                aria-label="Notificaciones"
+                                class="p-2 rounded-full bg-gray-100 hover:bg-gray-200 transition relative">
+                            <i class="fas fa-bell text-gray-600"></i>
+                            @php
+                                $unreadCount = auth()->user()->unreadNotifications->count();
+                            @endphp
+                            @if($unreadCount > 0)
+                                <span class="absolute top-0 right-0 inline-flex items-center justify-center px-1 py-0.5 text-xs font-bold leading-none text-white transform translate-x-1/2 -translate-y-1/2 bg-red-600 rounded-full">
+                                    {{ $unreadCount > 9 ? '9+' : $unreadCount }}
+                                </span>
+                            @endif
+                        </button>
+
+                        <!-- Dropdown menu -->
+                        <div x-show="open" 
+                             x-transition:enter="transition ease-out duration-100"
+                             x-transition:enter-start="transform opacity-0 scale-95"
+                             x-transition:enter-end="transform opacity-100 scale-100"
+                             x-transition:leave="transition ease-in duration-75"
+                             x-transition:leave-start="transform opacity-100 scale-100"
+                             x-transition:leave-end="transform opacity-0 scale-95"
+                             class="absolute right-0 mt-2 w-80 bg-white rounded-md shadow-lg overflow-hidden z-50 border border-gray-200"
+                             style="display: none;">
+                            
+                            <div class="px-4 py-3 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
+                                <span class="text-sm font-semibold text-gray-700">Notificaciones</span>
+                                @if($unreadCount > 0)
+                                    <form action="{{ route('notifications.read-all') }}" method="POST" class="inline">
+                                        @csrf
+                                        <button type="submit" class="text-xs text-blue-600 hover:text-blue-800">
+                                            Marcar todas como leídas
+                                        </button>
+                                    </form>
+                                @endif
+                            </div>
+                            
+                            <div class="max-h-96 overflow-y-auto">
+                                @forelse(auth()->user()->notifications()->take(10)->get() as $notification)
+                                    <a href="{{ $notification->data['url'] ?? '#' }}" 
+                                       class="block px-4 py-3 hover:bg-gray-50 border-b border-gray-100 {{ $notification->read_at ? '' : 'bg-blue-50' }}"
+                                       onclick="event.preventDefault(); markAsRead('{{ $notification->id }}', '{{ $notification->data['url'] ?? '#' }}')">
+                                        <div class="flex items-start space-x-3">
+                                            <div class="flex-shrink-0">
+                                                @if(($notification->data['prioridad'] ?? 'baja') == 'alta')
+                                                    <i class="fas fa-exclamation-circle text-red-500"></i>
+                                                @elseif(($notification->data['prioridad'] ?? 'baja') == 'media')
+                                                    <i class="fas fa-exclamation-triangle text-yellow-500"></i>
+                                                @else
+                                                    <i class="fas fa-info-circle text-blue-500"></i>
+                                                @endif
+                                            </div>
+                                            <div class="flex-1 min-w-0">
+                                                <p class="text-sm text-gray-900 mb-1">{!! $notification->data['mensaje'] ?? $notification->data['message'] ?? 'Nueva notificación' !!}</p>
+                                                <p class="text-xs text-gray-500">{{ $notification->created_at->diffForHumans() }}</p>
+                                            </div>
+                                        </div>
+                                    </a>
+                                @empty
+                                    <div class="px-4 py-6 text-center text-gray-500">
+                                        <i class="fas fa-bell-slash text-gray-400 text-2xl mb-2"></i>
+                                        <p class="text-sm">No hay notificaciones</p>
+                                    </div>
+                                @endforelse
+                            </div>
+                            
+                            @if(auth()->user()->notifications()->count() > 10)
+                                <div class="px-4 py-2 bg-gray-50 border-t border-gray-200 text-center">
+                                    <a href="{{ route('profile.notifications') }}" class="text-xs text-blue-600 hover:text-blue-800">
+                                        Ver todas las notificaciones
+                                    </a>
+                                </div>
+                            @endif
+                        </div>
+                    </div>
+                    @endauth
+
                     <span class="text-sm text-gray-600">
                         {{ auth()->check() ? auth()->user()->name : 'Invitado' }}
                     </span>
@@ -145,6 +250,56 @@
     </div>
 
 </div>
+
+<!-- Alpine.js para el dropdown -->
+<script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+
+<!-- SweetAlert2 -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<script>
+function markAsRead(notificationId, url) {
+    fetch(`/notifications/${notificationId}/read`, {
+        method: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            window.location.href = url;
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        window.location.href = url;
+    });
+}
+
+// Actualizar contador de notificaciones cada 30 segundos
+setInterval(function() {
+    fetch('/notifications/unread-count', {
+        headers: {
+            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        const badge = document.querySelector('.fa-bell + span');
+        if (badge) {
+            if (data.count > 0) {
+                badge.textContent = data.count > 9 ? '9+' : data.count;
+                badge.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+            }
+        }
+    });
+}, 30000);
+</script>
 
 @hasSection('scripts')
     @yield('scripts')

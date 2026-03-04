@@ -19,7 +19,7 @@
         padding: 24px;
     }
 
-    /* LÍNEAS EN FORMA DE BOTONES - ESTILO EXACTO DE LA IMAGEN */
+    /* LÍNEAS EN FORMA DE BOTONES - CON PNGs */
     .lineas-section {
         background: white;
         border-radius: 16px;
@@ -41,34 +41,40 @@
         gap: 8px;
     }
 
+    .lineas-title img {
+        width: 20px;
+        height: 20px;
+        object-fit: contain;
+    }
+
     .lineas-grid {
         display: flex;
         flex-wrap: wrap;
         gap: 12px;
     }
 
-    /* Estilo exacto de los botones de la imagen */
+    /* Estilo de botones con PNGs */
     .linea-btn {
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        padding: 10px 24px;
+        padding: 8px 16px;
         background: #f8fafc;
         border: 2px solid #e2e8f0;
         border-radius: 40px;
-        font-size: 15px;
+        font-size: 14px;
         font-weight: 600;
         color: #475569;
         transition: all 0.2s ease;
         cursor: pointer;
         text-decoration: none;
-        min-width: 80px;
+        gap: 6px;
     }
 
-    .linea-btn i {
-        margin-right: 8px;
-        font-size: 14px;
-        color: #94a3b8;
+    .linea-btn img {
+        width: 18px;
+        height: 18px;
+        object-fit: contain;
     }
 
     .linea-btn:hover {
@@ -83,8 +89,8 @@
         color: white;
     }
 
-    .linea-btn.active i {
-        color: white;
+    .linea-btn.active img {
+        filter: brightness(0) invert(1);
     }
 
     /* Botón "Todas las líneas" */
@@ -115,6 +121,7 @@
         border: 1px solid var(--medium-gray);
         margin-bottom: 24px;
         overflow: hidden;
+        position: relative;
     }
 
     .linea-header {
@@ -126,13 +133,30 @@
         align-items: center;
     }
 
-    .linea-header h3 {
-        font-size: 18px;
-        font-weight: 700;
-        margin: 0;
+    .linea-header .linea-info {
         display: flex;
         align-items: center;
-        gap: 10px;
+        gap: 12px;
+    }
+
+    .linea-header .linea-info img {
+        width: 24px;
+        height: 24px;
+        object-fit: contain;
+        filter: brightness(0) invert(1);
+    }
+
+    .linea-header .linea-nombre {
+        font-size: 18px;
+        font-weight: 700;
+    }
+
+    .linea-header .linea-badge {
+        background: rgba(255,255,255,0.2);
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-size: 14px;
+        font-weight: 600;
     }
 
     .linea-header .badge {
@@ -142,7 +166,41 @@
         font-size: 14px;
     }
 
-    /* Tabla */
+    /* Botón de agregar rápido en cada línea */
+    .btn-agregar-rapido {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 16px;
+        background: rgba(255,255,255,0.15);
+        color: white;
+        border-radius: 40px;
+        font-size: 14px;
+        font-weight: 600;
+        text-decoration: none;
+        transition: all 0.2s ease;
+        border: 1px solid rgba(255,255,255,0.3);
+        cursor: pointer;
+    }
+
+    .btn-agregar-rapido img {
+        width: 16px;
+        height: 16px;
+        object-fit: contain;
+        filter: brightness(0) invert(1);
+    }
+
+    .btn-agregar-rapido:hover {
+        background: rgba(255,255,255,0.25);
+        transform: translateY(-2px);
+        border-color: rgba(255,255,255,0.5);
+    }
+
+    .btn-agregar-rapido i {
+        font-size: 14px;
+    }
+
+    /* ===== TABLA ESTABLE Y FIJA ===== */
     .table-responsive {
         overflow-x: auto;
     }
@@ -150,6 +208,7 @@
     .table {
         width: 100%;
         border-collapse: collapse;
+        table-layout: fixed;
     }
 
     .table th {
@@ -174,34 +233,31 @@
         background: #f8fafc;
     }
 
-    /* Estados */
-    .estado-badge {
-        display: inline-flex;
-        align-items: center;
-        padding: 6px 12px;
-        border-radius: 20px;
-        font-size: 12px;
-        font-weight: 600;
+    /* Columna actividad tamaño aproximado 10cm x 8cm */
+    .col-actividad {
+        width: 380px;
+        max-width: 380px;
     }
 
-    .estado-badge.pendiente {
-        background: #fef3c7;
-        color: #92400e;
+    .actividad-cell {
+        width: 380px;
+        max-width: 380px;
+        min-height: 300px;
+        vertical-align: top;
+        word-wrap: break-word;
+        white-space: normal;
     }
 
-    .estado-badge.en_proceso {
-        background: #dbeafe;
-        color: #1e40af;
+    /* Columna acciones fija */
+    .col-acciones {
+        width: 150px; /* Aumentado para acomodar el nuevo botón */
     }
 
-    .estado-badge.completada {
-        background: #d1fae5;
-        color: #065f46;
-    }
-
-    .estado-badge.atrasada {
-        background: #fee2e2;
-        color: #991b1b;
+    .acciones {
+        display: flex;
+        gap: 8px;
+        justify-content: center;
+        min-width: 140px; /* Aumentado para acomodar el nuevo botón */
     }
 
     /* Fechas */
@@ -254,15 +310,30 @@
         }
     }
 
-    /* Tipos de máquina badges */
+    /* Tipos de máquina badges con PNGs */
+    .tipos-maquina-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 8px;
+    }
+
     .tipo-badge {
         display: inline-flex;
         align-items: center;
-        padding: 4px 8px;
+        padding: 4px 10px;
         border-radius: 20px;
         font-size: 11px;
         font-weight: 600;
-        margin: 2px;
+        gap: 6px;
+        background: #f3f4f6;
+        color: #1f2937;
+    }
+
+    .tipo-badge img {
+        width: 14px;
+        height: 14px;
+        object-fit: contain;
     }
 
     .tipo-badge.lavadora {
@@ -286,12 +357,6 @@
     }
 
     /* Acciones */
-    .acciones {
-        display: flex;
-        gap: 8px;
-        justify-content: center;
-    }
-
     .btn-accion {
         width: 32px;
         height: 32px;
@@ -327,6 +392,15 @@
         box-shadow: 0 4px 8px rgba(75, 85, 99, 0.3);
     }
 
+    .btn-notificar {
+        background: #f59e0b;
+    }
+
+    .btn-notificar:hover {
+        background: #d97706;
+        box-shadow: 0 4px 8px rgba(245, 158, 11, 0.3);
+    }
+
     .btn-eliminar {
         background: #ef4444;
     }
@@ -336,7 +410,7 @@
         box-shadow: 0 4px 8px rgba(220, 38, 38, 0.3);
     }
 
-    /* Botón nueva actividad */
+    /* Botón nueva actividad principal */
     .btn-nueva {
         display: inline-flex;
         align-items: center;
@@ -378,7 +452,7 @@
     .stat-header {
         display: flex;
         justify-content: space-between;
-        align-items: flex-start;
+        align-items: center;
         margin-bottom: 12px;
     }
 
@@ -391,9 +465,11 @@
         letter-spacing: 0.5px;
     }
 
-    .stat-icon-small {
-        font-size: 20px;
-        opacity: 0.5;
+    .stat-icon {
+        width: 28px;
+        height: 28px;
+        object-fit: contain;
+        opacity: 0.7;
     }
 
     .stat-valor {
@@ -411,11 +487,6 @@
         gap: 8px;
         flex-wrap: wrap;
     }
-
-    .stat-card.total .stat-icon-small { color: #3b82f6; }
-    .stat-card.pendiente .stat-icon-small { color: #f59e0b; }
-    .stat-card.completada .stat-icon-small { color: #10b981; }
-    .stat-card.atrasada .stat-icon-small { color: #ef4444; }
 
     /* Alertas */
     .alertas-container {
@@ -481,6 +552,12 @@
         font-size: 12px;
     }
 
+    .leyenda-item img {
+        width: 16px;
+        height: 16px;
+        object-fit: contain;
+    }
+
     .leyenda-color {
         width: 12px;
         height: 12px;
@@ -535,6 +612,12 @@
         gap: 10px;
     }
 
+    .modal-header img {
+        width: 22px;
+        height: 22px;
+        object-fit: contain;
+    }
+
     .modal-body {
         padding: 24px;
         overflow-y: auto;
@@ -561,6 +644,13 @@
         border-color: #ef4444;
     }
 
+    .detalle-icono {
+        width: 18px;
+        height: 18px;
+        object-fit: contain;
+        margin-right: 8px;
+    }
+
     @media (max-width: 768px) {
         .stats-grid {
             grid-template-columns: 1fr;
@@ -573,6 +663,20 @@
         .table td, .table th {
             padding: 12px;
         }
+    }
+
+    /* Animación para el botón de agregar rápido */
+    @keyframes gentlePulse {
+        0%, 100% {
+            transform: scale(1);
+        }
+        50% {
+            transform: scale(1.05);
+        }
+    }
+
+    .btn-agregar-rapido:hover i {
+        animation: gentlePulse 1s infinite;
     }
 </style>
 
@@ -589,166 +693,83 @@
                 </svg>
                 <span class="font-medium">Volver</span>
             </a>
-            <h1 class="text-2xl font-bold text-gray-800 flex items-center gap-2">
-                <i class="fas fa-clipboard-list text-blue-600"></i>
+            <h1 class="text-2xl font-bold text-gray-800 flex items-center gap-3">
+                <img src="{{ asset('images/icono-maquina.png') }}" 
+                     alt="Icono de máquina" 
+                     class="w-8 h-8 object-contain">
                 Plan de Acción - Lavadoras
             </h1>
         </div>
     </div>
 
-    <!-- Estadísticas rápidas -->
-    <div class="stats-grid">
-        <!-- Total Líneas Lavadoras -->
-        <div class="stat-card total">
-            <div class="stat-header">
-                <h4>TOTAL LAVADORAS</h4>
-                <i class="fas fa-cubes stat-icon-small"></i>
-            </div>
-            <div class="stat-valor">{{ $estadisticas['total_lavadoras'] ?? 8 }}</div>
-            <div class="stat-detalle">
-                <span>Lavadoras</span>
-            </div>
-        </div>
-
-        <!-- Pendientes -->
-        <div class="stat-card pendiente">
-            <div class="stat-header">
-                <h4>PENDIENTES</h4>
-                <i class="fas fa-clock stat-icon-small"></i>
-            </div>
-            <div class="stat-valor">{{ $estadisticas['actividades_pendientes'] }}</div>
-        </div>
-
-        <!-- Completadas -->
-        <div class="stat-card completada">
-            <div class="stat-header">
-                <h4>COMPLETADAS</h4>
-                <i class="fas fa-check-circle stat-icon-small"></i>
-            </div>
-            <div class="stat-valor">{{ $estadisticas['actividades_completadas'] }}</div>
-        </div>
-
-        <!-- Atrasadas -->
-        <div class="stat-card atrasada">
-            <div class="stat-header">
-                <h4>ATRASADAS</h4>
-                <i class="fas fa-exclamation-triangle stat-icon-small"></i>
-            </div>
-            <div class="stat-valor">{{ $estadisticas['actividades_atrasadas'] }}</div>
-        </div>
-    </div>
-
     <!-- Alertas de fechas próximas -->
-    @if(count($alertas) > 0)
-    <div class="alertas-container">
-        <button type="button" class="absolute top-4 right-4 text-yellow-600 hover:text-yellow-800" onclick="this.parentElement.remove()">
-            <i class="fas fa-times"></i>
-        </button>
-        <div class="flex items-start gap-3">
-            <i class="fas fa-exclamation-triangle text-yellow-600 text-2xl"></i>
-            <div class="flex-1">
-                <strong class="text-yellow-800">¡Atención! Fechas próximas a vencer ({{ count($alertas) }}):</strong>
-                <div class="mt-2 space-y-2">
-                    @foreach($alertas as $alerta)
-                    <div class="alerta-item {{ $alerta['prioridad'] }}">
-                        <div class="flex justify-between items-center">
-                            <div>
-                                <strong>{{ $alerta['linea'] }}</strong> - 
-                                {{ Str::limit($alerta['actividad'], 50) }} - 
-                                <strong>{{ $alerta['pcm'] }}</strong>
-                            </div>
-                            <div class="text-right">
-                                <span class="bg-white bg-opacity-20 px-2 py-1 rounded text-sm">
-                                    {{ $alerta['fecha'] }}
+@if(count($alertas) > 0)
+<div class="alertas-container">
+    <button type="button" class="absolute top-4 right-4 text-yellow-600 hover:text-yellow-800" onclick="this.parentElement.remove()">
+        <i class="fas fa-times"></i>
+    </button>
+    <div class="flex items-start gap-3">
+        <i class="fas fa-exclamation-triangle text-yellow-600 text-2xl"></i>
+        <div class="flex-1">
+            <strong class="text-yellow-800">¡Atención! Fechas próximas a vencer ({{ count($alertas) }}):</strong>
+            <div class="mt-2 space-y-2">
+                @foreach($alertas as $alerta)
+                {{-- AQUÍ ESTÁ EL PROBLEMA --}}
+                <div class="alerta-item {{ $alerta['prioridad'] ?? 'media' }}"> {{-- CORREGIDO: agregué ?? 'media' --}}
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <strong>{{ $alerta['linea'] ?? 'Sin línea' }}</strong> - 
+                            {{ Str::limit($alerta['actividad'] ?? 'Sin actividad', 50) }} - 
+                            <strong>{{ $alerta['pcm'] ?? 'PCM' }}</strong>
+                        </div>
+                        <div class="text-right">
+                            <span class="bg-white bg-opacity-20 px-2 py-1 rounded text-sm">
+                                {{ $alerta['fecha'] ?? 'Fecha no disponible' }}
+                            </span>
+                            @if($alerta['es_manana'] ?? false)
+                                <span class="bg-red-800 text-white px-2 py-1 rounded text-sm ml-2">¡MAÑANA!</span>
+                            @else
+                                <span class="bg-white bg-opacity-20 px-2 py-1 rounded text-sm ml-2">
+                                    {{ $alerta['dias_restantes'] ?? 0 }} día(s)
                                 </span>
-                                @if($alerta['es_manana'])
-                                    <span class="bg-red-800 text-white px-2 py-1 rounded text-sm ml-2">¡MAÑANA!</span>
-                                @else
-                                    <span class="bg-white bg-opacity-20 px-2 py-1 rounded text-sm ml-2">
-                                        {{ $alerta['dias_restantes'] }} día(s)
-                                    </span>
-                                @endif
-                            </div>
+                            @endif
                         </div>
                     </div>
-                    @endforeach
                 </div>
+                @endforeach
             </div>
         </div>
     </div>
-    @endif
+</div>
+@endif
 
-    <!-- SECCIÓN DE LÍNEAS DE LAVADORA - ESTILO EXACTO DE LA IMAGEN -->
+    <!-- SECCIÓN DE LÍNEAS DE LAVADORA - CON PNGs -->
     <div class="lineas-section">
         <div class="lineas-title">
-            <i class="fas fa-tshirt"></i>
+            <img src="{{ asset('images/icono-maquina.png') }}" 
+                 alt="Icono de máquina">
             LÍNEAS DE LAVADORA
         </div>
         
         <div class="lineas-grid">
-            <!-- Botón "Todas las líneas" con estilo destacado -->
-            <a href="{{ route('plan-accion.index') }}" 
+            <!-- Todas -->
+            <a href="{{ route('plan-accion.index', ['tipo' => 'lavadora']) }}" 
                class="linea-btn todas {{ !request('linea_id') ? 'active' : '' }}">
                 <i class="fas fa-globe"></i>
                 Todas
             </a>
             
-            <!-- Línea 04 -->
-            <a href="{{ route('plan-accion.index', ['linea_id' => 4]) }}" 
-               class="linea-btn {{ request('linea_id') == 4 ? 'active' : '' }}">
-                L-04
-            </a>
-            
-            <!-- Línea 05 -->
-            <a href="{{ route('plan-accion.index', ['linea_id' => 5]) }}" 
-               class="linea-btn {{ request('linea_id') == 5 ? 'active' : '' }}">
-                L-05
-            </a>
-            
-            <!-- Línea 06 -->
-            <a href="{{ route('plan-accion.index', ['linea_id' => 6]) }}" 
-               class="linea-btn {{ request('linea_id') == 6 ? 'active' : '' }}">
-                L-06
-            </a>
-            
-            <!-- Línea 07 -->
-            <a href="{{ route('plan-accion.index', ['linea_id' => 7]) }}" 
-               class="linea-btn {{ request('linea_id') == 7 ? 'active' : '' }}">
-                L-07
-            </a>
-            
-            <!-- Línea 08 -->
-            <a href="{{ route('plan-accion.index', ['linea_id' => 8]) }}" 
-               class="linea-btn {{ request('linea_id') == 8 ? 'active' : '' }}">
-                L-08
-            </a>
-            
-            <!-- Línea 09 -->
-            <a href="{{ route('plan-accion.index', ['linea_id' => 9]) }}" 
-               class="linea-btn {{ request('linea_id') == 9 ? 'active' : '' }}">
-                L-09
-            </a>
-            
-            <!-- Línea 12 -->
-            <a href="{{ route('plan-accion.index', ['linea_id' => 12]) }}" 
-               class="linea-btn {{ request('linea_id') == 12 ? 'active' : '' }}">
-                L-12
-            </a>
-            
-            <!-- Línea 13 -->
-            <a href="{{ route('plan-accion.index', ['linea_id' => 13]) }}" 
-               class="linea-btn {{ request('linea_id') == 13 ? 'active' : '' }}">
-                L-13
-            </a>
+            @foreach([4,5,6,7,8,9,12,13] as $id)
+                <a href="{{ route('plan-accion.index', [
+                        'tipo' => 'lavadora',
+                        'linea_id' => $id
+                    ]) }}" 
+                   class="linea-btn {{ request('linea_id') == $id ? 'active' : '' }}">
+                    <img src="{{ asset('images/icono-maquina.png') }}" class="w-10 h-8 mr-2" alt="Ícono de máquina">
+                    L-{{ str_pad($id, 2, '0', STR_PAD_LEFT) }}
+                </a>
+            @endforeach
         </div>
-    </div>
-
-    <!-- Botón Nueva Actividad -->
-    <div class="flex justify-end">
-        <a href="{{ route('plan-accion.create', ['tipo' => 'lavadora']) }}" class="btn-nueva">
-            <i class="fas fa-plus mr-2"></i>
-            Nueva Actividad
-        </a>
     </div>
 
     <!-- Planes de Acción por Líneas -->
@@ -773,21 +794,23 @@
             
             <div class="linea-card">
                 <div class="linea-header">
-                    <h3>
-                        <i class="fas fa-tshirt"></i>
-                        {{ $linea->nombre_completo ?? $linea->nombre }}
-                        <span class="badge" style="font-size: 16px; margin-left: 10px;">L-{{ str_pad($linea->id, 2, '0', STR_PAD_LEFT) }}</span>
-                    </h3>
-                    <div class="badge">
-                        <i class="fas fa-tasks mr-1"></i> {{ $planesLinea->count() }} actividades
-                        @php
-                            $pendientes = $planesLinea->whereIn('estado', ['pendiente', 'en_proceso'])->count();
-                        @endphp
-                        @if($pendientes > 0)
-                            <span class="ml-2 bg-yellow-500 text-gray-900 px-2 py-1 rounded-full text-xs">
-                                {{ $pendientes }} pendiente(s)
-                            </span>
-                        @endif
+                    <div class="linea-info">
+                        <img src="{{ asset('images/icono-maquina.png') }}" class="w-10 h-8 " alt="Icono de máquina">
+                        <span class="linea-nombre">{{ $linea->nombre_completo}}</span>
+                        <span class="linea-badge">L-{{ str_pad($linea->id, 2, '0', STR_PAD_LEFT) }}</span>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <span class="badge">
+                            <i class="fas fa-tasks mr-1"></i> {{ $planesLinea->count() }} actividades
+                        </span>
+                        
+                        <!-- BOTÓN DE AGREGAR RÁPIDO EN CADA TARJETA DE LÍNEA -->
+                        <a href="{{ route('plan-accion.create', ['tipo' => 'lavadora', 'linea_id' => $linea->id]) }}" 
+                           class="btn-agregar-rapido"
+                           title="Agregar actividad rápida para {{ $linea->nombre }}">
+                            <span class="hidden sm:inline">Agregar Actividad</span>
+                            <img src="{{ asset('images/icono-maquina.png') }}" class="w-10 h-8" alt="Lavadora">
+                        </a>
                     </div>
                 </div>
                 
@@ -795,58 +818,48 @@
                     <table class="table">
                         <thead>
                             <tr>
-                                <th>#</th>
-                                <th>ACTIVIDAD</th>
-                                <th class="text-center">TIPO MÁQUINA</th>
-                                <th class="text-center">PCM 1</th>
-                                <th class="text-center">PCM 2</th>
-                                <th class="text-center">PCM 3</th>
-                                <th class="text-center">PCM 4</th>
-                                <th class="text-center">ESTADO</th>
-                                <th class="text-center">ACCIONES</th>
+                                <th style="width:60px;">#</th>
+                                <th class="col-actividad">ACTIVIDAD</th>
+                                <th class="text-center" style="width:110px;">PCM 1</th>
+                                <th class="text-center" style="width:110px;">PCM 2</th>
+                                <th class="text-center" style="width:110px;">PCM 3</th>
+                                <th class="text-center" style="width:110px;">PCM 4</th>
+                                <th class="text-center col-acciones">ACCIONES</th>
                             </tr>
                         </thead>
                         <tbody>
                             @forelse($planesLinea as $index => $plan)
                             <tr>
-                                <td class="text-sm text-gray-900">{{ $index + 1 }}</td>
-                                <td>
-                                    <div class="font-medium text-gray-900">{{ $plan->actividad }}</div>
-                                    @if($plan->responsable)
-                                        <div class="text-xs text-gray-500 mt-1">
-                                            <i class="fas fa-user mr-1"></i> {{ $plan->responsable->name }}
-                                        </div>
-                                    @endif
-                                    @if($plan->observaciones)
-                                        <div class="text-xs text-gray-500 mt-1">
-                                            <i class="fas fa-comment mr-1"></i> {{ Str::limit($plan->observaciones, 50) }}
-                                        </div>
-                                    @endif
-                                </td>
-                                <td class="text-center">
+                                <td>{{ $index + 1 }}</td>
+
+                                {{-- ACTIVIDAD --}}
+                                <td class="actividad-cell">
+                                    <div class="font-medium text-gray-900">
+                                        {{ $plan->actividad }}
+                                    </div>
+
                                     @if($plan->tipo_maquina)
-                                        <div class="flex flex-wrap gap-1 justify-center">
+                                        <div class="tipos-maquina-container">
                                             @foreach($plan->tipo_maquina as $tipo)
                                                 @php
-                                                    $iconos = [
-                                                        'lavadora' => ['icon' => 'fa-tshirt', 'class' => 'lavadora'],
-                                                        'secadora' => ['icon' => 'fa-wind', 'class' => 'secadora'],
-                                                        'caldera' => ['icon' => 'fa-fire', 'class' => 'caldera'],
-                                                        'centrifuga' => ['icon' => 'fa-compact-disc', 'class' => 'centrifuga'],
-                                                        'otros' => ['icon' => 'fa-cog', 'class' => 'bg-gray-100 text-gray-800'],
+                                                    $clases = [
+                                                        'lavadora' => 'lavadora',
+                                                        'secadora' => 'secadora',
+                                                        'caldera' => 'caldera',
+                                                        'centrifuga' => 'centrifuga',
                                                     ];
-                                                    $config = $iconos[$tipo] ?? ['icon' => 'fa-cog', 'class' => 'bg-gray-100 text-gray-800'];
+                                                    $clase = $clases[$tipo] ?? '';
                                                 @endphp
-                                                <span class="tipo-badge {{ $config['class'] }}" title="{{ ucfirst($tipo) }}">
-                                                    <i class="fas {{ $config['icon'] }} mr-1"></i>
-                                                    <span class="hidden sm:inline">{{ ucfirst($tipo) }}</span>
+                                                <span class="tipo-badge {{ $clase }}">
+                                                    <img src="{{ asset('images/icono-maquina.png') }}" alt="{{ $tipo }}">
+                                                    {{ ucfirst($tipo) }}
                                                 </span>
                                             @endforeach
                                         </div>
-                                    @else
-                                        <span class="text-gray-400 text-xs">No especificado</span>
                                     @endif
                                 </td>
+
+                                {{-- PCM --}}
                                 @foreach(['pcm1', 'pcm2', 'pcm3', 'pcm4'] as $pcm)
                                     @php
                                         $fechaCampo = 'fecha_' . $pcm;
@@ -862,46 +875,40 @@
                                                 elseif($dias <= 7) $fechaClass = 'fecha-cercana';
                                                 else $fechaClass = 'fecha-futura';
                                             @endphp
-                                            <span class="{{ $fechaClass }}"
-                                                  data-fecha="{{ $fecha }}"
-                                                  data-dias="{{ $dias }}">
+                                            <span class="{{ $fechaClass }}">
                                                 {{ $fecha->format('d/m/Y') }}
-                                                @if($dias >= 0 && $dias <= 7)
-                                                    <br><span class="text-xs">({{ $dias }} días)</span>
-                                                @endif
                                             </span>
                                         @else
-                                            <span class="text-gray-400">-</span>
+                                            -
                                         @endif
                                     </td>
                                 @endforeach
-                                <td class="text-center">
-                                    @php
-                                        $estadoClasses = [
-                                            'pendiente' => 'pendiente',
-                                            'en_proceso' => 'en_proceso',
-                                            'completada' => 'completada',
-                                            'atrasada' => 'atrasada'
-                                        ];
-                                    @endphp
-                                    <span class="estado-badge {{ $estadoClasses[$plan->estado] ?? 'pendiente' }}">
-                                        {{ strtoupper(str_replace('_', ' ', $plan->estado)) }}
-                                    </span>
-                                </td>
-                                <td class="text-center">
+
+                                {{-- ACCIONES FIJAS CON BOTÓN DE NOTIFICACIONES --}}
+                                <td class="text-center col-acciones">
                                     <div class="acciones">
-                                       <a href="{{ route('plan-accion.edit', ['plan_accion' => $plan->id, 'tipo' => 'lavadora']) }}"  
-                                        class="btn-accion btn-editar" 
-                                        title="Editar">
+                                        <a href="{{ route('plan-accion.edit', ['plan_accion' => $plan->id, 'tipo' => 'lavadora']) }}"  
+                                           class="btn-accion btn-editar" 
+                                           title="Editar">
                                             <i class="fas fa-edit"></i>
                                         </a>
 
                                         <button type="button" 
                                                 class="btn-accion btn-ver ver-btn" 
                                                 data-id="{{ $plan->id }}"
-                                                title="Ver detalles">
+                                                title="Ver">
                                             <i class="fas fa-eye"></i>
                                         </button>
+
+                                        <!-- BOTÓN DE NOTIFICACIONES -->
+                                        <button type="button" 
+                                                class="btn-accion btn-notificar" 
+                                                style="background: #f59e0b;"
+                                                onclick="enviarNotificaciones({{ $plan->id }}, '{{ addslashes($plan->actividad) }}')"
+                                                title="Enviar notificaciones">
+                                            <i class="fas fa-bell"></i>
+                                        </button>
+
                                         <button type="button" 
                                                 class="btn-accion btn-eliminar eliminar-btn" 
                                                 data-id="{{ $plan->id }}"
@@ -914,10 +921,15 @@
                             </tr>
                             @empty
                             <tr>
-                                <td colspan="9" class="text-center py-8">
+                                <td colspan="8" class="text-center py-8">
                                     <div class="flex flex-col items-center">
-                                        <i class="fas fa-clipboard-list text-4xl text-gray-400 mb-3"></i>
+                                        <img src="{{ asset('images/icono-maquina.png') }}" alt="Lavadora" class="w-16 h-10 opacity-30 mb-3">
                                         <p class="text-gray-500">No hay actividades para esta lavadora</p>
+                                        <a href="{{ route('plan-accion.create', ['tipo' => 'lavadora', 'linea_id' => $linea->id]) }}" 
+                                           class="mt-3 inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all">
+                                            <i class="fas fa-plus-circle"></i>
+                                            Agregar primera actividad
+                                        </a>
                                     </div>
                                 </td>
                             </tr>
@@ -929,7 +941,7 @@
         @empty
             <div class="bg-white rounded-lg shadow-lg p-8 text-center">
                 <div class="flex flex-col items-center">
-                    <i class="fas fa-tshirt text-5xl text-gray-400 mb-4"></i>
+                    <img src="{{ asset('images/icono-maquina.png') }}" alt="Lavadora" class="w-20 h-20 opacity-30 mb-4">
                     <h3 class="text-lg font-medium text-gray-900 mb-2">No hay lavadoras registradas</h3>
                     <p class="text-gray-500 mb-4">Primero debe registrar lavadoras para poder crear planes de acción.</p>
                 </div>
@@ -968,7 +980,7 @@
             <span>Fecha futura (>7 días)</span>
         </div>
         <div class="leyenda-item">
-            <span class="leyenda-color" style="background: #3b82f6;"></span>
+            <img src="{{ asset('images/icono-maquina.png') }}" alt="Lavadora">
             <span>Lavadora</span>
         </div>
     </div>
@@ -979,7 +991,7 @@
     <div class="modal-content">
         <div class="modal-header">
             <h3>
-                <i class="fas fa-info-circle text-blue-600"></i>
+                <img src="{{ asset('images/icono-maquina.png') }}" alt="Lavadora">
                 Detalles de la Actividad
             </h3>
             <button class="modal-close modal-close-btn">
@@ -1077,7 +1089,10 @@ document.addEventListener('DOMContentLoaded', function() {
                         <div class="grid grid-cols-2 gap-4">
                             <div class="col-span-2">
                                 <strong class="text-gray-600">Línea:</strong><br>
-                                <span>${data.linea ? data.linea.nombre_completo || data.linea.nombre : 'No asignada'}</span>
+                                <span class="flex items-center gap-2">
+                                    <img src="{{ asset('images/icono-maquina.png') }}" alt="Lavadora" class="w-4 h-4">
+                                    ${data.linea ? data.linea.nombre_completo || data.linea.nombre : 'No asignada'}
+                                </span>
                             </div>
                             <div class="col-span-2">
                                 <strong class="text-gray-600">Responsable:</strong><br>
@@ -1090,18 +1105,17 @@ document.addEventListener('DOMContentLoaded', function() {
                     `;
                     
                     if (data.tipo_maquina && data.tipo_maquina.length > 0) {
-                        html += `<div class="col-span-2">
-                            <strong class="text-gray-600">Tipo de Máquina:</strong><br>
-                            <div class="flex flex-wrap gap-2 mt-1">`;
-                        
+                        html += `<div class="col-span-2"><strong class="text-gray-600">Tipo de máquina:</strong><br><div class="flex flex-wrap gap-2 mt-1">`;
                         data.tipo_maquina.forEach(tipo => {
-                            const colorClass = tipo == 'lavadora' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800';
-                            html += `<span class="px-3 py-1 text-sm rounded-full ${colorClass} inline-flex items-center">
-                                <i class="fas ${tipo == 'lavadora' ? 'fa-tshirt' : 'fa-cog'} mr-2"></i>
+                            const colorClass = tipo == 'lavadora' ? 'bg-blue-100 text-blue-800' : 
+                                              tipo == 'secadora' ? 'bg-cyan-100 text-cyan-800' :
+                                              tipo == 'caldera' ? 'bg-orange-100 text-orange-800' :
+                                              tipo == 'centrifuga' ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-800';
+                            html += `<span class="px-3 py-1 text-sm rounded-full ${colorClass} inline-flex items-center gap-2">
+                                <img src="{{ asset('images/icono-maquina.png') }}" alt="${tipo}" class="w-3 h-3">
                                 ${tipo.charAt(0).toUpperCase() + tipo.slice(1)}
                             </span>`;
                         });
-                        
                         html += `</div></div>`;
                     }
                     
@@ -1125,15 +1139,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         'atrasada': 'bg-red-100 text-red-800'
                     };
                     
-                    html += `
-                            <div>
-                                <strong class="text-gray-600">Estado:</strong><br>
-                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${estadoColors[data.estado]}">
-                                    ${data.estado ? data.estado.replace('_', ' ').toUpperCase() : 'NO ESPECIFICADO'}
-                                </span>
-                            </div>
-                        </div>
-                    `;
                     
                     if (data.observaciones) {
                         html += `
@@ -1173,5 +1178,74 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 });
+
+// Función para enviar notificaciones
+// En resources/views/plan-accion/index.blade.php - Reemplaza la función existente
+
+function enviarNotificaciones(id, actividad) {
+    if (confirm(`¿Enviar notificaciones para la actividad: "${actividad}"?`)) {
+        // Mostrar indicador de carga
+        const btn = event.currentTarget;
+        const originalHtml = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        btn.disabled = true;
+        
+        fetch(`/plan-accion/${id}/notificar`, {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                return response.json().then(err => { throw err; });
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                // Mostrar mensaje de éxito con detalles
+                Swal.fire({
+                    icon: 'success',
+                    title: '¡Notificaciones enviadas!',
+                    html: `
+                        <p>${data.message}</p>
+                        ${data.data && data.data.pcm_notificados ? `
+                            <div class="mt-3 text-left">
+                                <strong>PCMs notificados:</strong><br>
+                                ${data.data.pcm_notificados.map(p => 
+                                    `- ${p.pcm.toUpperCase()}: ${p.fecha} (${p.dias} día${p.dias !== 1 ? 's' : ''})`
+                                ).join('<br>')}
+                            </div>
+                        ` : ''}
+                    `,
+                    confirmButtonColor: '#3085d6'
+                });
+            } else {
+                // Mostrar error
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: data.message || 'Error al enviar notificaciones'
+                });
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: error.message || 'Error al enviar notificaciones'
+            });
+        })
+        .finally(() => {
+            // Restaurar botón
+            btn.innerHTML = originalHtml;
+            btn.disabled = false;
+        });
+    }
+}
 </script>
 @endsection

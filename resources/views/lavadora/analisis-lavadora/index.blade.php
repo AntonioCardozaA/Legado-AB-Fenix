@@ -241,6 +241,26 @@
         color: #1e40af;
     }
     
+    .lado-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 4px 10px;
+        border-radius: 16px;
+        font-weight: 500;
+        font-size: 13px;
+    }
+    
+    .lado-badge.vapor {
+        background-color: #fee2e2;
+        color: #991b1b;
+    }
+    
+    .lado-badge.pasillo {
+        background-color: #dbeafe;
+        color: #1e40af;
+    }
+    
     .detail-images-container {
         background: white;
         border-radius: 10px;
@@ -800,6 +820,199 @@
         
         .lineas-modal-grid {
             grid-template-columns: 1fr;
+        }
+    }
+
+    /* ESTILOS ADICIONALES PARA LOS MODALES MEJORADOS */
+    @keyframes modalIn {
+        from {
+            opacity: 0;
+            transform: scale(0.95);
+        }
+        to {
+            opacity: 1;
+            transform: scale(1);
+        }
+    }
+    
+    .animate-modalIn {
+        animation: modalIn 0.3s ease-out;
+    }
+    
+    .custom-scrollbar::-webkit-scrollbar {
+        width: 8px;
+    }
+    
+    .custom-scrollbar::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 10px;
+    }
+    
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 10px;
+    }
+    
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8;
+    }
+    
+    .status-badge-enhanced {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 8px 20px;
+        border-radius: 40px;
+        font-weight: 600;
+        font-size: 16px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        border: 2px solid transparent;
+        transition: all 0.3s ease;
+    }
+    
+    .status-badge-enhanced.ok {
+        background: linear-gradient(135deg, #10b981, #059669);
+        color: white;
+        border-color: #d1fae5;
+    }
+    
+    .status-badge-enhanced.warning {
+        background: linear-gradient(135deg, #f59e0b, #d97706);
+        color: white;
+        border-color: #fef3c7;
+    }
+    
+    .status-badge-enhanced.danger {
+        background: linear-gradient(135deg, #ef4444, #dc2626);
+        color: white;
+        border-color: #fee2e2;
+    }
+    
+    .status-badge-enhanced.changed {
+        background: linear-gradient(135deg, #3b82f6, #2563eb);
+        color: white;
+        border-color: #dbeafe;
+    }
+    
+    .image-grid-enhanced {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+        gap: 20px;
+    }
+    
+    .image-grid-enhanced .image-item {
+        position: relative;
+        border-radius: 12px;
+        overflow: hidden;
+        background: white;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s ease;
+        border: 2px solid transparent;
+    }
+    
+    .image-grid-enhanced .image-item:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
+        border-color: #3b82f6;
+    }
+    
+    .image-grid-enhanced .grid-image {
+        width: 100%;
+        height: 180px;
+        object-fit: cover;
+        cursor: pointer;
+        transition: transform 0.5s ease;
+    }
+    
+    .image-grid-enhanced .grid-image:hover {
+        transform: scale(1.1);
+    }
+    
+    .image-grid-enhanced .image-number {
+        position: absolute;
+        top: 12px;
+        left: 12px;
+        background: rgba(0, 0, 0, 0.8);
+        color: white;
+        font-size: 13px;
+        font-weight: bold;
+        padding: 4px 12px;
+        border-radius: 20px;
+        z-index: 10;
+        backdrop-filter: blur(4px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    
+    .image-grid-enhanced .image-info {
+        padding: 12px;
+        background: white;
+        border-top: 1px solid #e5e7eb;
+    }
+    
+    .image-grid-enhanced .download-image-btn {
+        width: 100%;
+        padding: 8px;
+        background: linear-gradient(135deg, #3b82f6, #2563eb);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+    }
+    
+    .image-grid-enhanced .download-image-btn:hover {
+        background: linear-gradient(135deg, #2563eb, #1d4ed8);
+        transform: scale(1.02);
+    }
+    
+    .empty-images-enhanced {
+        text-align: center;
+        padding: 40px;
+    }
+    
+    .lado-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 16px;
+        border-radius: 30px;
+        font-weight: 600;
+        font-size: 14px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    
+    .lado-badge.vapor {
+        background: linear-gradient(135deg, #fee2e2, #fecaca);
+        color: #991b1b;
+        border: 1px solid #fecaca;
+    }
+    
+    .lado-badge.pasillo {
+        background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+        color: #1e40af;
+        border: 1px solid #bfdbfe;
+    }
+    
+    @media (max-width: 768px) {
+        .image-grid-enhanced {
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 12px;
+        }
+        
+        .image-grid-enhanced .grid-image {
+            height: 140px;
+        }
+        
+        .status-badge-enhanced {
+            padding: 6px 16px;
+            font-size: 14px;
         }
     }
 </style>
@@ -1412,6 +1625,7 @@
                                                 'componente' => $registro->componente->nombre ?? 'Sin nombre',
                                                 'componente_codigo' => $registro->componente->codigo ?? '',
                                                 'reductor' => $registro->reductor,
+                                                'lado' => $registro->lado ?? null,
                                                 'fecha_analisis' => isset($registro->fecha_analisis) ? $registro->fecha_analisis->format('d/m/Y') : '',
                                                 'numero_orden' => $registro->numero_orden,
                                                 'estado' => $registro->estado ?? 'Buen estado',
@@ -1611,113 +1825,239 @@
     @endif
 </div>
 
-{{-- MODALES --}}
-<div id="analysisDetailModal" class="fixed inset-0 bg-black/80 hidden items-center justify-center z-50 p-4"
+{{-- MODALES MEJORADOS --}}
+<div id="analysisDetailModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden items-center justify-center z-50 p-4 transition-all duration-300"
      onclick="event.stopPropagation()">
-    <div class="bg-white rounded-lg shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
-        <div class="flex justify-between items-center bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-4">
-            <div>
-                <h3 class="font-bold text-lg">
-                    <i class="fas fa-info-circle mr-2"></i>
-                    <span id="detailModalTitle">Detalle del Análisis</span>
-                </h3>
+    <div class="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden transform transition-all duration-300 scale-100 animate-modalIn">
+        {{-- HEADER CON GRADIENTE MEJORADO --}}
+       <div class="bg-gradient-to-r from-[#1F4E78] via-[#1F4E78] to-[#1F4E78] text-white px-8 py-5">
+            <div class="flex justify-between items-center">
+                <div class="flex items-center gap-4">
+                    <div class="bg-white/20 p-3 rounded-xl backdrop-blur-sm">
+                        <i class="fas fa-clipboard-list text-2xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-xl">
+                            <span id="detailModalTitle">Detalle del Análisis</span>
+                        </h3>
+                        <p class="text-blue-100 text-sm mt-1">Información completa del registro</p>
+                    </div>
+                </div>
+                <button onclick="event.stopPropagation(); closeAnalysisDetailModal()" 
+                        class="w-10 h-10 rounded-xl bg-white/20 hover:bg-white/30 transition-all flex items-center justify-center group">
+                    <i class="fas fa-times text-xl group-hover:rotate-90 transition-transform"></i>
+                </button>
             </div>
-            <button onclick="event.stopPropagation(); closeAnalysisDetailModal()" class="text-white hover:text-yellow-300 text-2xl">
-                <i class="fas fa-times"></i>
-            </button>
         </div>
         
-        <div class="p-6 overflow-auto max-h-[calc(90vh-80px)]">
-            <div class="detail-grid">
-                <div class="detail-card">
-                    <h4><i class="fas fa-washing-machine mr-2"></i>Lavadora</h4>
-                    <p id="detail-linea" class="font-semibold text-lg"></p>
+        {{-- CONTENIDO CON SCROLL PERSONALIZADO --}}
+        <div class="p-8 overflow-auto max-h-[calc(90vh-100px)] custom-scrollbar">
+            {{-- TARJETAS DE INFORMACIÓN MEJORADAS --}}
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                {{-- Lavadora --}}
+                <div class="bg-gradient-to-br from-blue-50 to-white rounded-xl p-5 border border-blue-100 shadow-sm hover:shadow-md transition-all">
+                    <div class="flex items-start gap-3">
+                        <div class="bg-blue-100 p-3 rounded-lg">
+                            <i class="fas fa-washing-machine text-blue-600 text-xl"></i>
+                        </div>
+                        <div class="flex-1">
+                            <p class="text-xs font-semibold text-blue-600 uppercase tracking-wider">Lavadora</p>
+                            <p id="detail-linea" class="font-bold text-gray-800 text-lg mt-1"></p>
+                        </div>
+                    </div>
                 </div>
-                <div class="detail-card">
-                    <h4><i class="fas fa-cog mr-2"></i>Componente</h4>
-                    <p id="detail-componente" class="font-semibold text-lg"></p>
-                    <p id="detail-componente-codigo" class="text-sm text-gray-500 mt-1"></p>
+
+                {{-- Componente --}}
+                <div class="bg-gradient-to-br from-purple-50 to-white rounded-xl p-5 border border-purple-100 shadow-sm hover:shadow-md transition-all">
+                    <div class="flex items-start gap-3">
+                        <div class="bg-purple-100 p-3 rounded-lg">
+                            <i class="fas fa-cog text-purple-600 text-xl"></i>
+                        </div>
+                        <div class="flex-1">
+                            <p class="text-xs font-semibold text-purple-600 uppercase tracking-wider">Componente</p>
+                            <p id="detail-componente" class="font-bold text-gray-800 text-lg mt-1"></p>
+                            <p id="detail-componente-codigo" class="text-xs text-gray-500 mt-1"></p>
+                        </div>
+                    </div>
                 </div>
-                <div class="detail-card">
-                    <h4><i class="fas fa-compress-alt mr-2"></i>Reductor</h4>
-                    <p id="detail-reductor" class="font-semibold text-lg"></p>
+
+                {{-- Reductor --}}
+                <div class="bg-gradient-to-br from-amber-50 to-white rounded-xl p-5 border border-amber-100 shadow-sm hover:shadow-md transition-all">
+                    <div class="flex items-start gap-3">
+                        <div class="bg-amber-100 p-3 rounded-lg">
+                            <i class="fas fa-compress-alt text-amber-600 text-xl"></i>
+                        </div>
+                        <div class="flex-1">
+                            <p class="text-xs font-semibold text-amber-600 uppercase tracking-wider">Reductor</p>
+                            <p id="detail-reductor" class="font-bold text-gray-800 text-lg mt-1"></p>
+                        </div>
+                    </div>
                 </div>
-                <div class="detail-card">
-                    <h4><i class="far fa-calendar-alt mr-2"></i>Fecha</h4>
-                    <p id="detail-fecha" class="font-semibold"></p>
+
+                {{-- Lado del Análisis --}}
+                <div class="bg-gradient-to-br from-emerald-50 to-white rounded-xl p-5 border border-emerald-100 shadow-sm hover:shadow-md transition-all">
+                    <div class="flex items-start gap-3">
+                        <div class="bg-emerald-100 p-3 rounded-lg">
+                            <i class="fas fa-arrows-alt-h text-emerald-600 text-xl"></i>
+                        </div>
+                        <div class="flex-1">
+                            <p class="text-xs font-semibold text-emerald-600 uppercase tracking-wider">Lado</p>
+                            <p id="detail-lado" class="font-bold text-gray-800 text-lg mt-1"></p>
+                            <div id="detail-lado-badge-container" class="mt-2"></div>
+                        </div>
+                    </div>
                 </div>
-                <div class="detail-card">
-                    <h4><i class="fas fa-hashtag mr-2"></i>Orden</h4>
-                    <p id="detail-orden" class="font-semibold text-lg text-blue-700"></p>
+
+                {{-- Fecha --}}
+                <div class="bg-gradient-to-br from-rose-50 to-white rounded-xl p-5 border border-rose-100 shadow-sm hover:shadow-md transition-all">
+                    <div class="flex items-start gap-3">
+                        <div class="bg-rose-100 p-3 rounded-lg">
+                            <i class="far fa-calendar-alt text-rose-600 text-xl"></i>
+                        </div>
+                        <div class="flex-1">
+                            <p class="text-xs font-semibold text-rose-600 uppercase tracking-wider">Fecha</p>
+                            <p id="detail-fecha" class="font-bold text-gray-800 text-lg mt-1"></p>
+                        </div>
+                    </div>
                 </div>
-                <div class="detail-card">
-                    <h4><i class="fas fa-clipboard-check mr-2"></i>Estado</h4>
-                    <div id="detail-estado" class="status-badge ok mt-2 inline-flex"></div>
+
+                {{-- Número de Orden --}}
+                <div class="bg-gradient-to-br from-indigo-50 to-white rounded-xl p-5 border border-indigo-100 shadow-sm hover:shadow-md transition-all">
+                    <div class="flex items-start gap-3">
+                        <div class="bg-indigo-100 p-3 rounded-lg">
+                            <i class="fas fa-hashtag text-indigo-600 text-xl"></i>
+                        </div>
+                        <div class="flex-1">
+                            <p class="text-xs font-semibold text-indigo-600 uppercase tracking-wider">Orden</p>
+                            <p id="detail-orden" class="font-bold text-indigo-700 text-lg mt-1"></p>
+                        </div>
+                    </div>
                 </div>
-            </div>
-            
-            <div class="detail-card mt-6">
-                <h4><i class="fas fa-sticky-note mr-2"></i>Actividad</h4>
-                <div class="activity-content">
-                    <p id="detail-actividad" class="whitespace-pre-line"></p>
-                </div>
-            </div>
-            
-            <div id="detail-images-section" class="detail-images-container hidden">
-                <h4 class="text-lg font-semibold text-gray-800 mb-4">
-                    <i class="fas fa-images mr-2"></i>Evidencia Fotográfica
-                </h4>
-                <div id="detail-image-grid" class="image-grid"></div>
             </div>
 
-            {{-- BOTONES DE ACCIÓN --}}
-            <div class="flex justify-end gap-3 mt-6">
-                <a id="detail-edit-btn" href="#" class="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600">
-                    <i class="fas fa-edit"></i> Editar
+            {{-- ESTADO Y ACTIVIDAD EN TARJETAS DESTACADAS --}}
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mt-5">
+                {{-- Estado --}}
+                <div class="bg-gradient-to-br from-gray-50 to-white rounded-xl p-5 border border-gray-200 shadow-sm">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="bg-gray-200 p-2 rounded-lg">
+                            <i class="fas fa-clipboard-check text-gray-700"></i>
+                        </div>
+                        <h4 class="font-semibold text-gray-700">Estado de Analisis</h4>
+                    </div>
+                    <div class="flex justify-center">
+                        <div id="detail-estado" class="status-badge-enhanced px-6 py-3 text-base"></div>
+                    </div>
+                </div>
+
+                {{-- Actividad --}}
+                <div class="bg-gradient-to-br from-gray-50 to-white rounded-xl p-5 border border-gray-200 shadow-sm md:col-span-1">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="bg-gray-200 p-2 rounded-lg">
+                            <i class="fas fa-sticky-note text-gray-700"></i>
+                        </div>
+                        <h4 class="font-semibold text-gray-700">Actividad</h4>
+                    </div>
+                    <div class="bg-white rounded-lg p-4 border-l-4 border-blue-500 shadow-inner">
+                        <p id="detail-actividad" class="text-gray-700 whitespace-pre-line leading-relaxed"></p>
+                    </div>
+                </div>
+            </div>
+            
+            {{-- SECCIÓN DE IMÁGENES MEJORADA --}}
+            <div id="detail-images-section" class="mt-6 hidden">
+                <div class="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-4 rounded-t-xl">
+                    <div class="flex items-center gap-3">
+                        <div class="bg-white/20 p-2 rounded-lg">
+                            <i class="fas fa-images text-xl"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-lg">Evidencia Fotográfica</h4>
+                            <p class="text-blue-100 text-sm">Documentación visual del análisis</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-gray-50 rounded-b-xl p-6 border-x-2 border-b-2 border-gray-200">
+                    <div id="detail-image-grid" class="image-grid-enhanced"></div>
+                </div>
+            </div>
+
+            {{-- BOTONES DE ACCIÓN MEJORADOS --}}
+            <div class="flex justify-end gap-3 mt-8 pt-4 border-t border-gray-200">
+                <a id="detail-edit-btn" 
+                   href="#" 
+                   class="px-6 py-3 bg-gradient-to-r from-amber-500 to-amber-600 text-white rounded-xl hover:from-amber-600 hover:to-amber-700 transition-all shadow-md hover:shadow-lg flex items-center gap-2 font-medium">
+                    <i class="fas fa-edit"></i>
+                    Editar Análisis
                 </a>
                 <a id="detail-historial-btn"
-                href="#"
-                class="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 hidden">
-                    <i class="fas fa-history"></i>
+                   href="#"
+                   class="px-6 py-3 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-xl hover:from-purple-600 hover:to-purple-700 transition-all shadow-md hover:shadow-lg flex items-center gap-2 font-medium hidden">
+                    <i class="fas"></i>
                     <span id="detail-historial-text">Ver Historial</span>
                 </a>
-                <button onclick="closeAnalysisDetailModal()" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300">
-                    <i class="fas fa-times"></i> Cerrar
+                <button onclick="closeAnalysisDetailModal()" 
+                        class="px-6 py-3 bg-gray-200 text-gray-700 rounded-xl hover:bg-gray-300 transition-all shadow-md hover:shadow-lg flex items-center gap-2 font-medium">
+                    <i class="fas fa-times"></i>
+                    Cerrar
                 </button>
             </div>
         </div>
     </div>
 </div>
 
-<div id="allImagesModal" class="fixed inset-0 bg-black/80 hidden items-center justify-center z-50 p-4"
+{{-- MODAL DE IMÁGENES MEJORADO --}}
+<div id="allImagesModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden items-center justify-center z-50 p-4 transition-all duration-300"
      onclick="closeAllImagesModal()">
-    <div class="bg-white rounded-lg shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden">
-        <div class="flex justify-between items-center bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-4">
-            <h3 class="font-bold text-lg">
-                <i class="fas fa-images mr-2"></i>
-                <span id="modalTitle">Imágenes del Análisis</span>
-            </h3>
-            <button onclick="closeAllImagesModal()" class="text-white hover:text-yellow-300 text-2xl">
-                <i class="fas fa-times"></i>
-            </button>
+    <div class="bg-white rounded-2xl shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden transform transition-all duration-300 scale-100 animate-modalIn">
+        <div class="bg-gradient-to-r from-blue-700 via-blue-600 to-indigo-700 text-white px-8 py-5">
+            <div class="flex justify-between items-center">
+                <div class="flex items-center gap-4">
+                    <div class="bg-white/20 p-3 rounded-xl">
+                        <i class="fas fa-images text-2xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-xl">
+                            <span id="modalTitle">Galería de Imágenes</span>
+                        </h3>
+                        <p class="text-blue-100 text-sm">Evidencia fotográfica del análisis</p>
+                    </div>
+                </div>
+                <button onclick="closeAllImagesModal()" 
+                        class="w-10 h-10 rounded-xl bg-white/20 hover:bg-white/30 transition-all flex items-center justify-center group">
+                    <i class="fas fa-times text-xl group-hover:rotate-90 transition-transform"></i>
+                </button>
+            </div>
         </div>
-        <div class="p-6 overflow-auto max-h-[calc(90vh-80px)]">
-            <div id="imageGrid" class="image-grid"></div>
-            <div id="emptyImages" class="empty-images hidden">
-                <i class="fas fa-image text-4xl mb-4 text-gray-300"></i>
-                <p>No hay imágenes disponibles</p>
+        <div class="p-6 overflow-auto max-h-[calc(90vh-100px)] custom-scrollbar">
+            <div id="imageGrid" class="image-grid-enhanced"></div>
+            <div id="emptyImages" class="empty-images-enhanced hidden">
+                <div class="text-center py-16">
+                    <div class="bg-gray-100 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-image text-4xl text-gray-400"></i>
+                    </div>
+                    <p class="text-gray-500 text-lg">No hay imágenes disponibles</p>
+                    <p class="text-gray-400 text-sm mt-2">Este análisis no cuenta con evidencia fotográfica</p>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
-<div id="singleImageModal" class="fixed inset-0 bg-black/90 hidden items-center justify-center z-[60] p-4"
+{{-- MODAL DE IMAGEN INDIVIDUAL MEJORADO --}}
+<div id="singleImageModal" class="fixed inset-0 bg-black/95 hidden items-center justify-center z-[60] p-4 transition-all duration-300"
      onclick="closeSingleImageModal()">
-    <div class="relative max-w-5xl w-full">
-        <button onclick="closeSingleImageModal()" class="absolute top-4 right-4 text-white text-2xl">
-            <i class="fas fa-times"></i>
+    <div class="relative max-w-6xl w-full h-full flex items-center justify-center">
+        <button onclick="closeSingleImageModal()" 
+                class="absolute top-6 right-6 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 text-white text-2xl flex items-center justify-center backdrop-blur-sm border border-white/30 transition-all z-10 group">
+            <i class="fas fa-times group-hover:rotate-90 transition-transform"></i>
         </button>
-        <img id="singleModalImg" class="max-w-full max-h-[90vh] object-contain mx-auto">
+        <div class="relative">
+            <img id="singleModalImg" class="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl border-4 border-white/20">
+            <div class="absolute bottom-6 left-1/2 transform -translate-x-1/2 bg-black/50 backdrop-blur-sm text-white px-4 py-2 rounded-full text-sm">
+                <span id="currentImageCounter"></span>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -1771,7 +2111,7 @@ function closeLineasModal() {
     document.body.style.overflow = '';
 }
 
-// FUNCIONES PRINCIPALES
+// FUNCIONES PRINCIPALES MEJORADAS
 function openAnalysisDetail(analysisData) {
     showLoading();
     currentAnalysisData = analysisData;
@@ -1780,16 +2120,53 @@ function openAnalysisDetail(analysisData) {
     document.getElementById('detail-componente').textContent = analysisData.componente;
     document.getElementById('detail-componente-codigo').textContent = analysisData.componente_codigo;
     document.getElementById('detail-reductor').textContent = analysisData.reductor;
+    
+    // Mostrar información del lado con badge mejorado
+    const ladoElement = document.getElementById('detail-lado');
+    const ladoBadgeContainer = document.getElementById('detail-lado-badge-container');
+    
+    if (analysisData.lado) {
+        ladoElement.textContent = analysisData.lado === 'VAPOR' ? 'Lado Vapor' : 'Lado Pasillo';
+        
+        const badge = document.createElement('span');
+        badge.className = `lado-badge ${analysisData.lado === 'VAPOR' ? 'vapor' : 'pasillo'}`;
+        badge.innerHTML = analysisData.lado === 'VAPOR' ? 
+            '<i class="fas fa-wind"></i> Vapor' : 
+            '<i class="fas fa-walking"></i> Pasillo';
+        ladoBadgeContainer.innerHTML = '';
+        ladoBadgeContainer.appendChild(badge);
+    } else {
+        ladoElement.textContent = 'No especificado';
+        ladoBadgeContainer.innerHTML = '<span class="text-gray-400 text-sm bg-gray-100 px-4 py-2 rounded-full">-</span>';
+    }
+    
     document.getElementById('detail-fecha').textContent = analysisData.fecha_analisis;
     document.getElementById('detail-orden').textContent = analysisData.numero_orden;
     document.getElementById('detail-actividad').textContent = analysisData.actividad;
     
+    // Estado con badge mejorado
     const estadoElement = document.getElementById('detail-estado');
     estadoElement.textContent = analysisData.estado;
-    estadoElement.className = 'status-badge ' + 
-        (analysisData.color === 'cell-ok' ? 'ok' : 
-         analysisData.color === 'cell-warning' ? 'warning' : 
-         analysisData.color === 'cell-danger' ? 'danger' : 'changed');
+    
+    let estadoClass = '';
+    let estadoIcon = '';
+    
+    if (analysisData.color === 'cell-ok') {
+        estadoClass = 'ok';
+        estadoIcon = '<i class="fas fa-check-circle mr-2"></i>';
+    } else if (analysisData.color === 'cell-warning') {
+        estadoClass = 'warning';
+        estadoIcon = '<i class="fas fa-exclamation-triangle mr-2"></i>';
+    } else if (analysisData.color === 'cell-danger') {
+        estadoClass = 'danger';
+        estadoIcon = '<i class="fas fa-times-circle mr-2"></i>';
+    } else {
+        estadoClass = 'changed';
+        estadoIcon = '<i class="fas fa-exchange-alt mr-2"></i>';
+    }
+    
+    estadoElement.className = `status-badge-enhanced ${estadoClass}`;
+    estadoElement.innerHTML = estadoIcon + analysisData.estado;
     
     document.getElementById('detail-edit-btn').href = analysisData.edit_url;
     const historialBtn = document.getElementById('detail-historial-btn');
@@ -1798,7 +2175,7 @@ function openAnalysisDetail(analysisData) {
     if (analysisData.total_historial > 1) {
         historialBtn.classList.remove('hidden');
         historialBtn.href = analysisData.historial_url;
-        historialText.textContent = `Ver Historial (${analysisData.total_historial})`;
+        historialText.innerHTML = `<i class="fas fa-history mr-2"></i>Ver Historial (${analysisData.total_historial})`;
     } else {
         historialBtn.classList.add('hidden');
     }
@@ -1806,7 +2183,7 @@ function openAnalysisDetail(analysisData) {
     const imagesSection = document.getElementById('detail-images-section');
     if (analysisData.imagenes && analysisData.imagenes.length > 0) {
         imagesSection.classList.remove('hidden');
-        buildDetailImageGrid(analysisData.imagenes);
+        buildDetailImageGridEnhanced(analysisData.imagenes);
     } else {
         imagesSection.classList.add('hidden');
     }
@@ -1816,7 +2193,7 @@ function openAnalysisDetail(analysisData) {
     hideLoading();
 }
 
-function buildDetailImageGrid(imagenes) {
+function buildDetailImageGridEnhanced(imagenes) {
     const grid = document.getElementById('detail-image-grid');
     grid.innerHTML = '';
     
@@ -1824,11 +2201,12 @@ function buildDetailImageGrid(imagenes) {
         const item = document.createElement('div');
         item.className = 'image-item';
         item.innerHTML = `
-            <div class="image-number">${index + 1}</div>
+            <div class="image-number">#${index + 1}</div>
             <img src="{{ Storage::url('') }}${path}" class="grid-image" onclick="openSingleImage('${path}', ${index})">
             <div class="image-info">
                 <button class="download-image-btn" onclick="event.stopPropagation(); downloadSingleImage('${path}', ${index})">
-                    <i class="fas fa-download mr-1"></i> Descargar
+                    <i class="fas fa-download"></i>
+                    Descargar
                 </button>
             </div>
         `;
@@ -1857,11 +2235,12 @@ function openAllImages(imagenes, fecha, orden, estado) {
             const item = document.createElement('div');
             item.className = 'image-item';
             item.innerHTML = `
-                <div class="image-number">${index + 1}</div>
+                <div class="image-number">#${index + 1}</div>
                 <img src="{{ Storage::url('') }}${path}" class="grid-image" onclick="openSingleImage('${path}', ${index})">
                 <div class="image-info">
                     <button class="download-image-btn" onclick="event.stopPropagation(); downloadSingleImage('${path}', ${index})">
-                        <i class="fas fa-download"></i> Descargar
+                        <i class="fas fa-download"></i>
+                        Descargar
                     </button>
                 </div>
             `;
@@ -1878,8 +2257,16 @@ function openSingleImage(imagePath, index) {
     currentImageIndex = index;
     const modal = document.getElementById('singleImageModal');
     const img = document.getElementById('singleModalImg');
+    const counter = document.getElementById('currentImageCounter');
+    
     img.src = `{{ Storage::url('') }}${imagePath}`;
+    
+    if (currentImages.length > 0) {
+        counter.textContent = `${index + 1} / ${currentImages.length}`;
+    }
+    
     modal.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
 }
 
 function downloadSingleImage(imagePath, index) {
