@@ -47,7 +47,7 @@ class PlanAccionController extends Controller
         $alertas = $this->obtenerAlertasGlobales();
         $estadisticas = $this->obtenerEstadisticas();
 
-        return view('plan-accion.index', compact(
+        return view('plan-accion.lavadora.index', compact(
             'lineasTipo',
             'planes',
             'alertas',
@@ -75,7 +75,7 @@ class PlanAccionController extends Controller
 
         $responsables = User::where('activo', true)->get();
 
-        return view('plan-accion.create', compact(
+        return view('plan-accion.lavadora.create', compact(
             'lineas',
             'responsables',
             'tipo',

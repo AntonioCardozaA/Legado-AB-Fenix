@@ -38,7 +38,7 @@ class AnalisisTendenciaMensualLavadoraController extends Controller
             }
         }
 
-        return view('analisis-tendencia-mensual-lavadora.index', compact(
+        return view('analisis-tendencia-mensual.lavadora.index', compact(
             'lineas', 
             'lineaSeleccionada',
             'analisis',
@@ -70,7 +70,7 @@ class AnalisisTendenciaMensualLavadoraController extends Controller
                 ->exists();
         }
 
-        return view('analisis-tendencia-mensual-lavadora.create', compact(
+        return view('analisis-tendencia-mensual-lavadora.lavadora.create', compact(
             'lineas', 
             'lineaSeleccionada',
             'anioActual',
@@ -127,7 +127,7 @@ class AnalisisTendenciaMensualLavadoraController extends Controller
             DB::commit();
 
             return redirect()
-                ->route('analisis-tendencia-mensual-lavadora.index', ['linea_id' => $request->linea_id])
+                ->route('analisis-tendencia-mensual-lavadora.lavadora.index', ['linea_id' => $request->linea_id])
                 ->with('success', 'Análisis mensual guardado correctamente');
 
         } catch (\Exception $e) {
@@ -160,7 +160,7 @@ class AnalisisTendenciaMensualLavadoraController extends Controller
             ->get()
             ->reverse(); // Para orden cronológico
 
-        return view('analisis-tendencia-mensual-lavadora.show', compact('analisis', 'historial'));
+        return view('analisis-tendencia-mensual-lavadora.lavadora.show', compact('analisis', 'historial'));
     }
 
     /**

@@ -64,4 +64,8 @@ class Componente extends Model
     {
         return $this->belongsTo(NumeroR::class, 'numero_r_id', 'id');
     }
+    public function analisisLavadora()
+    {
+        return $this->hasMany(\App\Models\AnalisisLavadora::class, 'componente_id');
+    }
 }

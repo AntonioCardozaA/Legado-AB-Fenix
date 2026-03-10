@@ -150,16 +150,12 @@
                     <i class="fas fa-clipboard-check text-blue-600 mr-1"></i>
                     Estado del Componente *
                 </label>
-                <select name="estado" 
-                        id="estado"
-                        required
-                        class="block w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500 shadow-sm sm:text-sm
-                        @error('estado') border-red-500 @enderror">
-                    <option value="Buen estado" {{ old('estado', $analisisComponente->estado) == 'Buen estado' ? 'selected' : '' }}>✅ Buen estado</option>
-                    <option value="Desgaste moderado" {{ old('estado', $analisisComponente->estado) == 'Desgaste moderado' ? 'selected' : '' }}>⚠️ Desgaste moderado</option>
-                    <option value="Desgaste severo" {{ old('estado', $analisisComponente->estado) == 'Desgaste severo' ? 'selected' : '' }}>⚠️ Desgaste severo</option>
-                    <option value="Dañado - Requiere cambio" {{ old('estado', $analisisComponente->estado) == 'Dañado - Requiere cambio' ? 'selected' : '' }}>❌ Dañado - Requiere cambio</option>
-                    <option value="Dañado - Cambiado" {{ old('estado', $analisisComponente->estado) == 'Dañado - Cambiado' ? 'selected' : '' }}>🔄 Dañado - Cambiado</option>
+               <select name="estado" class="filter-select" required>
+                    <option value="Buen estado">✅ Buen estado</option>
+                    <option value="Desgaste moderado">⚠️ Desgaste moderado</option>
+                    <option value="Desgaste severo">⚠️ Desgaste severo</option>
+                    <option value="Dañado - Requiere cambio">❌ Dañado - Requiere cambio</option>
+                    <option value="Cambiado">🔄 Cambiado</option>
                 </select>
                 @error('estado')
                     <p class="text-red-500 text-sm mt-1">{{ $message }}</p>

@@ -8,15 +8,19 @@ class AddTipoMaquinaToPlanAccionTable extends Migration
 {
     public function up()
     {
-        Schema::table('plan_accion', function (Blueprint $table) {
-            $table->json('tipo_maquina')->nullable()->after('observaciones');
-        });
+        if (Schema::hasTable('plan_accion') && !Schema::hasColumn('plan_accion', 'tipo_maquina')) {
+            Schema::table('plan_accion', function (Blueprint $table) {
+                $table->json('tipo_maquina')->nullable()->after('observaciones');
+            });
+        }
     }
 
     public function down()
     {
-        Schema::table('plan_accion', function (Blueprint $table) {
-            $table->dropColumn('tipo_maquina');
-        });
+        if (Schema::hasTable('plan_accion') && Schema::hasColumn('plan_accion', 'tipo_maquina')) {
+            Schema::table('plan_accion', function (Blueprint $table) {
+                $table->dropColumn('tipo_maquina');
+            });
+        }
     }
 }

@@ -979,6 +979,48 @@
             grid-template-columns: 1fr;
         }
     }
+
+    /* ESTILOS PARA SECCIÓN DE TODAS LAS LAVADORAS */
+    .lavadoras-section {
+        margin-top: 30px;
+    }
+    
+    .lavadora-card {
+        background: white;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        margin-bottom: 30px;
+        border: 1px solid #e2e8f0;
+    }
+    
+    .lavadora-card-header {
+        background: linear-gradient(135deg, #1e293b, #0f172a);
+        color: white;
+        padding: 15px 20px;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+    
+    .lavadora-card-header h3 {
+        font-size: 20px;
+        font-weight: 700;
+        margin: 0;
+    }
+    
+    .lavadora-card-header .badge {
+        background: rgba(255, 255, 255, 0.2);
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+    }
+    
+    .lavadora-card .table-wrapper {
+        border-radius: 0;
+        border: none;
+        border-top: 1px solid #e2e8f0;
+    }
 </style>
 
 <div class="max-w-full mx-auto px-4 py-6">
@@ -1019,11 +1061,123 @@
         $analisis = $analisis ?? collect([]);
         $reductoresMostrar = $reductoresMostrar ?? [];
         
-        // Filtrar solo las lavadoras que queremos mostrar
+        // Arrays de componentes por línea (basados en los datos proporcionados)
+        $componentesPorLineaArray = [
+            'L-04' => [
+                'SERVO_CHICO' => 'Servo Chico',
+                'SERVO_GRANDE' => 'Servo Grande',
+                'BUJE_ESPIGA' => 'Buje Baquelita-Espiga de flecha',
+                'GUI_INF_TANQUE' => 'Guía Inferior ',
+                'GUI_INT_TANQUE' => 'Guía Intermedia ',
+                'GUI_SUP_TANQUE' => 'Guía Superior ',
+                'CATARINAS' => 'Catarinas',
+            ],
+            'L-05' => [
+                'RV200' => 'Reductor RV200',
+                'BUJE_ESPIGA' => 'Buje Baquelita-Espiga de flecha',
+                'GUI_INF_TANQUE' => 'Guía Inferior ',
+                'GUI_INT_TANQUE' => 'Guía Intermedia ',
+                'GUI_SUP_TANQUE' => 'Guía Superior ',
+                'CATARINAS' => 'Catarinas',
+            ],
+            'L-06' => [
+                'SERVO_CHICO' => 'Servo Chico',
+                'SERVO_GRANDE' => 'Servo Grande',
+                'BUJE_ESPIGA' => 'Buje Baquelita-Espiga de flecha',
+                'GUI_INF_TANQUE' => 'Guía Inferior ',
+                'GUI_INT_TANQUE' => 'Guía Intermedia ',
+                'GUI_SUP_TANQUE' => 'Guía Superior ',
+                'CATARINAS' => 'Catarinas',
+            ],
+            'L-07' => [
+                'SERVO_CHICO' => 'Servo Chico',
+                'SERVO_GRANDE' => 'Servo Grande',
+                'BUJE_ESPIGA' => 'Buje Baquelita-Espiga de flecha',
+                'GUI_INF_TANQUE' => 'Guía Inferior ',
+                'GUI_INT_TANQUE' => 'Guía Intermedia ',
+                'GUI_SUP_TANQUE' => 'Guía Superior ',
+                'CATARINAS' => 'Catarinas',
+            ],
+            'L-08' => [
+                'SERVO_CHICO' => 'Servo Chico',
+                'SERVO_GRANDE' => 'Servo Grande',
+                'BUJE_ESPIGA' => 'Buje Baquelita-Espiga de flecha',
+                'GUI_INF_TANQUE' => 'Guía Inferior ',
+                'GUI_INT_TANQUE' => 'Guía Intermedia ',
+                'GUI_SUP_TANQUE' => 'Guía Superior ',
+                'CATARINAS' => 'Catarinas',
+            ],
+            'L-09' => [
+                'SERVO_CHICO' => 'Servo Chico',
+                'SERVO_GRANDE' => 'Servo Grande',
+                'BUJE_ESPIGA' => 'Buje Baquelita-Espiga de flecha',
+                'GUI_INF_TANQUE' => 'Guía Inferior ',
+                'GUI_INT_TANQUE' => 'Guía Intermedia ',
+                'GUI_SUP_TANQUE' => 'Guía Superior ',
+                'CATARINAS' => 'Catarinas',
+            ],
+            'L-12' => [
+                'RV200_SIN_FIN' => 'Reductor Sin Fin-Corona RV200',
+                'BUJE_ESPIGA' => 'Buje Baquelita-Espiga de flecha',
+                'GUI_INF_TANQUE' => 'Guía Inferior ',
+                'GUI_INT_TANQUE' => 'Guía Intermedia ',
+                'GUI_SUP_TANQUE' => 'Guía Superior ',
+                'CATARINAS' => 'Catarinas',
+            ],
+            'L-13' => [
+                'RV200' => 'Reductor RV200',
+                'BUJE_ESPIGA' => 'Buje Baquelita-Espiga de flecha',
+                'GUI_INF_TANQUE' => 'Guía Inferior',
+                'GUI_INT_TANQUE' => 'Guía Intermedia',
+                'GUI_SUP_TANQUE' => 'Guía Superior',
+                'CATARINAS' => 'Catarinas',
+            ],
+        ];
+
+        // Arrays de reductores por línea (basados en los datos proporcionados)
+        $reductoresPorLineaArray = [
+            'L-04' => ['Reductor 1', 'Reductor 9', 'Reductor 10', 'Reductor 11', 'Reductor 12', 
+                      'Reductor 13', 'Reductor 14', 'Reductor 15', 'Reductor 16', 'Reductor 17', 
+                      'Reductor 18', 'Reductor 19', 'Reductor Loca'],
+            'L-05' => ['Reductor 1', 'Reductor 2', 'Reductor 3', 'Reductor 4', 'Reductor 5', 
+                      'Reductor 6', 'Reductor 7', 'Reductor 8', 'Reductor 9', 'Reductor 10', 
+                      'Reductor 11', 'Reductor 12', 'Reductor Principal', 'Reductor Loca'],
+            'L-06' => ['Reductor 1', 'Reductor 9', 'Reductor 10', 'Reductor 11', 'Reductor 12', 
+                      'Reductor 13', 'Reductor 14', 'Reductor 15', 'Reductor 16', 'Reductor 17', 
+                      'Reductor 18', 'Reductor 19', 'Reductor 20', 'Reductor 21', 'Reductor 22'],
+            'L-07' => ['Reductor 1', 'Reductor 9', 'Reductor 10', 'Reductor 11', 'Reductor 12', 
+                      'Reductor 13', 'Reductor 14', 'Reductor 15', 'Reductor 16', 'Reductor 17', 
+                      'Reductor 18', 'Reductor 19', 'Reductor 20', 'Reductor 21', 'Reductor 22'],
+            'L-08' => ['Reductor 1', 'Reductor 9', 'Reductor 10', 'Reductor 11', 'Reductor 12', 
+                      'Reductor 13', 'Reductor 14', 'Reductor 15', 'Reductor 16', 'Reductor 17', 
+                      'Reductor 18', 'Reductor 19', 'Reductor Loca'],
+            'L-09' => ['Reductor 1', 'Reductor 9', 'Reductor 10', 'Reductor 11', 'Reductor 12', 
+                      'Reductor 13', 'Reductor 14', 'Reductor 15', 'Reductor 16', 'Reductor 17', 
+                      'Reductor 18', 'Reductor 19', 'Reductor Loca'],
+            'L-12' => ['Reductor 1', 'Reductor 2', 'Reductor 3', 'Reductor 4', 'Reductor 5', 
+                      'Reductor 6', 'Reductor 7', 'Reductor 8', 'Reductor 9', 'Reductor 10', 
+                      'Reductor 11', 'Reductor 12', 'Reductor Loca'],
+            'L-13' => ['Reductor 1', 'Reductor 2', 'Reductor 3', 'Reductor 4', 'Reductor 5', 
+                      'Reductor 6', 'Reductor 7', 'Reductor 8', 'Reductor 9', 'Reductor 10', 
+                      'Reductor 11', 'Reductor 12', 'Reductor Loca', 'Reductor Principal']
+        ];
+        
+        // Filtrar solo las lavadoras que queremos mostrar siempre
         $lavadorasPermitidas = ['L-04', 'L-05', 'L-06', 'L-07', 'L-08', 'L-09', 'L-12', 'L-13'];
+        
+        // Determinar si mostrar todas las lavadoras (por defecto TRUE)
+        $mostrarTodas = !request('linea_id') || request('linea_id') === 'todas';
+        
+        // Filtrar líneas permitidas
         $lineasFiltradas = $lineas->filter(function($linea) use ($lavadorasPermitidas) {
             return in_array($linea->nombre, $lavadorasPermitidas);
         })->values();
+        
+        // Línea específica si está seleccionada
+        $lineaSeleccionada = null;
+        if (!$mostrarTodas && request('linea_id')) {
+            $lineaSeleccionada = $lineas->firstWhere('id', request('linea_id'));
+        }
         
         // Todas las lavadoras para el modal de "Ver más"
         $todasLasLineas = $lineas->filter(function($linea) use ($lavadorasPermitidas) {
@@ -1036,7 +1190,13 @@
             {{-- LÍNEAS: con las lavadoras específicas --}}
             <div class="lineas-title">
                 <i class="fas fa-washing-machine"></i>
-                LÍNEAS:
+                LÍNEAS DE LAVADORA:
+                <!-- Todas -->
+                <a href="{{ route('analisis-lavadora.index', ['linea_id' => 'todas']) }}" 
+                   class="linea-item {{ $mostrarTodas ? 'active' : '' }}">
+                    <i class="fas fa-globe"></i>
+                    Todas
+                </a>
             </div>
             
             <form method="GET" action="{{ route('analisis-lavadora.index') }}" id="filterForm">
@@ -1080,7 +1240,7 @@
                         Aplicar filtros
                     </button>
                     
-                    <a href="{{ route('analisis-lavadora.index') }}" class="btn-clear">
+                    <a href="{{ route('analisis-lavadora.index', ['linea_id' => 'todas']) }}" class="btn-clear">
                         <i class="fas fa-times"></i>
                         Limpiar
                     </a>
@@ -1135,7 +1295,7 @@
                                 <option value="Desgaste moderado" {{ request('estado') == 'Desgaste moderado' ? 'selected' : '' }}>⚠️ Desgaste moderado</option>
                                 <option value="Desgaste severo" {{ request('estado') == 'Desgaste severo' ? 'selected' : '' }}>⚠️ Desgaste severo</option>
                                 <option value="Dañado - Requiere cambio" {{ request('estado') == 'Dañado - Requiere cambio' ? 'selected' : '' }}>❌ Dañado - Requiere cambio</option>
-                                <option value="Dañado - Cambiado" {{ request('estado') == 'Dañado - Cambiado' ? 'selected' : '' }}>🔄 Dañado - Cambiado</option>
+                                <option value="Cambiado" {{ request('estado') == 'Cambiado' ? 'selected' : '' }}>🔄 Cambiado</option>
                             </select>
                         </div>
                     </div>
@@ -1176,11 +1336,11 @@
     </div>
 
     <h1 class="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-        <img src="{{ asset('images/Diagramas-Lavadoras/diagramalav.png') }}" alt="Diagrama Lavadora">
+        <img src="{{ asset('images/Diagramas-Lavadoras/linea7.png') }}" alt="Diagrama Lavadora">
     </h1>
 
     {{-- RESÚMENES Y ESTADÍSTICAS --}}
-    @php
+@php
         $analisisCollection = isset($analisis) ? collect($analisis) : collect([]);
 
         if ($analisisCollection->count() > 0) {
@@ -1195,16 +1355,16 @@
                 'danado_requiere' => $analisisCollection
                     ->where('estado', 'Dañado - Requiere cambio')
                     ->count(),
-                'danado_cambiado' => $analisisCollection
-                    ->where('estado', 'Dañado - Cambiado')
+                'cambiado' => $analisisCollection
+                    ->where('estado', 'Cambiado')
                     ->count(),
                 'recientes' => $analisisCollection->filter(function ($item) {
                     return $item->created_at &&
-                           $item->created_at->gt(now()->subDays(7));
+                        $item->created_at->gt(now()->subDays(7));
                 })->count(),
             ];
         }
-    @endphp
+@endphp
 
     @if($analisisCollection->count() > 0)
         <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-6 mb-8">
@@ -1268,14 +1428,14 @@
                 </div>
             </div>
 
-            {{-- DAÑADO CAMBIADO --}}
+        {{-- CAMBIADOS --}}
             <div class="bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 p-6 border-t-4 border-blue-600 flex items-center justify-between min-h-[120px]">
                 <div>
                     <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">
                         Cambiados
                     </p>
                     <h3 class="text-3xl font-bold text-blue-700 mt-2">
-                        {{ $estadisticas['danado_cambiado'] ?? 0 }}
+                        {{ $estadisticas['cambiado'] ?? 0 }}
                     </h3>
                 </div>
                 <div class="bg-blue-100 text-blue-600 p-3 rounded-full">
@@ -1285,576 +1445,1056 @@
         </div>
     @endif
 
-    {{-- TABLA PRINCIPAL --}}
-    @php
-        /* ===============================
-        LINEA A MOSTRAR
-        =============================== */
-        $analisisCollection = collect($analisis ?? []);
-        
-        if (request('linea_id') && isset($lineas)) {
-            $lineaMostrar = $lineas->firstWhere('id', request('linea_id'));
-        } elseif ($analisisCollection->isNotEmpty()) {
-            $lineaMostrar = $analisisCollection->first()->linea ?? null;
-        }
-
-        /* ===============================
-        COMPONENTES PARA TABLA
-        =============================== */
-        $componentesParaTabla = collect();
-
-        if ($lineaMostrar && isset($componentesPorLinea[$lineaMostrar->nombre])) {
-            foreach ($componentesPorLinea[$lineaMostrar->nombre] as $id => $nombre) {
-                $componentesParaTabla->push((object)[
-                    'id'     => $id,
-                    'nombre' => $nombre,
-                    'icono'  => asset("images/componentes-lavadora/{$id}.png"),
-                ]);
-            }
-        }
-
-        if (request('componente_id')) {
-            $componentesParaTabla = $componentesParaTabla
-                ->where('id', request('componente_id'))
-                ->values();
-        }
-
-        /* ===============================
-        REDUCTORES PARA TABLA - MEJORADO PARA L-12
-        =============================== */
-        $reductoresParaTabla = collect();
-
-        if (request('linea_id') && !empty($reductoresMostrar)) {
-            $reductoresParaTabla = collect($reductoresMostrar);
-        } elseif ($analisisCollection->count() > 0) {
-            // Obtener los reductores únicos de los análisis y formatearlos
-            $reductoresParaTabla = $analisisCollection
-                ->pluck('reductor')
-                ->map(function($r) {
-                    // Si es número, convertirlo a "Reductor X"
-                    if (is_numeric($r)) {
-                        return "Reductor {$r}";
+    {{-- SECCIÓN PRINCIPAL - MUESTRA TODAS LAS LAVADORAS O UNA SOLA --}}
+    @if($mostrarTodas)
+        {{-- MOSTRAR TODAS LAS LAVADORAS CON LAS MISMAS PROPIEDADES --}}
+        <div class="lavadoras-section">
+            @foreach($lineasFiltradas as $linea)
+                @php
+                    // Obtener análisis para esta línea específica
+                    $analisisLinea = $analisisCollection->filter(function($item) use ($linea) {
+                        return $item->linea_id == $linea->id;
+                    });
+                    
+                    // Obtener componentes específicos para esta línea del array definido
+                    $componentesLinea = collect();
+                    if (isset($componentesPorLineaArray[$linea->nombre])) {
+                        foreach ($componentesPorLineaArray[$linea->nombre] as $codigo => $nombre) {
+                            $componentesLinea->push((object)[
+                                'id'     => $codigo,
+                                'nombre' => $nombre,
+                                'codigo' => $codigo,
+                                'icono'  => asset("images/componentes-lavadora/{$codigo}.png"),
+                            ]);
+                        }
                     }
-                    return $r;
-                })
-                ->unique()
-                ->sort()
-                ->values();
-        }
-
-        // Si no hay reductores en los análisis, usar los reductores predefinidos de la línea
-        if ($reductoresParaTabla->isEmpty() && $lineaMostrar && isset($reductoresMostrar)) {
-            $reductoresParaTabla = collect($reductoresMostrar);
-        }
-
-        if (request('reductor')) {
-            $reductoresParaTabla = $reductoresParaTabla
-                ->filter(fn($r) => $r == request('reductor'))
-                ->values();
-        }
-
-        /* ===============================
-        AGRUPAR ANALISIS - CORREGIDO PARA L-12 (SIN AFECTAR OTRAS LÍNEAS)
-        =============================== */
-        $analisisAgrupados = [];
-
-        // Crear un mapa de componentes para L-12
-        $mapaComponentesL12 = [];
-        
-        // Solo para L-12, construir el mapa de IDs de BD a códigos de vista
-        if ($lineaMostrar && $lineaMostrar->nombre == 'L-12') {
-            // Obtener todos los componentes de L-12 de la BD
-            $componentesL12 = \App\Models\Componente::where('linea', 'L-12')->get();
+                    
+                    // Obtener reductores específicos para esta línea del array definido
+                    $reductoresLinea = collect();
+                    if (isset($reductoresPorLineaArray[$linea->nombre])) {
+                        $reductoresLinea = collect($reductoresPorLineaArray[$linea->nombre]);
+                    } elseif ($analisisLinea->count() > 0) {
+                        $reductoresLinea = $analisisLinea
+                            ->pluck('reductor')
+                            ->map(function($r) {
+                                if (is_numeric($r)) {
+                                    return "Reductor {$r}";
+                                }
+                                return $r;
+                            })
+                            ->unique()
+                            ->sort()
+                            ->values();
+                    }
+                    
+                    // Agrupar análisis para esta línea
+                    $analisisAgrupadosLinea = [];
+                    
+                    // Mapa de componentes para L-12 (para manejar casos especiales)
+                    $mapaComponentesL12 = [];
+                    if ($linea->nombre == 'L-12') {
+                        foreach ($componentesLinea as $comp) {
+                            $mapaComponentesL12[$comp->id] = $comp->id;
+                        }
+                    }
+                    
+                    // Construir conteo de estados para cada componente
+                    $conteoEstadosComponente = [];
+                    foreach($componentesLinea as $c) {
+                        $conteoEstadosComponente[$c->id] = [
+                            'ok' => 0,
+                            'warning' => 0,
+                            'danger' => 0,
+                            'changed' => 0,
+                            'empty' => $reductoresLinea->count()
+                        ];
+                    }
+                    
+                    foreach ($analisisLinea as $item) {
+                        if (!$item->componente) continue;
+                        
+                        $reductor = $item->reductor;
+                        $reductorVista = is_numeric($reductor) ? "Reductor {$reductor}" : $reductor;
+                        $componenteId = $item->componente_id;
+                        $componenteCodigo = $item->componente->codigo ?? '';
+                        
+                        // Buscar el componente por código en los componentes de la línea
+                        $claveComponente = null;
+                        foreach ($componentesLinea as $comp) {
+                            if ($comp->id == $componenteCodigo || str_contains($componenteCodigo, $comp->id)) {
+                                $claveComponente = $comp->id;
+                                break;
+                            }
+                        }
+                        
+                        if (!$claveComponente) {
+                            $claveComponente = $componenteCodigo;
+                        }
+                        
+                        if (!isset($analisisAgrupadosLinea[$reductorVista][$claveComponente])) {
+                            $analisisAgrupadosLinea[$reductorVista][$claveComponente] = collect();
+                        }
+                        
+                        $analisisAgrupadosLinea[$reductorVista][$claveComponente]->push($item);
+                        
+                    
+                                          // Actualizar conteo de estados
+                                            if (isset($conteoEstadosComponente[$claveComponente])) {
+                                                $estado = $item->estado ?? 'Buen estado';
+                                                
+                                                if ($estado === 'Cambiado') {
+                                                    $conteoEstadosComponente[$claveComponente]['changed']++;
+                                                    $conteoEstadosComponente[$claveComponente]['empty']--;
+                                                } 
+                                                elseif ($estado === 'Dañado - Requiere cambio') {
+                                                    $conteoEstadosComponente[$claveComponente]['danger']++;
+                                                    $conteoEstadosComponente[$claveComponente]['empty']--;
+                                                } 
+                                                elseif (str_contains($estado, 'Desgaste')) {
+                                                    $conteoEstadosComponente[$claveComponente]['warning']++;
+                                                    $conteoEstadosComponente[$claveComponente]['empty']--;
+                                                } 
+                                                else {
+                                                    $conteoEstadosComponente[$claveComponente]['ok']++;
+                                                    $conteoEstadosComponente[$claveComponente]['empty']--;
+                                                }
+                                            }
+                                        }
+                                  @endphp
+                
+                @if($componentesLinea->count() > 0 && $reductoresLinea->count() > 0)
+                    <div class="lavadora-card">
+                        <div class="lavadora-card-header">
+                            <div class="w-12 h-12">
+                                <img src="{{ asset('images/icono-maquina.png') }}" alt="Icono" class="w-full h-full object-contain">
+                            </div>
+                            <div>
+                                <h3>{{ $linea->nombre }}</h3>
+                                <div class="badge">{{ $analisisLinea->count() }} análisis</div>
+                            </div>
+                        </div>
+                        
+                        <div class="table-wrapper">
+                            <div class="scroll-indicator">
+                                <i class="fas fa-arrows-alt-h mr-1"></i> Desplázate para ver más
+                            </div>
+                            <table class="w-full compact-table border-collapse">
+                                <thead>
+                                    <tr class="bg-gray-50 border-b border-gray-200">
+                                        <th class="sticky-left cell-header text-blue-900 font-bold px-3 py-2 border text-center whitespace-nowrap text-sm">
+                                            <div class="reductor-header">
+                                                <div class="reductor-name">REDUCTOR</div>
+                                                <div class="reductor-label">COMPONENTE</div>
+                                            </div>
+                                        </th>
+                                        @foreach($componentesLinea as $c)
+                                            <th class="cell-header text-blue-900 font-bold px-3 py-2 border text-center whitespace-nowrap text-sm">
+                                                <div class="component-header">
+                                                    <div class="component-name">{{ $c->nombre }}</div>
+                                                    <img src="{{ $c->icono }}" alt="Icono" class="w-20 h-20 object-contain" onerror="this.src='{{ asset('images/extras/sin imagen.png') }}'">
+                                                    <div class="flex justify-center gap-1 mt-1">
+                                                        @if($conteoEstadosComponente[$c->id]['ok'] > 0)
+                                                            <span class="w-1.5 h-1.5 bg-green-500 rounded-full"></span>
+                                                        @endif
+                                                        @if($conteoEstadosComponente[$c->id]['warning'] > 0)
+                                                            <span class="w-1.5 h-1.5 bg-yellow-500 rounded-full"></span>
+                                                        @endif
+                                                        @if($conteoEstadosComponente[$c->id]['danger'] > 0)
+                                                            <span class="w-1.5 h-1.5 bg-red-500 rounded-full"></span>
+                                                        @endif
+                                                        @if($conteoEstadosComponente[$c->id]['changed'] > 0)
+                                                            <span class="w-1.5 h-1.5 bg-blue-500 rounded-full"></span>
+                                                        @endif
+                                                    </div>
+                                                </div>
+                                            </th>
+                                        @endforeach
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($reductoresLinea as $r)
+                                        @php
+                                            $conteoReductor = [
+                                                'total' => 0,
+                                                'ok' => 0,
+                                                'warning' => 0,
+                                                'danger' => 0,
+                                                'changed' => 0
+                                            ];
+                                            
+                                    foreach($componentesLinea as $c) {
+                                            if(isset($analisisAgrupadosLinea[$r][$c->id])) {
+                                                $conteoReductor['total']++;
+                                                $primerRegistro = $analisisAgrupadosLinea[$r][$c->id]->sortByDesc('fecha_analisis')->first();
+                                                $estado = $primerRegistro->estado ?? 'Buen estado';
+                                                
+                                                if ($estado === 'Cambiado') {
+                                                    $conteoReductor['changed']++;
+                                                } 
+                                                elseif ($estado === 'Dañado - Requiere cambio') {
+                                                    $conteoReductor['danger']++;
+                                                } 
+                                                elseif (str_contains($estado, 'Desgaste')) {
+                                                    $conteoReductor['warning']++;
+                                                } 
+                                                else {
+                                                    $conteoReductor['ok']++;
+                                                }
+                                            }
+                                        }
+                                        @endphp
+                                        <tr>
+                                            <th class="sticky-left cell-header text-blue-900 font-bold px-3 py-2 border text-center whitespace-nowrap text-sm align-top">
+                                                <div class="reductor-header">
+                                                    <div class="reductor-name">{{ $r }}</div>
+                                                    <div class="reductor-label">Reductor</div>
+                                                    <div class="text-xs text-gray-500 mt-1">
+                                                        {{ $conteoReductor['total'] }}/{{ count($componentesLinea) }}
+                                                    </div>
+                                                </div>
+                                            </th>
+                                            
+                                            @foreach($componentesLinea as $c)
+                                                @php
+                                                    $registros = $analisisAgrupadosLinea[$r][$c->id] ?? collect();
+                                                    $registro = $registros->sortByDesc('fecha_analisis')->first();
+                                                    $totalHistorial = $registros->count();
+                                                    $hasData = $registros->isNotEmpty() && !empty($registro);
+                                                    $color = '';
+                                                    $isNew = false;
+                                                    $imagenes = [];
+                                                    
+                                               if($hasData && $registro){
+                                                    $estadoActual = $registro->estado ?? 'Buen estado';
+                                                    
+                                                    if ($estadoActual === 'Cambiado') {
+                                                        $color = 'cell-changed';
+                                                    } 
+                                                    elseif ($estadoActual === 'Dañado - Requiere cambio') {
+                                                        $color = 'cell-danger';
+                                                    } 
+                                                    elseif (str_contains($estadoActual, 'Desgaste')) {
+                                                        $color = 'cell-warning';
+                                                    } 
+                                                    else {
+                                                        $color = 'cell-ok';
+                                                    }
+                                                }
+                                                    
+                                                    // Verificar que created_at existe antes de usarlo
+                                                    if(isset($registro->created_at) && $registro->created_at && $registro->created_at->gt(now()->subDays(3))) {
+                                                        $isNew = true;
+                                                    }
+                                                    
+                                                    $imagenes = $registro->evidencia_fotos ?? null;
+                                                
+                                                        if (is_string($imagenes)) {
+                                                            $imagenes = json_decode($imagenes, true) ?? [];
+                                                        } elseif (is_array($imagenes)) {
+                                                            $imagenes = $imagenes;
+                                                        } else {
+                                                            $imagenes = [];
+                                                        }
+                                                    
+                                                @endphp
+                                                
+                                                <td class="border px-3 py-2 align-top {{ $hasData ? $color : 'cell-empty' }} {{ $hasData ? 'analysis-cell' : 'analysis-cell no-data' }}"
+                                                    @if($hasData)
+                                                    onclick="openAnalysisDetail({{ json_encode([
+                                                        'id' => $registro->id,
+                                                        'linea' => $registro->linea->nombre ?? $linea->nombre,
+                                                        'componente' => $registro->componente->nombre ?? $c->nombre,
+                                                        'componente_codigo' => $registro->componente->codigo ?? $c->id,
+                                                        'reductor' => $registro->reductor,
+                                                        'lado' => $registro->lado ?? null,
+                                                        'fecha_analisis' => isset($registro->fecha_analisis) ? $registro->fecha_analisis->format('d/m/Y') : '',
+                                                        'numero_orden' => $registro->numero_orden,
+                                                        'estado' => $registro->estado ?? 'Buen estado',
+                                                        'actividad' => $registro->actividad,
+                                                        'imagenes' => $imagenes ?? [],
+                                                        'color' => $color,
+                                                        'created_at' => isset($registro->created_at) ? $registro->created_at->format('d/m/Y H:i') : '',
+                                                        'updated_at' => isset($registro->updated_at) ? $registro->updated_at->format('d/m/Y H:i') : '',
+                                                        'is_new' => $isNew,
+                                                        'total_historial' => $totalHistorial,
+                                                        'edit_url' => route('analisis-lavadora.edit', ['analisislavadora' => $registro->id]),
+                                                        'historial_url' => route('analisis-lavadora.historial', [
+                                                            'linea_id' => $registro->linea_id,
+                                                            'componente_id' => $c->id,
+                                                            'reductor' => $r
+                                                        ])
+                                                    ]) }})"
+                                                    @endif>
+                                                    
+                                                    @if($hasData)
+                                                        @if($isNew)
+                                                            <div class="badge-new">NUEVO</div>
+                                                        @endif
+                                                        
+                                                        <div class="space-y-2">
+                                                            <div class="bg-blue-50 p-2 rounded mb-2">
+                                                                <div class="flex items-center gap-1">
+                                                                    <i class="fas fa-calendar-alt text-blue-600"></i>
+                                                                    <span class="text-xs font-bold text-blue-800">Fecha:</span>
+                                                                    <span class="text-xs font-semibold bg-white px-2 py-0.5 rounded">
+                                                                        {{ isset($registro->fecha_analisis) ? $registro->fecha_analisis->format('d/m/Y') : 'NO ESPECIFICADA' }}
+                                                                    </span>
+                                                                </div>
+                                                                <div class="flex items-center gap-1">
+                                                                    <i class="fas fa-hashtag text-blue-600 text-xs"></i>
+                                                                    <span class="text-xs font-bold text-gray-800">Orden #{{ $registro->numero_orden }}</span>
+                                                                </div>
+                                                            </div>
+                                                            
+                                                            <div class="mb-2">
+                                              @php
+                                                    $estadoActual = $registro->estado ?? 'Buen estado';
+                                                    
+                                                    if ($estadoActual === 'Cambiado') {
+                                                        $statusClass = 'bg-blue-100 text-blue-800 border-blue-200';
+                                                        $icon = 'fa-exchange-alt';
+                                                    } 
+                                                    elseif ($estadoActual === 'Dañado - Requiere cambio') {
+                                                        $statusClass = 'bg-red-100 text-red-800 border-red-200';
+                                                        $icon = 'fa-times-circle';
+                                                    } 
+                                                    elseif (str_contains($estadoActual, 'Desgaste')) {
+                                                        $statusClass = 'bg-yellow-100 text-yellow-800 border-yellow-200';
+                                                        $icon = 'fa-exclamation-triangle';
+                                                    } 
+                                                    else {
+                                                        $statusClass = 'bg-green-100 text-green-800 border-green-200';
+                                                        $icon = 'fa-check-circle';
+                                                    }
+                                                @endphpp
+                                                                                                                <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium {{ $statusClass }}">
+                                                                    <i class="fas {{ $icon }} mr-1"></i>
+                                                                    {{ Str::limit($estadoActual, 20) }}
+                                                                </span>
+                                                            </div>
+                                                            
+                                                            <div>
+                                                                <p class="text-gray-700 text-xs">{{ Str::limit($registro->actividad, 80) }}</p>
+                                                            </div>
+                                                            
+                                                            <div class="flex flex-col gap-1 mt-3">
+                                                                @if(!empty($imagenes) && count($imagenes) > 0)
+                                                                    <button onclick="event.stopPropagation(); openAllImages(
+                                                                        @json($imagenes),
+                                                                        @json(isset($registro->fecha_analisis) ? $registro->fecha_analisis->format('d/m/Y') : ''),
+                                                                        @json($registro->numero_orden),
+                                                                        @json($registro->estado ?? 'Buen estado')
+                                                                    )"
+                                                                        class="inline-flex items-center justify-center gap-1 px-3 py-1.5 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition text-xs font-medium">
+                                                                        <i class="fas fa-images mr-1"></i>
+                                                                        {{ count($imagenes) }} img
+                                                                    </button>
+                                                                @endif
+                                                                <a href="{{ route('analisis-lavadora.create-quick', [
+                                                                        'linea_id' => $linea->id,
+                                                                        'componente_codigo' => $c->id,
+                                                                        'reductor' => $r,
+                                                                        'fecha' => now()->format('Y-m')
+                                                                        ]) }}"
+                                                                        class="inline-flex items-center justify-center gap-1 px-3 py-1.5 bg-green-100 text-green-700 rounded hover:bg-green-200 transition text-xs font-medium"
+                                                                        onclick="event.stopPropagation();">
+                                                                            <i class="fas fa-plus"></i>
+                                                                            Nuevo Registro
+                                                                </a>
+                                                            </div>
+                                                        </div>
+                                                    @else
+                                                        <div class="empty-cell">
+                                                            <div class="empty-cell-icon">
+                                                                <i class="fas fa-clipboard"></i>
+                                                            </div>
+                                                            <p class="text-gray-500 text-xs mb-3">Sin análisis</p>
+                                                            <a href="{{ route('analisis-lavadora.create-quick',[
+                                                                'linea_id' => $linea->id,
+                                                                'componente_codigo' => $c->id,
+                                                                'reductor' => $r,
+                                                                'fecha' => request('fecha', now()->format('Y-m'))]) }}"
+                                                            class="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 transition text-xs font-medium"
+                                                            onclick="event.stopPropagation();">
+                                                                <i class="fas fa-plus"></i> Nuevo
+                                                            </a>
+                                                        </div>
+                                                    @endif
+                                                </td>
+                                            @endforeach
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                @endif
+            @endforeach
+        </div>
+    @else
+        {{-- MOSTRAR UNA SOLA LAVADORA (CÓDIGO ORIGINAL) --}}
+        @php
+            /* ===============================
+            LINEA A MOSTRAR
+            =============================== */
+            $analisisCollection = collect($analisis ?? []);
             
-            foreach ($componentesL12 as $comp) {
-                // Mapear según el código que contenga
-                if (str_contains($comp->codigo, 'RV200_SIN_FIN') || str_contains($comp->nombre, 'RV200')) {
-                    $mapaComponentesL12[$comp->id] = 'RV200_SIN_FIN';
-                } elseif (str_contains($comp->codigo, 'BUJE_ESPIGA')) {
-                    $mapaComponentesL12[$comp->id] = 'BUJE_ESPIGA';
-                } elseif (str_contains($comp->codigo, 'GUI_INF_TANQUE')) {
-                    $mapaComponentesL12[$comp->id] = 'GUI_INF_TANQUE';
-                } elseif (str_contains($comp->codigo, 'GUI_INT_TANQUE')) {
-                    $mapaComponentesL12[$comp->id] = 'GUI_INT_TANQUE';
-                } elseif (str_contains($comp->codigo, 'GUI_SUP_TANQUE')) {
-                    $mapaComponentesL12[$comp->id] = 'GUI_SUP_TANQUE';
-                } elseif (str_contains($comp->codigo, 'CATARINAS')) {
-                    $mapaComponentesL12[$comp->id] = 'CATARINAS';
-                } else {
-                    // Por defecto, usar el código base
-                    $partes = explode('_', $comp->codigo);
-                    $mapaComponentesL12[$comp->id] = end($partes);
+            if (request('linea_id') && isset($lineas) && request('linea_id') !== 'todas') {
+                $lineaMostrar = $lineas->firstWhere('id', request('linea_id'));
+            } elseif ($analisisCollection->isNotEmpty()) {
+                $lineaMostrar = $analisisCollection->first()->linea ?? null;
+            }
+
+            /* ===============================
+            COMPONENTES PARA TABLA
+            =============================== */
+            $componentesParaTabla = collect();
+
+            if ($lineaMostrar && isset($componentesPorLinea[$lineaMostrar->nombre])) {
+                foreach ($componentesPorLinea[$lineaMostrar->nombre] as $id => $nombre) {
+                    $componentesParaTabla->push((object)[
+                        'id'     => $id,
+                        'nombre' => $nombre,
+                        'icono'  => asset("images/componentes-lavadora/{$id}.png"),
+                    ]);
                 }
             }
-        }
 
-        foreach ($analisisCollection as $item) {
-            if (!$item->componente) continue;
-
-            $reductor = $item->reductor;
-            
-            // Convertir el reductor a formato "Reductor X" para la vista
-            if (is_numeric($reductor)) {
-                $reductorVista = "Reductor {$reductor}";
-            } else {
-                $reductorVista = $reductor;
+            if (request('componente_id')) {
+                $componentesParaTabla = $componentesParaTabla
+                    ->where('id', request('componente_id'))
+                    ->values();
             }
+
+            /* ===============================
+            REDUCTORES PARA TABLA
+            =============================== */
+            $reductoresParaTabla = collect();
+
+            if (request('linea_id') && !empty($reductoresMostrar)) {
+                $reductoresParaTabla = collect($reductoresMostrar);
+            } elseif ($analisisCollection->count() > 0) {
+                $reductoresParaTabla = $analisisCollection
+                    ->pluck('reductor')
+                    ->map(function($r) {
+                        if (is_numeric($r)) {
+                            return "Reductor {$r}";
+                        }
+                        return $r;
+                    })
+                    ->unique()
+                    ->sort()
+                    ->values();
+            }
+
+            if ($reductoresParaTabla->isEmpty() && $lineaMostrar && isset($reductoresMostrar)) {
+                $reductoresParaTabla = collect($reductoresMostrar);
+            }
+
+            if (request('reductor')) {
+                $reductoresParaTabla = $reductoresParaTabla
+                    ->filter(fn($r) => $r == request('reductor'))
+                    ->values();
+            }
+
+            /* ===============================
+            AGRUPAR ANALISIS
+            =============================== */
+            $analisisAgrupados = [];
+
+            $mapaComponentesL12 = [];
             
-            $componenteId = $item->componente_id;
-            
-            // Determinar la clave del componente para el agrupamiento
-            if ($lineaMostrar && $lineaMostrar->nombre == 'L-12' && isset($mapaComponentesL12[$componenteId])) {
-                // Para L-12, usar el código mapeado
-                $claveComponente = $mapaComponentesL12[$componenteId];
-            } else {
-                // Para otras líneas, usar la lógica original
-                $codigo = $item->componente->codigo ?? '';
-                $claveComponente = $codigo;
+            if ($lineaMostrar && $lineaMostrar->nombre == 'L-12') {
+                $componentesL12 = \App\Models\Componente::where('linea', 'L-12')->get();
                 
-                if (isset($componentesPorLinea)) {
-                    foreach ($componentesPorLinea as $lineaCodigos) {
-                        foreach ($lineaCodigos as $key => $nombre) {
-                            if (str_contains($codigo, $key)) {
-                                $claveComponente = $key;
-                                break 2;
+                foreach ($componentesL12 as $comp) {
+                    if (str_contains($comp->codigo, 'RV200_SIN_FIN') || str_contains($comp->nombre, 'RV200')) {
+                        $mapaComponentesL12[$comp->id] = 'RV200_SIN_FIN';
+                    } elseif (str_contains($comp->codigo, 'BUJE_ESPIGA')) {
+                        $mapaComponentesL12[$comp->id] = 'BUJE_ESPIGA';
+                    } elseif (str_contains($comp->codigo, 'GUI_INF_TANQUE')) {
+                        $mapaComponentesL12[$comp->id] = 'GUI_INF_TANQUE';
+                    } elseif (str_contains($comp->codigo, 'GUI_INT_TANQUE')) {
+                        $mapaComponentesL12[$comp->id] = 'GUI_INT_TANQUE';
+                    } elseif (str_contains($comp->codigo, 'GUI_SUP_TANQUE')) {
+                        $mapaComponentesL12[$comp->id] = 'GUI_SUP_TANQUE';
+                    } elseif (str_contains($comp->codigo, 'CATARINAS')) {
+                        $mapaComponentesL12[$comp->id] = 'CATARINAS';
+                    } else {
+                        $partes = explode('_', $comp->codigo);
+                        $mapaComponentesL12[$comp->id] = end($partes);
+                    }
+                }
+            }
+
+            foreach ($analisisCollection as $item) {
+                if (!$item->componente) continue;
+
+                $reductor = $item->reductor;
+                
+                if (is_numeric($reductor)) {
+                    $reductorVista = "Reductor {$reductor}";
+                } else {
+                    $reductorVista = $reductor;
+                }
+                
+                $componenteId = $item->componente_id;
+                
+                if ($lineaMostrar && $lineaMostrar->nombre == 'L-12' && isset($mapaComponentesL12[$componenteId])) {
+                    $claveComponente = $mapaComponentesL12[$componenteId];
+                } else {
+                    $codigo = $item->componente->codigo ?? '';
+                    $claveComponente = $codigo;
+                    
+                    if (isset($componentesPorLinea)) {
+                        foreach ($componentesPorLinea as $lineaCodigos) {
+                            foreach ($lineaCodigos as $key => $nombre) {
+                                if (str_contains($codigo, $key)) {
+                                    $claveComponente = $key;
+                                    break 2;
+                                }
                             }
                         }
                     }
                 }
-            }
-            
-            if (!isset($analisisAgrupados[$reductorVista][$claveComponente])) {
-                $analisisAgrupados[$reductorVista][$claveComponente] = collect();
-            }
-
-            $analisisAgrupados[$reductorVista][$claveComponente]->push($item);
-        }
-
-        // RESPALDO: Si no hay datos con el nuevo método, intentamos con la lógica anterior
-        if (empty($analisisAgrupados)) {
-            foreach ($analisisCollection as $item) {
-                if (!$item->componente) continue;
                 
-                $reductor = $item->reductor;
-                $reductorVista = is_numeric($reductor) ? "Reductor {$reductor}" : $reductor;
-                $codigo = $item->componente->codigo ?? '';
-                
-                if (!isset($analisisAgrupados[$reductorVista][$codigo])) {
-                    $analisisAgrupados[$reductorVista][$codigo] = collect();
+                if (!isset($analisisAgrupados[$reductorVista][$claveComponente])) {
+                    $analisisAgrupados[$reductorVista][$claveComponente] = collect();
                 }
-                
-                $analisisAgrupados[$reductorVista][$codigo]->push($item);
+
+                $analisisAgrupados[$reductorVista][$claveComponente]->push($item);
             }
-        }
-    @endphp
 
-    @if((isset($lineaMostrar) && $lineas->count() > 0) || ($analisisCollection->count() > 0))
-        <div class="mb-8 bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-            {{-- ================= ENCABEZADO DE TABLA ================= --}}
-            <div class="table-header-container">
-                <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
-                    {{-- LADO IZQUIERDO: ICONO + TITULO + FILTROS --}}
-                    <div class="flex items-center gap-5">
-                        {{-- ICONO --}}
-                        <div class="flex-shrink-0">
-                            <div class="w-16 h-16 md:w-20 md:h-20">
-                                <img src="{{ asset('images/icono-maquina.png') }}" 
-                                    alt="Icono de máquina" 
-                                    class="w-full h-full object-contain drop-shadow-lg">
+            if (empty($analisisAgrupados)) {
+                foreach ($analisisCollection as $item) {
+                    if (!$item->componente) continue;
+                    
+                    $reductor = $item->reductor;
+                    $reductorVista = is_numeric($reductor) ? "Reductor {$reductor}" : $reductor;
+                    $codigo = $item->componente->codigo ?? '';
+                    
+                    if (!isset($analisisAgrupados[$reductorVista][$codigo])) {
+                        $analisisAgrupados[$reductorVista][$codigo] = collect();
+                    }
+                    
+                    $analisisAgrupados[$reductorVista][$codigo]->push($item);
+                }
+            }
+        @endphp
+
+        @if((isset($lineaMostrar) && $lineas->count() > 0) || ($analisisCollection->count() > 0))
+            <div class="mb-8 bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                {{-- ================= ENCABEZADO DE TABLA ================= --}}
+                <div class="table-header-container">
+                    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+                        <div class="flex items-center gap-5">
+                            <div class="flex-shrink-0">
+                                <div class="w-16 h-16 md:w-20 md:h-20">
+                                    <img src="{{ asset('images/icono-maquina.png') }}" 
+                                        alt="Icono de máquina" 
+                                        class="w-full h-full object-contain drop-shadow-lg">
+                                </div>
                             </div>
-                        </div>
 
-                        {{-- TITULO Y FILTROS --}}
-                        <div>
-                            {{-- TITULO --}}
-                            <h2 class="font-bold text-2xl text-white leading-tight">
-                                {{ $lineaMostrar->nombre ?? 'Análisis de Componentes' }}
-                            </h2>
+                            <div>
+                                <h2 class="font-bold text-2xl text-white leading-tight">
+                                    {{ $lineaMostrar->nombre ?? 'Análisis de Componentes' }}
+                                </h2>
 
-                            {{-- FILTROS ACTIVOS --}}
-                            <div class="flex flex-wrap gap-4 mt-2 text-blue-100 text-sm">
-                                @if(request('componente_id') && isset($todosComponentes))
-                                    <span class="flex items-center gap-2 bg-white/10 px-3 py-1 rounded-full">
-                                        <i class="fas fa-cog text-xs"></i>
-                                        {{ $todosComponentes[request('componente_id')] ?? request('componente_id') }}
-                                    </span>
-                                @endif
+                                <div class="flex flex-wrap gap-4 mt-2 text-blue-100 text-sm">
+                                    @if(request('componente_id') && isset($todosComponentes))
+                                        <span class="flex items-center gap-2 bg-white/10 px-3 py-1 rounded-full">
+                                            <i class="fas fa-cog text-xs"></i>
+                                            {{ $todosComponentes[request('componente_id')] ?? request('componente_id') }}
+                                        </span>
+                                    @endif
 
-                                @if(request('reductor'))
-                                    <span class="flex items-center gap-2 bg-white/10 px-3 py-1 rounded-full">
-                                        <i class="fas fa-sliders-h text-xs"></i>
-                                        {{ request('reductor') }}
-                                    </span>
-                                @endif
+                                    @if(request('reductor'))
+                                        <span class="flex items-center gap-2 bg-white/10 px-3 py-1 rounded-full">
+                                            <i class="fas fa-sliders-h text-xs"></i>
+                                            {{ request('reductor') }}
+                                        </span>
+                                    @endif
 
-                                @if(request('fecha'))
-                                    <span class="flex items-center gap-2 bg-white/10 px-3 py-1 rounded-full">
-                                        <i class="far fa-calendar-alt text-xs"></i>
-                                        {{ request('fecha') }}
-                                    </span>
-                                @endif
+                                    @if(request('fecha'))
+                                        <span class="flex items-center gap-2 bg-white/10 px-3 py-1 rounded-full">
+                                            <i class="far fa-calendar-alt text-xs"></i>
+                                            {{ request('fecha') }}
+                                        </span>
+                                    @endif
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            {{-- TABLA COMPACTA --}}
-            @if(isset($componentesParaTabla) && isset($reductoresParaTabla) && count($componentesParaTabla) > 0 && count($reductoresParaTabla) > 0)
-                <div class="table-wrapper" id="mainTable">
-                    <div class="scroll-indicator">
-                        <i class="fas fa-arrows-alt-h mr-1"></i> Desplázate para ver más
-                    </div>
-                    <table class="w-full compact-table border-collapse" id="analysisTable">
-                        <thead>
-                            <tr class="bg-gray-50 border-b border-gray-200">
-                                <th class="sticky-top-left sticky-top cell-header text-blue-900 font-bold px-3 py-2 border text-center whitespace-nowrap text-sm table-corner">
-                                    <div class="reductor-header">
-                                        <div class="reductor-name">REDUCTOR</div>
-                                        <div class="reductor-label">COMPONENTE</div>
-                                    </div>
-                                </th>
-                                @foreach($componentesParaTabla as $c)
+                {{-- TABLA COMPACTA --}}
+                @if(isset($componentesParaTabla) && isset($reductoresParaTabla) && count($componentesParaTabla) > 0 && count($reductoresParaTabla) > 0)
+                    <div class="table-wrapper" id="mainTable">
+                        <div class="scroll-indicator">
+                            <i class="fas fa-arrows-alt-h mr-1"></i> Desplázate para ver más
+                        </div>
+                        <table class="w-full compact-table border-collapse" id="analysisTable">
+                            <thead>
+                                <tr class="bg-gray-50 border-b border-gray-200">
+                                    <th class="sticky-top-left sticky-top cell-header text-blue-900 font-bold px-3 py-2 border text-center whitespace-nowrap text-sm table-corner">
+                                        <div class="reductor-header">
+                                            <div class="reductor-name">REDUCTOR</div>
+                                            <div class="reductor-label">COMPONENTE</div>
+                                        </div>
+                                    </th>
+                                    @foreach($componentesParaTabla as $c)
+                                        @php
+                                            $conteoEstado = [
+                                                'ok' => 0,
+                                                'warning' => 0,
+                                                'danger' => 0,
+                                                'changed' => 0,
+                                                'empty' => count($reductoresParaTabla)
+                                            ];
+                                        @endphp
+
+                                        @foreach($reductoresParaTabla as $r)
+                                            @if(isset($analisisAgrupados[$r][$c->id]))
+                                                @php
+                                                    $primerRegistro = $analisisAgrupados[$r][$c->id]->sortByDesc('fecha_analisis')->first();
+                                                    $estado = $primerRegistro->estado ?? 'Buen estado';
+                                                    
+                                                    if (str_contains($estado, 'Dañado - Cambiado')) {
+                                                        $conteoEstado['changed']++;
+                                                        $conteoEstado['empty']--;
+                                                    } elseif(str_contains($estado, 'Dañado')) {
+                                                        $conteoEstado['danger']++;
+                                                        $conteoEstado['empty']--;
+                                                    } elseif(str_contains($estado, 'Desgaste')) {
+                                                        $conteoEstado['warning']++;
+                                                        $conteoEstado['empty']--;
+                                                    } else {
+                                                        $conteoEstado['ok']++;
+                                                        $conteoEstado['empty']--;
+                                                    }
+                                                @endphp
+                                            @endif
+                                        @endforeach
+
+                                        <th class="sticky-top cell-header text-blue-900 font-bold px-3 py-2 border text-center whitespace-nowrap text-sm">
+                                            <div class="component-header">
+                                                <div class="component-name">{{ $c->nombre }}</div>
+                                                <img
+                                                    src="{{ $c->icono }}"
+                                                    alt="Icono {{ $c->nombre }}"
+                                                    class="w-20 h-20 object-contain hover:scale-110 transition-transform"
+                                                    onerror="this.src='{{ asset('images/extras/sin imagen.png') }}'">
+                                                <div class="flex justify-center gap-1 mt-1">
+                                                    @if($conteoEstado['ok'] > 0)
+                                                        <span class="w-1.5 h-1.5 bg-green-500 rounded-full"></span>
+                                                    @endif
+                                                    @if($conteoEstado['warning'] > 0)
+                                                        <span class="w-1.5 h-1.5 bg-yellow-500 rounded-full"></span>
+                                                    @endif
+                                                    @if($conteoEstado['danger'] > 0)
+                                                        <span class="w-1.5 h-1.5 bg-red-500 rounded-full"></span>
+                                                    @endif
+                                                    @if($conteoEstado['changed'] > 0)
+                                                        <span class="w-1.5 h-1.5 bg-blue-500 rounded-full"></span>
+                                                    @endif
+                                                </div>
+                                            </div>
+                                        </th>
+                                    @endforeach
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($reductoresParaTabla as $r)
                                     @php
-                                        $conteoEstado = [
+                                        $conteoReductor = [
+                                            'total' => 0,
                                             'ok' => 0,
                                             'warning' => 0,
                                             'danger' => 0,
-                                            'changed' => 0,
-                                            'empty' => count($reductoresParaTabla)
+                                            'changed' => 0
                                         ];
-                                    @endphp
-
-                                    @foreach($reductoresParaTabla as $r)
-                                        @if(isset($analisisAgrupados[$r][$c->id]))
-                                            @php
+                                        
+                                        foreach($componentesParaTabla as $c) {
+                                            if(isset($analisisAgrupados[$r][$c->id])) {
+                                                $conteoReductor['total']++;
                                                 $primerRegistro = $analisisAgrupados[$r][$c->id]->sortByDesc('fecha_analisis')->first();
                                                 $estado = $primerRegistro->estado ?? 'Buen estado';
                                                 
                                                 if (str_contains($estado, 'Dañado - Cambiado')) {
-                                                    $conteoEstado['changed']++;
-                                                    $conteoEstado['empty']--;
+                                                    $conteoReductor['changed']++;
                                                 } elseif(str_contains($estado, 'Dañado')) {
-                                                    $conteoEstado['danger']++;
-                                                    $conteoEstado['empty']--;
+                                                    $conteoReductor['danger']++;
                                                 } elseif(str_contains($estado, 'Desgaste')) {
-                                                    $conteoEstado['warning']++;
-                                                    $conteoEstado['empty']--;
+                                                    $conteoReductor['warning']++;
                                                 } else {
-                                                    $conteoEstado['ok']++;
-                                                    $conteoEstado['empty']--;
+                                                    $conteoReductor['ok']++;
                                                 }
-                                            @endphp
-                                        @endif
-                                    @endforeach
-
-                                    <th class="sticky-top cell-header text-blue-900 font-bold px-3 py-2 border text-center whitespace-nowrap text-sm">
-                                        <div class="component-header">
-                                            <div class="component-name">{{ $c->nombre }}</div>
-                                            <img
-                                                src="{{ $c->icono }}"
-                                                alt="Icono {{ $c->nombre }}"
-                                                class="w-20 h-20 object-contain hover:scale-110 transition-transform"
-                                                onerror="this.src='{{ asset('images/extras/sin imagen.png') }}'">
-                                            <div class="flex justify-center gap-1 mt-1">
-                                                @if($conteoEstado['ok'] > 0)
-                                                    <span class="w-1.5 h-1.5 bg-green-500 rounded-full"></span>
-                                                @endif
-                                                @if($conteoEstado['warning'] > 0)
-                                                    <span class="w-1.5 h-1.5 bg-yellow-500 rounded-full"></span>
-                                                @endif
-                                                @if($conteoEstado['danger'] > 0)
-                                                    <span class="w-1.5 h-1.5 bg-red-500 rounded-full"></span>
-                                                @endif
-                                                @if($conteoEstado['changed'] > 0)
-                                                    <span class="w-1.5 h-1.5 bg-blue-500 rounded-full"></span>
-                                                @endif
-                                            </div>
-                                        </div>
-                                    </th>
-                                @endforeach
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach($reductoresParaTabla as $r)
-                                @php
-                                    $conteoReductor = [
-                                        'total' => 0,
-                                        'ok' => 0,
-                                        'warning' => 0,
-                                        'danger' => 0,
-                                        'changed' => 0
-                                    ];
-                                    
-                                    foreach($componentesParaTabla as $c) {
-                                        if(isset($analisisAgrupados[$r][$c->id])) {
-                                            $conteoReductor['total']++;
-                                            $primerRegistro = $analisisAgrupados[$r][$c->id]->sortByDesc('fecha_analisis')->first();
-                                            $estado = $primerRegistro->estado ?? 'Buen estado';
-                                            
-                                            if (str_contains($estado, 'Dañado - Cambiado')) {
-                                                $conteoReductor['changed']++;
-                                            } elseif(str_contains($estado, 'Dañado')) {
-                                                $conteoReductor['danger']++;
-                                            } elseif(str_contains($estado, 'Desgaste')) {
-                                                $conteoReductor['warning']++;
-                                            } else {
-                                                $conteoReductor['ok']++;
                                             }
                                         }
-                                    }
-                                @endphp
-                                <tr>
-                                    <th class="sticky-left cell-header text-blue-900 font-bold px-3 py-2 border text-center whitespace-nowrap text-sm align-top">
-                                        <div class="reductor-header">
-                                            <div class="reductor-name">{{ $r }}</div>
-                                            <div class="reductor-label">Reductor</div>
-                                            <div class="text-xs text-gray-500 mt-1">
-                                                {{ $conteoReductor['total'] }}/{{ count($componentesParaTabla) }}
+                                    @endphp
+                                    <tr>
+                                        <th class="sticky-left cell-header text-blue-900 font-bold px-3 py-2 border text-center whitespace-nowrap text-sm align-top">
+                                            <div class="reductor-header">
+                                                <div class="reductor-name">{{ $r }}</div>
+                                                <div class="reductor-label">Reductor</div>
+                                                <div class="text-xs text-gray-500 mt-1">
+                                                    {{ $conteoReductor['total'] }}/{{ count($componentesParaTabla) }}
+                                                </div>
                                             </div>
-                                        </div>
-                                    </th>
-                                    
-                                    @foreach($componentesParaTabla as $c)
-                                        @php
-                                            $registros = $analisisAgrupados[$r][$c->id] ?? collect();
-                                            $registro = $registros->sortByDesc('fecha_analisis')->first();
-                                            $totalHistorial = $registros->count();
-                                            $hasData = $registros->isNotEmpty() && !empty($registro);
-                                            $color = '';
-                                            $isNew = false;
-                                            $imagenes = [];
-                                            
-                                            if($hasData){
-                                                $estadoActual = $registro->estado ?? 'Buen estado';
-                                                
-                                                if (str_contains($estadoActual, 'Dañado - Cambiado')) {
-                                                    $color = 'cell-changed';
-                                                } elseif (str_contains($estadoActual, 'Dañado')) {
-                                                    $color = 'cell-danger';
-                                                } elseif (str_contains($estadoActual, 'Desgaste')) {
-                                                    $color = 'cell-warning';
-                                                } else {
-                                                    $color = 'cell-ok';
-                                                }
-                                                
-                                                if($registro->created_at && $registro->created_at->gt(now()->subDays(3))) {
-                                                    $isNew = true;
-                                                }
-                                                
-                                                $imagenes = $registro->evidencia_fotos ?? null;
-                                                if (is_string($imagenes)) {
-                                                    $imagenes = json_decode($imagenes, true) ?? [];
-                                                } elseif (is_array($imagenes)) {
-                                                    $imagenes = $imagenes;
-                                                } else {
-                                                    $imagenes = [];
-                                                }
-                                            }
-                                        @endphp
+                                        </th>
                                         
-                                        <td class="border px-3 py-2 align-top {{ $hasData ? $color : 'cell-empty' }} {{ $hasData ? 'analysis-cell' : 'analysis-cell no-data' }}" 
-                                            @if($hasData)
-                                            onclick="openAnalysisDetail({{ json_encode([
-                                                'id' => $registro->id,
-                                                'linea' => $registro->linea->nombre ?? 'Sin nombre',
-                                                'componente' => $registro->componente->nombre ?? 'Sin nombre',
-                                                'componente_codigo' => $registro->componente->codigo ?? '',
-                                                'reductor' => $registro->reductor,
-                                                'lado' => $registro->lado ?? null,
-                                                'fecha_analisis' => isset($registro->fecha_analisis) ? $registro->fecha_analisis->format('d/m/Y') : '',
-                                                'numero_orden' => $registro->numero_orden,
-                                                'estado' => $registro->estado ?? 'Buen estado',
-                                                'actividad' => $registro->actividad,
-                                                'imagenes' => $imagenes ?? [],
-                                                'color' => $color,
-                                                'created_at' => isset($registro->created_at) ? $registro->created_at->format('d/m/Y H:i') : '',
-                                                'updated_at' => isset($registro->updated_at) ? $registro->updated_at->format('d/m/Y H:i') : '',
-                                                'is_new' => $isNew,
-                                                'total_historial' => $totalHistorial,
-                                                'edit_url' => route('analisis-lavadora.edit', [
-                                                    'analisislavadora' => $registro->id
-                                                ]),
-                                                'historial_url' => route('analisis-lavadora.historial', [
-                                                    'linea_id' => $registro->linea_id,
-                                                    'componente_id' => $c->id,
-                                                    'reductor' => $r
-                                                ])
-                                            ]) }})"
-                                            @endif>
-                                            
-                                            @if($hasData)
-                                                @if($isNew)
-                                                    <div class="badge-new">NUEVO</div>
-                                                @endif
+                                        @foreach($componentesParaTabla as $c)
+                                            @php
+                                                $registros = $analisisAgrupados[$r][$c->id] ?? collect();
+                                                $registro = $registros->sortByDesc('fecha_analisis')->first();
+                                                $totalHistorial = $registros->count();
+                                                $hasData = $registros->isNotEmpty() && !empty($registro);
+                                                $color = '';
+                                                $isNew = false;
+                                                $imagenes = [];
                                                 
-                                                <div class="space-y-2">
-                                                    {{-- FECHA DE ANÁLISIS - MÁS VISIBLE --}}
-                                                    <div class="bg-blue-50 p-2 rounded mb-2">
-                                                        <div class="flex items-center gap-1">
-                                                            <i class="fas fa-calendar-alt text-blue-600"></i>
-                                                            <span class="text-xs font-bold text-blue-800">
-                                                                Fecha:
-                                                            </span>
-                                                            <span class="text-xs font-semibold bg-white px-2 py-0.5 rounded">
-                                                                {{ isset($registro->fecha_analisis) ? $registro->fecha_analisis->format('d/m/Y') : 'NO ESPECIFICADA' }}
+                                                if($hasData){
+                                                    $estadoActual = $registro->estado ?? 'Buen estado';
+                                                    
+                                                    if (str_contains($estadoActual, 'Dañado - Cambiado')) {
+                                                        $color = 'cell-changed';
+                                                    } elseif (str_contains($estadoActual, 'Dañado')) {
+                                                        $color = 'cell-danger';
+                                                    } elseif (str_contains($estadoActual, 'Desgaste')) {
+                                                        $color = 'cell-warning';
+                                                    } else {
+                                                        $color = 'cell-ok';
+                                                    }
+                                                    
+                                                    if($registro->created_at && $registro->created_at->gt(now()->subDays(3))) {
+                                                        $isNew = true;
+                                                    }
+                                                    
+                                                    $imagenes = $registro->evidencia_fotos ?? null;
+                                                    if (is_string($imagenes)) {
+                                                        $imagenes = json_decode($imagenes, true) ?? [];
+                                                    } elseif (is_array($imagenes)) {
+                                                        $imagenes = $imagenes;
+                                                    } else {
+                                                        $imagenes = [];
+                                                    }
+                                                }
+                                            @endphp
+                                            
+                                            <td class="border px-3 py-2 align-top {{ $hasData ? $color : 'cell-empty' }} {{ $hasData ? 'analysis-cell' : 'analysis-cell no-data' }}" 
+                                                @if($hasData)
+                                                onclick="openAnalysisDetail({{ json_encode([
+                                                    'id' => $registro->id,
+                                                    'linea' => $registro->linea->nombre ?? 'Sin nombre',
+                                                    'componente' => $registro->componente->nombre ?? 'Sin nombre',
+                                                    'componente_codigo' => $registro->componente->codigo ?? '',
+                                                    'reductor' => $registro->reductor,
+                                                    'lado' => $registro->lado ?? null,
+                                                    'fecha_analisis' => isset($registro->fecha_analisis) ? $registro->fecha_analisis->format('d/m/Y') : '',
+                                                    'numero_orden' => $registro->numero_orden,
+                                                    'estado' => $registro->estado ?? 'Buen estado',
+                                                    'actividad' => $registro->actividad,
+                                                    'imagenes' => $imagenes ?? [],
+                                                    'color' => $color,
+                                                    'created_at' => isset($registro->created_at) ? $registro->created_at->format('d/m/Y H:i') : '',
+                                                    'updated_at' => isset($registro->updated_at) ? $registro->updated_at->format('d/m/Y H:i') : '',
+                                                    'is_new' => $isNew,
+                                                    'total_historial' => $totalHistorial,
+                                                    'edit_url' => route('analisis-lavadora.edit', [
+                                                        'analisislavadora' => $registro->id
+                                                    ]),
+                                                    'historial_url' => route('analisis-lavadora.historial', [
+                                                        'linea_id' => $registro->linea_id,
+                                                        'componente_id' => $c->id,
+                                                        'reductor' => $r
+                                                    ])
+                                                ]) }})"
+                                                @endif>
+                                                
+                                                @if($hasData)
+                                                    @if($isNew)
+                                                        <div class="badge-new">NUEVO</div>
+                                                    @endif
+                                                    
+                                                    <div class="space-y-2">
+                                                        <div class="bg-blue-50 p-2 rounded mb-2">
+                                                            <div class="flex items-center gap-1">
+                                                                <i class="fas fa-calendar-alt text-blue-600"></i>
+                                                                <span class="text-xs font-bold text-blue-800">
+                                                                    Fecha:
+                                                                </span>
+                                                                <span class="text-xs font-semibold bg-white px-2 py-0.5 rounded">
+                                                                    {{ isset($registro->fecha_analisis) ? $registro->fecha_analisis->format('d/m/Y') : 'NO ESPECIFICADA' }}
+                                                                </span>
+                                                            </div>
+                                                        
+                                                            <div class="flex items-center gap-1">
+                                                                <i class="fas fa-hashtag text-blue-600 text-xs"></i>
+                                                                <span class="text-xs font-bold text-gray-800">
+                                                                    Orden #{{ $registro->numero_orden }}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <div class="mb-2">
+                                                            @php
+                                                                $estadoActual = $registro->estado ?? 'Buen estado';
+                                                                
+                                                                if (str_contains($estadoActual, 'Dañado - Cambiado')) {
+                                                                    $statusClass = 'bg-blue-100 text-blue-800 border-blue-200';
+                                                                    $icon = 'fa-exchange-alt';
+                                                                } elseif (str_contains($estadoActual, 'Dañado')) {
+                                                                    $statusClass = 'bg-red-100 text-red-800 border-red-200';
+                                                                    $icon = 'fa-times-circle';
+                                                                } elseif (str_contains($estadoActual, 'Desgaste')) {
+                                                                    $statusClass = 'bg-yellow-100 text-yellow-800 border-yellow-200';
+                                                                    $icon = 'fa-exclamation-triangle';
+                                                                } else {
+                                                                    $statusClass = 'bg-green-100 text-green-800 border-green-200';
+                                                                    $icon = 'fa-check-circle';
+                                                                }
+                                                            @endphp
+                                                            <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium {{ $statusClass }}">
+                                                                <i class="fas {{ $icon }} mr-1"></i>
+                                                                {{ Str::limit($estadoActual, 20) }}
                                                             </span>
                                                         </div>
-                                                    
-                                                        <div class="flex items-center gap-1">
-                                                            <i class="fas fa-hashtag text-blue-600 text-xs"></i>
-                                                            <span class="text-xs font-bold text-gray-800">
-                                                                Orden #{{ $registro->numero_orden }}
-                                                            </span>
+                                                        
+                                                        <div>
+                                                            <p class="text-gray-700 text-xs">
+                                                                {{ Str::limit($registro->actividad, 80) }}
+                                                            </p>
+                                                        </div>
+                                                        
+                                                        <div class="flex flex-col gap-1 mt-3">
+                                                            @if(!empty($imagenes) && count($imagenes) > 0)
+                                                                <button onclick="event.stopPropagation(); openAllImages(
+                                                                    @json($imagenes),
+                                                                    @json(isset($registro->fecha_analisis) ? $registro->fecha_analisis->format('d/m/Y') : ''),
+                                                                    @json($registro->numero_orden),
+                                                                    @json($registro->estado ?? 'Buen estado')
+                                                                )"
+                                                                    class="inline-flex items-center justify-center gap-1 px-3 py-1.5 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition text-xs font-medium">
+                                                                    <i class="fas fa-images mr-1"></i>
+                                                                    {{ count($imagenes) }} img
+                                                                </button>
+                                                            @endif
+                                                            <a href="{{ route('analisis-lavadora.create-quick', [
+                                                                    'linea_id' => $registro->linea_id,
+                                                                    'componente_codigo' => $c->id,
+                                                                    'reductor' => $r,
+                                                                    'fecha' => now()->format('Y-m')
+                                                                    ]) }}"
+                                                                    class="inline-flex items-center justify-center gap-1 px-3 py-1.5 bg-green-100 text-green-700 rounded hover:bg-green-200 transition text-xs font-medium"
+                                                                    onclick="event.stopPropagation();">
+                                                                        <i class="fas fa-plus"></i>
+                                                                        Nuevo Registro
+                                                            </a>
                                                         </div>
                                                     </div>
-                                                    
-                                                    <div class="mb-2">
-                                                        @php
-                                                            $estadoActual = $registro->estado ?? 'Buen estado';
-                                                            
-                                                            if (str_contains($estadoActual, 'Dañado - Cambiado')) {
-                                                                $statusClass = 'bg-blue-100 text-blue-800 border-blue-200';
-                                                                $icon = 'fa-exchange-alt';
-                                                            } elseif (str_contains($estadoActual, 'Dañado')) {
-                                                                $statusClass = 'bg-red-100 text-red-800 border-red-200';
-                                                                $icon = 'fa-times-circle';
-                                                            } elseif (str_contains($estadoActual, 'Desgaste')) {
-                                                                $statusClass = 'bg-yellow-100 text-yellow-800 border-yellow-200';
-                                                                $icon = 'fa-exclamation-triangle';
-                                                            } else {
-                                                                $statusClass = 'bg-green-100 text-green-800 border-green-200';
-                                                                $icon = 'fa-check-circle';
-                                                            }
-                                                        @endphp
-                                                        <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium {{ $statusClass }}">
-                                                            <i class="fas {{ $icon }} mr-1"></i>
-                                                            {{ Str::limit($estadoActual, 20) }}
-                                                        </span>
-                                                    </div>
-                                                    
-                                                    <div>
-                                                        <p class="text-gray-700 text-xs">
-                                                            {{ Str::limit($registro->actividad, 80) }}
-                                                        </p>
-                                                    </div>
-                                                    
-                                                    <div class="flex flex-col gap-1 mt-3">
-                                                        @if(!empty($imagenes) && count($imagenes) > 0)
-                                                            <button onclick="event.stopPropagation(); openAllImages(
-                                                                @json($imagenes),
-                                                                @json(isset($registro->fecha_analisis) ? $registro->fecha_analisis->format('d/m/Y') : ''),
-                                                                @json($registro->numero_orden),
-                                                                @json($registro->estado ?? 'Buen estado')
-                                                            )"
-                                                                class="inline-flex items-center justify-center gap-1 px-3 py-1.5 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition text-xs font-medium">
-                                                                <i class="fas fa-images mr-1"></i>
-                                                                {{ count($imagenes) }} img
-                                                            </button>
-                                                        @endif
-                                                        <a href="{{ route('analisis-lavadora.create-quick', [
-                                                                'linea_id' => $registro->linea_id,
+                                                @else
+                                                    <div class="empty-cell">
+                                                        <div class="empty-cell-icon">
+                                                            <i class="fas fa-clipboard"></i>
+                                                        </div>
+                                                        <p class="text-gray-500 text-xs mb-3">Sin análisis</p>
+                                                        
+                                                        @if($lineaMostrar)
+                                                            <a href="{{ route('analisis-lavadora.create-quick',[
+                                                                'linea_id' => $lineaMostrar->id,
                                                                 'componente_codigo' => $c->id,
                                                                 'reductor' => $r,
-                                                                'fecha' => now()->format('Y-m')
-                                                                ]) }}"
-                                                                class="inline-flex items-center justify-center gap-1 px-3 py-1.5 bg-green-100 text-green-700 rounded hover:bg-green-200 transition text-xs font-medium"
-                                                                onclick="event.stopPropagation();">
-                                                                    <i class="fas fa-plus"></i>
-                                                                    Nuevo Registro
-                                                        </a>
+                                                                'fecha' => request('fecha', now()->format('Y-m'))]) }}"
+                                                            class="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 transition text-xs font-medium"
+                                                            onclick="event.stopPropagation();">
+                                                                <i class="fas fa-plus"></i> Nuevo
+                                                            </a>
+                                                        @else
+                                                            <a href="{{ route('analisis-lavadora.select-linea') }}"
+                                                            class="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 transition text-xs font-medium"
+                                                            onclick="event.stopPropagation();">
+                                                                <i class="fas fa-plus"></i>
+                                                                Nuevo
+                                                            </a>
+                                                        @endif
                                                     </div>
-                                                </div>
-                                            @else
-                                                <div class="empty-cell">
-                                                    <div class="empty-cell-icon">
-                                                        <i class="fas fa-clipboard"></i>
+                                                @endif
+                                            </td>
+                                        @endforeach
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @elseif(!$mostrarTodas)
+                    {{-- Este mensaje solo se muestra cuando NO estamos en "Todas" y no hay datos --}}
+                    <div class="p-8 text-center text-gray-500">
+                        <i class="fas fa-info-circle text-3xl mb-4"></i>
+                        <p>No hay componentes o reductores para mostrar</p>
+                        <p class="text-sm text-gray-400 mt-2">Selecciona una lavadora para ver sus análisis</p>
+                    </div>
+                @endif
+            </div>
+        @else
+            {{-- Si no hay línea seleccionada y no hay análisis, mostramos todas las lavadoras vacías --}}
+            @if($mostrarTodas)
+                <div class="lavadoras-section">
+                    @foreach($lineasFiltradas as $linea)
+                        @php
+                            // Obtener componentes específicos para esta línea del array definido
+                            $componentesLinea = collect();
+                            if (isset($componentesPorLineaArray[$linea->nombre])) {
+                                foreach ($componentesPorLineaArray[$linea->nombre] as $codigo => $nombre) {
+                                    $componentesLinea->push((object)[
+                                        'id'     => $codigo,
+                                        'nombre' => $nombre,
+                                        'codigo' => $codigo,
+                                        'icono'  => asset("images/componentes-lavadora/{$codigo}.png"),
+                                    ]);
+                                }
+                            }
+                            
+                            // Obtener reductores específicos para esta línea del array definido
+                            $reductoresLinea = collect();
+                            if (isset($reductoresPorLineaArray[$linea->nombre])) {
+                                $reductoresLinea = collect($reductoresPorLineaArray[$linea->nombre]);
+                            }
+                        @endphp
+                        
+                        @if($componentesLinea->count() > 0 && $reductoresLinea->count() > 0)
+                            <div class="lavadora-card">
+                                <div class="lavadora-card-header">
+                                    <div class="w-12 h-12">
+                                        <img src="{{ asset('images/icono-maquina.png') }}" alt="Icono" class="w-full h-full object-contain">
+                                    </div>
+                                    <div>
+                                        <h3>{{ $linea->nombre }}</h3>
+                                        <div class="badge">0 análisis</div>
+                                    </div>
+                                </div>
+                                
+                                <div class="table-wrapper">
+                                    <div class="scroll-indicator">
+                                        <i class="fas fa-arrows-alt-h mr-1"></i> Desplázate para ver más
+                                    </div>
+                                    <table class="w-full compact-table border-collapse">
+                                        <thead>
+                                            <tr class="bg-gray-50 border-b border-gray-200">
+                                                <th class="sticky-left cell-header text-blue-900 font-bold px-3 py-2 border text-center whitespace-nowrap text-sm">
+                                                    <div class="reductor-header">
+                                                        <div class="reductor-name">REDUCTOR</div>
+                                                        <div class="reductor-label">COMPONENTE</div>
                                                     </div>
-                                                    <p class="text-gray-500 text-xs mb-3">Sin análisis</p>
+                                                </th>
+                                                @foreach($componentesLinea as $c)
+                                                    <th class="cell-header text-blue-900 font-bold px-3 py-2 border text-center whitespace-nowrap text-sm">
+                                                        <div class="component-header">
+                                                            <div class="component-name">{{ $c->nombre }}</div>
+                                                            <img src="{{ $c->icono }}" alt="Icono" class="w-20 h-20 object-contain" onerror="this.src='{{ asset('images/extras/sin imagen.png') }}'">
+                                                        </div>
+                                                    </th>
+                                                @endforeach
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach($reductoresLinea as $r)
+                                                <tr>
+                                                    <th class="sticky-left cell-header text-blue-900 font-bold px-3 py-2 border text-center whitespace-nowrap text-sm align-top">
+                                                        <div class="reductor-header">
+                                                            <div class="reductor-name">{{ $r }}</div>
+                                                            <div class="reductor-label">Reductor</div>
+                                                            <div class="text-xs text-gray-500 mt-1">
+                                                                0/{{ count($componentesLinea) }}
+                                                            </div>
+                                                        </div>
+                                                    </th>
                                                     
-                                                    @if($lineaMostrar)
-                                                        <a href="{{ route('analisis-lavadora.create-quick',[
-                                                            'linea_id' => $lineaMostrar->id,
-                                                            'componente_codigo' => $c->id,
-                                                            'reductor' => $r,
-                                                            'fecha' => request('fecha', now()->format('Y-m'))]) }}"
-                                                        class="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 transition text-xs font-medium"
-                                                        onclick="event.stopPropagation();">
-                                                            <i class="fas fa-plus"></i> Nuevo
-                                                        </a>
-                                                    @else
-                                                        <a href="{{ route('analisis-lavadora.select-linea') }}"
-                                                        class="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 transition text-xs font-medium"
-                                                        onclick="event.stopPropagation();">
-                                                            <i class="fas fa-plus"></i>
-                                                            Nuevo
-                                                        </a>
-                                                    @endif
-                                                </div>
-                                            @endif
-                                        </td>
-                                    @endforeach
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
+                                                    @foreach($componentesLinea as $c)
+                                                        <td class="border px-3 py-2 align-top cell-empty analysis-cell no-data">
+                                                            <div class="empty-cell">
+                                                                <div class="empty-cell-icon">
+                                                                    <i class="fas fa-clipboard"></i>
+                                                                </div>
+                                                                <p class="text-gray-500 text-xs mb-3">Sin análisis</p>
+                                                                <a href="{{ route('analisis-lavadora.create-quick',[
+                                                                    'linea_id' => $linea->id,
+                                                                    'componente_codigo' => $c->id,
+                                                                    'reductor' => $r,
+                                                                    'fecha' => now()->format('Y-m')]) }}"
+                                                                class="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 transition text-xs font-medium"
+                                                                onclick="event.stopPropagation();">
+                                                                    <i class="fas fa-plus"></i> Nuevo
+                                                                </a>
+                                                            </div>
+                                                        </td>
+                                                    @endforeach
+                                                </tr>
+                                            @endforeach
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        @endif
+                    @endforeach
                 </div>
             @else
-                <div class="p-8 text-center text-gray-500">
-                    <i class="fas fa-info-circle text-3xl mb-4"></i>
-                    <p>No hay componentes o reductores para mostrar</p>
-                    <p class="text-sm text-gray-400 mt-2">Selecciona una lavadora para ver sus análisis</p>
+                {{-- VISTA INICIAL CON TODAS LAS LÍNEAS (solo cuando no hay línea seleccionada y no estamos en "Todas") --}}
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center">
+                    <div class="text-blue-400 mb-4">
+                        <i class="fas fa-clipboard-list text-5xl"></i>
+                    </div>
+                    <h3 class="text-lg font-medium text-gray-700 mb-2">Sistema de Análisis de Componentes</h3>
+                    <p class="text-gray-500 mb-6">Selecciona una lavadora para ver sus análisis detallados</p>
+                    
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8 max-w-3xl mx-auto">
+                        @foreach($lineasFiltradas as $l)
+                            <div class="bg-gradient-to-br from-blue-50 to-white border-2 border-blue-200 
+                                        rounded-xl p-4 hover:shadow-lg hover:border-blue-400 
+                                        transition-all cursor-pointer group"
+                                 onclick="selectLinea('{{ $l->id }}')">
+                                <div class="flex flex-col items-center">
+                                    <i class="fas fa-washing-machine text-3xl text-blue-500 
+                                              group-hover:scale-110 transition-transform mb-2"></i>
+                                    <span class="font-bold text-gray-700">{{ $l->nombre }}</span>
+                                    <span class="text-xs text-gray-500 mt-1">Lavadora</span>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                    
+                    <a href="{{ route('analisis-lavadora.select-linea') }}"
+                       class="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 
+                              text-white rounded-lg hover:from-blue-700 hover:to-blue-800 
+                              transition shadow-lg hover:shadow-xl">
+                        <i class="fas fa-plus-circle"></i>
+                        Nuevo Análisis
+                    </a>
                 </div>
             @endif
-        </div>
-    @else
-        {{-- VISTA INICIAL --}}
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center">
-            <div class="text-blue-400 mb-4">
-                <i class="fas fa-clipboard-list text-5xl"></i>
-            </div>
-            <h3 class="text-lg font-medium text-gray-700 mb-2">Bienvenido al Sistema de Análisis de Componentes</h3>
-            <p class="text-gray-500 mb-6">Selecciona una lavadora para ver los análisis o crea uno nuevo.</p>
-            
-            <div class="flex flex-wrap justify-center gap-3 mb-8">
-                @foreach($lineasFiltradas as $l)
-                    <div class="linea-item {{ request('linea_id') == $l->id ? 'active' : '' }}" 
-                         onclick="selectLinea('{{ $l->id }}')">
-                        <i class="fas fa-washing-machine"></i>
-                        {{ $l->nombre }}
-                    </div>
-                @endforeach
-            </div>
-            
-            <a href="{{ route('analisis-lavadora.select-linea') }}"
-               class="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition shadow-lg hover:shadow-xl">
-                <i class="fas fa-plus-circle"></i>
-                Comenzar Nuevo Análisis
-            </a>
-        </div>
+        @endif
     @endif
 </div>
 
-{{-- MODAL DE DETALLES INDUSTRIAL CON AZUL #1363d3 --}}
-<div id="analysisDetailModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden items-center justify-center z-50 p-4 transition-all duration-300"
-     onclick="event.stopPropagation()">
-    <div class="bg-white rounded-lg shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden transform transition-all duration-300 scale-100 border border-gray-200">
-        {{-- HEADER INDUSTRIAL CON AZUL #1363d3 --}}
-        <div class="bg-gradient-to-r from-[#1363d3] to-[#0f4fa8] text-white px-8 py-5">
+{{-- MODAL DE DETALLES INDUSTRIAL CON AZUL #1363d3 31 35 72 --}}
+<div id="analysisDetailModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50 p-4"
+     onclick="if(event.target === this) closeAnalysisDetailModal()">
+    <div class="bg-white rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
+        
+        {{-- HEADER BLANCO MINIMALISTA --}}
+        <div class="px-6 py-4 border-b border-gray-100">
             <div class="flex justify-between items-center">
-                <div class="flex items-center gap-4">
-                    <div class="bg-white/20 p-3 rounded-lg border border-white/30">
-                        <i class="fas fa-industry text-2xl"></i>
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-chart-line text-gray-600 text-sm"></i>
                     </div>
-                    <div>
-                        <h3 class="font-bold text-xl tracking-wide">
-                            <span id="detailModalTitle">DETALLE DE ANÁLISIS</span>
-                        </h3>
-                    </div>
+                    <h3 class="font-medium text-gray-900" id="detailModalTitle">
+                        Detalle del Análisis
+                    </h3>
                 </div>
-                <button onclick="event.stopPropagation(); closeAnalysisDetailModal()" 
-                        class="w-10 h-10 rounded-lg bg-white/20 hover:bg-white/30 transition-all flex items-center justify-center group border border-white/30">
-                    <i class="fas fa-times text-xl group-hover:rotate-90 transition-transform"></i>
+                <button onclick="closeAnalysisDetailModal()" 
+                        class="w-8 h-8 rounded-lg hover:bg-gray-100 flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors">
+                    <i class="fas fa-times"></i>
                 </button>
             </div>
         </div>
@@ -1947,17 +2587,17 @@
             {{-- ESTADO Y ACTIVIDAD EN TARJETAS INDUSTRIALES --}}
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                 {{-- Estado --}}
-                <div class="bg-white rounded-lg p-5 border border-green-600 shadow-sm">
-                    <div class="flex items-center gap-3 mb-4">
-                        <div class="bg-green-600 p-2 rounded-lg">
-                            <i class="fas fa-clipboard-check text-gray-600"></i>
+                <div class="bg-white rounded-lg p-5 border border-green-200 shadow-sm">
+                <div class="flex items-center gap-3 mb-4">
+                        <div class="bg-green-100 p-2 rounded-lg">
+                            <i class="fas fa-clipboard-check text-green-600"></i>
                         </div>
-                        <h4 class="font-semibold text-gray-600 border-green-600 border-b-2 uppercase tracking-wider text-sm font-mono">Estado</h4>
-                    </div>
-                    <div class="flex justify-center">
-                        <div id="detail-estado" class="px-6 py-3 bg-green-600 text-white rounded-lg font-mono text-sm tracking-wider w-full text-center"></div>
-                    </div>
-                </div>
+                        <h4 class="font-semibold text-gray-700 border-green-200 border-b-2 uppercase tracking-wider text-sm">Estado</h4>
+                        </div>
+                        <div class="flex justify-center">
+                            <div id="detail-estado" class="px-6 py-3 bg-green-100 text-green-700 rounded-lg text-sm w-full text-center"></div>
+                        </div>
+                 </div>
 
                 {{-- Actividad --}}
                 <div class="bg-white rounded-lg p-5 border border-gray-200 shadow-sm">
@@ -1973,7 +2613,7 @@
                 </div>
             </div>
             
-            {{-- SECCIÓN DE IMÁGENES INDUSTRIAL --}}
+            {{-- SECCIÓN DE IMÁGENES --}}
             <div id="detail-images-section" class="mt-6 hidden">
                 <div class="bg-gray-800 text-white px-6 py-4">
                     <div class="flex items-center gap-3">
@@ -1982,7 +2622,7 @@
                         </div>
                         <div>
                             <h4 class="font-bold text-lg uppercase tracking-wider font-mono">Evidencia Fotográfica</h4>
-                            <p class="text-gray-300 text-sm">Documentación industrial del análisis</p>
+                            
                         </div>
                     </div>
                 </div>
@@ -2002,7 +2642,7 @@
                 <a id="detail-historial-btn"
                    href="#"
                    class="px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-all shadow-md hover:shadow-lg flex items-center gap-2 font-medium hidden border border-gray-500">
-                    <i class="fas fa-history"></i>
+                    <i class="fas "></i>
                     <span id="detail-historial-text">Ver Historial</span>
                 </a>
                 <button onclick="closeAnalysisDetailModal()" 

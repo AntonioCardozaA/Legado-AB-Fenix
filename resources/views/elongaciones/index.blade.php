@@ -90,7 +90,7 @@
         </div>
 
         {{-- Stats --}}
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4 mb-8">
             <div class="bg-white rounded-xl p-4 shadow border border-gray-200">
                 <div class="flex items-center justify-between">
                     <div>
@@ -99,39 +99,6 @@
                     </div>
                     <div class="p-2 bg-blue-50 rounded-lg">
                         <i class="fas fa-database text-blue-600"></i>
-                    </div>
-                </div>
-            </div>
-            
-            @php
-                $promBombas = $elongaciones->avg('bombas_porcentaje');
-                $promVapor = $elongaciones->avg('vapor_porcentaje');
-            @endphp
-            
-            <div class="bg-white rounded-xl p-4 shadow border border-gray-200">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-sm text-gray-600">Prom. Bombas</p>
-                        <p class="text-2xl font-bold {{ $promBombas >= 2.4 ? 'text-red-600' : ($promBombas >= 2.0 ? 'text-amber-600' : 'text-green-600') }}">
-                            {{ $promBombas ? number_format($promBombas, 2) . '%' : '0.00%' }}
-                        </p>
-                    </div>
-                    <div class="p-2 bg-blue-50 rounded-lg">
-                        <i class="fas fa-tint text-blue-600"></i>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="bg-white rounded-xl p-4 shadow border border-gray-200">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-sm text-gray-600">Prom. Vapor</p>
-                        <p class="text-2xl font-bold {{ $promVapor >= 2.4 ? 'text-red-600' : ($promVapor >= 2.0 ? 'text-amber-600' : 'text-green-600') }}">
-                            {{ $promVapor ? number_format($promVapor, 2) . '%' : '0.00%' }}
-                        </p>
-                    </div>
-                    <div class="p-2 bg-green-50 rounded-lg">
-                        <i class="fas fa-wind text-green-600"></i>
                     </div>
                 </div>
             </div>

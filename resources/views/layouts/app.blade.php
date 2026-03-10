@@ -122,19 +122,13 @@
                 <i class="fas fa-chart-line w-5 mr-3 text-gray-500"></i>
                 Dashboard
             </a>
-            <a href="{{ route('analisis.index') }}"
-               aria-label="Análisis General"
-               class="nav-link flex items-center px-4 py-3 rounded-lg {{ request()->routeIs('analisis.*') ? 'nav-active' : '' }}">
-                <i class="fas fa-clipboard-list w-5 mr-3 text-gray-500"></i>
-                Análisis General
-            </a>
             <a href="{{ route('lavadora.dashboard') }}"
                 aria-label="Dashboard de Lavadora"
                 class="nav-link flex items-center px-4 py-3 rounded-lg {{ request()->routeIs('lavadora.dashboard') ? 'nav-active' : '' }}">
                 <i class="fas fa-puzzle-piece w-5 mr-3 text-gray-500"></i>
                 Lavadora
             </a>
-            <a href="{{ route('analisis-pasteurizadora.index') }}"
+            <a href="{{ route('analisis-pasteurizadora.dashboard') }}"
                aria-label="Análisis de Pasteurizadora"
                class="nav-link flex items-center px-4 py-3 rounded-lg {{ request()->routeIs('analisis-pasteurizadora.*') ? 'nav-active' : '' }}">
                 <i class="fas fa-puzzle-piece w-5 mr-3 text-gray-500"></i>

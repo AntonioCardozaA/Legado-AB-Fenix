@@ -1,39 +1,51 @@
 <?php
+
 namespace App\Notifications;
 
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
 use Illuminate\Notifications\Messages\MailMessage;
-use Illuminate\Notifications\Messages\DatabaseMessage;
-use Carbon\Carbon;
+use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Support\Facades\Log;
 
-class FechaProximaNotification extends Notification
+class FechaProximaNotification extends Notification implements ShouldQueue
 {
     use Queueable;
 
     protected $plan;
     protected $pcm;
     protected $diasRestantes;
+    protected $emailToUse;
 
-    public function __construct($plan, $pcm, $diasRestantes)
+    public function __construct($plan, $pcm, $diasRestantes, $emailToUse = null)
     {
         $this->plan = $plan;
         $this->pcm = $pcm;
         $this->diasRestantes = $diasRestantes;
+        $this->emailToUse = $emailToUse;
     }
 
     public function via($notifiable)
     {
-        // Los canales se determinan en el servicio según preferencias
-        // Pero aquí podemos devolver los canales por defecto
-        return ['database', 'mail'];
+        $channels = ['database'];
+        
+        $settings = $notifiable->notificationSettings;
+        
+        if ($settings && $settings->email_notifications) {
+            $channels[] = 'mail';
+        }
+        
+        return $channels;
     }
 
     public function toMail($notifiable)
     {
         $fecha = $this->getFechaPcm();
         $estado = $this->getEstadoNotificacion();
-
+        
+        // Usar el email personalizado si existe
+        $email = $this->emailToUse ?? $notifiable->email;
+        
         return (new MailMessage)
             ->subject($estado['asunto'])
             ->greeting('¡Hola ' . $notifiable->name . '!')
@@ -48,7 +60,7 @@ class FechaProximaNotification extends Notification
             ->salutation('Saludos, Sistema de Gestión');
     }
 
-    public function toDatabase($notifiable)
+    public function toArray($notifiable)
     {
         $fecha = $this->getFechaPcm();
         $estado = $this->getEstadoNotificacion();
@@ -80,7 +92,7 @@ class FechaProximaNotification extends Notification
             case 'pcm4':
                 return $this->plan->fecha_pcm4;
             default:
-                return Carbon::now();
+                return now();
         }
     }
 

@@ -689,26 +689,55 @@
     }
 </style>
 
+@php
+    // Definir los IDs de las líneas de lavadora (caché para mejorar rendimiento)
+    $lineasLavadoraIds = [4, 5, 6, 7, 8, 9, 12, 13];
+    
+    // Obtener líneas de lavadora (optimizado con caché si está disponible)
+    try {
+        $lineasLavadora = \Illuminate\Support\Facades\Cache::remember('lineas_lavadora_' . md5(implode(',', $lineasLavadoraIds)), 3600, function() use ($lineasLavadoraIds) {
+            return \App\Models\Linea::whereIn('id', $lineasLavadoraIds)
+                ->orderBy('id')
+                ->get();
+        });
+    } catch (\Exception $e) {
+        $lineasLavadora = \App\Models\Linea::whereIn('id', $lineasLavadoraIds)
+            ->orderBy('id')
+            ->get();
+    }
+    
+    // Agrupar planes por línea de forma segura (CORRECCIÓN IMPORTANTE)
+    $planesPorLinea = method_exists($planes, 'getCollection') 
+        ? $planes->getCollection()->groupBy('linea_id') 
+        : (is_array($planes) || $planes instanceof \Illuminate\Support\Collection ? $planes->groupBy('linea_id') : collect());
+@endphp
+
 <div class="plan-container">
     <!-- Header con botón de volver y título - MODIFICADO PARA INCLUIR NOTIFICACIONES -->
     <div class="flex justify-between items-center mb-6">
-        <div>
+        <div class="flex justify-between items-start mb-6">
+    
+    <div>
+        <div class="flex items-center gap-3 mb-4">
+
             <a href="{{ route('lavadora.dashboard') }}" 
                class="inline-flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 
-                      bg-gray-100 hover:bg-gray-200 rounded-lg transition-all duration-300 mb-4">
+                      bg-gray-100 hover:bg-gray-200 rounded-lg transition-all duration-300">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
                           d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
                 </svg>
                 <span class="font-medium">Volver</span>
             </a>
-            <h1 class="text-2xl font-bold text-gray-800 flex items-center gap-3">
-                <img src="{{ asset('images/icono-maquina.png') }}" 
-                     alt="Icono de máquina" 
-                     class="w-8 h-8 object-contain">
-                Plan de Acción - Lavadoras
-            </h1>
+
+        
+
         </div>
+
+        <h1 class="text-2xl font-bold text-gray-800 flex items-center gap-3">
+            Plan de Acción - Lavadoras
+        </h1>
+    </div>
        
             <!-- Panel de notificaciones desplegable -->
             <div id="notificacionesPanel" class="absolute right-0 mt-2 w-96 bg-white rounded-lg shadow-xl border border-gray-200 z-50 hidden" style="max-height: 400px; overflow-y: auto;">
@@ -730,7 +759,7 @@
     </div>
 
  <!-- Notificación lateral de fechas próximas -->
-@if(count($alertas) > 0)
+@if(count($alertas ?? []) > 0)
 <div class="fixed top-4 right-4 z-50 max-w-md w-full animate-slide-down" id="notificacionLateral">
     <div class="bg-white rounded-lg shadow-xl border-l-4 border-yellow-400 overflow-hidden">
         <div class="p-4">
@@ -802,8 +831,6 @@
     <!-- SECCIÓN DE LÍNEAS DE LAVADORA - CON PNGs -->
     <div class="lineas-section">
         <div class="lineas-title">
-            <img src="{{ asset('images/icono-maquina.png') }}" 
-                 alt="Icono de máquina">
             LÍNEAS DE LAVADORA
         </div>
         
@@ -815,7 +842,7 @@
                 Todas
             </a>
             
-            @foreach([4,5,6,7,8,9,12,13] as $id)
+            @foreach($lineasLavadoraIds as $id)
                 <a href="{{ route('plan-accion.index', [
                         'tipo' => 'lavadora',
                         'linea_id' => $id
@@ -830,15 +857,6 @@
 
     <!-- Planes de Acción por Líneas -->
     <div class="space-y-6">
-        @php
-            // Definir los IDs de las líneas de lavadora
-            $lineasLavadoraIds = [4, 5, 6, 7, 8, 9, 12, 13];
-            $lineasLavadora = \App\Models\Linea::whereIn('id', $lineasLavadoraIds)->orderBy('id')->get();
-            $planesPorLinea = $planes->groupBy(function($plan) {
-                return $plan->linea_id ?? 'sin-linea';
-            });
-        @endphp
-
         @forelse($lineasLavadora as $linea)
             @php
                 $planesLinea = $planesPorLinea->get($linea->id, collect());
@@ -851,8 +869,7 @@
             <div class="linea-card">
                 <div class="linea-header">
                     <div class="linea-info">
-                        <img src="{{ asset('images/icono-maquina.png') }}" class="w-10 h-8 " alt="Icono de máquina">
-                        <span class="linea-nombre">{{ $linea->nombre_completo}}</span>
+                        <span class="linea-nombre">{{ $linea->nombre_completo }}</span>
                         <span class="linea-badge">L-{{ str_pad($linea->id, 2, '0', STR_PAD_LEFT) }}</span>
                     </div>
                     <div class="flex items-center gap-3">
@@ -865,7 +882,7 @@
                            class="btn-agregar-rapido"
                            title="Agregar actividad rápida para {{ $linea->nombre }}">
                             <span class="hidden sm:inline">Agregar Actividad</span>
-                            <img src="{{ asset('images/icono-maquina.png') }}" class="w-10 h-8" alt="Lavadora">
+                            <i class="fas fa-plus"></i>
                         </a>
                     </div>
                 </div>
@@ -916,12 +933,12 @@
                                 @foreach(['pcm1', 'pcm2', 'pcm3', 'pcm4'] as $pcm)
                                     @php
                                         $fechaCampo = 'fecha_' . $pcm;
-                                        $fecha = $plan->$fechaCampo;
+                                        $fecha = $plan->$fechaCampo ?? null;
                                     @endphp
                                     <td class="text-center fecha-cell">
                                         @if($fecha)
                                             @php
-                                                $dias = \Carbon\Carbon::now()->diffInDays($fecha, false);
+                                                $dias = \Carbon\Carbon::now()->startOfDay()->diffInDays(\Carbon\Carbon::parse($fecha)->startOfDay(), false);
                                                 $fechaClass = '';
                                                 if($dias < 0) $fechaClass = 'fecha-vencida';
                                                 elseif($dias <= 3) $fechaClass = 'fecha-proxima';
@@ -929,7 +946,7 @@
                                                 else $fechaClass = 'fecha-futura';
                                             @endphp
                                             <span class="{{ $fechaClass }}">
-                                                {{ $fecha->format('d/m/Y') }}
+                                                {{ \Carbon\Carbon::parse($fecha)->format('d/m/Y') }}
                                             </span>
                                         @else
                                             -
@@ -993,8 +1010,8 @@
         @endforelse
     </div>
 
-    <!-- Paginación -->
-    @if($planes->hasPages())
+    <!-- Paginación (VERSIÓN SEGURA - CORREGIDA) -->
+    @if(method_exists($planes, 'links') && $planes->total() > 0)
     <div class="pagination-info">
         <div class="text-sm text-gray-700">
             Mostrando {{ $planes->firstItem() }} - {{ $planes->lastItem() }} de {{ $planes->total() }} registros
@@ -1113,7 +1130,7 @@ document.addEventListener('click', function(event) {
     const container = document.getElementById('notificacionContainer');
     const panel = document.getElementById('notificacionesPanel');
     
-    if (!container.contains(event.target) && panelVisible) {
+    if (container && !container.contains(event.target) && panelVisible) {
         panel.classList.add('hidden');
         panelVisible = false;
     }
@@ -1122,6 +1139,7 @@ document.addEventListener('click', function(event) {
 // Función para cargar notificaciones
 function cargarNotificaciones() {
     const lista = document.getElementById('notificacionesLista');
+    if (!lista) return;
     
     fetch('/plan-accion/notificaciones-pendientes', {
         method: 'GET',
@@ -1186,23 +1204,27 @@ function cargarNotificaciones() {
     })
     .catch(error => {
         console.error('Error:', error);
-        lista.innerHTML = `
-            <div class="p-4 text-center text-red-500">
-                <i class="fas fa-exclamation-circle text-2xl mb-2"></i>
-                <p class="text-sm">Error al cargar notificaciones</p>
-            </div>
-        `;
+        if (lista) {
+            lista.innerHTML = `
+                <div class="p-4 text-center text-red-500">
+                    <i class="fas fa-exclamation-circle text-2xl mb-2"></i>
+                    <p class="text-sm">Error al cargar notificaciones</p>
+                </div>
+            `;
+        }
     });
 }
 
 // Actualizar el badge de notificaciones
 function actualizarBadge(total) {
     const badge = document.getElementById('notificacionBadge');
-    if (total > 0) {
-        badge.style.display = 'inline-flex';
-        badge.textContent = total > 99 ? '99+' : total;
-    } else {
-        badge.style.display = 'none';
+    if (badge) {
+        if (total > 0) {
+            badge.style.display = 'inline-flex';
+            badge.textContent = total > 99 ? '99+' : total;
+        } else {
+            badge.style.display = 'none';
+        }
     }
 }
 

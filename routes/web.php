@@ -13,6 +13,7 @@ use App\Http\Controllers\LineaController;
 use App\Http\Controllers\ApiController;
 use App\Http\Controllers\AnalisisTendenciaMensualLavadoraController;
 use App\Http\Controllers\HistoricoRevisadosController;
+use App\Http\Controllers\NotificationSettingsController;
 
 /*
 |--------------------------------------------------------------------------
@@ -36,7 +37,7 @@ Route::middleware(['auth'])->group(function () {
     |--------------------------------------------------------------------------
     */
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
-    Route::get('/lavadora/dashboard', [DashboardController::class, 'Lavadora'])->name('lavadora.dashboard');
+    Route::get('/lavadora/dashboard', [DashboardController::class, 'lavadora'])->name('lavadora.dashboard');
     
     /*
     |--------------------------------------------------------------------------
@@ -138,72 +139,139 @@ Route::middleware(['auth'])->group(function () {
     | ANALISIS TENDENCIA MENSUAL LAVADORA
     |--------------------------------------------------------------------------
     */
-    Route::prefix('analisis-tendencia-mensual-lavadora')
-        ->name('analisis-tendencia-mensual-lavadora.')
+    Route::prefix('analisis-tendencia-mensual')
+        ->name('analisis-tendencia-mensual.')
         ->controller(AnalisisTendenciaMensualLavadoraController::class)
         ->group(function () {
             Route::get('/', 'index')->name('index');
             Route::get('/create', 'create')->name('create');
             Route::post('/', 'store')->name('store');
             Route::get('/{analisis}', 'show')->name('show');
-            Route::get('/api/tendencia', 'getTendenciaApi')->name('api');
+           Route::get('/api/analisis/danos-tendencia', [DashboardController::class, 'getDanosTendenciaApi'])
+    ->name('api.danos-tendencia');
     });
+
+/*
+|--------------------------------------------------------------------------
+| ANALISIS DE COMPONENTES - PASTEURIZADORA
+|--------------------------------------------------------------------------
+*/
+Route::prefix('analisis-pasteurizadora')
+    ->name('analisis-pasteurizadora.')
+    ->controller(AnalisisPasteurizadoraController::class)
+    ->middleware('auth')
+    ->group(function () {
 
     /*
     |--------------------------------------------------------------------------
-    | ANALISIS DE COMPONENTES - PASTEURIZADORA
+    | DASHBOARD
     |--------------------------------------------------------------------------
     */
-    Route::prefix('analisis-pasteurizadora')
-        ->name('analisis-pasteurizadora.')
-        ->controller(AnalisisPasteurizadoraController::class)
-        ->group(function () {
+    Route::get('/', 'index')->name('index');
+    Route::get('/dashboard', 'dashboard')->name('dashboard');
 
-        // ===============================
-        // PRINCIPALES
-        // ===============================
-        Route::get('/', 'index')->name('index');
-        
-        // NOTA: Las rutas comentadas están pendientes de implementación
-        // Descomentar cuando estén listas
-        /*
-        Route::get('/seleccionar-linea', 'selectLinea')->name('select-linea');
-        Route::get('/crear/{linea}', 'createWithLinea')
-            ->where('linea', 'L-07|L-08')
-            ->name('create');
-        Route::get('/crear-rapido', 'createQuick')->name('create-quick');
-        Route::post('/', 'store')->name('store');
-        Route::post('/store-quick', 'storeQuick')->name('store-quick');
-        Route::get('/plan-accion', 'planAccion')->name('plan-accion');
-        Route::post('/plan-accion/update', 'updatePlanAccion')->name('plan-accion.update');
-        Route::get('/analisis-52-12-4', 'analisis52124')->name('analisis-52-12-4');
-        Route::post('/analisis-52-12-4/update', 'updateAnalisis52124')->name('analisis-52-12-4.update');
-        Route::get('/historial', 'historial')->name('historial');
-        Route::get('/historico-revisados', 'historicoRevisados')->name('historico-revisados');
-        Route::get('/export/excel', 'exportExcel')->name('export.excel');
-        Route::get('/export/pdf', 'exportPdf')->name('export.pdf');
-        Route::post('/export-process', 'exportProcess')->name('export-process');
-        Route::get('/get-componentes-por-linea', 'getComponentesPorLineaAjax')->name('get-componentes-por-linea');
-        Route::get('/get-actividades-por-modulo', 'getActividadesPorModulo')->name('get-actividades-por-modulo');
-        Route::get('/get-estadisticas-componentes', 'getEstadisticasComponentes')->name('get-estadisticas-componentes');
-        Route::get('/{analisispasteurizadora}/editar', 'edit')
-            ->where('analisispasteurizadora', '[0-9]+')
-            ->name('edit');
-        Route::delete('/{analisispasteurizadora}/foto/{fotoIndex}', 'deleteFoto')
-            ->where('analisispasteurizadora', '[0-9]+')
-            ->where('fotoIndex', '[0-9]+')
-            ->name('delete-foto');
-        Route::put('/{analisispasteurizadora}', 'update')
-            ->where('analisispasteurizadora', '[0-9]+')
-            ->name('update');
-        Route::delete('/{analisispasteurizadora}', 'destroy')
-            ->where('analisispasteurizadora', '[0-9]+')
-            ->name('destroy');
-        Route::get('/{analisispasteurizadora}', 'show')
-            ->where('analisispasteurizadora', '[0-9]+')
-            ->name('show');
-        */
-    });
+    /*
+    |--------------------------------------------------------------------------
+    | SELECCIONAR LINEA
+    |--------------------------------------------------------------------------
+    */
+    Route::get('/seleccionar-linea', 'selectLinea')->name('select-linea');
+
+    /*
+    |--------------------------------------------------------------------------
+    | CREAR REGISTROS
+    |--------------------------------------------------------------------------
+    */
+    Route::get('/crear/{linea}', 'createWithLinea')
+        ->whereNumber('linea')
+        ->name('create');
+
+    Route::get('/crear', 'create')->name('create-legacy');
+    
+    Route::get('/crear-rapido', 'createQuick')->name('create-quick');
+
+    Route::post('/', 'store')->name('store');
+    Route::post('/store-quick', 'storeQuick')->name('store-quick');
+
+    /*
+    |--------------------------------------------------------------------------
+    | HISTORIAL
+    |--------------------------------------------------------------------------
+    */
+    Route::get('/historial', 'historial')->name('historial');
+
+    /*
+    |--------------------------------------------------------------------------
+    | HISTORICO DE REVISADOS
+    |--------------------------------------------------------------------------
+    */
+    Route::get('/historico-revisados', 'historicoRevisados')->name('historico-revisados');
+
+    /*
+    |--------------------------------------------------------------------------
+    | PLAN DE ACCION
+    |--------------------------------------------------------------------------
+    */
+    Route::get('/plan-accion', 'planAccion')->name('plan-accion');
+    Route::post('/plan-accion/update', 'updatePlanAccion')->name('plan-accion.update');
+
+    /*
+    |--------------------------------------------------------------------------
+    | ANALISIS TENDENCIA MENSUAL
+    |--------------------------------------------------------------------------
+    */
+    Route::get('/analisis-tendencia-mensual', 'analisis52124')->name('analisis-tendencia-mensual');
+    Route::post('/analisis-tendencia-mensual/update', 'updateAnalisis52124')->name('analisis-tendencia-mensual.update');
+
+    /*
+    |--------------------------------------------------------------------------
+    | EXPORTACIONES
+    |--------------------------------------------------------------------------
+    */
+    Route::get('/export/excel', 'exportExcel')->name('export.excel');
+    Route::get('/export/pdf', 'exportPdf')->name('export.pdf');
+    Route::post('/export-process', 'exportProcess')->name('export-process');
+
+    /*
+    |--------------------------------------------------------------------------
+    | AJAX
+    |--------------------------------------------------------------------------
+    */
+    Route::get('/ajax/componentes', 'getComponentesPorLineaAjax')->name('ajax.componentes');
+    Route::get('/ajax/actividades', 'getActividadesPorModulo')->name('ajax.actividades');
+    Route::get('/ajax/estadisticas', 'getEstadisticasComponentesAjax')->name('ajax.estadisticas');
+
+    /*
+    |--------------------------------------------------------------------------
+    | CRUD
+    |--------------------------------------------------------------------------
+    */
+    Route::get('/{analisispasteurizadora}', 'show')
+        ->whereNumber('analisispasteurizadora')
+        ->name('show');
+
+    Route::get('/{analisispasteurizadora}/editar', 'edit')
+        ->whereNumber('analisispasteurizadora')
+        ->name('edit');
+
+    Route::put('/{analisispasteurizadora}', 'update')
+        ->whereNumber('analisispasteurizadora')
+        ->name('update');
+
+    Route::delete('/{analisispasteurizadora}', 'destroy')
+        ->whereNumber('analisispasteurizadora')
+        ->name('destroy');
+
+    /*
+    |--------------------------------------------------------------------------
+    | FOTOS
+    |--------------------------------------------------------------------------
+    */
+    Route::delete('/{analisispasteurizadora}/foto/{fotoIndex}', 'deleteFoto')
+        ->whereNumber('analisispasteurizadora')
+        ->whereNumber('fotoIndex')
+        ->name('delete-foto');
+});
 
     /*
     |--------------------------------------------------------------------------
@@ -261,7 +329,10 @@ Route::middleware(['auth'])->group(function () {
         Route::get('categorias/{categoria}/numeros-r', [AnalisisController::class, 'getNumerosR']);
         Route::get('estadisticas/dashboard', [ApiController::class, 'dashboard']);
         Route::get('analisis/tendencia/{linea}', [ApiController::class, 'tendenciaLinea']);
-        Route::get('analisis/danos-tendencia', [ApiController::class, 'danosTendencia']);
+        
+        // 🔥 RUTA PARA EL DASHBOARD - TENDENCIA DE DAÑOS
+        Route::get('analisis/danos-tendencia', [DashboardController::class, 'getDanosTendenciaApi'])
+            ->name('danos-tendencia');
         
         // API para Pasteurizadora
         Route::prefix('pasteurizadora')
@@ -288,30 +359,52 @@ Route::middleware(['auth'])->group(function () {
     Route::resource('plan-accion', PlanAccionController::class);
     Route::get('/plan-accion/dashboard', [PlanAccionController::class, 'dashboard'])->name('plan-accion.dashboard');
     Route::get('/plan-accion/por-lavadora/{lavadora}', [PlanAccionController::class, 'porLavadora'])->name('plan-accion.por-lavadora');
- Route::post('/plan-accion/{id}/notificar', [PlanAccionController::class, 'notificar'])->name('plan-accion.notificar');
+    Route::post('/plan-accion/{id}/notificar', [PlanAccionController::class, 'notificar'])->name('plan-accion.notificar');
+
+    /*
+    |--------------------------------------------------------------------------
+    | NOTIFICACIONES
+    |--------------------------------------------------------------------------
+    */
+    Route::get('/notificaciones/configuracion', [NotificationSettingsController::class, 'index'])
+        ->name('notificaciones.configuracion');
+    
+    Route::put('/notificaciones/configuracion', [NotificationSettingsController::class, 'update'])
+        ->name('notificaciones.configuracion.update');
+    
+    Route::post('/notificaciones/verify-phone', [NotificationSettingsController::class, 'verifyPhone'])
+        ->name('notificaciones.verify.phone');
 
     /*
     |--------------------------------------------------------------------------
     | REPORTES
     |--------------------------------------------------------------------------
     */
-    Route::prefix('reportes')
-        ->name('reportes.')
-        ->controller(ReporteController::class)
-        ->group(function () {
-            
-        Route::get('/', 'index')->name('index');
-        Route::get('/elongacion', 'elongacion')->name('elongacion');
-        Route::get('/componentes', 'componentes')->name('componentes');
-        Route::get('/paros', 'paros')->name('paros');
-        Route::get('/pasteurizadora', 'pasteurizadora')->name('pasteurizadora');
+   Route::prefix('reportes')
+    ->name('reportes.')
+    ->controller(ReporteController::class)
+    ->group(function () {
         
-        // ===============================
-        // EXPORTACIONES
-        // ===============================
-        Route::get('/export/excel', 'exportExcel')->name('export.excel');
-        Route::get('/export/pdf', 'exportPdf')->name('export.pdf');
-    });
+    Route::get('/', 'index')->name('index');
+
+    // NUEVAS RUTAS
+    Route::get('/show', 'show')->name('show');
+    Route::get('/show/{lineaId}', 'show')->name('show.linea');
+
+    Route::get('/elongacion', 'elongacion')->name('elongacion');
+    Route::get('/componentes', 'componentes')->name('componentes');
+    Route::get('/paros', 'paros')->name('paros');
+    Route::get('/pasteurizadora', 'pasteurizadora')->name('pasteurizadora');
+    
+     // ===============================
+    // EXPORTACIONES
+    // ===============================
+    Route::get('/export/pdf', [ReporteController::class, 'exportar'])
+        ->name('export-pdf');
+
+    Route::get('/export/excel', [ReporteController::class, 'exportar'])
+        ->name('export-excel');
+});
 
     /*
     |--------------------------------------------------------------------------

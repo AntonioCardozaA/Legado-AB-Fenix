@@ -163,7 +163,7 @@ class HistoricoRevisadosController extends Controller
                 : 0;
         }
         
-        return view('historico-revisados.index', compact(
+        return view('historico-revisados.lavadora.index', compact(
             'lineas',
             'lineasLavadora',
             'lineasPasteurizadora',
@@ -448,4 +448,5 @@ class HistoricoRevisadosController extends Controller
         if ($dias <= 15) return 'info';
         return 'success';
     }
+    
 }

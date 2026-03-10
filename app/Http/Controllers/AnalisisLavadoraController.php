@@ -19,21 +19,21 @@ class AnalisisLavadoraController extends Controller
     /**
      * LISTADO + FILTROS
      */
-    public function index(Request $request)
+public function index(Request $request)
 {
     $query = AnalisisLavadora::with(['linea', 'componente'])
         ->orderBy('fecha_analisis', 'desc')
         ->orderBy('created_at', 'desc');
 
     // FILTROS
-    if ($request->filled('linea_id')) {
+    if ($request->filled('linea_id') && $request->linea_id !== 'todas') {
         $query->where('linea_id', $request->linea_id);
     }
 
     if ($request->filled('componente_id')) {
-    $query->whereHas('componente', function ($q) use ($request) {
-        $q->where('codigo', 'like', '%_' . $request->componente_id);
-    });
+        $query->whereHas('componente', function ($q) use ($request) {
+            $q->where('codigo', 'like', '%_' . $request->componente_id);
+        });
     }
 
     if ($request->filled('reductor')) {
@@ -51,27 +51,20 @@ class AnalisisLavadoraController extends Controller
 
     $analisis = $query->get();
 
-    // Obtener línea seleccionada
+    // Determinar qué líneas mostrar y los reductores
     $lineaMostrar = 'Todas las líneas';
-    $linea = null;
-
-    if ($request->filled('linea_id')) {
+    $reductoresMostrar = [];
+    
+    if ($request->filled('linea_id') && $request->linea_id !== 'todas') {
         $linea = Linea::find($request->linea_id);
-
         if ($linea) {
             $lineaMostrar = $linea->nombre;
+            $reductoresMostrar = $this->getReductoresPorLinea($lineaMostrar);
         }
+    } else {
+        // Si es "todas" o no hay línea seleccionada, no filtramos por línea
+        $reductoresMostrar = []; // Se usarán los reductores de cada línea en la vista
     }
-
-    // Reductores por línea
-    $reductoresMostrar = [];
-    if (!$request->filled('linea_id')) {
-    return redirect()->route('analisis-lavadora.index', [
-        'linea_id' => Linea::where('activo', true)->first()->id
-    ]);
-} else {
-    $reductoresMostrar = $this->getReductoresPorLinea($lineaMostrar);
-}
 
     return view('lavadora/analisis-lavadora.index', [
         'analisis' => $analisis,
@@ -578,26 +571,42 @@ public function update(Request $request, $id)
         return back()->withErrors($validator)->withInput();
     }
 
-    /* =====================================================
-     | MANEJO DE EVIDENCIAS
-     ===================================================== */
-    $fotosExistentes = $analisis->evidencia_fotos ?? [];
+    /* =========================================
+       OBTENER FOTOS EXISTENTES
+    ========================================= */
+    $fotosExistentes = $analisis->evidencia_fotos;
 
-    // Eliminar fotos marcadas
+    if (!is_array($fotosExistentes)) {
+        $fotosExistentes = json_decode($fotosExistentes, true) ?? [];
+    }
+
+    /* =========================================
+       ELIMINAR FOTOS MARCADAS
+    ========================================= */
     if ($request->filled('eliminar_fotos')) {
         foreach ($request->eliminar_fotos as $index) {
+
             if (isset($fotosExistentes[$index])) {
+
                 Storage::disk('public')->delete($fotosExistentes[$index]);
+
                 unset($fotosExistentes[$index]);
             }
         }
+
         $fotosExistentes = array_values($fotosExistentes);
     }
 
-    // Agregar nuevas fotos
+    /* =========================================
+       AGREGAR NUEVAS FOTOS
+    ========================================= */
     if ($request->hasFile('evidencia_fotos')) {
+
         foreach ($request->file('evidencia_fotos') as $foto) {
-            $fotosExistentes[] = $foto->store('analisis-evidencias', 'public');
+
+            $ruta = $foto->store('analisis-evidencias', 'public');
+
+            $fotosExistentes[] = $ruta;
         }
     }
 

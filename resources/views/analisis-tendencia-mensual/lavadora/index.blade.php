@@ -507,7 +507,7 @@
                 Analisis 52-12-4
             </h1>
         </div>
-            <a href="{{ route('analisis-tendencia-mensual-lavadora.create', $lineaSeleccionada ? ['linea_id' => $lineaSeleccionada] : []) }}" 
+            <a href="{{ route('analisis-tendencia-mensual.create', $lineaSeleccionada ? ['linea_id' => $lineaSeleccionada] : []) }}" 
                class="btn-industrial">
                 <i class="fas fa-plus-circle"></i>
                 <span>NUEVO ANÁLISIS</span>
@@ -524,7 +524,7 @@
         
         <div class="machine-grid">
             @foreach($lineas as $linea)
-                <a href="{{ route('analisis-tendencia-mensual-lavadora.index', ['linea_id' => $linea->id]) }}" 
+                <a href="{{ route('analisis-tendencia-mensual.index', ['linea_id' => $linea->id]) }}" 
                    class="machine-pill {{ $lineaSeleccionada == $linea->id ? 'machine-pill-active' : 'machine-pill-inactive' }}">
                     <i class="fas fa-washing-machine"></i>
                     {{ $linea->nombre }}

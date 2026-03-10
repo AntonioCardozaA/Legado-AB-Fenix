@@ -149,6 +149,14 @@
                                 </div>
                             </div>
                         </div>
+                        
+                        {{-- Alerta individual Bombas --}}
+                        <div id="alerta_bombas" class="mt-4 hidden">
+                            <div class="flex items-center gap-2 p-3 rounded-lg">
+                                <i class="fas fa-exclamation-circle text-xl"></i>
+                                <span id="alerta_bombas_texto" class="text-sm font-medium"></span>
+                            </div>
+                        </div>
                     </div>
 
                     {{-- LADO VAPOR --}}
@@ -199,6 +207,14 @@
                                     </span>
                                     <span class="text-sm text-gray-500 ml-1">mm</span>
                                 </div>
+                            </div>
+                        </div>
+                        
+                        {{-- Alerta individual Vapor --}}
+                        <div id="alerta_vapor" class="mt-4 hidden">
+                            <div class="flex items-center gap-2 p-3 rounded-lg">
+                                <i class="fas fa-exclamation-circle text-xl"></i>
+                                <span id="alerta_vapor_texto" class="text-sm font-medium"></span>
                             </div>
                         </div>
                     </div>
@@ -296,82 +312,86 @@
                             <p class="text-xs text-amber-600">
                                 Paso inicial: 173 mm - Máximo 2.4% de elongación para cambio de cadena
                             </p>
+                            <div id="mensaje_cambio_lados" class="mt-2 text-sm font-medium hidden">
+                                <i class="fas fa-exclamation-circle mr-1"></i>
+                                <span id="lados_a_cambiar"></span>
+                            </div>
                         </div>
                         <span class="px-3 py-1 bg-amber-100 text-amber-800 text-sm font-medium rounded-full">
                             <i class="fas fa-ruler mr-1"></i>PASO 173 MM
                         </span>
                     </div>
                 </div>
-            </div>
 
-            {{-- JUEGO DE RODAJA --}}
-            <div class="mb-8">
-                <div class="flex items-center gap-2 mb-4 pb-2 border-b border-gray-200">
-                    <i class="fas fa-cogs text-xl text-gray-600"></i>
-                    <h2 class="text-xl font-semibold text-gray-800">
-                        JUEGO DE RODAJA - HOLGURA
-                    </h2>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {{-- Lado Bombas --}}
-                    <div>
-                        <label for="juego_rodaja_bombas" class="block text-sm font-medium text-gray-700 mb-2">
-                            LADO BOMBAS (mm)
-                        </label>
-                        <input type="number" 
-                               step="0.01" 
-                               min="0"
-                               id="juego_rodaja_bombas"
-                               name="juego_rodaja_bombas"
-                               value="{{ old('juego_rodaja_bombas') }}"
-                               class="block w-full rounded-lg border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                               placeholder="0.00">
-                        @error('juego_rodaja_bombas')
-                            <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
-                        @enderror
+                {{-- JUEGO DE RODAJA --}}
+                <div class="mb-8">
+                    <div class="flex items-center gap-2 mb-4 pb-2 border-b border-gray-200">
+                        <i class="fas fa-cogs text-xl text-gray-600"></i>
+                        <h2 class="text-xl font-semibold text-gray-800">
+                            JUEGO DE RODAJA - HOLGURA
+                        </h2>
                     </div>
 
-                    {{-- Lado Vapor --}}
-                    <div>
-                        <label for="juego_rodaja_vapor" class="block text-sm font-medium text-gray-700 mb-2">
-                            LADO VAPOR (mm)
-                        </label>
-                        <input type="number" 
-                               step="0.01" 
-                               min="0"
-                               id="juego_rodaja_vapor"
-                               name="juego_rodaja_vapor"
-                               value="{{ old('juego_rodaja_vapor') }}"
-                               class="block w-full rounded-lg border-gray-300 shadow-sm focus:ring-green-500 focus:border-green-500 sm:text-sm"
-                               placeholder="0.00">
-                        @error('juego_rodaja_vapor')
-                            <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
-                        @enderror
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {{-- Lado Bombas --}}
+                        <div>
+                            <label for="juego_rodaja_bombas" class="block text-sm font-medium text-gray-700 mb-2">
+                                LADO BOMBAS (mm)
+                            </label>
+                            <input type="number" 
+                                   step="0.01" 
+                                   min="0"
+                                   id="juego_rodaja_bombas"
+                                   name="juego_rodaja_bombas"
+                                   value="{{ old('juego_rodaja_bombas') }}"
+                                   class="block w-full rounded-lg border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                   placeholder="0.00">
+                            @error('juego_rodaja_bombas')
+                                <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
+                            @enderror
+                        </div>
+
+                        {{-- Lado Vapor --}}
+                        <div>
+                            <label for="juego_rodaja_vapor" class="block text-sm font-medium text-gray-700 mb-2">
+                                LADO VAPOR (mm)
+                            </label>
+                            <input type="number" 
+                                   step="0.01" 
+                                   min="0"
+                                   id="juego_rodaja_vapor"
+                                   name="juego_rodaja_vapor"
+                                   value="{{ old('juego_rodaja_vapor') }}"
+                                   class="block w-full rounded-lg border-gray-300 shadow-sm focus:ring-green-500 focus:border-green-500 sm:text-sm"
+                                   placeholder="0.00">
+                            @error('juego_rodaja_vapor')
+                                <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
+                            @enderror
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            {{-- Botones --}}
-            <div class="flex flex-col md:flex-row justify-between items-center gap-4 pt-6 border-t border-gray-200">
-                <div class="flex items-center gap-3">
-                    <a href="{{ route('elongaciones.index') }}"
-                       class="px-5 py-2.5 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition flex items-center gap-2">
-                        <i class="fas fa-arrow-left"></i>
-                        Cancelar
-                    </a>
-                    <button type="button" id="btnLimpiar"
-                            class="px-5 py-2.5 rounded-lg bg-gray-50 text-gray-600 hover:bg-gray-100 transition flex items-center gap-2 border border-gray-200">
-                        <i class="fas fa-broom"></i>
-                        Limpiar
+                {{-- Botones --}}
+                <div class="flex flex-col md:flex-row justify-between items-center gap-4 pt-6 border-t border-gray-200">
+                    <div class="flex items-center gap-3">
+                        <a href="{{ route('elongaciones.index') }}"
+                           class="px-5 py-2.5 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition flex items-center gap-2">
+                            <i class="fas fa-arrow-left"></i>
+                            Cancelar
+                        </a>
+                        <button type="button" id="btnLimpiar"
+                                class="px-5 py-2.5 rounded-lg bg-gray-50 text-gray-600 hover:bg-gray-100 transition flex items-center gap-2 border border-gray-200">
+                            <i class="fas fa-broom"></i>
+                            Limpiar
+                        </button>
+                    </div>
+
+                    <button type="submit"
+                            class="px-8 py-2.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition flex items-center gap-2 font-medium shadow-md">
+                        <i class="fas fa-save"></i>
+                        Guardar Registro
                     </button>
                 </div>
-
-                <button type="submit"
-                        class="px-8 py-2.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition flex items-center gap-2 font-medium shadow-md">
-                    <i class="fas fa-save"></i>
-                    Guardar Registro
-                </button>
             </div>
         </form>
     </div>
@@ -388,6 +408,12 @@ document.addEventListener('DOMContentLoaded', function() {
     const lineaInputs = document.querySelectorAll('input[name="linea"]');
     const lineaDisplay = document.getElementById('linea_display');
     const lineaBadge = document.getElementById('linea_badge');
+    
+    // Elementos de alerta individual
+    const alertaBombas = document.getElementById('alerta_bombas');
+    const alertaBombasTexto = document.getElementById('alerta_bombas_texto');
+    const alertaVapor = document.getElementById('alerta_vapor');
+    const alertaVaporTexto = document.getElementById('alerta_vapor_texto');
     
     // Configuración
     const PASO_INICIAL = 173;
@@ -439,6 +465,27 @@ document.addEventListener('DOMContentLoaded', function() {
         return {clase: 'critico', texto: '¡CRÍTICO!', color: 'red'};
     }
     
+    function actualizarAlertaIndividual(lado, porcentaje) {
+        const alerta = lado === 'bombas' ? alertaBombas : alertaVapor;
+        const texto = lado === 'bombas' ? alertaBombasTexto : alertaVaporTexto;
+        
+        if (porcentaje >= LIMITE_PELIGRO) {
+            alerta.className = 'mt-4 block';
+            const alertaDiv = alerta.querySelector('div');
+            alertaDiv.className = 'flex items-center gap-2 p-3 rounded-lg bg-red-50 border border-red-200';
+            alertaDiv.querySelector('i').className = 'fas fa-exclamation-circle text-xl text-red-500';
+            texto.innerHTML = '<span class="text-red-700 font-bold">¡ALERTA CRÍTICA! LÍMITE DE CAMBIO SUPERADO - ' + porcentaje.toFixed(2) + '%</span>';
+        } else if (porcentaje >= LIMITE_ADVERTENCIA) {
+            alerta.className = 'mt-4 block';
+            const alertaDiv = alerta.querySelector('div');
+            alertaDiv.className = 'flex items-center gap-2 p-3 rounded-lg bg-amber-50 border border-amber-200';
+            alertaDiv.querySelector('i').className = 'fas fa-exclamation-triangle text-xl text-amber-500';
+            texto.innerHTML = '<span class="text-amber-700 font-medium">¡ATENCIÓN! VALORES CERCANOS AL LÍMITE - ' + porcentaje.toFixed(2) + '%</span>';
+        } else {
+            alerta.className = 'mt-4 hidden';
+        }
+    }
+    
     function actualizarCalculos() {
         // Calcular promedios
         const bombasPromedio = calcularPromedio(bombasFields);
@@ -477,18 +524,43 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('bombas_progress').className = `h-2.5 rounded-full transition-all duration-300 bg-${bombasEstado.color}-600`;
         document.getElementById('vapor_progress').className = `h-2.5 rounded-full transition-all duration-300 bg-${vaporEstado.color}-600`;
         
-        // Actualizar alerta
+        // Actualizar alertas individuales
+        actualizarAlertaIndividual('bombas', bombasPorcentaje);
+        actualizarAlertaIndividual('vapor', vaporPorcentaje);
+        
+        // Actualizar alerta y mensaje de lados a cambiar
         const alerta = document.getElementById('alerta_limite');
-        if (bombasPorcentaje >= LIMITE_PELIGRO || vaporPorcentaje >= LIMITE_PELIGRO) {
+        const mensajeCambioLados = document.getElementById('mensaje_cambio_lados');
+        const ladosACambiar = document.getElementById('lados_a_cambiar');
+        
+        const bombasCritico = bombasPorcentaje >= LIMITE_PELIGRO;
+        const vaporCritico = vaporPorcentaje >= LIMITE_PELIGRO;
+        
+        if (bombasCritico || vaporCritico) {
             alerta.className = 'mb-6 border border-red-200 rounded-xl p-4 bg-red-50/50';
             alerta.querySelector('i').className = 'fas fa-exclamation-circle text-red-500 text-xl';
             alerta.querySelector('h4').textContent = '¡ALERTA CRÍTICA! SUPERÓ 2.4%';
-            alerta.querySelector('p').textContent = 'Se recomienda cambio de cadena inmediato';
+            alerta.querySelector('p').textContent = 'Se recomienda cambio de cadena';
+            
+            // Determinar qué lados necesitan cambio
+            let lados = [];
+            if (bombasCritico) lados.push('LADO BOMBAS');
+            if (vaporCritico) lados.push('LADO VAPOR');
+            
+            if (lados.length > 0) {
+                mensajeCambioLados.classList.remove('hidden');
+                if (lados.length === 2) {
+                    ladosACambiar.innerHTML = '<span class="font-bold text-red-700">AMBOS LADOS</span> necesitan cambio de cadena';
+                } else {
+                    ladosACambiar.innerHTML = '<span class="font-bold text-red-700">' + lados[0] + '</span> necesita cambio de cadena';
+                }
+            }
         } else {
             alerta.className = 'mb-6 border border-amber-200 rounded-xl p-4 bg-amber-50/50';
             alerta.querySelector('i').className = 'fas fa-exclamation-triangle text-amber-500 text-xl';
             alerta.querySelector('h4').textContent = 'LÍMITE DE CAMBIO: 2.4%';
             alerta.querySelector('p').textContent = 'Paso inicial: 173 mm - Máximo 2.4% de elongación para cambio de cadena';
+            mensajeCambioLados.classList.add('hidden');
         }
     }
     

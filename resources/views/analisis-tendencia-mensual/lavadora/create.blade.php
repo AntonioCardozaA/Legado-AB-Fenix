@@ -72,7 +72,7 @@
                     </label>
                     <input type="number" name="anio" 
                            value="{{ old('anio', $anioActual) }}"
-                           min="2020" max="2030"
+                           min="2020" max="2050"
                            class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:ring-0"
                            required>
                 </div>
@@ -101,17 +101,15 @@
                 </h3>
 
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    {{-- resources/views/analisis-tendencia-mensual-lavadora/create.blade.php --}}
-{{-- Solo muestro los inputs modificados --}}
 
         {{-- 52 Semanas --}}
         <div class="bg-white rounded-xl p-6 shadow-sm">
             <div class="flex items-center gap-3 mb-4">
-                <div class="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center">
-                    <i class="fas fa-calendar-week text-purple-600"></i>
+                <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
+                    <i class="fas fa-calendar-week text-green-600"></i>
                 </div>
                 <div>
-                    <h4 class="font-bold text-purple-800">52 Semanas</h4>
+                    <h4 class="font-bold text-green-800">52 Semanas</h4>
                     <p class="text-xs text-gray-500">Último año</p>
                 </div>
             </div>
@@ -120,7 +118,7 @@
                 value="{{ old('total_danos_52_semanas') }}"
                 min="0"
                 step="0.01"  {{-- Permite decimales --}}
-                class="w-full px-4 py-3 text-2xl font-bold text-purple-600 border-2 border-purple-200 rounded-xl focus:border-purple-500 focus:ring-0 text-center"
+                class="w-full px-4 py-3 text-2xl font-bold text-green-600 border-2 border-green-200 rounded-xl focus:border-green-500 focus:ring-0 text-center"
                 placeholder="0.00"
                 required>
             <p class="text-xs text-gray-500 mt-3 text-center">
@@ -131,11 +129,11 @@
         {{-- 12 Semanas --}}
         <div class="bg-white rounded-xl p-6 shadow-sm">
             <div class="flex items-center gap-3 mb-4">
-                <div class="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center">
-                    <i class="fas fa-calendar-week text-orange-600"></i>
+                <div class="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
+                    <i class="fas fa-calendar-week text-red-600"></i>
                 </div>
                 <div>
-                    <h4 class="font-bold text-orange-800">12 Semanas</h4>
+                    <h4 class="font-bold text-red-800">12 Semanas</h4>
                     <p class="text-xs text-gray-500">Último trimestre</p>
                 </div>
             </div>
@@ -144,7 +142,7 @@
                 value="{{ old('total_danos_12_semanas') }}"
                 min="0"
                 step="0.01"  {{-- Permite decimales --}}
-                class="w-full px-4 py-3 text-2xl font-bold text-orange-600 border-2 border-orange-200 rounded-xl focus:border-orange-500 focus:ring-0 text-center"
+                class="w-full px-4 py-3 text-2xl font-bold text-red-600 border-2 border-red-200 rounded-xl focus:border-red-500 focus:ring-0 text-center"
                 placeholder="0.00"
                 required>
             <p class="text-xs text-gray-500 mt-3 text-center">
@@ -155,11 +153,11 @@
         {{-- 4 Semanas --}}
         <div class="bg-white rounded-xl p-6 shadow-sm">
             <div class="flex items-center gap-3 mb-4">
-                <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
-                    <i class="fas fa-calendar-week text-green-600"></i>
+                <div class="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center">
+                    <i class="fas fa-calendar-week text-orange-600"></i>
                 </div>
                 <div>
-                    <h4 class="font-bold text-green-800">4 Semanas</h4>
+                    <h4 class="font-bold text-orange-800">4 Semanas</h4>
                     <p class="text-xs text-gray-500">Último mes</p>
                 </div>
             </div>
@@ -168,7 +166,7 @@
                 value="{{ old('total_danos_4_semanas') }}"
                 min="0"
                 step="0.01"  {{-- Permite decimales --}}
-                class="w-full px-4 py-3 text-2xl font-bold text-green-600 border-2 border-green-200 rounded-xl focus:border-green-500 focus:ring-0 text-center"
+                class="w-full px-4 py-3 text-2xl font-bold text-orange-600 border-2 border-orange-200 rounded-xl focus:border-orange-500 focus:ring-0 text-center"
                 placeholder="0.00"
                 required>
             <p class="text-xs text-gray-500 mt-3 text-center">
