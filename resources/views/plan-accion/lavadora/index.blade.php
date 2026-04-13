@@ -401,6 +401,26 @@
         box-shadow: 0 4px 8px rgba(220, 38, 38, 0.3);
     }
 
+        /* BOTÓN CHECKLIST */
+    .btn-checklist {
+        background: #f59e0b;
+    }
+
+    .btn-checklist:hover {
+        background: #d97706;
+        box-shadow: 0 4px 8px rgba(217,119,6,0.3);
+    }
+
+    /* cuando la actividad ya está realizada */
+    .btn-checklist.completado {
+        background: #10b981;
+    }
+
+    .btn-checklist.completado:hover {
+        background: #059669;
+    }
+
+
     /* Botón nueva actividad principal */
     .btn-nueva {
         display: inline-flex;
@@ -969,6 +989,14 @@
                                                 title="Ver">
                                             <i class="fas fa-eye"></i>
                                         </button>
+                                        
+                                        <button type="button" 
+                                        class="btn-accion btn-checklist checklist-btn {{ $plan->completado ? 'completado' : '' }}" 
+                                        data-id="{{ $plan->id }}"
+                                        title="Marcar actividad realizada">
+                                            <i class="fas {{ $plan->completado ? 'fa-check' : 'fa-square' }}"></i>
+                                        </button>
+
 
                                         <button type="button" 
                                                 class="btn-accion btn-eliminar eliminar-btn" 
@@ -1368,10 +1396,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                     ${data.linea ? data.linea.nombre_completo || data.linea.nombre : 'No asignada'}
                                 </span>
                             </div>
-                            <div class="col-span-2">
-                                <strong class="text-gray-600">Responsable:</strong><br>
-                                <span>${data.responsable ? data.responsable.name : 'No asignado'}</span>
-                            </div>
+                         
                             <div class="col-span-2">
                                 <strong class="text-gray-600">Actividad:</strong><br>
                                 <span>${data.actividad || 'No especificada'}</span>
@@ -1443,6 +1468,45 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
     });
+});
+// CHECKLIST ACTIVIDAD REALIZADA
+document.querySelectorAll('.checklist-btn').forEach(btn => {
+
+    btn.addEventListener('click', function(){
+
+        const id = this.dataset.id;
+        const boton = this;
+
+        fetch(`/plan-accion/${id}/checklist`,{
+            method:'POST',
+            headers:{
+                'X-CSRF-TOKEN':'{{ csrf_token() }}',
+                'Content-Type':'application/json'
+            }
+        })
+        .then(res=>res.json())
+        .then(data=>{
+
+            if(data.completado){
+
+                boton.classList.add('completado');
+                boton.innerHTML = '<i class="fas fa-check"></i>';
+
+            }else{
+
+                boton.classList.remove('completado');
+                boton.innerHTML = '<i class="fas fa-square"></i>';
+
+            }
+
+        })
+        .catch(error=>{
+            console.error(error);
+            Swal.fire('Error','No se pudo actualizar el checklist','error');
+        });
+
+    });
+
 });
 </script>
 @endsection

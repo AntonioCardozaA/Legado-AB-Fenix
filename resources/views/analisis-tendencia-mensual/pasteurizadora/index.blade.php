@@ -1,852 +1,353 @@
 @extends('layouts.app')
 
-@section('title', 'Análisis 52-12-4 - Pasteurizadora')
+@section('title', 'Análisis de Tendencia 52-12-4 - Pasteurizadora')
 
 @section('content')
 <style>
-    :root {
-        --primary: #2563eb;
-        --primary-dark: #1d4ed8;
-        --primary-light: #3b82f6;
-        --secondary: #64748b;
-        --success: #10b981;
-        --warning: #f59e0b;
-        --danger: #ef4444;
-        --dark: #0f172a;
-        --dark-light: #1e293b;
-        --dark-card: #334155;
-        --border: #e2e8f0;
-        --background: #f8fafc;
-        --text-primary: #0f172a;
-        --text-secondary: #475569;
-    }
-
-    .industrial-filters {
+    .tendencia-card {
         background: white;
-        border-radius: 20px;
-        padding: 24px;
-        margin-bottom: 32px;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        border: 1px solid var(--border);
-    }
-
-    .filters-header {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        margin-bottom: 20px;
-        padding-bottom: 16px;
-        border-bottom: 2px solid var(--border);
-    }
-
-    .filters-header i {
-        font-size: 24px;
-        color: var(--primary);
-        background: rgba(37, 99, 235, 0.1);
-        padding: 10px;
-        border-radius: 12px;
-    }
-
-    .filters-header h2 {
-        font-size: 18px;
-        font-weight: 600;
-        color: var(--text-primary);
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-    }
-
-    .machine-grid {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 12px;
-    }
-
-    .machine-pill {
-        padding: 12px 24px;
-        border-radius: 40px;
-        font-weight: 600;
-        font-size: 14px;
-        text-decoration: none;
-        transition: all 0.2s;
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        border: 1px solid transparent;
-    }
-
-    .machine-pill-active {
-        background: var(--dark);
-        color: white;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
-        border-color: var(--primary);
-    }
-
-    .machine-pill-inactive {
-        background: #f1f5f9;
-        color: var(--text-secondary);
-        border-color: #e2e8f0;
-    }
-
-    .machine-pill-inactive:hover {
-        background: #e2e8f0;
-        transform: translateY(-2px);
-        border-color: var(--primary);
-    }
-
-    .industrial-table-container {
-        background: white;
-        border-radius: 20px;
+        border-radius: 16px;
         overflow: hidden;
-        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-        margin-bottom: 32px;
-        border: 1px solid var(--border);
-    }
-
-    .industrial-table {
-        width: 100%;
-        border-collapse: collapse;
-        font-size: 14px;
-    }
-
-    .industrial-table th {
-        background: var(--dark);
-        color: white;
-        padding: 18px 12px;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        font-size: 12px;
-        border-right: 1px solid var(--dark-card);
-        white-space: nowrap;
-    }
-
-    .industrial-table th:last-child {
-        border-right: none;
-    }
-
-    .industrial-table th.group-header {
-        background: var(--dark-light);
-        font-size: 13px;
-        padding: 12px;
-    }
-
-    .industrial-table td {
-        padding: 18px 12px;
-        border: 1px solid var(--border);
-        vertical-align: middle;
-    }
-
-    .industrial-table tbody tr:hover {
-        background: #f8fafc;
-        transform: scale(1.01);
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        position: relative;
-        z-index: 10;
-    }
-
-    .period-cell {
-        background: #f8fafc;
-        font-weight: 700;
-    }
-
-    .period-main {
-        font-size: 15px;
-        color: var(--text-primary);
-        margin-bottom: 4px;
-    }
-
-    .period-sub {
-        font-size: 11px;
-        color: var(--text-secondary);
-        font-weight: 500;
-    }
-
-    .current-badge {
-        background: var(--primary);
-        color: white;
-        padding: 4px 8px;
-        border-radius: 20px;
-        font-size: 10px;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        margin-left: 8px;
-        display: inline-block;
-    }
-
-    .value-industrial {
-        font-family: 'JetBrains Mono', 'Courier New', monospace;
-        font-size: 16px;
-        font-weight: 600;
-        color: var(--dark);
-    }
-
-    .trend-industrial {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        padding: 6px 12px;
-        border-radius: 40px;
-        font-weight: 600;
-        font-size: 12px;
-        min-width: 90px;
-        justify-content: center;
-    }
-
-    .trend-up-industrial {
-        background: rgba(239, 68, 68, 0.1);
-        color: var(--danger);
-        border: 1px solid rgba(239, 68, 68, 0.2);
-    }
-
-    .trend-down-industrial {
-        background: rgba(16, 185, 129, 0.1);
-        color: var(--success);
-        border: 1px solid rgba(16, 185, 129, 0.2);
-    }
-
-    .trend-stable-industrial {
-        background: rgba(245, 158, 11, 0.1);
-        color: var(--warning);
-        border: 1px solid rgba(245, 158, 11, 0.2);
-    }
-
-    .industrial-chart {
-        background: white;
-        border-radius: 20px;
-        padding: 24px;
-        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-        border: 1px solid var(--border);
-        margin-top: 32px;
-    }
-
-    .chart-header {
-        display: flex;
-        align-items: center;
-        gap: 12px;
         margin-bottom: 24px;
-        padding-bottom: 16px;
-        border-bottom: 2px solid var(--border);
+        border: 1px solid #e2e8f0;
     }
-
-    .chart-header i {
-        font-size: 24px;
-        color: var(--primary);
-        background: rgba(37, 99, 235, 0.1);
-        padding: 10px;
-        border-radius: 12px;
-    }
-
-    .chart-header h3 {
-        font-size: 18px;
-        font-weight: 600;
-        color: var(--text-primary);
-    }
-
-    .chart-container {
-        height: 450px;
-        position: relative;
-    }
-
-    .chart-view-selector {
-        display: flex;
-        gap: 8px;
-        margin-left: auto;
-    }
-
-    .view-btn {
-        padding: 8px 16px;
-        border-radius: 40px;
-        font-size: 13px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.2s;
-        border: 1px solid var(--border);
-        background: white;
-        color: var(--text-secondary);
-    }
-
-    .view-btn.active {
-        background: var(--primary);
+    .tendencia-header {
+        background: linear-gradient(135deg, #1e293b, #0f172a);
         color: white;
-        border-color: var(--primary);
+        padding: 16px 24px;
     }
-
-    .view-btn:hover:not(.active) {
-        background: #f1f5f9;
-        border-color: var(--primary);
-    }
-
-    .industrial-empty {
-        background: white;
-        border-radius: 20px;
-        padding: 60px 40px;
-        text-align: center;
-        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-        border: 1px solid var(--border);
-    }
-
-    .empty-icon {
-        width: 120px;
-        height: 120px;
-        background: linear-gradient(135deg, #f1f5f9, #e2e8f0);
-        border-radius: 60px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin: 0 auto 24px;
-        font-size: 48px;
-        color: var(--secondary);
-        border: 4px solid white;
-        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-    }
-
-    .btn-industrial {
-        background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-        color: white;
-        padding: 14px 28px;
-        border-radius: 40px;
-        font-weight: 600;
-        font-size: 15px;
-        display: inline-flex;
-        align-items: center;
-        gap: 12px;
-        transition: all 0.3s;
-        border: none;
-        cursor: pointer;
-        text-decoration: none;
-        box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.3);
-        border: 1px solid rgba(255, 255, 255, 0.2);
-    }
-
-    .btn-industrial:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 20px 25px -5px rgba(37, 99, 235, 0.4);
-    }
-
-    .stats-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 20px;
-        margin-bottom: 32px;
-    }
-
     .stat-card {
-        background: white;
-        border-radius: 20px;
-        padding: 24px;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        border: 1px solid var(--border);
-        position: relative;
-        overflow: hidden;
+        background: #f8fafc;
+        border-radius: 12px;
+        padding: 20px;
+        text-align: center;
+        border: 1px solid #e2e8f0;
+        transition: all 0.3s ease;
     }
-
-    .stat-label {
-        font-size: 14px;
-        color: var(--text-secondary);
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        margin-bottom: 8px;
+    .stat-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.1);
     }
-
     .stat-value {
         font-size: 32px;
         font-weight: 700;
-        color: var(--text-primary);
-        font-family: 'JetBrains Mono', monospace;
     }
-
-    .editable-field {
+    .trend-up { color: #10b981; }
+    .trend-down { color: #ef4444; }
+    .trend-neutral { color: #f59e0b; }
+    .period-tab {
         cursor: pointer;
-        transition: all 0.2s;
-        border: 2px solid transparent;
-        padding: 8px;
-        border-radius: 8px;
+        padding: 8px 20px;
+        border-radius: 999px;
+        transition: all 0.3s ease;
     }
-
-    .editable-field:hover {
-        background: rgba(37, 99, 235, 0.05);
-        border-color: var(--primary);
+    .period-tab.active {
+        background: #3b82f6;
+        color: white;
     }
-
-    .editable-field.editing {
-        background: white;
-        border-color: var(--primary);
-        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    .period-tab:not(.active):hover {
+        background: #e2e8f0;
+    }
+    .chart-container {
+        height: 400px;
+        position: relative;
     }
 </style>
 
 <div class="max-w-7xl mx-auto px-4 py-8">
     {{-- Header --}}
-    <div class="flex justify-between items-center mb-6">
-        <div>
-            <a href="{{ route('pasteurizadora.dashboard') }}" 
+    <div class="mb-8">
+        <div class="flex items-center gap-3 mb-4">
+            <a href="{{ route('analisis-pasteurizadora.index') }}"
                class="inline-flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 
-                      bg-gray-100 hover:bg-gray-200 rounded-lg transition-all duration-300 mb-4">
+                      bg-gray-100 hover:bg-gray-200 rounded-lg transition">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                          d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
                 </svg>
-                <span class="font-medium">Volver</span>
+                Volver
             </a>
-            <h1 class="text-2xl font-bold text-gray-800 flex items-center gap-2">
-                <i class="fas fa-chart-bar text-blue-600"></i>
-                Análisis 52-12-4 - Pasteurizadora
-            </h1>
+        </div>
+        
+        <div class="flex items-center gap-3">
+            <div class="w-12 h-12 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl flex items-center justify-center">
+                <i class="fas fa-chart-line text-white text-xl"></i>
+            </div>
+            <div>
+                <h1 class="text-2xl font-bold text-gray-800">Análisis de Tendencia 52-12-4</h1>
+                <p class="text-gray-500">Evolución de indicadores por período</p>
+            </div>
         </div>
     </div>
 
     {{-- Filtros --}}
-    <div class="industrial-filters">
-        <div class="filters-header">
-            <img src="{{ asset('images/icono-pasteurizadora.png') }}" 
-                 class="w-8 h-8" 
-                 alt="Icono"
-                 onerror="this.src='{{ asset('images/icono-maquina.png') }}'">
-            <h2>SELECCIONAR LÍNEA</h2>
-        </div>
-        
-        <div class="machine-grid">
-            @foreach($lineas as $linea)
-                <a href="{{ route('analisis-pasteurizadora.analisis-52-12-4', ['linea_id' => $linea->id]) }}" 
-                   class="machine-pill {{ $lineaSeleccionada && $lineaSeleccionada->id == $linea->id ? 'machine-pill-active' : 'machine-pill-inactive' }}">
-                    <i class="fas fa-temperature-high"></i>
-                    {{ $linea->nombre }}
-                </a>
-            @endforeach
+    <div class="bg-white rounded-xl p-6 border border-gray-200 mb-6">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Línea</label>
+                <select id="filtroLinea" class="w-full rounded-lg border-gray-300">
+                    <option value="">Todas las líneas</option>
+                    @foreach($lineas ?? [] as $linea)
+                        <option value="{{ $linea->id }}">{{ $linea->nombre }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Componente</label>
+                <select id="filtroComponente" class="w-full rounded-lg border-gray-300">
+                    <option value="">Todos los componentes</option>
+                    @foreach(\App\Models\AnalisisPasteurizadora::COMPONENTES_SENCILLOS as $key => $comp)
+                        <option value="{{ $key }}">{{ $comp['nombre'] }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Período</label>
+                <div class="flex gap-2">
+                    <button onclick="cambiarPeriodo('52')" id="tab52" class="period-tab active flex-1 text-center">52 semanas</button>
+                    <button onclick="cambiarPeriodo('12')" id="tab12" class="period-tab flex-1 text-center">12 semanas</button>
+                    <button onclick="cambiarPeriodo('4')" id="tab4" class="period-tab flex-1 text-center">4 semanas</button>
+                </div>
+            </div>
         </div>
     </div>
 
-    @if($lineaSeleccionada)
-        <div class="industrial-table-container">
-            <div class="p-6 bg-gradient-to-r from-blue-600 to-blue-800 text-white">
-                <h2 class="text-2xl font-bold flex items-center gap-3">
-                    <i class="fas fa-chart-line"></i>
-                    Análisis 52-12-4 - {{ $lineaSeleccionada->nombre }}
-                </h2>
-                <p class="text-blue-100 mt-2">Última actualización: {{ $registro ? $registro->updated_at->format('d/m/Y H:i') : 'Nunca' }}</p>
-            </div>
+    {{-- Tarjetas de estadísticas --}}
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8" id="statsContainer">
+        <div class="stat-card">
+            <div class="text-gray-500 text-sm mb-2">Valor Promedio</div>
+            <div class="stat-value" id="promedioValor">--</div>
+            <div class="text-xs text-gray-400 mt-2" id="promedioPeriodo">52 semanas</div>
+        </div>
+        <div class="stat-card">
+            <div class="text-gray-500 text-sm mb-2">Tendencia</div>
+            <div class="stat-value" id="tendenciaValor">--</div>
+            <div class="text-xs text-gray-400 mt-2" id="tendenciaPeriodo">vs período anterior</div>
+        </div>
+        <div class="stat-card">
+            <div class="text-gray-500 text-sm mb-2">Mejor Valor</div>
+            <div class="stat-value text-green-600" id="mejorValor">--</div>
+            <div class="text-xs text-gray-400 mt-2" id="mejorFecha">--</div>
+        </div>
+    </div>
 
-            @if($registro)
-                <div class="p-8">
-                    <form id="analisisForm" action="{{ route('analisis-pasteurizadora.analisis-52-12-4.update') }}" method="POST">
-                        @csrf
-                        <input type="hidden" name="linea_id" value="{{ $lineaSeleccionada->id }}">
-                        
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                            {{-- 52 Semanas --}}
-                            <div class="bg-gradient-to-br from-blue-50 to-white rounded-xl p-6 border border-blue-200">
-                                <div class="flex items-center gap-3 mb-4">
-                                    <div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
-                                        <i class="fas fa-calendar-alt text-blue-600 text-xl"></i>
-                                    </div>
-                                    <div>
-                                        <h3 class="font-bold text-blue-800 text-lg">52 Semanas</h3>
-                                        <p class="text-xs text-gray-500">Último año</p>
-                                    </div>
-                                </div>
-                                
-                                <div class="space-y-4">
-                                    <div>
-                                        <p class="text-sm text-gray-600 mb-1">Valor anterior</p>
-                                        <p class="text-2xl font-bold text-gray-400">{{ number_format($registro->valor_anterior_52 ?? 0.51, 2) }}</p>
-                                    </div>
-                                    
-                                    <div>
-                                        <p class="text-sm text-gray-600 mb-1">Valor actual</p>
-                                        <div class="editable-field" data-field="valor_actual_52" data-value="{{ $registro->valor_actual_52 ?? 0.69 }}">
-                                            <p class="text-3xl font-bold text-blue-600">{{ number_format($registro->valor_actual_52 ?? 0.69, 2) }}</p>
-                                        </div>
-                                    </div>
-                                    
-                                    @php
-                                        $variacion52 = $registro->calcularVariacion($registro->valor_anterior_52, $registro->valor_actual_52);
-                                        $color52 = $variacion52 > 0 ? 'text-red-600' : ($variacion52 < 0 ? 'text-green-600' : 'text-yellow-600');
-                                        $icono52 = $variacion52 > 0 ? 'fa-arrow-up' : ($variacion52 < 0 ? 'fa-arrow-down' : 'fa-minus');
-                                    @endphp
-                                    
-                                    <div class="pt-4 border-t border-blue-100">
-                                        <div class="flex justify-between items-center">
-                                            <span class="text-sm text-gray-600">Variación</span>
-                                            <span class="text-lg font-bold {{ $color52 }}">
-                                                <i class="fas {{ $icono52 }} mr-1"></i>
-                                                {{ number_format(abs($variacion52), 2) }}%
-                                            </span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+    {{-- Gráfica --}}
+    <div class="bg-white rounded-xl p-6 border border-gray-200">
+        <h3 class="font-semibold text-gray-800 mb-4 flex items-center gap-2">
+            <i class="fas fa-chart-line text-blue-600"></i>
+            Evolución Histórica
+        </h3>
+        <div class="chart-container">
+            <canvas id="tendenciaChart"></canvas>
+        </div>
+    </div>
 
-                            {{-- 12 Semanas --}}
-                            <div class="bg-gradient-to-br from-green-50 to-white rounded-xl p-6 border border-green-200">
-                                <div class="flex items-center gap-3 mb-4">
-                                    <div class="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
-                                        <i class="fas fa-calendar-alt text-green-600 text-xl"></i>
-                                    </div>
-                                    <div>
-                                        <h3 class="font-bold text-green-800 text-lg">12 Semanas</h3>
-                                        <p class="text-xs text-gray-500">Último trimestre</p>
-                                    </div>
-                                </div>
-                                
-                                <div class="space-y-4">
-                                    <div>
-                                        <p class="text-sm text-gray-600 mb-1">Valor anterior</p>
-                                        <p class="text-2xl font-bold text-gray-400">{{ number_format($registro->valor_anterior_12 ?? 0.25, 2) }}</p>
-                                    </div>
-                                    
-                                    <div>
-                                        <p class="text-sm text-gray-600 mb-1">Valor actual</p>
-                                        <div class="editable-field" data-field="valor_actual_12" data-value="{{ $registro->valor_actual_12 ?? 1.08 }}">
-                                            <p class="text-3xl font-bold text-green-600">{{ number_format($registro->valor_actual_12 ?? 1.08, 2) }}</p>
-                                        </div>
-                                    </div>
-                                    
-                                    @php
-                                        $variacion12 = $registro->calcularVariacion($registro->valor_anterior_12, $registro->valor_actual_12);
-                                        $color12 = $variacion12 > 0 ? 'text-red-600' : ($variacion12 < 0 ? 'text-green-600' : 'text-yellow-600');
-                                        $icono12 = $variacion12 > 0 ? 'fa-arrow-up' : ($variacion12 < 0 ? 'fa-arrow-down' : 'fa-minus');
-                                    @endphp
-                                    
-                                    <div class="pt-4 border-t border-green-100">
-                                        <div class="flex justify-between items-center">
-                                            <span class="text-sm text-gray-600">Variación</span>
-                                            <span class="text-lg font-bold {{ $color12 }}">
-                                                <i class="fas {{ $icono12 }} mr-1"></i>
-                                                {{ number_format(abs($variacion12), 2) }}%
-                                            </span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {{-- 4 Semanas --}}
-                            <div class="bg-gradient-to-br from-purple-50 to-white rounded-xl p-6 border border-purple-200">
-                                <div class="flex items-center gap-3 mb-4">
-                                    <div class="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center">
-                                        <i class="fas fa-calendar-alt text-purple-600 text-xl"></i>
-                                    </div>
-                                    <div>
-                                        <h3 class="font-bold text-purple-800 text-lg">4 Semanas</h3>
-                                        <p class="text-xs text-gray-500">Último mes</p>
-                                    </div>
-                                </div>
-                                
-                                <div class="space-y-4">
-                                    <div>
-                                        <p class="text-sm text-gray-600 mb-1">Valor anterior</p>
-                                        <p class="text-2xl font-bold text-gray-400">{{ number_format($registro->valor_anterior_4 ?? 0.23, 2) }}</p>
-                                    </div>
-                                    
-                                    <div>
-                                        <p class="text-sm text-gray-600 mb-1">Valor actual</p>
-                                        <div class="editable-field" data-field="valor_actual_4" data-value="{{ $registro->valor_actual_4 ?? 2.52 }}">
-                                            <p class="text-3xl font-bold text-purple-600">{{ number_format($registro->valor_actual_4 ?? 2.52, 2) }}</p>
-                                        </div>
-                                    </div>
-                                    
-                                    @php
-                                        $variacion4 = $registro->calcularVariacion($registro->valor_anterior_4, $registro->valor_actual_4);
-                                        $color4 = $variacion4 > 0 ? 'text-red-600' : ($variacion4 < 0 ? 'text-green-600' : 'text-yellow-600');
-                                        $icono4 = $variacion4 > 0 ? 'fa-arrow-up' : ($variacion4 < 0 ? 'fa-arrow-down' : 'fa-minus');
-                                    @endphp
-                                    
-                                    <div class="pt-4 border-t border-purple-100">
-                                        <div class="flex justify-between items-center">
-                                            <span class="text-sm text-gray-600">Variación</span>
-                                            <span class="text-lg font-bold {{ $color4 }}">
-                                                <i class="fas {{ $icono4 }} mr-1"></i>
-                                                {{ number_format(abs($variacion4), 2) }}%
-                                            </span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        {{-- Botones de acción --}}
-                        <div class="mt-8 flex justify-end gap-3">
-                            <button type="button" onclick="cancelarEdicion()" 
-                                    class="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition">
-                                Cancelar
+    {{-- Tabla de datos --}}
+    <div class="bg-white rounded-xl border border-gray-200 overflow-hidden mt-6">
+        <div class="bg-gray-50 px-6 py-4 border-b">
+            <h3 class="font-semibold text-gray-800">Datos Históricos</h3>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fecha</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Línea</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Módulo</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Componente</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Valor 52s</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Valor 12s</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Valor 4s</th>
+                        <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200" id="tablaDatos">
+                    @forelse($analisis ?? [] as $item)
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-6 py-4 text-sm">{{ $item->fecha_formateada }}</td>
+                        <td class="px-6 py-4 text-sm">{{ $item->linea->nombre ?? 'N/A' }}</td>
+                        <td class="px-6 py-4 text-sm">Módulo {{ $item->modulo }}</td>
+                        <td class="px-6 py-4 text-sm">{{ $item->componente_nombre }}</td>
+                        <td class="px-6 py-4 text-sm text-right font-mono">{{ number_format($item->valor_actual_52 ?? 0, 2) }}</td>
+                        <td class="px-6 py-4 text-sm text-right font-mono">{{ number_format($item->valor_actual_12 ?? 0, 2) }}</td>
+                        <td class="px-6 py-4 text-sm text-right font-mono">{{ number_format($item->valor_actual_4 ?? 0, 2) }}</td>
+                        <td class="px-6 py-4 text-sm text-center">
+                            <button onclick="editarValores({{ $item->id }})" class="text-blue-600 hover:text-blue-800">
+                                <i class="fas fa-edit"></i>
                             </button>
-                            <button type="submit" 
-                                    class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center gap-2">
-                                <i class="fas fa-save"></i>
-                                Guardar Cambios
-                            </button>
-                        </div>
-                    </form>
-
-                    {{-- Historial de cambios --}}
-                    <div class="mt-8 pt-8 border-t border-gray-200">
-                        <h4 class="font-semibold text-gray-700 mb-4 flex items-center gap-2">
-                            <i class="fas fa-history text-blue-600"></i>
-                            Historial de Análisis
-                        </h4>
-                        
-                        <div class="bg-gray-50 rounded-lg p-4">
-                            <p class="text-sm text-gray-600">
-                                <i class="far fa-clock mr-2"></i>
-                                Última actualización: {{ $registro->updated_at ? $registro->updated_at->format('d/m/Y H:i:s') : 'Nunca' }}
-                            </p>
-                            <p class="text-sm text-gray-600 mt-1">
-                                <i class="far fa-calendar-alt mr-2"></i>
-                                Registro creado: {{ $registro->created_at ? $registro->created_at->format('d/m/Y H:i:s') : 'Nunca' }}
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            @else
-                <div class="industrial-empty">
-                    <div class="empty-icon">
-                        <i class="fas fa-chart-line"></i>
-                    </div>
-                    <h3>SIN DATOS DISPONIBLES</h3>
-                    <p>No se encontraron análisis para {{ $lineaSeleccionada->nombre }}</p>
-                    <p class="text-sm text-gray-500 mt-2">Los valores se inicializarán al guardar por primera vez</p>
-                </div>
-            @endif
+                        </td>
+                    </tr>
+                    @empty
+                    <tr>
+                        <td colspan="8" class="px-6 py-12 text-center text-gray-500">
+                            <i class="fas fa-chart-line text-3xl mb-2 block"></i>
+                            No hay datos de tendencia disponibles
+                        </td>
+                    </tr>
+                    @endforelse
+                </tbody>
+            </table>
         </div>
-
-        @if($registro)
-        {{-- Gráfica de tendencia --}}
-        <div class="industrial-chart">
-            <div class="chart-header">
-                <i class="fas fa-chart-bar"></i>
-                <h3>EVOLUCIÓN HISTÓRICA - {{ $lineaSeleccionada->nombre }}</h3>
-            </div>
-            <div class="chart-container">
-                <canvas id="trendChart"></canvas>
-            </div>
-        </div>
-        @endif
-
-    @else
-        <div class="industrial-empty">
-            <div class="empty-icon">
-                <i class="fas fa-hand-pointer"></i>
-            </div>
-            <h3>SELECCIONE UNA LÍNEA</h3>
-            <p>Elija una línea del panel superior para visualizar los análisis 52-12-4</p>
-        </div>
-    @endif
+    </div>
 </div>
 
-@if($lineaSeleccionada && $registro)
+{{-- Modal para editar valores --}}
+<div id="editModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-xl shadow-xl max-w-md w-full">
+        <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+            <h3 class="font-semibold text-gray-800">Editar Valores 52-12-4</h3>
+            <button onclick="cerrarModal()" class="text-gray-400 hover:text-gray-600">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <form id="editForm" method="POST">
+            @csrf
+            <div class="p-6 space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Valor 52 semanas</label>
+                    <input type="number" name="valor_52" id="editValor52" step="0.01" class="w-full rounded-lg border-gray-300">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Valor 12 semanas</label>
+                    <input type="number" name="valor_12" id="editValor12" step="0.01" class="w-full rounded-lg border-gray-300">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Valor 4 semanas</label>
+                    <input type="number" name="valor_4" id="editValor4" step="0.01" class="w-full rounded-lg border-gray-300">
+                </div>
+            </div>
+            <div class="px-6 py-4 border-t border-gray-200 flex justify-end gap-3">
+                <button type="button" onclick="cerrarModal()" class="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300">Cancelar</button>
+                <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Guardar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-let chart;
-let editingField = null;
+let chart = null;
+let currentPeriodo = '52';
 
 document.addEventListener('DOMContentLoaded', function() {
-    // Configurar campos editables
-    document.querySelectorAll('.editable-field').forEach(field => {
-        field.addEventListener('click', function(e) {
-            if (editingField === this) {
-                return;
-            }
-            
-            if (editingField) {
-                cancelarEdicion();
-            }
-            
-            iniciarEdicion(this);
-        });
+    inicializarGrafica();
+    
+    document.getElementById('filtroLinea')?.addEventListener('change', function() {
+        actualizarDatos();
     });
+    
+    document.getElementById('filtroComponente')?.addEventListener('change', function() {
+        actualizarDatos();
+    });
+});
 
-    // Inicializar gráfica
-    const ctx = document.getElementById('trendChart').getContext('2d');
-    
-    // Datos de ejemplo - idealmente vendrían del backend
-    const labels = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
-    const data52 = [0.51, 0.55, 0.58, 0.62, 0.65, 0.69, 0.72, 0.75, 0.78, 0.81, 0.85, {{ $registro->valor_actual_52 ?? 0.69 }}];
-    const data12 = [0.25, 0.35, 0.45, 0.58, 0.72, 0.88, 1.08, 1.15, 1.22, 1.28, 1.35, {{ $registro->valor_actual_12 ?? 1.08 }}];
-    const data4 = [0.23, 0.45, 0.89, 1.34, 1.78, 2.52, 2.45, 2.38, 2.52, 2.48, 2.51, {{ $registro->valor_actual_4 ?? 2.52 }}];
-    
+function inicializarGrafica() {
+    const ctx = document.getElementById('tendenciaChart').getContext('2d');
     chart = new Chart(ctx, {
         type: 'line',
         data: {
-            labels: labels,
-            datasets: [
-                {
-                    label: '52 Semanas',
-                    data: data52,
-                    borderColor: '#3b82f6',
-                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                    borderWidth: 3,
-                    tension: 0.3,
-                    fill: true,
-                    pointBackgroundColor: '#3b82f6',
-                    pointBorderColor: 'white',
-                    pointBorderWidth: 2,
-                    pointRadius: 4,
-                    pointHoverRadius: 6
-                },
-                {
-                    label: '12 Semanas',
-                    data: data12,
-                    borderColor: '#10b981',
-                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                    borderWidth: 3,
-                    tension: 0.3,
-                    fill: true,
-                    pointBackgroundColor: '#10b981',
-                    pointBorderColor: 'white',
-                    pointBorderWidth: 2,
-                    pointRadius: 4,
-                    pointHoverRadius: 6
-                },
-                {
-                    label: '4 Semanas',
-                    data: data4,
-                    borderColor: '#8b5cf6',
-                    backgroundColor: 'rgba(139, 92, 246, 0.1)',
-                    borderWidth: 3,
-                    tension: 0.3,
-                    fill: true,
-                    pointBackgroundColor: '#8b5cf6',
-                    pointBorderColor: 'white',
-                    pointBorderWidth: 2,
-                    pointRadius: 4,
-                    pointHoverRadius: 6
-                }
-            ]
+            labels: [],
+            datasets: [{
+                label: 'Valor',
+                data: [],
+                borderColor: '#3b82f6',
+                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                tension: 0.4,
+                fill: true
+            }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            interaction: {
-                mode: 'index',
-                intersect: false
-            },
             plugins: {
-                legend: {
-                    position: 'top',
-                    labels: {
-                        usePointStyle: true,
-                        padding: 20,
-                        font: { size: 12 }
-                    }
-                },
-                tooltip: {
-                    backgroundColor: 'rgba(15, 23, 42, 0.95)',
-                    titleColor: '#f8fafc',
-                    bodyColor: '#f1f5f9',
-                    bodyFont: { size: 13, family: 'JetBrains Mono' },
-                    padding: 12,
-                    cornerRadius: 8
-                }
-            },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    grid: { color: 'rgba(0, 0, 0, 0.05)' },
-                    ticks: { 
-                        callback: value => value.toFixed(2),
-                        font: { size: 11, family: 'JetBrains Mono' }
-                    },
-                    title: {
-                        display: true,
-                        text: 'TOTAL DE DAÑOS',
-                        font: { size: 11, weight: '600' },
-                        color: '#64748b'
-                    }
-                },
-                x: {
-                    grid: { display: false },
-                    ticks: { font: { size: 11 } }
-                }
+                legend: { position: 'top' },
+                tooltip: { callbacks: { label: (ctx) => `Valor: ${ctx.raw}` } }
             }
         }
     });
-});
+}
 
-function iniciarEdicion(field) {
-    const valorActual = field.querySelector('p');
-    const valor = field.dataset.value;
-    const fieldName = field.dataset.field;
+function cambiarPeriodo(periodo) {
+    currentPeriodo = periodo;
     
-    // Crear input
-    const input = document.createElement('input');
-    input.type = 'number';
-    input.step = '0.01';
-    input.value = valor;
-    input.className = 'w-full px-3 py-2 text-3xl font-bold border-2 border-blue-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300';
-    input.style.fontSize = '1.875rem';
-    input.style.fontWeight = 'bold';
-    input.style.color = '#2563eb';
+    document.getElementById('tab52').classList.remove('active');
+    document.getElementById('tab12').classList.remove('active');
+    document.getElementById('tab4').classList.remove('active');
     
-    // Reemplazar contenido
-    field.innerHTML = '';
-    field.appendChild(input);
-    field.classList.add('editing');
+    if (periodo === '52') document.getElementById('tab52').classList.add('active');
+    else if (periodo === '12') document.getElementById('tab12').classList.add('active');
+    else document.getElementById('tab4').classList.add('active');
     
-    input.focus();
-    input.select();
+    actualizarDatos();
+}
+
+function actualizarDatos() {
+    const lineaId = document.getElementById('filtroLinea')?.value || '';
+    const componente = document.getElementById('filtroComponente')?.value || '';
     
-    input.addEventListener('blur', function() {
-        finalizarEdicion(field, input.value, fieldName);
+    fetch(`/analisis-pasteurizadora/ajax/estadisticas-tendencia?linea_id=${lineaId}&componente=${componente}&periodo=${currentPeriodo}`)
+        .then(res => res.json())
+        .then(data => {
+            if (chart) {
+                chart.data.labels = data.labels || [];
+                chart.data.datasets[0].data = data.valores || [];
+                chart.update();
+            }
+            
+            document.getElementById('promedioValor').textContent = data.promedio || '--';
+            document.getElementById('tendenciaValor').innerHTML = data.tendencia || '--';
+            document.getElementById('mejorValor').textContent = data.mejor_valor || '--';
+            document.getElementById('mejorFecha').textContent = data.mejor_fecha || '--';
+        });
+}
+
+function editarValores(id) {
+    const modal = document.getElementById('editModal');
+    const form = document.getElementById('editForm');
+    
+    fetch(`/analisis-pasteurizadora/${id}`)
+        .then(res => res.json())
+        .then(data => {
+            document.getElementById('editValor52').value = data.valor_actual_52 || '';
+            document.getElementById('editValor12').value = data.valor_actual_12 || '';
+            document.getElementById('editValor4').value = data.valor_actual_4 || '';
+            form.action = `/analisis-pasteurizadora/analisis-52124`;
+            
+            const inputId = document.createElement('input');
+            inputId.type = 'hidden';
+            inputId.name = 'id';
+            inputId.value = id;
+            form.appendChild(inputId);
+            
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        });
+}
+
+function cerrarModal() {
+    const modal = document.getElementById('editModal');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+    
+    const hiddenInput = document.querySelector('#editForm input[name="id"]');
+    if (hiddenInput) hiddenInput.remove();
+}
+
+document.getElementById('editForm')?.addEventListener('submit', function(e) {
+    e.preventDefault();
+    const formData = new FormData(this);
+    
+    fetch(this.action, {
+        method: 'POST',
+        body: formData,
+        headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' }
+    })
+    .then(res => res.json())
+    .then(() => {
+        cerrarModal();
+        actualizarDatos();
+        location.reload();
     });
-    
-    input.addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') {
-            finalizarEdicion(field, input.value, fieldName);
-        } else if (e.key === 'Escape') {
-            cancelarEdicion();
-        }
-    });
-    
-    editingField = field;
-}
-
-function finalizarEdicion(field, newValue, fieldName) {
-    // Actualizar valor mostrado
-    const formattedValue = parseFloat(newValue).toFixed(2);
-    const p = document.createElement('p');
-    p.className = 'text-3xl font-bold text-blue-600';
-    p.textContent = formattedValue;
-    
-    field.innerHTML = '';
-    field.appendChild(p);
-    field.classList.remove('editing');
-    field.dataset.value = newValue;
-    
-    // Actualizar el input oculto en el formulario
-    let hiddenInput = document.querySelector(`input[name="${fieldName}"]`);
-    if (!hiddenInput) {
-        hiddenInput = document.createElement('input');
-        hiddenInput.type = 'hidden';
-        hiddenInput.name = fieldName;
-        document.getElementById('analisisForm').appendChild(hiddenInput);
-    }
-    hiddenInput.value = newValue;
-    
-    editingField = null;
-}
-
-function cancelarEdicion() {
-    if (editingField) {
-        const field = editingField;
-        const valor = field.dataset.value;
-        
-        const p = document.createElement('p');
-        p.className = 'text-3xl font-bold text-blue-600';
-        p.textContent = parseFloat(valor).toFixed(2);
-        
-        field.innerHTML = '';
-        field.appendChild(p);
-        field.classList.remove('editing');
-        
-        editingField = null;
-    }
-}
-
-document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape' && editingField) {
-        cancelarEdicion();
-    }
 });
 </script>
-@endif
 @endsection

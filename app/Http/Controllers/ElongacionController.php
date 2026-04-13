@@ -5,9 +5,14 @@ namespace App\Http\Controllers;
 use App\Models\Elongacion;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use App\Services\WhatsAppService;
 
 class ElongacionController extends Controller
 {
+    // Definir constantes de límites
+    const LIMITE_COMPRA = 1.3;    // Límite para considerar compra
+    const LIMITE_CAMBIO = 1.46;   // Límite para cambio de cadena (ROJO)
+
     /**
      * Display a listing of the resource.
      */
@@ -28,7 +33,7 @@ class ElongacionController extends Controller
         // Ordenar por fecha descendente y paginar
         $elongaciones = $query->orderBy('created_at', 'desc')
                               ->paginate(15)
-                              ->withQueryString(); // Mantener filtros en paginación
+                              ->withQueryString();
         
         return view('elongaciones.index', compact('elongaciones'));
     }
@@ -57,7 +62,7 @@ class ElongacionController extends Controller
             // Validación
             $request->validate([
                 'linea' => 'required|in:L-04,L-05,L-06,L-07,L-08,L-09,L-12,L-13',
-                'hodometro' => 'required|integer|min:0',
+                'hodometro' => 'nullable|integer|min:0',
                 'bombas_1' => 'nullable|numeric|min:0|max:200',
                 'bombas_2' => 'nullable|numeric|min:0|max:200',
                 'bombas_3' => 'nullable|numeric|min:0|max:200',
@@ -82,6 +87,20 @@ class ElongacionController extends Controller
                 'juego_rodaja_vapor' => 'nullable|numeric|min:0',
             ]);
 
+            // Definir pasos iniciales por línea
+            $pasosIniciales = [
+                'L-04' => 173,
+                'L-05' => 140,
+                'L-06' => 173,
+                'L-07' => 173,
+                'L-08' => 125,
+                'L-09' => 140,
+                'L-12' => 140,
+                'L-13' => 140,
+            ];
+            
+            $pasoInicial = $pasosIniciales[$request->linea] ?? 173;
+
             // Obtener mediciones lado bombas
             $bombasMediciones = [];
             for ($i = 1; $i <= 10; $i++) {
@@ -90,7 +109,7 @@ class ElongacionController extends Controller
             
             // Calcular promedio lado bombas
             $bombasPromedio = Elongacion::calcularPromedio($bombasMediciones);
-            $bombasPorcentaje = Elongacion::calcularPorcentaje($bombasPromedio);
+            $bombasPorcentaje = Elongacion::calcularPorcentaje($bombasPromedio, $pasoInicial);
             
             // Obtener mediciones lado vapor
             $vaporMediciones = [];
@@ -100,7 +119,33 @@ class ElongacionController extends Controller
             
             // Calcular promedio lado vapor
             $vaporPromedio = Elongacion::calcularPromedio($vaporMediciones);
-            $vaporPorcentaje = Elongacion::calcularPorcentaje($vaporPromedio);
+            $vaporPorcentaje = Elongacion::calcularPorcentaje($vaporPromedio, $pasoInicial);
+
+            // LÍMITES DEFINIDOS: Compra 1.3% - Cambio 1.46%
+            $limiteCompra = self::LIMITE_COMPRA;
+            $limiteCambio = self::LIMITE_CAMBIO;
+
+            // Determinar estado basado en los límites
+            $estado = 'normal';
+            $estadoDetallado = 'normal';
+            
+            // Evaluar lado bombas (el más crítico prevalece)
+            if ($bombasPorcentaje >= $limiteCambio) {
+                $estado = 'critico';
+                $estadoDetallado = 'cambio';
+            } elseif ($bombasPorcentaje >= $limiteCompra) {
+                if ($estado != 'critico') $estado = 'alerta';
+                $estadoDetallado = 'comprar';
+            }
+            
+            // Evaluar lado vapor
+            if ($vaporPorcentaje >= $limiteCambio) {
+                $estado = 'critico';
+                $estadoDetallado = 'cambio';
+            } elseif ($vaporPorcentaje >= $limiteCompra) {
+                if ($estado != 'critico') $estado = 'alerta';
+                $estadoDetallado = 'comprar';
+            }
 
             // Preparar datos para crear
             $data = [
@@ -113,6 +158,9 @@ class ElongacionController extends Controller
                 'bombas_porcentaje' => $bombasPorcentaje,
                 'vapor_promedio' => $vaporPromedio,
                 'vapor_porcentaje' => $vaporPorcentaje,
+                'estado' => $estado,
+                'estado_detallado' => $estadoDetallado,
+                'paso_inicial' => $pasoInicial,
             ];
 
             // Agregar mediciones individuales
@@ -123,11 +171,17 @@ class ElongacionController extends Controller
 
             // Crear registro
             $elongacion = Elongacion::create($data);
+            
+            // 🚨 NOTIFICACIÓN WHATSAPP POR LÍMITES DE ELONGACIÓN
+            $this->enviarNotificacionWhatsApp($request, $bombasPorcentaje, $vaporPorcentaje);
 
-            // Verificar si requiere cambio
+            // Mensaje de éxito
             $mensaje = 'Registro guardado exitosamente';
-            if ($elongacion->requiere_cambio) {
-                $mensaje .= ' - ¡ATENCIÓN! Se recomienda cambio de cadena (elongación supera 2.4%)';
+            
+            if ($bombasPorcentaje >= $limiteCambio || $vaporPorcentaje >= $limiteCambio) {
+                $mensaje .= ' - 🚨 ¡ATENCIÓN! LÍMITE DE CAMBIO ALCANZADO (' . $limiteCambio . '%) - CAMBIO REQUERIDO';
+            } elseif ($bombasPorcentaje >= $limiteCompra || $vaporPorcentaje >= $limiteCompra) {
+                $mensaje .= ' - ⚠️ NOTA: Un lado superó ' . $limiteCompra . '%, considerar compra de cadena';
             }
 
             return redirect()->route('elongaciones.index', ['linea' => $request->linea])
@@ -137,6 +191,66 @@ class ElongacionController extends Controller
             Log::error('Error al guardar elongación: ' . $e->getMessage());
             return back()->withInput()
                 ->with('error', 'Error al guardar el registro: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Enviar notificación por WhatsApp
+     */
+    private function enviarNotificacionWhatsApp($request, $bombasPorcentaje, $vaporPorcentaje)
+    {
+        $limiteCompra = self::LIMITE_COMPRA;
+        $limiteCambio = self::LIMITE_CAMBIO;
+        
+        $numero = "5214981096696"; // tu número o grupo
+        $mensaje = null;
+
+        // Detectar lados afectados
+        $lados = [];
+
+        if ($bombasPorcentaje >= $limiteCompra) {
+            $lados[] = "🔵 Bombas (" . round($bombasPorcentaje, 2) . "%)";
+        }
+
+        if ($vaporPorcentaje >= $limiteCompra) {
+            $lados[] = "🟢 Vapor (" . round($vaporPorcentaje, 2) . "%)";
+        }
+
+        $ladosTexto = !empty($lados) ? implode(' y ', $lados) : 'Sin afectación';
+
+        // 🔴 CRÍTICO (CAMBIO) - SUPERÓ 1.46%
+        if ($bombasPorcentaje >= $limiteCambio || $vaporPorcentaje >= $limiteCambio) {
+            $mensaje = "🔴 *ALERTA CRÍTICA - CAMBIO DE CADENA* 🔴\n\n"
+                . "🏭 Línea: {$request->linea}\n"
+                . "📍 Lado afectado: $ladosTexto\n\n"
+                . "📊 Bombas: " . round($bombasPorcentaje, 2) . "%\n"
+                . "🌫️ Vapor: " . round($vaporPorcentaje, 2) . "%\n\n"
+                . "⚠️ Superó el límite de cambio: *{$limiteCambio}%*\n"
+                . "🔧 *¡CAMBIO INMEDIATO REQUERIDO!*";
+        }
+        // 🟡 COMPRA - SUPERÓ 1.3% PERO NO 1.46%
+        elseif ($bombasPorcentaje >= $limiteCompra || $vaporPorcentaje >= $limiteCompra) {
+            $mensaje = "🟡 *ALERTA - CONSIDERAR COMPRA DE CADENA* 🟡\n\n"
+                . "🏭 Línea: {$request->linea}\n"
+                . "📍 Lado afectado: $ladosTexto\n\n"
+                . "📊 Bombas: " . round($bombasPorcentaje, 2) . "%\n"
+                . "🌫️ Vapor: " . round($vaporPorcentaje, 2) . "%\n\n"
+                . "📦 Superó el límite de compra: *{$limiteCompra}%*\n"
+                . "🛒 *CONSIDERAR COMPRA PARA PRÓXIMO CAMBIO DE CADENA*";
+        }
+
+        // Enviar si hay mensaje
+        if ($mensaje && class_exists(WhatsAppService::class)) {
+            try {
+                WhatsAppService::enviarMensaje($numero, $mensaje);
+                Log::info('WhatsApp elongación enviado', [
+                    'linea' => $request->linea,
+                    'bombas' => $bombasPorcentaje,
+                    'vapor' => $vaporPorcentaje,
+                ]);
+            } catch (\Exception $e) {
+                Log::error('Error WhatsApp elongación: ' . $e->getMessage());
+            }
         }
     }
 
@@ -167,7 +281,7 @@ class ElongacionController extends Controller
     }
 
     /**
-     * API para obtener última lectura (para AJAX)
+     * API para obtener última lectura
      */
     public function ultimaLectura($linea)
     {

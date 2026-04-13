@@ -1,4 +1,3 @@
-// app/Http/Controllers/ApiController.php
 <?php
 
 namespace App\Http\Controllers;

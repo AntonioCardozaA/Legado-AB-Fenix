@@ -2,382 +2,438 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Analisis;
-use App\Models\Componente;
-use App\Models\Paro;
 use App\Models\AnalisisLavadora;
-use App\Models\Elongacion;
 use App\Models\Linea;
+use App\Models\Elongacion;
 use App\Models\PlanAccion;
 use App\Models\AnalisisTendenciaMensualLavadora;
 use Illuminate\Http\Request;
-use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
-
+use Carbon\Carbon;
 class DashboardController extends Controller
 {
-  public function index()
-{
-    // ===========================================
-    // 1. ESTADÍSTICAS GENERALES (TARJETAS)
-    // ===========================================
-    
-    // Total de análisis (de todos los tipos)
-    $totalAnalisis = Analisis::count() + AnalisisLavadora::count();
-    
-    // Último análisis
-    $ultimoAnalisisLavadora = AnalisisLavadora::with('linea')->latest('fecha_analisis')->first();
-    $ultimoAnalisisGeneral = Analisis::with('linea')->latest('fecha_analisis')->first();
-    $ultimoAnalisis = $ultimoAnalisisLavadora;
-    if ($ultimoAnalisisGeneral && (!$ultimoAnalisisLavadora || 
-        $ultimoAnalisisGeneral->fecha_analisis > $ultimoAnalisisLavadora->fecha_analisis)) {
-        $ultimoAnalisis = $ultimoAnalisisGeneral;
-    }
-    
-    // Fecha para filtro (último mes)
-    $fechaInicio = Carbon::now()->subMonth();
-    
-    // Componentes de lavadora
-    try {
-        $totalComponentesRevisados = AnalisisLavadora::where('fecha_analisis', '>=', $fechaInicio)->count();
-        $componentesBuenos = AnalisisLavadora::where('fecha_analisis', '>=', $fechaInicio)
-            ->where(function($q) {
-                $q->where('estado', 'like', '%BUENO%')
-                  ->orWhere('estado', 'like', '%NORMAL%')
-                  ->orWhere('estado', 'like', '%OK%');
-            })
-            ->count();
-        $totalDanados = AnalisisLavadora::where('fecha_analisis', '>=', $fechaInicio)
-            ->where(function($q) {
-                $q->where('estado', 'like', '%DAÑADO%')
-                  ->orWhere('estado', 'like', '%CRÍTICO%')
-                  ->orWhere('estado', 'like', '%REEMPLAZADO%');
-            })
-            ->count();
-    } catch (\Exception $e) {
-        $totalComponentesRevisados = 0;
-        $componentesBuenos = 0;
-        $totalDanados = 0;
-    }
-    
-    $porcentajeBuenos = $totalComponentesRevisados > 0 
-        ? round(($componentesBuenos / $totalComponentesRevisados) * 100, 1)
-        : 0;
-    
-    // Paros pendientes
-    $hoy = Carbon::now();
-    $proximos7Dias = Carbon::now()->addDays(7);
-    $parosPendientes = PlanAccion::where(function($query) use ($hoy, $proximos7Dias) {
-            $query->whereBetween('fecha_pcm1', [$hoy, $proximos7Dias])
-                ->orWhereBetween('fecha_pcm2', [$hoy, $proximos7Dias])
-                ->orWhereBetween('fecha_pcm3', [$hoy, $proximos7Dias])
-                ->orWhereBetween('fecha_pcm4', [$hoy, $proximos7Dias]);
-        })
-        ->count();
-
-    // ===========================================
-    // 2. ANÁLISIS RECIENTES
-    // ===========================================
-    
-    $analisisLavadoraRecientes = AnalisisLavadora::with(['linea', 'componente'])
-        ->orderBy('fecha_analisis', 'desc')
-        ->limit(5)
-        ->get()
-        ->map(function($item) {
-            return (object)[
-                'id' => $item->id,
-                'fecha_analisis' => $item->fecha_analisis,
-                'linea' => $item->linea,
-                'numero_orden' => $item->numero_orden ?? 'N/A',
-                'elongacion_promedio' => null,
-                'estado' => $item->estado,
-                'tipo' => 'lavadora',
-                'ruta_show' => route('analisis-lavadora.show', $item->id)
-            ];
-        });
-    
-    $analisisGeneralesRecientes = Analisis::with('linea')
-        ->orderBy('fecha_analisis', 'desc')
-        ->limit(5)
-        ->get()
-        ->map(function($item) {
-            return (object)[
-                'id' => $item->id,
-                'fecha_analisis' => $item->fecha_analisis,
-                'linea' => $item->linea,
-                'numero_orden' => $item->numero_orden,
-                'elongacion_promedio' => $item->elongacion_promedio,
-                'estado' => $this->determinarEstadoElongacion($item->elongacion_promedio),
-                'tipo' => 'general',
-                'ruta_show' => route('analisis.show', $item->id)
-            ];
-        });
-    
-    $analisisRecientes = $analisisLavadoraRecientes
-        ->concat($analisisGeneralesRecientes)
-        ->sortByDesc('fecha_analisis')
-        ->take(10)
-        ->values();
-
-    // ===========================================
-    // 3. GRÁFICO DE TENDENCIA POR LÍNEA
-    // ===========================================
-    
-    // Obtener líneas activas
-    $lineas = Linea::where('activo', true)->orderBy('nombre')->get();
-    
-    // Obtener últimas 10 fechas con análisis de elongación
-    $fechasRecientes = Elongacion::select(DB::raw('DATE(created_at) as fecha'))
-        ->distinct()
-        ->orderBy('fecha', 'desc')
-        ->limit(10)
-        ->pluck('fecha')
-        ->sort()
-        ->values();
-    
-    $tendenciaLabels = $fechasRecientes->map(function($fecha) {
-        return Carbon::parse($fecha)->format('d/m');
-    })->toArray();
-    
-    $tendenciaDatasets = [];
-    $colores = ['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16'];
-    
-    foreach ($lineas as $index => $linea) {
-        $datos = [];
-        foreach ($fechasRecientes as $fecha) {
-            $elongacion = Elongacion::where('linea', $linea->nombre)
-                ->whereDate('created_at', $fecha)
-                ->latest()
-                ->first();
-            
-            $valor = $elongacion 
-                ? round(($elongacion->bombas_promedio + $elongacion->vapor_promedio) / 2, 2)
-                : null;
-            
-            $datos[] = $valor;
-        }
-        
-        if (count(array_filter($datos)) > 0) {
-            $tendenciaDatasets[] = [
-                'label' => $linea->nombre,
-                'data' => $datos,
-                'borderColor' => $colores[$index % count($colores)],
-                'backgroundColor' => 'transparent',
-                'borderWidth' => 2,
-                'tension' => 0.4,
-                'spanGaps' => true,
-                'pointRadius' => 3,
-                'pointHoverRadius' => 5
-            ];
-        }
-    }
-
-    // ===========================================
-    // 4. GRÁFICO DE ESTADO DE COMPONENTES
-    // ===========================================
-    
-    $fechaInicioMes = Carbon::now()->startOfMonth();
-    $fechaFinMes = Carbon::now()->endOfMonth();
-    
-    $componentesData = AnalisisLavadora::with('componente')
-        ->whereBetween('fecha_analisis', [$fechaInicioMes, $fechaFinMes])
-        ->select('componente_id', DB::raw('count(*) as total'))
-        ->groupBy('componente_id')
-        ->orderBy('total', 'desc')
-        ->limit(5)
-        ->get();
-    
-    $estadoComponentesLabels = [];
-    $estadoComponentesData = [];
-    
-    foreach ($componentesData as $data) {
-        if ($data->componente) {
-            $estadoComponentesLabels[] = $data->componente->nombre ?? 'Componente';
-            $estadoComponentesData[] = $data->total;
-        }
-    }
-
-    // ===========================================
-    // 5. GRÁFICO DE TENDENCIA DE DAÑOS
-    // ===========================================
-    
-    $datosDanosTendencia = AnalisisTendenciaMensualLavadora::with('linea')
-        ->orderBy('anio', 'desc')
-        ->orderBy('mes', 'desc')
-        ->limit(12)
-        ->get()
-        ->map(function($item) {
-            return [
-                'periodo' => $item->periodo,
-                'total_danos' => $item->total_danos_12semanas ?? 0
-            ];
-        })
-        ->reverse()
-        ->values();
-
-
-    // ===========================================
-    // 7. DEBUG - Registrar qué se está enviando
-    // ===========================================
-    
-    \Log::info('Dashboard - Variables enviadas:', [
-        'tendenciaLabels' => $tendenciaLabels,
-        'tendenciaDatasets_count' => count($tendenciaDatasets),
-        'tendenciaDatasets' => $tendenciaDatasets,
-        'estadoComponentesLabels' => $estadoComponentesLabels,
-        'estadoComponentesData' => $estadoComponentesData,
-        'analisisRecientes_count' => $analisisRecientes->count()
-    ]);
-
-    return view('dashboard', compact(
-        'totalAnalisis',
-        'ultimoAnalisis',
-        'porcentajeBuenos',
-        'totalDanados',
-        'parosPendientes',
-        'analisisRecientes',
-        'tendenciaLabels',
-        'tendenciaDatasets',
-        'estadoComponentesLabels',
-        'estadoComponentesData',
-        'lineas' // Asegúrate de pasar las líneas
-    ));
-}
-    
     /**
-     * Obtener estadísticas de lavadoras (componentes revisados)
+     * Muestra el dashboard principal con todos los módulos integrados.
      */
-    private function getEstadisticasLavadoras()
+    public function index(Request $request)
     {
-        $estadisticas = [];
-        
-        try {
-            $lineasLavadoras = Linea::whereIn('nombre', ['L-04', 'L-05', 'L-06', 'L-07', 'L-08', 'L-09', 'L-12', 'L-13'])
-                ->get();
-            
-            foreach ($lineasLavadoras as $linea) {
-                // Total de componentes en la línea
-                $totalComponentes = Componente::where('linea', $linea->nombre)
-                    ->where('activo', true)
-                    ->count();
-                
-                // Componentes revisados en el último mes
-                $revisados = AnalisisLavadora::join('analisis', 'analisis_componentes.analisis_id', '=', 'analisis.id')
-                    ->where('analisis.linea_id', $linea->id)
-                    ->where('analisis.fecha_analisis', '>=', Carbon::now()->subMonth())
-                    ->distinct('componente_id')
-                    ->count('componente_id');
-                
-                $porcentaje = $totalComponentes > 0 
-                    ? round(($revisados / $totalComponentes) * 100, 1) 
-                    : 0;
-                
-                $estadisticas[$linea->nombre] = [
-                    'total' => $totalComponentes,
-                    'revisados' => $revisados,
-                    'porcentaje' => $porcentaje,
-                    'color' => $this->getColorPorcentaje($porcentaje)
-                ];
-            }
-        } catch (\Exception $e) {
-            // Si hay error, devolver array vacío
-        }
-        
-        return $estadisticas;
-    }
-    
-    /**
-     * Obtener color según porcentaje
-     */
-    private function getColorPorcentaje($porcentaje)
-    {
-        if ($porcentaje >= 80) return 'success';
-        if ($porcentaje >= 50) return 'info';
-        if ($porcentaje >= 20) return 'warning';
-        return 'danger';
-    }
-    
-    /**
-     * Generar color basado en ID
-     */
-    private function generarColor($id)
-    {
-        $colors = [
-            '#3b82f6', '#ef4444', '#10b981', '#f59e0b',
-            '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16',
-            '#f97316', '#6366f1', '#14b8a6', '#f43f5e',
-            '#0ea5e9', '#22c55e'
-        ];
-        
-        return $colors[$id % count($colors)];
-    }
-    
-    /**
-     * Dashboard específico para lavadora
-     */
-    public function lavadora()
-    {
-        // Redirigir al índice con filtro de lavadora o mostrar vista específica
-        $lineasLavadoras = Linea::whereIn('nombre', ['L-04', 'L-05', 'L-06', 'L-07', 'L-08', 'L-09', 'L-12', 'L-13'])
-            ->pluck('id')
-            ->toArray();
-        
-        // Estadísticas específicas para lavadoras
-        $totalAnalisisLavadora = Analisis::whereIn('linea_id', $lineasLavadoras)->count();
-        
-        $analisisRecientesLavadora = Analisis::with('linea')
-            ->whereIn('linea_id', $lineasLavadoras)
-            ->orderBy('fecha_analisis', 'desc')
-            ->limit(10)
+        // 1. Obtener todas las líneas de lavadora activas
+        $lineasLavadora = Linea::where('activo', true)
+            ->whereIn('nombre', ['L-04', 'L-05', 'L-06', 'L-07', 'L-08', 'L-09', 'L-12', 'L-13'])
+            ->orderBy('nombre')
             ->get();
+
+        // 2. Datos para las tarjetas de resumen
+        $resumenGeneral = $this->getResumenGeneral($lineasLavadora);
+
+        // 3. Datos para la tabla de estado de lavadoras y alertas
+        $estadoLavadoras = $this->getEstadoLavadoras($lineasLavadora);
+
+        // 4. Datos para el ranking de lavadoras con mayor daño (predictivo)
+        $rankingDanos = $this->getRankingDanos($lineasLavadora);
+
+        // 5. Datos para la gráfica de fallas por línea (últimos 12 meses)
+        $fallasPorLinea = $this->getFallasPorLinea($lineasLavadora);
+
+        // 6. Datos para la gráfica de componentes más dañados
+        $componentesDanados = $this->getComponentesDanados($lineasLavadora);
+
+        // 7. Datos para la gráfica de evolución de elongaciones
+        $evolucionElongaciones = $this->getEvolucionElongaciones($lineasLavadora);
+
+        // 8. Datos para el histórico de revisiones (conteo de análisis por componente)
+        $historicoRevisiones = $this->getHistoricoRevisiones($lineasLavadora);
+
+        // 9. Datos para el análisis 52-12-4 (últimos registros)
+        $analisis52124 = $this->getAnalisis52124($lineasLavadora);
         
-        return view('lavadora.dashboard-lavadora', compact(
-            'totalAnalisisLavadora',
-            'analisisRecientesLavadora'
+        return view('dashboard', compact(
+            'lineasLavadora',
+            'resumenGeneral',
+            'estadoLavadoras',
+            'rankingDanos',
+            'fallasPorLinea',
+            'componentesDanados',
+            'evolucionElongaciones',
+            'historicoRevisiones',
+            'analisis52124'
         ));
     }
-    
-    /**
-     * API endpoint para actualizar gráficos vía AJAX
-     */
-    public function getTendenciaDanos(Request $request)
+
+    public function lavadora()
     {
-        $periodo = $request->get('periodo', '12semanas');
-        
-        $semanasMap = [
-            '4semanas' => 4,
-            '12semanas' => 12,
-            '52semanas' => 52
+        return view('lavadora.dashboard-lavadora'); 
+    }
+
+    /**
+     * Obtiene el resumen general de todas las lavadoras.
+     */
+    private function getResumenGeneral($lineasLavadora)
+    {
+        $totalLavadoras = $lineasLavadora->count();
+        $totalAnalisis = AnalisisLavadora::whereIn('linea_id', $lineasLavadora->pluck('id'))->count();
+        $totalAlertasCriticas = 0;
+        $totalEnRiesgo = 0;
+        $totalBuenEstado = 0;
+        $totalPendientesAccion = PlanAccion::whereIn('linea_id', $lineasLavadora->pluck('id'))->where('completado', false)->count();
+
+        // Calcular estado de cada lavadora para los resúmenes
+        foreach ($lineasLavadora as $linea) {
+            $estado = $this->calcularEstadoLavadora($linea->id);
+            if ($estado['nivel'] === 'critico') {
+                $totalAlertasCriticas++;
+            } elseif ($estado['nivel'] === 'riesgo') {
+                $totalEnRiesgo++;
+            } else {
+                $totalBuenEstado++;
+            }
+        }
+
+        return [
+            'total_lavadoras' => $totalLavadoras,
+            'total_analisis' => $totalAnalisis,
+            'alertas_criticas' => $totalAlertasCriticas,
+            'en_riesgo' => $totalEnRiesgo,
+            'buen_estado' => $totalBuenEstado,
+            'pendientes_accion' => $totalPendientesAccion,
         ];
-        
-        $semanas = $semanasMap[$periodo] ?? 12;
-        
-        // Obtener datos de tendencia
-        $datos = AnalisisTendenciaMensualLavadora::with('linea')
+    }
+
+    /**
+     * Calcula el estado de una lavadora específica.
+     */
+    private function calcularEstadoLavadora($lineaId)
+    {
+        // 1. Obtener el último análisis de elongación
+        $ultimaElongacion = Elongacion::where('linea', function($query) use ($lineaId) {
+                $query->select('nombre')->from('lineas')->where('id', $lineaId);
+            })
+            ->orderBy('created_at', 'desc')
+            ->first();
+
+        // 2. Obtener los últimos análisis de componentes (daños críticos)
+        $analisisCriticos = AnalisisLavadora::where('linea_id', $lineaId)
+    ->where('estado', 'Dañado - Requiere cambio')
+    ->with('componente')
+    ->orderBy('fecha_analisis', 'desc')
+    ->limit(5)
+    ->get()
+    ->map(function($a) {
+
+        if ($a->componente) {
+
+            // 🔥 LIMPIAR CODIGO
+            $codigo = $a->componente->codigo;
+
+            // Quitar prefijos tipo L05_reductor_1_
+            $codigo = preg_replace('/^L\d+_reductor_\d+_/', '', $codigo);
+
+            // Opcional: limpiar más
+            $codigo = strtoupper(trim($codigo));
+
+            $a->componente->icono = asset("images/componentes-lavadora/{$codigo}.png");
+        }
+
+        return $a;
+    });
+
+        // 3. Obtener actividades del plan de acción pendientes
+        $accionesPendientes = PlanAccion::where('linea_id', $lineaId)
+            ->where('completado', false)
+            ->count();
+
+        // 4. Determinar nivel de riesgo
+        $nivel = 'bueno';
+        $color = 'green';
+        $mensaje = 'Funcionando correctamente';
+
+        if ($analisisCriticos->count() > 0) {
+            $nivel = 'critico';
+            $color = 'red';
+            $mensaje = 'Presenta componentes dañados que requieren cambio inmediato.';
+        } elseif ($accionesPendientes > 0) {
+            $nivel = 'riesgo';
+            $color = 'yellow';
+            $mensaje = "Tiene {$accionesPendientes} acción(es) pendiente(s) en el plan de acción.";
+        } elseif ($ultimaElongacion && ($ultimaElongacion->vapor_porcentaje >= 1.46 || $ultimaElongacion->bombas_porcentaje >= 1.46)) {
+            $nivel = 'critico';
+            $color = 'red';
+            $mensaje = 'Elongación crítica (>1.46%), cambio de cadena requerido.';
+        } elseif ($ultimaElongacion && ($ultimaElongacion->vapor_porcentaje >= 1.3 || $ultimaElongacion->bombas_porcentaje >= 1.3)) {
+            $nivel = 'riesgo';
+            $color = 'yellow';
+            $mensaje = 'Elongación en nivel de compra (>1.3%), considerar cambio de cadena.';
+        } else {
+            // Verificar si hay componentes con desgaste
+            $analisisDesgaste = AnalisisLavadora::where('linea_id', $lineaId)
+                ->where('estado', 'like', '%Desgaste%')
+                ->count();
+            if ($analisisDesgaste > 0) {
+                $nivel = 'riesgo';
+                $color = 'yellow';
+                $mensaje = 'Presenta componentes con desgaste, programar mantenimiento.';
+            }
+        }
+
+        return [
+            'nivel' => $nivel,
+            'color' => $color,
+            'mensaje' => $mensaje,
+            'analisis_criticos' => $analisisCriticos,
+            'ultima_elongacion' => $ultimaElongacion,
+            'acciones_pendientes' => $accionesPendientes,
+        ];
+    }
+
+    /**
+     * Obtiene el estado detallado de todas las lavadoras para la tabla.
+     */
+    private function getEstadoLavadoras($lineasLavadora)
+    {
+        $estadoLavadoras = [];
+        foreach ($lineasLavadora as $linea) {
+            $estado = $this->calcularEstadoLavadora($linea->id);
+            $estadoLavadoras[] = [
+                'id' => $linea->id,
+                'nombre' => $linea->nombre,
+                'estado' => $estado,
+            ];
+        }
+        return $estadoLavadoras;
+    }
+
+    /**
+     * Obtiene el ranking de lavadoras con mayor nivel de daño.
+     */
+    private function getRankingDanos($lineasLavadora)
+    {
+        $ranking = [];
+        foreach ($lineasLavadora as $linea) {
+            // Calcular un puntaje de daño
+            $puntajeDanio = 0;
+            $analisisCriticos = AnalisisLavadora::where('linea_id', $linea->id)
+                ->where('estado', 'Dañado - Requiere cambio')
+                ->count();
+            $puntajeDanio += $analisisCriticos * 10;
+
+            $analisisDesgaste = AnalisisLavadora::where('linea_id', $linea->id)
+                ->where('estado', 'like', '%Desgaste%')
+                ->count();
+            $puntajeDanio += $analisisDesgaste * 5;
+
+            // Obtener la última elongación
+            $ultimaElongacion = Elongacion::where('linea', function($query) use ($linea) {
+                $query->select('nombre')->from('lineas')->where('id', $linea->id);
+            })->orderBy('created_at', 'desc')->first();
+
+            if ($ultimaElongacion) {
+                $puntajeDanio += max($ultimaElongacion->bombas_porcentaje, $ultimaElongacion->vapor_porcentaje) * 2;
+            }
+
+            $ranking[] = [
+                'linea' => $linea->nombre,
+                'puntaje' => round($puntajeDanio, 2),
+                'analisis_criticos' => $analisisCriticos,
+                'analisis_desgaste' => $analisisDesgaste,
+                'ultima_elongacion' => $ultimaElongacion,
+            ];
+        }
+
+        // Ordenar por puntaje descendente y tomar los primeros 5
+        usort($ranking, function($a, $b) {
+            return $b['puntaje'] <=> $a['puntaje'];
+        });
+
+        return array_slice($ranking, 0, 5);
+    }
+
+    /**
+     * Obtiene datos de fallas por línea para la gráfica de barras (últimos 12 meses).
+     */
+    private function getFallasPorLinea($lineasLavadora)
+    {
+        $fechaLimite = Carbon::now()->subMonths(12);
+        $fallas = [];
+
+        foreach ($lineasLavadora as $linea) {
+            $totalFallas = AnalisisLavadora::where('linea_id', $linea->id)
+                ->where('fecha_analisis', '>=', $fechaLimite)
+                ->whereIn('estado', ['Dañado - Requiere cambio', 'Desgaste severo'])
+                ->count();
+
+            $fallas[] = [
+                'linea' => $linea->nombre,
+                'total_fallas' => $totalFallas,
+            ];
+        }
+
+        // Ordenar por total de fallas descendente
+        usort($fallas, function($a, $b) {
+            return $b['total_fallas'] <=> $a['total_fallas'];
+        });
+
+        return $fallas;
+    }
+
+    /**
+     * Obtiene los componentes más dañados para la gráfica de pastel.
+     */
+    private function getComponentesDanados($lineasLavadora)
+    {
+        $componentes = AnalisisLavadora::whereIn('linea_id', $lineasLavadora->pluck('id'))
+            ->where('estado', 'Dañado - Requiere cambio')
+            ->with('componente')
+            ->get();
+
+        $conteoComponentes = [];
+        foreach ($componentes as $analisis) {
+            $nombreComponente = $analisis->componente ? $analisis->componente->nombre : 'Desconocido';
+            if (!isset($conteoComponentes[$nombreComponente])) {
+                $conteoComponentes[$nombreComponente] = 0;
+            }
+            $conteoComponentes[$nombreComponente]++;
+        }
+
+        $resultado = [];
+        foreach ($conteoComponentes as $nombre => $total) {
+            $resultado[] = [
+                'componente' => $nombre,
+                'total_danios' => $total,
+            ];
+        }
+
+        // Ordenar por total de daños descendente
+        usort($resultado, function($a, $b) {
+            return $b['total_danios'] <=> $a['total_danios'];
+        });
+
+        return array_slice($resultado, 0, 5); // Top 5 componentes
+    }
+
+    /**
+     * Obtiene la evolución de elongaciones para la gráfica de líneas.
+     */
+    private function getEvolucionElongaciones($lineasLavadora)
+    {
+        $fechaLimite = Carbon::now()->subMonths(6);
+        $lineasNombres = $lineasLavadora->pluck('nombre')->toArray();
+
+        $elongaciones = Elongacion::whereIn('linea', $lineasNombres)
+            ->where('created_at', '>=', $fechaLimite)
+            ->orderBy('created_at', 'asc')
+            ->get();
+
+        $datos = [];
+        foreach ($elongaciones as $elongacion) {
+            $fecha = $elongacion->created_at->format('Y-m-d');
+            if (!isset($datos[$fecha])) {
+                $datos[$fecha] = [
+                    'fecha' => $fecha,
+                    'bombas' => 0,
+                    'vapor' => 0,
+                    'conteo' => 0,
+                ];
+            }
+            $datos[$fecha]['bombas'] += $elongacion->bombas_porcentaje;
+            $datos[$fecha]['vapor'] += $elongacion->vapor_porcentaje;
+            $datos[$fecha]['conteo']++;
+        }
+
+        // Calcular promedios
+        $evolucion = [];
+        foreach ($datos as $fecha => $data) {
+            $evolucion[] = [
+                'fecha' => $fecha,
+                'bombas' => round($data['bombas'] / $data['conteo'], 2),
+                'vapor' => round($data['vapor'] / $data['conteo'], 2),
+            ];
+        }
+
+        return $evolucion;
+    }
+
+    /**
+     * Obtiene el histórico de revisiones (conteo de análisis por componente).
+     */
+    private function getHistoricoRevisiones($lineasLavadora)
+    {
+        $analisis = AnalisisLavadora::whereIn('linea_id', $lineasLavadora->pluck('id'))
+            ->with('componente')
+            ->get();
+
+        $conteoComponentes = [];
+        foreach ($analisis as $item) {
+            $nombreComponente = $item->componente ? $item->componente->nombre : 'Desconocido';
+            if (!isset($conteoComponentes[$nombreComponente])) {
+                $conteoComponentes[$nombreComponente] = 0;
+            }
+            $conteoComponentes[$nombreComponente]++;
+        }
+
+        $resultado = [];
+        foreach ($conteoComponentes as $nombre => $total) {
+            $resultado[] = [
+                'componente' => $nombre,
+                'total_analisis' => $total,
+            ];
+        }
+
+        // Ordenar por total de análisis descendente
+        usort($resultado, function($a, $b) {
+            return $b['total_analisis'] <=> $a['total_analisis'];
+        });
+
+        return $resultado;
+    }
+
+    /**
+     * Obtiene los últimos registros del análisis 52-12-4.
+     */
+    private function getAnalisis52124($lineasLavadora)
+    {
+        return AnalisisTendenciaMensualLavadora::whereIn('linea_id', $lineasLavadora->pluck('id'))
+            ->with('linea')
             ->orderBy('anio', 'desc')
             ->orderBy('mes', 'desc')
-            ->limit($semanas)
+            ->limit(5)
             ->get()
-            ->map(function($item) use ($periodo) {
-                $campo = 'total_danos_' . str_replace('semanas', '', $periodo);
+            ->map(function($item) {
+                $item->periodo = Carbon::create($item->anio, $item->mes, 1)->format('M Y');
+                return $item;
+            });
+    }
+
+    /**
+     * API para obtener datos de tendencia de daños (para gráficas dinámicas).
+     */
+    public function getDanosTendenciaApi(Request $request)
+    {
+        $lineas = Linea::where('activo', true)
+            ->whereIn('nombre', ['L-04', 'L-05', 'L-06', 'L-07', 'L-08', 'L-09', 'L-12', 'L-13'])
+            ->pluck('id');
+
+        $datos = AnalisisTendenciaMensualLavadora::whereIn('linea_id', $lineas)
+            ->with('linea')
+            ->orderBy('anio')
+            ->orderBy('mes')
+            ->get()
+            ->groupBy('linea.nombre');
+
+        $resultado = [];
+        foreach ($datos as $lineaNombre => $registros) {
+            $resultado[$lineaNombre] = $registros->map(function($item) {
                 return [
-                    'periodo' => $item->periodo,
-                    'valor' => $item->$campo ?? 0
+                    'periodo' => Carbon::create($item->anio, $item->mes, 1)->format('Y-m'),
+                    'total_danos_4_semanas' => $item->total_danos_4_semanas,
+                    'total_danos_12_semanas' => $item->total_danos_12_semanas,
+                    'total_danos_52_semanas' => $item->total_danos_52_semanas,
                 ];
-            })
-            ->reverse()
-            ->values();
-        
+            });
+        }
+
         return response()->json([
-            'labels' => $datos->pluck('periodo'),
-            'datasets' => [[
-                'label' => 'Daños',
-                'data' => $datos->pluck('valor'),
-                'borderColor' => '#3b82f6',
-                'backgroundColor' => 'rgba(59, 130, 246, 0.1)',
-                'tension' => 0.4,
-                'fill' => true
-            ]]
+            'success' => true,
+            'data' => $resultado
         ]);
     }
 }

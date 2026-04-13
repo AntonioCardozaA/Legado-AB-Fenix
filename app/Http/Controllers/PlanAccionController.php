@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\PlanAccion;
-use App\Models\User;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 use App\Models\Linea;
@@ -21,7 +20,16 @@ class PlanAccionController extends Controller
         $this->notificationService = $notificationService;
     }
 
-    public function index(Request $request)
+    /**
+     * ===========================================================
+     * MÉTODOS PARA RUTAS ESPECÍFICAS (definidas en web.php)
+     * ===========================================================
+     */
+
+    /**
+     * GET /plan-accion/lavadora - Índice de lavadoras
+     */
+    public function planAccion(Request $request)
     {
         $tipo = $request->get('tipo', 'lavadora');
         $lineaId = $request->get('linea_id');
@@ -34,7 +42,7 @@ class PlanAccionController extends Controller
             $lineasTipo = Linea::orderBy('nombre')->get();
         }
 
-        $query = PlanAccion::with(['linea', 'responsable']);
+        $query = PlanAccion::with(['linea']);
 
         if ($lineaId) {
             $query->where('linea_id', $lineaId);
@@ -57,6 +65,176 @@ class PlanAccionController extends Controller
         ));
     }
 
+    /**
+     * GET /plan-accion/dashboard - Dashboard de plan de acción
+     */
+    public function dashboard()
+    {
+        $estadisticas = $this->obtenerEstadisticas();
+        $alertas = $this->obtenerAlertasGlobales();
+        
+        $actividadesPorLinea = PlanAccion::with('linea')
+            ->select('linea_id', \DB::raw('count(*) as total'))
+            ->groupBy('linea_id')
+            ->get();
+        
+        $actividadesProximas = PlanAccion::with('linea')
+            ->where(function ($query) {
+                $now = Carbon::now();
+                $query->whereBetween('fecha_pcm1', [$now, $now->copy()->addDays(7)])
+                    ->orWhereBetween('fecha_pcm2', [$now, $now->copy()->addDays(7)])
+                    ->orWhereBetween('fecha_pcm3', [$now, $now->copy()->addDays(7)])
+                    ->orWhereBetween('fecha_pcm4', [$now, $now->copy()->addDays(7)]);
+            })
+            ->orderBy('fecha_pcm1')
+            ->limit(10)
+            ->get();
+        
+        return view('plan-accion.dashboard', compact(
+            'estadisticas', 
+            'alertas', 
+            'actividadesPorLinea', 
+            'actividadesProximas'
+        ));
+    }
+
+    /**
+     * GET /plan-accion/por-lavadora/{lavadora} - Filtrar por lavadora específica
+     */
+    public function porLavadora($lavadora)
+    {
+        $linea = Linea::findOrFail($lavadora);
+        
+        $planes = PlanAccion::where('linea_id', $lavadora)
+            ->with('linea')
+            ->orderBy('created_at', 'desc')
+            ->paginate(15);
+        
+        $estadisticas = [
+            'total' => $planes->total(),
+            'proximas' => PlanAccion::where('linea_id', $lavadora)
+                ->where(function ($query) {
+                    $now = Carbon::now();
+                    $query->whereBetween('fecha_pcm1', [$now, $now->copy()->addDays(7)])
+                        ->orWhereBetween('fecha_pcm2', [$now, $now->copy()->addDays(7)])
+                        ->orWhereBetween('fecha_pcm3', [$now, $now->copy()->addDays(7)])
+                        ->orWhereBetween('fecha_pcm4', [$now, $now->copy()->addDays(7)]);
+                })
+                ->count()
+        ];
+        
+        return view('plan-accion.por-lavadora', compact('planes', 'linea', 'estadisticas'));
+    }
+
+    /**
+     * POST /plan-accion/lavadora/edit - Editar plan acción (por POST)
+     */
+    public function editarPlanAccion(Request $request)
+    {
+        $id = $request->input('id');
+        $tipo = $request->get('tipo', 'lavadora');
+        
+        $plan = PlanAccion::findOrFail($id);
+
+        if ($tipo == 'lavadora') {
+            $lavadoras = Linea::whereIn('id', $this->lineasLavadoraIds)
+                ->where('activo', true)
+                ->orderBy('nombre')
+                ->get();
+        } else {
+            $lavadoras = Linea::where('activo', true)
+                ->orderBy('nombre')
+                ->get();
+        }
+
+        $tiposMaquinaSeleccionados = $plan->tipo_maquina
+            ? json_decode($plan->tipo_maquina, true)
+            : [];
+
+        return view('plan-accion.lavadora.edit', compact(
+            'plan',
+            'lavadoras',
+            'tiposMaquinaSeleccionados',
+            'tipo'
+        ));
+    }
+
+    /**
+     * POST /plan-accion/lavadora/update - Actualizar plan acción
+     */
+    public function updatePlanAccion(Request $request)
+    {
+        $id = $request->input('id');
+        $plan = PlanAccion::findOrFail($id);
+
+        $validated = $request->validate([
+            'linea_id' => 'required|exists:lineas,id',
+            'actividad' => 'required|string|max:1000',
+            'fecha_pcm1' => 'nullable|date',
+            'fecha_pcm2' => 'nullable|date',
+            'fecha_pcm3' => 'nullable|date',
+            'fecha_pcm4' => 'nullable|date',
+        ]);
+
+        $plan->update($validated);
+
+        return redirect()->route('plan-accion.lavadora.index')
+            ->with('success', 'Actividad actualizada exitosamente');
+    }
+
+    /**
+     * POST /plan-accion/lavadora/destroy - Eliminar plan acción
+     */
+    public function destroyPlanAccion(Request $request)
+    {
+        $id = $request->input('id');
+        $plan = PlanAccion::findOrFail($id);
+        $plan->delete();
+
+        return redirect()->route('plan-accion.lavadora.index')
+            ->with('success', 'Actividad eliminada exitosamente');
+    }
+
+    /**
+     * POST /plan-accion/{id}/notificar - Notificar actividad
+     */
+    public function notificar($id)
+    {
+        try {
+            $resultados = $this->notificationService->enviarNotificacionesManuales($id);
+            
+            return response()->json([
+                'success' => true,
+                'message' => $resultados['mensaje'],
+                'data' => $resultados
+            ]);
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * ===========================================================
+     * MÉTODOS DEL RESOURCE (RESTful)
+     * ===========================================================
+     */
+
+    /**
+     * GET /plan-accion - Listar todos los planes
+     */
+    public function index(Request $request)
+    {
+        // Redirige al método específico de lavadoras por defecto
+        return $this->planAccion($request);
+    }
+
+    /**
+     * GET /plan-accion/create - Mostrar formulario de creación
+     */
     public function create(Request $request)
     {
         $tipo = $request->get('tipo', 'lavadora');
@@ -73,16 +251,16 @@ class PlanAccionController extends Controller
                 ->get();
         }
 
-        $responsables = User::where('activo', true)->get();
-
         return view('plan-accion.lavadora.create', compact(
             'lineas',
-            'responsables',
             'tipo',
             'lineaSeleccionada'
         ));
     }
 
+    /**
+     * POST /plan-accion - Guardar nueva actividad
+     */
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -92,7 +270,6 @@ class PlanAccionController extends Controller
             'fecha_pcm2' => 'nullable|date',
             'fecha_pcm3' => 'nullable|date',
             'fecha_pcm4' => 'nullable|date',
-            'responsable_id' => 'nullable|exists:users,id',
             'observaciones' => 'nullable|string',
             'tipo_maquina' => 'nullable|array',
             'notificar_ahora' => 'nullable|boolean'
@@ -108,48 +285,33 @@ class PlanAccionController extends Controller
             $this->notificationService->notificarActividadManualmente($plan->id);
         }
 
-        return redirect()->route('plan-accion.index')
+        return redirect()->route('plan-accion.lavadora.index')
             ->with('success', 'Actividad creada correctamente' . 
                    ($request->notificar_ahora ? ' y notificaciones enviadas.' : ''));
     }
 
+    /**
+     * GET /plan-accion/{id} - Mostrar detalles de una actividad
+     */
     public function show($id)
     {
-        $plan = PlanAccion::with(['linea', 'responsable'])->findOrFail($id);
+        $plan = PlanAccion::with(['linea'])->findOrFail($id);
         return response()->json($plan);
     }
 
+    /**
+     * GET /plan-accion/{id}/edit - Editar actividad
+     */
     public function edit(Request $request, $id)
     {
-        $plan = PlanAccion::findOrFail($id);
-        $tipo = $request->get('tipo', 'lavadora');
-
-        if ($tipo == 'lavadora') {
-            $lavadoras = Linea::whereIn('id', $this->lineasLavadoraIds)
-                ->where('activo', true)
-                ->orderBy('nombre')
-                ->get();
-        } else {
-            $lavadoras = Linea::where('activo', true)
-                ->orderBy('nombre')
-                ->get();
-        }
-
-        $responsables = User::where('activo', true)->get();
-
-        $tiposMaquinaSeleccionados = $plan->tipo_maquina
-            ? json_decode($plan->tipo_maquina, true)
-            : [];
-
-        return view('plan-accion.edit', compact(
-            'plan',
-            'lavadoras',
-            'responsables',
-            'tiposMaquinaSeleccionados',
-            'tipo'
-        ));
+        // Reutiliza el método editarPlanAccion pero con parámetro en URL
+        $request->merge(['id' => $id]);
+        return $this->editarPlanAccion($request);
     }
 
+    /**
+     * PUT/PATCH /plan-accion/{id} - Actualizar actividad
+     */
     public function update(Request $request, $id)
     {
         $plan = PlanAccion::findOrFail($id);
@@ -161,41 +323,34 @@ class PlanAccionController extends Controller
             'fecha_pcm2' => 'nullable|date',
             'fecha_pcm3' => 'nullable|date',
             'fecha_pcm4' => 'nullable|date',
-            'responsable_id' => 'nullable|exists:users,id',
-            'observaciones' => 'nullable|string',
-            'tipo_maquina' => 'nullable|array'
         ]);
-
-        if (isset($validated['tipo_maquina'])) {
-            $validated['tipo_maquina'] = json_encode($validated['tipo_maquina']);
-        } else {
-            $validated['tipo_maquina'] = null;
-        }
 
         $plan->update($validated);
 
-        return redirect()->route('plan-accion.index')
+        return redirect()->route('plan-accion.lavadora.index')
             ->with('success', 'Actividad actualizada exitosamente');
     }
 
+    /**
+     * DELETE /plan-accion/{id} - Eliminar actividad
+     */
     public function destroy($id)
     {
         $plan = PlanAccion::findOrFail($id);
         $plan->delete();
 
-        return redirect()->route('plan-accion.index')
+        return redirect()->route('plan-accion.lavadora.index')
             ->with('success', 'Actividad eliminada exitosamente');
     }
 
     /**
-     * Enviar notificaciones manualmente para una actividad específica
+     * POST /plan-accion/{id}/enviar-notificaciones - Enviar notificaciones
      */
     public function enviarNotificaciones($id): JsonResponse
     {
         try {
             $plan = PlanAccion::with('linea')->findOrFail($id);
             
-            // Verificar si hay fechas próximas
             $fechasProximas = false;
             $pcmConFechas = [];
             
@@ -221,10 +376,8 @@ class PlanAccionController extends Controller
                 ]);
             }
             
-            // Enviar notificaciones
             $resultados = $this->notificationService->notificarActividadManualmente($id);
             
-            // Contar éxitos
             $exitosos = 0;
             $fallidos = 0;
             
@@ -260,6 +413,15 @@ class PlanAccionController extends Controller
         }
     }
 
+    /**
+     * ===========================================================
+     * MÉTODOS PRIVADOS (utilidades compartidas)
+     * ===========================================================
+     */
+
+    /**
+     * Obtener alertas globales
+     */
     private function obtenerAlertasGlobales()
     {
         $alertas = [];
@@ -285,7 +447,6 @@ class PlanAccionController extends Controller
 
                     $diasRestantes = $hoy->diffInDays($plan->$fechaCampo, false);
                     
-                    // Determinar prioridad basada en días restantes
                     $prioridad = 'baja';
                     if ($diasRestantes <= 1) {
                         $prioridad = 'alta';
@@ -293,7 +454,6 @@ class PlanAccionController extends Controller
                         $prioridad = 'media';
                     }
 
-                    // Verificar si es mañana
                     $esManana = $diasRestantes == 1;
 
                     $alertas[] = [
@@ -310,7 +470,6 @@ class PlanAccionController extends Controller
             }
         }
 
-        // Ordenar alertas por prioridad (alta primero) y días restantes
         usort($alertas, function($a, $b) {
             $prioridades = ['alta' => 1, 'media' => 2, 'baja' => 3];
             if ($prioridades[$a['prioridad']] == $prioridades[$b['prioridad']]) {
@@ -322,6 +481,9 @@ class PlanAccionController extends Controller
         return $alertas;
     }
 
+    /**
+     * Obtener estadísticas generales
+     */
     private function obtenerEstadisticas()
     {
         return [
@@ -331,6 +493,9 @@ class PlanAccionController extends Controller
         ];
     }
 
+    /**
+     * Contar actividades próximas en X días
+     */
     private function contarActividadesProximas($dias)
     {
         $fechaLimite = Carbon::now()->addDays($dias);
@@ -342,23 +507,17 @@ class PlanAccionController extends Controller
                 ->orWhereBetween('fecha_pcm4', [now(), $fechaLimite]);
         })->count();
     }
-    public function notificar($id)
-{
-    try {
-        $notificationService = new \App\Services\NotificationService();
-        $resultados = $notificationService->enviarNotificacionesManuales($id);
-        
+
+    public function checklist($id)
+    {
+        $plan = PlanAccion::findOrFail($id);
+
+        $plan->completado = !$plan->completado;
+        $plan->save();
+
         return response()->json([
-            'success' => true,
-            'message' => $resultados['mensaje'],
-            'data' => $resultados
+            'completado' => $plan->completado
         ]);
-        
-    } catch (\Exception $e) {
-        return response()->json([
-            'success' => false,
-            'message' => 'Error: ' . $e->getMessage()
-        ], 500);
     }
-}
+
 }

@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Agregar Análisis Rápido')
+@section('title', 'Agregar Análisis')
 
 @section('content')
 <div class="max-w-2xl mx-auto px-4 py-8">
@@ -9,11 +9,11 @@
         <div class="mb-8">
             <div class="flex items-center gap-3 mb-4">
                 <a href="{{ route('analisis-lavadora.index', request()->query()) }}"
-                   class="text-gray-400 hover:text-amber-600 transition">
+                   class="text-gray-400 hover:text-blue-600 transition">
                     <i class="fas fa-arrow-left text-xl"></i>
                 </a>
                 <h1 class="text-2xl font-bold text-gray-800">
-                    Agregar Análisis Rápido
+                    Agregar Análisis
                 </h1>
             </div>
             
@@ -95,11 +95,11 @@
             {{-- NUEVO: Selector de Lado (solo para Guías y Catarinas) --}}
             <div id="lado-selector-container" class="mb-6 hidden">
                 <label for="lado" class="block text-sm font-semibold text-gray-700 mb-2">
-                    <i class="fas fa-arrows-alt-h text-amber-600 mr-1"></i>
+                    <i class="fas fa-arrows-alt-h text-blue-600 mr-1"></i>
                     Lado del Análisis *
                 </label>
                 <select id="lado" name="lado"
-                        class="block w-full rounded-lg border-gray-300 shadow-sm focus:ring-amber-500 focus:border-amber-500 sm:text-sm
+                        class="block w-full rounded-lg border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm
                                @error('lado') border-red-500 @enderror">
                     <option value="">Seleccionar lado...</option>
                     <option value="VAPOR" {{ old('lado') == 'VAPOR' ? 'selected' : '' }}>💨 Lado Vapor</option>
@@ -114,14 +114,14 @@
             {{-- Fecha del análisis --}}
             <div>
                 <label class="block text-sm font-semibold text-gray-700 mb-2">
-                    <i class="far fa-calendar-alt text-amber-600 mr-1"></i>
+                    <i class="far fa-calendar-alt text-blue-600 mr-1"></i>
                     Fecha del Análisis *
                 </label>
                 <input type="date" 
                        name="fecha_analisis" 
                        value="{{ $fecha_sugerida }}"
                        required
-                       class="w-full rounded-lg border-gray-300 focus:border-amber-500 focus:ring-amber-500 shadow-sm
+                       class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500 shadow-sm
                        @error('fecha_analisis') border-red-500 @enderror">
                 @error('fecha_analisis')
                     <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
@@ -131,7 +131,7 @@
             {{-- Número de orden --}}
             <div>
                 <label class="block text-sm font-semibold text-gray-700 mb-2">
-                    <i class="fas fa-hashtag text-amber-600 mr-1"></i>
+                    <i class="fas fa-hashtag text-blue-600 mr-1"></i>
                     Número de Orden *
                 </label>
                 <input type="text" 
@@ -142,7 +142,7 @@
                        inputmode="numeric"
                        placeholder="Ej: 12345678"
                        title="Debe contener exactamente 8 dígitos numéricos"
-                       class="w-full rounded-lg border-gray-300 focus:border-amber-500 focus:ring-amber-500 shadow-sm
+                       class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500 shadow-sm
                        @error('numero_orden') border-red-500 @enderror">
                 @error('numero_orden')
                     <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
@@ -152,10 +152,11 @@
             {{-- ESTADO --}}
             <div>
                 <label class="block text-sm font-semibold text-gray-700 mb-2">
-                    <i class="fas fa-clipboard-check text-amber-600 mr-1"></i>
+                    <i class="fas fa-clipboard-check text-blue-600 mr-1"></i>
                     Estado del Componente *
                 </label>
-              <select name="estado" class="filter-select" required>
+                <select name="estado" class="block w-full rounded-lg border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm" required>
+                    <option value="">Seleccionar estado...</option>
                     <option value="Buen estado">✅ Buen estado</option>
                     <option value="Desgaste moderado">⚠️ Desgaste moderado</option>
                     <option value="Desgaste severo">⚠️ Desgaste severo</option>
@@ -170,13 +171,13 @@
             {{-- ACTIVIDAD (Observaciones/descripción) --}}
             <div>
                 <label class="block text-sm font-semibold text-gray-700 mb-2">
-                    <i class="fas fa-sticky-note text-amber-600 mr-1"></i>
-                    Actividad / Observaciones *
+                    <i class="fas fa-sticky-note text-blue-600 mr-1"></i>
+                    Actividad*
                 </label>
                 <textarea name="actividad" 
                           rows="4"
                           placeholder="Describa la actividad realizada, observaciones o notas adicionales sobre el componente..."
-                          class="w-full rounded-lg border-gray-300 focus:border-amber-500 focus:ring-amber-500 shadow-sm
+                          class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500 shadow-sm
                           @error('actividad') border-red-500 @enderror"
                           required>{{ old('actividad') }}</textarea>
                 <p class="text-xs text-gray-500 mt-1">Describa lo que se realizó durante el análisis o mantenimiento</p>
@@ -188,7 +189,7 @@
             {{-- Evidencia Fotográfica --}}
             <div>
                 <label class="block text-sm font-semibold text-gray-700 mb-2">
-                    <i class="fas fa-camera text-amber-600 mr-1"></i>
+                    <i class="fas fa-camera text-blue-600 mr-1"></i>
                     Evidencia Fotográfica
                 </label>
                 <input type="file" 
@@ -196,8 +197,14 @@
                        name="evidencia_fotos[]" 
                        multiple
                        accept="image/*"
-                       class="w-full rounded-lg border-gray-300 focus:border-amber-500 focus:ring-amber-500 shadow-sm
-                       @error('evidencia_fotos.*') border-red-500 @enderror">
+                       class="block w-full text-sm text-gray-500 rounded-lg border border-gray-300 shadow-sm
+                              focus:ring-blue-500 focus:border-blue-500
+                              file:mr-4 file:py-2 file:px-4
+                              file:rounded-lg file:border-0
+                              file:text-sm file:font-semibold
+                              file:bg-blue-50 file:text-blue-700
+                              hover:file:bg-blue-100
+                              @error('evidencia_fotos.*') border-red-500 @enderror">
                 <p class="text-xs text-gray-500 mt-1">Puede seleccionar múltiples imágenes (Formatos: JPG, PNG, GIF. Máx: 2MB cada una)</p>
                 
                 {{-- Contenedor para vista previa --}}
@@ -215,7 +222,7 @@
                     Cancelar
                 </a>
                 <button type="submit"
-                        class="flex-1 bg-gradient-to-r from-amber-500 to-amber-600 text-white rounded-lg px-5 py-3 hover:from-amber-600 hover:to-amber-700 transition-all shadow-md hover:shadow-lg">
+                        class="flex-1 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg px-5 py-3 hover:from-blue-600 hover:to-blue-700 transition-all shadow-md hover:shadow-lg">
                     <i class="fas fa-save mr-2"></i>
                     Guardar Análisis
                 </button>

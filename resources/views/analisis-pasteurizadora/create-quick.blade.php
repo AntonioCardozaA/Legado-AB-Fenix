@@ -17,7 +17,6 @@
                 </h1>
             </div>
             
-            {{-- Información del contexto --}}
             <div class="bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl p-4 border border-gray-200">
                 <div class="flex flex-col md:flex-row items-center gap-6">
                     <div class="flex-shrink-0">
@@ -38,7 +37,7 @@
                             <p class="text-gray-800 font-medium">{{ $linea->nombre ?? 'Sin línea' }}</p>
                         </div>
 
-                        <div class="text-center md:text-left" id="modulo-display">
+                        <div class="text-center md:text-left">
                             <p class="text-gray-600 font-semibold text-sm mb-1">
                                 <i class="fas fa-cubes mr-1"></i>
                                 Módulo
@@ -58,7 +57,11 @@
                                 Componente
                             </p>
                             <p class="text-gray-800 font-medium">
-                                {{ $componente ? (App\Models\AnalisisPasteurizadora::COMPONENTES[$componente] ?? $componente) : '—' }}
+                                @php
+                                    $componentesConfig = \App\Models\AnalisisPasteurizadora::getComponentesPorLinea($linea->nombre ?? '');
+                                    $nombreComponente = $componentesConfig[$componente]['nombre'] ?? $componente;
+                                @endphp
+                                {{ $nombreComponente }}
                             </p>
                         </div>
                     </div>
@@ -69,16 +72,17 @@
         {{-- Formulario --}}
         <form action="{{ route('analisis-pasteurizadora.store-quick') }}" 
               method="POST"
+              enctype="multipart/form-data"
               class="space-y-6">
             @csrf
             
-            {{-- Campos ocultos con datos pre-establecidos --}}
+            {{-- Campos ocultos --}}
             <input type="hidden" name="linea_id" value="{{ $linea->id ?? '' }}">
             <input type="hidden" name="modulo" value="{{ $modulo ?? '' }}">
             <input type="hidden" name="componente" value="{{ $componente ?? '' }}">
             
-            {{-- Selector de Lado (visible para todos los componentes) --}}
-            <div id="lado-selector-container" class="mb-6">
+            {{-- Selector de Lado --}}
+            <div>
                 <label for="lado" class="block text-sm font-semibold text-gray-700 mb-2">
                     <i class="fas fa-arrows-alt-h text-blue-600 mr-1"></i>
                     Lado del Análisis *
@@ -91,13 +95,26 @@
                     <option value="VAPOR" {{ old('lado') == 'VAPOR' ? 'selected' : '' }}>💨 Lado Vapor</option>
                     <option value="PASILLO" {{ old('lado') == 'PASILLO' ? 'selected' : '' }}>🚶 Lado Pasillo</option>
                 </select>
-                <p class="text-gray-500 text-xs mt-1">Indique si el análisis corresponde al lado vapor o lado pasillo</p>
                 @error('lado')
                     <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
                 @enderror
             </div>
             
-            {{-- Fecha del análisis --}}
+            {{-- Nivel (opcional) --}}
+            <div>
+                <label for="nivel" class="block text-sm font-semibold text-gray-700 mb-2">
+                    <i class="fas fa-layer-group text-blue-600 mr-1"></i>
+                    Nivel del Módulo
+                </label>
+                <select id="nivel" name="nivel"
+                        class="block w-full rounded-lg border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                    <option value="">Seleccionar nivel...</option>
+                    <option value="SUPERIOR" {{ old('nivel') == 'SUPERIOR' ? 'selected' : '' }}>⬆️ Nivel Superior</option>
+                    <option value="INFERIOR" {{ old('nivel') == 'INFERIOR' ? 'selected' : '' }}>⬇️ Nivel Inferior</option>
+                </select>
+            </div>
+            
+            {{-- Fecha --}}
             <div>
                 <label class="block text-sm font-semibold text-gray-700 mb-2">
                     <i class="far fa-calendar-alt text-blue-600 mr-1"></i>
@@ -124,8 +141,8 @@
                        name="numero_orden" 
                        value="{{ old('numero_orden') }}"
                        required
-                       maxlength="20"
-                       placeholder="Ej: OT-2024-001"
+                       maxlength="8"
+                       placeholder=""
                        class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500 shadow-sm
                        @error('numero_orden') border-red-500 @enderror">
                 @error('numero_orden')
@@ -139,7 +156,7 @@
                     <i class="fas fa-clipboard-check text-blue-600 mr-1"></i>
                     Estado del Componente *
                 </label>
-                <select name="estado" class="filter-select w-full rounded-lg border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500" required>
+                <select name="estado" class="w-full rounded-lg border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500" required>
                     <option value="">Seleccionar estado...</option>
                     <option value="Buen estado" {{ old('estado') == 'Buen estado' ? 'selected' : '' }}>✅ Buen estado</option>
                     <option value="Desgaste moderado" {{ old('estado') == 'Desgaste moderado' ? 'selected' : '' }}>⚠️ Desgaste moderado</option>
@@ -156,7 +173,7 @@
             <div>
                 <label class="block text-sm font-semibold text-gray-700 mb-2">
                     <i class="fas fa-sticky-note text-blue-600 mr-1"></i>
-                    Actividad / Observaciones *
+                    Actividad *
                 </label>
                 <textarea name="actividad" 
                           rows="4"
@@ -164,42 +181,31 @@
                           class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500 shadow-sm
                           @error('actividad') border-red-500 @enderror"
                           required>{{ old('actividad') }}</textarea>
-                <p class="text-xs text-gray-500 mt-1">Describa lo que se realizó durante el análisis o mantenimiento</p>
                 @error('actividad')
                     <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
                 @enderror
             </div>
-
-            {{-- Campos específicos para cantidades (solo se muestran si es necesario) --}}
-            @if(in_array($componente, ['PLACAS_PERNO', 'REGILLAS', 'RODAMIENTOS', 'EXCENTRICOS', 'PISTAS', 'ESPARRAGOS', 'ANILLAS']))
-            <div class="bg-blue-50 p-4 rounded-lg border border-blue-200">
-                <h3 class="text-sm font-semibold text-blue-800 mb-3">
-                    <i class="fas fa-clipboard-list mr-1"></i>
-                    Registro de Piezas
-                </h3>
                 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {{-- Cantidad revisada --}}
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">
-                            <i class="fas fa-check-circle text-green-600 mr-1"></i>
-                            Piezas Revisadas *
-                        </label>
-                        <input type="number" 
-                               name="revisadas_{{ strtolower($componente) }}" 
-                               id="revisadas"
-                               min="0"
-                               max="{{ $componente == 'ANILLAS' ? 16 : 16 }}"
-                               value="{{ old('revisadas_' . strtolower($componente)) }}"
-                               required
-                               class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500 shadow-sm">
-                        <p class="text-xs text-gray-500 mt-1">
-                            Total de piezas en el módulo: <span class="font-semibold">{{ $componente == 'ANILLAS' ? 16 : 16 }}</span>
-                        </p>
-                    </div>
-                </div>
+            
+            {{-- Evidencia Fotográfica --}}
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">
+                    <i class="fas fa-camera text-blue-600 mr-1"></i>
+                    Evidencia Fotográfica
+                </label>
+                <input type="file" 
+                       name="evidencia_fotos[]" 
+                       multiple 
+                       accept="image/*"
+                       class="w-full text-sm text-gray-500 rounded-lg border border-gray-300 shadow-sm
+                              file:mr-4 file:py-2 file:px-4
+                              file:rounded-lg file:border-0
+                              file:text-sm file:font-semibold
+                              file:bg-blue-50 file:text-blue-700
+                              hover:file:bg-blue-100">
+                <p class="text-xs text-gray-500 mt-1">Puede seleccionar múltiples imágenes (Formatos: JPG, PNG. Máx: 5MB cada una)</p>
+                <div id="preview_fotos" class="mt-3 flex flex-wrap gap-2"></div>
             </div>
-            @endif
             
             {{-- Botones --}}
             <div class="flex gap-4 pt-6 border-t border-gray-200">
@@ -216,40 +222,85 @@
         </form>
     </div>
 </div>
-@endsection
 
-@section('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const ladoInput = document.getElementById('lado');
-    const revisadasInput = document.getElementById('revisadas');
-
-    // Validar que se haya seleccionado un lado
+    const inputFotos = document.querySelector('input[name="evidencia_fotos[]"]');
+    const previewFotos = document.getElementById('preview_fotos');
+    
+    if (inputFotos && previewFotos) {
+        inputFotos.addEventListener('change', function() {
+            previewFotos.innerHTML = '';
+            const files = Array.from(this.files);
+            
+            files.forEach(file => {
+                if(!file.type.startsWith('image/')) return;
+                
+                if (file.size > 5242880) {
+                    alert(`La imagen ${file.name} supera el tamaño máximo de 5MB`);
+                    return;
+                }
+                
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const imgContainer = document.createElement('div');
+                    imgContainer.className = 'relative group';
+                    
+                    const img = document.createElement('img');
+                    img.src = e.target.result;
+                    img.className = 'w-20 h-20 object-cover rounded-lg border border-gray-200';
+                    
+                    const removeBtn = document.createElement('button');
+                    removeBtn.type = 'button';
+                    removeBtn.className = 'absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 opacity-0 group-hover:opacity-100 transition text-xs flex items-center justify-center';
+                    removeBtn.innerHTML = '×';
+                    removeBtn.onclick = function() {
+                        imgContainer.remove();
+                        const dt = new DataTransfer();
+                        const inputFiles = inputFotos.files;
+                        
+                        for (let i = 0; i < inputFiles.length; i++) {
+                            if (inputFiles[i] !== file) {
+                                dt.items.add(inputFiles[i]);
+                            }
+                        }
+                        
+                        inputFotos.files = dt.files;
+                    };
+                    
+                    imgContainer.appendChild(img);
+                    imgContainer.appendChild(removeBtn);
+                    previewFotos.appendChild(imgContainer);
+                }
+                reader.readAsDataURL(file);
+            });
+        });
+    }
+    
+    // Validar cantidad de piezas
+    const revisadasInput = document.getElementById('revisadas_piezas');
+    if (revisadasInput) {
+        const max = parseInt(revisadasInput.getAttribute('max') || '0');
+        revisadasInput.addEventListener('change', function() {
+            let value = parseInt(this.value);
+            if (isNaN(value)) value = 0;
+            if (value > max) {
+                this.value = max;
+                alert(`La cantidad no puede ser mayor a ${max}`);
+            }
+            if (value < 0) {
+                this.value = 0;
+            }
+        });
+    }
+    
     document.querySelector('form').addEventListener('submit', function(e) {
-        if (!ladoInput.value) {
+        const lado = document.getElementById('lado');
+        if (lado && !lado.value) {
             e.preventDefault();
             alert('Debe seleccionar el lado del análisis (Vapor o Pasillo).');
-            ladoInput.focus();
+            lado.focus();
             return;
-        }
-        
-        if (revisadasInput) {
-            const max = parseInt(revisadasInput.getAttribute('max') || '16');
-            const value = parseInt(revisadasInput.value);
-            
-            if (isNaN(value) || value < 0) {
-                e.preventDefault();
-                alert('Debe ingresar una cantidad válida de piezas revisadas.');
-                revisadasInput.focus();
-                return;
-            }
-            
-            if (value > max) {
-                e.preventDefault();
-                alert(`La cantidad de piezas revisadas no puede ser mayor a ${max}.`);
-                revisadasInput.focus();
-                return;
-            }
         }
     });
 });

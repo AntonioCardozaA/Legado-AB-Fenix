@@ -168,6 +168,7 @@
                     Estado *
                 </label>
                 <select name="estado" class="filter-select" required>
+                    <option value="">Seleccionar estado...</option>
                     <option value="Buen estado">✅ Buen estado</option>
                     <option value="Desgaste moderado">⚠️ Desgaste moderado</option>
                     <option value="Desgaste severo">⚠️ Desgaste severo</option>

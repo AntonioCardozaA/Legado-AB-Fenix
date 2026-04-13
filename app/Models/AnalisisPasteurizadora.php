@@ -17,6 +17,7 @@ class AnalisisPasteurizadora extends Model
     protected $fillable = [
         'linea_id',
         'modulo',
+        'nivel',
         'componente',
         'lado',
         'fecha_analisis',
@@ -26,40 +27,18 @@ class AnalisisPasteurizadora extends Model
         'responsable',
         'observaciones',
         'evidencia_fotos',
-
-        // Revisadas
-        'revisadas_anillas',
-        'revisadas_placas_perno',
-        'revisadas_reglillas',
-        'revisadas_rodamientos',
-        'revisadas_excentricos',
-        'revisadas_pistas',
-        'revisadas_esparragos',
-
-        // Totales
-        'total_anillas',
-        'total_placas_perno',
-        'total_reglillas',
-        'total_rodamientos',
-        'total_excentricos',
-        'total_pistas',
-        'total_esparragos',
-
-        // Análisis 52-12-4
+        'revisadas_piezas',
+        'total_piezas',
         'valor_anterior_52',
         'valor_actual_52',
         'valor_anterior_12',
         'valor_actual_12',
         'valor_anterior_4',
         'valor_actual_4',
-
-        // Plan PCM
         'plan_accion_pcm1',
         'plan_accion_pcm2',
         'plan_accion_pcm3',
         'plan_accion_pcm4',
-
-        // *** NUEVOS CAMPOS PARA RESOLUCIÓN DE REGISTROS ***
         'resuelto_por_cambio',
         'fecha_resolucion',
         'nota_resolucion',
@@ -76,77 +55,103 @@ class AnalisisPasteurizadora extends Model
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
         'deleted_at' => 'datetime',
-
-        // *** NUEVOS CAMPOS CON CAST ***
         'resuelto_por_cambio' => 'boolean',
         'fecha_resolucion' => 'datetime',
         'id_registro_que_resolvio' => 'integer',
     ];
 
-    /*
-    |--------------------------------------------------------------------------
-    | CONSTANTES
-    |--------------------------------------------------------------------------
-    */
-
-    const COMPONENTES = [
-        'ANILLAS' => 'Anillas (Ventanas-Cortinas)',
-        'PLACAS_PERNO' => 'Placas Perno',
-        'REGLILLAS' => 'Reglillas (Parrillas)',
-        'RODAMIENTOS' => 'Rodamientos',
-        'EXCENTRICOS' => 'Excéntricos - Levas',
-        'PISTAS' => 'Pistas',
-        'ESPARRAGOS' => 'Espárragos',
+    // ============================================================
+    // CONFIGURACIÓN DE PASTEURIZADORES
+    // ============================================================
+    
+    const PASTEURIZADORES = [
+        'P-03' => ['tipo' => 'sencillo', 'modulos' => 9],
+        'P-04' => ['tipo' => 'sencillo', 'modulos' => 12],
+        'P-05' => ['tipo' => 'sencillo', 'modulos' => 9],
+        'P-06' => ['tipo' => 'doble', 'modulos' => 16],
+        'P-07' => ['tipo' => 'doble', 'modulos' => 16],
+        'P-08' => ['tipo' => 'sencillo', 'modulos' => 9],
+        'P-09' => ['tipo' => 'sencillo', 'modulos' => 9],
+        'P-10' => ['tipo' => 'sencillo', 'modulos' => 9],
+        'P-11' => ['tipo' => 'doble', 'modulos' => 16],
+        'P-12' => ['tipo' => 'sencillo', 'modulos' => 9],
+        'P-13' => ['tipo' => 'sencillo', 'modulos' => 9],
+        'P-14' => ['tipo' => 'sencillo', 'modulos' => 9],
     ];
 
-    const MODULOS = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16];
-
-    const LADOS = [
-        'VAPOR',
-        'PASILLO'
+    const COMPONENTES_SENCILLOS = [
+        'ANILLAS' => ['nombre' => 'Anillas (Ventanas-Cortinas)', 'cantidad' => 3],
+        'EXCENTRICOS' => ['nombre' => 'Excéntricos', 'cantidad' => 2],
+        'PISTAS' => ['nombre' => 'Pistas', 'cantidad' => 2],
+        'VIGAS_FIJAS' => ['nombre' => 'Vigas Fijas', 'cantidad' => 4],
+        'VIGA_MOVIMIENTO' => ['nombre' => 'Viga de Movimiento', 'cantidad' => 1],
+        'PLACAS_PERNO' => ['nombre' => 'Placas Perno', 'cantidad' => 3],
+        'ESPARRAGOS' => ['nombre' => 'Espárragos', 'cantidad' => 2],
     ];
 
-    const ESTADOS = [
-        'Buen estado',
-        'Desgaste moderado',
-        'Desgaste severo',
-        'Dañado - Requiere cambio',
-        'Cambiado'
+    const COMPONENTES_DOBLES = [
+        'ANILLAS' => ['nombre' => 'Anillas (Ventanas-Cortinas)', 'cantidad' => 5],
+        'EXCENTRICOS' => ['nombre' => 'Excéntricos', 'cantidad' => 2],
+        'RODAJAS' => ['nombre' => 'Rodajas', 'cantidad' => 2],
+        'PLACAS_PERNO' => ['nombre' => 'Placas Perno', 'cantidad' => 5],
+        'VIGAS_MOVIMIENTO' => ['nombre' => 'Vigas de Movimiento', 'cantidad' => 2],
+        'PISTAS' => ['nombre' => 'Pistas', 'cantidad' => 4],
+        'ESPARRAGOS' => ['nombre' => 'Espárragos', 'cantidad' => 4],
     ];
 
-    /*
-    |--------------------------------------------------------------------------
-    | RELACIONES
-    |--------------------------------------------------------------------------
-    */
+    const LADOS = ['VAPOR', 'PASILLO'];
+    const ESTADOS = ['Buen estado', 'Desgaste moderado', 'Desgaste severo', 'Dañado - Requiere cambio', 'Cambiado'];
 
+    // ============================================================
+    // MÉTODOS DE CONFIGURACIÓN
+    // ============================================================
+    
+    public static function getComponentesPorLinea($lineaNombre)
+    {
+        $tipo = self::PASTEURIZADORES[$lineaNombre]['tipo'] ?? null;
+        if ($tipo === 'sencillo') {
+            return self::COMPONENTES_SENCILLOS;
+        } elseif ($tipo === 'doble') {
+            return self::COMPONENTES_DOBLES;
+        }
+        return [];
+    }
+
+    public static function getModulosPorLinea($lineaNombre)
+    {
+        return self::PASTEURIZADORES[$lineaNombre]['modulos'] ?? 0;
+    }
+
+    public function getTotalPiezasPorComponente()
+    {
+        $lineaNombre = $this->linea ? $this->linea->nombre : null;
+        $componentes = self::getComponentesPorLinea($lineaNombre);
+        return $componentes[$this->componente]['cantidad'] ?? 0;
+    }
+
+    // ============================================================
+    // RELACIONES
+    // ============================================================
+    
     public function linea()
     {
         return $this->belongsTo(Linea::class);
     }
 
-    /**
-     * Relación con el registro que resolvió este análisis
-     */
     public function registroResolutor()
     {
         return $this->belongsTo(self::class, 'id_registro_que_resolvio');
     }
 
-    /**
-     * Relación con los registros que fueron resueltos por este análisis
-     */
     public function registrosResueltos()
     {
         return $this->hasMany(self::class, 'id_registro_que_resolvio');
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | SCOPES
-    |--------------------------------------------------------------------------
-    */
-
+    // ============================================================
+    // SCOPES
+    // ============================================================
+    
     public function scopePorLinea($query, $lineaId)
     {
         return $query->where('linea_id', $lineaId);
@@ -167,87 +172,45 @@ class AnalisisPasteurizadora extends Model
         return $query->whereBetween('fecha_analisis', [$inicio, $fin]);
     }
 
-    public function scopeDelMes($query)
-    {
-        return $query
-            ->whereMonth('fecha_analisis', now()->month)
-            ->whereYear('fecha_analisis', now()->year);
-    }
-
-    /**
-     * Scope para obtener solo registros activos (no resueltos)
-     */
     public function scopeActivos($query)
     {
         return $query->where('resuelto_por_cambio', false);
     }
 
-    /**
-     * Scope para obtener registros resueltos
-     */
     public function scopeResueltos($query)
     {
         return $query->where('resuelto_por_cambio', true);
     }
 
-    /**
-     * Scope para obtener registros que requieren atención
-     */
     public function scopeRequiereAtencion($query)
     {
-        return $query->where('estado', 'Dañado - Requiere cambio')
-                     ->where('resuelto_por_cambio', false);
+        return $query->where('estado', 'Dañado - Requiere cambio')->where('resuelto_por_cambio', false);
     }
 
-    /**
-     * Scope para obtener registros cambiados
-     */
-    public function scopeCambiados($query)
-    {
-        return $query->where('estado', 'Cambiado');
-    }
-
-    /**
-     * Scope para obtener registros resueltos en un período
-     */
-    public function scopeResueltosEntre($query, $inicio, $fin)
-    {
-        return $query->where('resuelto_por_cambio', true)
-                     ->whereBetween('fecha_resolucion', [$inicio, $fin]);
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | ACCESSORS
-    |--------------------------------------------------------------------------
-    */
-
+    // ============================================================
+    // ACCESSORS
+    // ============================================================
+    
     public function getComponenteNombreAttribute()
     {
-        return self::COMPONENTES[$this->componente] ?? $this->componente;
+        $lineaNombre = $this->linea ? $this->linea->nombre : null;
+        $componentes = self::getComponentesPorLinea($lineaNombre);
+        return $componentes[$this->componente]['nombre'] ?? $this->componente;
     }
 
     public function getModuloNombreAttribute()
     {
-        if ($this->componente === 'ANILLAS') {
-            return "Anillas (Todos los módulos)";
-        }
-
         return "Módulo {$this->modulo}";
     }
 
     public function getFechaFormateadaAttribute()
     {
-        return $this->fecha_analisis
-            ? $this->fecha_analisis->format('d/m/Y')
-            : 'Sin fecha';
+        return $this->fecha_analisis ? $this->fecha_analisis->format('d/m/Y') : 'Sin fecha';
     }
 
     public function getHoraFormateadaAttribute()
     {
-        return $this->created_at
-            ? $this->created_at->format('H:i')
-            : '';
+        return $this->created_at ? $this->created_at->format('H:i') : '';
     }
 
     public function getTieneImagenesAttribute()
@@ -257,313 +220,71 @@ class AnalisisPasteurizadora extends Model
 
     public function getCantidadImagenesAttribute()
     {
-        return $this->evidencia_fotos
-            ? count($this->evidencia_fotos)
-            : 0;
+        return $this->evidencia_fotos ? count($this->evidencia_fotos) : 0;
     }
 
-    /**
-     * Obtener la fecha de resolución formateada
-     */
     public function getFechaResolucionFormateadaAttribute()
     {
-        return $this->fecha_resolucion
-            ? $this->fecha_resolucion->format('d/m/Y H:i')
-            : null;
+        return $this->fecha_resolucion ? $this->fecha_resolucion->format('d/m/Y H:i') : null;
     }
 
-    /**
-     * Obtener el tiempo transcurrido desde la resolución
-     */
-    public function getTiempoDesdeResolucionAttribute()
-    {
-        if (!$this->fecha_resolucion) {
-            return null;
-        }
-
-        return $this->fecha_resolucion->diffForHumans();
-    }
-
-    /**
-     * Verificar si es un registro de cambio
-     */
     public function getEsCambioAttribute()
     {
         return $this->estado === 'Cambiado';
     }
 
-    /**
-     * Verificar si es un registro de daño
-     */
     public function getEsDanioAttribute()
     {
         return $this->estado === 'Dañado - Requiere cambio';
     }
 
-    /**
-     * Obtener el estado con formato para badges
-     */
-    public function getEstadoBadgeAttribute()
-    {
-        return match ($this->estado) {
-            'Buen estado' => [
-                'class' => 'bg-green-100 text-green-800 border-green-200',
-                'icon' => 'fa-check-circle',
-                'text' => 'Buen estado'
-            ],
-            'Desgaste moderado' => [
-                'class' => 'bg-yellow-100 text-yellow-800 border-yellow-200',
-                'icon' => 'fa-exclamation-triangle',
-                'text' => 'Desgaste moderado'
-            ],
-            'Desgaste severo' => [
-                'class' => 'bg-orange-100 text-orange-800 border-orange-200',
-                'icon' => 'fa-exclamation-triangle',
-                'text' => 'Desgaste severo'
-            ],
-            'Dañado - Requiere cambio' => [
-                'class' => 'bg-red-100 text-red-800 border-red-200',
-                'icon' => 'fa-times-circle',
-                'text' => 'Requiere cambio'
-            ],
-            'Cambiado' => [
-                'class' => 'bg-blue-100 text-blue-800 border-blue-200',
-                'icon' => 'fa-exchange-alt',
-                'text' => 'Cambiado'
-            ],
-            default => [
-                'class' => 'bg-gray-100 text-gray-800 border-gray-200',
-                'icon' => 'fa-question-circle',
-                'text' => $this->estado
-            ]
-        };
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | ICONOS Y COLORES
-    |--------------------------------------------------------------------------
-    */
-
     public function getLadoIconoAttribute()
     {
-        return $this->lado === 'VAPOR'
-            ? 'fa-wind'
-            : 'fa-walking';
+        return $this->lado === 'VAPOR' ? 'fa-wind' : 'fa-walking';
     }
 
     public function getLadoColorAttribute()
     {
-        return $this->lado === 'VAPOR'
-            ? 'red'
-            : 'blue';
+        return $this->lado === 'VAPOR' ? 'red' : 'blue';
     }
 
     public function getLadoClaseAttribute()
     {
-        return $this->lado === 'VAPOR'
-            ? 'bg-red-100 text-red-800'
-            : 'bg-blue-100 text-blue-800';
+        return $this->lado === 'VAPOR' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800';
     }
 
-    public function getEstadoIconoAttribute()
+    public function getEstadoBadgeAttribute()
     {
         return match ($this->estado) {
-            'Buen estado' => 'fa-check-circle text-green-600',
-            'Desgaste moderado',
-            'Desgaste severo' => 'fa-exclamation-triangle text-yellow-600',
-            'Dañado - Requiere cambio' => 'fa-times-circle text-red-600',
-            'Cambiado' => 'fa-exchange-alt text-blue-600',
-            default => 'fa-question-circle text-gray-600',
-        };
-    }
-
-    public function getEstadoColorAttribute()
-    {
-        return match ($this->estado) {
-            'Buen estado' => 'green',
-            'Desgaste moderado', 'Desgaste severo' => 'yellow',
-            'Dañado - Requiere cambio' => 'red',
-            'Cambiado' => 'blue',
-            default => 'gray',
-        };
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | PROGRESO COMPONENTES
-    |--------------------------------------------------------------------------
-    */
-
-    public function getTotalComponenteAttribute()
-    {
-        return match($this->componente) {
-            'ANILLAS' => 256,
-            default => 16
-        };
-    }
-
-    public function getRevisadasComponenteAttribute()
-    {
-        return match($this->componente) {
-            'ANILLAS' => $this->revisadas_anillas ?? 0,
-            'PLACAS_PERNO' => $this->revisadas_placas_perno ?? 0,
-            'REGLILLAS' => $this->revisadas_reglillas ?? 0,
-            'RODAMIENTOS' => $this->revisadas_rodamientos ?? 0,
-            'EXCENTRICOS' => $this->revisadas_excentricos ?? 0,
-            'PISTAS' => $this->revisadas_pistas ?? 0,
-            'ESPARRAGOS' => $this->revisadas_esparragos ?? 0,
-            default => 0
+            'Buen estado' => ['class' => 'bg-green-100 text-green-800', 'icon' => 'fa-check-circle'],
+            'Desgaste moderado', 'Desgaste severo' => ['class' => 'bg-yellow-100 text-yellow-800', 'icon' => 'fa-exclamation-triangle'],
+            'Dañado - Requiere cambio' => ['class' => 'bg-red-100 text-red-800', 'icon' => 'fa-times-circle'],
+            'Cambiado' => ['class' => 'bg-blue-100 text-blue-800', 'icon' => 'fa-exchange-alt'],
+            default => ['class' => 'bg-gray-100 text-gray-800', 'icon' => 'fa-question-circle'],
         };
     }
 
     public function getPorcentajeAvanceAttribute()
     {
-        $total = $this->total_componente;
-        $revisadas = $this->revisadas_componente;
-
+        $total = $this->total_piezas ?? 0;
+        $revisadas = $this->revisadas_piezas ?? 0;
         if ($total > 0) {
             return round(($revisadas / $total) * 100, 1);
         }
-
         return 0;
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | ESTADISTICAS COMPLETAS
-    |--------------------------------------------------------------------------
-    */
-
-    public function getEstadisticasCompletas()
-    {
-        $componentes = array_keys(self::COMPONENTES);
-        $estadisticas = [];
-
-        foreach ($componentes as $componente) {
-
-            $campoRevisadas = 'revisadas_' . strtolower($componente);
-            $campoTotal = 'total_' . strtolower($componente);
-
-            if ($this->$campoRevisadas !== null && $this->$campoTotal !== null) {
-
-                $total = $this->$campoTotal;
-                $rev = $this->$campoRevisadas;
-
-                $estadisticas[$componente] = [
-                    'nombre' => self::COMPONENTES[$componente],
-                    'revisadas' => $rev,
-                    'total' => $total,
-                    'porcentaje' => $total > 0
-                        ? round(($rev / $total) * 100, 1)
-                        : 0
-                ];
-            }
-        }
-
-        return $estadisticas;
-    }
-
-    /**
-     * Obtener estadísticas de resolución
-     */
-    public function getEstadisticasResolucionAttribute()
-    {
-        $registrosResueltos = $this->registrosResueltos()->count();
-        $tiempoPromedioResolucion = $this->registrosResueltos()
-            ->whereNotNull('fecha_resolucion')
-            ->get()
-            ->avg(function($registro) {
-                return $registro->fecha_analisis->diffInDays($registro->fecha_resolucion);
-            });
-
-        return [
-            'total_resueltos' => $registrosResueltos,
-            'tiempo_promedio_dias' => round($tiempoPromedioResolucion ?? 0, 1),
-            'fecha_resolucion' => $this->fecha_resolucion_formateada,
-            'nota' => $this->nota_resolucion
-        ];
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | ANALISIS 52 - 12 - 4
-    |--------------------------------------------------------------------------
-    */
-
-    public function getAnalisis52124()
-    {
-        return [
-
-            '52_semanas' => [
-                'anterior' => $this->valor_anterior_52,
-                'actual' => $this->valor_actual_52,
-                'variacion' => $this->calcularVariacion(
-                    $this->valor_anterior_52,
-                    $this->valor_actual_52
-                )
-            ],
-
-            '12_semanas' => [
-                'anterior' => $this->valor_anterior_12,
-                'actual' => $this->valor_actual_12,
-                'variacion' => $this->calcularVariacion(
-                    $this->valor_anterior_12,
-                    $this->valor_actual_12
-                )
-            ],
-
-            '4_semanas' => [
-                'anterior' => $this->valor_anterior_4,
-                'actual' => $this->valor_actual_4,
-                'variacion' => $this->calcularVariacion(
-                    $this->valor_anterior_4,
-                    $this->valor_actual_4
-                )
-            ],
-        ];
-    }
-
-    private function calcularVariacion($anterior, $actual)
-    {
-        if ($anterior === null || $actual === null) {
-            return null;
-        }
-
-        if ($anterior == 0) {
-            return 100;
-        }
-
-        return round((($actual - $anterior) / $anterior) * 100, 1);
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | UTILIDADES
-    |--------------------------------------------------------------------------
-    */
-
+    // ============================================================
+    // MÉTODOS DE UTILIDAD
+    // ============================================================
+    
     public function isAnalisisCompleto()
     {
-        return $this->revisadas_componente >= $this->total_componente;
+        $total = $this->total_piezas ?? 0;
+        $revisadas = $this->revisadas_piezas ?? 0;
+        return $revisadas >= $total;
     }
 
-    public function resetearRevisadas()
-    {
-        $this->revisadas_anillas = 0;
-        $this->revisadas_placas_perno = 0;
-        $this->revisadas_reglillas = 0;
-        $this->revisadas_rodamientos = 0;
-        $this->revisadas_excentricos = 0;
-        $this->revisadas_pistas = 0;
-        $this->revisadas_esparragos = 0;
-
-        $this->save();
-    }
-
-    /**
-     * Marcar este registro como resuelto por otro análisis
-     */
     public function marcarComoResuelto($registroResolutor, $nota = null)
     {
         $this->update([
@@ -574,21 +295,6 @@ class AnalisisPasteurizadora extends Model
         ]);
     }
 
-    /**
-     * Verificar si este análisis es un cambio que resuelve daños anteriores
-     */
-    public function esCambioQueResuelveDanios()
-    {
-        if ($this->estado !== 'Cambiado') {
-            return false;
-        }
-
-        return $this->registrosResueltos()->count() > 0;
-    }
-
-    /**
-     * Obtener los daños pendientes para el mismo módulo y componente
-     */
     public function getDaniosPendientes()
     {
         return self::where('linea_id', $this->linea_id)
@@ -600,9 +306,6 @@ class AnalisisPasteurizadora extends Model
             ->get();
     }
 
-    /**
-     * Obtener el historial completo de este módulo y componente
-     */
     public function getHistorialCompleto()
     {
         return self::where('linea_id', $this->linea_id)
@@ -612,59 +315,46 @@ class AnalisisPasteurizadora extends Model
             ->get();
     }
 
-    /**
-     * Obtener estadísticas de vida útil del componente
-     */
-    public function getEstadisticasVidaUtil()
+    // ============================================================
+    // ANÁLISIS 52-12-4
+    // ============================================================
+    
+    public function getAnalisis52124()
     {
-        $historial = $this->getHistorialCompleto();
-        
-        $totalRegistros = $historial->count();
-        $cambios = $historial->where('estado', 'Cambiado')->count();
-        $danios = $historial->where('estado', 'Dañado - Requiere cambio')->count();
-        
-        $primerRegistro = $historial->last();
-        $ultimoCambio = $historial->where('estado', 'Cambiado')->first();
-        
-        $diasVida = $primerRegistro 
-            ? $this->fecha_analisis->diffInDays($primerRegistro->fecha_analisis) 
-            : 0;
-        
         return [
-            'total_registros' => $totalRegistros,
-            'veces_cambiado' => $cambios,
-            'veces_danado' => $danios,
-            'dias_vida' => $diasVida,
-            'frecuencia_danos' => $totalRegistros > 0 
-                ? round(($danios / $totalRegistros) * 100, 1) 
-                : 0,
-            'dias_desde_ultimo_cambio' => $ultimoCambio 
-                ? $this->fecha_analisis->diffInDays($ultimoCambio->fecha_analisis) 
-                : null,
-            'confiabilidad' => $cambios > 0 
-                ? round(($diasVida / $cambios) / 30, 1) 
-                : 'N/A'
+            '52_semanas' => [
+                'anterior' => $this->valor_anterior_52,
+                'actual' => $this->valor_actual_52,
+                'variacion' => $this->calcularVariacion($this->valor_anterior_52, $this->valor_actual_52)
+            ],
+            '12_semanas' => [
+                'anterior' => $this->valor_anterior_12,
+                'actual' => $this->valor_actual_12,
+                'variacion' => $this->calcularVariacion($this->valor_anterior_12, $this->valor_actual_12)
+            ],
+            '4_semanas' => [
+                'anterior' => $this->valor_anterior_4,
+                'actual' => $this->valor_actual_4,
+                'variacion' => $this->calcularVariacion($this->valor_anterior_4, $this->valor_actual_4)
+            ],
         ];
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | EVENTOS DEL MODELO
-    |--------------------------------------------------------------------------
-    */
+    private function calcularVariacion($anterior, $actual)
+    {
+        if ($anterior === null || $actual === null) return null;
+        if ($anterior == 0) return 100;
+        return round((($actual - $anterior) / $anterior) * 100, 1);
+    }
 
+    // ============================================================
+    // EVENTOS
+    // ============================================================
+    
     protected static function booted()
     {
         static::created(function ($analisis) {
-            // Log cuando se crea un análisis
-            \Log::info("Nuevo análisis creado ID: {$analisis->id} - Estado: {$analisis->estado}");
-        });
-
-        static::updated(function ($analisis) {
-            // Log cuando se actualiza un análisis
-            if ($analisis->wasChanged('estado') && $analisis->estado === 'Cambiado') {
-                \Log::info("Análisis ID: {$analisis->id} marcado como CAMBIADO");
-            }
+            \Log::info("Nuevo análisis creado ID: {$analisis->id}");
         });
     }
 }

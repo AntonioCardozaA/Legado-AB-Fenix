@@ -22,6 +22,10 @@ class Linea extends Model
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
+    public function getNombreFormateadoAttribute()
+    {
+        return str_replace('L-', 'P-', $this->nombre);
+    }
 
     /**
      * Relación con análisis de componentes

@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\DB;
 use App\Exports\AnalisisComponentesExport;
 use Maatwebsite\Excel\Facades\Excel;
 use Barryvdh\DomPDF\Facade\Pdf;
+use App\Services\WhatsAppService;
 
 class AnalisisLavadoraController extends Controller
 {
@@ -50,7 +51,16 @@ public function index(Request $request)
     }
 
     $analisis = $query->get();
-
+    $diagramasPorLinea = [
+    'L-04' => 'linea4.png',
+    'L-05' => 'linea5.png',
+    'L-06' => 'linea6.png',
+    'L-07' => 'linea7.png',
+    'L-08' => 'linea8.png',
+    'L-09' => 'linea9.png',
+    'L-12' => 'linea12.png',
+    'L-13' => 'linea13.png',
+    ];
     // Determinar qué líneas mostrar y los reductores
     $lineaMostrar = 'Todas las líneas';
     $reductoresMostrar = [];
@@ -69,6 +79,7 @@ public function index(Request $request)
     return view('lavadora/analisis-lavadora.index', [
         'analisis' => $analisis,
         'lineas' => Linea::where('activo', true)->orderBy('nombre')->get(),
+        'diagramasPorLinea' => $diagramasPorLinea,
         'componentesPorLinea' => $this->getComponentesPorLinea(),
         'todosComponentes' => $this->getTodosComponentes(),
         'reductores' => AnalisisLavadora::select('reductor')
@@ -466,7 +477,29 @@ $componente = Componente::firstOrCreate(
             $data['lado'] = $request->lado;
         }
         Log::info('Análisis creado', ['id' => $analisis->id]);
+        // 🚨 ENVIAR WHATSAPP SI ESTÁ DAÑADO
+        if ($request->estado === 'Dañado - Requiere cambio') {
 
+            $mensaje = "🚨 *ALERTA DE COMPONENTE DAÑADO* 🚨\n\n"
+                . "🔧 Línea: {$linea->nombre}\n"
+                . "⚙️ Componente: {$componente->nombre}\n"
+                . "📍 Reductor: {$request->reductor}\n"
+                . "📅 Fecha: {$request->fecha_analisis}\n"
+                . "🧾 Orden: {$request->numero_orden}\n"
+                . "📝 Actividad: {$request->actividad}\n";
+
+            // Número en formato internacional (México: 521...)
+            $numero = "5214981096696"; // tu número o grupo
+
+            try {
+                WhatsAppService::enviarMensaje($numero, $mensaje);
+                Log::info('WhatsApp enviado correctamente');
+            } catch (\Exception $e) {
+                Log::error('Error al enviar WhatsApp', [
+                    'error' => $e->getMessage()
+                ]);
+            }
+        }
     } catch (\Exception $e) {
         Log::error('Error al crear análisis', [
             'error' => $e->getMessage()
@@ -931,5 +964,110 @@ public function historicoRevisados(Request $request)
         'estadisticas',
         'resumen'
     ));
+}
+/**
+ * Obtener estadísticas de progreso para todas las líneas
+ */
+public function getEstadisticasProgreso(Request $request)
+{
+    $lineas = Linea::whereIn('nombre', ['L-04', 'L-05', 'L-06', 'L-07', 'L-08', 'L-09', 'L-12', 'L-13'])
+        ->where('activo', true)
+        ->orderBy('nombre')
+        ->get();
+    
+    $componentesPorLinea = $this->getComponentesPorLinea();
+    $reductoresPorLineaArray = [
+        'L-04' => ['Reductor 1', 'Reductor 9', 'Reductor 10', 'Reductor 11', 'Reductor 12', 
+                  'Reductor 13', 'Reductor 14', 'Reductor 15', 'Reductor 16', 'Reductor 17', 
+                  'Reductor 18', 'Reductor 19', 'Reductor Loca'],
+        'L-05' => ['Reductor 1', 'Reductor 2', 'Reductor 3', 'Reductor 4', 'Reductor 5', 
+                  'Reductor 6', 'Reductor 7', 'Reductor 8', 'Reductor 9', 'Reductor 10', 
+                  'Reductor 11', 'Reductor 12', 'Reductor Principal', 'Reductor Loca'],
+        'L-06' => ['Reductor 1', 'Reductor 9', 'Reductor 10', 'Reductor 11', 'Reductor 12', 
+                  'Reductor 13', 'Reductor 14', 'Reductor 15', 'Reductor 16', 'Reductor 17', 
+                  'Reductor 18', 'Reductor 19', 'Reductor 20', 'Reductor 21', 'Reductor 22'],
+        'L-07' => ['Reductor 1', 'Reductor 9', 'Reductor 10', 'Reductor 11', 'Reductor 12', 
+                  'Reductor 13', 'Reductor 14', 'Reductor 15', 'Reductor 16', 'Reductor 17', 
+                  'Reductor 18', 'Reductor 19', 'Reductor 20', 'Reductor 21', 'Reductor 22'],
+        'L-08' => ['Reductor 1', 'Reductor 9', 'Reductor 10', 'Reductor 11', 'Reductor 12', 
+                  'Reductor 13', 'Reductor 14', 'Reductor 15', 'Reductor 16', 'Reductor 17', 
+                  'Reductor 18', 'Reductor 19', 'Reductor Loca'],
+        'L-09' => ['Reductor 1', 'Reductor 9', 'Reductor 10', 'Reductor 11', 'Reductor 12', 
+                  'Reductor 13', 'Reductor 14', 'Reductor 15', 'Reductor 16', 'Reductor 17', 
+                  'Reductor 18', 'Reductor 19', 'Reductor Loca'],
+        'L-12' => ['Reductor 1', 'Reductor 2', 'Reductor 3', 'Reductor 4', 'Reductor 5', 
+                  'Reductor 6', 'Reductor 7', 'Reductor 8', 'Reductor 9', 'Reductor 10', 
+                  'Reductor 11', 'Reductor 12', 'Reductor Loca'],
+        'L-13' => ['Reductor 1', 'Reductor 2', 'Reductor 3', 'Reductor 4', 'Reductor 5', 
+                  'Reductor 6', 'Reductor 7', 'Reductor 8', 'Reductor 9', 'Reductor 10', 
+                  'Reductor 11', 'Reductor 12', 'Reductor Loca', 'Reductor Principal']
+    ];
+    
+    $estadisticas = [];
+    
+    foreach ($lineas as $linea) {
+        $componentes = $componentesPorLinea[$linea->nombre] ?? [];
+        $reductores = $reductoresPorLineaArray[$linea->nombre] ?? [];
+        
+        $totalCeldas = count($componentes) * count($reductores);
+        $celdasConDatos = 0;
+        
+        $estados = [
+            'buen_estado' => 0,
+            'desgaste' => 0,
+            'danado' => 0,
+            'cambiado' => 0,
+            'sin_datos' => 0
+        ];
+        
+        foreach ($reductores as $reductor) {
+            foreach ($componentes as $codigo => $nombre) {
+                // Buscar el último análisis para esta combinación
+                $analisis = AnalisisLavadora::where('linea_id', $linea->id)
+                    ->where('reductor', $reductor)
+                    ->whereHas('componente', function($q) use ($codigo) {
+                        $q->where('codigo', 'like', '%' . $codigo . '%');
+                    })
+                    ->orderBy('fecha_analisis', 'desc')
+                    ->first();
+                
+                if ($analisis) {
+                    $celdasConDatos++;
+                    $estado = $analisis->estado;
+                    
+                    if ($estado === 'Cambiado') {
+                        $estados['cambiado']++;
+                    } elseif ($estado === 'Dañado - Requiere cambio') {
+                        $estados['danado']++;
+                    } elseif (str_contains($estado, 'Desgaste')) {
+                        $estados['desgaste']++;
+                    } else {
+                        $estados['buen_estado']++;
+                    }
+                } else {
+                    $estados['sin_datos']++;
+                }
+            }
+        }
+        
+        $porcentajeProgreso = $totalCeldas > 0 ? round(($celdasConDatos / $totalCeldas) * 100, 1) : 0;
+        
+        $estadisticas[$linea->nombre] = [
+            'id' => $linea->id,
+            'nombre' => $linea->nombre,
+            'total_celdas' => $totalCeldas,
+            'celdas_con_datos' => $celdasConDatos,
+            'porcentaje' => $porcentajeProgreso,
+            'estados' => $estados,
+            'componentes' => array_keys($componentes),
+            'reductores' => $reductores
+        ];
+    }
+    
+    if ($request->ajax()) {
+        return response()->json($estadisticas);
+    }
+    
+    return $estadisticas;
 }
 }

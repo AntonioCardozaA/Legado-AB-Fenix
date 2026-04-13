@@ -21,8 +21,6 @@ class DatabaseSeeder extends Seeder
         |--------------------------------------------------------------------------
         */
         $lineas = [
-            ['nombre' => 'L-01', 'descripcion' => 'Línea de envasado 1'],
-            ['nombre' => 'L-02', 'descripcion' => 'Línea de envasado 2'],
             ['nombre' => 'L-03', 'descripcion' => 'Línea de envasado 3'],
             ['nombre' => 'L-04', 'descripcion' => 'Línea de envasado 4'],
             ['nombre' => 'L-05', 'descripcion' => 'Línea de envasado 5'],

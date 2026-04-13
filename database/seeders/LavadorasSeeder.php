@@ -182,7 +182,7 @@ class LavadorasSeeder extends Seeder
             // Guía inferior (lado vapor, lado pasillo)
             $this->createComponente([
                 'codigo' => $this->generateCodigo('L04', $reductor, 'GUI_INT_TANQUE'),
-                'nombre' => 'Guía Inf Vapor/Pasillo', // SIN reductor
+                'nombre' => 'Guía Intermedia', // SIN reductor
                 'reductor' => $reductor,
                 'ubicacion' => $reductor,
                 'linea' => $linea->nombre,
@@ -264,7 +264,7 @@ class LavadorasSeeder extends Seeder
             // Guía inferior (lado vapor, lado pasillo)
             $this->createComponente([
                 'codigo' => $this->generateCodigo('L05', $reductor, 'GUI_INT_TANQUE'),
-                'nombre' => 'Guía Inf Vapor/Pasillo', // SIN reductor
+                'nombre' => 'Guía Intermedia', // SIN reductor
                 'reductor' => $reductor,
                 'ubicacion' => $reductor,
                 'linea' => $linea->nombre,
@@ -357,7 +357,7 @@ class LavadorasSeeder extends Seeder
             // Guía inferior (lado vapor, lado pasillo)
             $this->createComponente([
                 'codigo' => $this->generateCodigo('L06', $reductor, 'GUI_INT_TANQUE'),
-                'nombre' => 'Guía Inf Vapor/Pasillo', // SIN reductor
+                'nombre' => 'Guía Intermedia', // SIN reductor
                 'reductor' => $reductor,
                 'ubicacion' => $reductor,
                 'linea' => $linea->nombre,
@@ -450,7 +450,7 @@ class LavadorasSeeder extends Seeder
             // Guía inferior (lado vapor, lado pasillo)
             $this->createComponente([
                 'codigo' => $this->generateCodigo('L07', $reductor, 'GUI_INT_TANQUE'),
-                'nombre' => 'Guía Inf Vapor/Pasillo', // SIN reductor
+                'nombre' => 'Guía Intermedia', // SIN reductor
                 'reductor' => $reductor,
                 'ubicacion' => $reductor,
                 'linea' => $linea->nombre,
@@ -543,7 +543,7 @@ class LavadorasSeeder extends Seeder
             // Guía inferior (lado vapor, lado pasillo)
             $this->createComponente([
                 'codigo' => $this->generateCodigo('L08', $reductor, 'GUI_INT_TANQUE'),
-                'nombre' => 'Guía Inf Vapor/Pasillo', // SIN reductor
+                'nombre' => 'Guía Intermedia', // SIN reductor
                 'reductor' => $reductor,
                 'ubicacion' => $reductor,
                 'linea' => $linea->nombre,
@@ -636,7 +636,7 @@ class LavadorasSeeder extends Seeder
             // Guía inferior (lado vapor, lado pasillo)
             $this->createComponente([
                 'codigo' => $this->generateCodigo('L09', $reductor, 'GUI_INT_TANQUE'),
-                'nombre' => 'Guía Inf Vapor/Pasillo', // SIN reductor
+                'nombre' => 'Guía Intermedia', // SIN reductor
                 'reductor' => $reductor,
                 'ubicacion' => $reductor,
                 'linea' => $linea->nombre,
@@ -718,7 +718,7 @@ class LavadorasSeeder extends Seeder
             // Guía inferior (lado vapor, lado pasillo)
             $this->createComponente([
                 'codigo' => $this->generateCodigo('L12', $reductor, 'GUI_INT_TANQUE'),
-                'nombre' => 'Guía Inf Vapor/Pasillo', // SIN reductor
+                'nombre' => 'Guía Intermedia', // SIN reductor
                 'reductor' => $reductor,
                 'ubicacion' => $reductor,
                 'linea' => $linea->nombre,
@@ -800,7 +800,7 @@ class LavadorasSeeder extends Seeder
             // Guía inferior (lado vapor, lado pasillo)
             $this->createComponente([
                 'codigo' => $this->generateCodigo('L13', $reductor, 'GUI_INT_TANQUE'),
-                'nombre' => 'Guía Inf Vapor/Pasillo', // SIN reductor
+                'nombre' => 'Guía Intermedia', // SIN reductor
                 'reductor' => $reductor,
                 'ubicacion' => $reductor,
                 'linea' => $linea->nombre,

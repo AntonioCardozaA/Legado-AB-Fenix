@@ -89,18 +89,17 @@ class HistoricoRevisadosController extends Controller
     ];
 
     /**
-     * Configuración de cantidades totales por componente
+     * Configuración de cantidades totales POR LÍNEA (según lo especificado)
      */
-    private $cantidadesTotales = [
-        'SERVO_CHICO' => 15,
-        'SERVO_GRANDE' => 15,
-        'BUJE_ESPIGA' => 15,
-        'GUI_INF_TANQUE' => 15,
-        'GUI_INT_TANQUE' => 15,
-        'GUI_SUP_TANQUE' => 15,
-        'CATARINAS' => 15,
-        'RV200' => 15,
-        'RV200_SIN_FIN' => 15,
+    private $cantidadesPorLinea = [
+        'L-04' => 13,
+        'L-05' => 14,
+        'L-06' => 15,
+        'L-07' => 15,
+        'L-08' => 15, // Línea 8 no se mencionó, se deja con 15 como valor por defecto
+        'L-09' => 13,
+        'L-12' => 13,
+        'L-13' => 14,
     ];
 
     /**
@@ -187,6 +186,9 @@ class HistoricoRevisadosController extends Controller
         
         $componentesLinea = $this->componentesLavadora[$linea->nombre];
         
+        // Obtener la cantidad total para esta línea específica
+        $cantidadTotalLinea = $this->cantidadesPorLinea[$linea->nombre] ?? 15; // Por defecto 15 si no está definida
+        
         // Configuración de periodicidad (en meses)
         $periodicidad = [
             'CATARINAS' => 4,
@@ -203,7 +205,8 @@ class HistoricoRevisadosController extends Controller
         $fechaActual = Carbon::now();
         
         foreach ($componentesLinea as $codigo => $nombre) {
-            $cantidadTotal = $this->cantidadesTotales[$codigo] ?? 15;
+            // Usar la cantidad total de la línea para todos los componentes
+            $cantidadTotal = $cantidadTotalLinea;
             $mesesPeriodo = $periodicidad[$codigo] ?? 12; // Por defecto anual
             
             // Fecha límite para considerar análisis vigentes

@@ -1,4 +1,3 @@
-{{-- resources/views/analisis-tendencia-mensual-lavadora/create.blade.php --}}
 @extends('layouts.app')
 
 @section('title', 'Nuevo Análisis Mensual 52-12-4')
@@ -6,7 +5,7 @@
 @section('content')
 <div class="max-w-4xl mx-auto px-4 py-6">
     <div class="mb-6">
-        <a href="{{ route('analisis-tendencia-mensual-lavadora.index') }}" 
+        <a href="{{ route('analisis-tendencia-mensual.lavadora.index') }}" 
            class="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900">
             <i class="fas fa-arrow-left"></i>
             Volver al análisis
@@ -28,7 +27,7 @@
         </div>
 
         {{-- Formulario --}}
-        <form method="POST" action="{{ route('analisis-tendencia-mensual-lavadora.store') }}" class="p-8">
+        <form method="POST" action="{{ route('analisis-tendencia-mensual.lavadora.store') }}" class="p-8">
             @csrf
 
             {{-- Línea --}}
@@ -189,7 +188,7 @@
 
             {{-- Botones --}}
             <div class="flex justify-end gap-3 border-t pt-6">
-                <a href="{{ route('analisis-tendencia-mensual-lavadora.index') }}" 
+                <a href="{{ route('analisis-tendencia-mensual.lavadora.index') }}" 
                    class="px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition flex items-center gap-2">
                     <i class="fas fa-times"></i>
                     Cancelar
@@ -207,7 +206,7 @@
 <script>
 document.getElementById('linea_id').addEventListener('change', function() {
     if (this.value) {
-        window.location.href = '{{ route("analisis-tendencia-mensual-lavadora.create") }}?linea_id=' + this.value;
+        window.location.href = '{{ route("analisis-tendencia-mensual.lavadora.create") }}?linea_id=' + this.value;
     }
 });
 </script>

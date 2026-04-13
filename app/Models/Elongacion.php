@@ -55,14 +55,35 @@ class Elongacion extends Model
         'vapor_porcentaje' => 'decimal:2',
         'juego_rodaja_bombas' => 'decimal:2',
         'juego_rodaja_vapor' => 'decimal:2',
+        'paso_inicial' => 'integer',
         'created_at' => 'datetime',
         'updated_at' => 'datetime'
     ];
 
-    // Constantes
-    const PASO_INICIAL = 173; // mm
-    const LIMITE_ADVERTENCIA = 2.0; // %
-    const LIMITE_PELIGRO = 2.4; // %
+    // NUEVOS LÍMITES según especificaciones
+    const LIMITE_COMPRAR = 1.3;     // Alerta para comprar cadena
+    const LIMITE_DANO = 1.46;       // Inicio de daño
+    const LIMITE_CAMBIO = 1.8;      // Límite máximo de cambio
+
+    // Pasos iniciales por línea
+    const PASOS_INICIALES = [
+        'L-04' => 173,
+        'L-05' => 140,
+        'L-06' => 140,
+        'L-07' => 173,
+        'L-08' => 125,
+        'L-09' => 140,
+        'L-12' => 140,
+        'L-13' => 140,
+    ];
+
+    /**
+     * Obtener paso inicial para una línea específica
+     */
+    public static function getPasoInicial($linea)
+    {
+        return self::PASOS_INICIALES[$linea] ?? 173;
+    }
 
     /**
      * Scope para filtrar por línea
@@ -76,7 +97,7 @@ class Elongacion extends Model
     }
 
     /**
-     * Scope para filtrar por estado
+     * Scope para filtrar por estado - ACTUALIZADO
      */
     public function scopePorEstado($query, $estado)
     {
@@ -84,17 +105,22 @@ class Elongacion extends Model
         
         switch ($estado) {
             case 'normal':
-                return $query->where('bombas_porcentaje', '<', self::LIMITE_ADVERTENCIA)
-                            ->where('vapor_porcentaje', '<', self::LIMITE_ADVERTENCIA);
-            case 'alerta':
+                return $query->where('bombas_porcentaje', '<', self::LIMITE_COMPRAR)
+                            ->where('vapor_porcentaje', '<', self::LIMITE_COMPRAR);
+            case 'comprar':
                 return $query->where(function($q) {
-                    $q->whereBetween('bombas_porcentaje', [self::LIMITE_ADVERTENCIA, self::LIMITE_PELIGRO])
-                      ->orWhereBetween('vapor_porcentaje', [self::LIMITE_ADVERTENCIA, self::LIMITE_PELIGRO]);
+                    $q->whereBetween('bombas_porcentaje', [self::LIMITE_COMPRAR, self::LIMITE_DANO - 0.01])
+                      ->orWhereBetween('vapor_porcentaje', [self::LIMITE_COMPRAR, self::LIMITE_DANO - 0.01]);
+                });
+            case 'dano':
+                return $query->where(function($q) {
+                    $q->whereBetween('bombas_porcentaje', [self::LIMITE_DANO, self::LIMITE_CAMBIO - 0.01])
+                      ->orWhereBetween('vapor_porcentaje', [self::LIMITE_DANO, self::LIMITE_CAMBIO - 0.01]);
                 });
             case 'critico':
                 return $query->where(function($q) {
-                    $q->where('bombas_porcentaje', '>=', self::LIMITE_PELIGRO)
-                      ->orWhere('vapor_porcentaje', '>=', self::LIMITE_PELIGRO);
+                    $q->where('bombas_porcentaje', '>=', self::LIMITE_CAMBIO)
+                      ->orWhere('vapor_porcentaje', '>=', self::LIMITE_CAMBIO);
                 });
             default:
                 return $query;
@@ -120,34 +146,62 @@ class Elongacion extends Model
     }
     
     /**
-     * Calcular porcentaje de elongación
+     * Calcular porcentaje de elongación - CORREGIDO
+     * Fórmula: ((L_medido - L_nominal) / L_nominal) * 100
      */
-    public static function calcularPorcentaje($promedio)
+    public static function calcularPorcentaje($promedio, $pasoInicial = null)
     {
-        if ($promedio && $promedio > 0) {
-            return round((($promedio - self::PASO_INICIAL) / self::PASO_INICIAL) * 100, 2);
+        if ($promedio <= 0) return 0;
+        
+        // Si no se proporciona paso inicial, usar el de la línea (esto se debe pasar desde el controlador)
+        if ($pasoInicial === null) {
+            $pasoInicial = self::PASO_INICIAL; // Valor por defecto (obsoleto, mejor siempre pasar el valor)
         }
-        return 0;
+        
+        if ($pasoInicial <= 0) return 0;
+        
+        // Fórmula correcta: ((medido - nominal) / nominal) * 100
+        $porcentaje = (($promedio - $pasoInicial) / $pasoInicial) * 100;
+        
+        // Redondear a 2 decimales y asegurar que no sea negativo
+        // (si es negativo, significa que la medición es menor al paso inicial - posible error de medición)
+        return round(max($porcentaje, 0), 2);
     }
 
     /**
-     * Obtener estado basado en porcentaje
+     * Obtener estado detallado basado en porcentaje
      */
     public function getEstadoBombasAttribute()
     {
-        return $this->getEstado($this->bombas_porcentaje);
+        return $this->getEstadoDetallado($this->bombas_porcentaje);
     }
 
     public function getEstadoVaporAttribute()
     {
-        return $this->getEstado($this->vapor_porcentaje);
+        return $this->getEstadoDetallado($this->vapor_porcentaje);
     }
 
-    private function getEstado($porcentaje)
+    /**
+     * Obtener estado detallado (4 niveles)
+     */
+    private function getEstadoDetallado($porcentaje)
     {
-        if ($porcentaje < self::LIMITE_ADVERTENCIA) return 'normal';
-        if ($porcentaje < self::LIMITE_PELIGRO) return 'alerta';
+        if ($porcentaje < self::LIMITE_COMPRAR) return 'normal';
+        if ($porcentaje < self::LIMITE_DANO) return 'comprar';
+        if ($porcentaje < self::LIMITE_CAMBIO) return 'dano';
         return 'critico';
+    }
+
+    /**
+     * Obtener estado general (3 niveles para compatibilidad)
+     */
+    public function getEstadoGeneralAttribute()
+    {
+        $maxPorcentaje = max($this->bombas_porcentaje, $this->vapor_porcentaje);
+        
+        if ($maxPorcentaje >= self::LIMITE_CAMBIO) return 'critico';
+        if ($maxPorcentaje >= self::LIMITE_COMPRAR) return 'alerta';
+        return 'normal';
     }
 
     /**
@@ -155,7 +209,57 @@ class Elongacion extends Model
      */
     public function getRequiereCambioAttribute()
     {
-        return $this->bombas_porcentaje >= self::LIMITE_PELIGRO || 
-               $this->vapor_porcentaje >= self::LIMITE_PELIGRO;
+        return $this->bombas_porcentaje >= self::LIMITE_CAMBIO || 
+               $this->vapor_porcentaje >= self::LIMITE_CAMBIO;
+    }
+
+    /**
+     * Verificar si tiene daño
+     */
+    public function getTieneDanoAttribute()
+    {
+        return $this->bombas_porcentaje >= self::LIMITE_DANO || 
+               $this->vapor_porcentaje >= self::LIMITE_DANO;
+    }
+
+    /**
+     * Verificar si requiere compra
+     */
+    public function getRequiereCompraAttribute()
+    {
+        $maxPorcentaje = max($this->bombas_porcentaje, $this->vapor_porcentaje);
+        return $maxPorcentaje >= self::LIMITE_COMPRAR && $maxPorcentaje < self::LIMITE_CAMBIO;
+    }
+
+    /**
+     * Obtener el color del estado para UI
+     */
+    public function getColorEstadoAttribute()
+    {
+        $estado = $this->estado_detallado ?? $this->getEstadoGeneralAttribute();
+        
+        switch ($estado) {
+            case 'critico': return 'red';
+            case 'dano': return 'orange';
+            case 'comprar': return 'yellow';
+            case 'alerta': return 'amber';
+            default: return 'green';
+        }
+    }
+
+    /**
+     * Obtener el icono del estado
+     */
+    public function getIconoEstadoAttribute()
+    {
+        $estado = $this->estado_detallado ?? $this->getEstadoGeneralAttribute();
+        
+        switch ($estado) {
+            case 'critico': return 'fa-exclamation-circle';
+            case 'dano': return 'fa-exclamation-triangle';
+            case 'comprar': return 'fa-shopping-cart';
+            case 'alerta': return 'fa-exclamation-triangle';
+            default: return 'fa-check-circle';
+        }
     }
 }

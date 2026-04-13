@@ -177,7 +177,7 @@
             </a>
 
             {{-- ANALISIS 52-12-4 --}}
-            <a href="{{ route('analisis-tendencia-mensual.index') }}" 
+            <a href="{{ route('analisis-tendencia-mensual.lavadora.index') }}" 
                class="group relative bg-white rounded-3xl shadow-lg hover:shadow-2xl transition-all duration-500 overflow-hidden hover:-translate-y-2">
                 
                 <div class="absolute top-0 left-0 right-0 h-2" style="background-color: rgb(31, 35, 72);"></div>

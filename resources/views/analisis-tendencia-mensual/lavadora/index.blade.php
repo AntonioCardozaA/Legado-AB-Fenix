@@ -193,7 +193,7 @@
         background: white;
         border-radius: 20px;
         overflow: hidden;
-        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.02);
+        box-shadow: 0 20px 25px -5px rgba(82, 74, 74, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.02);
         margin-bottom: 32px;
         border: 1px solid var(--border);
     }
@@ -507,7 +507,7 @@
                 Analisis 52-12-4
             </h1>
         </div>
-            <a href="{{ route('analisis-tendencia-mensual.create', $lineaSeleccionada ? ['linea_id' => $lineaSeleccionada] : []) }}" 
+            <a href="{{ route('analisis-tendencia-mensual.lavadora.create', $lineaSeleccionada ? ['linea_id' => $lineaSeleccionada] : []) }}" 
                class="btn-industrial">
                 <i class="fas fa-plus-circle"></i>
                 <span>NUEVO ANÁLISIS</span>
@@ -524,7 +524,7 @@
         
         <div class="machine-grid">
             @foreach($lineas as $linea)
-                <a href="{{ route('analisis-tendencia-mensual.index', ['linea_id' => $linea->id]) }}" 
+                <a href="{{ route('analisis-tendencia-mensual.lavadora.index', ['linea_id' => $linea->id]) }}" 
                    class="machine-pill {{ $lineaSeleccionada == $linea->id ? 'machine-pill-active' : 'machine-pill-inactive' }}">
                     <i class="fas fa-washing-machine"></i>
                     {{ $linea->nombre }}
@@ -546,15 +546,15 @@
                             <th colspan="3" class="group-header">4 SEMANAS</th>
                         </tr>
                         <tr>
-                            <th class="bg-gray-700">TOTAL</th>
-                            <th class="bg-gray-700">VS MES ANT</th>
-                            <th class="bg-gray-700">TENDENCIA</th>
-                            <th class="bg-gray-700">TOTAL</th>
-                            <th class="bg-gray-700">VS MES ANT</th>
-                            <th class="bg-gray-700">TENDENCIA</th>
-                            <th class="bg-gray-700">TOTAL</th>
-                            <th class="bg-gray-700">VS MES ANT</th>
-                            <th class="bg-gray-700">TENDENCIA</th>
+                            <th class="bg-gray-300">TOTAL</th>
+                            <th class="bg-gray-500">VS MES ANT</th>
+                            <th class="bg-gray-500">TENDENCIA</th>
+                            <th class="bg-gray-500">TOTAL</th>
+                            <th class="bg-gray-500">VS MES ANT</th>
+                            <th class="bg-gray-500">TENDENCIA</th>
+                            <th class="bg-gray-500">TOTAL</th>
+                            <th class="bg-gray-500">VS MES ANT</th>
+                            <th class="bg-gray-500">TENDENCIA</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -579,10 +579,7 @@
                                             <span class="current-badge">ACTUAL</span>
                                         @endif
                                     </div>
-                                    <div class="period-sub">
-                                        <i class="far fa-calendar-alt mr-1"></i>
-                                        Semana {{ $item->semana ?? '—' }}
-                                    </div>
+                                   
                                 </td>
 
                                 {{-- 52 Semanas --}}
@@ -691,7 +688,7 @@
                 </div>
                 <h3>SIN DATOS DISPONIBLES</h3>
                 <p>No se encontraron análisis para {{ $lineas->find($lineaSeleccionada)?->nombre }}</p>
-                <a href="{{ route('analisis-tendencia-mensual-lavadora.create', ['linea_id' => $lineaSeleccionada]) }}" 
+                <a href="{{ route('analisis-tendencia-mensual.lavadora.create', ['linea_id' => $lineaSeleccionada]) }}" 
                    class="btn-industrial">
                     <i class="fas fa-plus-circle"></i>
                     INICIAR PRIMER ANÁLISIS
