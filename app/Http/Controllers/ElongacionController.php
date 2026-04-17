@@ -6,6 +6,7 @@ use App\Models\Elongacion;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use App\Services\WhatsAppService;
+use Illuminate\Support\Facades\DB;
 
 class ElongacionController extends Controller
 {
@@ -20,14 +21,29 @@ class ElongacionController extends Controller
     {
         $query = Elongacion::query();
         
+        $hasLineaFilter = $request->has('linea') && !empty($request->linea);
+        $hasEstadoFilter = $request->has('estado') && !empty($request->estado);
+        
         // Filtrar por línea
-        if ($request->has('linea') && !empty($request->linea)) {
+        if ($hasLineaFilter) {
             $query->porLinea($request->linea);
         }
         
         // Filtrar por estado
-        if ($request->has('estado') && !empty($request->estado)) {
+        if ($hasEstadoFilter) {
             $query->porEstado($request->estado);
+        }
+        
+        // 🎯 NUEVA LÓGICA: Si NO hay filtros (ni línea ni estado), mostrar SOLO el último registro de cada línea
+        // Esto permite un monitoreo rápido del estado actual de todas las líneas
+        if (!$hasLineaFilter && !$hasEstadoFilter) {
+            // Obtener los IDs de los últimos registros por línea (el más reciente de cada una)
+            $ultimosIds = Elongacion::select(DB::raw('MAX(id) as id'))
+                                    ->groupBy('linea')
+                                    ->pluck('id');
+            
+            // Filtrar el query para que solo incluya esos IDs (los últimos registros)
+            $query->whereIn('id', $ultimosIds);
         }
         
         // Ordenar por fecha descendente y paginar

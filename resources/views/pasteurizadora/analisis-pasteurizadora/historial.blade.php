@@ -83,82 +83,16 @@
                 <h1 class="text-3xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
                     Historial de Registros
                 </h1>
-                <p class="text-gray-500 mt-1">Pasteurizadora - Seguimiento de análisis</p>
             </div>
         </div>
 
-        <a href="{{ route('analisis-pasteurizadora.index') }}"
+        <a href="{{ route('pasteurizadora.analisis-pasteurizadora.index') }}"
            class="group inline-flex items-center px-5 py-2.5 bg-gradient-to-r from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 text-gray-700 rounded-xl transition-all shadow-sm hover:shadow-md">
             <svg class="w-5 h-5 mr-2 group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
             </svg>
             Volver
         </a>
-    </div>
-    
-    {{-- Filtros --}}
-    <div class="filters-container">
-        <form method="GET" action="{{ route('analisis-pasteurizadora.historial') }}" class="space-y-4">
-            <div class="lineas-grid">
-                <a href="{{ route('analisis-pasteurizadora.historial') }}" 
-                   class="linea-btn {{ !request('linea_id') ? 'active' : '' }}">
-                    <i class="fas fa-globe"></i> Todas
-                </a>
-                @foreach($lineas as $l)
-                    <a href="{{ route('analisis-pasteurizadora.historial', ['linea_id' => $l->id]) }}" 
-                       class="linea-btn {{ request('linea_id') == $l->id ? 'active' : '' }}">
-                        <i class="fas fa-temperature-high"></i> {{ $l->nombre }}
-                    </a>
-                @endforeach
-            </div>
-            
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div>
-                    <label class="block text-xs font-semibold text-gray-600 mb-1">Módulo</label>
-                    <select name="modulo" class="w-full rounded-lg border-gray-300 text-sm">
-                        <option value="">Todos</option>
-                        @for($i = 1; $i <= 16; $i++)
-                            <option value="{{ $i }}" {{ request('modulo') == $i ? 'selected' : '' }}>Módulo {{ $i }}</option>
-                        @endfor
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-gray-600 mb-1">Componente</label>
-                    <select name="componente" class="w-full rounded-lg border-gray-300 text-sm">
-                        <option value="">Todos</option>
-                        @foreach(\App\Models\AnalisisPasteurizadora::COMPONENTES_SENCILLOS as $key => $comp)
-                            <option value="{{ $key }}" {{ request('componente') == $key ? 'selected' : '' }}>{{ $comp['nombre'] }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-gray-600 mb-1">Estado</label>
-                    <select name="estado" class="w-full rounded-lg border-gray-300 text-sm">
-                        <option value="">Todos</option>
-                        @foreach(\App\Models\AnalisisPasteurizadora::ESTADOS as $estado)
-                            <option value="{{ $estado }}" {{ request('estado') == $estado ? 'selected' : '' }}>{{ $estado }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-gray-600 mb-1">Resueltos</label>
-                    <select name="resueltos" class="w-full rounded-lg border-gray-300 text-sm">
-                        <option value="">Todos</option>
-                        <option value="no" {{ request('resueltos') == 'no' ? 'selected' : '' }}>No resueltos</option>
-                        <option value="si" {{ request('resueltos') == 'si' ? 'selected' : '' }}>Resueltos</option>
-                    </select>
-                </div>
-            </div>
-            
-            <div class="flex justify-end gap-2">
-                <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-                    <i class="fas fa-search mr-2"></i> Filtrar
-                </button>
-                <a href="{{ route('analisis-pasteurizadora.historial') }}" class="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300">
-                    <i class="fas fa-times mr-2"></i> Limpiar
-                </a>
-            </div>
-        </form>
     </div>
 
     @if($analisis->count() > 0)
@@ -321,6 +255,23 @@
                                 </div>
                                 @endif
 
+                                {{-- Agregar después de la sección de progreso --}}
+                                @if($item->total_piezas && $item->componentes_revisados && count($item->componentes_revisados) > 0)
+                                <div class="mb-4">
+                                    <div class="flex items-center gap-2 mb-2">
+                                        <i class="fas fa-clipboard-check text-indigo-600 text-sm"></i>
+                                        <span class="text-xs font-semibold text-gray-600 uppercase tracking-wider">Componentes revisados:</span>
+                                    </div>
+                                    <div class="flex flex-wrap gap-1">
+                                        @foreach($item->componentes_revisados as $compNum)
+                                            <span class="inline-flex items-center px-2 py-1 rounded-md bg-indigo-100 text-indigo-700 text-xs font-medium">
+                                                #{{ $compNum }}
+                                            </span>
+                                        @endforeach
+                                    </div>
+                                </div>
+                                @endif
+                                
                                 <div class="bg-gray-50 rounded-xl p-5 border border-gray-200 mb-4">
                                     <div class="flex items-center gap-2 mb-3">
                                         <div class="w-6 h-6 rounded-lg bg-blue-100 flex items-center justify-center">
@@ -373,11 +324,11 @@
                                 @endif
 
                                 <div class="mt-4 flex justify-end gap-2">
-                                    <a href="{{ route('analisis-pasteurizadora.edit', $item->id) }}"
+                                    <a href="{{ route('pasteurizadora.analisis-pasteurizadora.edit', $item->id) }}"
                                        class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition shadow-md text-sm font-medium">
                                         <i class="fas fa-edit"></i> Editar
                                     </a>
-                                    <a href="{{ route('analisis-pasteurizadora.show', $item->id) }}"
+                                    <a href="{{ route('pasteurizadora.analisis-pasteurizadora.show', $item->id) }}"
                                        class="inline-flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition shadow-md text-sm font-medium">
                                         <i class="fas fa-eye"></i> Ver Detalle
                                     </a>

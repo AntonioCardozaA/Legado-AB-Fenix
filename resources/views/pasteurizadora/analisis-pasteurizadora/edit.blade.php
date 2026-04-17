@@ -7,7 +7,7 @@
     {{-- Header --}}
     <div class="mb-8">
         <div class="flex items-center gap-3 mb-4">
-            <a href="{{ route('analisis-pasteurizadora.show', $analisis->id) }}"
+            <a href="{{ route('pasteurizadora.analisis-pasteurizadora.show', $analisis->id) }}"
                class="text-gray-400 hover:text-blue-600 transition">
                 <i class="fas fa-arrow-left text-xl"></i>
             </a>
@@ -42,7 +42,7 @@
 
     {{-- Formulario --}}
     <div class="bg-white rounded-2xl shadow-lg p-8">
-        <form method="POST" action="{{ route('analisis-pasteurizadora.update', $analisis->id) }}" enctype="multipart/form-data">
+        <form method="POST" action="{{ route('pasteurizadora.analisis-pasteurizadora.update', $analisis->id) }}" enctype="multipart/form-data">
             @csrf
             @method('PUT')
 
@@ -50,11 +50,11 @@
                 <div>
                     <label for="modulo" class="block text-sm font-medium text-gray-700 mb-1">
                         <i class="fas fa-cubes text-blue-600 mr-1"></i>
-                        Módulo *
+                        Módulo
                     </label>
                     <input type="number" name="modulo" id="modulo" value="{{ old('modulo', $analisis->modulo) }}"
-                           min="1" max="16" required
-                           class="w-full rounded-lg border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                           min="1" max="16" readonly
+                           class="w-full rounded-lg border-gray-300 bg-gray-100 shadow-sm focus:ring-blue-500 focus:border-blue-500 cursor-not-allowed">
                     @error('modulo')<p class="text-red-500 text-sm mt-1">{{ $message }}</p>@enderror
                 </div>
 
@@ -140,8 +140,42 @@
                 </div>
             </div>
 
+            {{-- Checklist de componentes revisados --}}
+            @php
+                $componentes = \App\Models\AnalisisPasteurizadora::getComponentesPorLinea($analisis->linea->nombre);
+                $totalComponentes = $componentes[$analisis->componente]['cantidad'] ?? 0;
+                $componentesRevisados = $analisis->componentes_revisados ?? [];
+                
+                // Convertir a array de integers para comparación consistente
+                $componentesRevisados = array_map('intval', (array)$componentesRevisados);
+            @endphp
+            
+            @if($totalComponentes > 0)
+            <div class="mb-6 p-4 bg-indigo-50 rounded-lg border border-indigo-200">
+                <h3 class="text-sm font-semibold text-indigo-800 mb-4">
+                    <i class="fas fa-clipboard-check mr-1"></i>
+                    Componentes revisados ({{ count($componentesRevisados) }} de {{ $totalComponentes }})
+                </h3>
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    @for($i = 1; $i <= $totalComponentes; $i++)
+                        <label class="flex items-center gap-3 p-3 bg-white rounded-lg border border-indigo-200 hover:border-indigo-400 hover:shadow-md transition cursor-pointer">
+                            <input type="checkbox" 
+                                   name="componentes_revisados[]" 
+                                   value="{{ $i }}"
+                                   {{ in_array($i, $componentesRevisados, true) ? 'checked' : '' }}
+                                   class="w-4 h-4 text-indigo-600 rounded cursor-pointer focus:ring-indigo-500">
+                            <span class="text-sm font-medium text-gray-700">
+                                <i class="fas fa-cube text-indigo-500 mr-1"></i>
+                                {{ $analisis->componente }} #{{ $i }}
+                            </span>
+                        </label>
+                    @endfor
+                </div>
+            </div>
+            @endif
+
             {{-- Cantidad de piezas revisadas --}}
-            @if($analisis->total_piezas)
+            @if($analisis->total_piezas && !$analisis->componentes_revisados)
             <div class="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
                 <h3 class="text-sm font-semibold text-blue-800 mb-3">
                     <i class="fas fa-clipboard-list mr-1"></i>
@@ -170,16 +204,6 @@
                 <textarea name="actividad" id="actividad" rows="4" required
                           class="w-full rounded-lg border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500">{{ old('actividad', $analisis->actividad) }}</textarea>
                 @error('actividad')<p class="text-red-500 text-sm mt-1">{{ $message }}</p>@enderror
-            </div>
-
-            <div class="mb-6">
-                <label for="observaciones" class="block text-sm font-medium text-gray-700 mb-1">
-                    <i class="fas fa-comment-dots text-blue-600 mr-1"></i>
-                    Observaciones
-                </label>
-                <textarea name="observaciones" id="observaciones" rows="3"
-                          class="w-full rounded-lg border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500">{{ old('observaciones', $analisis->observaciones) }}</textarea>
-                @error('observaciones')<p class="text-red-500 text-sm mt-1">{{ $message }}</p>@enderror
             </div>
 
             {{-- Evidencia fotográfica existente --}}
@@ -222,7 +246,7 @@
 
             {{-- Botones --}}
             <div class="flex gap-4 pt-6 border-t border-gray-200">
-                <a href="{{ route('analisis-pasteurizadora.show', $analisis->id) }}"
+                <a href="{{ route('pasteurizadora.analisis-pasteurizadora.show', $analisis->id) }}"
                    class="flex-1 bg-gray-200 text-gray-700 rounded-lg px-5 py-3 text-center hover:bg-gray-300 transition">
                     Cancelar
                 </a>
@@ -267,7 +291,7 @@
     function eliminarFoto(index) {
         if (confirm('¿Eliminar esta imagen?')) {
             const form = document.getElementById('deleteFotoForm');
-            form.action = "{{ route('analisis-pasteurizadora.delete-foto', ['id' => $analisis->id, 'fotoIndex' => '']) }}/" + index;
+            form.action = "/pasteurizadora/analisis-pasteurizadora/{{ $analisis->id }}/foto/" + index;
             form.submit();
         }
     }

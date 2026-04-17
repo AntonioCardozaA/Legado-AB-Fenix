@@ -18,7 +18,7 @@ class AnalisisMultiExport implements WithMultipleSheets
         $sheets = [];
 
         foreach ($this->analisis as $lavadora => $items) {
-            $sheets[] = new AnalisisPorLavadoraSheet($lavadora, $items);
+            $sheets[] = new AnalisisLavadoraSheet($lavadora);
         }
 
         return $sheets;

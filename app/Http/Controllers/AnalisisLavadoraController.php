@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 use App\Exports\AnalisisComponentesExport;
+use App\Exports\AnalisisLavadoraExport;
 use Maatwebsite\Excel\Facades\Excel;
 use Barryvdh\DomPDF\Facade\Pdf;
 use App\Services\WhatsAppService;
@@ -759,7 +760,7 @@ public function update(Request $request, $id)
     /**
      * ELIMINAR FOTO
      */
-    public function deleteFoto(AnalisisComponente $analisisComponente, $fotoIndex)
+    public function deleteFoto(AnalisisLavadora $analisisComponente, $fotoIndex)
     {
         $fotos = json_decode($analisisComponente->evidencia_fotos ?? '[]', true) ?? [];
         

@@ -5,7 +5,20 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @property int $id
+ * @property int|null $linea_id
+ * @property int|null $responsable_id
+ * @property string|null $actividad
+ * @property Carbon|null $fecha_pcm1
+ * @property Carbon|null $fecha_pcm2
+ * @property Carbon|null $fecha_pcm3
+ * @property Carbon|null $fecha_pcm4
+ * @property string|null $estado
+ * @property array<int, string>|null $tipo_maquina
+ */
 class PlanAccion extends Model
 {
     use HasFactory;
@@ -36,12 +49,12 @@ class PlanAccion extends Model
         'tipo_maquina' => 'array' // Laravel convertirá automáticamente JSON a array
     ];
 
-    public function linea()
+    public function linea(): BelongsTo
     {
         return $this->belongsTo(Linea::class, 'linea_id');
     }
 
-    public function responsable()
+    public function responsable(): BelongsTo
     {
         return $this->belongsTo(User::class, 'responsable_id');
     }

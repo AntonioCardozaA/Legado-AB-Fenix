@@ -2,10 +2,24 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 
+/**
+ * @property int $id
+ * @property int|null $linea_id
+ * @property int|null $componente_id
+ * @property string|null $reductor
+ * @property Carbon|null $fecha_analisis
+ * @property array<int, string>|null $evidencia_fotos
+ * @property Linea|null $linea
+ * @property Componente|null $componente
+ */
 class AnalisisLavadora extends Model
 {
     use HasFactory;
@@ -32,7 +46,7 @@ class AnalisisLavadora extends Model
     /**
      * Relación con la línea (lavadora)
      */
-    public function linea()
+    public function linea(): BelongsTo
     {
         return $this->belongsTo(Linea::class);
     }
@@ -40,7 +54,7 @@ class AnalisisLavadora extends Model
     /**
      * Relación con el componente
      */
-    public function componente()
+    public function componente(): BelongsTo
     {
         return $this->belongsTo(Componente::class);
     }
@@ -48,7 +62,7 @@ class AnalisisLavadora extends Model
     /**
      * Relación futura
      */
-    public function analisisGeneral()
+    public function analisisGeneral(): BelongsTo
     {
         return $this->belongsTo(AnalisisGeneral::class);
     }
@@ -56,7 +70,7 @@ class AnalisisLavadora extends Model
     /**
      * Scopes
      */
-    public function scopeLinea($query, $lineaId)
+    public function scopeLinea(Builder $query, mixed $lineaId): Builder
     {
         if ($lineaId) {
             return $query->where('linea_id', $lineaId);
@@ -64,7 +78,7 @@ class AnalisisLavadora extends Model
         return $query;
     }
 
-    public function scopeComponente($query, $componenteId)
+    public function scopeComponente(Builder $query, mixed $componenteId): Builder
     {
         if ($componenteId) {
             return $query->where('componente_id', $componenteId);
@@ -72,7 +86,7 @@ class AnalisisLavadora extends Model
         return $query;
     }
 
-    public function scopeReductor($query, $reductor)
+    public function scopeReductor(Builder $query, mixed $reductor): Builder
     {
         if ($reductor) {
             return $query->where('reductor', $reductor);
@@ -80,7 +94,7 @@ class AnalisisLavadora extends Model
         return $query;
     }
 
-    public function scopeMes($query, $fecha)
+    public function scopeMes(Builder $query, mixed $fecha): Builder
     {
         if ($fecha) {
             return $query->whereMonth('fecha_analisis', date('m', strtotime($fecha)))
@@ -88,7 +102,7 @@ class AnalisisLavadora extends Model
         }
         return $query;
     }
-    public function planAccion()
+    public function planAccion(): HasMany
     {
         return $this->hasMany(PlanAccion::class);
     }
@@ -128,7 +142,7 @@ class AnalisisLavadora extends Model
         /**
      * Relación con el historial de restablecimientos
      */
-    public function historialRestablecimientos()
+    public function historialRestablecimientos(): HasMany
     {
         return $this->hasMany(HistorialRestablecimiento::class, 'analisis_id');
     }

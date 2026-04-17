@@ -7,19 +7,20 @@ use Illuminate\Pagination\Paginator;
 
 class AppServiceProvider extends ServiceProvider
 {
-    public function register()
+    public function register(): void
     {
         //
     }
     
-    public function boot()
+    public function boot(): void
     {
         Paginator::useTailwind();
         
         // Compartir datos comunes con todas las vistas
         view()->composer('*', function ($view) {
-            if (auth()->check()) {
-                $view->with('userRoles', auth()->user()->getRoleNames());
+            $user = auth()->user();
+            if ($user) {
+                $view->with('userRoles', $user->getRoleNames());
             }
         });
     }

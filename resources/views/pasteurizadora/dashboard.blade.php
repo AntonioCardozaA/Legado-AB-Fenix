@@ -13,7 +13,7 @@
                     <div class="flex items-center gap-3 mb-2">
                         <!-- Imagen a la izquierda (icono de pasteurizadora) -->
                         <div class="w-32 h-32 mb-4 flex items-center justify-center">
-                            <img src="{{ asset('images/icono-pasteurizadora.png') }}" 
+                            <img src="{{ asset('images/icono_pas.png') }}" 
                                  alt="Icono de Pasteurizadora" 
                                  class="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300">
                         </div>
@@ -47,7 +47,7 @@
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
             
             {{-- ANALISIS PASTEURIZADORA --}}
-            <a href="{{ route('analisis-pasteurizadora.index') }}" 
+            <a href="{{ route('pasteurizadora.analisis-pasteurizadora.index') }}" 
                class="group relative bg-white rounded-3xl shadow-lg hover:shadow-2xl transition-all duration-500 overflow-hidden hover:-translate-y-2">
                 
                 {{-- Barra superior con el color especificado --}}
@@ -84,7 +84,7 @@
             </a>
 
             {{-- HISTORICO (reubicado en la posición que dejó ELONGACIÓN) --}}
-            <a href="{{ route('analisis-pasteurizadora.historico-revisados') }}" 
+            <a href="{{ route('pasteurizadora.analisis-pasteurizadora.historico-revisados') }}" 
                class="group relative bg-white rounded-3xl shadow-lg hover:shadow-2xl transition-all duration-500 overflow-hidden hover:-translate-y-2">
                 
                 <div class="absolute top-0 left-0 right-0 h-2" style="background-color: rgb(31, 35, 72);"></div>
@@ -115,7 +115,7 @@
             </a>
 
             {{-- PLAN DE ACCION --}}
-            <a href="{{ route('analisis-pasteurizadora.plan-accion') }}" 
+            <a href="{{ route('pasteurizadora.analisis-pasteurizadora.plan-accion.index') }}" 
                class="group relative bg-white rounded-3xl shadow-lg hover:shadow-2xl transition-all duration-500 overflow-hidden hover:-translate-y-2">
                 
                 <div class="absolute top-0 left-0 right-0 h-2" style="background-color: rgb(31, 35, 72);"></div>
@@ -174,43 +174,6 @@
                     </div>
                 </div>
             </a>
-        </div>
-
-        {{-- FOOTER CON ESTADÍSTICAS RÁPIDAS (OPCIONAL) --}}
-        <div class="mt-12 grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div class="bg-white/60 backdrop-blur-sm rounded-2xl p-4 border border-gray-200">
-                <div class="flex items-center gap-3">
-                    <div class="p-3 rounded-xl" style="background: linear-gradient(135deg, rgb(31, 35, 72), rgb(51, 55, 92));">
-                        <i class="fas fa-chart-line text-white"></i>
-                    </div>
-                    <div>
-                        <p class="text-xs text-gray-500">Análisis este mes</p>
-                        <p class="text-xl font-bold text-gray-800">156</p>
-                    </div>
-                </div>
-            </div>
-            <div class="bg-white/60 backdrop-blur-sm rounded-2xl p-4 border border-gray-200">
-                <div class="flex items-center gap-3">
-                    <div class="p-3 rounded-xl" style="background: linear-gradient(135deg, rgb(31, 35, 72), rgb(51, 55, 92));">
-                        <i class="fas fa-exclamation-triangle text-white"></i>
-                    </div>
-                    <div>
-                        <p class="text-xs text-gray-500">Componentes críticos</p>
-                        <p class="text-xl font-bold text-gray-800">12</p>
-                    </div>
-                </div>
-            </div>
-            <div class="bg-white/60 backdrop-blur-sm rounded-2xl p-4 border border-gray-200">
-                <div class="flex items-center gap-3">
-                    <div class="p-3 rounded-xl" style="background: linear-gradient(135deg, rgb(31, 35, 72), rgb(51, 55, 92));">
-                        <i class="fas fa-check-circle text-white"></i>
-                    </div>
-                    <div>
-                        <p class="text-xs text-gray-500">Acciones completadas</p>
-                        <p class="text-xl font-bold text-gray-800">89%</p>
-                    </div>
-                </div>
-            </div>
         </div>
     </div>
 </div>

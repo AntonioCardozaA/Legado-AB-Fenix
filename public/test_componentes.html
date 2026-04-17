@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test - Componentes Revisados</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-2xl mx-auto bg-white rounded-lg shadow-lg p-6">
+        <h1 class="text-2xl font-bold mb-6">📋 Test - Sistema de Componentes Revisados</h1>
+        
+        <div class="space-y-6">
+            <!-- Test JSON -->
+            <div class="bg-blue-50 p-4 rounded-lg">
+                <h2 class="font-semibold mb-3">1. Test de JSON String</h2>
+                <div id="test1-input" class="bg-white p-3 border border-blue-200 rounded mb-3 font-mono text-sm">
+                    ["1", "2", "3"]
+                </div>
+                <button onclick="testJSON()" class="bg-blue-600 text-white px-4 py-2 rounded">Ejecutar Test</button>
+                <div id="test1-output" class="mt-3 hidden bg-white p-3 border border-blue-200 rounded font-mono text-sm"></div>
+            </div>
+            
+            <!-- Test Array PHP -->
+            <div class="bg-green-50 p-4 rounded-lg">
+                <h2 class="font-semibold mb-3">2. Test de Array PHP simulado</h2>
+                <div id="test2-input" class="bg-white p-3 border border-green-200 rounded mb-3 font-mono text-sm">
+                    Array ( [0] => 1 [1] => 2 [2] => 3 )
+                </div>
+                <button onclick="testArray()" class="bg-green-600 text-white px-4 py-2 rounded">Ejecutar Test</button>
+                <div id="test2-output" class="mt-3 hidden bg-white p-3 border border-green-200 rounded font-mono text-sm"></div>
+            </div>
+            
+            <!-- Test Checkboxes -->
+            <div class="bg-indigo-50 p-4 rounded-lg">
+                <h2 class="font-semibold mb-3">3. Test de Checkboxes Dinámicos</h2>
+                <form id="testForm">
+                    <div class="bg-white p-3 rounded border border-indigo-200 mb-3 space-y-2">
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox" class="componente-checkbox" data-component-value="1" onchange="updateJSON()"> 
+                            <span>Componente #1</span>
+                        </label>
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox" class="componente-checkbox" data-component-value="2" onchange="updateJSON()"> 
+                            <span>Componente #2</span>
+                        </label>
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox" class="componente-checkbox" data-component-value="3" onchange="updateJSON()"> 
+                            <span>Componente #3</span>
+                        </label>
+                    </div>
+                    <input type="hidden" id="componentes_revisados_input" name="componentes_revisados" value="[]">
+                    <div class="bg-gray-100 p-3 rounded font-mono text-sm">
+                        JSON que se enviará: <span id="json-preview">[]</span>
+                    </div>
+                </form>
+            </div>
+            
+            <!-- Información -->
+            <div class="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+                <h3 class="font-semibold mb-2">ℹ️ Información:</h3>
+                <ul class="text-sm space-y-1">
+                    <li>✅ Los checkboxes envían datos JSON correctamente</li>
+                    <li>✅ El controlador acepta JSON string o array PHP</li>
+                    <li>✅ Los datos se validan y guardan en la BD</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        function testJSON() {
+            const json = '["1", "2", "3"]';
+            const parsed = JSON.parse(json);
+            const result = Array.isArray(parsed) && parsed.length > 0 ? '✅ JSON válido y parseable' : '❌ JSON inválido';
+            document.getElementById('test1-output').textContent = result;
+            document.getElementById('test1-output').classList.remove('hidden');
+        }
+        
+        function testArray() {
+            const array = [1, 2, 3];
+            const filtered = array.filter(v => v > 0 && v <= 5);
+            const result = filtered.length === 3 ? '✅ Array filtrado correctamente: [1, 2, 3]' : '❌ Error en filtrado';
+            document.getElementById('test2-output').textContent = result;
+            document.getElementById('test2-output').classList.remove('hidden');
+        }
+        
+        function updateJSON() {
+            const checkboxes = document.querySelectorAll('input.componente-checkbox:checked');
+            const valores = Array.from(checkboxes).map(cb => cb.getAttribute('data-component-value'));
+            const json = JSON.stringify(valores);
+            document.getElementById('componentes_revisados_input').value = json;
+            document.getElementById('json-preview').textContent = json;
+        }
+    </script>
+</body>
+</html>

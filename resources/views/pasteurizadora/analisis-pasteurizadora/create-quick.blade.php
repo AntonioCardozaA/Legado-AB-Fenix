@@ -8,7 +8,7 @@
         {{-- Encabezado --}}
         <div class="mb-8">
             <div class="flex items-center gap-3 mb-4">
-                <a href="{{ route('analisis-pasteurizadora.index', request()->query()) }}"
+                <a href="{{ route('pasteurizadora.analisis-pasteurizadora.index', request()->query()) }}"
                    class="text-gray-400 hover:text-blue-600 transition">
                     <i class="fas fa-arrow-left text-xl"></i>
                 </a>
@@ -70,11 +70,13 @@
         </div>
         
         {{-- Formulario --}}
-        <form action="{{ route('analisis-pasteurizadora.store-quick') }}" 
+        <form action="{{ route('pasteurizadora.analisis-pasteurizadora.store-quick') }}" 
               method="POST"
               enctype="multipart/form-data"
-              class="space-y-6">
+              class="space-y-6"
+              id="analisisForm">
             @csrf
+        
             
             {{-- Campos ocultos --}}
             <input type="hidden" name="linea_id" value="{{ $linea->id ?? '' }}">
@@ -113,6 +115,24 @@
                     <option value="INFERIOR" {{ old('nivel') == 'INFERIOR' ? 'selected' : '' }}>⬇️ Nivel Inferior</option>
                 </select>
             </div>
+
+            {{-- Sección de checklist dinámico de componentes --}}
+            <div id="checklist-container" class="hidden">
+                <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-200">
+                    <label class="block text-sm font-bold text-gray-800 mb-4">
+                        <i class="fas fa-clipboard-check text-blue-600 mr-2"></i>
+                        Seleccione los componentes revisados
+                    </label>
+                    <div id="componentes-checklist" class="grid grid-cols-2 md:grid-cols-3 gap-3">
+                        <!-- Los checkboxes se generarán dinámicamente aquí -->
+                    </div>
+                    <input type="hidden" name="componentes_revisados" id="componentes_revisados_input" value="">
+                </div>
+                <p class="text-sm text-gray-600 mt-2">
+                    <i class="fas fa-info-circle text-blue-500 mr-1"></i>
+                    Marque los componentes que fueron revisados en este análisis
+                </p>
+            </div>
             
             {{-- Fecha --}}
             <div>
@@ -142,7 +162,7 @@
                        value="{{ old('numero_orden') }}"
                        required
                        maxlength="8"
-                       placeholder=""
+                       placeholder="Ej: OT-2024-001"
                        class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500 shadow-sm
                        @error('numero_orden') border-red-500 @enderror">
                 @error('numero_orden')
@@ -209,7 +229,7 @@
             
             {{-- Botones --}}
             <div class="flex gap-4 pt-6 border-t border-gray-200">
-                <a href="{{ route('analisis-pasteurizadora.index', request()->query()) }}"
+                <a href="{{ route('pasteurizadora.analisis-pasteurizadora.index', request()->query()) }}"
                    class="flex-1 bg-gray-200 text-gray-700 rounded-lg px-5 py-3 text-center hover:bg-gray-300 transition-all shadow-md">
                     Cancelar
                 </a>
@@ -225,6 +245,129 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // ============================================================
+    // CHECKLIST DINÁMICO DE COMPONENTES
+    // ============================================================
+    
+    const checklist_container = document.getElementById('checklist-container');
+    const componentes_checklist = document.getElementById('componentes-checklist');
+    const componentes_revisados_input = document.getElementById('componentes_revisados_input');
+    
+    // Obtener el componente actual de la URL o del campo hidden
+    const componenteActual = '{{ $componente ?? '' }}';
+    const lineaNombre = '{{ $linea->nombre ?? '' }}';
+    const totalPiezasBackend = {{ $totalPiezas ?? 0 }};
+    
+    console.log('Componente actual:', componenteActual);
+    console.log('Línea:', lineaNombre);
+    console.log('Total piezas (backend):', totalPiezasBackend);
+    
+    // Configuración de componentes con sus cantidades
+    const componentesConfig = {
+        @php
+            $linea = $linea ?? null;
+            if ($linea) {
+                $componentes = \App\Models\AnalisisPasteurizadora::getComponentesPorLinea($linea->nombre);
+                foreach ($componentes as $codigo => $comp) {
+                    $codigoLimpio = addslashes($codigo);
+                    echo "'{$codigoLimpio}': " . $comp['cantidad'] . ",\n";
+                }
+            }
+        @endphp
+    };
+    
+    console.log('Configuración de componentes:', componentesConfig);
+    
+    function generarChecklist() {
+        // Limpiar el componente actual
+        const componenteKey = componenteActual.trim().toUpperCase();
+        
+        // Buscar la cantidad
+        let cantidad = totalPiezasBackend;
+        
+        // Si no hay cantidad del backend, buscar en el mapa
+        if (cantidad === 0) {
+            if (componentesConfig[componenteKey] !== undefined) {
+                cantidad = componentesConfig[componenteKey];
+            } else {
+                for (const [key, value] of Object.entries(componentesConfig)) {
+                    if (key.toUpperCase() === componenteKey) {
+                        cantidad = value;
+                        break;
+                    }
+                }
+            }
+        }
+        
+        console.log('Cantidad encontrada para', componenteKey, ':', cantidad);
+        
+        if (cantidad > 0) {
+            checklist_container.classList.remove('hidden');
+            componentes_checklist.innerHTML = '';
+            
+            // Obtener el nombre del componente
+            let componenteNombre = '{{ $nombreComponente ?? $componente ?? "Componente" }}';
+            
+            for (let i = 1; i <= cantidad; i++) {
+                const id = `componente_${i}`;
+                const label = document.createElement('label');
+                label.className = 'flex items-center gap-3 p-3 bg-white rounded-lg border border-gray-200 hover:border-blue-400 hover:shadow-md transition cursor-pointer';
+                label.innerHTML = `
+                    <input type="checkbox" 
+                           data-component-value="${i}" 
+                           id="${id}"
+                           class="w-5 h-5 text-blue-600 rounded cursor-pointer focus:ring-blue-500 componente-checkbox"
+                           onchange="window.actualizarComponentesRevisados()">
+                    <span class="flex-1 text-gray-700 font-medium">
+                        <i class="fas fa-cube text-blue-500 mr-2"></i>
+                        ${componenteNombre} #${i}
+                    </span>
+                `;
+                componentes_checklist.appendChild(label);
+            }
+            
+            actualizarComponentesRevisados();
+        } else {
+            checklist_container.classList.add('hidden');
+            componentes_checklist.innerHTML = '';
+            console.warn('No se encontró cantidad para el componente:', componenteActual);
+        }
+    }
+    
+    function actualizarComponentesRevisados() {
+        const checkboxes = document.querySelectorAll('input.componente-checkbox:checked');
+        const valores = Array.from(checkboxes).map(cb => parseInt(cb.getAttribute('data-component-value')));
+        const json = JSON.stringify(valores);
+        
+        if (componentes_revisados_input) {
+            componentes_revisados_input.value = json;
+        }
+        
+        console.log('Componentes seleccionados:', valores);
+        console.log('JSON a enviar:', json);
+        
+        const debugElement = document.getElementById('debug-json');
+        const jsonValueElement = document.getElementById('json-value');
+        if (valores.length > 0) {
+            if (debugElement) debugElement.classList.remove('hidden');
+            if (jsonValueElement) jsonValueElement.textContent = json;
+        } else {
+            if (debugElement) debugElement.classList.add('hidden');
+        }
+    }
+    
+    window.actualizarComponentesRevisados = actualizarComponentesRevisados;
+    
+    if (componenteActual) {
+        generarChecklist();
+    } else {
+        console.warn('No hay componente definido');
+    }
+    
+    // ============================================================
+    // PREVIEW DE IMÁGENES
+    // ============================================================
+    
     const inputFotos = document.querySelector('input[name="evidencia_fotos[]"]');
     const previewFotos = document.getElementById('preview_fotos');
     
@@ -277,30 +420,35 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Validar cantidad de piezas
-    const revisadasInput = document.getElementById('revisadas_piezas');
-    if (revisadasInput) {
-        const max = parseInt(revisadasInput.getAttribute('max') || '0');
-        revisadasInput.addEventListener('change', function() {
-            let value = parseInt(this.value);
-            if (isNaN(value)) value = 0;
-            if (value > max) {
-                this.value = max;
-                alert(`La cantidad no puede ser mayor a ${max}`);
-            }
-            if (value < 0) {
-                this.value = 0;
-            }
-        });
-    }
+    // ============================================================
+    // VALIDACIÓN DEL FORMULARIO
+    // ============================================================
     
-    document.querySelector('form').addEventListener('submit', function(e) {
+    document.getElementById('analisisForm').addEventListener('submit', function(e) {
         const lado = document.getElementById('lado');
         if (lado && !lado.value) {
             e.preventDefault();
             alert('Debe seleccionar el lado del análisis (Vapor o Pasillo).');
             lado.focus();
             return;
+        }
+        
+        if (checklist_container && !checklist_container.classList.contains('hidden')) {
+            const checkboxes = document.querySelectorAll('input.componente-checkbox:checked');
+            if (checkboxes.length === 0) {
+                e.preventDefault();
+                alert('Debe seleccionar al menos un componente revisado.');
+                return;
+            }
+            
+            const jsonValue = componentes_revisados_input ? componentes_revisados_input.value : '';
+            console.log('Enviando componentes_revisados:', jsonValue);
+            
+            if (!jsonValue || jsonValue === '[]') {
+                e.preventDefault();
+                alert('Error: No se pudieron guardar los componentes seleccionados.');
+                return;
+            }
         }
     });
 });

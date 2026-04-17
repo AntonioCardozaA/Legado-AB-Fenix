@@ -664,16 +664,6 @@
         display: flex;
     }
     
-    .lineas-modal-content {
-        background: white;
-        border-radius: 24px;
-        max-width: 800px;
-        width: 100%;
-        max-height: 80vh;
-        overflow: hidden;
-        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-    }
-    
     .lineas-modal-header {
         padding: 20px 24px;
         background: linear-gradient(135deg, #f8fafc, #f1f5f9);
@@ -1224,13 +1214,6 @@
                         </div>
                     @endforeach
                     
-                    @if($todasLasLineas->count() > 0)
-                        <div class="ver-mas-btn" onclick="showAllLineas()">
-                            <i class="fas fa-ellipsis-h"></i>
-                            Ver más
-                        </div>
-                    @endif
-                    
                     {{-- Select oculto para el valor real --}}
                     <input type="hidden" name="linea_id" id="lineaInput" value="{{ request('linea_id') }}">
                     <input type="hidden" name="componente_id" value="{{ request('componente_id') }}">
@@ -1318,37 +1301,6 @@
             </form>
         </div>
     @endif
-
-    {{-- MODAL PARA VER MÁS LAVADORAS --}}
-    <div id="lineasModal" class="lineas-modal">
-        <div class="lineas-modal-content">
-            <div class="lineas-modal-header">
-                <h3>
-                    <i class="fas fa-washing-machine"></i>
-                    Otras Líneas
-                </h3>
-                <button onclick="closeLineasModal()" class="close-modal-btn">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            <div class="lineas-modal-body">
-                <div class="lineas-modal-grid">
-                    @foreach($todasLasLineas as $l)
-                        <div class="linea-item {{ request('linea_id') == $l->id ? 'active' : '' }}" 
-                             onclick="selectLineaFromModal('{{ $l->id }}')">
-                            <i class="fas fa-washing-machine"></i>
-                            {{ $l->nombre }}
-                        </div>
-                    @endforeach
-                    @if($todasLasLineas->count() == 0)
-                        <p class="text-gray-500 col-span-full text-center py-8">
-                            No hay más lavadoras disponibles
-                        </p>
-                    @endif
-                </div>
-            </div>
-        </div>
-    </div>
 
     {{-- DIAGRAMA DE LAVADORA SEGÚN LÍNEA SELECCIONADA --}}
     @if(!$mostrarTodas && isset($lineaSeleccionada))

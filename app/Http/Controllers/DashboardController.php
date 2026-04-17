@@ -7,9 +7,11 @@ use App\Models\Linea;
 use App\Models\Elongacion;
 use App\Models\PlanAccion;
 use App\Models\AnalisisTendenciaMensualLavadora;
+use App\Models\AnalisisPasteurizadora;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
+
 class DashboardController extends Controller
 {
     /**
@@ -17,6 +19,10 @@ class DashboardController extends Controller
      */
     public function index(Request $request)
     {
+        // ============================================================
+        // SECCIÓN LAVADORA (Código existente)
+        // ============================================================
+        
         // 1. Obtener todas las líneas de lavadora activas
         $lineasLavadora = Linea::where('activo', true)
             ->whereIn('nombre', ['L-04', 'L-05', 'L-06', 'L-07', 'L-08', 'L-09', 'L-12', 'L-13'])
@@ -46,6 +52,38 @@ class DashboardController extends Controller
 
         // 9. Datos para el análisis 52-12-4 (últimos registros)
         $analisis52124 = $this->getAnalisis52124($lineasLavadora);
+
+        // ============================================================
+        // SECCIÓN PASTEURIZADORA (NUEVO CÓDIGO)
+        // ============================================================
+        
+        // Obtener las pasteurizadoras (P-03 a P-14)
+        $pasteurizadorasPermitidas = ['P-03', 'P-04', 'P-05', 'P-06', 'P-07', 'P-08', 'P-09', 'P-10', 'P-11', 'P-12', 'P-13', 'P-14'];
+        $pasteurizadoras = Linea::whereIn('nombre', $pasteurizadorasPermitidas)->get();
+        
+        // Obtener todos los análisis de pasteurizadora
+        $analisisPasteurizadora = AnalisisPasteurizadora::with('linea')
+            ->where('resuelto_por_cambio', false)
+            ->get();
+        
+        // Resumen general de pasteurizadoras
+        $resumenPasteurizadora = [
+            'total_pasteurizadoras' => $pasteurizadoras->count(),
+            'total_analisis' => $analisisPasteurizadora->count(),
+            'alertas_criticas' => $analisisPasteurizadora->where('estado', 'Dañado - Requiere cambio')->count(),
+            'en_riesgo' => $analisisPasteurizadora->whereIn('estado', ['Desgaste moderado', 'Desgaste severo'])->count(),
+            'buen_estado' => $analisisPasteurizadora->where('estado', 'Buen estado')->count(),
+            'pendientes_accion' => $analisisPasteurizadora->where('estado', 'Dañado - Requiere cambio')
+                ->where('resuelto_por_cambio', false)
+                ->count()
+        ];
+        
+        // Estado detallado de cada pasteurizadora
+        $estadoPasteurizadoras = $this->getEstadoPasteurizadoras($pasteurizadoras, $analisisPasteurizadora);
+        
+        // ============================================================
+        // RETORNAR VISTA CON AMBOS CONJUNTOS DE DATOS
+        // ============================================================
         
         return view('dashboard', compact(
             'lineasLavadora',
@@ -56,8 +94,111 @@ class DashboardController extends Controller
             'componentesDanados',
             'evolucionElongaciones',
             'historicoRevisiones',
-            'analisis52124'
+            'analisis52124',
+            'resumenPasteurizadora',
+            'estadoPasteurizadoras'
         ));
+    }
+    
+    /**
+     * Obtiene el estado detallado de todas las pasteurizadoras.
+     */
+    private function getEstadoPasteurizadoras($pasteurizadoras, $analisisPasteurizadora)
+    {
+        $estadoPasteurizadoras = [];
+        
+        foreach ($pasteurizadoras as $pasteurizadora) {
+            // Análisis de esta pasteurizadora
+            $analisisLinea = $analisisPasteurizadora->where('linea_id', $pasteurizadora->id);
+            
+            // Contar críticos
+            $criticos = $analisisLinea->where('estado', 'Dañado - Requiere cambio');
+            
+            // Calcular progreso de revisión
+            $totalPiezas = 0;
+            $revisadasPiezas = 0;
+            $totalComponentes = 0;
+            $componentesRevisados = 0;
+            
+            // Obtener configuración de componentes según tipo de pasteurizadora
+            $tipoPasteurizadora = AnalisisPasteurizadora::PASTEURIZADORES[$pasteurizadora->nombre]['tipo'] ?? 'sencillo';
+            $componentesLista = $tipoPasteurizadora === 'doble' 
+                ? AnalisisPasteurizadora::COMPONENTES_DOBLES 
+                : AnalisisPasteurizadora::COMPONENTES_SENCILLOS;
+            $totalModulos = AnalisisPasteurizadora::getModulosPorLinea($pasteurizadora->nombre);
+            
+            foreach ($componentesLista as $codigo => $compData) {
+                for ($modulo = 1; $modulo <= $totalModulos; $modulo++) {
+                    $totalPiezas += $compData['cantidad'];
+                    $analisisModulo = $analisisLinea->where('modulo', $modulo)
+                        ->where('componente', $codigo)
+                        ->first();
+                    if ($analisisModulo) {
+                        $revisadasPiezas += $analisisModulo->revisadas_piezas ?? 0;
+                        $totalComponentes++;
+                        if (($analisisModulo->revisadas_piezas ?? 0) >= $compData['cantidad']) {
+                            $componentesRevisados++;
+                        }
+                    }
+                }
+            }
+            
+            $revisadasPiezas = min($revisadasPiezas, $totalPiezas);
+            $porcentajeRevision = $totalPiezas > 0 ? round(($revisadasPiezas / $totalPiezas) * 100) : 0;
+            
+            // Determinar nivel de estado
+            $criticosCount = $criticos->count();
+            $desgasteCount = $analisisLinea->whereIn('estado', ['Desgaste moderado', 'Desgaste severo'])->count();
+            
+            if ($criticosCount > 0) {
+                $nivel = 'critico';
+                $mensaje = "⚠️ {$criticosCount} componente(s) requieren cambio urgente";
+            } elseif ($desgasteCount > 0) {
+                $nivel = 'riesgo';
+                $mensaje = "⚠️ {$desgasteCount} componente(s) presentan desgaste";
+            } else {
+                $nivel = 'bueno';
+                $mensaje = "✓ Todos los componentes en buen estado";
+            }
+            
+            // Último análisis
+            $ultimoAnalisis = $analisisLinea->sortByDesc('fecha_analisis')->first();
+            
+            $estadoPasteurizadoras[] = [
+                'id' => $pasteurizadora->id,
+                'nombre' => $pasteurizadora->nombre,
+                'estado' => [
+                    'nivel' => $nivel,
+                    'mensaje' => $mensaje,
+                    'analisis_criticos' => $criticos->values()->map(function($item) {
+                        return [
+                            'id' => $item->id,
+                            'modulo' => $item->modulo,
+                            'componente_nombre' => $item->componente_nombre,
+                            'lado' => $item->lado,
+                            'numero_orden' => $item->numero_orden,
+                            'actividad' => $item->actividad,
+                            'fecha_analisis' => $item->fecha_analisis,
+                            'fecha_formateada' => $item->fecha_formateada
+                        ];
+                    })->toArray(),
+                    'acciones_pendientes' => $criticosCount,
+                    'ultimo_analisis' => $ultimoAnalisis ? [
+                        'fecha' => $ultimoAnalisis->fecha_formateada,
+                        'modulos' => $totalModulos
+                    ] : null,
+                    'progreso_revision' => [
+                        'porcentaje' => $porcentajeRevision,
+                        'revisados' => $revisadasPiezas,
+                        'total' => $totalPiezas,
+                        'componentes_revisados' => $componentesRevisados,
+                        'total_componentes' => count($componentesLista) * $totalModulos
+                    ]
+                ]
+            ];
+        }
+        
+        return $estadoPasteurizadoras;
     }
 
     public function lavadora()
@@ -113,29 +254,20 @@ class DashboardController extends Controller
 
         // 2. Obtener los últimos análisis de componentes (daños críticos)
         $analisisCriticos = AnalisisLavadora::where('linea_id', $lineaId)
-    ->where('estado', 'Dañado - Requiere cambio')
-    ->with('componente')
-    ->orderBy('fecha_analisis', 'desc')
-    ->limit(5)
-    ->get()
-    ->map(function($a) {
-
-        if ($a->componente) {
-
-            // 🔥 LIMPIAR CODIGO
-            $codigo = $a->componente->codigo;
-
-            // Quitar prefijos tipo L05_reductor_1_
-            $codigo = preg_replace('/^L\d+_reductor_\d+_/', '', $codigo);
-
-            // Opcional: limpiar más
-            $codigo = strtoupper(trim($codigo));
-
-            $a->componente->icono = asset("images/componentes-lavadora/{$codigo}.png");
-        }
-
-        return $a;
-    });
+            ->where('estado', 'Dañado - Requiere cambio')
+            ->with('componente')
+            ->orderBy('fecha_analisis', 'desc')
+            ->limit(5)
+            ->get()
+            ->map(function($a) {
+                if ($a->componente) {
+                    $codigo = $a->componente->codigo;
+                    $codigo = preg_replace('/^L\d+_reductor_\d+_/', '', $codigo);
+                    $codigo = strtoupper(trim($codigo));
+                    $a->componente->icono = asset("images/componentes-lavadora/{$codigo}.png");
+                }
+                return $a;
+            });
 
         // 3. Obtener actividades del plan de acción pendientes
         $accionesPendientes = PlanAccion::where('linea_id', $lineaId)
@@ -435,5 +567,10 @@ class DashboardController extends Controller
             'success' => true,
             'data' => $resultado
         ]);
+    }
+
+    public function dashboard()
+    {
+        return view('pasteurizadora.dashboard');
     }
 }

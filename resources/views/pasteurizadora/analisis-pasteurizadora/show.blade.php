@@ -93,7 +93,7 @@
     {{-- Header con navegación --}}
     <div class="mb-6">
         <div class="flex items-center gap-3 mb-4">
-            <a href="{{ route('analisis-pasteurizadora.index') }}" 
+            <a href="{{ route('pasteurizadora.analisis-pasteurizadora.index') }}" 
                class="inline-flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 
                       bg-gray-100 hover:bg-gray-200 rounded-lg transition">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -101,7 +101,7 @@
                 </svg>
                 Volver
             </a>
-            <a href="{{ route('analisis-pasteurizadora.historial', ['linea_id' => $analisis->linea_id, 'modulo' => $analisis->modulo, 'componente' => $analisis->componente]) }}"
+            <a href="{{ route('pasteurizadora.analisis-pasteurizadora.historial', ['linea_id' => $analisis->linea_id, 'modulo' => $analisis->modulo, 'componente' => $analisis->componente]) }}"
                class="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition">
                 <i class="fas fa-history"></i>
                 Ver Historial
@@ -122,7 +122,7 @@
                     <p class="text-blue-200">Orden #{{ $analisis->numero_orden }}</p>
                 </div>
                 <div class="flex gap-2">
-                    <a href="{{ route('analisis-pasteurizadora.edit', $analisis->id) }}"
+                    <a href="{{ route('pasteurizadora.analisis-pasteurizadora.edit', $analisis->id) }}"
                        class="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition flex items-center gap-2">
                         <i class="fas fa-edit"></i> Editar
                     </a>
@@ -201,6 +201,40 @@
                 @endif
             </div>
         </div>
+
+        {{-- Componentes revisados --}}
+@php
+    // Validar que sea un array no vacío
+    $componentesRevisados = is_array($analisis->componentes_revisados) ? 
+        array_filter(array_map('intval', $analisis->componentes_revisados)) : [];
+    @endphp
+    @if(!empty($componentesRevisados))
+    <div class="px-6 pb-4">
+        <div class="bg-indigo-50 rounded-xl p-5 border border-indigo-200">
+            <div class="flex items-center gap-2 mb-4">
+                <div class="w-6 h-6 rounded-lg bg-indigo-100 flex items-center justify-center">
+                    <i class="fas fa-clipboard-check text-indigo-600 text-xs"></i>
+                </div>
+                <h4 class="text-sm font-semibold text-indigo-800 uppercase tracking-wider">Componentes revisados</h4>
+                <span class="ml-2 px-2 py-0.5 bg-indigo-200 text-indigo-800 text-xs rounded-full font-medium">
+                    {{ count($componentesRevisados) }} de {{ $analisis->total_piezas }}
+                </span>
+            </div>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-2 mt-3">
+                @foreach($componentesRevisados as $componente_num)
+                <div class="flex items-center gap-2 bg-white rounded-lg p-3 border border-indigo-200">
+                    <div class="w-8 h-8 rounded-lg bg-indigo-100 flex items-center justify-center flex-shrink-0">
+                        <i class="fas fa-check text-indigo-600"></i>
+                    </div>
+                    <span class="text-sm font-medium text-gray-700">
+                        {{ $analisis->componente_nombre }} #{{ intval($componente_num) }}
+                    </span>
+                </div>
+                @endforeach
+            </div>
+        </div>
+    </div>
+    @endif
 
         {{-- Actividad --}}
         <div class="px-6 pb-4">
@@ -437,7 +471,7 @@
     </div>
 </div>
 
-<form id="deleteForm" action="{{ route('analisis-pasteurizadora.destroy', $analisis->id) }}" method="POST" style="display: none;">
+<form id="deleteForm" action="{{ route('pasteurizadora.analisis-pasteurizadora.destroy', $analisis->id) }}" method="POST" style="display: none;">
     @csrf
     @method('DELETE')
 </form>

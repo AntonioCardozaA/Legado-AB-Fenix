@@ -112,7 +112,6 @@
                         </div>
                     </div>
                 </div>
-
                 <div class="p-6">
                     <div class="flex items-center gap-3">
                         <div class="p-2 bg-gray-100 rounded-lg">
@@ -120,11 +119,16 @@
                         </div>
                         <div>
                             <p class="text-sm text-gray-600">Hodómetro</p>
-                            <p class="text-xl font-bold text-gray-800">{{ $elongacion->hodometro ? number_format($elongacion->hodometro, 0) . ' h' : '-' }}</p>
+                            <p class="text-xl font-bold text-gray-800">
+                            @if($elongacion->hodometro)
+                                {{ floor($elongacion->hodometro / 100) }} h {{ str_pad($elongacion->hodometro % 100, 2, '0', STR_PAD_LEFT) }} s
+                            @else
+                                -
+                            @endif
+                            </p>
                         </div>
                     </div>
                 </div>
-
                 <div class="p-6">
                     <div class="flex items-center gap-3">
                         <div class="p-2 bg-amber-100 rounded-lg">

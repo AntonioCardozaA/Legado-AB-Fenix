@@ -18,7 +18,7 @@
                 </div>
 
                 <div class="p-6">
-                    <form action="{{ route('analisis-pasteurizadora.store') }}" method="POST">
+                    <form action="{{ route('pasteurizadora.analisis-pasteurizadora.store') }}" method="POST">
                         @csrf
                         
                         <div class="mb-4">
@@ -118,7 +118,7 @@
                         </div>
 
                         <div class="flex justify-between items-center pt-4 border-t border-gray-200">
-                            <a href="{{ route('analisis-pasteurizadora.plan-accion', isset($lineaSeleccionada) ? ['linea_id' => $lineaSeleccionada] : []) }}"
+                            <a href="{{ route('pasteurizadora.analisis-pasteurizadora.plan-accion.index', isset($lineaSeleccionada) ? ['linea_id' => $lineaSeleccionada] : []) }}"
                                class="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 flex items-center">
                                 <i class="fas fa-arrow-left mr-2"></i> Cancelar
                             </a>

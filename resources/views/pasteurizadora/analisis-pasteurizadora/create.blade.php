@@ -7,7 +7,7 @@
     {{-- Header --}}
     <div class="mb-8">
         <div class="flex items-center gap-3 mb-4">
-            <a href="{{ route('analisis-pasteurizadora.select-linea') }}"
+            <a href="{{ route('pasteurizadora.analisis-pasteurizadora.select-linea') }}"
                class="text-gray-400 hover:text-blue-600 transition">
                 <i class="fas fa-arrow-left text-xl"></i>
             </a>
@@ -39,7 +39,7 @@
 
     {{-- Formulario --}}
     <div class="bg-white rounded-2xl shadow-lg p-8">
-        <form method="POST" action="{{ route('analisis-pasteurizadora.store') }}" enctype="multipart/form-data" id="analisisForm">
+        <form method="POST" action="{{ route('pasteurizadora.analisis-pasteurizadora.store') }}" enctype="multipart/form-data" id="analisisForm">
             @csrf
             <input type="hidden" name="linea_id" value="{{ $linea->id }}">
 
@@ -151,6 +151,27 @@
                 </div>
             </div>
 
+            <!-- Sección de checklist dinámico de componentes -->
+            <div id="checklist-container" class="mb-6 hidden">
+                <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-200">
+                    <label class="block text-sm font-bold text-gray-800 mb-4">
+                        <i class="fas fa-clipboard-check text-blue-600 mr-2"></i>
+                        Seleccione los componentes revisados
+                    </label>
+                    <div id="componentes-checklist" class="grid grid-cols-2 md:grid-cols-3 gap-3">
+                        <!-- Los checkboxes se generarán dinámicamente aquí -->
+                    </div>
+                    <input type="hidden" name="componentes_revisados" id="componentes_revisados_input" value="">
+                    <!-- DEBUG: Mostrar el JSON que se va a enviar -->
+                    <div class="mt-3 p-2 bg-yellow-100 rounded border border-yellow-300 hidden" id="debug-json">
+                        <span class="text-xs font-mono">JSON: <span id="json-value">[]</span></span>
+                    </div>
+                </div>
+                <p class="text-sm text-gray-600 mt-2">
+                    <i class="fas fa-info-circle text-blue-500 mr-1"></i>
+                    Marque los componentes que fueron revisados en este análisis
+                </p>
+            </div>
 
             <div class="mb-6">
                 <label for="actividad" class="block text-sm font-medium text-gray-700 mb-1">
@@ -179,7 +200,7 @@
             </div>
 
             <div class="flex gap-4 pt-6 border-t border-gray-200">
-                <a href="{{ route('analisis-pasteurizadora.select-linea') }}"
+                <a href="{{ route('pasteurizadora.analisis-pasteurizadora.select-linea') }}"
                    class="flex-1 bg-gray-200 text-gray-700 rounded-lg px-5 py-3 text-center hover:bg-gray-300 transition">
                     <i class="fas fa-times mr-2"></i>Cancelar
                 </a>
@@ -195,28 +216,105 @@
 
 <script>
     const componenteSelect = document.getElementById('componente');
-    const cantidadContainer = document.getElementById('cantidad-container');
-    const revisadasInput = document.getElementById('revisadas_piezas');
-    const totalDisplay = document.getElementById('total-piezas-display');
+    const checklistContainer = document.getElementById('checklist-container');
+    const componentesChecklist = document.getElementById('componentes-checklist');
+    const componentesRevisadosInput = document.getElementById('componentes_revisados_input');
     
-    function actualizarCantidad() {
-        const selectedOption = componenteSelect.options[componenteSelect.selectedIndex];
-        const total = selectedOption?.dataset?.cantidad || 0;
+    // Mapa de componentes con sus cantidades
+    const componentesMap = {
+        @foreach(\App\Models\AnalisisPasteurizadora::getComponentesPorLinea($linea->nombre) as $codigo => $comp)
+            '{{ $codigo }}': {{ $comp['cantidad'] }},
+        @endforeach
+    };
+    
+    function generarChecklist() {
+        const selectedComponent = componenteSelect.value;
+        const cantidad = componentesMap[selectedComponent] || 0;
         
-        if (total > 0) {
-            cantidadContainer.classList.remove('hidden');
-            revisadasInput.max = total;
-            revisadasInput.required = true;
-            totalDisplay.textContent = total;
+        if (cantidad > 0) {
+            checklistContainer.classList.remove('hidden');
+            componentesChecklist.innerHTML = '';
+            
+            // Obtener el nombre del componente para mostrar
+            const optionSelected = componenteSelect.options[componenteSelect.selectedIndex];
+            const componenteNombre = optionSelected ? optionSelected.text.split(' (')[0] : selectedComponent;
+            
+            for (let i = 1; i <= cantidad; i++) {
+                const id = `componente_${i}`;
+                const label = document.createElement('label');
+                label.className = 'flex items-center gap-3 p-3 bg-white rounded-lg border border-gray-200 hover:border-blue-400 hover:shadow-md transition cursor-pointer';
+                label.innerHTML = `
+                    <input type="checkbox" 
+                           data-component-value="${i}" 
+                           id="${id}"
+                           class="w-5 h-5 text-blue-600 rounded cursor-pointer focus:ring-blue-500 componente-checkbox"
+                           onchange="actualizarComponentesRevisados()">
+                    <span class="flex-1 text-gray-700 font-medium">
+                        <i class="fas fa-cube text-blue-500 mr-2"></i>
+                        ${componenteNombre} #${i}
+                    </span>
+                `;
+                componentesChecklist.appendChild(label);
+            }
+            
+            // Restaurar valores previos si existen
+            const oldValores = '{{ old('componentes_revisados') ? json_encode(old('componentes_revisados')) : '[]' }}';
+            if (oldValores && oldValores !== '[]') {
+                try {
+                    let valores = JSON.parse(oldValores.replace(/&quot;/g, '"'));
+                    if (typeof valores === 'string') {
+                        valores = JSON.parse(valores);
+                    }
+                    if (Array.isArray(valores)) {
+                        valores.forEach(val => {
+                            const checkbox = document.getElementById(`componente_${val}`);
+                            if (checkbox) checkbox.checked = true;
+                        });
+                    }
+                } catch (e) {
+                    console.error('Error restaurando valores:', e);
+                }
+            }
+            
+            actualizarComponentesRevisados();
         } else {
-            cantidadContainer.classList.add('hidden');
-            revisadasInput.required = false;
-            revisadasInput.value = 0;
+            checklistContainer.classList.add('hidden');
+            componentesChecklist.innerHTML = '';
         }
     }
     
-    componenteSelect.addEventListener('change', actualizarCantidad);
-    actualizarCantidad();
+    function actualizarComponentesRevisados() {
+        const checkboxes = document.querySelectorAll('input.componente-checkbox:checked');
+        const valores = Array.from(checkboxes).map(cb => parseInt(cb.getAttribute('data-component-value')));
+        const json = JSON.stringify(valores);
+        
+        // Actualizar el input hidden
+        componentesRevisadosInput.value = json;
+        
+        // DEBUG: mostrar en la página qué se está guardando
+        const debugElement = document.getElementById('debug-json');
+        const jsonValueElement = document.getElementById('json-value');
+        if (valores.length > 0) {
+            debugElement.classList.remove('hidden');
+            jsonValueElement.textContent = json;
+        } else {
+            debugElement.classList.add('hidden');
+        }
+        
+        // Log a consola para debug
+        console.log('Componentes revisados actualizados:', valores);
+        console.log('JSON a enviar:', json);
+    }
+    
+    // Exponer función globalmente
+    window.actualizarComponentesRevisados = actualizarComponentesRevisados;
+    
+    componenteSelect.addEventListener('change', generarChecklist);
+    
+    // Generar checklist al cargar la página si hay componente previo
+    if (componenteSelect.value) {
+        generarChecklist();
+    }
     
     // Preview de imágenes
     document.getElementById('evidencia_fotos')?.addEventListener('change', function() {
@@ -242,11 +340,11 @@
                 `;
                 preview.appendChild(container);
             }
-            reader.readAsDataFile(file);
+            reader.readAsDataURL(file);
         });
     });
     
-    // Validación del formulario
+    // Validación del formulario - CORREGIDA
     document.getElementById('analisisForm').addEventListener('submit', function(e) {
         const lado = document.getElementById('lado');
         if (!lado.value) {
@@ -272,19 +370,20 @@
             return;
         }
         
-        if (!cantidadContainer.classList.contains('hidden')) {
-            const revisadas = parseInt(revisadasInput.value);
-            const max = parseInt(revisadasInput.max);
-            if (isNaN(revisadas) || revisadas < 0) {
+        // Validar que se seleccione al menos un componente en el checklist
+        if (checklistContainer && !checklistContainer.classList.contains('hidden')) {
+            const checkboxes = document.querySelectorAll('input.componente-checkbox:checked');
+            if (checkboxes.length === 0) {
                 e.preventDefault();
-                alert('Debe ingresar una cantidad válida de piezas revisadas.');
-                revisadasInput.focus();
+                alert('Debe seleccionar al menos un componente revisado.');
                 return;
             }
-            if (revisadas > max) {
+            
+            // Verificar que el JSON se haya guardado
+            const jsonValue = componentesRevisadosInput ? componentesRevisadosInput.value : '';
+            if (!jsonValue || jsonValue === '[]') {
                 e.preventDefault();
-                alert(`La cantidad de piezas revisadas no puede ser mayor a ${max}.`);
-                revisadasInput.focus();
+                alert('Error: No se pudieron guardar los componentes seleccionados.');
                 return;
             }
         }

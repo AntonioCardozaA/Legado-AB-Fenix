@@ -48,6 +48,10 @@
         gap: 12px;
     }
 
+    .lineas-grid .linea-btn {
+        min-width: 110px;
+    }
+
     .linea-btn {
         display: inline-flex;
         align-items: center;
@@ -92,6 +96,156 @@
         box-shadow: 0 4px 6px rgba(0,0,0,0.05);
         border: 1px solid var(--medium-gray);
         margin-bottom: 24px;
+    }
+
+    .modulos-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+        gap: 26px;
+        padding: 20px;
+    }
+
+    .linea-group-title {
+        grid-column: 1 / -1;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 18px;
+        padding: 18px 22px;
+        font-size: 16px;
+        font-weight: 700;
+        color: #1f2937;
+        box-shadow: inset 0 0 0 1px rgba(15,23,42,0.03);
+    }
+
+    .modulo-card {
+        background: white;
+        border: 1px solid var(--medium-gray);
+        border-radius: 18px;
+        padding: 26px;
+        box-shadow: 0 4px 14px rgba(0,0,0,0.04);
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+        min-width: 0;
+    }
+
+    .modulo-card {
+        background: white;
+        border: 1px solid var(--medium-gray);
+        border-radius: 18px;
+        padding: 22px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.04);
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+    }
+
+    .modulo-header {
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        align-items: flex-start;
+        flex-wrap: wrap;
+    }
+
+    .modulo-title {
+        font-size: 16px;
+        font-weight: 700;
+        color: #1f2937;
+        margin-bottom: 4px;
+    }
+
+    .modulo-meta {
+        color: #475569;
+        font-size: 14px;
+    }
+
+    .modulo-stats {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .modulo-stat {
+        background: #f8fafc;
+        border-radius: 14px;
+        padding: 10px 14px;
+        font-size: 13px;
+        font-weight: 600;
+        color: #334155;
+    }
+
+    .nivel-list {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .nivel-row {
+        background: #f8fafc;
+        border-radius: 16px;
+        padding: 14px;
+        display: grid;
+        grid-template-columns: 1.8fr 1fr 1fr 0.9fr;
+        gap: 10px;
+        align-items: center;
+    }
+
+    .nivel-row .componente-nombre {
+        gap: 10px;
+        font-size: 14px;
+    }
+
+    .nivel-badge {
+        background: #e2e8f0;
+        border-radius: 999px;
+        padding: 6px 12px;
+        font-size: 12px;
+        font-weight: 700;
+        color: #475569;
+        white-space: nowrap;
+    }
+
+    .nivel-totales {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        text-align: right;
+    }
+
+    .nivel-totales span {
+        font-size: 13px;
+        color: #334155;
+        font-weight: 600;
+    }
+
+    .nivel-actions {
+        display: flex;
+        justify-content: flex-end;
+    }
+
+    .nivel-actions .btn {
+        padding: 8px 14px;
+        font-size: 13px;
+    }
+
+    .modulo-progress {
+        width: 100%;
+        background: #e2e8f0;
+        border-radius: 12px;
+        height: 12px;
+        overflow: hidden;
+    }
+
+    .modulo-progress .progress-bar {
+        height: 100%;
+        border-radius: 12px;
+    }
+
+    .progress-text {
+        font-size: 13px;
+        color: #475569;
+        font-weight: 600;
     }
 
     .table-header {
@@ -277,7 +431,12 @@
         position: relative;
         border: 1px solid #e2e8f0;
     }
-
+    .linea-btn {
+        display: flex;
+        justify-content: center; 
+        align-items: center;      
+        text-align: center;
+    }
     .grafica-columna {
         flex: 1;
         display: flex;
@@ -487,7 +646,7 @@
     {{-- Header --}}
     <div class="flex justify-between items-center mb-6">
         <div>
-            <a href="{{ route('analisis-pasteurizadora.dashboard') }}" 
+            <a href="{{ route('pasteurizadora.dashboard') }}" 
                class="inline-flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 
                       bg-gray-100 hover:bg-gray-200 rounded-lg transition-all duration-300 mb-4">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -506,15 +665,17 @@
     {{-- Líneas --}}
     <div class="lineas-section">
         <div class="lineas-title">
-            <i class="fas fa-temperature-high"></i>
             LÍNEAS DE PASTEURIZADORA
         </div>
-        
         <div class="lineas-grid">
+            <a href="{{ route('pasteurizadora.analisis-pasteurizadora.historico-revisados', ['linea_id' => 'all']) }}"
+               class="linea-btn {{ isset($mostrarTodas) && $mostrarTodas ? 'active' : '' }}">
+                <i class="fas fa-th-large"></i>
+                Todas
+            </a>
             @foreach($lineas as $linea)
-                <a href="{{ route('analisis-pasteurizadora.historico-revisados', ['linea_id' => $linea->id]) }}" 
-                   class="linea-btn {{ isset($lineaSeleccionada) && $lineaSeleccionada->id == $linea->id ? 'active' : '' }}">
-                    <i class="fas fa-temperature-high"></i>
+                <a href="{{ route('pasteurizadora.analisis-pasteurizadora.historico-revisados', ['linea_id' => $linea->id]) }}" 
+                   class="linea-btn {{ !$mostrarTodas && isset($lineaSeleccionada) && $lineaSeleccionada->id == $linea->id ? 'active' : '' }}">
                     {{ $linea->nombre }}
                 </a>
             @endforeach
@@ -561,34 +722,78 @@
         <div class="table-header">
             <h3>
                 <i class="fas fa-clipboard-list"></i>
-                ANÁLISIS DE {{ $lineaSeleccionada->nombre ?? 'LA LÍNEA SELECCIONADA' }}
+                ANÁLISIS DE {{ isset($mostrarTodas) && $mostrarTodas ? 'TODAS LAS PASTEURIZADORAS' : ($lineaSeleccionada->nombre ?? 'LA LÍNEA SELECCIONADA') }}
             </h3>
         </div>
 
-        <div class="table-responsive">
-            <table class="table">
-                <thead>
-                    <tr>
-                        <th>Componente</th>
-                        <th>Módulo</th>
-                        <th>Cantidad Total</th>
-                        <th>Cantidad Revisada</th>
-                        <th>Progreso</th>
-                        <th>Acciones</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @forelse($componentesModulos as $item)
-                        @php
-                            $stats = $estadisticas[$item['codigo']][$item['modulo']] ?? [
-                                'total' => 16,
-                                'revisadas' => 0,
-                                'porcentaje' => 0,
-                                'color' => 'danger'
-                            ];
-                        @endphp
-                        <tr>
-                            <td>
+        <div class="modulos-grid">
+            @php
+                $lineaGrupos = isset($mostrarTodas) && $mostrarTodas
+                    ? $componentesModulos->groupBy('linea_nombre')
+                    : collect([($lineaSeleccionada->nombre ?? 'Pasteurizadora') => $componentesModulos]);
+            @endphp
+
+            @forelse($lineaGrupos as $lineaNombre => $lineaItems)
+                <div class="linea-group-title">Línea {{ $lineaNombre }}</div>
+
+                @php
+                    $modulos = $lineaItems->groupBy('modulo');
+                @endphp
+
+                @foreach($modulos as $modulo => $items)
+                @php
+                    $moduleTotal = 0;
+                    $moduleRevisado = 0;
+                @endphp
+
+                @foreach($items as $item)
+                    @php
+                        $stats = $estadisticas[$item['codigo']][$item['modulo']][$item['nivel']] ?? [
+                            'total' => $item['cantidad_total'],
+                            'revisadas' => 0,
+                            'porcentaje' => 0,
+                            'color' => 'danger',
+                        ];
+                        $moduleTotal += $stats['total'];
+                        $moduleRevisado += $stats['revisadas'];
+                    @endphp
+                @endforeach
+
+                @php
+                    $modulePorcentaje = $moduleTotal > 0 ? round(($moduleRevisado / $moduleTotal) * 100) : 0;
+                    $moduleColor = $modulePorcentaje >= 80 ? 'success' : ($modulePorcentaje >= 50 ? 'info' : ($modulePorcentaje >= 20 ? 'warning' : 'danger'));
+                @endphp
+
+                <div class="modulo-card">
+                    <div class="modulo-header">
+                        <div>
+                            <div class="modulo-title">Módulo {{ $modulo }}</div>
+                            <div class="modulo-meta">{{ $lineaSeleccionada->nombre ?? 'Pasteurizadora' }}</div>
+                        </div>
+                        <div class="modulo-stats">
+                            <div class="modulo-stat">Total: {{ $moduleTotal }}</div>
+                            <div class="modulo-stat">Revisado: {{ $moduleRevisado }}</div>
+                            <div class="modulo-stat">Progreso: {{ $modulePorcentaje }}%</div>
+                        </div>
+                    </div>
+
+                    <div class="modulo-progress">
+                        <div class="progress-bar bg-{{ $moduleColor }}" style="width: {{ $modulePorcentaje }}%;"></div>
+                    </div>
+                    <div class="progress-text">Avance general del módulo</div>
+
+                    <div class="nivel-list">
+                        @foreach($items as $item)
+                            @php
+                                $lineaId = $item['linea_id'] ?? ($lineaSeleccionada->id ?? null);
+                                $stats = $estadisticas[$lineaId][$item['codigo']][$item['modulo']][$item['nivel']] ?? [
+                                    'total' => $item['cantidad_total'],
+                                    'revisadas' => 0,
+                                    'porcentaje' => 0,
+                                    'color' => 'danger',
+                                ];
+                            @endphp
+                            <div class="nivel-row">
                                 <div class="componente-nombre">
                                     <div class="componente-imagen">
                                         <img src="{{ asset('images/componentes-pasteurizadora/' . $item['codigo'] . '.png') }}" 
@@ -596,46 +801,39 @@
                                              class="componente-img"
                                              onerror="this.src='{{ asset('images/extras/sin imagen.png') }}'">
                                     </div>
-                                    <span>{{ $item['nombre'] }}</span>
-                                </div>
-                            </td>
-                            <td>
-                                <span class="cantidad-badge">Módulo {{ $item['modulo'] }}</span>
-                            </td>
-                            <td>
-                                <span class="cantidad-badge">{{ $stats['total'] }}</span>
-                            </td>
-                            <td>
-                                <span class="progreso-numerico text-{{ $stats['color'] }}">
-                                    {{ $stats['revisadas'] }} / {{ $stats['total'] }}
-                                </span>
-                            </td>
-                            <td style="width: 250px;">
-                                <div class="progress-container">
-                                    <div class="progress-bar bg-{{ $stats['color'] }}" 
-                                         style="width: {{ $stats['porcentaje'] }}%;">
-                                        {{ $stats['porcentaje'] }}%
+                                    <div>
+                                        <div>{{ $item['nombre'] }}</div>
+                                        <span class="nivel-badge">Nivel {{ $item['nivel'] }}</span>
                                     </div>
                                 </div>
-                            </td>
-                            <td>
-                                <button class="btn btn-primary" 
-                                        style="padding: 6px 12px; font-size: 12px; background: #3b82f6; color: white; border: none; border-radius: 6px;"
-                                        onclick="verDetalleComponente('{{ $item['codigo'] }}', '{{ $item['nombre'] }}', {{ $item['modulo'] }}, {{ $stats['revisadas'] }}, {{ $stats['total'] }})">
-                                    <i class="fas fa-eye"></i> Ver
-                                </button>
-                            </td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="6" class="text-center py-8 text-gray-500">
-                                <i class="fas fa-info-circle text-3xl mb-2"></i>
-                                <p>No hay datos disponibles para esta línea</p>
-                            </td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
+
+                                <div class="nivel-totales">
+                                    <span>Cantidad total</span>
+                                    <span>{{ $stats['total'] }}</span>
+                                </div>
+
+                                <div class="nivel-totales">
+                                    <span>Cantidad revisada</span>
+                                    <span>{{ $stats['revisadas'] }}</span>
+                                </div>
+
+                                <div class="nivel-actions">
+                                    <button class="btn btn-primary"
+                                            onclick="verDetalleComponente('{{ $item['codigo'] }}', '{{ $item['nombre'] }}', {{ $item['modulo'] }}, '{{ $item['nivel'] }}', {{ $stats['revisadas'] }}, {{ $stats['total'] }})">
+                                        <i class="fas fa-eye"></i> Ver
+                                    </button>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+                @endforeach
+            @empty
+                <div class="text-center py-8 text-gray-500" style="grid-column: 1 / -1;">
+                    <i class="fas fa-info-circle text-3xl mb-2"></i>
+                    <p>No hay datos disponibles para esta línea</p>
+                </div>
+            @endforelse
         </div>
     </div>
 
@@ -650,8 +848,9 @@
         <div class="grafica-vertical-container">
             @foreach($componentesModulos->take(12) as $item) {{-- Limitar a 12 para mejor visualización --}}
                 @php
-                    $stats = $estadisticas[$item['codigo']][$item['modulo']] ?? [
-                        'total' => 16,
+                    $lineaId = $item['linea_id'] ?? ($lineaSeleccionada->id ?? null);
+                    $stats = $estadisticas[$lineaId][$item['codigo']][$item['modulo']][$item['nivel']] ?? [
+                        'total' => $item['cantidad_total'],
                         'revisadas' => 0,
                         'porcentaje' => 0,
                         'color' => 'danger'
@@ -660,7 +859,7 @@
                 @endphp
                 <div class="grafica-columna">
                     <div class="grafica-barra-vertical" 
-                         title="{{ $item['nombre'] }} - Módulo {{ $item['modulo'] }} ({{ $stats['revisadas'] }}/{{ $stats['total'] }})">
+                         title="{{ $item['nombre'] }} - Módulo {{ $item['modulo'] }} - Nivel {{ $item['nivel'] }} ({{ $stats['revisadas'] }}/{{ $stats['total'] }})">
                         <div class="barra-relleno bg-{{ $stats['color'] }}" 
                              style="height: {{ $alturaBarra }}px;">
                             <span class="grafica-valor">{{ $stats['porcentaje'] }}%</span>
@@ -677,7 +876,7 @@
 
     {{-- Acciones --}}
     <div class="acciones">
-        <a href="{{ route('analisis-pasteurizadora.index', ['linea_id' => $lineaSeleccionada->id ?? '']) }}" 
+        <a href="{{ route('pasteurizadora.analisis-pasteurizadora.index', ['linea_id' => $lineaSeleccionada->id ?? '']) }}" 
            class="btn btn-primary">
             <i class="fas fa-chart-pie"></i>
             Ver Análisis Detallado
@@ -713,7 +912,7 @@
                     <div id="modalProgressBar" class="progress-bar" style="width: 0%;">0%</div>
                 </div>
                 
-                <div class="grid grid-cols-2 gap-4 mt-6">
+                <div class="grid grid-cols-3 gap-4 mt-6">
                     <div class="bg-gray-50 p-4 rounded-lg text-center">
                         <div class="text-2xl font-bold text-blue-600" id="modalRevisado">0</div>
                         <div class="text-xs text-gray-500">Revisados</div>
@@ -721,6 +920,10 @@
                     <div class="bg-gray-50 p-4 rounded-lg text-center">
                         <div class="text-2xl font-bold text-gray-700" id="modalTotal">0</div>
                         <div class="text-xs text-gray-500">Totales</div>
+                    </div>
+                    <div class="bg-gray-50 p-4 rounded-lg text-center">
+                        <div class="text-2xl font-bold text-gray-700" id="modalNiveles">-</div>
+                        <div class="text-xs text-gray-500">Nivel</div>
                     </div>
                 </div>
 
@@ -742,7 +945,7 @@
 </div>
 
 <script>
-function verDetalleComponente(codigo, nombre, modulo, revisado, total) {
+function verDetalleComponente(codigo, nombre, modulo, nivel, revisado, total) {
     const modal = document.getElementById('componenteModal');
     const porcentaje = total > 0 ? Math.round((revisado / total) * 100) : 0;
     
@@ -751,6 +954,7 @@ function verDetalleComponente(codigo, nombre, modulo, revisado, total) {
     document.getElementById('modalModulo').textContent = `Módulo ${modulo}`;
     document.getElementById('modalRevisado').textContent = revisado;
     document.getElementById('modalTotal').textContent = total;
+    document.getElementById('modalNiveles').textContent = nivel;
     
     const img = document.getElementById('modalComponenteImagen');
     img.src = `{{ asset('images/componentes-pasteurizadora/') }}/${codigo}.png`;
@@ -773,7 +977,7 @@ function verDetalleComponente(codigo, nombre, modulo, revisado, total) {
     
     const lineaId = '{{ $lineaSeleccionada->id ?? '' }}';
     const link = document.getElementById('modalVerAnalisisLink');
-    link.href = "{{ route('analisis-pasteurizadora.index') }}?linea_id=" + lineaId + "&componente=" + codigo + "&modulo=" + modulo;
+    link.href = "{{ route('pasteurizadora.analisis-pasteurizadora.index') }}?linea_id=" + lineaId + "&componente=" + codigo + "&modulo=" + modulo;
     
     modal.classList.add('show');
     document.body.style.overflow = 'hidden';

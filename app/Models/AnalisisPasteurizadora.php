@@ -28,6 +28,7 @@ class AnalisisPasteurizadora extends Model
         'observaciones',
         'evidencia_fotos',
         'revisadas_piezas',
+        'componentes_revisados',
         'total_piezas',
         'valor_anterior_52',
         'valor_actual_52',
@@ -48,6 +49,7 @@ class AnalisisPasteurizadora extends Model
     protected $casts = [
         'fecha_analisis' => 'date',
         'evidencia_fotos' => 'array',
+        'componentes_revisados' => 'array',
         'plan_accion_pcm1' => 'array',
         'plan_accion_pcm2' => 'array',
         'plan_accion_pcm3' => 'array',
@@ -87,6 +89,7 @@ class AnalisisPasteurizadora extends Model
         'VIGA_MOVIMIENTO' => ['nombre' => 'Viga de Movimiento', 'cantidad' => 1],
         'PLACAS_PERNO' => ['nombre' => 'Placas Perno', 'cantidad' => 3],
         'ESPARRAGOS' => ['nombre' => 'Espárragos', 'cantidad' => 2],
+        
     ];
 
     const COMPONENTES_DOBLES = [
@@ -264,10 +267,17 @@ class AnalisisPasteurizadora extends Model
         };
     }
 
-    public function getPorcentajeAvanceAttribute()
+   public function getPorcentajeAvanceAttribute()
     {
         $total = $this->total_piezas ?? 0;
-        $revisadas = $this->revisadas_piezas ?? 0;
+        
+        // Priorizar componentes_revisados sobre revisadas_piezas
+        if ($this->componentes_revisados && is_array($this->componentes_revisados)) {
+            $revisadas = count($this->componentes_revisados);
+        } else {
+            $revisadas = $this->revisadas_piezas ?? 0;
+        }
+        
         if ($total > 0) {
             return round(($revisadas / $total) * 100, 1);
         }
@@ -350,11 +360,35 @@ class AnalisisPasteurizadora extends Model
     // ============================================================
     // EVENTOS
     // ============================================================
-    
+
     protected static function booted()
     {
         static::created(function ($analisis) {
             \Log::info("Nuevo análisis creado ID: {$analisis->id}");
+
+            // Disparar evento para actualizar histórico de revisados
+            event(new \App\Events\AnalisisPasteurizadoraCreado($analisis));
         });
+
+        static::updated(function ($analisis) {
+            \Log::info("Análisis actualizado ID: {$analisis->id}");
+
+            // Disparar evento para actualizar histórico de revisados
+            event(new \App\Events\AnalisisPasteurizadoraCreado($analisis));
+        });
+    }
+    public function setComponentesRevisadosAttribute($value)
+    {
+        $this->attributes['componentes_revisados'] = is_array($value) ? json_encode($value) : $value;
+        
+        // Actualizar automáticamente revisadas_piezas
+        if (is_array($value)) {
+            $this->attributes['revisadas_piezas'] = count($value);
+        } elseif (is_string($value) && $value !== null) {
+            $decoded = json_decode($value, true);
+            if (is_array($decoded)) {
+                $this->attributes['revisadas_piezas'] = count($decoded);
+            }
+        }
     }
 }

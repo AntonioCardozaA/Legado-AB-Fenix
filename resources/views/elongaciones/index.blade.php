@@ -57,8 +57,8 @@
                         </label>
                         <select name="estado" id="estado" class="block w-full rounded-lg border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
                             <option value="">Todos los estados</option>
-                            <option value="normal" {{ request('estado') == 'normal' ? 'selected' : '' }}>Normal (&lt;1.3%)</option>
-                            <option value="comprar" {{ request('estado') == 'comprar' ? 'selected' : '' }}>Considerar Compra (1.3% - 1.46%)</option>
+                            <option value="normal" {{ request('estado') == 'normal' ? 'selected' : '' }}>NORMAL (&lt;1.3%)</option>
+                            <option value="comprar" {{ request('estado') == 'comprar' ? 'selected' : '' }}>CONSIDERAR COMPRA (1.3% - 1.46%)</option>
                             <option value="cambio" {{ request('estado') == 'cambio' ? 'selected' : '' }}>CAMBIO REQUERIDO (≥1.46%)</option>
                         </select>
                     </div>
@@ -87,6 +87,9 @@
                     </div>
                     <div class="p-2 bg-blue-50 rounded-lg"><i class="fas fa-database text-blue-600"></i></div>
                 </div>
+                @if(!request('linea') && !request('estado'))
+                <p class="text-xs text-green-600 mt-2 flex items-center"><i class="fas fa-check-circle mr-1"></i> Mostrando último registro por línea</p>
+                @endif
             </div>
             
             <div class="bg-white rounded-xl p-4 shadow border border-gray-200">
@@ -121,7 +124,6 @@
             </div>
         </div>
     </div>
-
     {{-- Tabla de registros --}}
     @if($elongaciones->count() > 0)
         <div class="bg-white rounded-xl shadow-lg overflow-hidden">
@@ -156,7 +158,7 @@
                                 $bombasBarraWidth = $bombasCambio ? 100 : min(($registro->bombas_porcentaje / $limiteCambio) * 100, 100);
                                 $vaporBarraWidth = $vaporCambio ? 100 : min(($registro->vapor_porcentaje / $limiteCambio) * 100, 100);
                                 
-                                $estadoTexto = 'Normal';
+                                $estadoTexto = 'NORMAL';
                                 $estadoColor = 'green';
                                 if ($bombasCambio || $vaporCambio) {
                                     $estadoTexto = 'CAMBIO';
@@ -170,8 +172,13 @@
                                 <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{{ $registro->created_at->format('d/m/Y H:i') }}</td>
                                 <td class="px-4 py-3 whitespace-nowrap"><span class="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">{{ $registro->linea }}</span></td>
                                 <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-600">{{ $pasoInicial }} mm</td>
-                                <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{{ $registro->hodometro ? number_format($registro->hodometro, 0) . ' h' : '-' }}</td>
-                                
+                                <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                                @if($registro->hodometro)
+                                    {{ floor($registro->hodometro / 100) }} h {{ $registro->hodometro % 100 }} s
+                                @else
+                                    -
+                                @endif
+                                </td>
                                 {{-- Lado Bombas con barra --}}
                                 <td class="px-4 py-3">
                                     <div class="flex flex-col gap-1 min-w-[100px]">
@@ -182,7 +189,7 @@
                                             @if($bombasCambio)
                                                 <i class="fas fa-exclamation-circle text-red-500 ml-1" title="CAMBIO REQUERIDO (≥1.46%)"></i>
                                             @elseif($bombasCompra)
-                                                <i class="fas fa-shopping-cart text-yellow-500 ml-1" title="Considerar compra (≥1.3%)"></i>
+                                                <i class="fas fa-shopping-cart text-yellow-500 ml-1" title="CONSIDERAR COMPRA (≥1.3%)"></i>
                                             @endif
                                         </div>
                                         <div class="w-full bg-gray-200 rounded-full h-1.5">
@@ -206,7 +213,7 @@
                                             @if($vaporCambio)
                                                 <i class="fas fa-exclamation-circle text-red-500 ml-1" title="CAMBIO REQUERIDO (≥1.46%)"></i>
                                             @elseif($vaporCompra)
-                                                <i class="fas fa-shopping-cart text-yellow-500 ml-1" title="Considerar compra (≥1.3%)"></i>
+                                                <i class="fas fa-shopping-cart text-yellow-500 ml-1" title="CONSIDERAR COMPRA (≥1.3%)"></i>
                                             @endif
                                         </div>
                                         <div class="w-full bg-gray-200 rounded-full h-1.5">
@@ -254,7 +261,6 @@
             <a href="{{ route('elongaciones.create') }}" class="inline-flex items-center gap-2 px-5 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"><i class="fas fa-plus-circle"></i> Nuevo Registro</a>
         </div>
     @endif
-
     {{-- Leyenda --}}
     <div class="mt-4 bg-white rounded-lg p-4 border border-gray-200">
         <div class="flex items-center gap-2 mb-2">
@@ -262,8 +268,8 @@
             <span class="text-sm font-medium text-gray-700">Límites de elongación:</span>
         </div>
         <div class="flex flex-wrap gap-4">
-            <div class="flex items-center gap-2"><span class="w-3 h-3 bg-green-500 rounded-full"></span><span class="text-xs text-gray-600">Normal: &lt; 1.3%</span></div>
-            <div class="flex items-center gap-2"><span class="w-3 h-3 bg-yellow-500 rounded-full"></span><span class="text-xs text-gray-600">Considerar Compra: 1.3% - 1.46%</span><i class="fas fa-shopping-cart text-yellow-500 text-xs ml-1"></i></div>
+            <div class="flex items-center gap-2"><span class="w-3 h-3 bg-green-500 rounded-full"></span><span class="text-xs text-gray-600">NORMAL: &lt; 1.3%</span></div>
+            <div class="flex items-center gap-2"><span class="w-3 h-3 bg-yellow-500 rounded-full"></span><span class="text-xs text-gray-600">CONSIDERAR COMPRA: 1.3% - 1.46%</span><i class="fas fa-shopping-cart text-yellow-500 text-xs ml-1"></i></div>
             <div class="flex items-center gap-2"><span class="w-3 h-3 bg-red-500 rounded-full"></span><span class="text-xs text-gray-600 font-bold">CAMBIO REQUERIDO: ≥ 1.46%</span><i class="fas fa-exclamation-circle text-red-500 text-xs ml-1"></i></div>
         </div>
         <div class="mt-3 pt-2 border-t border-gray-100">
@@ -271,7 +277,7 @@
                 <div class="w-32 bg-gray-200 rounded-full h-2"><div class="bg-green-500 h-2 rounded-full" style="width: 70%"></div></div>
                 <span class="text-xs text-gray-500">Barra de progreso: muestra qué tan cerca está del límite de cambio (1.46%)</span>
             </div>
-            <div class="text-xs text-gray-500 mt-1"><i class="fas fa-ruler mr-1"></i>Pasos iniciales: L-04/L-07 = 173mm | L-05/L-06/L-09/L-12/L-13 = 140mm | L-08 = 125mm</div>
+            <div class="text-xs text-gray-500 mt-1"><i class="fas fa-ruler mr-1"></i>Pasos iniciales: L-04/L-06/L-07 = 173mm | L-05/L-09/L-12/L-13 = 140mm | L-08 = 125mm</div>
         </div>
     </div>
 </div>

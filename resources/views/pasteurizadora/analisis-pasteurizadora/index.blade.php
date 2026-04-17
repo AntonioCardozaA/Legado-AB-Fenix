@@ -7,7 +7,7 @@
     {{-- HEADER --}}
     <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
         <div>
-            <a href="{{ route('dashboard') }}" class="inline-flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 rounded-lg transition-all duration-300">
+            <a href="{{ route('pasteurizadora.dashboard') }}" class="inline-flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 rounded-lg transition-all duration-300">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
                 </svg>
@@ -20,8 +20,8 @@
                 Análisis de Pasteurizadoras
             </h1>
         </div>
-        
-        <a href="{{ route('analisis-pasteurizadora.select-linea') }}"
+
+        <a href="{{ route('pasteurizadora.analisis-pasteurizadora.select-linea') }}"
            class="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 transition flex items-center gap-2 shadow-lg">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
@@ -40,27 +40,23 @@
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 mb-6">
         <div class="flex flex-wrap items-center justify-between gap-4">
             <div class="flex flex-wrap gap-2">
-                <a href="{{ route('analisis-pasteurizadora.index', ['linea_id' => 'todas']) }}" 
+                <a href="{{ route('pasteurizadora.analisis-pasteurizadora.index', ['linea_id' => 'todas']) }}" 
                    class="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 {{ $mostrarTodas ? 'bg-blue-600 text-white shadow-md' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                     </svg>
                     Todas
                 </a>
-                
                 @foreach($lineasFiltradas as $l)
-                    <a href="{{ route('analisis-pasteurizadora.index', ['linea_id' => $l->id]) }}" 
-                       class="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 {{ (!$mostrarTodas && request('linea_id') == $l->id) ? 'bg-blue-600 text-white shadow-md' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
-                        </svg>
+                    <a href="{{ route('pasteurizadora.analisis-pasteurizadora.index', ['linea_id' => $l->id]) }}" 
+                       class="inline-flex items-center gap-4 px-9 py-4 rounded-full text-sm font-medium transition-all duration-200 {{ (!$mostrarTodas && request('linea_id') == $l->id) ? 'bg-blue-600 text-white shadow-md' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">
                         {{ $l->nombre }}
                     </a>
                 @endforeach
             </div>
             
             <div class="flex gap-2">
-                <form method="GET" action="{{ route('analisis-pasteurizadora.index') }}" class="flex gap-2">
+                <form method="GET" action="{{ route('pasteurizadora.analisis-pasteurizadora.index') }}" class="flex gap-2">
                     <input type="hidden" name="linea_id" value="{{ request('linea_id') }}">
                     <select name="modulo" class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                         <option value="">Todos los módulos</option>
@@ -84,7 +80,7 @@
                         Filtrar
                     </button>
                 </form>
-                <a href="{{ route('analisis-pasteurizadora.index', ['linea_id' => request('linea_id', 'todas')]) }}" class="inline-flex items-center gap-2 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition">
+                <a href="{{ route('pasteurizadora.analisis-pasteurizadora.index', ['linea_id' => request('linea_id', 'todas')]) }}" class="inline-flex items-center gap-2 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                     </svg>
@@ -288,7 +284,16 @@
                                     </th>
                                     @foreach($componentesLinea as $codigo => $compData)
                                         <th class="px-4 py-3 text-left font-semibold text-gray-900 min-w-[200px]">
-                                            {{ $compData['nombre'] }}
+                                            <div class="flex flex-col items-center text-center gap-2">
+                                                <div class="text-sm font-semibold text-gray-900">
+                                                    {{ $compData['nombre'] }}
+                                                </div>
+                                                <img
+                                                    src="{{ asset('images/componentes-pasteurizadora/' . $codigo . '.png') }}"
+                                                    alt="Icono {{ $compData['nombre'] }}"
+                                                    class="w-20 h-20 object-contain hover:scale-110 transition-transform"
+                                                    onerror="this.src='{{ asset('images/icono-pasteurizadora.png') }}'">
+                                            </div>
                                         </th>
                                     @endforeach
                                 </tr>
@@ -329,20 +334,24 @@
                                             
                                             <td class="px-4 py-3 align-top {{ $bgColor }} {{ $borderColor }} cursor-pointer hover:shadow-md transition-all"
                                                 @if($hasData)
-                                                onclick="openAnalysisDetail({{ json_encode([
-                                                    'id' => $registro->id,
-                                                    'linea' => $linea->nombre,
-                                                    'modulo' => $moduloNumero,
-                                                    'componente' => $compData['nombre'],
-                                                    'lado' => $registro->lado,
-                                                    'fecha_analisis' => $registro->fecha_analisis ? $registro->fecha_analisis->format('d/m/Y') : $registro->created_at->format('d/m/Y'),
-                                                    'numero_orden' => $registro->numero_orden,
-                                                    'estado' => $estadoActual,
-                                                    'actividad' => $registro->actividad,
-                                                    'imagenes' => $registro->evidencia_fotos ?? [],
-                                                    'edit_url' => route('analisis-pasteurizadora.edit', $registro->id),
-                                                    'historial_url' => route('analisis-pasteurizadora.historial', ['linea_id' => $linea->id, 'modulo' => $moduloNumero, 'componente' => $codigo])
-                                                ]) }})">
+                                                    onclick="openAnalysisDetail({{ json_encode([
+                                                        'id' => $registro->id,
+                                                        'linea' => $linea->nombre,
+                                                        'modulo' => $moduloNumero,
+                                                        'componente' => $compData['nombre'],
+                                                        'lado' => $registro->lado,
+                                                        'nivel' => $registro->nivel,
+                                                        'fecha_analisis' => $registro->fecha_analisis ? $registro->fecha_analisis->format('d/m/Y') : $registro->created_at->format('d/m/Y'),
+                                                        'numero_orden' => $registro->numero_orden,
+                                                        'estado' => $estadoActual,
+                                                        'actividad' => $registro->actividad,
+                                                        'imagenes' => $registro->evidencia_fotos ?? [],
+                                                        'componentes_revisados' => $registro->componentes_revisados ?? [],
+                                                        'total_piezas' => $registro->total_piezas,
+                                                        'edit_url' => route('pasteurizadora.analisis-pasteurizadora.edit', $registro->id),
+                                                        'historial_url' => route('pasteurizadora.analisis-pasteurizadora.historial', ['linea_id' => $linea->id, 'modulo' => $moduloNumero, 'componente' => $codigo])
+                                                    ]) }})"
+                                                @endif>
                                                 @if($hasData)
                                                     <div class="space-y-2">
                                                         <div class="flex items-center justify-between text-xs text-gray-600">
@@ -397,6 +406,26 @@
                                                             </span>
                                                         </div>
                                                         
+                                                        {{-- Mostrar componentes revisados si existen --}}
+                                                        @if($registro->componentes_revisados && count($registro->componentes_revisados) > 0)
+                                                            <div class="bg-indigo-50 rounded-lg p-2 mt-2">
+                                                                <div class="flex items-center justify-between">
+                                                                    <span class="text-xs font-medium text-indigo-700">Revisadas:</span>
+                                                                    <span class="text-xs text-indigo-600 font-semibold">{{ count($registro->componentes_revisados) }}/{{ $registro->total_piezas }}</span>
+                                                                </div>
+                                                                <div class="flex flex-wrap gap-1 mt-1">
+                                                                    @foreach($registro->componentes_revisados as $num)
+                                                                        <span class="inline-flex items-center gap-0.5 px-2 py-0.5 bg-indigo-100 text-indigo-700 rounded text-xs font-medium">
+                                                                            <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                                                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                                                                            </svg>
+                                                                            #{{ $num }}
+                                                                        </span>
+                                                                    @endforeach
+                                                                </div>
+                                                            </div>
+                                                        @endif
+                                                        
                                                         <p class="text-xs text-gray-600 line-clamp-2">{{ Str::limit($registro->actividad, 60) }}</p>
                                                         
                                                         <div class="flex gap-2 pt-1">
@@ -409,7 +438,7 @@
                                                                     {{ count($registro->evidencia_fotos) }}
                                                                 </button>
                                                             @endif
-                                                            <a href="{{ route('analisis-pasteurizadora.create-quick', ['linea_id' => $linea->id, 'modulo' => $moduloNumero, 'componente' => $codigo]) }}"
+                                                            <a href="{{ route('pasteurizadora.analisis-pasteurizadora.create-quick', ['linea_id' => $linea->id, 'modulo' => $moduloNumero, 'componente' => $codigo]) }}"
                                                                class="inline-flex items-center gap-1 px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs transition"
                                                                onclick="event.stopPropagation();">
                                                                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -425,7 +454,7 @@
                                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                                                         </svg>
                                                         <p class="text-xs text-gray-400 mb-2">Sin análisis registrado</p>
-                                                        <a href="{{ route('analisis-pasteurizadora.create-quick', ['linea_id' => $linea->id, 'modulo' => $moduloNumero, 'componente' => $codigo]) }}"
+                                                        <a href="{{ route('pasteurizadora.analisis-pasteurizadora.create-quick', ['linea_id' => $linea->id, 'modulo' => $moduloNumero, 'componente' => $codigo]) }}"
                                                            class="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs transition"
                                                            onclick="event.stopPropagation();">
                                                             <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -690,6 +719,34 @@ function openAnalysisDetail(data) {
         estadoIcon = '🔄';
     }
     
+    let componentesRevisadosHtml = '';
+    if (data.componentes_revisados && data.componentes_revisados.length > 0) {
+        const totalComponentes = data.total_piezas || data.componentes_revisados.length;
+        componentesRevisadosHtml = `
+            <div class="bg-indigo-50 border border-indigo-200 p-4 rounded-lg mb-6">
+                <div class="flex items-center justify-between mb-3">
+                    <h4 class="font-semibold text-indigo-900 flex items-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        Componentes revisados
+                    </h4>
+                    <span class="text-sm font-bold text-indigo-700">${data.componentes_revisados.length} de ${totalComponentes}</span>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    ${data.componentes_revisados.map(num => `
+                        <span class="inline-flex items-center gap-1 px-3 py-1.5 bg-indigo-100 text-indigo-700 rounded-full text-sm font-medium">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                            </svg>
+                            #${num}
+                        </span>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+    }
+    
     let imagenesHtml = '';
     if (data.imagenes && data.imagenes.length > 0) {
         imagenesHtml = `
@@ -716,6 +773,10 @@ function openAnalysisDetail(data) {
             <div class="bg-gray-50 p-4 rounded-lg">
                 <p class="text-xs text-gray-500 mb-1">🔧 Módulo</p>
                 <p class="font-bold text-gray-900">Módulo ${data.modulo}</p>
+            </div>
+            <div class="bg-gray-50 p-4 rounded-lg">
+                <p class="text-xs text-gray-500 mb-1">📏 Nivel</p>
+                <p class="font-bold text-gray-900">${data.nivel ? (data.nivel === 'SUPERIOR' ? '⬆️ SUPERIOR' : data.nivel === 'INFERIOR' ? '⬇️ INFERIOR' : data.nivel) : 'No asignado'}</p>
             </div>
             <div class="bg-gray-50 p-4 rounded-lg">
                 <p class="text-xs text-gray-500 mb-1">⚙️ Componente</p>
@@ -750,6 +811,8 @@ function openAnalysisDetail(data) {
             <p class="text-xs text-gray-500 mb-2">📝 Actividad Realizada</p>
             <p class="text-gray-700 whitespace-pre-line">${data.actividad || 'No especificada'}</p>
         </div>
+        
+        ${componentesRevisadosHtml}
         
         ${imagenesHtml}
         

@@ -125,13 +125,13 @@
             <a href="{{ route('lavadora.dashboard') }}"
                 aria-label="Dashboard de Lavadora"
                 class="nav-link flex items-center px-4 py-3 rounded-lg {{ request()->routeIs('lavadora.dashboard') ? 'nav-active' : '' }}">
-                <i class="fas fa-puzzle-piece w-5 mr-3 text-gray-500"></i>
+                <i class="fas fa-droplet w-5 mr-3 text-gray-500"></i>
                 Lavadora
             </a>
-            <a href="{{ route('analisis-pasteurizadora.dashboard') }}"
+            <a href="{{ route('pasteurizadora.dashboard') }}"
                aria-label="Análisis de Pasteurizadora"
                class="nav-link flex items-center px-4 py-3 rounded-lg {{ request()->routeIs('analisis-pasteurizadora.*') ? 'nav-active' : '' }}">
-                <i class="fas fa-puzzle-piece w-5 mr-3 text-gray-500"></i>
+                <i class="fas fa-thermometer-half w-5 mr-3 text-gray-500"></i>
                 Pasteurizadora
             </a>
             <a href="{{ route('lineas.index') }}"
@@ -152,7 +152,7 @@
         <div class="px-4 py-4 border-t border-gray-200">
             <div class="flex items-center space-x-3 px-4 py-2 text-xs text-gray-500">
                 <i class="fas fa-copyright"></i>
-                <span>v1.0.0</span>
+                <span>v2.2.5</span>
             </div>
         </div>
     </aside>

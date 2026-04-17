@@ -35,4 +35,15 @@ return [
         ],
     ],
 
+    'twilio' => [
+        'sid' => env('TWILIO_SID'),
+        'auth_token' => env('TWILIO_AUTH_TOKEN'),
+        'phone' => env('TWILIO_PHONE'),
+    ],
+
+    'ultramsg' => [
+        'instance' => env('ULTRAMSG_INSTANCE'),
+        'token' => env('ULTRAMSG_TOKEN'),
+    ],
+
 ];

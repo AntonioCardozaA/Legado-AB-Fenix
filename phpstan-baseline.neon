@@ -1,0 +1,4129 @@
+parameters:
+	ignoreErrors:
+		-
+			message: '#^Cannot call method format\(\) on Carbon\\Carbon\|null\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: app/Console/Commands/ResetEstadisticasComponentes.php
+
+		-
+			message: '#^Method App\\Console\\Commands\\ResetEstadisticasComponentes\:\:cargarMapaComponentes\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Console/Commands/ResetEstadisticasComponentes.php
+
+		-
+			message: '#^Method App\\Console\\Commands\\ResetEstadisticasComponentes\:\:handle\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Console/Commands/ResetEstadisticasComponentes.php
+
+		-
+			message: '#^Method App\\Console\\Commands\\ResetEstadisticasComponentes\:\:restablecerAnalisis\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Console/Commands/ResetEstadisticasComponentes.php
+
+		-
+			message: '#^Method App\\Console\\Commands\\ResetEstadisticasComponentes\:\:restablecerAnalisis\(\) has parameter \$analisis with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Console/Commands/ResetEstadisticasComponentes.php
+
+		-
+			message: '#^Method App\\Console\\Commands\\ResetEstadisticasComponentes\:\:restablecerAnalisis\(\) has parameter \$fechaReferencia with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Console/Commands/ResetEstadisticasComponentes.php
+
+		-
+			message: '#^Method App\\Console\\Commands\\ResetEstadisticasComponentes\:\:restablecerAnalisis\(\) has parameter \$periodoMeses with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Console/Commands/ResetEstadisticasComponentes.php
+
+		-
+			message: '#^Property App\\Console\\Commands\\ResetEstadisticasComponentes\:\:\$mapaCodigoToId has no type specified\.$#'
+			identifier: missingType.property
+			count: 1
+			path: app/Console/Commands/ResetEstadisticasComponentes.php
+
+		-
+			message: '#^Property App\\Console\\Commands\\ResetEstadisticasComponentes\:\:\$periodicidadComponentes has no type specified\.$#'
+			identifier: missingType.property
+			count: 1
+			path: app/Console/Commands/ResetEstadisticasComponentes.php
+
+		-
+			message: '#^Method App\\Console\\Commands\\SendActivityNotifications\:\:handle\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Console/Commands/SendActivityNotifications.php
+
+		-
+			message: '#^Property App\\Console\\Commands\\SendActivityNotifications\:\:\$notificationService has no type specified\.$#'
+			identifier: missingType.property
+			count: 1
+			path: app/Console/Commands/SendActivityNotifications.php
+
+		-
+			message: '#^Method App\\Exports\\AnalisisComponentesExport\:\:sheets\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Exports/AnalisisComponentesExport.php
+
+		-
+			message: '#^Cannot access property \$componentes on mixed\.$#'
+			identifier: property.nonObject
+			count: 2
+			path: app/Exports/AnalisisExport.php
+
+		-
+			message: '#^Cannot access property \$elongacion_promedio on mixed\.$#'
+			identifier: property.nonObject
+			count: 3
+			path: app/Exports/AnalisisExport.php
+
+		-
+			message: '#^Cannot access property \$fecha_analisis on mixed\.$#'
+			identifier: property.nonObject
+			count: 2
+			path: app/Exports/AnalisisExport.php
+
+		-
+			message: '#^Cannot access property \$horometro on mixed\.$#'
+			identifier: property.nonObject
+			count: 2
+			path: app/Exports/AnalisisExport.php
+
+		-
+			message: '#^Cannot access property \$juego_rodaja on mixed\.$#'
+			identifier: property.nonObject
+			count: 1
+			path: app/Exports/AnalisisExport.php
+
+		-
+			message: '#^Cannot access property \$linea on mixed\.$#'
+			identifier: property.nonObject
+			count: 2
+			path: app/Exports/AnalisisExport.php
+
+		-
+			message: '#^Cannot access property \$numero_orden on mixed\.$#'
+			identifier: property.nonObject
+			count: 2
+			path: app/Exports/AnalisisExport.php
+
+		-
+			message: '#^Cannot access property \$observaciones on mixed\.$#'
+			identifier: property.nonObject
+			count: 1
+			path: app/Exports/AnalisisExport.php
+
+		-
+			message: '#^Cannot access property \$usuario on mixed\.$#'
+			identifier: property.nonObject
+			count: 1
+			path: app/Exports/AnalisisExport.php
+
+		-
+			message: '#^Class App\\Exports\\AnalisisExport implements generic interface Maatwebsite\\Excel\\Concerns\\WithMapping but does not specify its types\: RowType$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Exports/AnalisisExport.php
+
+		-
+			message: '#^Method App\\Exports\\AnalisisExport\:\:__construct\(\) has parameter \$tipo with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Exports/AnalisisExport.php
+
+		-
+			message: '#^Method App\\Exports\\AnalisisExport\:\:collection\(\) return type with generic class Illuminate\\Support\\Collection does not specify its types\: TKey, TValue$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Exports/AnalisisExport.php
+
+		-
+			message: '#^Method App\\Exports\\AnalisisExport\:\:headings\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Exports/AnalisisExport.php
+
+		-
+			message: '#^Method App\\Exports\\AnalisisExport\:\:map\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Exports/AnalisisExport.php
+
+		-
+			message: '#^Method App\\Exports\\AnalisisExport\:\:styles\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Exports/AnalisisExport.php
+
+		-
+			message: '#^Property App\\Exports\\AnalisisExport\:\:\$tipo has no type specified\.$#'
+			identifier: missingType.property
+			count: 1
+			path: app/Exports/AnalisisExport.php
+
+		-
+			message: '#^Relation ''componentes'' is not found in App\\Models\\Analisis model\.$#'
+			identifier: larastan.relationExistence
+			count: 1
+			path: app/Exports/AnalisisExport.php
+
+		-
+			message: '#^Method App\\Exports\\AnalisisLavadoraExcel\:\:array\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Exports/AnalisisLavadoraExcel.php
+
+		-
+			message: '#^Method App\\Exports\\AnalisisLavadoraExcel\:\:columnWidths\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Exports/AnalisisLavadoraExcel.php
+
+		-
+			message: '#^Method App\\Exports\\AnalisisLavadoraExcel\:\:registerEvents\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Exports/AnalisisLavadoraExcel.php
+
+		-
+			message: '#^Property App\\Exports\\AnalisisLavadoraExcel\:\:\$analisis has no type specified\.$#'
+			identifier: missingType.property
+			count: 1
+			path: app/Exports/AnalisisLavadoraExcel.php
+
+		-
+			message: '#^Property App\\Exports\\AnalisisLavadoraExcel\:\:\$componentes has no type specified\.$#'
+			identifier: missingType.property
+			count: 1
+			path: app/Exports/AnalisisLavadoraExcel.php
+
+		-
+			message: '#^Property App\\Exports\\AnalisisLavadoraExcel\:\:\$lavadora has no type specified\.$#'
+			identifier: missingType.property
+			count: 1
+			path: app/Exports/AnalisisLavadoraExcel.php
+
+		-
+			message: '#^Method App\\Exports\\AnalisisLavadoraExport\:\:sheets\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Exports/AnalisisLavadoraExport.php
+
+		-
+			message: '#^Method App\\Exports\\AnalisisLavadorasExport\:\:sheets\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Exports/AnalisisLavadorasExport.php
+
+		-
+			message: '#^Method App\\Exports\\AnalisisMultiExport\:\:__construct\(\) has parameter \$analisis with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Exports/AnalisisMultiExport.php
+
+		-
+			message: '#^Method App\\Exports\\AnalisisMultiExport\:\:sheets\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Exports/AnalisisMultiExport.php
+
+		-
+			message: '#^Property App\\Exports\\AnalisisMultiExport\:\:\$analisis has no type specified\.$#'
+			identifier: missingType.property
+			count: 1
+			path: app/Exports/AnalisisMultiExport.php
+
+		-
+			message: '#^Method App\\Exports\\AnalisisLavadoraSheet\:\:__construct\(\) has parameter \$lavadora with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Exports/AnalisisPorLavadoraSheet.php
+
+		-
+			message: '#^Method App\\Exports\\AnalisisLavadoraSheet\:\:array\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Exports/AnalisisPorLavadoraSheet.php
+
+		-
+			message: '#^Method App\\Exports\\AnalisisLavadoraSheet\:\:registerEvents\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Exports/AnalisisPorLavadoraSheet.php
+
+		-
+			message: '#^Property App\\Exports\\AnalisisLavadoraSheet\:\:\$analisis has no type specified\.$#'
+			identifier: missingType.property
+			count: 1
+			path: app/Exports/AnalisisPorLavadoraSheet.php
+
+		-
+			message: '#^Property App\\Exports\\AnalisisLavadoraSheet\:\:\$componentes has no type specified\.$#'
+			identifier: missingType.property
+			count: 1
+			path: app/Exports/AnalisisPorLavadoraSheet.php
+
+		-
+			message: '#^Property App\\Exports\\AnalisisLavadoraSheet\:\:\$lavadora has no type specified\.$#'
+			identifier: missingType.property
+			count: 1
+			path: app/Exports/AnalisisPorLavadoraSheet.php
+
+		-
+			message: '#^Method App\\Exports\\ReporteLavadoraGeneralExcel\:\:__construct\(\) has parameter \$fechaFin with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Exports/ReporteLavadoraGeneralExcel.php
+
+		-
+			message: '#^Method App\\Exports\\ReporteLavadoraGeneralExcel\:\:__construct\(\) has parameter \$fechaInicio with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Exports/ReporteLavadoraGeneralExcel.php
+
+		-
+			message: '#^Method App\\Exports\\ReporteLavadoraGeneralExcel\:\:__construct\(\) has parameter \$lineaId with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Exports/ReporteLavadoraGeneralExcel.php
+
+		-
+			message: '#^Method App\\Exports\\ReporteLavadoraGeneralExcel\:\:aplicarBordes\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Exports/ReporteLavadoraGeneralExcel.php
+
+		-
+			message: '#^Method App\\Exports\\ReporteLavadoraGeneralExcel\:\:aplicarBordes\(\) has parameter \$sheet with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Exports/ReporteLavadoraGeneralExcel.php
+
+		-
+			message: '#^Method App\\Exports\\ReporteLavadoraGeneralExcel\:\:aplicarColoresEstados\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Exports/ReporteLavadoraGeneralExcel.php
+
+		-
+			message: '#^Method App\\Exports\\ReporteLavadoraGeneralExcel\:\:aplicarColoresEstados\(\) has parameter \$sheet with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Exports/ReporteLavadoraGeneralExcel.php
+
+		-
+			message: '#^Method App\\Exports\\ReporteLavadoraGeneralExcel\:\:aplicarEncabezados\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Exports/ReporteLavadoraGeneralExcel.php
+
+		-
+			message: '#^Method App\\Exports\\ReporteLavadoraGeneralExcel\:\:aplicarEncabezados\(\) has parameter \$color with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Exports/ReporteLavadoraGeneralExcel.php
+
+		-
+			message: '#^Method App\\Exports\\ReporteLavadoraGeneralExcel\:\:aplicarEncabezados\(\) has parameter \$rango with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Exports/ReporteLavadoraGeneralExcel.php
+
+		-
+			message: '#^Method App\\Exports\\ReporteLavadoraGeneralExcel\:\:aplicarEncabezados\(\) has parameter \$sheet with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Exports/ReporteLavadoraGeneralExcel.php
+
+		-
+			message: '#^Method App\\Exports\\ReporteLavadoraGeneralExcel\:\:aplicarTituloSeccion\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Exports/ReporteLavadoraGeneralExcel.php
+
+		-
+			message: '#^Method App\\Exports\\ReporteLavadoraGeneralExcel\:\:aplicarTituloSeccion\(\) has parameter \$celda with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Exports/ReporteLavadoraGeneralExcel.php
+
+		-
+			message: '#^Method App\\Exports\\ReporteLavadoraGeneralExcel\:\:aplicarTituloSeccion\(\) has parameter \$color with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Exports/ReporteLavadoraGeneralExcel.php
+
+		-
+			message: '#^Method App\\Exports\\ReporteLavadoraGeneralExcel\:\:aplicarTituloSeccion\(\) has parameter \$sheet with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Exports/ReporteLavadoraGeneralExcel.php
+
+		-
+			message: '#^Method App\\Exports\\ReporteLavadoraGeneralExcel\:\:aplicarTituloSeccion\(\) has parameter \$texto with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Exports/ReporteLavadoraGeneralExcel.php
+
+		-
+			message: '#^Method App\\Exports\\ReporteLavadoraGeneralExcel\:\:array\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Exports/ReporteLavadoraGeneralExcel.php
+
+		-
+			message: '#^Method App\\Exports\\ReporteLavadoraGeneralExcel\:\:columnWidths\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Exports/ReporteLavadoraGeneralExcel.php
+
+		-
+			message: '#^Method App\\Exports\\ReporteLavadoraGeneralExcel\:\:determinarEstadoElongacion\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Exports/ReporteLavadoraGeneralExcel.php
+
+		-
+			message: '#^Method App\\Exports\\ReporteLavadoraGeneralExcel\:\:determinarEstadoElongacion\(\) has parameter \$elongacion with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Exports/ReporteLavadoraGeneralExcel.php
+
+		-
+			message: '#^Method App\\Exports\\ReporteLavadoraGeneralExcel\:\:determinarEstadoGeneral\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Exports/ReporteLavadoraGeneralExcel.php
+
+		-
+			message: '#^Method App\\Exports\\ReporteLavadoraGeneralExcel\:\:determinarEstadoGeneral\(\) has parameter \$componentesCriticos with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Exports/ReporteLavadoraGeneralExcel.php
+
+		-
+			message: '#^Method App\\Exports\\ReporteLavadoraGeneralExcel\:\:determinarEstadoGeneral\(\) has parameter \$ultimoAnalisis with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Exports/ReporteLavadoraGeneralExcel.php
+
+		-
+			message: '#^Method App\\Exports\\ReporteLavadoraGeneralExcel\:\:registerEvents\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Exports/ReporteLavadoraGeneralExcel.php
+
+		-
+			message: '#^Property App\\Exports\\ReporteLavadoraGeneralExcel\:\:\$analisis has no type specified\.$#'
+			identifier: missingType.property
+			count: 1
+			path: app/Exports/ReporteLavadoraGeneralExcel.php
+
+		-
+			message: '#^Property App\\Exports\\ReporteLavadoraGeneralExcel\:\:\$fechaFin has no type specified\.$#'
+			identifier: missingType.property
+			count: 1
+			path: app/Exports/ReporteLavadoraGeneralExcel.php
+
+		-
+			message: '#^Property App\\Exports\\ReporteLavadoraGeneralExcel\:\:\$fechaInicio has no type specified\.$#'
+			identifier: missingType.property
+			count: 1
+			path: app/Exports/ReporteLavadoraGeneralExcel.php
+
+		-
+			message: '#^Property App\\Exports\\ReporteLavadoraGeneralExcel\:\:\$lavadoras has no type specified\.$#'
+			identifier: missingType.property
+			count: 1
+			path: app/Exports/ReporteLavadoraGeneralExcel.php
+
+		-
+			message: '#^Property App\\Exports\\ReporteLavadoraGeneralExcel\:\:\$lineaId has no type specified\.$#'
+			identifier: missingType.property
+			count: 1
+			path: app/Exports/ReporteLavadoraGeneralExcel.php
+
+		-
+			message: '#^Property App\\Exports\\ReporteLavadoraGeneralExcel\:\:\$lineas has no type specified\.$#'
+			identifier: missingType.property
+			count: 1
+			path: app/Exports/ReporteLavadoraGeneralExcel.php
+
+		-
+			message: '#^Property App\\Exports\\ReporteLavadoraGeneralExcel\:\:\$paros has no type specified\.$#'
+			identifier: missingType.property
+			count: 1
+			path: app/Exports/ReporteLavadoraGeneralExcel.php
+
+		-
+			message: '#^Relation ''linea'' is not found in App\\Models\\Paro model\.$#'
+			identifier: larastan.relationExistence
+			count: 2
+			path: app/Exports/ReporteLavadoraGeneralExcel.php
+
+		-
+			message: '#^Relation ''planesAccion'' is not found in App\\Models\\Paro model\.$#'
+			identifier: larastan.relationExistence
+			count: 1
+			path: app/Exports/ReporteLavadoraGeneralExcel.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\AnalisisComponente\:\:\$observaciones\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Exports/Sheets/AnalisisPorLineaSheet.php
+
+		-
+			message: '#^Cannot call method format\(\) on Carbon\\Carbon\|null\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: app/Exports/Sheets/AnalisisPorLineaSheet.php
+
+		-
+			message: '#^Method App\\Exports\\Sheets\\AnalisisPorLineaSheet\:\:__construct\(\) has parameter \$request with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Exports/Sheets/AnalisisPorLineaSheet.php
+
+		-
+			message: '#^Method App\\Exports\\Sheets\\AnalisisPorLineaSheet\:\:collection\(\) return type with generic class Illuminate\\Support\\Collection does not specify its types\: TKey, TValue$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Exports/Sheets/AnalisisPorLineaSheet.php
+
+		-
+			message: '#^Method App\\Exports\\Sheets\\AnalisisPorLineaSheet\:\:headings\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Exports/Sheets/AnalisisPorLineaSheet.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,App\\Models\\AnalisisComponente\>\:\:map\(\) contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 1
+			path: app/Exports/Sheets/AnalisisPorLineaSheet.php
+
+		-
+			message: '#^Property App\\Exports\\Sheets\\AnalisisPorLineaSheet\:\:\$linea has no type specified\.$#'
+			identifier: missingType.property
+			count: 1
+			path: app/Exports/Sheets/AnalisisPorLineaSheet.php
+
+		-
+			message: '#^Property App\\Exports\\Sheets\\AnalisisPorLineaSheet\:\:\$request has no type specified\.$#'
+			identifier: missingType.property
+			count: 1
+			path: app/Exports/Sheets/AnalisisPorLineaSheet.php
+
+		-
+			message: '#^Return type of call to method Illuminate\\Database\\Eloquent\\Collection\<int,App\\Models\\AnalisisComponente\>\:\:map\(\) contains unresolvable type\.$#'
+			identifier: method.unresolvableReturnType
+			count: 1
+			path: app/Exports/Sheets/AnalisisPorLineaSheet.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Analisis\:\:\$total\.$#'
+			identifier: property.notFound
+			count: 3
+			path: app/Http/Controllers/AnalisisController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Analisis\|Illuminate\\Database\\Eloquent\\Collection\<int, App\\Models\\Analisis\>\:\:\$categoria_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/AnalisisController.php
+
+		-
+			message: '#^Binary operation "\." between ''%%'' and mixed results in an error\.$#'
+			identifier: binaryOp.invalid
+			count: 1
+			path: app/Http/Controllers/AnalisisController.php
+
+		-
+			message: '#^Call to an undefined method App\\Models\\Analisis\|Illuminate\\Database\\Eloquent\\Collection\<int, App\\Models\\Analisis\>\:\:delete\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Http/Controllers/AnalisisController.php
+
+		-
+			message: '#^Call to an undefined method App\\Models\\Analisis\|Illuminate\\Database\\Eloquent\\Collection\<int, App\\Models\\Analisis\>\:\:save\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Http/Controllers/AnalisisController.php
+
+		-
+			message: '#^Call to an undefined method App\\Models\\Analisis\|Illuminate\\Database\\Eloquent\\Collection\<int, App\\Models\\Analisis\>\:\:update\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Http/Controllers/AnalisisController.php
+
+		-
+			message: '#^Class App\\Exports\\AnalisisLavadoraExcel constructor invoked with 2 parameters, 0\-1 required\.$#'
+			identifier: arguments.count
+			count: 1
+			path: app/Http/Controllers/AnalisisController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\AnalisisController\:\:crear\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/AnalisisController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\AnalisisController\:\:crear\(\) has parameter \$componenteId with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Http/Controllers/AnalisisController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\AnalisisController\:\:crear\(\) has parameter \$lineaId with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Http/Controllers/AnalisisController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\AnalisisController\:\:destroy\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/AnalisisController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\AnalisisController\:\:destroy\(\) has parameter \$id with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Http/Controllers/AnalisisController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\AnalisisController\:\:edit\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/AnalisisController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\AnalisisController\:\:edit\(\) has parameter \$id with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Http/Controllers/AnalisisController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\AnalisisController\:\:eliminarFoto\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/AnalisisController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\AnalisisController\:\:eliminarFoto\(\) has parameter \$id with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Http/Controllers/AnalisisController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\AnalisisController\:\:estadisticas\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/AnalisisController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\AnalisisController\:\:exportPdf\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/AnalisisController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\AnalisisController\:\:exportPdf\(\) has parameter \$id with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Http/Controllers/AnalisisController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\AnalisisController\:\:exportarExcel\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/AnalisisController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\AnalisisController\:\:exportarTodas\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/AnalisisController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\AnalisisController\:\:getComponentes\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/AnalisisController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\AnalisisController\:\:getComponentes\(\) has parameter \$lineaId with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Http/Controllers/AnalisisController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\AnalisisController\:\:getNumerosR\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/AnalisisController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\AnalisisController\:\:getNumerosR\(\) has parameter \$categoriaId with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Http/Controllers/AnalisisController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\AnalisisController\:\:getReductores\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/AnalisisController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\AnalisisController\:\:getReductores\(\) has parameter \$componenteId with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Http/Controllers/AnalisisController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\AnalisisController\:\:index\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/AnalisisController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\AnalisisController\:\:porLinea\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/AnalisisController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\AnalisisController\:\:porLinea\(\) has parameter \$lineaId with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Http/Controllers/AnalisisController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\AnalisisController\:\:seleccionarComponente\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/AnalisisController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\AnalisisController\:\:seleccionarComponente\(\) has parameter \$lineaId with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Http/Controllers/AnalisisController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\AnalisisController\:\:seleccionarLinea\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/AnalisisController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\AnalisisController\:\:show\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/AnalisisController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\AnalisisController\:\:show\(\) has parameter \$id with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Http/Controllers/AnalisisController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\AnalisisController\:\:store\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/AnalisisController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\AnalisisController\:\:update\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/AnalisisController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\AnalisisController\:\:update\(\) has parameter \$id with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Http/Controllers/AnalisisController.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,App\\Models\\Analisis\>\:\:map\(\) contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 3
+			path: app/Http/Controllers/AnalisisController.php
+
+		-
+			message: '#^Parameter \#1 \$string of function substr expects string, mixed given\.$#'
+			identifier: argument.type
+			count: 2
+			path: app/Http/Controllers/AnalisisController.php
+
+		-
+			message: '#^Parameter \#1 \$view of function view expects view\-string\|null, string given\.$#'
+			identifier: argument.type
+			count: 9
+			path: app/Http/Controllers/AnalisisController.php
+
+		-
+			message: '#^Possibly invalid array key type mixed\.$#'
+			identifier: offsetAccess.invalidOffset
+			count: 3
+			path: app/Http/Controllers/AnalisisController.php
+
+		-
+			message: '#^Relation ''categoria'' is not found in App\\Models\\Componente model\.$#'
+			identifier: larastan.relationExistence
+			count: 1
+			path: app/Http/Controllers/AnalisisController.php
+
+		-
+			message: '#^Return type of call to method Illuminate\\Database\\Eloquent\\Collection\<int,App\\Models\\Analisis\>\:\:map\(\) contains unresolvable type\.$#'
+			identifier: method.unresolvableReturnType
+			count: 3
+			path: app/Http/Controllers/AnalisisController.php
+
+		-
+			message: '#^Right side of && is always true\.$#'
+			identifier: booleanAnd.rightAlwaysTrue
+			count: 1
+			path: app/Http/Controllers/AnalisisController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\AnalisisLavadora\|Illuminate\\Database\\Eloquent\\Collection\<int, App\\Models\\AnalisisLavadora\>\:\:\$componente_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/AnalisisLavadoraController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\AnalisisLavadora\|Illuminate\\Database\\Eloquent\\Collection\<int, App\\Models\\AnalisisLavadora\>\:\:\$evidencia_fotos\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/AnalisisLavadoraController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\AnalisisLavadora\|Illuminate\\Database\\Eloquent\\Collection\<int, App\\Models\\AnalisisLavadora\>\:\:\$linea\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/AnalisisLavadoraController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\AnalisisLavadora\|Illuminate\\Database\\Eloquent\\Collection\<int, App\\Models\\AnalisisLavadora\>\:\:\$reductor\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/AnalisisLavadoraController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Componente\|Illuminate\\Database\\Eloquent\\Collection\<int, App\\Models\\Componente\>\:\:\$codigo\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/AnalisisLavadoraController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Componente\|Illuminate\\Database\\Eloquent\\Collection\<int, App\\Models\\Componente\>\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/AnalisisLavadoraController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Componente\|Illuminate\\Database\\Eloquent\\Collection\<int, App\\Models\\Componente\>\:\:\$linea\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/AnalisisLavadoraController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Linea\|Illuminate\\Database\\Eloquent\\Collection\<int, App\\Models\\Linea\>\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Http/Controllers/AnalisisLavadoraController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Linea\|Illuminate\\Database\\Eloquent\\Collection\<int, App\\Models\\Linea\>\:\:\$nombre\.$#'
+			identifier: property.notFound
+			count: 15
+			path: app/Http/Controllers/AnalisisLavadoraController.php
+
+		-
+			message: '#^Anonymous function has an unused use \$codigo\.$#'
+			identifier: closure.unusedUse
+			count: 1
+			path: app/Http/Controllers/AnalisisLavadoraController.php
+
+		-
+			message: '#^Argument of an invalid type mixed supplied for foreach, only iterables are supported\.$#'
+			identifier: foreach.nonIterable
+			count: 2
+			path: app/Http/Controllers/AnalisisLavadoraController.php
+
+		-
+			message: '#^Binary operation "\." between ''%%'' and mixed results in an error\.$#'
+			identifier: binaryOp.invalid
+			count: 1
+			path: app/Http/Controllers/AnalisisLavadoraController.php
+
+		-
+			message: '#^Binary operation "\." between ''%%_'' and mixed results in an error\.$#'
+			identifier: binaryOp.invalid
+			count: 2
+			path: app/Http/Controllers/AnalisisLavadoraController.php
+
+		-
+			message: '#^Binary operation "\." between ''Componente no…'' and mixed results in an error\.$#'
+			identifier: binaryOp.invalid
+			count: 1
+			path: app/Http/Controllers/AnalisisLavadoraController.php
+
+		-
+			message: '#^Binary operation "\." between mixed and ''_'' results in an error\.$#'
+			identifier: binaryOp.invalid
+			count: 1
+			path: app/Http/Controllers/AnalisisLavadoraController.php
+
+		-
+			message: '#^Call to an undefined method App\\Models\\AnalisisLavadora\|Illuminate\\Database\\Eloquent\\Collection\<int, App\\Models\\AnalisisLavadora\>\:\:update\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Http/Controllers/AnalisisLavadoraController.php
+
+		-
+			message: '#^Cannot access an offset on mixed\.$#'
+			identifier: offsetAccess.nonOffsetAccessible
+			count: 1
+			path: app/Http/Controllers/AnalisisLavadoraController.php
+
+		-
+			message: '#^Cannot access offset mixed on mixed\.$#'
+			identifier: offsetAccess.nonOffsetAccessible
+			count: 2
+			path: app/Http/Controllers/AnalisisLavadoraController.php
+
+		-
+			message: '#^Cannot access property \$id on App\\Models\\Componente\|Illuminate\\Database\\Eloquent\\Collection\<int, App\\Models\\Componente\>\|null\.$#'
+			identifier: property.nonObject
+			count: 1
+			path: app/Http/Controllers/AnalisisLavadoraController.php
+
+		-
+			message: '#^Cannot access property \$nombre on App\\Models\\Componente\|Illuminate\\Database\\Eloquent\\Collection\<int, App\\Models\\Componente\>\|null\.$#'
+			identifier: property.nonObject
+			count: 1
+			path: app/Http/Controllers/AnalisisLavadoraController.php
+
+		-
+			message: '#^Cannot access property \$nombre on App\\Models\\Linea\|null\.$#'
+			identifier: property.nonObject
+			count: 2
+			path: app/Http/Controllers/AnalisisLavadoraController.php
+
+		-
+			message: '#^Comparison operation "\>" between 15 and 0 is always true\.$#'
+			identifier: greater.alwaysTrue
+			count: 1
+			path: app/Http/Controllers/AnalisisLavadoraController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\AnalisisLavadoraController\:\:analisis52124\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/AnalisisLavadoraController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\AnalisisLavadoraController\:\:createQuick\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/AnalisisLavadoraController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\AnalisisLavadoraController\:\:createWithLinea\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/AnalisisLavadoraController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\AnalisisLavadoraController\:\:createWithLinea\(\) has parameter \$lineaId with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Http/Controllers/AnalisisLavadoraController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\AnalisisLavadoraController\:\:deleteFoto\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/AnalisisLavadoraController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\AnalisisLavadoraController\:\:deleteFoto\(\) has parameter \$fotoIndex with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Http/Controllers/AnalisisLavadoraController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\AnalisisLavadoraController\:\:destroy\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/AnalisisLavadoraController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\AnalisisLavadoraController\:\:edit\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/AnalisisLavadoraController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\AnalisisLavadoraController\:\:edit\(\) has parameter \$id with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Http/Controllers/AnalisisLavadoraController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\AnalisisLavadoraController\:\:exportExcel\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/AnalisisLavadoraController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\AnalisisLavadoraController\:\:exportPdf\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/AnalisisLavadoraController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\AnalisisLavadoraController\:\:getComponentesPorLinea\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Http/Controllers/AnalisisLavadoraController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\AnalisisLavadoraController\:\:getComponentesPorLineaAjax\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/AnalisisLavadoraController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\AnalisisLavadoraController\:\:getEstadisticasProgreso\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/AnalisisLavadoraController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\AnalisisLavadoraController\:\:getNombreComponente\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/AnalisisLavadoraController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\AnalisisLavadoraController\:\:getNombreComponente\(\) has parameter \$codigo with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Http/Controllers/AnalisisLavadoraController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\AnalisisLavadoraController\:\:getReductoresPorLinea\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Http/Controllers/AnalisisLavadoraController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\AnalisisLavadoraController\:\:getReductoresPorLineaPublic\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/AnalisisLavadoraController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\AnalisisLavadoraController\:\:getTodosComponentes\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Http/Controllers/AnalisisLavadoraController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\AnalisisLavadoraController\:\:historial\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/AnalisisLavadoraController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\AnalisisLavadoraController\:\:historicoRevisados\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/AnalisisLavadoraController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\AnalisisLavadoraController\:\:index\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/AnalisisLavadoraController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\AnalisisLavadoraController\:\:selectLinea\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/AnalisisLavadoraController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\AnalisisLavadoraController\:\:show\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/AnalisisLavadoraController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\AnalisisLavadoraController\:\:store\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/AnalisisLavadoraController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\AnalisisLavadoraController\:\:update\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/AnalisisLavadoraController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\AnalisisLavadoraController\:\:update\(\) has parameter \$id with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Http/Controllers/AnalisisLavadoraController.php
+
+		-
+			message: '#^Parameter \#1 \$array of function array_values expects array\<T\>, mixed given\.$#'
+			identifier: argument.type
+			count: 2
+			path: app/Http/Controllers/AnalisisLavadoraController.php
+
+		-
+			message: '#^Parameter \#1 \$json of function json_decode expects string, array\<int, string\>\|string given\.$#'
+			identifier: argument.type
+			count: 2
+			path: app/Http/Controllers/AnalisisLavadoraController.php
+
+		-
+			message: '#^Parameter \#1 \$json of function json_decode expects string, null given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/AnalisisLavadoraController.php
+
+		-
+			message: '#^Parameter \#1 \$paths of method Illuminate\\Filesystem\\FilesystemAdapter\:\:delete\(\) expects array\|string, mixed given\.$#'
+			identifier: argument.type
+			count: 3
+			path: app/Http/Controllers/AnalisisLavadoraController.php
+
+		-
+			message: '#^Parameter \#1 \$string of function substr expects string, mixed given\.$#'
+			identifier: argument.type
+			count: 2
+			path: app/Http/Controllers/AnalisisLavadoraController.php
+
+		-
+			message: '#^Parameter \#1 \$string of function trim expects string, mixed given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/AnalisisLavadoraController.php
+
+		-
+			message: '#^Parameter \#1 \$to of function redirect expects string\|null, mixed given\.$#'
+			identifier: argument.type
+			count: 2
+			path: app/Http/Controllers/AnalisisLavadoraController.php
+
+		-
+			message: '#^Parameter \#1 \$view of function view expects view\-string\|null, string given\.$#'
+			identifier: argument.type
+			count: 2
+			path: app/Http/Controllers/AnalisisLavadoraController.php
+
+		-
+			message: '#^Parameter \#3 \$subject of function str_replace expects array\<string\>\|string, mixed given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/AnalisisLavadoraController.php
+
+		-
+			message: '#^Part \$request\-\>actividad \(mixed\) of encapsed string cannot be cast to string\.$#'
+			identifier: encapsedStringPart.nonString
+			count: 1
+			path: app/Http/Controllers/AnalisisLavadoraController.php
+
+		-
+			message: '#^Part \$request\-\>fecha_analisis \(mixed\) of encapsed string cannot be cast to string\.$#'
+			identifier: encapsedStringPart.nonString
+			count: 1
+			path: app/Http/Controllers/AnalisisLavadoraController.php
+
+		-
+			message: '#^Part \$request\-\>numero_orden \(mixed\) of encapsed string cannot be cast to string\.$#'
+			identifier: encapsedStringPart.nonString
+			count: 1
+			path: app/Http/Controllers/AnalisisLavadoraController.php
+
+		-
+			message: '#^Part \$request\-\>reductor \(mixed\) of encapsed string cannot be cast to string\.$#'
+			identifier: encapsedStringPart.nonString
+			count: 1
+			path: app/Http/Controllers/AnalisisLavadoraController.php
+
+		-
+			message: '#^Undefined variable\: \$request$#'
+			identifier: variable.undefined
+			count: 1
+			path: app/Http/Controllers/AnalisisLavadoraController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\AnalisisPasteurizadora\|Illuminate\\Database\\Eloquent\\Collection\<int, App\\Models\\AnalisisPasteurizadora\>\:\:\$componente\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/AnalisisPasteurizadoraController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\AnalisisPasteurizadora\|Illuminate\\Database\\Eloquent\\Collection\<int, App\\Models\\AnalisisPasteurizadora\>\:\:\$estado\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/AnalisisPasteurizadoraController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\AnalisisPasteurizadora\|Illuminate\\Database\\Eloquent\\Collection\<int, App\\Models\\AnalisisPasteurizadora\>\:\:\$evidencia_fotos\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/AnalisisPasteurizadoraController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\AnalisisPasteurizadora\|Illuminate\\Database\\Eloquent\\Collection\<int, App\\Models\\AnalisisPasteurizadora\>\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/AnalisisPasteurizadoraController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\AnalisisPasteurizadora\|Illuminate\\Database\\Eloquent\\Collection\<int, App\\Models\\AnalisisPasteurizadora\>\:\:\$linea_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/AnalisisPasteurizadoraController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\AnalisisPasteurizadora\|Illuminate\\Database\\Eloquent\\Collection\<int, App\\Models\\AnalisisPasteurizadora\>\:\:\$modulo\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/AnalisisPasteurizadoraController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\AnalisisPasteurizadora\|Illuminate\\Database\\Eloquent\\Collection\<int, App\\Models\\AnalisisPasteurizadora\>\:\:\$numero_orden\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/AnalisisPasteurizadoraController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Linea\|Illuminate\\Database\\Eloquent\\Collection\<int, App\\Models\\Linea\>\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/AnalisisPasteurizadoraController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Linea\|Illuminate\\Database\\Eloquent\\Collection\<int, App\\Models\\Linea\>\:\:\$nombre\.$#'
+			identifier: property.notFound
+			count: 5
+			path: app/Http/Controllers/AnalisisPasteurizadoraController.php
+
+		-
+			message: '#^Call to an undefined method App\\Models\\AnalisisPasteurizadora\|Illuminate\\Database\\Eloquent\\Collection\<int, App\\Models\\AnalisisPasteurizadora\>\:\:delete\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Http/Controllers/AnalisisPasteurizadoraController.php
+
+		-
+			message: '#^Call to an undefined method App\\Models\\AnalisisPasteurizadora\|Illuminate\\Database\\Eloquent\\Collection\<int, App\\Models\\AnalisisPasteurizadora\>\:\:save\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Http/Controllers/AnalisisPasteurizadoraController.php
+
+		-
+			message: '#^Call to an undefined method App\\Models\\AnalisisPasteurizadora\|Illuminate\\Database\\Eloquent\\Collection\<int, App\\Models\\AnalisisPasteurizadora\>\:\:update\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Http/Controllers/AnalisisPasteurizadoraController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\AnalisisPasteurizadoraController\:\:analisis52124\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/AnalisisPasteurizadoraController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\AnalisisPasteurizadoraController\:\:crearLineasPasteurizadora\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/AnalisisPasteurizadoraController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\AnalisisPasteurizadoraController\:\:create\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/AnalisisPasteurizadoraController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\AnalisisPasteurizadoraController\:\:createPlanAccion\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/AnalisisPasteurizadoraController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\AnalisisPasteurizadoraController\:\:createQuick\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/AnalisisPasteurizadoraController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\AnalisisPasteurizadoraController\:\:createWithLinea\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/AnalisisPasteurizadoraController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\AnalisisPasteurizadoraController\:\:createWithLinea\(\) has parameter \$linea with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Http/Controllers/AnalisisPasteurizadoraController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\AnalisisPasteurizadoraController\:\:dashboard\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/AnalisisPasteurizadoraController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\AnalisisPasteurizadoraController\:\:deleteFoto\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/AnalisisPasteurizadoraController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\AnalisisPasteurizadoraController\:\:deleteFoto\(\) has parameter \$fotoIndex with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Http/Controllers/AnalisisPasteurizadoraController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\AnalisisPasteurizadoraController\:\:deleteFoto\(\) has parameter \$id with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Http/Controllers/AnalisisPasteurizadoraController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\AnalisisPasteurizadoraController\:\:destroy\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/AnalisisPasteurizadoraController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\AnalisisPasteurizadoraController\:\:destroy\(\) has parameter \$id with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Http/Controllers/AnalisisPasteurizadoraController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\AnalisisPasteurizadoraController\:\:edit\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/AnalisisPasteurizadoraController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\AnalisisPasteurizadoraController\:\:edit\(\) has parameter \$id with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Http/Controllers/AnalisisPasteurizadoraController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\AnalisisPasteurizadoraController\:\:getComponentesPorLineaAjax\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/AnalisisPasteurizadoraController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\AnalisisPasteurizadoraController\:\:historial\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/AnalisisPasteurizadoraController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\AnalisisPasteurizadoraController\:\:historicoRevisados\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/AnalisisPasteurizadoraController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\AnalisisPasteurizadoraController\:\:index\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/AnalisisPasteurizadoraController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\AnalisisPasteurizadoraController\:\:marcarRegistrosAnterioresComoResueltos\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/AnalisisPasteurizadoraController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\AnalisisPasteurizadoraController\:\:marcarRegistrosAnterioresComoResueltos\(\) has parameter \$nuevoAnalisis with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Http/Controllers/AnalisisPasteurizadoraController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\AnalisisPasteurizadoraController\:\:planAccion\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/AnalisisPasteurizadoraController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\AnalisisPasteurizadoraController\:\:selectLinea\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/AnalisisPasteurizadoraController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\AnalisisPasteurizadoraController\:\:show\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/AnalisisPasteurizadoraController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\AnalisisPasteurizadoraController\:\:show\(\) has parameter \$id with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Http/Controllers/AnalisisPasteurizadoraController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\AnalisisPasteurizadoraController\:\:store\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/AnalisisPasteurizadoraController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\AnalisisPasteurizadoraController\:\:storeQuick\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/AnalisisPasteurizadoraController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\AnalisisPasteurizadoraController\:\:update\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/AnalisisPasteurizadoraController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\AnalisisPasteurizadoraController\:\:update\(\) has parameter \$id with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Http/Controllers/AnalisisPasteurizadoraController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\AnalisisPasteurizadoraController\:\:updateAnalisis52124\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/AnalisisPasteurizadoraController.php
+
+		-
+			message: '#^Parameter \#1 \$string of function substr expects string, mixed given\.$#'
+			identifier: argument.type
+			count: 2
+			path: app/Http/Controllers/AnalisisPasteurizadoraController.php
+
+		-
+			message: '#^Parameter \#3 \$value of method Illuminate\\Database\\Eloquent\\Builder\<App\\Models\\AnalisisPasteurizadora\>\:\:whereDate\(\) expects DateTimeInterface\|string\|null, mixed given\.$#'
+			identifier: argument.type
+			count: 2
+			path: app/Http/Controllers/AnalisisPasteurizadoraController.php
+
+		-
+			message: '#^Relation ''linea'' is not found in App\\Models\\AnalisisPasteurizadora model\.$#'
+			identifier: larastan.relationExistence
+			count: 5
+			path: app/Http/Controllers/AnalisisPasteurizadoraController.php
+
+		-
+			message: '#^Cannot call method endOfMonth\(\) on Carbon\\Carbon\|null\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: app/Http/Controllers/AnalisisTendenciaMensualLavadoraController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\AnalisisTendenciaMensualLavadoraController\:\:create\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/AnalisisTendenciaMensualLavadoraController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\AnalisisTendenciaMensualLavadoraController\:\:getTendenciaApi\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/AnalisisTendenciaMensualLavadoraController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\AnalisisTendenciaMensualLavadoraController\:\:index\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/AnalisisTendenciaMensualLavadoraController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\AnalisisTendenciaMensualLavadoraController\:\:show\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/AnalisisTendenciaMensualLavadoraController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\AnalisisTendenciaMensualLavadoraController\:\:store\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/AnalisisTendenciaMensualLavadoraController.php
+
+		-
+			message: '#^Parameter \#1 \$year of static method Carbon\\Carbon\:\:create\(\) expects DateTimeInterface\|int\|string\|null, mixed given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/AnalisisTendenciaMensualLavadoraController.php
+
+		-
+			message: '#^Parameter \#2 \$month of static method Carbon\\Carbon\:\:create\(\) expects int\|null, mixed given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/AnalisisTendenciaMensualLavadoraController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Analisis\:\:\$elongacion_promedio\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/ApiController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\AnalisisComponente\:\:\$total\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/ApiController.php
+
+		-
+			message: '#^Cannot access property \$nombre on App\\Models\\Componente\|null\.$#'
+			identifier: property.nonObject
+			count: 1
+			path: app/Http/Controllers/ApiController.php
+
+		-
+			message: '#^Cannot call method format\(\) on Carbon\\Carbon\|null\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: app/Http/Controllers/ApiController.php
+
+		-
+			message: '#^Cannot call method format\(\) on mixed\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: app/Http/Controllers/ApiController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\ApiController\:\:danosTendencia\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/ApiController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\ApiController\:\:dashboard\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/ApiController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\ApiController\:\:tendenciaLinea\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/ApiController.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,App\\Models\\AnalisisComponente\>\:\:map\(\) contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 1
+			path: app/Http/Controllers/ApiController.php
+
+		-
+			message: '#^Relation ''analisis'' is not found in App\\Models\\AnalisisComponente model\.$#'
+			identifier: larastan.relationExistence
+			count: 2
+			path: app/Http/Controllers/ApiController.php
+
+		-
+			message: '#^Return type of call to method Illuminate\\Database\\Eloquent\\Collection\<int,App\\Models\\AnalisisComponente\>\:\:map\(\) contains unresolvable type\.$#'
+			identifier: method.unresolvableReturnType
+			count: 1
+			path: app/Http/Controllers/ApiController.php
+
+		-
+			message: '#^Parameter \#1 \$key of function __ expects string\|null, mixed given\.$#'
+			identifier: argument.type
+			count: 2
+			path: app/Http/Controllers/Auth/NewPasswordController.php
+
+		-
+			message: '#^Parameter \#1 \$value of static method Illuminate\\Support\\Facades\\Hash\:\:make\(\) expects string, mixed given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/Auth/NewPasswordController.php
+
+		-
+			message: '#^Cannot call method update\(\) on App\\Models\\User\|null\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: app/Http/Controllers/Auth/PasswordController.php
+
+		-
+			message: '#^Parameter \#1 \$value of static method Illuminate\\Support\\Facades\\Hash\:\:make\(\) expects string, mixed given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/Auth/RegisteredUserController.php
+
+		-
+			message: '#^Parameter \#1 \$user of class Illuminate\\Auth\\Events\\Verified constructor expects Illuminate\\Contracts\\Auth\\MustVerifyEmail, App\\Models\\User given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/Auth/VerifyEmailController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Componente\:\:\$icono\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/DashboardController.php
+
+		-
+			message: '#^Cannot call method format\(\) on Carbon\\Carbon\|null\.$#'
+			identifier: method.nonObject
+			count: 3
+			path: app/Http/Controllers/DashboardController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\DashboardController\:\:calcularEstadoLavadora\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/DashboardController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\DashboardController\:\:calcularEstadoLavadora\(\) has parameter \$lineaId with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Http/Controllers/DashboardController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\DashboardController\:\:getAnalisis52124\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/DashboardController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\DashboardController\:\:getAnalisis52124\(\) has parameter \$lineasLavadora with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Http/Controllers/DashboardController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\DashboardController\:\:getComponentesDanados\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/DashboardController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\DashboardController\:\:getComponentesDanados\(\) has parameter \$lineasLavadora with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Http/Controllers/DashboardController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\DashboardController\:\:getDanosTendenciaApi\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/DashboardController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\DashboardController\:\:getEstadoLavadoras\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/DashboardController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\DashboardController\:\:getEstadoLavadoras\(\) has parameter \$lineasLavadora with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Http/Controllers/DashboardController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\DashboardController\:\:getEvolucionElongaciones\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/DashboardController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\DashboardController\:\:getEvolucionElongaciones\(\) has parameter \$lineasLavadora with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Http/Controllers/DashboardController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\DashboardController\:\:getFallasPorLinea\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/DashboardController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\DashboardController\:\:getFallasPorLinea\(\) has parameter \$lineasLavadora with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Http/Controllers/DashboardController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\DashboardController\:\:getHistoricoRevisiones\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/DashboardController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\DashboardController\:\:getHistoricoRevisiones\(\) has parameter \$lineasLavadora with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Http/Controllers/DashboardController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\DashboardController\:\:getRankingDanos\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/DashboardController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\DashboardController\:\:getRankingDanos\(\) has parameter \$lineasLavadora with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Http/Controllers/DashboardController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\DashboardController\:\:getResumenGeneral\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/DashboardController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\DashboardController\:\:getResumenGeneral\(\) has parameter \$lineasLavadora with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Http/Controllers/DashboardController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\DashboardController\:\:index\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/DashboardController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\DashboardController\:\:lavadora\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/DashboardController.php
+
+		-
+			message: '#^Parameter \#1 \$string of function trim expects string, string\|null given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/DashboardController.php
+
+		-
+			message: '#^Cannot call method format\(\) on Carbon\\Carbon\|null\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: app/Http/Controllers/ElongacionController.php
+
+		-
+			message: '#^Loose comparison using \!\= between ''normal'' and ''critico'' will always evaluate to true\.$#'
+			identifier: notEqual.alwaysTrue
+			count: 1
+			path: app/Http/Controllers/ElongacionController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\ElongacionController\:\:create\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/ElongacionController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\ElongacionController\:\:destroy\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/ElongacionController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\ElongacionController\:\:enviarNotificacionWhatsApp\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/ElongacionController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\ElongacionController\:\:enviarNotificacionWhatsApp\(\) has parameter \$bombasPorcentaje with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Http/Controllers/ElongacionController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\ElongacionController\:\:enviarNotificacionWhatsApp\(\) has parameter \$request with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Http/Controllers/ElongacionController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\ElongacionController\:\:enviarNotificacionWhatsApp\(\) has parameter \$vaporPorcentaje with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Http/Controllers/ElongacionController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\ElongacionController\:\:index\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/ElongacionController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\ElongacionController\:\:show\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/ElongacionController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\ElongacionController\:\:store\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/ElongacionController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\ElongacionController\:\:ultimaLectura\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/ElongacionController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\ElongacionController\:\:ultimaLectura\(\) has parameter \$linea with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Http/Controllers/ElongacionController.php
+
+		-
+			message: '#^Possibly invalid array key type mixed\.$#'
+			identifier: offsetAccess.invalidOffset
+			count: 1
+			path: app/Http/Controllers/ElongacionController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\HistorialRestablecimiento\:\:\$componente\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/HistoricoRevisadosController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\HistorialRestablecimiento\:\:\$total\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/HistoricoRevisadosController.php
+
+		-
+			message: '#^Cannot access property \$name on App\\Models\\User\|null\.$#'
+			identifier: property.nonObject
+			count: 1
+			path: app/Http/Controllers/HistoricoRevisadosController.php
+
+		-
+			message: '#^Cannot call method hasRole\(\) on App\\Models\\User\|null\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: app/Http/Controllers/HistoricoRevisadosController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\HistoricoRevisadosController\:\:calcularProximoVencimiento\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/HistoricoRevisadosController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\HistoricoRevisadosController\:\:calcularProximoVencimiento\(\) has parameter \$componenteIds with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Http/Controllers/HistoricoRevisadosController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\HistoricoRevisadosController\:\:calcularProximoVencimiento\(\) has parameter \$lineaId with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Http/Controllers/HistoricoRevisadosController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\HistoricoRevisadosController\:\:calcularProximoVencimiento\(\) has parameter \$periodoMeses with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Http/Controllers/HistoricoRevisadosController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\HistoricoRevisadosController\:\:checkResetStatus\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/HistoricoRevisadosController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\HistoricoRevisadosController\:\:getColorDiasRestantes\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/HistoricoRevisadosController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\HistoricoRevisadosController\:\:getColorDiasRestantes\(\) has parameter \$dias with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Http/Controllers/HistoricoRevisadosController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\HistoricoRevisadosController\:\:getColorPorcentaje\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/HistoricoRevisadosController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\HistoricoRevisadosController\:\:getColorPorcentaje\(\) has parameter \$porcentaje with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Http/Controllers/HistoricoRevisadosController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\HistoricoRevisadosController\:\:getEstadisticasLavadora\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/HistoricoRevisadosController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\HistoricoRevisadosController\:\:getEstadisticasLavadora\(\) has parameter \$linea with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Http/Controllers/HistoricoRevisadosController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\HistoricoRevisadosController\:\:getEstadisticasPasteurizadora\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/HistoricoRevisadosController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\HistoricoRevisadosController\:\:getEstadisticasPasteurizadora\(\) has parameter \$linea with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Http/Controllers/HistoricoRevisadosController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\HistoricoRevisadosController\:\:index\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/HistoricoRevisadosController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\HistoricoRevisadosController\:\:resetEstadisticas\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/HistoricoRevisadosController.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,App\\Models\\HistorialRestablecimiento\>\:\:map\(\) contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 1
+			path: app/Http/Controllers/HistoricoRevisadosController.php
+
+		-
+			message: '#^Property App\\Http\\Controllers\\HistoricoRevisadosController\:\:\$cantidadesPorLinea has no type specified\.$#'
+			identifier: missingType.property
+			count: 1
+			path: app/Http/Controllers/HistoricoRevisadosController.php
+
+		-
+			message: '#^Property App\\Http\\Controllers\\HistoricoRevisadosController\:\:\$componentesLavadora has no type specified\.$#'
+			identifier: missingType.property
+			count: 1
+			path: app/Http/Controllers/HistoricoRevisadosController.php
+
+		-
+			message: '#^Relation ''componente'' is not found in App\\Models\\HistorialRestablecimiento model\.$#'
+			identifier: larastan.relationExistence
+			count: 1
+			path: app/Http/Controllers/HistoricoRevisadosController.php
+
+		-
+			message: '#^Return type of call to method Illuminate\\Database\\Eloquent\\Collection\<int,App\\Models\\HistorialRestablecimiento\>\:\:map\(\) contains unresolvable type\.$#'
+			identifier: method.unresolvableReturnType
+			count: 1
+			path: app/Http/Controllers/HistoricoRevisadosController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\LineaController\:\:create\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/LineaController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\LineaController\:\:destroy\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/LineaController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\LineaController\:\:edit\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/LineaController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\LineaController\:\:index\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/LineaController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\LineaController\:\:show\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/LineaController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\LineaController\:\:store\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/LineaController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\LineaController\:\:toggleActivo\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/LineaController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\LineaController\:\:update\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/LineaController.php
+
+		-
+			message: '#^Cannot access property \$email on App\\Models\\User\|null\.$#'
+			identifier: property.nonObject
+			count: 1
+			path: app/Http/Controllers/NotificationSettingsController.php
+
+		-
+			message: '#^Cannot access property \$id on App\\Models\\User\|null\.$#'
+			identifier: property.nonObject
+			count: 2
+			path: app/Http/Controllers/NotificationSettingsController.php
+
+		-
+			message: '#^Cannot access property \$notificationSettings on App\\Models\\User\|null\.$#'
+			identifier: property.nonObject
+			count: 1
+			path: app/Http/Controllers/NotificationSettingsController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\NotificationSettingsController\:\:index\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/NotificationSettingsController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\NotificationSettingsController\:\:update\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/NotificationSettingsController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\NotificationSettingsController\:\:verifyPhone\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/NotificationSettingsController.php
+
+		-
+			message: '#^Variable \$settings on left side of \?\? is never defined\.$#'
+			identifier: nullCoalesce.variable
+			count: 1
+			path: app/Http/Controllers/NotificationSettingsController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\PlanAccion\|Illuminate\\Database\\Eloquent\\Collection\<int, App\\Models\\PlanAccion\>\:\:\$completado\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Http/Controllers/PlanAccionController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\PlanAccion\|Illuminate\\Database\\Eloquent\\Collection\<int, App\\Models\\PlanAccion\>\:\:\$fecha_pcm1\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/PlanAccionController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\PlanAccion\|Illuminate\\Database\\Eloquent\\Collection\<int, App\\Models\\PlanAccion\>\:\:\$fecha_pcm2\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/PlanAccionController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\PlanAccion\|Illuminate\\Database\\Eloquent\\Collection\<int, App\\Models\\PlanAccion\>\:\:\$fecha_pcm3\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/PlanAccionController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\PlanAccion\|Illuminate\\Database\\Eloquent\\Collection\<int, App\\Models\\PlanAccion\>\:\:\$fecha_pcm4\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/PlanAccionController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\PlanAccion\|Illuminate\\Database\\Eloquent\\Collection\<int, App\\Models\\PlanAccion\>\:\:\$tipo_maquina\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/PlanAccionController.php
+
+		-
+			message: '#^Call to an undefined method App\\Models\\PlanAccion\|Illuminate\\Database\\Eloquent\\Collection\<int, App\\Models\\PlanAccion\>\:\:delete\(\)\.$#'
+			identifier: method.notFound
+			count: 2
+			path: app/Http/Controllers/PlanAccionController.php
+
+		-
+			message: '#^Call to an undefined method App\\Models\\PlanAccion\|Illuminate\\Database\\Eloquent\\Collection\<int, App\\Models\\PlanAccion\>\:\:save\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Http/Controllers/PlanAccionController.php
+
+		-
+			message: '#^Call to an undefined method App\\Models\\PlanAccion\|Illuminate\\Database\\Eloquent\\Collection\<int, App\\Models\\PlanAccion\>\:\:update\(\)\.$#'
+			identifier: method.notFound
+			count: 2
+			path: app/Http/Controllers/PlanAccionController.php
+
+		-
+			message: '#^Cannot access property \$nombre on mixed\.$#'
+			identifier: property.nonObject
+			count: 1
+			path: app/Http/Controllers/PlanAccionController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\PlanAccionController\:\:checklist\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/PlanAccionController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\PlanAccionController\:\:checklist\(\) has parameter \$id with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Http/Controllers/PlanAccionController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\PlanAccionController\:\:contarActividadesProximas\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/PlanAccionController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\PlanAccionController\:\:contarActividadesProximas\(\) has parameter \$dias with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Http/Controllers/PlanAccionController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\PlanAccionController\:\:create\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/PlanAccionController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\PlanAccionController\:\:dashboard\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/PlanAccionController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\PlanAccionController\:\:destroy\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/PlanAccionController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\PlanAccionController\:\:destroy\(\) has parameter \$id with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Http/Controllers/PlanAccionController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\PlanAccionController\:\:destroyPlanAccion\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/PlanAccionController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\PlanAccionController\:\:edit\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/PlanAccionController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\PlanAccionController\:\:edit\(\) has parameter \$id with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Http/Controllers/PlanAccionController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\PlanAccionController\:\:editarPlanAccion\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/PlanAccionController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\PlanAccionController\:\:enviarNotificaciones\(\) has parameter \$id with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Http/Controllers/PlanAccionController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\PlanAccionController\:\:index\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/PlanAccionController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\PlanAccionController\:\:notificar\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/PlanAccionController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\PlanAccionController\:\:notificar\(\) has parameter \$id with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Http/Controllers/PlanAccionController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\PlanAccionController\:\:obtenerAlertasGlobales\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/PlanAccionController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\PlanAccionController\:\:obtenerEstadisticas\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/PlanAccionController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\PlanAccionController\:\:planAccion\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/PlanAccionController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\PlanAccionController\:\:porLavadora\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/PlanAccionController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\PlanAccionController\:\:porLavadora\(\) has parameter \$lavadora with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Http/Controllers/PlanAccionController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\PlanAccionController\:\:show\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/PlanAccionController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\PlanAccionController\:\:show\(\) has parameter \$id with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Http/Controllers/PlanAccionController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\PlanAccionController\:\:store\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/PlanAccionController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\PlanAccionController\:\:update\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/PlanAccionController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\PlanAccionController\:\:update\(\) has parameter \$id with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Http/Controllers/PlanAccionController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\PlanAccionController\:\:updatePlanAccion\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/PlanAccionController.php
+
+		-
+			message: '#^Parameter \#1 \$json of function json_decode expects string, array\<int, string\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/PlanAccionController.php
+
+		-
+			message: '#^Parameter \#1 \$view of function view expects view\-string\|null, string given\.$#'
+			identifier: argument.type
+			count: 2
+			path: app/Http/Controllers/PlanAccionController.php
+
+		-
+			message: '#^Parameter \#2 \$callback of function usort expects callable\(array\{id\: int, linea\: mixed, actividad\: string\|null, pcm\: ''PCM1''\|''PCM2''\|''PCM3''\|''PCM4'', fecha\: non\-falsy\-string, dias_restantes\: float, es_manana\: bool, prioridad\: ''alta''\|''baja''\|''media''\}, array\{id\: int, linea\: mixed, actividad\: string\|null, pcm\: ''PCM1''\|''PCM2''\|''PCM3''\|''PCM4'', fecha\: non\-falsy\-string, dias_restantes\: float, es_manana\: bool, prioridad\: ''alta''\|''baja''\|''media''\}\)\: int, Closure\(mixed, mixed\)\: \(\-2\|\-1\|0\|1\|2\|float\) given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/PlanAccionController.php
+
+		-
+			message: '#^Property App\\Http\\Controllers\\PlanAccionController\:\:\$lineasLavadoraIds has no type specified\.$#'
+			identifier: missingType.property
+			count: 1
+			path: app/Http/Controllers/PlanAccionController.php
+
+		-
+			message: '#^Property App\\Http\\Controllers\\PlanAccionController\:\:\$notificationService has no type specified\.$#'
+			identifier: missingType.property
+			count: 1
+			path: app/Http/Controllers/PlanAccionController.php
+
+		-
+			message: '#^Cannot access property \$email_verified_at on App\\Models\\User\|null\.$#'
+			identifier: property.nonObject
+			count: 1
+			path: app/Http/Controllers/ProfileController.php
+
+		-
+			message: '#^Cannot call method delete\(\) on App\\Models\\User\|null\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: app/Http/Controllers/ProfileController.php
+
+		-
+			message: '#^Cannot call method fill\(\) on App\\Models\\User\|null\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: app/Http/Controllers/ProfileController.php
+
+		-
+			message: '#^Cannot call method isDirty\(\) on App\\Models\\User\|null\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: app/Http/Controllers/ProfileController.php
+
+		-
+			message: '#^Cannot call method save\(\) on App\\Models\\User\|null\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: app/Http/Controllers/ProfileController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Linea\|Illuminate\\Database\\Eloquent\\Collection\<int, App\\Models\\Linea\>\:\:\$nombre\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Http/Controllers/ReporteController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\ReporteController\:\:determinarEstadoGeneral\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/ReporteController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\ReporteController\:\:determinarEstadoGeneral\(\) has parameter \$fechaFin with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Http/Controllers/ReporteController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\ReporteController\:\:determinarEstadoGeneral\(\) has parameter \$fechaInicio with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Http/Controllers/ReporteController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\ReporteController\:\:determinarEstadoGeneral\(\) has parameter \$lineaId with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Http/Controllers/ReporteController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\ReporteController\:\:exportar\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/ReporteController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\ReporteController\:\:exportarExcel\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/ReporteController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\ReporteController\:\:exportarExcel\(\) has parameter \$fechaFin with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Http/Controllers/ReporteController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\ReporteController\:\:exportarExcel\(\) has parameter \$fechaInicio with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Http/Controllers/ReporteController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\ReporteController\:\:exportarExcel\(\) has parameter \$lineaId with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Http/Controllers/ReporteController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\ReporteController\:\:exportarExcel\(\) has parameter \$tipo with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Http/Controllers/ReporteController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\ReporteController\:\:exportarExcel\(\) has parameter \$tipoEquipo with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Http/Controllers/ReporteController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\ReporteController\:\:exportarPDF\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/ReporteController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\ReporteController\:\:exportarPDF\(\) has parameter \$fechaFin with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Http/Controllers/ReporteController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\ReporteController\:\:exportarPDF\(\) has parameter \$fechaInicio with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Http/Controllers/ReporteController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\ReporteController\:\:exportarPDF\(\) has parameter \$lineaId with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Http/Controllers/ReporteController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\ReporteController\:\:exportarPDF\(\) has parameter \$tipo with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Http/Controllers/ReporteController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\ReporteController\:\:exportarPDF\(\) has parameter \$tipoEquipo with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Http/Controllers/ReporteController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\ReporteController\:\:generarReporteGeneralOptimizado\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/ReporteController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\ReporteController\:\:generarReporteGeneralOptimizado\(\) has parameter \$fechaFin with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Http/Controllers/ReporteController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\ReporteController\:\:generarReporteGeneralOptimizado\(\) has parameter \$fechaInicio with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Http/Controllers/ReporteController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\ReporteController\:\:generarReporteGeneralOptimizado\(\) has parameter \$tipoEquipo with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Http/Controllers/ReporteController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\ReporteController\:\:generarReporteIndexOptimizado\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/ReporteController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\ReporteController\:\:generarReporteIndexOptimizado\(\) has parameter \$fechaFin with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Http/Controllers/ReporteController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\ReporteController\:\:generarReporteIndexOptimizado\(\) has parameter \$fechaInicio with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Http/Controllers/ReporteController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\ReporteController\:\:generarReporteIndexOptimizado\(\) has parameter \$tipoEquipo with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Http/Controllers/ReporteController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\ReporteController\:\:getComponentesDefinidos\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/ReporteController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\ReporteController\:\:getComponentesDefinidos\(\) has parameter \$tipoEquipo with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Http/Controllers/ReporteController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\ReporteController\:\:getLineasPorTipo\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/ReporteController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\ReporteController\:\:getLineasPorTipo\(\) has parameter \$tipo with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Http/Controllers/ReporteController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\ReporteController\:\:getReporteDetalladoLinea\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/ReporteController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\ReporteController\:\:getReporteDetalladoLinea\(\) has parameter \$fechaFin with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Http/Controllers/ReporteController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\ReporteController\:\:getReporteDetalladoLinea\(\) has parameter \$fechaInicio with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Http/Controllers/ReporteController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\ReporteController\:\:getReporteDetalladoLinea\(\) has parameter \$linea with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Http/Controllers/ReporteController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\ReporteController\:\:getReporteDetalladoLinea\(\) has parameter \$tipoEquipo with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Http/Controllers/ReporteController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\ReporteController\:\:index\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/ReporteController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\ReporteController\:\:mostrarReporteLinea\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/ReporteController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\ReporteController\:\:mostrarReporteLinea\(\) has parameter \$fechaFin with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Http/Controllers/ReporteController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\ReporteController\:\:mostrarReporteLinea\(\) has parameter \$fechaInicio with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Http/Controllers/ReporteController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\ReporteController\:\:mostrarReporteLinea\(\) has parameter \$lineaId with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Http/Controllers/ReporteController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\ReporteController\:\:mostrarReporteLinea\(\) has parameter \$tipoEquipo with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Http/Controllers/ReporteController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\ReporteController\:\:procesarComponentesLavadora\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/ReporteController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\ReporteController\:\:procesarComponentesLavadora\(\) has parameter \$analisis with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Http/Controllers/ReporteController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\ReporteController\:\:procesarComponentesLavadora\(\) has parameter \$linea with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Http/Controllers/ReporteController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\ReporteController\:\:procesarReductoresLavadora\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/ReporteController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\ReporteController\:\:procesarReductoresLavadora\(\) has parameter \$analisis with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Http/Controllers/ReporteController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\ReporteController\:\:procesarReductoresLavadora\(\) has parameter \$elongaciones with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Http/Controllers/ReporteController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\ReporteController\:\:show\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/ReporteController.php
+
+		-
+			message: '#^Parameter \#1 \$time of static method Carbon\\Carbon\:\:parse\(\) expects Carbon\\Month\|Carbon\\WeekDay\|DateTimeInterface\|float\|int\|string\|null, mixed given\.$#'
+			identifier: argument.type
+			count: 6
+			path: app/Http/Controllers/ReporteController.php
+
+		-
+			message: '#^Part \$tipoEquipo \(mixed\) of encapsed string cannot be cast to string\.$#'
+			identifier: encapsedStringPart.nonString
+			count: 2
+			path: app/Http/Controllers/ReporteController.php
+
+		-
+			message: '#^Property App\\Http\\Controllers\\ReporteController\:\:\$componentesPorLinea has no type specified\.$#'
+			identifier: missingType.property
+			count: 1
+			path: app/Http/Controllers/ReporteController.php
+
+		-
+			message: '#^Property App\\Http\\Controllers\\ReporteController\:\:\$lavadoras has no type specified\.$#'
+			identifier: missingType.property
+			count: 1
+			path: app/Http/Controllers/ReporteController.php
+
+		-
+			message: '#^Property App\\Http\\Controllers\\ReporteController\:\:\$pasteurizadoras has no type specified\.$#'
+			identifier: missingType.property
+			count: 1
+			path: app/Http/Controllers/ReporteController.php
+
+		-
+			message: '#^Property App\\Http\\Controllers\\ReporteController\:\:\$reductoresPorLinea has no type specified\.$#'
+			identifier: missingType.property
+			count: 1
+			path: app/Http/Controllers/ReporteController.php
+
+		-
+			message: '#^Unable to resolve the template type TKey in call to function collect$#'
+			identifier: argument.templateType
+			count: 2
+			path: app/Http/Controllers/ReporteController.php
+
+		-
+			message: '#^Unable to resolve the template type TValue in call to function collect$#'
+			identifier: argument.templateType
+			count: 2
+			path: app/Http/Controllers/ReporteController.php
+
+		-
+			message: '#^Cannot access property \$id on App\\Models\\User\|null\.$#'
+			identifier: property.nonObject
+			count: 1
+			path: app/Http/Requests/ProfileUpdateRequest.php
+
+		-
+			message: '#^Cannot access property \$componente_id on mixed\.$#'
+			identifier: property.nonObject
+			count: 2
+			path: app/Models/Analisis.php
+
+		-
+			message: '#^Cannot access property \$fecha on mixed\.$#'
+			identifier: property.nonObject
+			count: 2
+			path: app/Models/Analisis.php
+
+		-
+			message: '#^Cannot access property \$linea_id on mixed\.$#'
+			identifier: property.nonObject
+			count: 2
+			path: app/Models/Analisis.php
+
+		-
+			message: '#^Cannot access property \$reductor on mixed\.$#'
+			identifier: property.nonObject
+			count: 2
+			path: app/Models/Analisis.php
+
+		-
+			message: '#^Class App\\Models\\Analisis uses generic trait Illuminate\\Database\\Eloquent\\Factories\\HasFactory but does not specify its types\: TFactory$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Models/Analisis.php
+
+		-
+			message: '#^Method App\\Models\\Analisis\:\:analisisComponentes\(\) return type with generic class Illuminate\\Database\\Eloquent\\Relations\\HasMany does not specify its types\: TRelatedModel, TDeclaringModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Models/Analisis.php
+
+		-
+			message: '#^Method App\\Models\\Analisis\:\:categoria\(\) return type with generic class Illuminate\\Database\\Eloquent\\Relations\\BelongsTo does not specify its types\: TRelatedModel, TDeclaringModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Models/Analisis.php
+
+		-
+			message: '#^Method App\\Models\\Analisis\:\:componente\(\) return type with generic class Illuminate\\Database\\Eloquent\\Relations\\BelongsTo does not specify its types\: TRelatedModel, TDeclaringModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Models/Analisis.php
+
+		-
+			message: '#^Method App\\Models\\Analisis\:\:linea\(\) return type with generic class Illuminate\\Database\\Eloquent\\Relations\\BelongsTo does not specify its types\: TRelatedModel, TDeclaringModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Models/Analisis.php
+
+		-
+			message: '#^Method App\\Models\\Analisis\:\:mediciones\(\) return type with generic class Illuminate\\Database\\Eloquent\\Relations\\HasMany does not specify its types\: TRelatedModel, TDeclaringModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Models/Analisis.php
+
+		-
+			message: '#^Method App\\Models\\Analisis\:\:numeroR\(\) return type with generic class Illuminate\\Database\\Eloquent\\Relations\\BelongsTo does not specify its types\: TRelatedModel, TDeclaringModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Models/Analisis.php
+
+		-
+			message: '#^Method App\\Models\\Analisis\:\:scopeFilter\(\) has parameter \$query with generic class Illuminate\\Database\\Eloquent\\Builder but does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Models/Analisis.php
+
+		-
+			message: '#^Method App\\Models\\Analisis\:\:scopeFilter\(\) return type with generic class Illuminate\\Database\\Eloquent\\Builder does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Models/Analisis.php
+
+		-
+			message: '#^Method App\\Models\\Analisis\:\:usuario\(\) return type with generic class Illuminate\\Database\\Eloquent\\Relations\\BelongsTo does not specify its types\: TRelatedModel, TDeclaringModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Models/Analisis.php
+
+		-
+			message: '#^Property App\\Models\\Analisis\:\:\$dates has no type specified\.$#'
+			identifier: missingType.property
+			count: 1
+			path: app/Models/Analisis.php
+
+		-
+			message: '#^Class App\\Models\\AnalisisLavadora uses generic trait Illuminate\\Database\\Eloquent\\Factories\\HasFactory but does not specify its types\: TFactory$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Models/AnalisisLavadora.php
+
+		-
+			message: '#^Method App\\Models\\AnalisisLavadora\:\:analisisGeneral\(\) return type with generic class Illuminate\\Database\\Eloquent\\Relations\\BelongsTo does not specify its types\: TRelatedModel, TDeclaringModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Models/AnalisisLavadora.php
+
+		-
+			message: '#^Method App\\Models\\AnalisisLavadora\:\:componente\(\) return type with generic class Illuminate\\Database\\Eloquent\\Relations\\BelongsTo does not specify its types\: TRelatedModel, TDeclaringModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Models/AnalisisLavadora.php
+
+		-
+			message: '#^Method App\\Models\\AnalisisLavadora\:\:getActividadesPendientesAttribute\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Models/AnalisisLavadora.php
+
+		-
+			message: '#^Method App\\Models\\AnalisisLavadora\:\:getNombreCompletoAttribute\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Models/AnalisisLavadora.php
+
+		-
+			message: '#^Method App\\Models\\AnalisisLavadora\:\:getProximasActividadesAttribute\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Models/AnalisisLavadora.php
+
+		-
+			message: '#^Method App\\Models\\AnalisisLavadora\:\:historialRestablecimientos\(\) return type with generic class Illuminate\\Database\\Eloquent\\Relations\\HasMany does not specify its types\: TRelatedModel, TDeclaringModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Models/AnalisisLavadora.php
+
+		-
+			message: '#^Method App\\Models\\AnalisisLavadora\:\:linea\(\) return type with generic class Illuminate\\Database\\Eloquent\\Relations\\BelongsTo does not specify its types\: TRelatedModel, TDeclaringModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Models/AnalisisLavadora.php
+
+		-
+			message: '#^Method App\\Models\\AnalisisLavadora\:\:planAccion\(\) return type with generic class Illuminate\\Database\\Eloquent\\Relations\\HasMany does not specify its types\: TRelatedModel, TDeclaringModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Models/AnalisisLavadora.php
+
+		-
+			message: '#^Method App\\Models\\AnalisisLavadora\:\:scopeComponente\(\) has parameter \$query with generic class Illuminate\\Database\\Eloquent\\Builder but does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Models/AnalisisLavadora.php
+
+		-
+			message: '#^Method App\\Models\\AnalisisLavadora\:\:scopeComponente\(\) return type with generic class Illuminate\\Database\\Eloquent\\Builder does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Models/AnalisisLavadora.php
+
+		-
+			message: '#^Method App\\Models\\AnalisisLavadora\:\:scopeLinea\(\) has parameter \$query with generic class Illuminate\\Database\\Eloquent\\Builder but does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Models/AnalisisLavadora.php
+
+		-
+			message: '#^Method App\\Models\\AnalisisLavadora\:\:scopeLinea\(\) return type with generic class Illuminate\\Database\\Eloquent\\Builder does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Models/AnalisisLavadora.php
+
+		-
+			message: '#^Method App\\Models\\AnalisisLavadora\:\:scopeMes\(\) has parameter \$query with generic class Illuminate\\Database\\Eloquent\\Builder but does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Models/AnalisisLavadora.php
+
+		-
+			message: '#^Method App\\Models\\AnalisisLavadora\:\:scopeMes\(\) return type with generic class Illuminate\\Database\\Eloquent\\Builder does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Models/AnalisisLavadora.php
+
+		-
+			message: '#^Method App\\Models\\AnalisisLavadora\:\:scopeReductor\(\) has parameter \$query with generic class Illuminate\\Database\\Eloquent\\Builder but does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Models/AnalisisLavadora.php
+
+		-
+			message: '#^Method App\\Models\\AnalisisLavadora\:\:scopeReductor\(\) return type with generic class Illuminate\\Database\\Eloquent\\Builder does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Models/AnalisisLavadora.php
+
+		-
+			message: '#^Parameter \#1 \$datetime of function strtotime expects string, mixed given\.$#'
+			identifier: argument.type
+			count: 2
+			path: app/Models/AnalisisLavadora.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\AnalisisPasteurizadora\:\:\$linea\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Models/AnalisisPasteurizadora.php
+
+		-
+			message: '#^Class App\\Models\\AnalisisPasteurizadora uses generic trait Illuminate\\Database\\Eloquent\\Factories\\HasFactory but does not specify its types\: TFactory$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Models/AnalisisPasteurizadora.php
+
+		-
+			message: '#^Method App\\Models\\AnalisisPasteurizadora\:\:calcularVariacion\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Models/AnalisisPasteurizadora.php
+
+		-
+			message: '#^Method App\\Models\\AnalisisPasteurizadora\:\:calcularVariacion\(\) has parameter \$actual with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Models/AnalisisPasteurizadora.php
+
+		-
+			message: '#^Method App\\Models\\AnalisisPasteurizadora\:\:calcularVariacion\(\) has parameter \$anterior with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Models/AnalisisPasteurizadora.php
+
+		-
+			message: '#^Method App\\Models\\AnalisisPasteurizadora\:\:getAnalisis52124\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Models/AnalisisPasteurizadora.php
+
+		-
+			message: '#^Method App\\Models\\AnalisisPasteurizadora\:\:getCantidadImagenesAttribute\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Models/AnalisisPasteurizadora.php
+
+		-
+			message: '#^Method App\\Models\\AnalisisPasteurizadora\:\:getComponenteNombreAttribute\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Models/AnalisisPasteurizadora.php
+
+		-
+			message: '#^Method App\\Models\\AnalisisPasteurizadora\:\:getComponentesPorLinea\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Models/AnalisisPasteurizadora.php
+
+		-
+			message: '#^Method App\\Models\\AnalisisPasteurizadora\:\:getComponentesPorLinea\(\) has parameter \$lineaNombre with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Models/AnalisisPasteurizadora.php
+
+		-
+			message: '#^Method App\\Models\\AnalisisPasteurizadora\:\:getDaniosPendientes\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Models/AnalisisPasteurizadora.php
+
+		-
+			message: '#^Method App\\Models\\AnalisisPasteurizadora\:\:getEsCambioAttribute\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Models/AnalisisPasteurizadora.php
+
+		-
+			message: '#^Method App\\Models\\AnalisisPasteurizadora\:\:getEsDanioAttribute\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Models/AnalisisPasteurizadora.php
+
+		-
+			message: '#^Method App\\Models\\AnalisisPasteurizadora\:\:getEstadoBadgeAttribute\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Models/AnalisisPasteurizadora.php
+
+		-
+			message: '#^Method App\\Models\\AnalisisPasteurizadora\:\:getFechaFormateadaAttribute\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Models/AnalisisPasteurizadora.php
+
+		-
+			message: '#^Method App\\Models\\AnalisisPasteurizadora\:\:getFechaResolucionFormateadaAttribute\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Models/AnalisisPasteurizadora.php
+
+		-
+			message: '#^Method App\\Models\\AnalisisPasteurizadora\:\:getHistorialCompleto\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Models/AnalisisPasteurizadora.php
+
+		-
+			message: '#^Method App\\Models\\AnalisisPasteurizadora\:\:getHoraFormateadaAttribute\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Models/AnalisisPasteurizadora.php
+
+		-
+			message: '#^Method App\\Models\\AnalisisPasteurizadora\:\:getLadoClaseAttribute\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Models/AnalisisPasteurizadora.php
+
+		-
+			message: '#^Method App\\Models\\AnalisisPasteurizadora\:\:getLadoColorAttribute\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Models/AnalisisPasteurizadora.php
+
+		-
+			message: '#^Method App\\Models\\AnalisisPasteurizadora\:\:getLadoIconoAttribute\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Models/AnalisisPasteurizadora.php
+
+		-
+			message: '#^Method App\\Models\\AnalisisPasteurizadora\:\:getModuloNombreAttribute\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Models/AnalisisPasteurizadora.php
+
+		-
+			message: '#^Method App\\Models\\AnalisisPasteurizadora\:\:getModulosPorLinea\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Models/AnalisisPasteurizadora.php
+
+		-
+			message: '#^Method App\\Models\\AnalisisPasteurizadora\:\:getModulosPorLinea\(\) has parameter \$lineaNombre with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Models/AnalisisPasteurizadora.php
+
+		-
+			message: '#^Method App\\Models\\AnalisisPasteurizadora\:\:getPorcentajeAvanceAttribute\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Models/AnalisisPasteurizadora.php
+
+		-
+			message: '#^Method App\\Models\\AnalisisPasteurizadora\:\:getTieneImagenesAttribute\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Models/AnalisisPasteurizadora.php
+
+		-
+			message: '#^Method App\\Models\\AnalisisPasteurizadora\:\:getTotalPiezasPorComponente\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Models/AnalisisPasteurizadora.php
+
+		-
+			message: '#^Method App\\Models\\AnalisisPasteurizadora\:\:isAnalisisCompleto\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Models/AnalisisPasteurizadora.php
+
+		-
+			message: '#^Method App\\Models\\AnalisisPasteurizadora\:\:linea\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Models/AnalisisPasteurizadora.php
+
+		-
+			message: '#^Method App\\Models\\AnalisisPasteurizadora\:\:marcarComoResuelto\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Models/AnalisisPasteurizadora.php
+
+		-
+			message: '#^Method App\\Models\\AnalisisPasteurizadora\:\:marcarComoResuelto\(\) has parameter \$nota with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Models/AnalisisPasteurizadora.php
+
+		-
+			message: '#^Method App\\Models\\AnalisisPasteurizadora\:\:marcarComoResuelto\(\) has parameter \$registroResolutor with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Models/AnalisisPasteurizadora.php
+
+		-
+			message: '#^Method App\\Models\\AnalisisPasteurizadora\:\:registroResolutor\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Models/AnalisisPasteurizadora.php
+
+		-
+			message: '#^Method App\\Models\\AnalisisPasteurizadora\:\:registrosResueltos\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Models/AnalisisPasteurizadora.php
+
+		-
+			message: '#^Method App\\Models\\AnalisisPasteurizadora\:\:scopeActivos\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Models/AnalisisPasteurizadora.php
+
+		-
+			message: '#^Method App\\Models\\AnalisisPasteurizadora\:\:scopeActivos\(\) has parameter \$query with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Models/AnalisisPasteurizadora.php
+
+		-
+			message: '#^Method App\\Models\\AnalisisPasteurizadora\:\:scopeEntreFechas\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Models/AnalisisPasteurizadora.php
+
+		-
+			message: '#^Method App\\Models\\AnalisisPasteurizadora\:\:scopeEntreFechas\(\) has parameter \$fin with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Models/AnalisisPasteurizadora.php
+
+		-
+			message: '#^Method App\\Models\\AnalisisPasteurizadora\:\:scopeEntreFechas\(\) has parameter \$inicio with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Models/AnalisisPasteurizadora.php
+
+		-
+			message: '#^Method App\\Models\\AnalisisPasteurizadora\:\:scopeEntreFechas\(\) has parameter \$query with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Models/AnalisisPasteurizadora.php
+
+		-
+			message: '#^Method App\\Models\\AnalisisPasteurizadora\:\:scopePorComponente\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Models/AnalisisPasteurizadora.php
+
+		-
+			message: '#^Method App\\Models\\AnalisisPasteurizadora\:\:scopePorComponente\(\) has parameter \$componente with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Models/AnalisisPasteurizadora.php
+
+		-
+			message: '#^Method App\\Models\\AnalisisPasteurizadora\:\:scopePorComponente\(\) has parameter \$query with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Models/AnalisisPasteurizadora.php
+
+		-
+			message: '#^Method App\\Models\\AnalisisPasteurizadora\:\:scopePorLinea\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Models/AnalisisPasteurizadora.php
+
+		-
+			message: '#^Method App\\Models\\AnalisisPasteurizadora\:\:scopePorLinea\(\) has parameter \$lineaId with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Models/AnalisisPasteurizadora.php
+
+		-
+			message: '#^Method App\\Models\\AnalisisPasteurizadora\:\:scopePorLinea\(\) has parameter \$query with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Models/AnalisisPasteurizadora.php
+
+		-
+			message: '#^Method App\\Models\\AnalisisPasteurizadora\:\:scopePorModulo\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Models/AnalisisPasteurizadora.php
+
+		-
+			message: '#^Method App\\Models\\AnalisisPasteurizadora\:\:scopePorModulo\(\) has parameter \$modulo with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Models/AnalisisPasteurizadora.php
+
+		-
+			message: '#^Method App\\Models\\AnalisisPasteurizadora\:\:scopePorModulo\(\) has parameter \$query with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Models/AnalisisPasteurizadora.php
+
+		-
+			message: '#^Method App\\Models\\AnalisisPasteurizadora\:\:scopeRequiereAtencion\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Models/AnalisisPasteurizadora.php
+
+		-
+			message: '#^Method App\\Models\\AnalisisPasteurizadora\:\:scopeRequiereAtencion\(\) has parameter \$query with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Models/AnalisisPasteurizadora.php
+
+		-
+			message: '#^Method App\\Models\\AnalisisPasteurizadora\:\:scopeResueltos\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Models/AnalisisPasteurizadora.php
+
+		-
+			message: '#^Method App\\Models\\AnalisisPasteurizadora\:\:scopeResueltos\(\) has parameter \$query with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Models/AnalisisPasteurizadora.php
+
+		-
+			message: '#^Ternary operator condition is always true\.$#'
+			identifier: ternary.alwaysTrue
+			count: 1
+			path: app/Models/AnalisisPasteurizadora.php
+
+		-
+			message: '#^Cannot call method copy\(\) on Carbon\\Carbon\|null\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: app/Models/AnalisisTendenciaMensualLavadora.php
+
+		-
+			message: '#^Method App\\Models\\AnalisisTendenciaMensualLavadora\:\:getMesAnteriorAttribute\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Models/AnalisisTendenciaMensualLavadora.php
+
+		-
+			message: '#^Method App\\Models\\AnalisisTendenciaMensualLavadora\:\:getVariacion12SemanasAttribute\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Models/AnalisisTendenciaMensualLavadora.php
+
+		-
+			message: '#^Method App\\Models\\AnalisisTendenciaMensualLavadora\:\:getVariacion4SemanasAttribute\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Models/AnalisisTendenciaMensualLavadora.php
+
+		-
+			message: '#^Method App\\Models\\AnalisisTendenciaMensualLavadora\:\:getVariacion52SemanasAttribute\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Models/AnalisisTendenciaMensualLavadora.php
+
+		-
+			message: '#^Method App\\Models\\AnalisisTendenciaMensualLavadora\:\:linea\(\) return type with generic class Illuminate\\Database\\Eloquent\\Relations\\BelongsTo does not specify its types\: TRelatedModel, TDeclaringModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Models/AnalisisTendenciaMensualLavadora.php
+
+		-
+			message: '#^Parameter \#1 \$num of function number_format expects float, string given\.$#'
+			identifier: argument.type
+			count: 3
+			path: app/Models/AnalisisTendenciaMensualLavadora.php
+
+		-
+			message: '#^Class App\\Models\\Categoria uses generic trait Illuminate\\Database\\Eloquent\\Factories\\HasFactory but does not specify its types\: TFactory$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Models/Categoria.php
+
+		-
+			message: '#^Method App\\Models\\Categoria\:\:analisis\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Models/Categoria.php
+
+		-
+			message: '#^Method App\\Models\\Categoria\:\:componentesAnalisis\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Models/Categoria.php
+
+		-
+			message: '#^Method App\\Models\\Categoria\:\:numerosR\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Models/Categoria.php
+
+		-
+			message: '#^Method App\\Models\\Categoria\:\:scopeActivas\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Models/Categoria.php
+
+		-
+			message: '#^Method App\\Models\\Categoria\:\:scopeActivas\(\) has parameter \$query with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Models/Categoria.php
+
+		-
+			message: '#^Class App\\Models\\Componente uses generic trait Illuminate\\Database\\Eloquent\\Factories\\HasFactory but does not specify its types\: TFactory$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Models/Componente.php
+
+		-
+			message: '#^Method App\\Models\\Componente\:\:analisis\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Models/Componente.php
+
+		-
+			message: '#^Method App\\Models\\Componente\:\:analisisLavadora\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Models/Componente.php
+
+		-
+			message: '#^Method App\\Models\\Componente\:\:categoria\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Models/Componente.php
+
+		-
+			message: '#^Method App\\Models\\Componente\:\:getReductoresAttribute\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Models/Componente.php
+
+		-
+			message: '#^Method App\\Models\\Componente\:\:lineas\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Models/Componente.php
+
+		-
+			message: '#^Method App\\Models\\Componente\:\:numeroR\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Models/Componente.php
+
+		-
+			message: '#^Method App\\Models\\Componente\:\:scopeActivos\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Models/Componente.php
+
+		-
+			message: '#^Method App\\Models\\Componente\:\:scopeActivos\(\) has parameter \$query with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Models/Componente.php
+
+		-
+			message: '#^Method App\\Models\\Componente\:\:scopePorLinea\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Models/Componente.php
+
+		-
+			message: '#^Method App\\Models\\Componente\:\:scopePorLinea\(\) has parameter \$lineaId with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Models/Componente.php
+
+		-
+			message: '#^Method App\\Models\\Componente\:\:scopePorLinea\(\) has parameter \$query with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Models/Componente.php
+
+		-
+			message: '#^Access to undefined constant App\\Models\\Elongacion\:\:PASO_INICIAL\.$#'
+			identifier: classConstant.notFound
+			count: 1
+			path: app/Models/Elongacion.php
+
+		-
+			message: '#^Class App\\Models\\Elongacion uses generic trait Illuminate\\Database\\Eloquent\\Factories\\HasFactory but does not specify its types\: TFactory$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Models/Elongacion.php
+
+		-
+			message: '#^Method App\\Models\\Elongacion\:\:calcularPorcentaje\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Models/Elongacion.php
+
+		-
+			message: '#^Method App\\Models\\Elongacion\:\:calcularPorcentaje\(\) has parameter \$pasoInicial with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Models/Elongacion.php
+
+		-
+			message: '#^Method App\\Models\\Elongacion\:\:calcularPorcentaje\(\) has parameter \$promedio with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Models/Elongacion.php
+
+		-
+			message: '#^Method App\\Models\\Elongacion\:\:calcularPromedio\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Models/Elongacion.php
+
+		-
+			message: '#^Method App\\Models\\Elongacion\:\:calcularPromedio\(\) has parameter \$mediciones with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Models/Elongacion.php
+
+		-
+			message: '#^Method App\\Models\\Elongacion\:\:getColorEstadoAttribute\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Models/Elongacion.php
+
+		-
+			message: '#^Method App\\Models\\Elongacion\:\:getEstadoBombasAttribute\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Models/Elongacion.php
+
+		-
+			message: '#^Method App\\Models\\Elongacion\:\:getEstadoDetallado\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Models/Elongacion.php
+
+		-
+			message: '#^Method App\\Models\\Elongacion\:\:getEstadoDetallado\(\) has parameter \$porcentaje with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Models/Elongacion.php
+
+		-
+			message: '#^Method App\\Models\\Elongacion\:\:getEstadoGeneralAttribute\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Models/Elongacion.php
+
+		-
+			message: '#^Method App\\Models\\Elongacion\:\:getEstadoVaporAttribute\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Models/Elongacion.php
+
+		-
+			message: '#^Method App\\Models\\Elongacion\:\:getIconoEstadoAttribute\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Models/Elongacion.php
+
+		-
+			message: '#^Method App\\Models\\Elongacion\:\:getPasoInicial\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Models/Elongacion.php
+
+		-
+			message: '#^Method App\\Models\\Elongacion\:\:getPasoInicial\(\) has parameter \$linea with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Models/Elongacion.php
+
+		-
+			message: '#^Method App\\Models\\Elongacion\:\:getRequiereCambioAttribute\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Models/Elongacion.php
+
+		-
+			message: '#^Method App\\Models\\Elongacion\:\:getRequiereCompraAttribute\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Models/Elongacion.php
+
+		-
+			message: '#^Method App\\Models\\Elongacion\:\:getTieneDanoAttribute\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Models/Elongacion.php
+
+		-
+			message: '#^Method App\\Models\\Elongacion\:\:scopePorEstado\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Models/Elongacion.php
+
+		-
+			message: '#^Method App\\Models\\Elongacion\:\:scopePorEstado\(\) has parameter \$estado with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Models/Elongacion.php
+
+		-
+			message: '#^Method App\\Models\\Elongacion\:\:scopePorEstado\(\) has parameter \$query with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Models/Elongacion.php
+
+		-
+			message: '#^Method App\\Models\\Elongacion\:\:scopePorLinea\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Models/Elongacion.php
+
+		-
+			message: '#^Method App\\Models\\Elongacion\:\:scopePorLinea\(\) has parameter \$linea with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Models/Elongacion.php
+
+		-
+			message: '#^Method App\\Models\\Elongacion\:\:scopePorLinea\(\) has parameter \$query with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Models/Elongacion.php
+
+		-
+			message: '#^Class App\\Models\\HistorialRestablecimiento uses generic trait Illuminate\\Database\\Eloquent\\Factories\\HasFactory but does not specify its types\: TFactory$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Models/HistorialRestablecimiento.php
+
+		-
+			message: '#^Method App\\Models\\HistorialRestablecimiento\:\:analisis\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Models/HistorialRestablecimiento.php
+
+		-
+			message: '#^Method App\\Models\\HistorialRestablecimiento\:\:componente\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Models/HistorialRestablecimiento.php
+
+		-
+			message: '#^Method App\\Models\\HistorialRestablecimiento\:\:linea\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Models/HistorialRestablecimiento.php
+
+		-
+			message: '#^Class App\\Models\\Linea uses generic trait Illuminate\\Database\\Eloquent\\Factories\\HasFactory but does not specify its types\: TFactory$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Models/Linea.php
+
+		-
+			message: '#^Method App\\Models\\Linea\:\:analisisLavadora\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Models/Linea.php
+
+		-
+			message: '#^Method App\\Models\\Linea\:\:componentes\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Models/Linea.php
+
+		-
+			message: '#^Method App\\Models\\Linea\:\:getNombreFormateadoAttribute\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Models/Linea.php
+
+		-
+			message: '#^Method App\\Models\\Linea\:\:planesAccion\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Models/Linea.php
+
+		-
+			message: '#^Method App\\Models\\Linea\:\:scopeActivos\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Models/Linea.php
+
+		-
+			message: '#^Method App\\Models\\Linea\:\:scopeActivos\(\) has parameter \$query with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Models/Linea.php
+
+		-
+			message: '#^Method App\\Models\\MedicionCadena\:\:analisis\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Models/MedicionCadena.php
+
+		-
+			message: '#^Class App\\Models\\NumeroR uses generic trait Illuminate\\Database\\Eloquent\\Factories\\HasFactory but does not specify its types\: TFactory$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Models/NumeroR.php
+
+		-
+			message: '#^Method App\\Models\\NumeroR\:\:analisis\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Models/NumeroR.php
+
+		-
+			message: '#^Method App\\Models\\NumeroR\:\:categoria\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Models/NumeroR.php
+
+		-
+			message: '#^Method App\\Models\\NumeroR\:\:componentes\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Models/NumeroR.php
+
+		-
+			message: '#^Method App\\Models\\NumeroR\:\:componentesAnalisis\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Models/NumeroR.php
+
+		-
+			message: '#^Method App\\Models\\NumeroR\:\:getNombreCompletoAttribute\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Models/NumeroR.php
+
+		-
+			message: '#^Method App\\Models\\NumeroR\:\:scopeActivos\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Models/NumeroR.php
+
+		-
+			message: '#^Method App\\Models\\NumeroR\:\:scopeActivos\(\) has parameter \$query with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Models/NumeroR.php
+
+		-
+			message: '#^Method App\\Models\\NumeroR\:\:scopePorCategoria\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Models/NumeroR.php
+
+		-
+			message: '#^Method App\\Models\\NumeroR\:\:scopePorCategoria\(\) has parameter \$categoriaId with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Models/NumeroR.php
+
+		-
+			message: '#^Method App\\Models\\NumeroR\:\:scopePorCategoria\(\) has parameter \$query with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Models/NumeroR.php
+
+		-
+			message: '#^Class App\\Models\\Paro uses generic trait Illuminate\\Database\\Eloquent\\Factories\\HasFactory but does not specify its types\: TFactory$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Models/Paro.php
+
+		-
+			message: '#^Method App\\Models\\Paro\:\:linea\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Models/Paro.php
+
+		-
+			message: '#^Method App\\Models\\Paro\:\:planesAccion\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Models/Paro.php
+
+		-
+			message: '#^Method App\\Models\\Paro\:\:supervisor\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Models/Paro.php
+
+		-
+			message: '#^Class App\\Models\\PlanAccion uses generic trait Illuminate\\Database\\Eloquent\\Factories\\HasFactory but does not specify its types\: TFactory$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Models/PlanAccion.php
+
+		-
+			message: '#^Method App\\Models\\PlanAccion\:\:actualizarEstado\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Models/PlanAccion.php
+
+		-
+			message: '#^Method App\\Models\\PlanAccion\:\:getDiasParaVencimientoAttribute\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Models/PlanAccion.php
+
+		-
+			message: '#^Method App\\Models\\PlanAccion\:\:getFechasProgramadasAttribute\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Models/PlanAccion.php
+
+		-
+			message: '#^Method App\\Models\\PlanAccion\:\:getProximaFechaAttribute\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Models/PlanAccion.php
+
+		-
+			message: '#^Method App\\Models\\PlanAccion\:\:getTiposMaquinaFormateadosAttribute\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Models/PlanAccion.php
+
+		-
+			message: '#^Method App\\Models\\PlanAccion\:\:linea\(\) return type with generic class Illuminate\\Database\\Eloquent\\Relations\\BelongsTo does not specify its types\: TRelatedModel, TDeclaringModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Models/PlanAccion.php
+
+		-
+			message: '#^Method App\\Models\\PlanAccion\:\:responsable\(\) return type with generic class Illuminate\\Database\\Eloquent\\Relations\\BelongsTo does not specify its types\: TRelatedModel, TDeclaringModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Models/PlanAccion.php
+
+		-
+			message: '#^Method App\\Models\\PlanAccion\:\:tieneTipoMaquina\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Models/PlanAccion.php
+
+		-
+			message: '#^Method App\\Models\\PlanAccion\:\:tieneTipoMaquina\(\) has parameter \$tipo with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Models/PlanAccion.php
+
+		-
+			message: '#^Right side of && is always true\.$#'
+			identifier: booleanAnd.rightAlwaysTrue
+			count: 1
+			path: app/Models/PlanAccion.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\User\:\:\$notificationSettings\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Models/User.php
+
+		-
+			message: '#^Method App\\Models\\User\:\:getFormattedPhoneForSmsAttribute\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Models/User.php
+
+		-
+			message: '#^Method App\\Models\\User\:\:getNotificationSettingsAttribute\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Models/User.php
+
+		-
+			message: '#^Method App\\Models\\User\:\:notificationSettings\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Models/User.php
+
+		-
+			message: '#^Cannot access property \$email on Illuminate\\Database\\Eloquent\\Model\|null\.$#'
+			identifier: property.nonObject
+			count: 1
+			path: app/Models/UserNotificationSetting.php
+
+		-
+			message: '#^Class App\\Models\\UserNotificationSetting uses generic trait Illuminate\\Database\\Eloquent\\Factories\\HasFactory but does not specify its types\: TFactory$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Models/UserNotificationSetting.php
+
+		-
+			message: '#^Method App\\Models\\UserNotificationSetting\:\:getActiveChannels\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Models/UserNotificationSetting.php
+
+		-
+			message: '#^Method App\\Models\\UserNotificationSetting\:\:getNotificationEmailAttribute\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Models/UserNotificationSetting.php
+
+		-
+			message: '#^Method App\\Models\\UserNotificationSetting\:\:getNotificationEmailAttribute\(\) has parameter \$value with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Models/UserNotificationSetting.php
+
+		-
+			message: '#^Method App\\Models\\UserNotificationSetting\:\:shouldNotifyForLine\(\) has parameter \$lineaId with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Models/UserNotificationSetting.php
+
+		-
+			message: '#^Method App\\Models\\UserNotificationSetting\:\:shouldNotifyForPCM\(\) has parameter \$pcm with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Models/UserNotificationSetting.php
+
+		-
+			message: '#^Method App\\Models\\UserNotificationSetting\:\:user\(\) return type with generic class Illuminate\\Database\\Eloquent\\Relations\\BelongsTo does not specify its types\: TRelatedModel, TDeclaringModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Models/UserNotificationSetting.php
+
+		-
+			message: '#^Method App\\Notifications\\FechaProximaNotification\:\:__construct\(\) has parameter \$diasRestantes with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Notifications/FechaProximaNotification.php
+
+		-
+			message: '#^Method App\\Notifications\\FechaProximaNotification\:\:__construct\(\) has parameter \$emailToUse with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Notifications/FechaProximaNotification.php
+
+		-
+			message: '#^Method App\\Notifications\\FechaProximaNotification\:\:__construct\(\) has parameter \$pcm with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Notifications/FechaProximaNotification.php
+
+		-
+			message: '#^Method App\\Notifications\\FechaProximaNotification\:\:__construct\(\) has parameter \$plan with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Notifications/FechaProximaNotification.php
+
+		-
+			message: '#^Method App\\Notifications\\FechaProximaNotification\:\:getEstadoNotificacion\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Notifications/FechaProximaNotification.php
+
+		-
+			message: '#^Method App\\Notifications\\FechaProximaNotification\:\:getFechaPcm\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Notifications/FechaProximaNotification.php
+
+		-
+			message: '#^Method App\\Notifications\\FechaProximaNotification\:\:getPrioridad\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Notifications/FechaProximaNotification.php
+
+		-
+			message: '#^Method App\\Notifications\\FechaProximaNotification\:\:toArray\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Notifications/FechaProximaNotification.php
+
+		-
+			message: '#^Method App\\Notifications\\FechaProximaNotification\:\:toArray\(\) has parameter \$notifiable with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Notifications/FechaProximaNotification.php
+
+		-
+			message: '#^Method App\\Notifications\\FechaProximaNotification\:\:toMail\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Notifications/FechaProximaNotification.php
+
+		-
+			message: '#^Method App\\Notifications\\FechaProximaNotification\:\:toMail\(\) has parameter \$notifiable with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Notifications/FechaProximaNotification.php
+
+		-
+			message: '#^Method App\\Notifications\\FechaProximaNotification\:\:via\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Notifications/FechaProximaNotification.php
+
+		-
+			message: '#^Method App\\Notifications\\FechaProximaNotification\:\:via\(\) has parameter \$notifiable with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Notifications/FechaProximaNotification.php
+
+		-
+			message: '#^Property App\\Notifications\\FechaProximaNotification\:\:\$diasRestantes has no type specified\.$#'
+			identifier: missingType.property
+			count: 1
+			path: app/Notifications/FechaProximaNotification.php
+
+		-
+			message: '#^Property App\\Notifications\\FechaProximaNotification\:\:\$emailToUse has no type specified\.$#'
+			identifier: missingType.property
+			count: 1
+			path: app/Notifications/FechaProximaNotification.php
+
+		-
+			message: '#^Property App\\Notifications\\FechaProximaNotification\:\:\$pcm has no type specified\.$#'
+			identifier: missingType.property
+			count: 1
+			path: app/Notifications/FechaProximaNotification.php
+
+		-
+			message: '#^Property App\\Notifications\\FechaProximaNotification\:\:\$plan has no type specified\.$#'
+			identifier: missingType.property
+			count: 1
+			path: app/Notifications/FechaProximaNotification.php
+
+		-
+			message: '#^Method App\\Notifications\\PlanAccionNotificacion\:\:__construct\(\) has parameter \$diasRestantes with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Notifications/PlanAccionNotificacion.php
+
+		-
+			message: '#^Method App\\Notifications\\PlanAccionNotificacion\:\:__construct\(\) has parameter \$pcm with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Notifications/PlanAccionNotificacion.php
+
+		-
+			message: '#^Method App\\Notifications\\PlanAccionNotificacion\:\:__construct\(\) has parameter \$tipo with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Notifications/PlanAccionNotificacion.php
+
+		-
+			message: '#^Method App\\Notifications\\PlanAccionNotificacion\:\:getMensaje\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Notifications/PlanAccionNotificacion.php
+
+		-
+			message: '#^Method App\\Notifications\\PlanAccionNotificacion\:\:getMensajeSMS\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Notifications/PlanAccionNotificacion.php
+
+		-
+			message: '#^Method App\\Notifications\\PlanAccionNotificacion\:\:getPrioridad\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Notifications/PlanAccionNotificacion.php
+
+		-
+			message: '#^Method App\\Notifications\\PlanAccionNotificacion\:\:toDatabase\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Notifications/PlanAccionNotificacion.php
+
+		-
+			message: '#^Method App\\Notifications\\PlanAccionNotificacion\:\:toDatabase\(\) has parameter \$notifiable with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Notifications/PlanAccionNotificacion.php
+
+		-
+			message: '#^Method App\\Notifications\\PlanAccionNotificacion\:\:toMail\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Notifications/PlanAccionNotificacion.php
+
+		-
+			message: '#^Method App\\Notifications\\PlanAccionNotificacion\:\:toMail\(\) has parameter \$notifiable with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Notifications/PlanAccionNotificacion.php
+
+		-
+			message: '#^Method App\\Notifications\\PlanAccionNotificacion\:\:toTwilio\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Notifications/PlanAccionNotificacion.php
+
+		-
+			message: '#^Method App\\Notifications\\PlanAccionNotificacion\:\:toTwilio\(\) has parameter \$notifiable with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Notifications/PlanAccionNotificacion.php
+
+		-
+			message: '#^Method App\\Notifications\\PlanAccionNotificacion\:\:via\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Notifications/PlanAccionNotificacion.php
+
+		-
+			message: '#^Method App\\Notifications\\PlanAccionNotificacion\:\:via\(\) has parameter \$notifiable with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Notifications/PlanAccionNotificacion.php
+
+		-
+			message: '#^Property App\\Notifications\\PlanAccionNotificacion\:\:\$diasRestantes has no type specified\.$#'
+			identifier: missingType.property
+			count: 1
+			path: app/Notifications/PlanAccionNotificacion.php
+
+		-
+			message: '#^Property App\\Notifications\\PlanAccionNotificacion\:\:\$pcm has no type specified\.$#'
+			identifier: missingType.property
+			count: 1
+			path: app/Notifications/PlanAccionNotificacion.php
+
+		-
+			message: '#^Property App\\Notifications\\PlanAccionNotificacion\:\:\$plan has no type specified\.$#'
+			identifier: missingType.property
+			count: 1
+			path: app/Notifications/PlanAccionNotificacion.php
+
+		-
+			message: '#^Property App\\Notifications\\PlanAccionNotificacion\:\:\$tipo has no type specified\.$#'
+			identifier: missingType.property
+			count: 1
+			path: app/Notifications/PlanAccionNotificacion.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\PlanAccion\|Illuminate\\Database\\Eloquent\\Collection\<int, App\\Models\\PlanAccion\>\:\:\$fecha_pcm1\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/NotificationService.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\PlanAccion\|Illuminate\\Database\\Eloquent\\Collection\<int, App\\Models\\PlanAccion\>\:\:\$fecha_pcm2\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/NotificationService.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\PlanAccion\|Illuminate\\Database\\Eloquent\\Collection\<int, App\\Models\\PlanAccion\>\:\:\$fecha_pcm3\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/NotificationService.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\PlanAccion\|Illuminate\\Database\\Eloquent\\Collection\<int, App\\Models\\PlanAccion\>\:\:\$fecha_pcm4\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/NotificationService.php
+
+		-
+			message: '#^Method App\\Services\\NotificationService\:\:enviarNotificacionSegunPreferencias\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Services/NotificationService.php
+
+		-
+			message: '#^Method App\\Services\\NotificationService\:\:enviarNotificacionSegunPreferencias\(\) has parameter \$diasRestantes with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Services/NotificationService.php
+
+		-
+			message: '#^Method App\\Services\\NotificationService\:\:enviarNotificacionSegunPreferencias\(\) has parameter \$pcm with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Services/NotificationService.php
+
+		-
+			message: '#^Method App\\Services\\NotificationService\:\:enviarNotificacionSegunPreferencias\(\) has parameter \$plan with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Services/NotificationService.php
+
+		-
+			message: '#^Method App\\Services\\NotificationService\:\:enviarNotificacionSegunPreferencias\(\) has parameter \$resultados with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Services/NotificationService.php
+
+		-
+			message: '#^Method App\\Services\\NotificationService\:\:enviarNotificacionSegunPreferencias\(\) has parameter \$usuario with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Services/NotificationService.php
+
+		-
+			message: '#^Method App\\Services\\NotificationService\:\:enviarNotificacionesManuales\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Services/NotificationService.php
+
+		-
+			message: '#^Method App\\Services\\NotificationService\:\:enviarNotificacionesManuales\(\) has parameter \$planId with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Services/NotificationService.php
+
+		-
+			message: '#^Method App\\Services\\NotificationService\:\:enviarNotificacionesManuales\(\) has parameter \$userId with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Services/NotificationService.php
+
+		-
+			message: '#^Method App\\Services\\NotificationService\:\:notificarActividad\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Services/NotificationService.php
+
+		-
+			message: '#^Method App\\Services\\NotificationService\:\:notificarActividad\(\) has parameter \$diasRestantes with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Services/NotificationService.php
+
+		-
+			message: '#^Method App\\Services\\NotificationService\:\:notificarActividad\(\) has parameter \$pcm with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Services/NotificationService.php
+
+		-
+			message: '#^Method App\\Services\\NotificationService\:\:notificarActividad\(\) has parameter \$plan with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Services/NotificationService.php
+
+		-
+			message: '#^Method App\\Services\\NotificationService\:\:notificarActividad\(\) has parameter \$resultados with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Services/NotificationService.php
+
+		-
+			message: '#^Method App\\Services\\NotificationService\:\:verificarYNotificarActividadesProximas\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Services/NotificationService.php
+
+		-
+			message: '#^Cannot cast mixed to string\.$#'
+			identifier: cast.string
+			count: 2
+			path: app/Services/WhatsAppService.php

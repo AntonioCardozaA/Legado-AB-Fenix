@@ -170,7 +170,7 @@
     {{-- Header --}}
     <div class="flex justify-between items-center mb-6">
         <div>
-            <a href="{{ route('analisis-pasteurizadora.dashboard') }}" 
+            <a href="{{ route('pasteurizadora.dashboard') }}" 
                class="inline-flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 rounded-lg transition mb-4">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
@@ -186,12 +186,12 @@
 
     {{-- Líneas --}}
     <div class="lineas-grid">
-        <a href="{{ route('analisis-pasteurizadora.plan-accion') }}" 
+        <a href="{{ route('pasteurizadora.analisis-pasteurizadora.plan-accion.index') }}" 
            class="linea-btn {{ !request('linea_id') ? 'active' : '' }}">
             <i class="fas fa-globe"></i> Todas
         </a>
         @foreach($lineas as $linea)
-            <a href="{{ route('analisis-pasteurizadora.plan-accion', ['linea_id' => $linea->id]) }}" 
+            <a href="{{ route('pasteurizadora.analisis-pasteurizadora.plan-accion.index', ['linea_id' => $linea->id]) }}" 
                class="linea-btn {{ request('linea_id') == $linea->id ? 'active' : '' }}">
                 <i class="fas fa-temperature-high"></i> {{ $linea->nombre }}
             </a>
@@ -216,7 +216,7 @@
                     <span class="font-bold">{{ $linea->nombre }}</span>
                     <span class="bg-white/20 px-2 py-1 rounded-full text-xs">{{ $planesLinea->count() }} actividades</span>
                 </div>
-                <a href="{{ route('analisis-pasteurizadora.plan-accion.create', ['linea_id' => $linea->id]) }}" 
+                <a href="{{ route('pasteurizadora.analisis-pasteurizadora.plan-accion.create', ['linea_id' => $linea->id]) }}" 
                    class="btn-agregar-rapido">
                     <i class="fas fa-plus"></i> Agregar Actividad
                 </a>
@@ -284,7 +284,7 @@
                                     @endforeach
                                     <td>
                                         <div class="flex gap-1">
-                                            <a href="{{ route('analisis-pasteurizadora.edit', $plan->id) }}" 
+                                            <a href="{{ route('pasteurizadora.analisis-pasteurizadora.edit', $plan->id) }}" 
                                                class="btn-accion btn-editar" title="Editar">
                                                 <i class="fas fa-edit"></i>
                                             </a>
@@ -357,7 +357,7 @@
             const modal = document.getElementById('verActividadModal');
             const content = document.getElementById('detalleActividad');
             
-            fetch(`/analisis-pasteurizadora/${id}`)
+            fetch(`/pasteurizadora/analisis-pasteurizadora/${id}`)
                 .then(res => res.json())
                 .then(data => {
                     content.innerHTML = `
@@ -380,7 +380,7 @@
     document.querySelectorAll('.checklist-btn').forEach(btn => {
         btn.addEventListener('click', function() {
             const id = this.dataset.id;
-            fetch(`/analisis-pasteurizadora/${id}/checklist`, {
+            fetch(`/pasteurizadora/analisis-pasteurizadora/${id}/checklist`, {
                 method: 'POST',
                 headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Content-Type': 'application/json' }
             })

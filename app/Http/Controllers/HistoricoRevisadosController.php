@@ -6,6 +6,7 @@ use App\Models\Linea;
 use App\Models\AnalisisLavadora;
 use App\Models\Componente;
 use App\Models\HistorialRestablecimiento;
+use App\Models\HistoricoRevisados;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
@@ -111,23 +112,26 @@ class HistoricoRevisadosController extends Controller
         $lineas = Linea::where('activo', true)
             ->orderBy('nombre')
             ->get();
-        
+
         // Filtrar líneas que tienen lavadora (las que están en $componentesLavadora)
         $nombresLavadora = array_keys($this->componentesLavadora);
         $lineasLavadora = $lineas->filter(function($linea) use ($nombresLavadora) {
             return in_array($linea->nombre, $nombresLavadora);
         })->values();
-        
-        // Para pasteurizadora, mostrar TODAS las líneas (asumimos que todas tienen pasteurizadora)
-        $lineasPasteurizadora = $lineas->values();
-        
+
+        // Para pasteurizadora, mostrar SOLO líneas de pasteurizadora (P-03 a P-14)
+        $pasteurizadorasPermitidas = ['P-03', 'P-04', 'P-05', 'P-06', 'P-07', 'P-08', 'P-09', 'P-10', 'P-11', 'P-12', 'P-13', 'P-14'];
+        $lineasPasteurizadora = $lineas->filter(function($linea) use ($pasteurizadorasPermitidas) {
+            return in_array($linea->nombre, $pasteurizadorasPermitidas);
+        })->values();
+
         // Tipo seleccionado (por defecto lavadora)
         $tipoSeleccionado = $request->input('tipo', 'lavadora');
-        
+
         // Línea seleccionada
         $lineaSeleccionadaId = $request->input('linea_id');
         $lineaSeleccionada = null;
-        
+
         if ($lineaSeleccionadaId) {
             $lineaSeleccionada = $lineas->firstWhere('id', $lineaSeleccionadaId);
         } elseif ($tipoSeleccionado == 'lavadora' && $lineasLavadora->isNotEmpty()) {
@@ -135,7 +139,7 @@ class HistoricoRevisadosController extends Controller
         } elseif ($tipoSeleccionado == 'pasteurizadora' && $lineasPasteurizadora->isNotEmpty()) {
             $lineaSeleccionada = $lineasPasteurizadora->first();
         }
-        
+
         // Obtener estadísticas según el tipo
         $estadisticas = [];
         $resumen = [
@@ -143,25 +147,25 @@ class HistoricoRevisadosController extends Controller
             'revisado_general' => 0,
             'porcentaje_general' => 0
         ];
-        
+
         if ($lineaSeleccionada) {
             if ($tipoSeleccionado == 'lavadora') {
                 $estadisticas = $this->getEstadisticasLavadora($lineaSeleccionada);
             } else {
                 $estadisticas = $this->getEstadisticasPasteurizadora($lineaSeleccionada);
             }
-            
+
             // Calcular resumen
             foreach ($estadisticas as $data) {
                 $resumen['total_general'] += $data['cantidad_total'];
                 $resumen['revisado_general'] += $data['cantidad_revisada'];
             }
-            
-            $resumen['porcentaje_general'] = $resumen['total_general'] > 0 
-                ? round(($resumen['revisado_general'] / $resumen['total_general']) * 100, 1) 
+
+            $resumen['porcentaje_general'] = $resumen['total_general'] > 0
+                ? round(($resumen['revisado_general'] / $resumen['total_general']) * 100, 1)
                 : 0;
         }
-        
+
         return view('historico-revisados.lavadora.index', compact(
             'lineas',
             'lineasLavadora',
@@ -281,42 +285,29 @@ class HistoricoRevisadosController extends Controller
     }
     
     /**
-     * Obtener estadísticas para pasteurizadora
-     * (Aquí debes poner los componentes reales de pasteurizadora)
+     * Obtener estadísticas para pasteurizadora desde la tabla histórico_revisados
      */
     private function getEstadisticasPasteurizadora($linea)
     {
-        // Por ahora, datos de ejemplo - reemplazar con configuración real de pasteurizadora
-        $componentesPasteurizadora = [
-            'Anillas / Pernos de ojo' => 'Anillas / Pernos de ojo',
-            'BOMBA_CIRCULACION' => 'Bomba de Circulación',
-            'SENSOR_TEMPERATURA' => 'Sensor de Temperatura',
-            'VALVULA_CONTROL' => 'Válvula de Control',
-            'INTERCAMBIADOR' => 'Intercambiador de Calor',
-            'TERMOMETRO' => 'Termómetro',
-            'MANOMETRO' => 'Manómetro',
-            'FILTRO' => 'Filtro',
-        ];
-        
         $estadisticas = [];
-        
-        foreach ($componentesPasteurizadora as $codigo => $nombre) {
-            $cantidadTotal = 8; // Ajustar según necesidad
-            $revisados = rand(0, $cantidadTotal); // Simulado - reemplazar con consulta real
-            $porcentaje = round(($revisados / $cantidadTotal) * 100, 1);
-            $color = $this->getColorPorcentaje($porcentaje);
-            
-            $estadisticas[$codigo] = [
-                'nombre' => $nombre,
-                'codigo' => $codigo,
-                'cantidad_total' => $cantidadTotal,
-                'cantidad_revisada' => $revisados,
-                'porcentaje' => $porcentaje,
-                'color' => $color,
-                'reductores_detectados' => $revisados
+
+        // Obtener todos los registros de esta línea
+        $registros = HistoricoRevisados::where('linea_id', $linea->id)->get();
+
+        foreach ($registros as $registro) {
+            $estadisticas[$registro->componente] = [
+                'nombre' => $registro->componente_nombre,
+                'codigo' => $registro->componente,
+                'cantidad_total' => $registro->cantidad_total,
+                'cantidad_revisada' => $registro->cantidad_revisada,
+                'porcentaje' => $registro->porcentaje,
+                'color' => $registro->color_estado,
+                'reductores_detectados' => $registro->cantidad_revisada,
+                'ultima_revision' => $registro->ultima_revision_formateada,
+                'proximo_vencimiento' => $registro->proximo_vencimiento_formateado,
             ];
         }
-        
+
         return $estadisticas;
     }
     

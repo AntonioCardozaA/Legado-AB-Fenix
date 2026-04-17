@@ -1,0 +1,125 @@
+@extends('layouts.app')
+
+@section('title', 'Seleccionar Pasteurizadora')
+
+@section('content')
+<div class="max-w-7xl mx-auto px-4">
+
+    {{-- Encabezado con botón de volver --}}
+    <div class="mb-10 flex items-center justify-between">
+        <div class="flex items-center gap-4">
+            <a href="{{ route('pasteurizadora.analisis-pasteurizadora.index') }}"
+               class="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900
+                      bg-gray-100 hover:bg-gray-200 rounded-lg transition-all duration-300
+                      group">
+                <svg class="w-5 h-5 group-hover:-translate-x-1 transition-transform"
+                     fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                </svg>
+                <span class="font-medium">Volver al Inicio</span>
+            </a>
+
+            <h1 class="text-3xl font-bold text-gray-800">
+                Seleccionar Pasteurizadora
+            </h1>
+        </div>
+    </div>
+
+    @php
+        $todasLasPasteurizadoras = [
+            ['nombre' => 'P-03', 'modulos' => 9, 'tipo' => 'sencillo'],
+            ['nombre' => 'P-04', 'modulos' => 12, 'tipo' => 'sencillo'],
+            ['nombre' => 'P-05', 'modulos' => 9, 'tipo' => 'sencillo'],
+            ['nombre' => 'P-06', 'modulos' => 16, 'tipo' => 'doble'],
+            ['nombre' => 'P-07', 'modulos' => 16, 'tipo' => 'doble'],
+            ['nombre' => 'P-08', 'modulos' => 9, 'tipo' => 'sencillo'],
+            ['nombre' => 'P-09', 'modulos' => 9, 'tipo' => 'sencillo'],
+            ['nombre' => 'P-10', 'modulos' => 9, 'tipo' => 'sencillo'],
+            ['nombre' => 'P-11', 'modulos' => 16, 'tipo' => 'doble'],
+            ['nombre' => 'P-12', 'modulos' => 9, 'tipo' => 'sencillo'],
+            ['nombre' => 'P-13', 'modulos' => 9, 'tipo' => 'sencillo'],
+            ['nombre' => 'P-14', 'modulos' => 9, 'tipo' => 'sencillo'],
+        ];
+
+        $lineasDisponibles = collect($lineas)->keyBy('nombre');
+    @endphp
+
+    {{-- Grid con el mismo estilo de lavadora --}}
+    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+        @foreach($todasLasPasteurizadoras as $config)
+            @php
+                $linea = $lineasDisponibles->get($config['nombre']);
+            @endphp
+
+            @if($linea)
+                <a href="{{ route('pasteurizadora.analisis-pasteurizadora.create', $linea->id) }}"
+                   class="group">
+                    <div class="bg-white rounded-xl border border-gray-100 p-6
+                                shadow-sm hover:shadow-xl transition-all duration-300
+                                hover:-translate-y-1">
+                        <div class="flex flex-col items-center text-center">
+                            <div class="w-32 h-32 mb-4 flex items-center justify-center">
+                                <img src="{{ asset('images/icono_pas.png') }}"
+                                     alt="Icono de Pasteurizadora"
+                                     class="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300">
+                            </div>
+
+                            <h3 class="text-lg font-semibold text-gray-800 mb-1">
+                                {{ $linea->nombre }}
+                            </h3>
+
+                            <p class="text-sm text-gray-500 mb-4 line-clamp-2">
+                                {{ $config['modulos'] }} módulos | Tipo {{ $config['tipo'] }}
+                            </p>
+
+                            <span class="inline-flex items-center gap-1 px-4 py-1.5
+                                         rounded-full text-sm font-medium
+                                         bg-blue-50 text-blue-700
+                                         group-hover:bg-blue-600 group-hover:text-white
+                                         transition-colors">
+                                Seleccionar
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                          d="M9 5l7 7-7 7"/>
+                                </svg>
+                            </span>
+                        </div>
+                    </div>
+                </a>
+            @endif
+        @endforeach
+    </div>
+
+    {{-- Estado vacío --}}
+    @if($lineasDisponibles->isEmpty())
+        <div class="text-center py-16">
+            <div class="mx-auto w-16 h-16 flex items-center justify-center
+                        rounded-full bg-gray-100 mb-4">
+                <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.998-.833-2.732 0L4.406 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+                </svg>
+            </div>
+
+            <h3 class="text-base font-semibold text-gray-800">
+                No hay pasteurizadoras disponibles
+            </h3>
+            <p class="text-sm text-gray-500 mt-1">
+                No se encontraron líneas de pasteurizado activas.
+            </p>
+
+            <a href="{{ url('/') }}"
+               class="inline-flex items-center gap-2 mt-6 px-6 py-3 bg-blue-600 hover:bg-blue-700
+                      text-white font-medium rounded-lg transition-all duration-300
+                      hover:-translate-y-1 hover:shadow-lg">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                </svg>
+                Volver al Inicio
+            </a>
+        </div>
+    @endif
+</div>
+@endsection

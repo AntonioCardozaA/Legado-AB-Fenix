@@ -968,6 +968,13 @@ $rutasImagenes = [
             </button>
         </div>
         <div class="modal-body">
+            <div class="text-center mb-6">
+                <img id="modalComponenteImagen" src="" 
+                    alt="Componente" 
+                    class="w-32 h-32 object-contain mx-auto mb-4">
+                
+                <p id="modalComponenteDesc" class="text-gray-600"></p>
+            </div>
             <div id="modalComponenteInfo">
                 <!-- Se llena con JavaScript -->
             </div>
@@ -1001,7 +1008,26 @@ $rutasImagenes = [
 </div>
 
 <script>
-function verDetalleComponente(codigo, nombre, revisado, total) {
+    function verDetalleComponente(codigo, nombre, revisado, total) {
+        // 👉 Imagen del componente
+    const rutasImagenes = {
+        'SERVO_CHICO': "{{ asset('images/componentes-lavadora/SERVO_CHICO.png') }}",
+        'SERVO_GRANDE': "{{ asset('images/componentes-lavadora/SERVO_GRANDE.png') }}",
+        'BUJE_ESPIGA': "{{ asset('images/componentes-lavadora/BUJE_ESPIGA.png') }}",
+        'GUI_INF_TANQUE': "{{ asset('images/componentes-lavadora/GUI_INF_TANQUE.png') }}",
+        'GUI_INT_TANQUE': "{{ asset('images/componentes-lavadora/GUI_INT_TANQUE.png') }}",
+        'GUI_SUP_TANQUE': "{{ asset('images/componentes-lavadora/GUI_SUP_TANQUE.png') }}",
+        'CATARINAS': "{{ asset('images/componentes-lavadora/CATARINAS.png') }}",
+        'RV200': "{{ asset('images/componentes-lavadora/RV200.png') }}",
+        'RV200_SIN_FIN': "{{ asset('images/componentes-lavadora/RV200_SIN_FIN.png') }}"
+    };
+
+    // 👉 Asignar imagen
+    document.getElementById('modalComponenteImagen').src =
+        rutasImagenes[codigo] || "{{ asset('images/componentes-lavadora/default.png') }}";
+
+    // 👉 Descripción
+    document.getElementById('modalComponenteDesc').textContent = nombre;
     const modal = document.getElementById('componenteModal');
     const porcentaje = total > 0 ? Math.round((revisado / total) * 100) : 0;
     
