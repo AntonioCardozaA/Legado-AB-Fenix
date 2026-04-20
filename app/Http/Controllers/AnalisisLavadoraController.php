@@ -32,6 +32,20 @@ public function index(Request $request)
         $query->where('linea_id', $request->linea_id);
     }
 
+    // Filtro por nombre de línea (desde el componente detail)
+    if ($request->filled('linea_nombre')) {
+        $query->whereHas('linea', function ($q) use ($request) {
+            $q->where('nombre', $request->linea_nombre);
+        });
+    }
+
+    // Filtro por nombre de componente (desde el componente detail)
+    if ($request->filled('componente') && !$request->filled('componente_id')) {
+        $query->whereHas('componente', function ($q) use ($request) {
+            $q->where('nombre', 'like', '%' . $request->componente . '%');
+        });
+    }
+
     if ($request->filled('componente_id')) {
         $query->whereHas('componente', function ($q) use ($request) {
             $q->where('codigo', 'like', '%_' . $request->componente_id);
@@ -39,7 +53,12 @@ public function index(Request $request)
     }
 
     if ($request->filled('reductor')) {
-        $query->where('reductor', 'like', '%' . $request->reductor . '%');
+        // Si viene de la búsqueda de detalles, buscar el reductor exacto o con patrón
+        if (is_numeric($request->reductor)) {
+            $query->where('reductor', $request->reductor);
+        } else {
+            $query->where('reductor', 'like', '%' . $request->reductor . '%');
+        }
     }
 
     if ($request->filled('estado')) {
@@ -52,6 +71,52 @@ public function index(Request $request)
     }
 
     $analisis = $query->get();
+    
+    // Calcular estadísticas basadas en los últimos registros por componente (estado actual)
+    $queryEstadisticas = AnalisisLavadora::ultimosPorComponente()
+        ->with(['linea', 'componente']);
+    
+    // Aplicar los mismos filtros que al listado
+    if ($request->filled('linea_id') && $request->linea_id !== 'todas') {
+        $queryEstadisticas->where('linea_id', $request->linea_id);
+    }
+    
+    if ($request->filled('linea_nombre')) {
+        $queryEstadisticas->whereHas('linea', function ($q) use ($request) {
+            $q->where('nombre', $request->linea_nombre);
+        });
+    }
+    
+    if ($request->filled('componente') && !$request->filled('componente_id')) {
+        $queryEstadisticas->whereHas('componente', function ($q) use ($request) {
+            $q->where('nombre', 'like', '%' . $request->componente . '%');
+        });
+    }
+    
+    if ($request->filled('componente_id')) {
+        $queryEstadisticas->whereHas('componente', function ($q) use ($request) {
+            $q->where('codigo', 'like', '%_' . $request->componente_id);
+        });
+    }
+    
+    if ($request->filled('reductor')) {
+        if (is_numeric($request->reductor)) {
+            $queryEstadisticas->where('reductor', $request->reductor);
+        } else {
+            $queryEstadisticas->where('reductor', 'like', '%' . $request->reductor . '%');
+        }
+    }
+    
+    // Para estadísticas, no filtrar por estado ni fecha, ya que queremos el estado actual
+    $analisisParaEstadisticas = $queryEstadisticas->get();
+    
+    $estadisticas = [
+        'total' => $analisisParaEstadisticas->count(),
+        'buen_estado' => $analisisParaEstadisticas->where('estado', 'Buen estado')->count(),
+        'desgaste' => $analisisParaEstadisticas->whereIn('estado', ['Desgaste moderado', 'Desgaste severo'])->count(),
+        'danado_requiere' => $analisisParaEstadisticas->where('estado', 'Dañado - Requiere cambio')->count(),
+        'cambiado' => $analisisParaEstadisticas->where('estado', 'Cambiado')->count(),
+    ];
     $diagramasPorLinea = [
     'L-04' => 'linea4.png',
     'L-05' => 'linea5.png',
@@ -91,6 +156,7 @@ public function index(Request $request)
         'reductoresMostrar' => $reductoresMostrar,
         'lineaMostrar' => $lineaMostrar,
         'filtros' => $request->all(),
+        'estadisticas' => $estadisticas,
     ]);
 }
 
@@ -906,9 +972,11 @@ public function historicoRevisados(Request $request)
         $cantidadTotal = $config['cantidad_total'];
         
         // Calcular cuántos reductores tienen análisis para este componente
-        $reductoresConAnalisis = AnalisisLavadora::where('linea_id', $lineaSeleccionadaId)
+        // Solo considerar el último registro por componente (último análisis)
+        $reductoresConAnalisis = AnalisisLavadora::ultimosPorComponente()
+            ->where('linea_id', $lineaSeleccionadaId)
             ->whereHas('componente', function($q) use ($codigo) {
-                $q->where('codigo', 'like', '%_' . $request->componente_id);
+                $q->where('codigo', $codigo);
             })
             ->distinct('reductor')
             ->count('reductor');

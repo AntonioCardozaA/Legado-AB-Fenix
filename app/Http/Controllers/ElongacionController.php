@@ -59,7 +59,7 @@ class ElongacionController extends Controller
      */
     public function create(Request $request)
     {
-        $lineaSeleccionada = $request->get('linea', 'L-07');
+        $lineaSeleccionada = $request->get('linea', 'L-04');
         
         // Obtener última lectura para la línea seleccionada
         $ultimaLectura = Elongacion::where('linea', $lineaSeleccionada)

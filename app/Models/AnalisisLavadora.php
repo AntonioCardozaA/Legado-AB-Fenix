@@ -102,6 +102,19 @@ class AnalisisLavadora extends Model
         }
         return $query;
     }
+
+    /**
+     * Scope para obtener solo los registros más recientes por componente y línea
+     * Esto asegura que solo se considere el último análisis por componente
+     */
+    public function scopeUltimosPorComponente(Builder $query): Builder
+    {
+        return $query->whereIn('id', function ($subQuery) {
+            $subQuery->selectRaw('MAX(id)')
+                ->from('analisis_componentes')
+                ->groupBy(['linea_id', 'componente_id', 'reductor']);
+        });
+    }
     public function planAccion(): HasMany
     {
         return $this->hasMany(PlanAccion::class);

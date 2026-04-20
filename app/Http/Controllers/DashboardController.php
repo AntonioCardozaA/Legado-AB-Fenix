@@ -253,7 +253,9 @@ class DashboardController extends Controller
             ->first();
 
         // 2. Obtener los últimos análisis de componentes (daños críticos)
-        $analisisCriticos = AnalisisLavadora::where('linea_id', $lineaId)
+        // Solo considerar el último registro por componente para determinar el estado actual
+        $analisisCriticos = AnalisisLavadora::ultimosPorComponente()
+            ->where('linea_id', $lineaId)
             ->where('estado', 'Dañado - Requiere cambio')
             ->with('componente')
             ->orderBy('fecha_analisis', 'desc')
@@ -267,19 +269,26 @@ class DashboardController extends Controller
                     $a->componente->icono = asset("images/componentes-lavadora/{$codigo}.png");
                 }
                 return $a;
-            });
+            })
+            ->toArray();
 
         // 3. Obtener actividades del plan de acción pendientes
         $accionesPendientes = PlanAccion::where('linea_id', $lineaId)
             ->where('completado', false)
             ->count();
 
-        // 4. Determinar nivel de riesgo
+        // 4. Verificar desgaste y definir el nivel
+        // Solo considerar el último registro por componente
+        $analisisDesgaste = AnalisisLavadora::ultimosPorComponente()
+            ->where('linea_id', $lineaId)
+            ->where('estado', 'like', '%Desgaste%')
+            ->count();
+
         $nivel = 'bueno';
         $color = 'green';
         $mensaje = 'Funcionando correctamente';
 
-        if ($analisisCriticos->count() > 0) {
+        if (count($analisisCriticos) > 0) {
             $nivel = 'critico';
             $color = 'red';
             $mensaje = 'Presenta componentes dañados que requieren cambio inmediato.';
@@ -295,16 +304,10 @@ class DashboardController extends Controller
             $nivel = 'riesgo';
             $color = 'yellow';
             $mensaje = 'Elongación en nivel de compra (>1.3%), considerar cambio de cadena.';
-        } else {
-            // Verificar si hay componentes con desgaste
-            $analisisDesgaste = AnalisisLavadora::where('linea_id', $lineaId)
-                ->where('estado', 'like', '%Desgaste%')
-                ->count();
-            if ($analisisDesgaste > 0) {
-                $nivel = 'riesgo';
-                $color = 'yellow';
-                $mensaje = 'Presenta componentes con desgaste, programar mantenimiento.';
-            }
+        } elseif ($analisisDesgaste > 0) {
+            $nivel = 'riesgo';
+            $color = 'yellow';
+            $mensaje = 'Presenta componentes con desgaste, programar mantenimiento.';
         }
 
         return [
@@ -314,7 +317,89 @@ class DashboardController extends Controller
             'analisis_criticos' => $analisisCriticos,
             'ultima_elongacion' => $ultimaElongacion,
             'acciones_pendientes' => $accionesPendientes,
+            'analisis_desgaste' => $analisisDesgaste,
+            'alert_carousel' => $this->buildLavadoraAlertCarousel($analisisCriticos, $accionesPendientes, $ultimaElongacion, $analisisDesgaste, $nivel),
         ];
+    }
+
+    /**
+     * Construye los items del carrusel para la tarjeta de estado de la lavadora.
+     */
+    private function buildLavadoraAlertCarousel(array $analisisCriticos, int $accionesPendientes, $ultimaElongacion, int $analisisDesgaste, string $nivel)
+    {
+        $items = [];
+
+        if (count($analisisCriticos) > 0) {
+            foreach ($analisisCriticos as $analisis) {
+                $subtitleParts = [];
+                if (!empty($analisis['modulo'])) {
+                    $subtitleParts[] = "Módulo {$analisis['modulo']}";
+                }
+                if (!empty($analisis['lado'])) {
+                    $subtitleParts[] = $analisis['lado'];
+                }
+
+                $items[] = [
+                    'type' => 'componente',
+                    'title' => $analisis['componente']['nombre'] ?? 'Componente dañado',
+                    'subtitle' => count($subtitleParts) ? implode(' · ', $subtitleParts) : 'Componente dañado',
+                    'image' => $analisis['componente']['icono'] ?? asset('images/componentes-lavadora/default.png'),
+                    'detail' => $analisis['actividad'] ?? 'Problema detectado en el componente.',
+                    'reductor' => $analisis['reductor'] ?? null,
+                    'fecha' => isset($analisis['fecha_analisis']) ? Carbon::parse($analisis['fecha_analisis'])->format('d/m/Y') : null,
+                ];
+            }
+        }
+
+        if ($accionesPendientes > 0) {
+            $items[] = [
+                'type' => 'alert',
+                'title' => 'Acciones pendientes',
+                'subtitle' => "{$accionesPendientes} tarea(s) sin cerrar",
+                'description' => 'Revisa el plan de acción para validar y cerrar las actividades pendientes.',
+                'icon' => 'fa-tasks',
+            ];
+        }
+
+        if ($ultimaElongacion && ($ultimaElongacion->vapor_porcentaje >= 1.46 || $ultimaElongacion->bombas_porcentaje >= 1.46)) {
+            $items[] = [
+                'type' => 'alert',
+                'title' => 'Elongación crítica',
+                'subtitle' => 'Cambio de cadena requerido',
+                'description' => "Bombas: {$ultimaElongacion->bombas_porcentaje}% · Vapor: {$ultimaElongacion->vapor_porcentaje}%",
+                'icon' => 'fa-exclamation-triangle',
+            ];
+        } elseif ($ultimaElongacion && ($ultimaElongacion->vapor_porcentaje >= 1.3 || $ultimaElongacion->bombas_porcentaje >= 1.3)) {
+            $items[] = [
+                'type' => 'alert',
+                'title' => 'Elongación en riesgo',
+                'subtitle' => 'Monitorear posible cambio',
+                'description' => "Bombas: {$ultimaElongacion->bombas_porcentaje}% · Vapor: {$ultimaElongacion->vapor_porcentaje}%",
+                'icon' => 'fa-chart-line',
+            ];
+        }
+
+        if ($analisisDesgaste > 0) {
+            $items[] = [
+                'type' => 'alert',
+                'title' => 'Desgaste detectado',
+                'subtitle' => "{$analisisDesgaste} elementos con desgaste",
+                'description' => 'Existen componentes con signos de desgaste que deben revisarse pronto.',
+                'icon' => 'fa-cog',
+            ];
+        }
+
+        if (empty($items)) {
+            $items[] = [
+                'type' => 'info',
+                'title' => 'Sin alertas activas',
+                'subtitle' => 'La lavadora está en buen estado',
+                'description' => 'No hay componentes dañados ni alertas críticas en este momento.',
+                'icon' => 'fa-check-circle',
+            ];
+        }
+
+        return $items;
     }
 
     /**

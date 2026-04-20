@@ -1169,7 +1169,9 @@
         $lavadorasPermitidas = ['L-04', 'L-05', 'L-06', 'L-07', 'L-08', 'L-09', 'L-12', 'L-13'];
         
         // Determinar si mostrar todas las lavadoras (por defecto TRUE)
+        // NO mostrar todas si hay filtros de componente, reductor o linea_nombre
         $mostrarTodas = !request('linea_id') || request('linea_id') === 'todas';
+        $mostrarTodas = $mostrarTodas && !request('componente') && !request('reductor') && !request('linea_nombre');
         
         // Filtrar líneas permitidas
         $lineasFiltradas = $lineas->filter(function($linea) use ($lavadorasPermitidas) {
@@ -1303,7 +1305,7 @@
     @endif
 
     {{-- DIAGRAMA DE LAVADORA SEGÚN LÍNEA SELECCIONADA --}}
-    @if(!$mostrarTodas && isset($lineaSeleccionada))
+    @if(!$mostrarTodas && isset($lineaSeleccionada) && is_object($lineaSeleccionada))
         @php
             $diagramaFile = $diagramasPorLinea[$lineaSeleccionada->nombre] ?? 'diagranalav.png';
         @endphp
@@ -1333,163 +1335,84 @@
         </div>
     @endif
 
-    {{-- ========== NUEVOS TACÓMETROS PEQUEÑOS (aparece cuando se muestran todas las líneas) ========== --}}
-    @if($mostrarTodas)
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-6" id="tacometrosContainer">
-            @foreach($lineasFiltradas as $linea)
-                @php
-                    $componentesLinea = collect();
-                    if (isset($componentesPorLineaArray[$linea->nombre])) {
-                        foreach ($componentesPorLineaArray[$linea->nombre] as $codigo => $nombre) {
-                            $componentesLinea->push((object)[
-                                'id' => $codigo,
-                                'nombre' => $nombre,
-                                'codigo' => $codigo,
-                            ]);
-                        }
-                    }
-                    
-                    $reductoresLinea = collect();
-                    if (isset($reductoresPorLineaArray[$linea->nombre])) {
-                        $reductoresLinea = collect($reductoresPorLineaArray[$linea->nombre]);
-                    }
-                    
-                    $totalCeldas = count($componentesLinea) * count($reductoresLinea);
-                    $analisisLinea = $analisisCollection->filter(function($item) use ($linea) {
-                        return $item->linea_id == $linea->id;
-                    });
-                    
-                    $celdasConDatos = 0;
-                    $estadosPreview = [
-                        'buen_estado' => 0,
-                        'desgaste' => 0,
-                        'danado' => 0,
-                        'cambiado' => 0
-                    ];
-                    
-                    foreach ($reductoresLinea as $reductor) {
-                        foreach ($componentesLinea as $componente) {
-                            $analisisEncontrado = $analisisLinea->filter(function($item) use ($reductor, $componente) {
-                                $itemReductor = is_numeric($item->reductor) ? "Reductor {$item->reductor}" : $item->reductor;
-                                $componenteCodigo = $item->componente->codigo ?? '';
-                                return $itemReductor == $reductor && 
-                                       (str_contains($componenteCodigo, $componente->id) || $componenteCodigo == $componente->id);
-                            })->sortByDesc('fecha_analisis')->first();
-                            
-                            if ($analisisEncontrado) {
-                                $celdasConDatos++;
-                                $estado = $analisisEncontrado->estado ?? 'Buen estado';
-                                if ($estado === 'Cambiado') {
-                                    $estadosPreview['cambiado']++;
-                                } elseif ($estado === 'Dañado - Requiere cambio') {
-                                    $estadosPreview['danado']++;
-                                } elseif (str_contains($estado, 'Desgaste')) {
-                                    $estadosPreview['desgaste']++;
-                                } else {
-                                    $estadosPreview['buen_estado']++;
-                                }
-                            }
-                        }
-                    }
-                    
-                    $porcentaje = $totalCeldas > 0 ? round(($celdasConDatos / $totalCeldas) * 100, 1) : 0;
-                    $colorBarra = $porcentaje >= 80 ? 'bg-green-500' : ($porcentaje >= 50 ? 'bg-yellow-500' : 'bg-red-500');
-                @endphp
-                <div class="bg-white rounded-lg shadow-sm hover:shadow-md transition-all p-3 border border-gray-100 cursor-pointer tacometro-card"
-                     onclick="showLineaPreview('{{ $linea->nombre }}', '{{ $linea->id }}', {{ json_encode($estadosPreview) }}, {{ $totalCeldas }}, {{ $celdasConDatos }})">
-                    <div class="flex items-center justify-between mb-2">
-                        <div class="flex items-center gap-2">
-                            <i class="fas fa-washing-machine text-blue-500 text-sm"></i>
-                            <h4 class="font-bold text-gray-700 text-sm">{{ $linea->nombre }}</h4>
-                        </div>
-                        <span class="text-xs font-semibold {{ $porcentaje >= 80 ? 'text-green-600' : ($porcentaje >= 50 ? 'text-yellow-600' : 'text-red-600') }}">
-                            {{ $porcentaje }}%
-                        </span>
-                    </div>
-                    <div class="w-full bg-gray-200 rounded-full h-1.5 mb-2">
-                        <div style="width: {{ $porcentaje }}%" class="h-1.5 rounded-full {{ $colorBarra }} transition-all duration-500"></div>
-                    </div>
-                    <div class="flex justify-between text-xs text-gray-400">
-                        <span><i class="fas fa-chart-simple mr-1"></i>{{ $celdasConDatos }}/{{ $totalCeldas }}</span>
-                        <span><i class="fas fa-cog mr-1"></i>{{ count($componentesLinea) }}</span>
-                        <span><i class="fas fa-sliders-h mr-1"></i>{{ count($reductoresLinea) }}</span>
-                    </div>
-                </div>
-            @endforeach
-        </div>
-    @endif
 
     {{-- ========== INDICADORES COMO BOTONES (solo cuando NO se muestran todas) ========== --}}
     @if(!$mostrarTodas && $analisisCollection->count() > 0)
         @php
-            if ($analisisCollection->count() > 0) {
-                $estadisticas = [
-                    'total' => $analisisCollection->count(),
-                    'buen_estado' => $analisisCollection->where('estado', 'Buen estado')->count(),
-                    'desgaste' => $analisisCollection->whereIn('estado', ['Desgaste moderado', 'Desgaste severo'])->count(),
-                    'danado_requiere' => $analisisCollection->where('estado', 'Dañado - Requiere cambio')->count(),
-                    'cambiado' => $analisisCollection->where('estado', 'Cambiado')->count(),
-                    'recientes' => $analisisCollection->filter(function ($item) {
-                        return $item->created_at && $item->created_at->gt(now()->subDays(7));
-                    })->count(),
-                ];
+            // Las estadísticas ahora vienen calculadas del controlador basadas en últimos registros
+            $estadisticas = $estadisticas ?? [
+                'total' => 0,
+                'buen_estado' => 0,
+                'desgaste' => 0,
+                'danado_requiere' => 0,
+                'cambiado' => 0,
+            ];
+            
+            // Para el modal, usar SOLO el registro más reciente por componente+reductor
+            $analisisPorEstado = [
+                'buen_estado' => [],
+                'desgaste' => [],
+                'danado' => [],
+                'cambiado' => []
+            ];
+            
+            // Agrupar por componente+reductor y tomar solo el más reciente
+            $ultimosPorComponente = [];
+            foreach ($analisisCollection as $item) {
+                $key = $item->componente_id . '_' . ($item->reductor ?? '');
+                if (!isset($ultimosPorComponente[$key]) || 
+                    $ultimosPorComponente[$key]->fecha_analisis < $item->fecha_analisis) {
+                    $ultimosPorComponente[$key] = $item;
+                }
+            }
+            
+            foreach ($ultimosPorComponente as $item) {
+                $estado = $item->estado ?? '';
+                $lineaNombre = $item->linea->nombre ?? 'Sin línea';
+                $componenteNombre = $item->componente->nombre ?? 'Sin componente';
+                $reductor = is_numeric($item->reductor) ? "Reductor {$item->reductor}" : $item->reductor;
                 
-                // Agrupar análisis por estado y línea para el modal
-                $analisisPorEstado = [
-                    'buen_estado' => [],
-                    'desgaste' => [],
-                    'danado' => [],
-                    'cambiado' => []
-                ];
-                
-                foreach ($analisisCollection as $item) {
-                    $estado = $item->estado ?? '';
-                    $lineaNombre = $item->linea->nombre ?? 'Sin línea';
-                    $componenteNombre = $item->componente->nombre ?? 'Sin componente';
-                    $reductor = is_numeric($item->reductor) ? "Reductor {$item->reductor}" : $item->reductor;
-                    
-                    if ($estado === 'Buen estado') {
-                        $analisisPorEstado['buen_estado'][] = [
-                            'linea' => $lineaNombre,
-                            'componente' => $componenteNombre,
-                            'reductor' => $reductor,
-                            'fecha' => isset($item->fecha_analisis) ? $item->fecha_analisis->format('d/m/Y') : '-',
-                            'estado' => $estado,
-                            'id' => $item->id
-                        ];
-                    } elseif (str_contains($estado, 'Desgaste')) {
-                        $analisisPorEstado['desgaste'][] = [
-                            'linea' => $lineaNombre,
-                            'componente' => $componenteNombre,
-                            'reductor' => $reductor,
-                            'estado' => $estado,
-                            'fecha' => isset($item->fecha_analisis) ? $item->fecha_analisis->format('d/m/Y') : '-',
-                            'id' => $item->id
-                        ];
-                    } elseif ($estado === 'Dañado - Requiere cambio') {
-                        $analisisPorEstado['danado'][] = [
-                            'linea' => $lineaNombre,
-                            'componente' => $componenteNombre,
-                            'reductor' => $reductor,
-                            'fecha' => isset($item->fecha_analisis) ? $item->fecha_analisis->format('d/m/Y') : '-',
-                            'id' => $item->id
-                        ];
-                    } elseif ($estado === 'Cambiado') {
-                        $analisisPorEstado['cambiado'][] = [
-                            'linea' => $lineaNombre,
-                            'componente' => $componenteNombre,
-                            'reductor' => $reductor,
-                            'fecha' => isset($item->fecha_analisis) ? $item->fecha_analisis->format('d/m/Y') : '-',
-                            'id' => $item->id
-                        ];
-                    }
+                if ($estado === 'Buen estado') {
+                    $analisisPorEstado['buen_estado'][] = [
+                        'linea' => $lineaNombre,
+                        'componente' => $componenteNombre,
+                        'reductor' => $reductor,
+                        'fecha' => isset($item->fecha_analisis) ? $item->fecha_analisis->format('d/m/Y') : '-',
+                        'estado' => $estado,
+                        'id' => $item->id
+                    ];
+                } elseif (str_contains($estado, 'Desgaste')) {
+                    $analisisPorEstado['desgaste'][] = [
+                        'linea' => $lineaNombre,
+                        'componente' => $componenteNombre,
+                        'reductor' => $reductor,
+                        'estado' => $estado,
+                        'fecha' => isset($item->fecha_analisis) ? $item->fecha_analisis->format('d/m/Y') : '-',
+                        'id' => $item->id
+                    ];
+                } elseif ($estado === 'Dañado - Requiere cambio') {
+                    $analisisPorEstado['danado'][] = [
+                        'linea' => $lineaNombre,
+                        'componente' => $componenteNombre,
+                        'reductor' => $reductor,
+                        'fecha' => isset($item->fecha_analisis) ? $item->fecha_analisis->format('d/m/Y') : '-',
+                        'id' => $item->id
+                    ];
+                } elseif ($estado === 'Cambiado') {
+                    $analisisPorEstado['cambiado'][] = [
+                        'linea' => $lineaNombre,
+                        'componente' => $componenteNombre,
+                        'reductor' => $reductor,
+                        'fecha' => isset($item->fecha_analisis) ? $item->fecha_analisis->format('d/m/Y') : '-',
+                        'id' => $item->id
+                    ];
                 }
             }
         @endphp
         
         <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4 mb-6">
             {{-- TOTAL ANÁLISIS --}}
-            <div class="bg-white rounded-xl shadow-sm p-4 border-t-4 border-gray-600">
+            <div class="bg-white rounded-xl shadow-sm p-4 border-t-4 border-gray-600 hover:shadow-lg transition-all">
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Total análisis</p>
@@ -1501,38 +1424,38 @@
             
             {{-- BUEN ESTADO (BOTÓN CLICKEABLE) --}}
             <button onclick="openEstadoModal('buen_estado', '✅ Buen Estado', {{ json_encode($analisisPorEstado['buen_estado']) }})" 
-                    class="bg-white rounded-xl shadow-sm p-4 border-t-4 border-green-600 hover:shadow-lg transition-all text-left w-full cursor-pointer group">
+                    class="bg-white rounded-xl shadow-sm p-4 border-t-4 border-emerald-600 hover:shadow-lg hover:bg-emerald-50 transition-all text-left w-full cursor-pointer group">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Buen estado</p>
-                        <h3 class="text-2xl font-bold text-green-600 mt-1">{{ $estadisticas['buen_estado'] ?? 0 }}</h3>
-                        <p class="text-xs text-gray-400 group-hover:text-green-600 mt-1"><i class="fas fa-eye text-xs"></i> Ver detalles</p>
+                        <p class="text-xs font-semibold text-emerald-600 uppercase tracking-wide">Buen estado</p>
+                        <h3 class="text-2xl font-bold text-emerald-600 mt-1">{{ $estadisticas['buen_estado'] ?? 0 }}</h3>
+                        <p class="text-xs text-emerald-500 group-hover:text-emerald-700 mt-1"><i class="fas fa-eye text-xs"></i> Ver detalles</p>
                     </div>
-                    <div class="bg-green-100 text-green-600 p-2 rounded-full group-hover:bg-green-200 transition"><i class="fas fa-check-circle"></i></div>
+                    <div class="bg-emerald-100 text-emerald-600 p-2 rounded-full group-hover:bg-emerald-200 transition"><i class="fas fa-check-circle"></i></div>
                 </div>
             </button>
             
             {{-- DESGASTE (BOTÓN CLICKEABLE) --}}
             <button onclick="openEstadoModal('desgaste', '⚠️ Desgaste', {{ json_encode($analisisPorEstado['desgaste']) }})"
-                    class="bg-white rounded-xl shadow-sm p-4 border-t-4 border-yellow-500 hover:shadow-lg transition-all text-left w-full cursor-pointer group">
+                    class="bg-white rounded-xl shadow-sm p-4 border-t-4 border-amber-500 hover:shadow-lg hover:bg-amber-50 transition-all text-left w-full cursor-pointer group">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Desgaste</p>
-                        <h3 class="text-2xl font-bold text-yellow-500 mt-1">{{ $estadisticas['desgaste'] ?? 0 }}</h3>
-                        <p class="text-xs text-gray-400 group-hover:text-yellow-600 mt-1"><i class="fas fa-eye text-xs"></i> Ver detalles</p>
+                        <p class="text-xs font-semibold text-amber-600 uppercase tracking-wide">Desgaste</p>
+                        <h3 class="text-2xl font-bold text-amber-600 mt-1">{{ $estadisticas['desgaste'] ?? 0 }}</h3>
+                        <p class="text-xs text-amber-500 group-hover:text-amber-700 mt-1"><i class="fas fa-eye text-xs"></i> Ver detalles</p>
                     </div>
-                    <div class="bg-yellow-100 text-yellow-600 p-2 rounded-full group-hover:bg-yellow-200 transition"><i class="fas fa-exclamation-triangle"></i></div>
+                    <div class="bg-amber-100 text-amber-600 p-2 rounded-full group-hover:bg-amber-200 transition"><i class="fas fa-exclamation-triangle"></i></div>
                 </div>
             </button>
             
             {{-- DAÑADOS (BOTÓN CLICKEABLE) --}}
             <button onclick="openEstadoModal('danado', '❌ Dañados', {{ json_encode($analisisPorEstado['danado']) }})"
-                    class="bg-white rounded-xl shadow-sm p-4 border-t-4 border-red-600 hover:shadow-lg transition-all text-left w-full cursor-pointer group">
+                    class="bg-white rounded-xl shadow-sm p-4 border-t-4 border-red-600 hover:shadow-lg hover:bg-red-50 transition-all text-left w-full cursor-pointer group">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Dañados</p>
+                        <p class="text-xs font-semibold text-red-600 uppercase tracking-wide">Dañados</p>
                         <h3 class="text-2xl font-bold text-red-600 mt-1">{{ ($estadisticas['danado_requiere'] ?? 0) }}</h3>
-                        <p class="text-xs text-gray-400 group-hover:text-red-600 mt-1"><i class="fas fa-eye text-xs"></i> Ver detalles</p>
+                        <p class="text-xs text-red-500 group-hover:text-red-700 mt-1"><i class="fas fa-eye text-xs"></i> Ver detalles</p>
                     </div>
                     <div class="bg-red-100 text-red-600 p-2 rounded-full group-hover:bg-red-200 transition"><i class="fas fa-times-circle"></i></div>
                 </div>
@@ -1540,14 +1463,14 @@
             
             {{-- CAMBIADOS (BOTÓN CLICKEABLE) --}}
             <button onclick="openEstadoModal('cambiado', '🔄 Cambiados', {{ json_encode($analisisPorEstado['cambiado']) }})"
-                    class="bg-white rounded-xl shadow-sm p-4 border-t-4 border-blue-600 hover:shadow-lg transition-all text-left w-full cursor-pointer group">
+                    class="bg-white rounded-xl shadow-sm p-4 border-t-4 border-sky-600 hover:shadow-lg hover:bg-sky-50 transition-all text-left w-full cursor-pointer group">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Cambiados</p>
-                        <h3 class="text-2xl font-bold text-blue-700 mt-1">{{ $estadisticas['cambiado'] ?? 0 }}</h3>
-                        <p class="text-xs text-gray-400 group-hover:text-blue-600 mt-1"><i class="fas fa-eye text-xs"></i> Ver detalles</p>
+                        <p class="text-xs font-semibold text-sky-600 uppercase tracking-wide">Cambiados</p>
+                        <h3 class="text-2xl font-bold text-sky-600 mt-1">{{ $estadisticas['cambiado'] ?? 0 }}</h3>
+                        <p class="text-xs text-sky-500 group-hover:text-sky-700 mt-1"><i class="fas fa-eye text-xs"></i> Ver detalles</p>
                     </div>
-                    <div class="bg-blue-100 text-blue-600 p-2 rounded-full group-hover:bg-blue-200 transition"><i class="fas fa-sync-alt"></i></div>
+                    <div class="bg-sky-100 text-sky-600 p-2 rounded-full group-hover:bg-sky-200 transition"><i class="fas fa-sync-alt"></i></div>
                 </div>
             </button>
         </div>
@@ -1555,7 +1478,154 @@
 
     {{-- SECCIÓN PRINCIPAL - MUESTRA TODAS LAS LAVADORAS O UNA SOLA --}}
     @if($mostrarTodas)
+        {{-- INDICADORES GLOBALES CUANDO SE MUESTRAN TODAS LAS LÍNEAS --}}
+        @if($analisisCollection->count() > 0)
+            @php
+                // Calcular estadísticas globales para todas las líneas
+                $estadisticasGlobales = [
+                    'total' => 0,
+                    'buen_estado' => 0,
+                    'desgaste' => 0,
+                    'danado_requiere' => 0,
+                    'cambiado' => 0,
+                ];
+                
+                // Para el modal, usar SOLO el registro más reciente por componente+reductor (global)
+                $analisisPorEstadoGlobal = [
+                    'buen_estado' => [],
+                    'desgaste' => [],
+                    'danado' => [],
+                    'cambiado' => []
+                ];
+                
+                // Agrupar por componente+reductor y tomar solo el más reciente
+                $ultimosPorComponenteGlobal = [];
+                foreach ($analisisCollection as $item) {
+                    $key = $item->componente_id . '_' . ($item->reductor ?? '');
+                    if (!isset($ultimosPorComponenteGlobal[$key]) || 
+                        $ultimosPorComponenteGlobal[$key]->fecha_analisis < $item->fecha_analisis) {
+                        $ultimosPorComponenteGlobal[$key] = $item;
+                    }
+                }
+                
+                foreach ($ultimosPorComponenteGlobal as $item) {
+                    $estado = $item->estado ?? '';
+                    $lineaNombre = $item->linea->nombre ?? 'Sin línea';
+                    $componenteNombre = $item->componente->nombre ?? 'Sin componente';
+                    $reductor = is_numeric($item->reductor) ? "Reductor {$item->reductor}" : $item->reductor;
+                    
+                    $estadisticasGlobales['total']++;
+                    
+                    if ($estado === 'Buen estado') {
+                        $estadisticasGlobales['buen_estado']++;
+                        $analisisPorEstadoGlobal['buen_estado'][] = [
+                            'linea' => $lineaNombre,
+                            'componente' => $componenteNombre,
+                            'reductor' => $reductor,
+                            'fecha' => isset($item->fecha_analisis) ? $item->fecha_analisis->format('d/m/Y') : '-',
+                            'estado' => $estado,
+                            'id' => $item->id
+                        ];
+                    } elseif (str_contains($estado, 'Desgaste')) {
+                        $estadisticasGlobales['desgaste']++;
+                        $analisisPorEstadoGlobal['desgaste'][] = [
+                            'linea' => $lineaNombre,
+                            'componente' => $componenteNombre,
+                            'reductor' => $reductor,
+                            'estado' => $estado,
+                            'fecha' => isset($item->fecha_analisis) ? $item->fecha_analisis->format('d/m/Y') : '-',
+                            'id' => $item->id
+                        ];
+                    } elseif ($estado === 'Dañado - Requiere cambio') {
+                        $estadisticasGlobales['danado_requiere']++;
+                        $analisisPorEstadoGlobal['danado'][] = [
+                            'linea' => $lineaNombre,
+                            'componente' => $componenteNombre,
+                            'reductor' => $reductor,
+                            'fecha' => isset($item->fecha_analisis) ? $item->fecha_analisis->format('d/m/Y') : '-',
+                            'id' => $item->id
+                        ];
+                    } elseif ($estado === 'Cambiado') {
+                        $estadisticasGlobales['cambiado']++;
+                        $analisisPorEstadoGlobal['cambiado'][] = [
+                            'linea' => $lineaNombre,
+                            'componente' => $componenteNombre,
+                            'reductor' => $reductor,
+                            'fecha' => isset($item->fecha_analisis) ? $item->fecha_analisis->format('d/m/Y') : '-',
+                            'id' => $item->id
+                        ];
+                    }
+                }
+            @endphp
+            
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4 mb-6">
+                {{-- TOTAL ANÁLISIS --}}
+                <div class="bg-white rounded-xl shadow-sm p-4 border-t-4 border-gray-600 hover:shadow-lg transition-all">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Total análisis</p>
+                            <h3 class="text-2xl font-bold text-gray-700 mt-1">{{ $estadisticasGlobales['total'] ?? 0 }}</h3>
+                        </div>
+                        <div class="bg-gray-100 text-gray-600 p-2 rounded-full"><i class="fas fa-chart-line"></i></div>
+                    </div>
+                </div>
+                
+                {{-- BUEN ESTADO (BOTÓN CLICKEABLE) --}}
+                <button onclick="openEstadoModal('buen_estado', '✅ Buen Estado', {{ json_encode($analisisPorEstadoGlobal['buen_estado']) }})" 
+                        class="bg-white rounded-xl shadow-sm p-4 border-t-4 border-emerald-600 hover:shadow-lg hover:bg-emerald-50 transition-all text-left w-full cursor-pointer group">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-semibold text-emerald-600 uppercase tracking-wide">Buen estado</p>
+                            <h3 class="text-2xl font-bold text-emerald-600 mt-1">{{ $estadisticasGlobales['buen_estado'] ?? 0 }}</h3>
+                            <p class="text-xs text-emerald-500 group-hover:text-emerald-700 mt-1"><i class="fas fa-eye text-xs"></i> Ver detalles</p>
+                        </div>
+                        <div class="bg-emerald-100 text-emerald-600 p-2 rounded-full group-hover:bg-emerald-200 transition"><i class="fas fa-check-circle"></i></div>
+                    </div>
+                </button>
+                
+                {{-- DESGASTE (BOTÓN CLICKEABLE) --}}
+                <button onclick="openEstadoModal('desgaste', '⚠️ Desgaste', {{ json_encode($analisisPorEstadoGlobal['desgaste']) }})"
+                        class="bg-white rounded-xl shadow-sm p-4 border-t-4 border-amber-500 hover:shadow-lg hover:bg-amber-50 transition-all text-left w-full cursor-pointer group">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-semibold text-amber-600 uppercase tracking-wide">Desgaste</p>
+                            <h3 class="text-2xl font-bold text-amber-600 mt-1">{{ $estadisticasGlobales['desgaste'] ?? 0 }}</h3>
+                            <p class="text-xs text-amber-500 group-hover:text-amber-700 mt-1"><i class="fas fa-eye text-xs"></i> Ver detalles</p>
+                        </div>
+                        <div class="bg-amber-100 text-amber-600 p-2 rounded-full group-hover:bg-amber-200 transition"><i class="fas fa-exclamation-triangle"></i></div>
+                    </div>
+                </button>
+                
+                {{-- DAÑADOS (BOTÓN CLICKEABLE) --}}
+                <button onclick="openEstadoModal('danado', '❌ Dañados', {{ json_encode($analisisPorEstadoGlobal['danado']) }})"
+                        class="bg-white rounded-xl shadow-sm p-4 border-t-4 border-red-600 hover:shadow-lg hover:bg-red-50 transition-all text-left w-full cursor-pointer group">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-semibold text-red-600 uppercase tracking-wide">Dañados</p>
+                            <h3 class="text-2xl font-bold text-red-600 mt-1">{{ ($estadisticasGlobales['danado_requiere'] ?? 0) }}</h3>
+                            <p class="text-xs text-red-500 group-hover:text-red-700 mt-1"><i class="fas fa-eye text-xs"></i> Ver detalles</p>
+                        </div>
+                        <div class="bg-red-100 text-red-600 p-2 rounded-full group-hover:bg-red-200 transition"><i class="fas fa-times-circle"></i></div>
+                    </div>
+                </button>
+                
+                {{-- CAMBIADOS (BOTÓN CLICKEABLE) --}}
+                <button onclick="openEstadoModal('cambiado', '🔄 Cambiados', {{ json_encode($analisisPorEstadoGlobal['cambiado']) }})"
+                        class="bg-white rounded-xl shadow-sm p-4 border-t-4 border-sky-600 hover:shadow-lg hover:bg-sky-50 transition-all text-left w-full cursor-pointer group">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-semibold text-sky-600 uppercase tracking-wide">Cambiados</p>
+                            <h3 class="text-2xl font-bold text-sky-600 mt-1">{{ $estadisticasGlobales['cambiado'] ?? 0 }}</h3>
+                            <p class="text-xs text-sky-500 group-hover:text-sky-700 mt-1"><i class="fas fa-eye text-xs"></i> Ver detalles</p>
+                        </div>
+                        <div class="bg-sky-100 text-sky-600 p-2 rounded-full group-hover:bg-sky-200 transition"><i class="fas fa-sync-alt"></i></div>
+                    </div>
+                </button>
+            </div>
+        @endif
+
         {{-- MOSTRAR TODAS LAS LAVADORAS CON LAS MISMAS PROPIEDADES --}}
+        @if($mostrarTodas)
         <div class="lavadoras-section">
             @foreach($lineasFiltradas as $linea)
                 @php
@@ -1927,6 +1997,8 @@
                 @endif
             @endforeach
         </div>
+        @endif
+
     @else
         {{-- MOSTRAR UNA SOLA LAVADORA (CÓDIGO ORIGINAL) --}}
         @php
@@ -1934,11 +2006,22 @@
             LINEA A MOSTRAR
             =============================== */
             $analisisCollection = collect($analisis ?? []);
+            $lineaMostrar = null;
             
             if (request('linea_id') && isset($lineas) && request('linea_id') !== 'todas') {
                 $lineaMostrar = $lineas->firstWhere('id', request('linea_id'));
+            } elseif (request('linea_nombre') && isset($lineas)) {
+                // Buscar por nombre de línea cuando viene de filtro de componente
+                $lineaMostrar = $lineas->firstWhere('nombre', request('linea_nombre'));
             } elseif ($analisisCollection->isNotEmpty()) {
-                $lineaMostrar = $analisisCollection->first()->linea ?? null;
+                $primerAnalisis = $analisisCollection->first();
+                if ($primerAnalisis && is_object($primerAnalisis) && isset($primerAnalisis->linea)) {
+                    $linea = $primerAnalisis->linea;
+                    // Asegurar que es un objeto, no un string
+                    if (is_object($linea) && property_exists($linea, 'id')) {
+                        $lineaMostrar = $linea;
+                    }
+                }
             }
 
             /* ===============================
@@ -1946,7 +2029,7 @@
             =============================== */
             $componentesParaTabla = collect();
 
-            if ($lineaMostrar && isset($componentesPorLinea[$lineaMostrar->nombre])) {
+            if ($lineaMostrar && is_object($lineaMostrar) && isset($componentesPorLinea[$lineaMostrar->nombre])) {
                 foreach ($componentesPorLinea[$lineaMostrar->nombre] as $id => $nombre) {
                     $componentesParaTabla->push((object)[
                         'id'     => $id,
@@ -1956,7 +2039,12 @@
                 }
             }
 
-            if (request('componente_id')) {
+            if (request('componente') && !$componentesParaTabla->isEmpty()) {
+                $componenteNombre = request('componente');
+                $componentesParaTabla = $componentesParaTabla
+                    ->filter(fn($c) => str_contains($c->nombre, $componenteNombre) || $c->nombre === $componenteNombre)
+                    ->values();
+            } elseif (request()->filled('componente_id')) {
                 $componentesParaTabla = $componentesParaTabla
                     ->where('id', request('componente_id'))
                     ->values();
@@ -1988,8 +2076,18 @@
             }
 
             if (request('reductor')) {
+                $reductorRequest = request('reductor');
+                // Normalizar el reductor del request
+                if (is_numeric($reductorRequest)) {
+                    // Si es solo número, buscar "Reductor X"
+                    $reductorRequest = "Reductor {$reductorRequest}";
+                } elseif (!str_contains($reductorRequest, 'Reductor')) {
+                    // Si no tiene "Reductor", agregarlo
+                    $reductorRequest = "Reductor {$reductorRequest}";
+                }
+                
                 $reductoresParaTabla = $reductoresParaTabla
-                    ->filter(fn($r) => $r == request('reductor'))
+                    ->filter(fn($r) => $r === $reductorRequest || str_contains($r, $reductorRequest))
                     ->values();
             }
 
@@ -2000,7 +2098,8 @@
 
             $mapaComponentesL12 = [];
             
-            if ($lineaMostrar && $lineaMostrar->nombre == 'L-12') {
+            if ($lineaMostrar && is_object($lineaMostrar) && $lineaMostrar->nombre == 'L-12') {
+
                 $componentesL12 = \App\Models\Componente::where('linea', 'L-12')->get();
                 
                 foreach ($componentesL12 as $comp) {
@@ -2036,7 +2135,7 @@
                 
                 $componenteId = $item->componente_id;
                 
-                if ($lineaMostrar && $lineaMostrar->nombre == 'L-12' && isset($mapaComponentesL12[$componenteId])) {
+                if ($lineaMostrar && is_object($lineaMostrar) && $lineaMostrar->nombre == 'L-12' && isset($mapaComponentesL12[$componenteId])) {
                     $claveComponente = $mapaComponentesL12[$componenteId];
                 } else {
                     $codigo = $item->componente->codigo ?? '';
@@ -2094,7 +2193,7 @@
 
                             <div>
                                 <h2 class="font-bold text-2xl text-white leading-tight">
-                                    {{ $lineaMostrar->nombre ?? 'Análisis de Componentes' }}
+                                    {{ (is_object($lineaMostrar) && isset($lineaMostrar->nombre)) ? $lineaMostrar->nombre : 'Análisis de Componentes' }}
                                 </h2>
 
                                 <div class="flex flex-wrap gap-4 mt-2 text-blue-100 text-sm">
@@ -2571,21 +2670,19 @@
 
 {{-- MODAL PARA VER DETALLE DE ESTADOS (desde los indicadores) --}}
 <div id="estadoModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50 p-4" onclick="if(event.target === this) closeEstadoModal()">
-    <div class="bg-white rounded-2xl shadow-2xl max-w-5xl w-full max-h-[85vh] overflow-hidden animate-modalIn">
-        <div class="bg-gradient-to-r from-gray-800 to-gray-900 text-white px-6 py-4 flex justify-between items-center">
-            <div class="flex items-center gap-3">
-                <h3 class="font-bold text-xl" id="estadoModalTitle">Detalle por Estado</h3>
-            </div>
-            <button onclick="closeEstadoModal()" class="w-8 h-8 rounded-lg bg-gray-700 hover:bg-gray-600 transition flex items-center justify-center">
-                <i class="fas fa-times"></i>
+    <div class="bg-white rounded-xl shadow-xl max-w-5xl w-full max-h-[85vh] overflow-hidden">
+        <div class="px-6 py-4 border-b flex justify-between items-center" id="estadoModalHeader">
+            <h3 class="text-xl font-bold" id="estadoModalTitle">Detalle por Estado</h3>
+            <button onclick="closeEstadoModal()" class="w-8 h-8 rounded-lg hover:bg-gray-100 flex items-center justify-center transition">
+                <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
             </button>
         </div>
-        <div class="p-6 overflow-auto max-h-[calc(85vh-80px)] bg-gray-50">
-            <div id="estadoModalContent" class="space-y-3">
-                <p class="text-gray-500 text-center py-8">Cargando información...</p>
-            </div>
-            <div class="flex justify-end mt-6 pt-4 border-t border-gray-200">
-                <button onclick="closeEstadoModal()" class="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition">Cerrar</button>
+        <div class="p-6 overflow-auto max-h-[calc(85vh-80px)]" id="estadoModalContent">
+            <div class="text-center py-8">
+                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                <p class="mt-2 text-gray-500">Cargando...</p>
             </div>
         </div>
     </div>
@@ -2894,68 +2991,143 @@ function closeLineasModal() {
 function openEstadoModal(tipo, titulo, items) {
     const modal = document.getElementById('estadoModal');
     const modalTitle = document.getElementById('estadoModalTitle');
+    const modalHeader = document.getElementById('estadoModalHeader');
     const modalContent = document.getElementById('estadoModalContent');
-    
+
+    const tipoConfig = {
+        total: {
+            bg: 'bg-slate-100',
+            text: 'text-slate-900',
+            card: 'bg-slate-50',
+            borderLeft: 'border-slate-300',
+            badge: 'bg-slate-100 text-slate-800',
+            icon: '📊'
+        },
+        buen_estado: {
+            bg: 'bg-emerald-500',
+            text: 'text-white',
+            card: 'bg-emerald-50',
+            borderLeft: 'border-emerald-300',
+            badge: 'bg-emerald-100 text-emerald-800',
+            icon: '✅'
+        },
+        desgaste: {
+            bg: 'bg-amber-500',
+            text: 'text-white',
+            card: 'bg-amber-50',
+            borderLeft: 'border-amber-300',
+            badge: 'bg-amber-100 text-amber-800',
+            icon: '⚠️'
+        },
+        danado: {
+            bg: 'bg-red-500',
+            text: 'text-white',
+            card: 'bg-red-50',
+            borderLeft: 'border-red-300',
+            badge: 'bg-red-100 text-red-800',
+            icon: '❌'
+        },
+        cambiado: {
+            bg: 'bg-sky-600',
+            text: 'text-white',
+            card: 'bg-sky-50',
+            borderLeft: 'border-sky-300',
+            badge: 'bg-sky-100 text-sky-800',
+            icon: '🔄'
+        }
+    };
+
+    const config = tipoConfig[tipo] || tipoConfig.total;
+
+    modalHeader.className = `px-6 py-4 border-b flex justify-between items-center ${config.bg}`;
+    modalTitle.className = `text-xl font-bold ${config.text}`;
     modalTitle.innerHTML = `<i class="fas fa-chart-pie mr-2"></i>${titulo} (${items.length})`;
-    
+
     if (!items || items.length === 0) {
         modalContent.innerHTML = `
             <div class="text-center py-12">
-                <i class="fas fa-info-circle text-gray-400 text-5xl mb-4"></i>
-                <p class="text-gray-500 text-lg">No hay registros con este estado</p>
-                <p class="text-gray-400 text-sm mt-2">Realiza nuevos análisis para ver información aquí</p>
+                <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-white mx-auto mb-4"></div>
+                <p class="text-gray-200 text-lg">Cargando...</p>
             </div>
         `;
     } else {
-        let tableHTML = `
-            <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
-                <div class="overflow-x-auto">
-                    <table class="w-full">
-                        <thead class="bg-gray-100">
-                            <tr>
-                                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Línea</th>
-                                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Componente</th>
-                                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Reductor</th>
-                                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Fecha</th>
-                                <th class="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase">Estado</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-gray-200">
-        `;
-        
+        const grouped = {};
         items.forEach(item => {
-            let estadoBadge = '';
-            if (tipo === 'buen_estado') {
-                estadoBadge = '<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800"><i class="fas fa-check-circle mr-1"></i>Buen estado</span>';
-            } else if (tipo === 'desgaste') {
-                estadoBadge = '<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800"><i class="fas fa-exclamation-triangle mr-1"></i>' + (item.estado || 'Desgaste') + '</span>';
-            } else if (tipo === 'danado') {
-                estadoBadge = '<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800"><i class="fas fa-times-circle mr-1"></i>Dañado</span>';
-            } else if (tipo === 'cambiado') {
-                estadoBadge = '<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800"><i class="fas fa-sync-alt mr-1"></i>Cambiado</span>';
+            const lineaKey = item.linea || 'Sin línea';
+            if (!grouped[lineaKey]) {
+                grouped[lineaKey] = [];
             }
-            
-            tableHTML += `
-                <tr class="hover:bg-gray-50 transition">
-                    <td class="px-4 py-3 text-sm font-medium text-gray-900">${escapeHtml(item.linea)}</td>
-                    <td class="px-4 py-3 text-sm text-gray-600">${escapeHtml(item.componente)}</td>
-                    <td class="px-4 py-3 text-sm text-gray-600">${escapeHtml(item.reductor)}</td>
-                    <td class="px-4 py-3 text-sm text-gray-500">${escapeHtml(item.fecha)}</td>
-                    <td class="px-4 py-3 text-center">${estadoBadge}</td>
-                </tr>
+            grouped[lineaKey].push(item);
+        });
+
+        let html = '<div class="space-y-6">';
+        Object.entries(grouped).forEach(([linea, lineItems]) => {
+            html += `
+                <div class="rounded-3xl border border-slate-200 bg-slate-50 shadow-sm overflow-hidden">
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-5 py-4 bg-white border-b border-slate-200">
+                        <div class="flex items-center gap-3">
+                            <div class="inline-flex items-center justify-center w-11 h-11 rounded-full bg-slate-100 text-slate-700">
+                                <i class="fas fa-flask"></i>
+                            </div>
+                            <div>
+                                <p class="text-xs uppercase tracking-[0.2em] text-slate-500">Línea</p>
+                                <p class="text-lg font-semibold text-slate-900">${escapeHtml(linea)}</p>
+                            </div>
+                        </div>
+                        <span class="inline-flex items-center gap-2 px-3 py-2 rounded-full bg-slate-100 text-slate-700 text-xs font-semibold uppercase tracking-[0.2em]">
+                            ${lineItems.length} registro${lineItems.length === 1 ? '' : 's'}
+                        </span>
+                    </div>
+                    <div class="p-4 space-y-3">
+            `;
+
+            lineItems.forEach(item => {
+                const estadoText = escapeHtml(item.estado || 'Sin estado');
+                let estadoBadge = `<span class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold ${config.badge}"><i class="fas fa-check-circle"></i>${estadoText}</span>`;
+                if (tipo === 'desgaste') {
+                    estadoBadge = `<span class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold ${config.badge}"><i class="fas fa-exclamation-triangle"></i>${estadoText}</span>`;
+                } else if (tipo === 'danado') {
+                    estadoBadge = `<span class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold ${config.badge}"><i class="fas fa-times-circle"></i>${estadoText}</span>`;
+                } else if (tipo === 'cambiado') {
+                    estadoBadge = `<span class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold ${config.badge}"><i class="fas fa-sync-alt"></i>${estadoText}</span>`;
+                } else if (tipo === 'total') {
+                    estadoBadge = `<span class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold ${config.badge}"><i class="fas fa-chart-pie"></i>${estadoText}</span>`;
+                }
+
+                html += `
+                    <div class="rounded-3xl border-l-4 ${config.borderLeft} ${config.card} p-4 shadow-sm hover:shadow-md transition">
+                        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                            <div class="space-y-3">
+                                <div class="flex flex-wrap items-center gap-2 text-sm text-slate-500">
+                                    <span class="px-3 py-1 rounded-full bg-white text-slate-700 border border-slate-200">${escapeHtml(item.reductor || 'Sin reductor')}</span>
+                                    <span class="px-3 py-1 rounded-full bg-white text-slate-700 border border-slate-200">${escapeHtml(item.fecha || 'Sin fecha')}</span>
+                                </div>
+                                <div class="flex items-center gap-2 text-base font-semibold text-slate-900">
+                                    <p>${escapeHtml(item.componente || 'Sin componente')}</p>
+                                </div>
+                                <p class="text-sm text-slate-600">${escapeHtml(item.estado || '')}</p>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                ${estadoBadge}
+                                <button onclick="goToComponenteDetail('${escapeHtml(item.componente || '')}', '${escapeHtml(item.reductor || '')}', '${escapeHtml(item.linea || '')}')" class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-white text-slate-700 border border-slate-200 hover:bg-slate-100 transition cursor-pointer">
+                                    <i class="fas fa-chevron-right"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            html += `
+                    </div>
+                </div>
             `;
         });
-        
-        tableHTML += `
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        `;
-        
-        modalContent.innerHTML = tableHTML;
+
+        html += '</div>';
+        modalContent.innerHTML = html;
     }
-    
+
     modal.classList.remove('hidden');
     document.body.style.overflow = 'hidden';
 }
@@ -2963,6 +3135,28 @@ function openEstadoModal(tipo, titulo, items) {
 function closeEstadoModal() {
     document.getElementById('estadoModal').classList.add('hidden');
     document.body.style.overflow = '';
+}
+
+// Función para navegar a detalles del componente
+function goToComponenteDetail(componente, reductor, linea) {
+    closeEstadoModal();
+    
+    // Crear parámetros para la búsqueda
+    const params = new URLSearchParams();
+    if (componente) params.append('componente', componente);
+    
+    // Limpiar el reductor si tiene "Reductor " al inicio
+    let reductorLimpio = reductor;
+    if (reductor && reductor.startsWith('Reductor ')) {
+        reductorLimpio = reductor.replace('Reductor ', '');
+    }
+    if (reductorLimpio) params.append('reductor', reductorLimpio);
+    
+    if (linea) params.append('linea_nombre', linea);
+    
+    // Navegar a la misma página con los parámetros de filtro
+    const url = `{{ route('analisis-lavadora.index') }}?${params.toString()}`;
+    window.location.href = url;
 }
 
 // Función para escapar HTML

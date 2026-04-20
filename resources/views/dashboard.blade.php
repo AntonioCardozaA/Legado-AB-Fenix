@@ -168,6 +168,129 @@
         line-height: 1.5;
     }
 
+    .lavadora-carousel {
+        background: #f8fafc;
+        border: 1px solid rgba(148, 163, 184, 0.25);
+        border-radius: 16px;
+        overflow: hidden;
+        margin-bottom: 16px;
+    }
+
+    .lavadora-carousel-track {
+        display: flex;
+        width: 100%;
+    }
+
+    .carousel-slide {
+        min-width: 100%;
+        padding: 16px;
+        box-sizing: border-box;
+        display: none;
+    }
+
+    .carousel-slide.active {
+        display: block;
+    }
+
+    .carousel-slide-content {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+    }
+
+    .carousel-slide-image,
+    .carousel-slide-icon {
+        width: 72px;
+        height: 72px;
+        border-radius: 16px;
+        background: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06);
+        flex-shrink: 0;
+    }
+
+    .carousel-slide-image img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        border-radius: 16px;
+    }
+
+    .carousel-slide-icon i {
+        font-size: 26px;
+        color: #3b82f6;
+    }
+
+    .carousel-slide-info {
+        flex: 1;
+    }
+
+    .carousel-slide-title {
+        font-weight: 700;
+        color: #111827;
+        margin-bottom: 4px;
+    }
+
+    .carousel-slide-subtitle {
+        font-size: 13px;
+        color: #475569;
+        margin-bottom: 8px;
+    }
+
+    .carousel-slide-detail,
+    .carousel-slide-meta {
+        font-size: 12px;
+        color: #6b7280;
+    }
+
+    .carousel-controls {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 14px 14px;
+        gap: 10px;
+    }
+
+    .carousel-button {
+        width: 34px;
+        height: 34px;
+        border-radius: 10px;
+        border: 1px solid rgba(148, 163, 184, 0.3);
+        background: white;
+        color: #334155;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: background 0.2s ease, transform 0.2s ease;
+    }
+
+    .carousel-button:hover {
+        background: #e2e8f0;
+        transform: translateY(-1px);
+    }
+
+    .carousel-dots {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-wrap: wrap;
+    }
+
+    .carousel-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: rgba(100, 116, 139, 0.35);
+        cursor: pointer;
+    }
+
+    .carousel-dot.active {
+        background: #3b82f6;
+    }
+
     .lavadora-metricas {
         display: flex;
         justify-content: space-between;
@@ -486,7 +609,61 @@
                         <i class="fas fa-info-circle mr-1 text-gray-400"></i>
                         {{ $estado['mensaje'] }}
                     </div>
-                    
+
+                    @if(isset($estado['alert_carousel']) && count($estado['alert_carousel']) > 0)
+                        <div class="lavadora-carousel" id="lavadora-carousel-{{ $lavadora['id'] }}">
+                            <div class="lavadora-carousel-track">
+                                @foreach($estado['alert_carousel'] as $index => $item)
+                                    <div class="carousel-slide {{ $index === 0 ? 'active' : '' }}" data-slide="{{ $index }}">
+                                        <div class="carousel-slide-content">
+                                            @if($item['type'] === 'componente')
+                                                <div class="carousel-slide-image">
+                                                    <img src="{{ $item['image'] }}" alt="{{ $item['title'] }}" />
+                                                </div>
+                                            @else
+                                                <div class="carousel-slide-icon">
+                                                    <i class="fas {{ $item['icon'] ?? 'fa-info-circle' }}"></i>
+                                                </div>
+                                            @endif
+                                            <div class="carousel-slide-info">
+                                                <div class="carousel-slide-title">{{ $item['title'] }}</div>
+                                                <div class="carousel-slide-subtitle">{{ $item['subtitle'] }}</div>
+                                                @if(!empty($item['detail']) || !empty($item['description']))
+                                                    <div class="carousel-slide-detail">{{ $item['detail'] ?? $item['description'] }}</div>
+                                                @endif
+                                                @if(!empty($item['reductor']))
+                                                    <div class="carousel-slide-meta">Reductor: {{ $item['reductor'] }}</div>
+                                                @endif
+                                                @if(!empty($item['meta']))
+                                                    <div class="carousel-slide-meta">Código: {{ $item['meta'] }}</div>
+                                                @endif
+                                                @if(!empty($item['fecha']))
+                                                    <div class="carousel-slide-meta">Fecha: {{ $item['fecha'] }}</div>
+                                                @endif
+                                            </div>
+                                        </div>
+                                    </div>
+                                @endforeach
+                            </div>
+
+                            @if(count($estado['alert_carousel']) > 1)
+                                <div class="carousel-controls">
+                                    <button type="button" class="carousel-button carousel-prev" aria-label="Anterior">
+                                        <i class="fas fa-chevron-left"></i>
+                                    </button>
+                                    <div class="carousel-dots">
+                                        @foreach($estado['alert_carousel'] as $index => $item)
+                                            <span class="carousel-dot {{ $index === 0 ? 'active' : '' }}" data-index="{{ $index }}"></span>
+                                        @endforeach
+                                    </div>
+                                    <button type="button" class="carousel-button carousel-next" aria-label="Siguiente">
+                                        <i class="fas fa-chevron-right"></i>
+                                    </button>
+                                </div>
+                            @endif
+                        </div>
+                    @endif
+
                     @if(isset($estado['ultima_elongacion']))
                     <div class="lavadora-metricas">
                         <div class="metric-item">
@@ -630,6 +807,7 @@
 
     document.addEventListener('DOMContentLoaded', function() {
         initCharts();
+        initLavadoraCarousels();
         setAutoRefresh();
     });
 
@@ -909,6 +1087,61 @@
                         position: 'top',
                     }
                 }
+            }
+        });
+    }
+
+    function initLavadoraCarousels() {
+        document.querySelectorAll('.lavadora-carousel').forEach(carousel => {
+            const slides = carousel.querySelectorAll('.carousel-slide');
+            const prevButton = carousel.querySelector('.carousel-prev');
+            const nextButton = carousel.querySelector('.carousel-next');
+            const dots = carousel.querySelectorAll('.carousel-dot');
+            let currentIndex = 0;
+
+            function showSlide(index) {
+                slides.forEach((slide, slideIndex) => {
+                    slide.classList.toggle('active', slideIndex === index);
+                });
+                dots.forEach((dot, dotIndex) => {
+                    dot.classList.toggle('active', dotIndex === index);
+                });
+                currentIndex = index;
+            }
+
+            function goNext() {
+                const nextIndex = (currentIndex + 1) % slides.length;
+                showSlide(nextIndex);
+            }
+
+            function goPrev() {
+                const prevIndex = (currentIndex - 1 + slides.length) % slides.length;
+                showSlide(prevIndex);
+            }
+
+            if (nextButton) {
+                nextButton.addEventListener('click', () => {
+                    goNext();
+                });
+            }
+
+            if (prevButton) {
+                prevButton.addEventListener('click', () => {
+                    goPrev();
+                });
+            }
+
+            dots.forEach(dot => {
+                dot.addEventListener('click', () => {
+                    const index = parseInt(dot.dataset.index, 10);
+                    if (!isNaN(index)) {
+                        showSlide(index);
+                    }
+                });
+            });
+
+            if (slides.length > 1) {
+                setInterval(goNext, 6000);
             }
         });
     }
