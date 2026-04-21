@@ -1042,7 +1042,6 @@
                 <span class="font-medium">Volver</span>
             </a>
             <h1 class="text-2xl font-bold text-gray-800 flex items-center gap-2">
-                <i class="fas fa-chart-pie text-blue-600"></i>
                 Análisis de Lavadoras
             </h1>
         </div>
@@ -1423,7 +1422,7 @@
             </div>
             
             {{-- BUEN ESTADO (BOTÓN CLICKEABLE) --}}
-            <button onclick="openEstadoModal('buen_estado', '✅ Buen Estado', {{ json_encode($analisisPorEstado['buen_estado']) }})" 
+            <button onclick="openEstadoModal('buen_estado', 'Buen Estado', {{ json_encode($analisisPorEstado['buen_estado']) }})" 
                     class="bg-white rounded-xl shadow-sm p-4 border-t-4 border-emerald-600 hover:shadow-lg hover:bg-emerald-50 transition-all text-left w-full cursor-pointer group">
                 <div class="flex items-center justify-between">
                     <div>
@@ -1436,7 +1435,7 @@
             </button>
             
             {{-- DESGASTE (BOTÓN CLICKEABLE) --}}
-            <button onclick="openEstadoModal('desgaste', '⚠️ Desgaste', {{ json_encode($analisisPorEstado['desgaste']) }})"
+            <button onclick="openEstadoModal('desgaste', 'Desgaste', {{ json_encode($analisisPorEstado['desgaste']) }})"
                     class="bg-white rounded-xl shadow-sm p-4 border-t-4 border-amber-500 hover:shadow-lg hover:bg-amber-50 transition-all text-left w-full cursor-pointer group">
                 <div class="flex items-center justify-between">
                     <div>
@@ -1449,7 +1448,7 @@
             </button>
             
             {{-- DAÑADOS (BOTÓN CLICKEABLE) --}}
-            <button onclick="openEstadoModal('danado', '❌ Dañados', {{ json_encode($analisisPorEstado['danado']) }})"
+            <button onclick="openEstadoModal('danado', 'Dañados', {{ json_encode($analisisPorEstado['danado']) }})"
                     class="bg-white rounded-xl shadow-sm p-4 border-t-4 border-red-600 hover:shadow-lg hover:bg-red-50 transition-all text-left w-full cursor-pointer group">
                 <div class="flex items-center justify-between">
                     <div>
@@ -1462,7 +1461,7 @@
             </button>
             
             {{-- CAMBIADOS (BOTÓN CLICKEABLE) --}}
-            <button onclick="openEstadoModal('cambiado', '🔄 Cambiados', {{ json_encode($analisisPorEstado['cambiado']) }})"
+            <button onclick="openEstadoModal('cambiado', 'Cambiados', {{ json_encode($analisisPorEstado['cambiado']) }})"
                     class="bg-white rounded-xl shadow-sm p-4 border-t-4 border-sky-600 hover:shadow-lg hover:bg-sky-50 transition-all text-left w-full cursor-pointer group">
                 <div class="flex items-center justify-between">
                     <div>
@@ -1571,7 +1570,7 @@
                 </div>
                 
                 {{-- BUEN ESTADO (BOTÓN CLICKEABLE) --}}
-                <button onclick="openEstadoModal('buen_estado', '✅ Buen Estado', {{ json_encode($analisisPorEstadoGlobal['buen_estado']) }})" 
+                <button onclick="openEstadoModal('buen_estado', 'Buen Estado', {{ json_encode($analisisPorEstadoGlobal['buen_estado']) }})" 
                         class="bg-white rounded-xl shadow-sm p-4 border-t-4 border-emerald-600 hover:shadow-lg hover:bg-emerald-50 transition-all text-left w-full cursor-pointer group">
                     <div class="flex items-center justify-between">
                         <div>
@@ -1584,7 +1583,7 @@
                 </button>
                 
                 {{-- DESGASTE (BOTÓN CLICKEABLE) --}}
-                <button onclick="openEstadoModal('desgaste', '⚠️ Desgaste', {{ json_encode($analisisPorEstadoGlobal['desgaste']) }})"
+                <button onclick="openEstadoModal('desgaste', 'Desgaste', {{ json_encode($analisisPorEstadoGlobal['desgaste']) }})"
                         class="bg-white rounded-xl shadow-sm p-4 border-t-4 border-amber-500 hover:shadow-lg hover:bg-amber-50 transition-all text-left w-full cursor-pointer group">
                     <div class="flex items-center justify-between">
                         <div>
@@ -1597,7 +1596,7 @@
                 </button>
                 
                 {{-- DAÑADOS (BOTÓN CLICKEABLE) --}}
-                <button onclick="openEstadoModal('danado', '❌ Dañados', {{ json_encode($analisisPorEstadoGlobal['danado']) }})"
+                <button onclick="openEstadoModal('danado', 'Dañados', {{ json_encode($analisisPorEstadoGlobal['danado']) }})"
                         class="bg-white rounded-xl shadow-sm p-4 border-t-4 border-red-600 hover:shadow-lg hover:bg-red-50 transition-all text-left w-full cursor-pointer group">
                     <div class="flex items-center justify-between">
                         <div>
@@ -1610,7 +1609,7 @@
                 </button>
                 
                 {{-- CAMBIADOS (BOTÓN CLICKEABLE) --}}
-                <button onclick="openEstadoModal('cambiado', '🔄 Cambiados', {{ json_encode($analisisPorEstadoGlobal['cambiado']) }})"
+                <button onclick="openEstadoModal('cambiado', 'Cambiados', {{ json_encode($analisisPorEstadoGlobal['cambiado']) }})"
                         class="bg-white rounded-xl shadow-sm p-4 border-t-4 border-sky-600 hover:shadow-lg hover:bg-sky-50 transition-all text-left w-full cursor-pointer group">
                     <div class="flex items-center justify-between">
                         <div>
@@ -2719,7 +2718,7 @@
     </div>
 </div>
 
-{{-- MODAL DE DETALLES INDUSTRIAL --}}
+{{-- MODAL DE DETALLES --}}
 <div id="analysisDetailModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50 p-4"
      onclick="if(event.target === this) closeAnalysisDetailModal()">
     <div class="bg-white rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
@@ -2780,7 +2779,7 @@
                     </div>
                 </div>
 
-                <div class="bg-white rounded-lg p-5 border-l-4 border-gray-700 shadow-sm hover:shadow-md transition-all">
+                <div id="detail-lado-container" class="bg-white rounded-lg p-5 border-l-4 border-gray-700 shadow-sm hover:shadow-md transition-all">
                     <div class="flex items-start gap-3">
                         <div class="bg-gray-100 p-3 rounded-lg">
                             <i class="fas fa-arrows-alt-h text-gray-700 text-xl"></i>
@@ -2845,9 +2844,9 @@
             </div>
             
             <div id="detail-images-section" class="mt-6 hidden">
-                <div class="bg-gray-800 text-white px-6 py-4">
+                <div class=" text-gray-700 px-6 py-4">
                     <div class="flex items-center gap-3">
-                        <div class="bg-gray-700 p-2 rounded-lg">
+                        <div class=" p-2 rounded-lg">
                             <i class="fas fa-images text-xl"></i>
                         </div>
                         <div>
@@ -3009,7 +3008,7 @@ function openEstadoModal(tipo, titulo, items) {
             card: 'bg-emerald-50',
             borderLeft: 'border-emerald-300',
             badge: 'bg-emerald-100 text-emerald-800',
-            icon: '✅'
+            icon: ''
         },
         desgaste: {
             bg: 'bg-amber-500',
@@ -3017,7 +3016,7 @@ function openEstadoModal(tipo, titulo, items) {
             card: 'bg-amber-50',
             borderLeft: 'border-amber-300',
             badge: 'bg-amber-100 text-amber-800',
-            icon: '⚠️'
+            icon: ''
         },
         danado: {
             bg: 'bg-red-500',
@@ -3025,7 +3024,7 @@ function openEstadoModal(tipo, titulo, items) {
             card: 'bg-red-50',
             borderLeft: 'border-red-300',
             badge: 'bg-red-100 text-red-800',
-            icon: '❌'
+            icon: ''
         },
         cambiado: {
             bg: 'bg-sky-600',
@@ -3033,7 +3032,7 @@ function openEstadoModal(tipo, titulo, items) {
             card: 'bg-sky-50',
             borderLeft: 'border-sky-300',
             badge: 'bg-sky-100 text-sky-800',
-            icon: '🔄'
+            icon: ''
         }
     };
 
@@ -3109,9 +3108,6 @@ function openEstadoModal(tipo, titulo, items) {
                             </div>
                             <div class="flex items-center gap-3">
                                 ${estadoBadge}
-                                <button onclick="goToComponenteDetail('${escapeHtml(item.componente || '')}', '${escapeHtml(item.reductor || '')}', '${escapeHtml(item.linea || '')}')" class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-white text-slate-700 border border-slate-200 hover:bg-slate-100 transition cursor-pointer">
-                                    <i class="fas fa-chevron-right"></i>
-                                </button>
                             </div>
                         </div>
                     </div>
@@ -3241,12 +3237,23 @@ function openAnalysisDetail(analysisData) {
     document.getElementById('detail-componente-codigo').textContent = analysisData.componente_codigo;
     document.getElementById('detail-reductor').textContent = analysisData.reductor;
     
+    // MANEJO DEL CAMPO LADO - OCULTAR SI NO APLICA
+    const ladoContainer = document.getElementById('detail-lado-container');
     const ladoElement = document.getElementById('detail-lado');
     const ladoBadgeContainer = document.getElementById('detail-lado-badge-container');
     
-    if (analysisData.lado) {
-        ladoElement.textContent = analysisData.lado === 'VAPOR' ? 'Lado Vapor' : 'Lado Pasillo';
+    // Verificar si hay valor en lado
+    const tieneLado = analysisData.lado && analysisData.lado.trim() !== '';
+    
+    if (tieneLado) {
+        // Mostrar el contenedor
+        ladoContainer.classList.remove('hidden');
         
+        // Formatear y mostrar el lado
+        const ladoTexto = analysisData.lado === 'VAPOR' ? 'Lado Vapor' : 'Lado Pasillo';
+        ladoElement.textContent = ladoTexto;
+        
+        // Crear badge
         const badge = document.createElement('span');
         badge.className = `lado-badge ${analysisData.lado === 'VAPOR' ? 'vapor' : 'pasillo'}`;
         badge.innerHTML = analysisData.lado === 'VAPOR' ? 
@@ -3255,8 +3262,10 @@ function openAnalysisDetail(analysisData) {
         ladoBadgeContainer.innerHTML = '';
         ladoBadgeContainer.appendChild(badge);
     } else {
-        ladoElement.textContent = 'No especificado';
-        ladoBadgeContainer.innerHTML = '<span class="text-gray-400 text-sm bg-gray-100 px-4 py-2 rounded-full">-</span>';
+        // Ocultar el contenedor completo
+        ladoContainer.classList.add('hidden');
+        ladoElement.textContent = '';
+        ladoBadgeContainer.innerHTML = '';
     }
     
     document.getElementById('detail-fecha').textContent = analysisData.fecha_analisis;

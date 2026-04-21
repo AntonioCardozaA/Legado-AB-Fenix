@@ -215,10 +215,6 @@
                                                 <span class="text-sm text-gray-500">
                                                     <i class="far fa-calendar-alt mr-1"></i>{{ $item->fecha_analisis?->format('d/m/Y') }}
                                                 </span>
-                                                <span class="text-gray-300">|</span>
-                                                <span class="text-sm text-gray-500">
-                                                    <i class="far fa-clock mr-1"></i>{{ $item->fecha_analisis?->format('H:i') }}
-                                                </span>
                                             </div>
                                             <h3 class="font-bold text-lg text-gray-800">
                                                 Orden #{{ $item->numero_orden }}
@@ -260,6 +256,14 @@
                                             <span class="text-xs font-semibold uppercase tracking-wider" style="color: rgb(31, 35, 72);">Reductor</span>
                                         </div>
                                         <p class="font-medium text-gray-800">{{ $item->reductor }}</p>
+                                    </div>
+
+                                    <div class="bg-gradient-to-br" style="background: linear-gradient(to bottom right, rgba(31, 35, 72, 0.05), white); border-color: rgba(31, 35, 72, 0.2); border-width: 1px; border-style: solid; border-radius: 0.75rem; padding: 1rem;">
+                                        <div class="flex items-center gap-2 mb-2">
+                                            <i class="fas fa-location-arrow" style="color: rgb(31, 35, 72);"></i>
+                                            <span class="text-xs font-semibold uppercase tracking-wider" style="color: rgb(31, 35, 72);">Lado</span>
+                                        </div>
+                                        <p class="font-medium text-gray-800">{{ $item->lado ?? 'N/A' }}</p>
                                     </div>
                                 </div>
 

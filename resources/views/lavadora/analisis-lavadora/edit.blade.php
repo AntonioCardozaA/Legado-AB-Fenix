@@ -10,7 +10,7 @@
             @php
                 $backUrl = request()->has('redirect_to') 
                     ? request()->input('redirect_to')
-                    : route('analisis-lavadora.index', request()->query());
+                    : url()->previous();
             @endphp
             <a href="{{ $backUrl }}"
                class="text-gray-400 hover:text-blue-600 transition">
@@ -136,7 +136,7 @@
                        value="{{ old('numero_orden', $analisisComponente->numero_orden) }}"
                        required
                        maxlength="20"
-                       placeholder="Ej: ORD-2024-001"
+                       placeholder="Ej: 35221456"
                        class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500 shadow-sm
                        @error('numero_orden') border-red-500 @enderror">
                 @error('numero_orden')
@@ -265,7 +265,7 @@
                 @php
                     $cancelUrl = request()->has('redirect_to') 
                         ? request()->input('redirect_to')
-                        : route('analisis-lavadora.index', request()->query());
+                        : url()->previous();
                 @endphp
                 <a href="{{ $cancelUrl }}"
                    class="flex-1 bg-gray-200 text-gray-700 rounded-lg px-5 py-3 text-center hover:bg-gray-300 transition-all shadow-md">
