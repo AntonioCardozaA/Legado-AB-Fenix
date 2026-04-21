@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LEGADO AVE FÉNIX - Sistema de Gestión</title>
 
-    <link rel="icon" type="image/png" href="{{ asset('images/logoo.png') }}">
+    <link rel="icon" type="image/png" href="{{ asset('images/logo..png') }}">
 
     <!-- Tailwind -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -94,10 +94,17 @@
 
 <body class="bg-gray-100">
 
-<div class="flex min-h-screen">
+<div class="flex min-h-screen" x-data="{ sidebarOpen: true }">
 
     <!-- SIDEBAR - Fondo blanco con texto negro/azul -->
-    <aside class="sidebar w-64 flex flex-col h-screen sticky top-0 shadow-sm">
+    <aside class="sidebar w-64 flex flex-col h-screen sticky top-0 shadow-sm"
+           x-show="sidebarOpen"
+           x-transition:enter="transition ease-out duration-300"
+           x-transition:enter-start="transform -translate-x-full"
+           x-transition:enter-end="transform translate-x-0"
+           x-transition:leave="transition ease-in duration-300"
+           x-transition:leave-start="transform translate-x-0"
+           x-transition:leave-end="transform -translate-x-full">
 
         <!-- Logo -->
         <div class="px-6 py-6 border-b border-gray-200">
@@ -130,7 +137,7 @@
             </a>
             <a href="{{ route('pasteurizadora.dashboard') }}"
                aria-label="Análisis de Pasteurizadora"
-               class="nav-link flex items-center px-4 py-3 rounded-lg {{ request()->routeIs('analisis-pasteurizadora.*') ? 'nav-active' : '' }}">
+               class="nav-link flex items-center px-4 py-3 rounded-lg {{ request()->routeIs('pasteurizadora.*') ? 'nav-active' : '' }}">
                 <i class="fas fa-thermometer-half w-5 mr-3 text-gray-500"></i>
                 Pasteurizadora
             </a>
@@ -163,9 +170,16 @@
         <!-- Header -->
         <header class="bg-white shadow-sm border-b px-6 py-4">
             <div class="flex justify-between items-center">
-                <h2 class="text-xl font-semibold text-gray-800">
-                    @yield('title', 'Legado Ave Fénix')
-                </h2>
+                <div class="flex items-center space-x-4">
+                    <button @click="sidebarOpen = !sidebarOpen" 
+                            aria-label="Toggle sidebar"
+                            class="p-2 rounded-full bg-gray-100 hover:bg-gray-200 transition">
+                        <i class="fas fa-bars text-gray-600"></i>
+                    </button>
+                    <h2 class="text-xl font-semibold text-gray-800">
+                        @yield('title', 'Legado Ave Fénix')
+                    </h2>
+                </div>
 
                 <div class="flex items-center space-x-4">
                     <!-- NOTIFICACIONES DROPDOWN -->
