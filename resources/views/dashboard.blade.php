@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Dashboard Centralizado')
+@section('title', 'Dashboard')
 
 @section('content')
 <style>
