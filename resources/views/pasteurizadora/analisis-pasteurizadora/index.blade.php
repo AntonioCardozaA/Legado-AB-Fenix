@@ -307,12 +307,69 @@
                                         @foreach($componentesLinea as $codigo => $compData)
                                             @php
                                                 $registros = $analisisAgrupadosLinea[$moduloNumero][$codigo] ?? collect();
-                                                $registro = $registros->sortByDesc('fecha_analisis')->first();
+                                                $registro = $registros->sortByDesc(function ($item) {
+                                                    return ($item->created_at?->timestamp ?? 0) . '-' . str_pad((string) $item->id, 10, '0', STR_PAD_LEFT);
+                                                })->first();
                                                 $hasData = $registro !== null;
+                                                $totalPiezasComponente = $compData['cantidad'] ?? 0;
+                                                $componentesRevisadosAcumulados = $registros
+                                                    ->flatMap(function ($item) {
+                                                        if (is_array($item->componentes_revisados)) {
+                                                            return $item->componentes_revisados;
+                                                        }
+
+                                                        if (is_string($item->componentes_revisados)) {
+                                                            $decoded = json_decode($item->componentes_revisados, true);
+                                                            return is_array($decoded) ? $decoded : [];
+                                                        }
+
+                                                        return [];
+                                                    })
+                                                    ->filter(fn($pieza) => is_numeric($pieza))
+                                                    ->map(fn($pieza) => (int) $pieza)
+                                                    ->unique()
+                                                    ->sort()
+                                                    ->values();
+                                                $revisadasAcumuladas = $componentesRevisadosAcumulados->count();
+                                                $pendientesAcumulados = max(0, $totalPiezasComponente - $revisadasAcumuladas);
+                                                $estadoPorNivel = [];
+                                                $siguienteRevision = null;
                                                 
                                                 $bgColor = 'bg-white';
                                                 $borderColor = '';
                                                 $estadoActual = '';
+
+                                                foreach (\App\Models\AnalisisPasteurizadora::NIVELES as $nivelRevision) {
+                                                    $ladosPendientesNivel = [];
+
+                                                    foreach (\App\Models\AnalisisPasteurizadora::LADOS as $ladoRevision) {
+                                                        $piezasRevisadas = $registros
+                                                            ->filter(fn($item) => $item->nivel === $nivelRevision && $item->lado === $ladoRevision)
+                                                            ->flatMap(function ($item) {
+                                                                return is_array($item->componentes_revisados) ? $item->componentes_revisados : [];
+                                                            })
+                                                            ->filter(fn($pieza) => is_numeric($pieza))
+                                                            ->map(fn($pieza) => (int) $pieza)
+                                                            ->unique()
+                                                            ->values();
+
+                                                        if ($piezasRevisadas->count() < $totalPiezasComponente) {
+                                                            $ladosPendientesNivel[] = $ladoRevision;
+                                                        }
+                                                    }
+
+                                                    $estadoPorNivel[$nivelRevision] = [
+                                                        'completado' => empty($ladosPendientesNivel),
+                                                        'lados_pendientes' => $ladosPendientesNivel,
+                                                    ];
+
+                                                    if (!$siguienteRevision && !empty($ladosPendientesNivel)) {
+                                                        $siguienteRevision = [
+                                                            'nivel' => $nivelRevision,
+                                                            'lado' => $ladosPendientesNivel[0],
+                                                        ];
+                                                    }
+                                                }
                                                 
                                                 if($hasData){
                                                     $estadoActual = $registro->estado ?? 'Buen estado';
@@ -346,8 +403,39 @@
                                                         'estado' => $estadoActual,
                                                         'actividad' => $registro->actividad,
                                                         'imagenes' => $registro->evidencia_fotos ?? [],
-                                                        'componentes_revisados' => $registro->componentes_revisados ?? [],
-                                                        'total_piezas' => $registro->total_piezas,
+                                                        'componentes_revisados' => $componentesRevisadosAcumulados,
+                                                        'total_piezas' => $totalPiezasComponente ?: $registro->total_piezas,
+                                                        'estado_por_nivel' => $estadoPorNivel,
+                                                        'actualizaciones' => $registros
+                                                            ->sortByDesc(function ($item) {
+                                                                return ($item->created_at?->timestamp ?? 0) . '-' . str_pad((string) $item->id, 10, '0', STR_PAD_LEFT);
+                                                            })
+                                                            ->map(function ($item) {
+                                                                $componentes = [];
+
+                                                                if (is_array($item->componentes_revisados)) {
+                                                                    $componentes = $item->componentes_revisados;
+                                                                } elseif (is_string($item->componentes_revisados)) {
+                                                                    $decoded = json_decode($item->componentes_revisados, true);
+                                                                    $componentes = is_array($decoded) ? $decoded : [];
+                                                                }
+
+                                                                return [
+                                                                    'id' => $item->id,
+                                                                    'fecha' => $item->fecha_analisis ? $item->fecha_analisis->format('d/m/Y') : $item->created_at?->format('d/m/Y'),
+                                                                    'hora' => $item->created_at?->format('H:i'),
+                                                                    'orden' => $item->numero_orden,
+                                                                    'estado' => $item->estado,
+                                                                    'actividad' => $item->actividad,
+                                                                    'lado' => $item->lado,
+                                                                    'nivel' => $item->nivel,
+                                                                    'componentes_revisados' => collect($componentes)
+                                                                        ->filter(fn($pieza) => is_numeric($pieza))
+                                                                        ->map(fn($pieza) => (int) $pieza)
+                                                                        ->values(),
+                                                                ];
+                                                            })
+                                                            ->values(),
                                                         'edit_url' => route('pasteurizadora.analisis-pasteurizadora.edit', $registro->id),
                                                         'historial_url' => route('pasteurizadora.analisis-pasteurizadora.historial', ['linea_id' => $linea->id, 'modulo' => $moduloNumero, 'componente' => $codigo])
                                                     ]) }})"
@@ -405,16 +493,16 @@
                                                                 {{ $estadoActual }}
                                                             </span>
                                                         </div>
-                                                        
+
                                                         {{-- Mostrar componentes revisados si existen --}}
-                                                        @if($registro->componentes_revisados && count($registro->componentes_revisados) > 0)
+                                                        @if($revisadasAcumuladas > 0)
                                                             <div class="bg-indigo-50 rounded-lg p-2 mt-2">
                                                                 <div class="flex items-center justify-between">
                                                                     <span class="text-xs font-medium text-indigo-700">Revisadas:</span>
-                                                                    <span class="text-xs text-indigo-600 font-semibold">{{ count($registro->componentes_revisados) }}/{{ $registro->total_piezas }}</span>
+                                                                    <span class="text-xs text-indigo-600 font-semibold">{{ $revisadasAcumuladas }}/{{ $totalPiezasComponente ?: $registro->total_piezas }}</span>
                                                                 </div>
                                                                 <div class="flex flex-wrap gap-1 mt-1">
-                                                                    @foreach($registro->componentes_revisados as $num)
+                                                                    @foreach($componentesRevisadosAcumulados as $num)
                                                                         <span class="inline-flex items-center gap-0.5 px-2 py-0.5 bg-indigo-100 text-indigo-700 rounded text-xs font-medium">
                                                                             <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
                                                                                 <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
@@ -423,6 +511,15 @@
                                                                         </span>
                                                                     @endforeach
                                                                 </div>
+                                                                @if($pendientesAcumulados > 0)
+                                                                    <div class="mt-1 p-1 bg-amber-50 border border-amber-200 rounded text-xs text-amber-700">
+                                                                        ⚠️ {{ $pendientesAcumulados }} aún por revisar
+                                                                    </div>
+                                                                @else
+                                                                    <div class="mt-1 p-1 bg-green-50 border border-green-200 rounded text-xs text-green-700">
+                                                                        ✅ Completadas todas las piezas
+                                                                    </div>
+                                                                @endif
                                                             </div>
                                                         @endif
                                                         
@@ -438,13 +535,19 @@
                                                                     {{ count($registro->evidencia_fotos) }}
                                                                 </button>
                                                             @endif
-                                                            <a href="{{ route('pasteurizadora.analisis-pasteurizadora.create-quick', ['linea_id' => $linea->id, 'modulo' => $moduloNumero, 'componente' => $codigo]) }}"
-                                                               class="inline-flex items-center gap-1 px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs transition"
+                                                         <a href="{{ route('pasteurizadora.analisis-pasteurizadora.create-quick', [
+                                                        'linea_id' => $linea->id, 
+                                                        'modulo' => $moduloNumero, 
+                                                        'componente' => $codigo,
+                                                        'lado' => $siguienteRevision['lado'] ?? '',
+                                                        'nivel' => $siguienteRevision['nivel'] ?? ''
+                                                    ]) }}"
+                                                                                                                    class="inline-flex items-center gap-1 px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs transition"
                                                                onclick="event.stopPropagation();">
                                                                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
                                                                 </svg>
-                                                                Nuevo
+                                                                Continuar
                                                             </a>
                                                         </div>
                                                     </div>
@@ -454,7 +557,13 @@
                                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                                                         </svg>
                                                         <p class="text-xs text-gray-400 mb-2">Sin análisis registrado</p>
-                                                        <a href="{{ route('pasteurizadora.analisis-pasteurizadora.create-quick', ['linea_id' => $linea->id, 'modulo' => $moduloNumero, 'componente' => $codigo]) }}"
+                                                        <a href="{{ route('pasteurizadora.analisis-pasteurizadora.create-quick', [
+                                                            'linea_id' => $linea->id, 
+                                                            'modulo' => $moduloNumero, 
+                                                            'componente' => $codigo,
+                                                            'lado' => '',
+                                                            'nivel' => ''
+                                                        ]) }}"
                                                            class="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs transition"
                                                            onclick="event.stopPropagation();">
                                                             <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -747,6 +856,82 @@ function openAnalysisDetail(data) {
         `;
     }
     
+    let nivelEstadoHtml = '';
+    if (data.estado_por_nivel) {
+        const nivelesOrden = ['SUPERIOR', 'INFERIOR'];
+        nivelEstadoHtml = `
+            <div class="bg-purple-50 border border-purple-200 p-4 rounded-lg mb-6">
+                <h4 class="font-semibold text-purple-900 mb-3 flex items-center gap-2">
+                    <i class="fas fa-layer-group text-purple-600"></i>
+                    Estado de revisión por nivel
+                </h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    ${nivelesOrden.map((nivel) => {
+                        const info = data.estado_por_nivel[nivel] || { completado: false, lados_pendientes: ['VAPOR', 'PASILLO'] };
+                        const ladosPendientes = info.lados_pendientes || [];
+                        return `
+                            <div class="bg-white p-3 rounded-lg border ${info.completado ? 'border-green-200' : 'border-amber-200'}">
+                                <div class="flex items-center justify-between mb-2">
+                                    <div class="text-xs font-semibold ${info.completado ? 'text-green-700' : 'text-amber-700'}">
+                                        ${nivel === 'SUPERIOR' ? '⬆️ Nivel Superior' : '⬇️ Nivel Inferior'}
+                                    </div>
+                                    <span class="inline-flex items-center gap-1 px-2 py-1 rounded text-xs ${info.completado ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}">
+                                        <i class="fas ${info.completado ? 'fa-check' : 'fa-clock'}"></i>
+                                        ${info.completado ? 'Completado' : 'Pendiente'}
+                                    </span>
+                                </div>
+                                <div class="text-sm text-gray-700">
+                                    ${info.completado
+                                        ? 'Ambos lados ya fueron revisados.'
+                                        : `Falta revisar: ${ladosPendientes.map((lado) => lado === 'VAPOR' ? 'Vapor' : 'Pasillo').join(', ')}`}
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            </div>
+        `;
+    }
+    
+    let actualizacionesHtml = '';
+    if (data.actualizaciones && data.actualizaciones.length > 0) {
+        actualizacionesHtml = `
+            <div class="bg-slate-50 border border-slate-200 p-4 rounded-lg mb-6">
+                <div class="flex items-center justify-between mb-3">
+                    <h4 class="font-semibold text-slate-900 flex items-center gap-2">
+                        <i class="fas fa-history text-slate-600"></i>
+                        Actualizaciones registradas
+                    </h4>
+                    <span class="text-sm font-bold text-slate-700">${data.actualizaciones.length}</span>
+                </div>
+                <div class="space-y-3">
+                    ${data.actualizaciones.map((item, index) => `
+                        <div class="bg-white border border-slate-200 rounded-lg p-3">
+                            <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+                                <div class="flex flex-wrap items-center gap-2 text-sm">
+                                    <span class="inline-flex items-center px-2 py-1 rounded bg-slate-100 text-slate-700 font-semibold">${index === 0 ? 'Última' : 'Registro'}</span>
+                                    <span class="text-slate-700 font-medium">${item.fecha || ''}${item.hora ? ' ' + item.hora : ''}</span>
+                                    ${item.orden ? `<span class="text-slate-500">#${item.orden}</span>` : ''}
+                                </div>
+                                <div class="flex flex-wrap items-center gap-2">
+                                    ${item.nivel ? `<span class="text-xs px-2 py-1 rounded bg-purple-100 text-purple-700">${item.nivel === 'SUPERIOR' ? '⬆️ Superior' : '⬇️ Inferior'}</span>` : ''}
+                                    ${item.lado ? `<span class="text-xs px-2 py-1 rounded ${item.lado === 'VAPOR' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}">${item.lado === 'VAPOR' ? '💨 Vapor' : '🚶 Pasillo'}</span>` : ''}
+                                    <span class="text-xs px-2 py-1 rounded ${item.estado === 'Buen estado' ? 'bg-green-100 text-green-700' : item.estado.includes('Desgaste') ? 'bg-yellow-100 text-yellow-700' : item.estado === 'DaÃ±ado - Requiere cambio' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}">${item.estado}</span>
+                                </div>
+                            </div>
+                            <p class="text-sm text-slate-700 whitespace-pre-line">${item.actividad || 'Sin actividad registrada.'}</p>
+                            ${item.componentes_revisados && item.componentes_revisados.length > 0 ? `
+                                <div class="mt-2 flex flex-wrap gap-2">
+                                    ${item.componentes_revisados.map((pieza) => `<span class="inline-flex items-center px-2 py-1 rounded bg-indigo-100 text-indigo-700 text-xs font-medium">#${pieza}</span>`).join('')}
+                                </div>
+                            ` : ''}
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+    }
+
     let imagenesHtml = '';
     if (data.imagenes && data.imagenes.length > 0) {
         imagenesHtml = `
@@ -773,10 +958,6 @@ function openAnalysisDetail(data) {
             <div class="bg-gray-50 p-4 rounded-lg">
                 <p class="text-xs text-gray-500 mb-1">🔧 Módulo</p>
                 <p class="font-bold text-gray-900">Módulo ${data.modulo}</p>
-            </div>
-            <div class="bg-gray-50 p-4 rounded-lg">
-                <p class="text-xs text-gray-500 mb-1">📏 Nivel</p>
-                <p class="font-bold text-gray-900">${data.nivel ? (data.nivel === 'SUPERIOR' ? '⬆️ SUPERIOR' : data.nivel === 'INFERIOR' ? '⬇️ INFERIOR' : data.nivel) : 'No asignado'}</p>
             </div>
             <div class="bg-gray-50 p-4 rounded-lg">
                 <p class="text-xs text-gray-500 mb-1">⚙️ Componente</p>
@@ -807,12 +988,16 @@ function openAnalysisDetail(data) {
             </span>
         </div>
         
+        ${nivelEstadoHtml}
+        
         <div class="bg-gray-50 p-4 rounded-lg mb-6">
             <p class="text-xs text-gray-500 mb-2">📝 Actividad Realizada</p>
             <p class="text-gray-700 whitespace-pre-line">${data.actividad || 'No especificada'}</p>
         </div>
         
         ${componentesRevisadosHtml}
+        
+        ${actualizacionesHtml}
         
         ${imagenesHtml}
         

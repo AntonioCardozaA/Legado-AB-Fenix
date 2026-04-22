@@ -28,7 +28,7 @@
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 flex-grow">
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 md:gap-6 flex-grow">
                         <div class="text-center md:text-left">
                             <p class="text-gray-600 font-semibold text-sm mb-1">
                                 <i class="fas fa-temperature-high mr-1"></i>
@@ -57,11 +57,21 @@
                                 Componente
                             </p>
                             <p class="text-gray-800 font-medium">
-                                @php
-                                    $componentesConfig = \App\Models\AnalisisPasteurizadora::getComponentesPorLinea($linea->nombre ?? '');
-                                    $nombreComponente = $componentesConfig[$componente]['nombre'] ?? $componente;
-                                @endphp
-                                {{ $nombreComponente }}
+                                {{ $nombreComponente ?? $componente }}
+                            </p>
+                        </div>
+
+                        <div class="text-center md:text-left">
+                            <p class="text-gray-600 font-semibold text-sm mb-1">
+                                <i class="fas fa-layer-group mr-1"></i>
+                                Nivel
+                            </p>
+                            <p class="text-gray-800 font-medium">
+                                @if($nivel)
+                                    {{ $nivel === 'SUPERIOR' ? '⬆️ Nivel Superior' : '⬇️ Nivel Inferior' }}
+                                @else
+                                    <span class="text-gray-400">No especificado</span>
+                                @endif
                             </p>
                         </div>
                     </div>
@@ -77,11 +87,11 @@
               id="analisisForm">
             @csrf
         
-            
             {{-- Campos ocultos --}}
             <input type="hidden" name="linea_id" value="{{ $linea->id ?? '' }}">
             <input type="hidden" name="modulo" value="{{ $modulo ?? '' }}">
             <input type="hidden" name="componente" value="{{ $componente ?? '' }}">
+            <input type="hidden" name="nivel" value="{{ $nivel ?? '' }}">
             
             {{-- Selector de Lado --}}
             <div>
@@ -94,15 +104,15 @@
                                @error('lado') border-red-500 @enderror"
                         required>
                     <option value="">Seleccionar lado...</option>
-                    <option value="VAPOR" {{ old('lado') == 'VAPOR' ? 'selected' : '' }}>💨 Lado Vapor</option>
-                    <option value="PASILLO" {{ old('lado') == 'PASILLO' ? 'selected' : '' }}>🚶 Lado Pasillo</option>
+                    <option value="VAPOR" {{ old('lado', $lado) == 'VAPOR' ? 'selected' : '' }}>💨 Lado Vapor</option>
+                    <option value="PASILLO" {{ old('lado', $lado) == 'PASILLO' ? 'selected' : '' }}>🚶 Lado Pasillo</option>
                 </select>
                 @error('lado')
                     <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
                 @enderror
             </div>
             
-            {{-- Nivel (opcional) --}}
+            {{-- Nivel (solo lectura si ya viene de la tabla) --}}
             <div>
                 <label for="nivel" class="block text-sm font-semibold text-gray-700 mb-2">
                     <i class="fas fa-layer-group text-blue-600 mr-1"></i>
@@ -111,22 +121,151 @@
                 <select id="nivel" name="nivel"
                         class="block w-full rounded-lg border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
                     <option value="">Seleccionar nivel...</option>
-                    <option value="SUPERIOR" {{ old('nivel') == 'SUPERIOR' ? 'selected' : '' }}>⬆️ Nivel Superior</option>
-                    <option value="INFERIOR" {{ old('nivel') == 'INFERIOR' ? 'selected' : '' }}>⬇️ Nivel Inferior</option>
+                    <option value="SUPERIOR" {{ old('nivel', $nivel) == 'SUPERIOR' ? 'selected' : '' }}>⬆️ Nivel Superior</option>
+                    <option value="INFERIOR" {{ old('nivel', $nivel) == 'INFERIOR' ? 'selected' : '' }}>⬇️ Nivel Inferior</option>
                 </select>
             </div>
 
-            {{-- Sección de checklist dinámico de componentes --}}
-            <div id="checklist-container" class="hidden">
+            {{-- Estado de Niveles y Lados --}}
+            @php
+                $estadoRevision = \App\Models\AnalisisPasteurizadora::getEstadoRevision($linea->id, $modulo, $componenteKey, null);
+            @endphp
+            <div class="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl p-6 border border-indigo-200">
+                <div class="mb-4">
+                    <h3 class="text-sm font-bold text-indigo-900 mb-4 flex items-center gap-2">
+                        <i class="fas fa-tasks text-indigo-600"></i>
+                        Estado de Revisión por Nivel
+                    </h3>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    @foreach(['SUPERIOR' => '⬆️ Nivel Superior', 'INFERIOR' => '⬇️ Nivel Inferior'] as $nivelKey => $nivelLabel)
+                        @php
+                            $completado = $estadoRevision[$nivelKey]['completado'];
+                            $ladosPendientes = $estadoRevision[$nivelKey]['lados_pendientes'];
+                        @endphp
+                        <div class="p-4 rounded-lg {{ $completado ? 'bg-green-100 border border-green-300' : 'bg-white border border-indigo-200' }}">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="font-semibold text-gray-800">{{ $nivelLabel }}</span>
+                                @if($completado)
+                                    <span class="inline-flex items-center gap-1 px-3 py-1 bg-green-600 text-white rounded-full text-xs font-bold">
+                                        <i class="fas fa-check-circle"></i>
+                                        Completado
+                                    </span>
+                                @else
+                                    <span class="inline-flex items-center gap-1 px-3 py-1 bg-amber-600 text-white rounded-full text-xs font-bold">
+                                        <i class="fas fa-clock"></i>
+                                        Pendiente
+                                    </span>
+                                @endif
+                            </div>
+
+                            @if(!$completado)
+                                <div class="flex items-center gap-2 text-sm text-gray-700">
+                                    <span class="font-medium">Lados pendientes:</span>
+                                    <div class="flex gap-2">
+                                        @foreach($ladosPendientes as $ladoPendiente)
+                                            <span class="inline-flex items-center gap-1 px-2 py-1 rounded text-xs {{ $ladoPendiente === 'VAPOR' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700' }}">
+                                                <i class="fas {{ $ladoPendiente === 'VAPOR' ? 'fa-wind' : 'fa-walking' }}"></i>
+                                                {{ $ladoPendiente === 'VAPOR' ? 'Vapor' : 'Pasillo' }}
+                                            </span>
+                                        @endforeach
+                                    </div>
+                                </div>
+                            @else
+                                <div class="text-sm text-green-700">
+                                    <i class="fas fa-check mr-1"></i>
+                                    Ambos lados revisados correctamente
+                                </div>
+                            @endif
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+
+            {{-- Sección de checklist de componentes --}}
+            <div id="checklist-container">
                 <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-200">
-                    <label class="block text-sm font-bold text-gray-800 mb-4">
-                        <i class="fas fa-clipboard-check text-blue-600 mr-2"></i>
-                        Seleccione los componentes revisados
-                    </label>
-                    <div id="componentes-checklist" class="grid grid-cols-2 md:grid-cols-3 gap-3">
-                        <!-- Los checkboxes se generarán dinámicamente aquí -->
+                    <div class="mb-4">
+                        <label class="block text-sm font-bold text-gray-800 mb-2">
+                            <i class="fas fa-clipboard-check text-blue-600 mr-2"></i>
+                            Seleccione los componentes revisados
+                        </label>
+                        @if($alreadyReviewedCount > 0)
+                            <div class="bg-blue-100 border border-blue-400 rounded-lg p-3 mb-3">
+                                <p class="text-sm text-blue-800">
+                                    <i class="fas fa-info-circle mr-2"></i>
+                                    <strong>Ya revisados en este lado y nivel:</strong> {{ $alreadyReviewedCount }} de {{ $totalPiezas }} piezas
+                                </p>
+                                @if(!empty($alreadyReviewedComponents))
+                                    <div class="mt-2 flex flex-wrap gap-1">
+                                        @foreach($alreadyReviewedComponents as $compNum)
+                                            <span class="inline-flex items-center px-2 py-0.5 bg-blue-200 text-blue-800 rounded text-xs">
+                                                #{{ $compNum }}
+                                            </span>
+                                        @endforeach
+                                    </div>
+                                @endif
+                                <p class="text-sm text-blue-800 mt-2">
+                                    <strong>Pendientes en este lado y nivel:</strong> {{ $remainingPiezas }} piezas
+                                </p>
+                            </div>
+                        @endif
                     </div>
-                    <input type="hidden" name="componentes_revisados" id="componentes_revisados_input" value="">
+                    
+                    <div id="componentes-checklist" class="grid grid-cols-2 md:grid-cols-3 gap-3">
+                        @php
+                            $todosLosNumeros = range(1, $totalPiezas);
+                        @endphp
+                        
+                        @if($totalPiezas > 0)
+                            @foreach($todosLosNumeros as $numero)
+                                @php
+                                    $yaRevisado = in_array($numero, $alreadyReviewedComponents);
+                                @endphp
+                                <label class="flex items-center gap-3 p-3 bg-white rounded-lg border {{ $yaRevisado ? 'border-gray-200 bg-gray-50 opacity-60' : 'border-gray-200 hover:border-blue-400 hover:shadow-md' }} transition cursor-pointer">
+                                    <input type="checkbox" 
+                                           data-component-value="{{ $numero }}" 
+                                           class="w-5 h-5 text-blue-600 rounded cursor-pointer focus:ring-blue-500 componente-checkbox"
+                                           onchange="actualizarComponentesRevisados()"
+                                           {{ $yaRevisado ? 'disabled checked' : '' }}>
+                                    <span class="flex-1 {{ $yaRevisado ? 'text-gray-400 line-through' : 'text-gray-700 font-medium' }}">
+                                        <i class="fas fa-cube text-blue-500 mr-2"></i>
+                                        {{ $nombreComponente ?? $componente }} #{{ $numero }}
+                                        @if($yaRevisado)
+                                            <span class="ml-2 text-xs text-green-600">(Ya revisado)</span>
+                                        @endif
+                                    </span>
+                                </label>
+                            @endforeach
+                        @else
+                            <div class="col-span-full text-center py-8 bg-yellow-50 rounded-lg border border-yellow-200">
+                                <i class="fas fa-exclamation-triangle text-yellow-500 text-3xl mb-2"></i>
+                                <p class="text-yellow-700 font-medium">No se encontraron piezas para este componente</p>
+                            </div>
+                        @endif
+                    </div>
+                    
+                    <input type="hidden" name="componentes_revisados" id="componentes_revisados_input" value="{{ json_encode(old('componentes_revisados', [])) }}">
+                    
+                    {{-- Mensaje de lados pendientes --}}
+                    @if(isset($ladosPendientes) && count($ladosPendientes) > 0 && $lado)
+                        <div class="mt-4 p-3 bg-yellow-100 border border-yellow-400 rounded-lg">
+                            <p class="text-sm text-yellow-800">
+                                <i class="fas fa-info-circle mr-2"></i>
+                                <strong>Lados pendientes por revisar:</strong>
+                                @foreach($ladosPendientes as $lp)
+                                    <span class="inline-flex items-center ml-2 px-2 py-1 rounded text-xs {{ $lp === 'VAPOR' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700' }}">
+                                        <i class="fas {{ $lp === 'VAPOR' ? 'fa-wind' : 'fa-walking' }} mr-1"></i>
+                                        {{ $lp === 'VAPOR' ? 'Vapor' : 'Pasillo' }}
+                                    </span>
+                                @endforeach
+                                @if($lado && in_array($lado, $ladosPendientes))
+                                    <span class="ml-2 text-xs">(Actual: {{ $lado === 'VAPOR' ? 'Vapor' : 'Pasillo' }})</span>
+                                @endif
+                            </p>
+                        </div>
+                    @endif
                 </div>
                 <p class="text-sm text-gray-600 mt-2">
                     <i class="fas fa-info-circle text-blue-500 mr-1"></i>
@@ -161,7 +300,7 @@
                        name="numero_orden" 
                        value="{{ old('numero_orden') }}"
                        required
-                       maxlength="8"
+                       maxlength="50"
                        placeholder="Ej: OT-2024-001"
                        class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500 shadow-sm
                        @error('numero_orden') border-red-500 @enderror">
@@ -206,7 +345,6 @@
                 @enderror
             </div>
                 
-            
             {{-- Evidencia Fotográfica --}}
             <div>
                 <label class="block text-sm font-semibold text-gray-700 mb-2">
@@ -244,130 +382,22 @@
 </div>
 
 <script>
+function actualizarComponentesRevisados() {
+    const checkboxes = document.querySelectorAll('input.componente-checkbox:checked:not(:disabled)');
+    const valores = Array.from(checkboxes).map(cb => parseInt(cb.getAttribute('data-component-value')));
+    const json = JSON.stringify(valores);
+    
+    const input = document.getElementById('componentes_revisados_input');
+    if (input) {
+        input.value = json;
+    }
+    
+    console.log('Componentes seleccionados:', valores);
+    console.log('JSON a enviar:', json);
+}
+
+// Preview de imágenes
 document.addEventListener('DOMContentLoaded', function() {
-    // ============================================================
-    // CHECKLIST DINÁMICO DE COMPONENTES
-    // ============================================================
-    
-    const checklist_container = document.getElementById('checklist-container');
-    const componentes_checklist = document.getElementById('componentes-checklist');
-    const componentes_revisados_input = document.getElementById('componentes_revisados_input');
-    
-    // Obtener el componente actual de la URL o del campo hidden
-    const componenteActual = '{{ $componente ?? '' }}';
-    const lineaNombre = '{{ $linea->nombre ?? '' }}';
-    const totalPiezasBackend = {{ $totalPiezas ?? 0 }};
-    
-    console.log('Componente actual:', componenteActual);
-    console.log('Línea:', lineaNombre);
-    console.log('Total piezas (backend):', totalPiezasBackend);
-    
-    // Configuración de componentes con sus cantidades
-    const componentesConfig = {
-        @php
-            $linea = $linea ?? null;
-            if ($linea) {
-                $componentes = \App\Models\AnalisisPasteurizadora::getComponentesPorLinea($linea->nombre);
-                foreach ($componentes as $codigo => $comp) {
-                    $codigoLimpio = addslashes($codigo);
-                    echo "'{$codigoLimpio}': " . $comp['cantidad'] . ",\n";
-                }
-            }
-        @endphp
-    };
-    
-    console.log('Configuración de componentes:', componentesConfig);
-    
-    function generarChecklist() {
-        // Limpiar el componente actual
-        const componenteKey = componenteActual.trim().toUpperCase();
-        
-        // Buscar la cantidad
-        let cantidad = totalPiezasBackend;
-        
-        // Si no hay cantidad del backend, buscar en el mapa
-        if (cantidad === 0) {
-            if (componentesConfig[componenteKey] !== undefined) {
-                cantidad = componentesConfig[componenteKey];
-            } else {
-                for (const [key, value] of Object.entries(componentesConfig)) {
-                    if (key.toUpperCase() === componenteKey) {
-                        cantidad = value;
-                        break;
-                    }
-                }
-            }
-        }
-        
-        console.log('Cantidad encontrada para', componenteKey, ':', cantidad);
-        
-        if (cantidad > 0) {
-            checklist_container.classList.remove('hidden');
-            componentes_checklist.innerHTML = '';
-            
-            // Obtener el nombre del componente
-            let componenteNombre = '{{ $nombreComponente ?? $componente ?? "Componente" }}';
-            
-            for (let i = 1; i <= cantidad; i++) {
-                const id = `componente_${i}`;
-                const label = document.createElement('label');
-                label.className = 'flex items-center gap-3 p-3 bg-white rounded-lg border border-gray-200 hover:border-blue-400 hover:shadow-md transition cursor-pointer';
-                label.innerHTML = `
-                    <input type="checkbox" 
-                           data-component-value="${i}" 
-                           id="${id}"
-                           class="w-5 h-5 text-blue-600 rounded cursor-pointer focus:ring-blue-500 componente-checkbox"
-                           onchange="window.actualizarComponentesRevisados()">
-                    <span class="flex-1 text-gray-700 font-medium">
-                        <i class="fas fa-cube text-blue-500 mr-2"></i>
-                        ${componenteNombre} #${i}
-                    </span>
-                `;
-                componentes_checklist.appendChild(label);
-            }
-            
-            actualizarComponentesRevisados();
-        } else {
-            checklist_container.classList.add('hidden');
-            componentes_checklist.innerHTML = '';
-            console.warn('No se encontró cantidad para el componente:', componenteActual);
-        }
-    }
-    
-    function actualizarComponentesRevisados() {
-        const checkboxes = document.querySelectorAll('input.componente-checkbox:checked');
-        const valores = Array.from(checkboxes).map(cb => parseInt(cb.getAttribute('data-component-value')));
-        const json = JSON.stringify(valores);
-        
-        if (componentes_revisados_input) {
-            componentes_revisados_input.value = json;
-        }
-        
-        console.log('Componentes seleccionados:', valores);
-        console.log('JSON a enviar:', json);
-        
-        const debugElement = document.getElementById('debug-json');
-        const jsonValueElement = document.getElementById('json-value');
-        if (valores.length > 0) {
-            if (debugElement) debugElement.classList.remove('hidden');
-            if (jsonValueElement) jsonValueElement.textContent = json;
-        } else {
-            if (debugElement) debugElement.classList.add('hidden');
-        }
-    }
-    
-    window.actualizarComponentesRevisados = actualizarComponentesRevisados;
-    
-    if (componenteActual) {
-        generarChecklist();
-    } else {
-        console.warn('No hay componente definido');
-    }
-    
-    // ============================================================
-    // PREVIEW DE IMÁGENES
-    // ============================================================
-    
     const inputFotos = document.querySelector('input[name="evidencia_fotos[]"]');
     const previewFotos = document.getElementById('preview_fotos');
     
@@ -420,33 +450,26 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // ============================================================
-    // VALIDACIÓN DEL FORMULARIO
-    // ============================================================
+    // Inicializar el input con los valores seleccionados
+    actualizarComponentesRevisados();
     
+    // Validación del formulario
     document.getElementById('analisisForm').addEventListener('submit', function(e) {
         const lado = document.getElementById('lado');
-        if (lado && !lado.value) {
+        if (!lado.value) {
             e.preventDefault();
             alert('Debe seleccionar el lado del análisis (Vapor o Pasillo).');
             lado.focus();
             return;
         }
         
-        if (checklist_container && !checklist_container.classList.contains('hidden')) {
-            const checkboxes = document.querySelectorAll('input.componente-checkbox:checked');
-            if (checkboxes.length === 0) {
+        const checkboxes = document.querySelectorAll('input.componente-checkbox:checked:not(:disabled)');
+        if (checkboxes.length === 0) {
+            // Verificar si hay piezas disponibles para revisar
+            const hayPiezasDisponibles = document.querySelectorAll('input.componente-checkbox:not(:disabled)').length > 0;
+            if (hayPiezasDisponibles) {
                 e.preventDefault();
                 alert('Debe seleccionar al menos un componente revisado.');
-                return;
-            }
-            
-            const jsonValue = componentes_revisados_input ? componentes_revisados_input.value : '';
-            console.log('Enviando componentes_revisados:', jsonValue);
-            
-            if (!jsonValue || jsonValue === '[]') {
-                e.preventDefault();
-                alert('Error: No se pudieron guardar los componentes seleccionados.');
                 return;
             }
         }

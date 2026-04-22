@@ -103,6 +103,7 @@ class AnalisisPasteurizadora extends Model
     ];
 
     const LADOS = ['VAPOR', 'PASILLO'];
+    const NIVELES = ['SUPERIOR', 'INFERIOR'];
     const ESTADOS = ['Buen estado', 'Desgaste moderado', 'Desgaste severo', 'Dañado - Requiere cambio', 'Cambiado'];
 
     // ============================================================
@@ -125,11 +126,223 @@ class AnalisisPasteurizadora extends Model
         return self::PASTEURIZADORES[$lineaNombre]['modulos'] ?? 0;
     }
 
+    public static function resolveComponentePorLinea($lineaNombre, $componente)
+    {
+        if (!$lineaNombre || !$componente) {
+            return null;
+        }
+
+        $componentes = self::getComponentesPorLinea($lineaNombre);
+        $componenteKey = strtoupper($componente);
+
+        if (isset($componentes[$componenteKey])) {
+            return [
+                'key' => $componenteKey,
+                'config' => $componentes[$componenteKey],
+            ];
+        }
+
+        foreach ($componentes as $key => $config) {
+            if (strtoupper($key) === $componenteKey) {
+                return [
+                    'key' => $key,
+                    'config' => $config,
+                ];
+            }
+        }
+
+        return null;
+    }
+
     public function getTotalPiezasPorComponente()
     {
         $lineaNombre = $this->linea ? $this->linea->nombre : null;
         $componentes = self::getComponentesPorLinea($lineaNombre);
         return $componentes[$this->componente]['cantidad'] ?? 0;
+    }
+
+    // ============================================================
+    // MÉTODOS PARA CONTEO POR LADO Y NIVEL
+    // ============================================================
+    
+    public static function getAlreadyReviewedCount($lineaId, $modulo, $componente, $lado = null, $nivel = null)
+    {
+        $query = self::where('linea_id', $lineaId)
+            ->where('modulo', $modulo)
+            ->where('componente', $componente);
+        
+        if ($lado) {
+            $query->where('lado', $lado);
+        }
+        
+        if ($nivel) {
+            $query->where('nivel', $nivel);
+        }
+        
+        return $query->sum('revisadas_piezas') ?? 0;
+    }
+
+    public static function getRemainingCount($lineaId, $modulo, $componente, $lado = null, $nivel = null)
+    {
+        $linea = \App\Models\Linea::find($lineaId);
+        if (!$linea) {
+            return 0;
+        }
+
+        $componentes = self::getComponentesPorLinea($linea->nombre);
+        $total = $componentes[$componente]['cantidad'] ?? 0;
+        $alreadyReviewed = self::getAlreadyReviewedCount($lineaId, $modulo, $componente, $lado, $nivel);
+
+        return max(0, $total - $alreadyReviewed);
+    }
+
+    public static function getAlreadyReviewedComponents($lineaId, $modulo, $componente, $lado = null, $nivel = null)
+    {
+        $query = self::where('linea_id', $lineaId)
+            ->where('modulo', $modulo)
+            ->where('componente', $componente);
+        
+        if ($lado) {
+            $query->where('lado', $lado);
+        }
+        
+        if ($nivel) {
+            $query->where('nivel', $nivel);
+        }
+        
+        $registros = $query->get();
+        $componentesRevisados = [];
+        
+        foreach ($registros as $registro) {
+            if ($registro->componentes_revisados && is_array($registro->componentes_revisados)) {
+                $componentesRevisados = array_merge($componentesRevisados, $registro->componentes_revisados);
+            }
+        }
+        
+        return array_unique($componentesRevisados);
+    }
+
+    public static function getLadosPendientes($lineaId, $modulo, $componente, $nivel = null)
+    {
+        $ladosPendientes = [];
+        
+        foreach (self::LADOS as $lado) {
+            $remaining = self::getRemainingCount($lineaId, $modulo, $componente, $lado, $nivel);
+            if ($remaining > 0) {
+                $ladosPendientes[] = $lado;
+            }
+        }
+        
+        return $ladosPendientes;
+    }
+
+    // ============================================================
+    // MÉTODOS PARA GESTIÓN DE LADOS Y NIVELES
+    // ============================================================
+    
+    /**
+     * Obtiene el siguiente lado a revisar para un nivel específico
+     * @return string|null El siguiente lado (VAPOR o PASILLO) o null si ambos están completos
+     */
+    public static function getSiguienteLado($lineaId, $modulo, $componente, $ladoActual = null, $nivel = null)
+    {
+        $ladosPendientes = self::getLadosPendientes($lineaId, $modulo, $componente, $nivel);
+        
+        if (empty($ladosPendientes)) {
+            return null; // Ambos lados están completos para este nivel
+        }
+        
+        if (!$ladoActual) {
+            return reset($ladosPendientes); // Retorna el primer lado pendiente
+        }
+        
+        // Si el lado actual es VAPOR, intenta PASILLO
+        if ($ladoActual === 'VAPOR') {
+            return in_array('PASILLO', $ladosPendientes) ? 'PASILLO' : null;
+        }
+        
+        // Si el lado actual es PASILLO, intenta VAPOR
+        if ($ladoActual === 'PASILLO') {
+            return in_array('VAPOR', $ladosPendientes) ? 'VAPOR' : null;
+        }
+        
+        return null;
+    }
+
+    public static function getSiguienteRevisionContexto($lineaId, $modulo, $componente, $nivelActual = null, $ladoActual = null)
+    {
+        $niveles = self::NIVELES;
+
+        if ($nivelActual && in_array($nivelActual, $niveles, true)) {
+            $siguienteLado = self::getSiguienteLado($lineaId, $modulo, $componente, $ladoActual, $nivelActual);
+
+            if ($siguienteLado) {
+                return [
+                    'nivel' => $nivelActual,
+                    'lado' => $siguienteLado,
+                ];
+            }
+
+            $indiceActual = array_search($nivelActual, $niveles, true);
+            if ($indiceActual !== false) {
+                $niveles = array_slice($niveles, $indiceActual + 1);
+            }
+        }
+
+        foreach ($niveles as $nivel) {
+            $ladosPendientes = self::getLadosPendientes($lineaId, $modulo, $componente, $nivel);
+
+            if (!empty($ladosPendientes)) {
+                return [
+                    'nivel' => $nivel,
+                    'lado' => reset($ladosPendientes),
+                ];
+            }
+        }
+
+        return null;
+    }
+    
+    /**
+     * Obtiene el siguiente nivel a revisar
+     * @return string|null El siguiente nivel (SUPERIOR o INFERIOR) o null si ambos están completos
+     */
+    public static function getSiguienteNivel($lineaId, $modulo, $componente, $nivelActual = null)
+    {
+        $siguiente = self::getSiguienteRevisionContexto($lineaId, $modulo, $componente, $nivelActual);
+
+        if (!$siguiente) {
+            return null;
+        }
+
+        return $siguiente['nivel'] !== $nivelActual ? $siguiente['nivel'] : null;
+    }
+    
+    /**
+     * Verifica si un nivel está completamente revisado
+     */
+    public static function nivelCompletado($lineaId, $modulo, $componente, $nivel)
+    {
+        $ladosPendientes = self::getLadosPendientes($lineaId, $modulo, $componente, $nivel);
+        return empty($ladosPendientes);
+    }
+    
+    /**
+     * Obtiene información del estado de revisión de lados y niveles
+     */
+    public static function getEstadoRevision($lineaId, $modulo, $componente, $nivel = null)
+    {
+        $niveles = self::NIVELES;
+        $estado = [];
+        
+        foreach ($niveles as $niv) {
+            $estado[$niv] = [
+                'completado' => self::nivelCompletado($lineaId, $modulo, $componente, $niv),
+                'lados_pendientes' => self::getLadosPendientes($lineaId, $modulo, $componente, $niv)
+            ];
+        }
+        
+        return $estado;
     }
 
     // ============================================================
@@ -168,6 +381,16 @@ class AnalisisPasteurizadora extends Model
     public function scopePorComponente($query, $componente)
     {
         return $query->where('componente', $componente);
+    }
+
+    public function scopePorLado($query, $lado)
+    {
+        return $query->where('lado', $lado);
+    }
+
+    public function scopePorNivel($query, $nivel)
+    {
+        return $query->where('nivel', $nivel);
     }
 
     public function scopeEntreFechas($query, $inicio, $fin)
@@ -267,11 +490,10 @@ class AnalisisPasteurizadora extends Model
         };
     }
 
-   public function getPorcentajeAvanceAttribute()
+    public function getPorcentajeAvanceAttribute()
     {
         $total = $this->total_piezas ?? 0;
         
-        // Priorizar componentes_revisados sobre revisadas_piezas
         if ($this->componentes_revisados && is_array($this->componentes_revisados)) {
             $revisadas = count($this->componentes_revisados);
         } else {
@@ -365,23 +587,19 @@ class AnalisisPasteurizadora extends Model
     {
         static::created(function ($analisis) {
             \Log::info("Nuevo análisis creado ID: {$analisis->id}");
-
-            // Disparar evento para actualizar histórico de revisados
             event(new \App\Events\AnalisisPasteurizadoraCreado($analisis));
         });
 
         static::updated(function ($analisis) {
             \Log::info("Análisis actualizado ID: {$analisis->id}");
-
-            // Disparar evento para actualizar histórico de revisados
             event(new \App\Events\AnalisisPasteurizadoraCreado($analisis));
         });
     }
+
     public function setComponentesRevisadosAttribute($value)
     {
         $this->attributes['componentes_revisados'] = is_array($value) ? json_encode($value) : $value;
         
-        // Actualizar automáticamente revisadas_piezas
         if (is_array($value)) {
             $this->attributes['revisadas_piezas'] = count($value);
         } elseif (is_string($value) && $value !== null) {
