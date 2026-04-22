@@ -263,14 +263,53 @@
                     </div>
                     @endauth
 
-                    <span class="text-sm text-gray-600">
-                        {{ auth()->check() ? auth()->user()->name : 'Invitado' }}
-                    </span>
+                    @auth
+                        <div class="relative" x-data="{ profileMenuOpen: false }" @click.away="profileMenuOpen = false">
+                            <button type="button"
+                                    @click="profileMenuOpen = !profileMenuOpen"
+                                    aria-label="Perfil de usuario"
+                                    class="inline-flex items-center gap-3 rounded-full bg-gray-100 px-3 py-2 hover:bg-gray-200 transition">
+                                <div class="hidden sm:block text-right leading-tight">
+                                    <p class="text-sm font-semibold text-gray-700">{{ auth()->user()->name }}</p>
+                                    <p class="text-xs text-gray-500">Perfil de usuario</p>
+                                </div>
+                                <span class="flex h-10 w-10 items-center justify-center rounded-full bg-blue-600 text-white shadow-sm">
+                                    <i class="fas fa-user text-sm"></i>
+                                </span>
+                                <i class="fas fa-chevron-down text-xs text-gray-500"></i>
+                            </button>
 
-                    <button aria-label="Perfil de usuario"
-                            class="p-2 rounded-full bg-gray-100 hover:bg-gray-200 transition">
-                        <i class="fas fa-user text-gray-600"></i>
-                    </button>
+                            <div x-show="profileMenuOpen"
+                                 x-transition:enter="transition ease-out duration-100"
+                                 x-transition:enter-start="transform opacity-0 scale-95"
+                                 x-transition:enter-end="transform opacity-100 scale-100"
+                                 x-transition:leave="transition ease-in duration-75"
+                                 x-transition:leave-start="transform opacity-100 scale-100"
+                                 x-transition:leave-end="transform opacity-0 scale-95"
+                                 class="absolute right-0 mt-2 w-52 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg z-50"
+                                 style="display: none;">
+                                <a href="{{ route('profile.edit') }}"
+                                   class="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50">
+                                    <i class="fas fa-user-circle text-blue-600"></i>
+                                    Ver perfil
+                                </a>
+
+                                <form method="POST" action="{{ route('logout') }}">
+                                    @csrf
+                                    <button type="submit"
+                                            class="flex w-full items-center gap-3 border-t border-gray-100 px-4 py-3 text-left text-sm text-red-600 hover:bg-red-50">
+                                        <i class="fas fa-right-from-bracket"></i>
+                                        Cerrar sesion
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    @else
+                        <a href="{{ route('welcome') }}"
+                           class="inline-flex items-center rounded-full bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200 transition">
+                            Inicio
+                        </a>
+                    @endauth
                 </div>
             </div>
         </header>

@@ -14,6 +14,7 @@ use App\Http\Controllers\ApiController;
 use App\Http\Controllers\AnalisisTendenciaMensualLavadoraController;
 use App\Http\Controllers\HistoricoRevisadosController;
 use App\Http\Controllers\NotificationSettingsController;
+use App\Http\Controllers\ProfileController;
 
 /*
 |--------------------------------------------------------------------------
@@ -21,8 +22,8 @@ use App\Http\Controllers\NotificationSettingsController;
 |--------------------------------------------------------------------------
 */
 Route::get('/', function () {
-    return redirect()->route('dashboard');
-});
+    return view('welcome');
+})->name('welcome');
 
 /*
 |--------------------------------------------------------------------------
@@ -38,6 +39,15 @@ Route::middleware(['auth'])->group(function () {
     */
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/lavadora/dashboard', [DashboardController::class, 'lavadora'])->name('lavadora.dashboard');
+    
+    /*
+    |--------------------------------------------------------------------------
+    | Perfil de usuario
+    |--------------------------------------------------------------------------
+    */
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
     
     /*
     |--------------------------------------------------------------------------
@@ -443,6 +453,8 @@ Route::prefix('analisis-tendencia-mensual/pasteurizadora')
          ->name('notifications.read');
     Route::post('/notifications/read-all', [App\Http\Controllers\NotificationController::class, 'markAllAsRead'])
          ->name('notifications.read-all');
+    Route::get('/notifications/unread-count', [App\Http\Controllers\NotificationController::class, 'unreadCount'])
+         ->name('notifications.unread-count');
 });
 
 /*
