@@ -383,8 +383,8 @@ class DashboardController extends Controller
             $items[] = [
                 'type' => 'alert',
                 'title' => 'Desgaste detectado',
-                'subtitle' => "{$analisisDesgaste} elementos con desgaste",
-                'description' => 'Existen componentes con signos de desgaste que deben revisarse pronto.',
+                'subtitle' => "{$analisisDesgaste} elementos con desgaste o alguna anomalia",
+                'description' => 'Existen componentes con signos de desgaste o anomalias que deben revisarse pronto.',
                 'icon' => 'fa-cog',
             ];
         }
