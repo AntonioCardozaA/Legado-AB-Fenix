@@ -160,8 +160,6 @@ public function index(Request $request)
     ]);
 }
 
-
-
     /**
      * Obtener componentes organizados por línea para la tabla.
      */
@@ -556,7 +554,7 @@ $componente = Componente::firstOrCreate(
                 . "📝 Actividad: {$request->actividad}\n";
 
             // Número en formato internacional (México: 521...)
-            $numero = "5214981096696"; // tu número o grupo
+            $numero = "5214981096696"; // numero
 
             try {
                 WhatsAppService::enviarMensaje($numero, $mensaje);
@@ -844,28 +842,28 @@ public function update(Request $request, $id)
         return back()->with('error', 'Foto no encontrada.');
     }
         public function historial(Request $request)
-{
-    $request->validate([
-        'linea_id' => 'required|exists:lineas,id',
-        'componente_id' => 'required|string',
-        'reductor' => 'required|string',
-    ]);
+    {
+        $request->validate([
+            'linea_id' => 'required|exists:lineas,id',
+            'componente_id' => 'required|string',
+            'reductor' => 'required|string',
+        ]);
 
-    // Construir la consulta
-    $query = AnalisisLavadora::with(['linea', 'componente'])
-        ->where('linea_id', $request->linea_id)
-        ->where('reductor', $request->reductor)
-        ->whereHas('componente', function ($q) use ($request) {
-            $q->where('codigo', 'like', '%_' . $request->componente_id);
-        })
-        ->orderByDesc('fecha_analisis')
-        ->orderByDesc('created_at');
+        // Construir la consulta
+        $query = AnalisisLavadora::with(['linea', 'componente'])
+            ->where('linea_id', $request->linea_id)
+            ->where('reductor', $request->reductor)
+            ->whereHas('componente', function ($q) use ($request) {
+                $q->where('codigo', 'like', '%_' . $request->componente_id);
+            })
+            ->orderByDesc('fecha_analisis')
+            ->orderByDesc('created_at');
 
-    // Paginar los resultados (10 por página)
-    $analisis = $query->paginate(10)->withQueryString();
+        // Paginar los resultados (10 por página)
+        $analisis = $query->paginate(10)->withQueryString();
 
-    return view('lavadora/analisis-lavadora.historial', compact('analisis'));
-}
+        return view('lavadora/analisis-lavadora.historial', compact('analisis'));
+    }
 public function analisis52124 (Request $request)
 {
     $analisis = AnalisisLavadora::with(['linea', 'componente'])
@@ -1118,7 +1116,6 @@ public function getEstadisticasProgreso(Request $request)
                 }
             }
         }
-        
         $porcentajeProgreso = $totalCeldas > 0 ? round(($celdasConDatos / $totalCeldas) * 100, 1) : 0;
         
         $estadisticas[$linea->nombre] = [

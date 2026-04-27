@@ -93,8 +93,8 @@
     {{-- Header con navegación --}}
     <div class="mb-6">
         <div class="flex items-center gap-3 mb-4">
-            <a href="{{ route('pasteurizadora.analisis-pasteurizadora.index') }}" 
-               class="inline-flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 
+            <a href="{{ route('pasteurizadora.analisis-pasteurizadora.index') }}"
+               class="inline-flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900
                       bg-gray-100 hover:bg-gray-200 rounded-lg transition">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
@@ -115,7 +115,7 @@
             <div class="flex justify-between items-start flex-wrap gap-4">
                 <div>
                     <div class="flex items-center gap-3 mb-2">
-                        <img src="{{ asset('images/icono-pasteurizadora.png') }}" 
+                        <img src="{{ asset('images/icono-pasteurizadora.png') }}"
                              class="w-8 h-8 object-contain filter brightness-0 invert">
                         <h1 class="text-2xl font-bold">Detalle del Análisis</h1>
                     </div>
@@ -188,10 +188,10 @@
                         {{ $analisis->estado }}
                     </span>
                 </div>
-                @if($analisis->total_piezas)
+                @if($analisis->total_componentes)
                 <div class="flex-1 max-w-xs">
                     <div class="text-sm text-gray-500 mb-1">
-                        Progreso de revisión: {{ $analisis->revisadas_piezas ?? 0 }} / {{ $analisis->total_piezas }} piezas
+                        Progreso de revisión: {{ $analisis->cantidad_componentes_revisados ?? 0 }} / {{ $analisis->total_componentes }} componentes
                     </div>
                     <div class="progress-container">
                         <div class="progress-bar bg-blue-600" style="width: {{ $porcentaje }}%"></div>
@@ -205,8 +205,14 @@
         {{-- Componentes revisados --}}
 @php
     // Validar que sea un array no vacío
-    $componentesRevisados = is_array($analisis->componentes_revisados) ? 
-        array_filter(array_map('intval', $analisis->componentes_revisados)) : [];
+    $componentesRevisados = \App\Models\AnalisisPasteurizadora::normalizarComponentesRevisados(
+        $analisis->componentes_revisados,
+        $analisis->total_componentes
+    );
+
+    if (empty($componentesRevisados) && $analisis->cantidad_componentes_revisados) {
+        $componentesRevisados = range(1, min($analisis->cantidad_componentes_revisados, $analisis->total_componentes));
+    }
     @endphp
     @if(!empty($componentesRevisados))
     <div class="px-6 pb-4">
@@ -217,7 +223,7 @@
                 </div>
                 <h4 class="text-sm font-semibold text-indigo-800 uppercase tracking-wider">Componentes revisados</h4>
                 <span class="ml-2 px-2 py-0.5 bg-indigo-200 text-indigo-800 text-xs rounded-full font-medium">
-                    {{ count($componentesRevisados) }} de {{ $analisis->total_piezas }}
+                    {{ count($componentesRevisados) }} de {{ $analisis->total_componentes }}
                 </span>
             </div>
             <div class="grid grid-cols-2 md:grid-cols-4 gap-2 mt-3">
@@ -303,7 +309,7 @@
                         <h3 class="font-semibold text-gray-800">Evidencia Fotográfica</h3>
                         <span class="text-xs text-gray-500">{{ count($analisis->evidencia_fotos) }} imágenes</span>
                     </div>
-                    <button onclick="descargarTodasImagenes()" 
+                    <button onclick="descargarTodasImagenes()"
                             class="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 transition">
                         <i class="fas fa-download"></i> Descargar todas
                     </button>
@@ -312,8 +318,8 @@
             <div class="image-gallery" id="imageGallery">
                 @foreach($analisis->evidencia_fotos as $index => $foto)
                 <div class="gallery-item" onclick="abrirImagen('{{ Storage::url($foto) }}', {{ $index }})">
-                    <img src="{{ Storage::url($foto) }}" 
-                         alt="Evidencia {{ $index + 1 }}" 
+                    <img src="{{ Storage::url($foto) }}"
+                         alt="Evidencia {{ $index + 1 }}"
                          class="gallery-img">
                     <div class="absolute bottom-2 right-2 bg-black/70 text-white text-xs w-6 h-6 rounded-full flex items-center justify-center">
                         {{ $index + 1 }}
@@ -452,7 +458,7 @@
 {{-- Modal para ver imágenes ampliadas --}}
 <div id="imageModal" class="fixed inset-0 bg-black/90 hidden items-center justify-center z-50 p-4" onclick="cerrarModalImagen()">
     <div class="relative max-w-5xl w-full">
-        <button onclick="cerrarModalImagen()" 
+        <button onclick="cerrarModalImagen()"
                 class="absolute -top-12 right-0 text-white hover:text-gray-300 text-2xl">
             <i class="fas fa-times"></i>
         </button>
@@ -460,11 +466,11 @@
         <div class="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black/70 text-white px-4 py-2 rounded-full text-sm">
             <span id="currentImageIndex">1</span> / <span id="totalImages">1</span>
         </div>
-        <button onclick="navegarImagen(-1)" id="prevBtn" 
+        <button onclick="navegarImagen(-1)" id="prevBtn"
                 class="absolute left-4 top-1/2 transform -translate-y-1/2 bg-black/50 text-white w-10 h-10 rounded-full hover:bg-black/70 hidden">
             <i class="fas fa-chevron-left"></i>
         </button>
-        <button onclick="navegarImagen(1)" id="nextBtn" 
+        <button onclick="navegarImagen(1)" id="nextBtn"
                 class="absolute right-4 top-1/2 transform -translate-y-1/2 bg-black/50 text-white w-10 h-10 rounded-full hover:bg-black/70 hidden">
             <i class="fas fa-chevron-right"></i>
         </button>
@@ -480,7 +486,7 @@
     let imagenes = @json($analisis->evidencia_fotos ?? []);
     let imagenesUrls = imagenes.map(img => '{{ Storage::url('') }}' + img);
     let currentImgIndex = 0;
-    
+
     function abrirImagen(url, index) {
         currentImgIndex = index;
         const modal = document.getElementById('imageModal');
@@ -489,11 +495,11 @@
         const nextBtn = document.getElementById('nextBtn');
         const currentSpan = document.getElementById('currentImageIndex');
         const totalSpan = document.getElementById('totalImages');
-        
+
         modalImg.src = url;
         currentSpan.textContent = index + 1;
         totalSpan.textContent = imagenesUrls.length;
-        
+
         if (imagenesUrls.length > 1) {
             prevBtn.classList.remove('hidden');
             nextBtn.classList.remove('hidden');
@@ -501,35 +507,35 @@
             prevBtn.classList.add('hidden');
             nextBtn.classList.add('hidden');
         }
-        
+
         modal.classList.remove('hidden');
         modal.classList.add('flex');
         document.body.style.overflow = 'hidden';
     }
-    
+
     function cerrarModalImagen() {
         const modal = document.getElementById('imageModal');
         modal.classList.add('hidden');
         modal.classList.remove('flex');
         document.body.style.overflow = '';
     }
-    
+
     function navegarImagen(direccion) {
         let nuevoIndex = currentImgIndex + direccion;
         if (nuevoIndex < 0) nuevoIndex = imagenesUrls.length - 1;
         if (nuevoIndex >= imagenesUrls.length) nuevoIndex = 0;
         currentImgIndex = nuevoIndex;
-        
+
         const modalImg = document.getElementById('modalImage');
         const currentSpan = document.getElementById('currentImageIndex');
-        
+
         modalImg.src = imagenesUrls[currentImgIndex];
         currentSpan.textContent = currentImgIndex + 1;
     }
-    
+
     function descargarTodasImagenes() {
         if (imagenesUrls.length === 0) return;
-        
+
         imagenesUrls.forEach((url, index) => {
             const link = document.createElement('a');
             link.href = url;
@@ -537,13 +543,13 @@
             setTimeout(() => link.click(), index * 200);
         });
     }
-    
+
     function confirmDelete() {
         if (confirm('¿Está seguro de eliminar este análisis? Esta acción no se puede deshacer.')) {
             document.getElementById('deleteForm').submit();
         }
     }
-    
+
     document.addEventListener('keydown', function(e) {
         const modal = document.getElementById('imageModal');
         if (modal.classList.contains('flex')) {

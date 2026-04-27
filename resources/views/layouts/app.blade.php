@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LEGADO AVE FÉNIX - Sistema de Gestión</title>
 
-    <link rel="icon" type="image/png" href="{{ asset('images/logo..png') }}">
+    <link rel="icon" type="image/png" href="{{ asset('images/logoo.png') }}">
 
     <!-- Tailwind -->
     <script src="https://cdn.tailwindcss.com"></script>

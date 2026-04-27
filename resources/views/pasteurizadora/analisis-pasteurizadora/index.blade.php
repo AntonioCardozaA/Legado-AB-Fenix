@@ -29,18 +29,18 @@
             Nuevo Análisis
         </a>
     </div>
-    
+
     {{-- FILTROS --}}
     @php
         $lineasFiltradas = $lineasFiltradas ?? collect();
         $mostrarTodas = $mostrarTodas ?? true;
         $analisisCollection = isset($analisis) ? collect($analisis) : collect([]);
     @endphp
-    
+
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 mb-6">
         <div class="flex flex-wrap items-center justify-between gap-4">
             <div class="flex flex-wrap gap-2">
-                <a href="{{ route('pasteurizadora.analisis-pasteurizadora.index', ['linea_id' => 'todas']) }}" 
+                <a href="{{ route('pasteurizadora.analisis-pasteurizadora.index', ['linea_id' => 'todas']) }}"
                    class="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 {{ $mostrarTodas ? 'bg-blue-600 text-white shadow-md' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
@@ -48,13 +48,13 @@
                     Todas
                 </a>
                 @foreach($lineasFiltradas as $l)
-                    <a href="{{ route('pasteurizadora.analisis-pasteurizadora.index', ['linea_id' => $l->id]) }}" 
+                    <a href="{{ route('pasteurizadora.analisis-pasteurizadora.index', ['linea_id' => $l->id]) }}"
                        class="inline-flex items-center gap-4 px-9 py-4 rounded-full text-sm font-medium transition-all duration-200 {{ (!$mostrarTodas && request('linea_id') == $l->id) ? 'bg-blue-600 text-white shadow-md' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">
                         {{ $l->nombre }}
                     </a>
                 @endforeach
             </div>
-            
+
             <div class="flex gap-2">
                 <form method="GET" action="{{ route('pasteurizadora.analisis-pasteurizadora.index') }}" class="flex gap-2">
                     <input type="hidden" name="linea_id" value="{{ request('linea_id') }}">
@@ -89,7 +89,7 @@
             </div>
         </div>
     </div>
-    
+
     {{-- ESTADÍSTICAS --}}
     @if($analisisCollection->count() > 0)
         @php
@@ -100,7 +100,7 @@
                 'danado' => $analisisCollection->where('estado', 'Dañado - Requiere cambio'),
                 'cambiado' => $analisisCollection->where('estado', 'Cambiado'),
             ];
-            
+
             $estadisticas = [
                 'total' => $analisisCollection->count(),
                 'buen_estado' => $registrosPorEstado['buen_estado']->count(),
@@ -109,7 +109,7 @@
                 'cambiado' => $registrosPorEstado['cambiado']->count(),
             ];
         @endphp
-        
+
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
             {{-- TOTAL --}}
             <div onclick="openEstadoModal('total', {{ json_encode($registrosPorEstado['total']->map(fn($item) => [
@@ -121,7 +121,7 @@
                 'fecha' => $item->fecha_formateada ?? $item->created_at->format('d/m/Y'),
                 'actividad' => Str::limit($item->actividad, 80),
                 'lado' => $item->lado,
-            ])->values()) }})" 
+            ])->values()) }})"
                 class="bg-white rounded-xl p-5 shadow-sm border border-gray-200 cursor-pointer transition-all duration-300 hover:shadow-md hover:border-gray-300">
                 <div class="flex items-center justify-between">
                     <span class="text-sm font-medium text-gray-600">Total análisis</span>
@@ -134,7 +134,7 @@
                     <div class="text-xs text-gray-500 mt-1">registros totales</div>
                 </div>
             </div>
-            
+
             {{-- BUEN ESTADO --}}
             <div onclick="openEstadoModal('buen_estado', {{ json_encode($registrosPorEstado['buen_estado']->map(fn($item) => [
                 'id' => $item->id,
@@ -158,7 +158,7 @@
                     <div class="text-xs text-green-600 mt-1">en óptimas condiciones</div>
                 </div>
             </div>
-            
+
             {{-- DESGASTE --}}
             <div onclick="openEstadoModal('desgaste', {{ json_encode($registrosPorEstado['desgaste']->map(fn($item) => [
                 'id' => $item->id,
@@ -182,7 +182,7 @@
                     <div class="text-xs text-yellow-600 mt-1">requieren monitoreo</div>
                 </div>
             </div>
-            
+
             {{-- DAÑADO --}}
             <div onclick="openEstadoModal('danado', {{ json_encode($registrosPorEstado['danado']->map(fn($item) => [
                 'id' => $item->id,
@@ -206,7 +206,7 @@
                     <div class="text-xs text-red-600 mt-1">requieren cambio urgente</div>
                 </div>
             </div>
-            
+
             {{-- CAMBIADO --}}
             <div onclick="openEstadoModal('cambiado', {{ json_encode($registrosPorEstado['cambiado']->map(fn($item) => [
                 'id' => $item->id,
@@ -232,24 +232,24 @@
             </div>
         </div>
     @endif
-    
+
     {{-- SECCIÓN PRINCIPAL - TABLA DE ANÁLISIS --}}
     <div class="space-y-6">
         @php
             $lineasToShow = $mostrarTodas ? $lineasFiltradas : collect([$lineaSeleccionada ?? null])->filter();
         @endphp
-        
+
         @foreach($lineasToShow as $linea)
             @php
                 if(!$linea) continue;
-                
+
                 $nombreLinea = $linea->nombre;
                 $componentesLinea = \App\Models\AnalisisPasteurizadora::getComponentesPorLinea($nombreLinea);
                 $totalModulos = \App\Models\AnalisisPasteurizadora::getModulosPorLinea($nombreLinea);
                 $modulosLinea = collect(range(1, $totalModulos));
-                
+
                 $analisisLinea = $analisisCollection->filter(fn($item) => $item->linea_id == $linea->id);
-                
+
                 $analisisAgrupadosLinea = [];
                 foreach ($analisisLinea as $item) {
                     if (!isset($analisisAgrupadosLinea[$item->modulo][$item->componente])) {
@@ -258,7 +258,7 @@
                     $analisisAgrupadosLinea[$item->modulo][$item->componente]->push($item);
                 }
             @endphp
-            
+
             @if(count($componentesLinea) > 0 && $modulosLinea->count() > 0)
                 <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                     <div class="bg-gradient-to-r from-gray-800 to-gray-900 text-white px-6 py-4">
@@ -274,7 +274,7 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="overflow-x-auto">
                         <table class="w-full text-sm">
                             <thead class="bg-gray-50 border-b border-gray-200">
@@ -311,7 +311,7 @@
                                                     return ($item->created_at?->timestamp ?? 0) . '-' . str_pad((string) $item->id, 10, '0', STR_PAD_LEFT);
                                                 })->first();
                                                 $hasData = $registro !== null;
-                                                $totalPiezasComponente = $compData['cantidad'] ?? 0;
+                                                $totalComponentesComponente = $compData['cantidad'] ?? 0;
                                                 $componentesRevisadosAcumulados = $registros
                                                     ->flatMap(function ($item) {
                                                         if (is_array($item->componentes_revisados)) {
@@ -325,16 +325,16 @@
 
                                                         return [];
                                                     })
-                                                    ->filter(fn($pieza) => is_numeric($pieza))
-                                                    ->map(fn($pieza) => (int) $pieza)
+                                                    ->filter(fn($numeroComponente) => is_numeric($numeroComponente))
+                                                    ->map(fn($numeroComponente) => (int) $numeroComponente)
                                                     ->unique()
                                                     ->sort()
                                                     ->values();
                                                 $revisadasAcumuladas = $componentesRevisadosAcumulados->count();
-                                                $pendientesAcumulados = max(0, $totalPiezasComponente - $revisadasAcumuladas);
+                                                $pendientesAcumulados = max(0, $totalComponentesComponente - $revisadasAcumuladas);
                                                 $estadoPorNivel = [];
                                                 $siguienteRevision = null;
-                                                
+
                                                 $bgColor = 'bg-white';
                                                 $borderColor = '';
                                                 $estadoActual = '';
@@ -343,17 +343,17 @@
                                                     $ladosPendientesNivel = [];
 
                                                     foreach (\App\Models\AnalisisPasteurizadora::LADOS as $ladoRevision) {
-                                                        $piezasRevisadas = $registros
+                                                        $componentesRevisadas = $registros
                                                             ->filter(fn($item) => $item->nivel === $nivelRevision && $item->lado === $ladoRevision)
                                                             ->flatMap(function ($item) {
                                                                 return is_array($item->componentes_revisados) ? $item->componentes_revisados : [];
                                                             })
-                                                            ->filter(fn($pieza) => is_numeric($pieza))
-                                                            ->map(fn($pieza) => (int) $pieza)
+                                                            ->filter(fn($numeroComponente) => is_numeric($numeroComponente))
+                                                            ->map(fn($numeroComponente) => (int) $numeroComponente)
                                                             ->unique()
                                                             ->values();
 
-                                                        if ($piezasRevisadas->count() < $totalPiezasComponente) {
+                                                        if ($componentesRevisadas->count() < $totalComponentesComponente) {
                                                             $ladosPendientesNivel[] = $ladoRevision;
                                                         }
                                                     }
@@ -370,7 +370,7 @@
                                                         ];
                                                     }
                                                 }
-                                                
+
                                                 if($hasData){
                                                     $estadoActual = $registro->estado ?? 'Buen estado';
                                                     if ($estadoActual === 'Cambiado') {
@@ -388,7 +388,7 @@
                                                     }
                                                 }
                                             @endphp
-                                            
+
                                             <td class="px-4 py-3 align-top {{ $bgColor }} {{ $borderColor }} cursor-pointer hover:shadow-md transition-all"
                                                 @if($hasData)
                                                     onclick="openAnalysisDetail({{ json_encode([
@@ -404,7 +404,7 @@
                                                         'actividad' => $registro->actividad,
                                                         'imagenes' => $registro->evidencia_fotos ?? [],
                                                         'componentes_revisados' => $componentesRevisadosAcumulados,
-                                                        'total_piezas' => $totalPiezasComponente ?: $registro->total_piezas,
+                                                        'total_componentes' => $totalComponentesComponente ?: $registro->total_componentes,
                                                         'estado_por_nivel' => $estadoPorNivel,
                                                         'actualizaciones' => $registros
                                                             ->sortByDesc(function ($item) {
@@ -430,8 +430,8 @@
                                                                     'lado' => $item->lado,
                                                                     'nivel' => $item->nivel,
                                                                     'componentes_revisados' => collect($componentes)
-                                                                        ->filter(fn($pieza) => is_numeric($pieza))
-                                                                        ->map(fn($pieza) => (int) $pieza)
+                                                                        ->filter(fn($numeroComponente) => is_numeric($numeroComponente))
+                                                                        ->map(fn($numeroComponente) => (int) $numeroComponente)
                                                                         ->values(),
                                                                 ];
                                                             })
@@ -456,7 +456,7 @@
                                                                 #{{ $registro->numero_orden }}
                                                             </span>
                                                         </div>
-                                                        
+
                                                         @if($registro->lado)
                                                             <span class="inline-flex items-center gap-1 px-2 py-1 rounded text-xs {{ $registro->lado === 'VAPOR' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700' }}">
                                                                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -465,7 +465,7 @@
                                                                 {{ $registro->lado }}
                                                             </span>
                                                         @endif
-                                                        
+
                                                         <div>
                                                             <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium
                                                                 @if($estadoActual == 'Buen estado') bg-green-100 text-green-700
@@ -498,8 +498,8 @@
                                                         @if($revisadasAcumuladas > 0)
                                                             <div class="bg-indigo-50 rounded-lg p-2 mt-2">
                                                                 <div class="flex items-center justify-between">
-                                                                    <span class="text-xs font-medium text-indigo-700">Revisadas:</span>
-                                                                    <span class="text-xs text-indigo-600 font-semibold">{{ $revisadasAcumuladas }}/{{ $totalPiezasComponente ?: $registro->total_piezas }}</span>
+                                                                    <span class="text-xs font-medium text-indigo-700">Revisados:</span>
+                                                                    <span class="text-xs text-indigo-600 font-semibold">{{ $revisadasAcumuladas }}/{{ $totalComponentesComponente ?: $registro->total_componentes }}</span>
                                                                 </div>
                                                                 <div class="flex flex-wrap gap-1 mt-1">
                                                                     @foreach($componentesRevisadosAcumulados as $num)
@@ -517,17 +517,17 @@
                                                                     </div>
                                                                 @else
                                                                     <div class="mt-1 p-1 bg-green-50 border border-green-200 rounded text-xs text-green-700">
-                                                                        ✅ Completadas todas las piezas
+                                                                        ✅ Se revisaron todos los componentes
                                                                     </div>
                                                                 @endif
                                                             </div>
                                                         @endif
-                                                        
+
                                                         <p class="text-xs text-gray-600 line-clamp-2">{{ Str::limit($registro->actividad, 60) }}</p>
-                                                        
+
                                                         <div class="flex gap-2 pt-1">
                                                             @if(count($registro->evidencia_fotos ?? []) > 0)
-                                                                <button onclick="event.stopPropagation(); openAllImages({{ json_encode($registro->evidencia_fotos) }}, '{{ $registro->numero_orden }}')" 
+                                                                <button onclick="event.stopPropagation(); openAllImages({{ json_encode($registro->evidencia_fotos) }}, '{{ $registro->numero_orden }}')"
                                                                         class="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-xs transition">
                                                                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
@@ -536,8 +536,8 @@
                                                                 </button>
                                                             @endif
                                                          <a href="{{ route('pasteurizadora.analisis-pasteurizadora.create-quick', [
-                                                        'linea_id' => $linea->id, 
-                                                        'modulo' => $moduloNumero, 
+                                                        'linea_id' => $linea->id,
+                                                        'modulo' => $moduloNumero,
                                                         'componente' => $codigo,
                                                         'lado' => $siguienteRevision['lado'] ?? '',
                                                         'nivel' => $siguienteRevision['nivel'] ?? ''
@@ -558,8 +558,8 @@
                                                         </svg>
                                                         <p class="text-xs text-gray-400 mb-2">Sin análisis registrado</p>
                                                         <a href="{{ route('pasteurizadora.analisis-pasteurizadora.create-quick', [
-                                                            'linea_id' => $linea->id, 
-                                                            'modulo' => $moduloNumero, 
+                                                            'linea_id' => $linea->id,
+                                                            'modulo' => $moduloNumero,
                                                             'componente' => $codigo,
                                                             'lado' => '',
                                                             'nivel' => ''
@@ -659,7 +659,7 @@ function openEstadoModal(tipo, registros) {
     const title = document.getElementById('estadoModalTitle');
     const header = document.getElementById('estadoModalHeader');
     const content = document.getElementById('estadoModalContent');
-    
+
     let bgColor = '', textColor = '', icono = '';
     switch(tipo) {
         case 'total':
@@ -695,10 +695,10 @@ function openEstadoModal(tipo, registros) {
         default:
             title.innerHTML = `Registros (${registros.length})`;
     }
-    
+
     header.className = `px-6 py-4 border-b flex justify-between items-center ${bgColor}`;
     title.className = `text-xl font-bold ${textColor}`;
-    
+
     if (registros.length === 0) {
         content.innerHTML = `
             <div class="text-center py-12">
@@ -716,7 +716,7 @@ function openEstadoModal(tipo, registros) {
             }
             agrupadosPorLinea[reg.linea].push(reg);
         });
-        
+
         let html = '';
         for (const [linea, items] of Object.entries(agrupadosPorLinea)) {
             html += `
@@ -730,7 +730,7 @@ function openEstadoModal(tipo, registros) {
                     </div>
                     <div class="space-y-3">
             `;
-            
+
             items.forEach(reg => {
                 let estadoClass = '';
                 let estadoIcon = '';
@@ -752,7 +752,7 @@ function openEstadoModal(tipo, registros) {
                     estadoIcon = '🔄';
                     estadoColor = 'bg-blue-50';
                 }
-                
+
                 html += `
                     <div class="${estadoColor} border-l-4 ${estadoClass} p-4 rounded-lg hover:shadow-md transition-all cursor-pointer" onclick="cerrarEstadoModalYVerAnalisis(${reg.id})">
                         <div class="flex flex-wrap items-start justify-between gap-2">
@@ -767,8 +767,8 @@ function openEstadoModal(tipo, registros) {
                             </div>
                             <div class="flex items-center gap-2">
                                 <span class="text-xs px-2 py-1 rounded-full font-medium
-                                    ${reg.estado === 'Buen estado' ? 'bg-green-100 text-green-700' : 
-                                      (reg.estado.includes('Desgaste') ? 'bg-yellow-100 text-yellow-700' : 
+                                    ${reg.estado === 'Buen estado' ? 'bg-green-100 text-green-700' :
+                                      (reg.estado.includes('Desgaste') ? 'bg-yellow-100 text-yellow-700' :
                                       (reg.estado === 'Dañado - Requiere cambio' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'))}">
                                     ${estadoIcon} ${reg.estado}
                                 </span>
@@ -780,13 +780,13 @@ function openEstadoModal(tipo, registros) {
                     </div>
                 `;
             });
-            
+
             html += `</div></div>`;
         }
-        
+
         content.innerHTML = html;
     }
-    
+
     modal.classList.remove('hidden');
     modal.classList.add('flex');
     document.body.style.overflow = 'hidden';
@@ -811,7 +811,7 @@ function openAnalysisDetail(data) {
     currentAnalysisData = data;
     const modal = document.getElementById('analysisDetailModal');
     const content = document.getElementById('detailModalContent');
-    
+
     let estadoClass = '';
     let estadoIcon = '';
     if (data.estado === 'Buen estado') {
@@ -827,10 +827,10 @@ function openAnalysisDetail(data) {
         estadoClass = 'bg-blue-100 text-blue-700';
         estadoIcon = '🔄';
     }
-    
+
     let componentesRevisadosHtml = '';
     if (data.componentes_revisados && data.componentes_revisados.length > 0) {
-        const totalComponentes = data.total_piezas || data.componentes_revisados.length;
+        const totalComponentes = data.total_componentes || data.componentes_revisados.length;
         componentesRevisadosHtml = `
             <div class="bg-indigo-50 border border-indigo-200 p-4 rounded-lg mb-6">
                 <div class="flex items-center justify-between mb-3">
@@ -855,7 +855,7 @@ function openAnalysisDetail(data) {
             </div>
         `;
     }
-    
+
     let nivelEstadoHtml = '';
     if (data.estado_por_nivel) {
         const nivelesOrden = ['SUPERIOR', 'INFERIOR'];
@@ -892,7 +892,7 @@ function openAnalysisDetail(data) {
             </div>
         `;
     }
-    
+
     let actualizacionesHtml = '';
     if (data.actualizaciones && data.actualizaciones.length > 0) {
         actualizacionesHtml = `
@@ -916,13 +916,13 @@ function openAnalysisDetail(data) {
                                 <div class="flex flex-wrap items-center gap-2">
                                     ${item.nivel ? `<span class="text-xs px-2 py-1 rounded bg-purple-100 text-purple-700">${item.nivel === 'SUPERIOR' ? '⬆️ Superior' : '⬇️ Inferior'}</span>` : ''}
                                     ${item.lado ? `<span class="text-xs px-2 py-1 rounded ${item.lado === 'VAPOR' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}">${item.lado === 'VAPOR' ? '💨 Vapor' : '🚶 Pasillo'}</span>` : ''}
-                                    <span class="text-xs px-2 py-1 rounded ${item.estado === 'Buen estado' ? 'bg-green-100 text-green-700' : item.estado.includes('Desgaste') ? 'bg-yellow-100 text-yellow-700' : item.estado === 'DaÃ±ado - Requiere cambio' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}">${item.estado}</span>
+                                    <span class="text-xs px-2 py-1 rounded ${item.estado === 'Buen estado' ? 'bg-green-100 text-green-700' : item.estado.includes('Desgaste') ? 'bg-yellow-100 text-yellow-700' : item.estado === 'Dañado - Requiere cambio' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}">${item.estado}</span>
                                 </div>
                             </div>
                             <p class="text-sm text-slate-700 whitespace-pre-line">${item.actividad || 'Sin actividad registrada.'}</p>
                             ${item.componentes_revisados && item.componentes_revisados.length > 0 ? `
                                 <div class="mt-2 flex flex-wrap gap-2">
-                                    ${item.componentes_revisados.map((pieza) => `<span class="inline-flex items-center px-2 py-1 rounded bg-indigo-100 text-indigo-700 text-xs font-medium">#${pieza}</span>`).join('')}
+                                    ${item.componentes_revisados.map((numeroComponente) => `<span class="inline-flex items-center px-2 py-1 rounded bg-indigo-100 text-indigo-700 text-xs font-medium">#${numeroComponente}</span>`).join('')}
                                 </div>
                             ` : ''}
                         </div>
@@ -948,7 +948,7 @@ function openAnalysisDetail(data) {
             </div>
         `;
     }
-    
+
     content.innerHTML = `
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             <div class="bg-gray-50 p-4 rounded-lg">
@@ -980,27 +980,27 @@ function openAnalysisDetail(data) {
                 <p class="font-bold font-mono text-gray-900">#${data.numero_orden}</p>
             </div>
         </div>
-        
+
         <div class="bg-gray-50 p-4 rounded-lg mb-6">
             <p class="text-xs text-gray-500 mb-2">📊 Estado</p>
             <span class="inline-flex items-center gap-2 px-4 py-2 rounded-lg ${estadoClass}">
                 ${estadoIcon} ${data.estado}
             </span>
         </div>
-        
+
         ${nivelEstadoHtml}
-        
+
         <div class="bg-gray-50 p-4 rounded-lg mb-6">
             <p class="text-xs text-gray-500 mb-2">📝 Actividad Realizada</p>
             <p class="text-gray-700 whitespace-pre-line">${data.actividad || 'No especificada'}</p>
         </div>
-        
+
         ${componentesRevisadosHtml}
-        
+
         ${actualizacionesHtml}
-        
+
         ${imagenesHtml}
-        
+
         <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-200">
             <a href="${data.edit_url}" class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition">
                 ✏️ Editar
@@ -1013,7 +1013,7 @@ function openAnalysisDetail(data) {
             </button>
         </div>
     `;
-    
+
     modal.classList.remove('hidden');
     modal.classList.add('flex');
     document.body.style.overflow = 'hidden';
@@ -1031,16 +1031,16 @@ function openAllImages(imagenes, orden) {
     const modal = document.getElementById('allImagesModal');
     const grid = document.getElementById('imageGrid');
     const empty = document.getElementById('emptyImages');
-    
+
     grid.innerHTML = '';
-    
+
     if (currentImages.length === 0) {
         grid.classList.add('hidden');
         empty.classList.remove('hidden');
     } else {
         grid.classList.remove('hidden');
         empty.classList.add('hidden');
-        
+
         currentImages.forEach((path, index) => {
             const item = document.createElement('div');
             item.className = 'relative group cursor-pointer';
@@ -1056,7 +1056,7 @@ function openAllImages(imagenes, orden) {
             grid.appendChild(item);
         });
     }
-    
+
     modal.classList.remove('hidden');
     modal.classList.add('flex');
     document.body.style.overflow = 'hidden';

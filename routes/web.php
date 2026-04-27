@@ -212,7 +212,7 @@ Route::prefix('pasteurizadora')->name('pasteurizadora.')->middleware('auth')->gr
 
         // AJAX
         Route::get('/ajax/componentes', 'getComponentesPorLineaAjax')->name('ajax.componentes');
-        Route::post('/ajax/remaining-pieces', 'getRemainingPiecesAjax')->name('get-remaining-pieces');
+        Route::post('/ajax/remaining-components', 'getRemainingComponentsAjax')->name('ajax.remaining-components');
         Route::post('/ajax/revision-context', 'getRevisionContextAjax')->name('ajax.revision-context');
         Route::get('/ajax/actividades', 'getActividadesPorModulo')->name('ajax.actividades');
         Route::get('/ajax/estadisticas', 'getEstadisticasComponentesAjax')->name('ajax.estadisticas');

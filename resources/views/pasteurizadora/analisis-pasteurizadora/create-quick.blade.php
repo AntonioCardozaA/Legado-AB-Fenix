@@ -16,13 +16,13 @@
                     Agregar Análisis Rápido
                 </h1>
             </div>
-            
+
             <div class="bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl p-4 border border-gray-200">
                 <div class="flex flex-col md:flex-row items-center gap-6">
                     <div class="flex-shrink-0">
                         <div class="w-20 h-20 mx-auto md:mx-0">
-                            <img src="{{ asset('images/icono-pasteurizadora.png') }}" 
-                                 alt="Icono de pasteurizadora" 
+                            <img src="{{ asset('images/icono-pasteurizadora.png') }}"
+                                 alt="Icono de pasteurizadora"
                                  class="w-full h-full object-contain"
                                  onerror="this.src='{{ asset('images/icono-maquina.png') }}'">
                         </div>
@@ -49,7 +49,7 @@
                                     —
                                 @endif
                             </p>
-                        </div>  
+                        </div>
 
                         <div class="text-center md:text-left">
                             <p class="text-gray-600 font-semibold text-sm mb-1">
@@ -78,21 +78,20 @@
                 </div>
             </div>
         </div>
-        
+
         {{-- Formulario --}}
-        <form action="{{ route('pasteurizadora.analisis-pasteurizadora.store-quick') }}" 
+        <form action="{{ route('pasteurizadora.analisis-pasteurizadora.store-quick') }}"
               method="POST"
               enctype="multipart/form-data"
               class="space-y-6"
               id="analisisForm">
             @csrf
-        
+
             {{-- Campos ocultos --}}
             <input type="hidden" name="linea_id" value="{{ $linea->id ?? '' }}">
             <input type="hidden" name="modulo" value="{{ $modulo ?? '' }}">
             <input type="hidden" name="componente" value="{{ $componente ?? '' }}">
-            <input type="hidden" name="nivel" value="{{ $nivel ?? '' }}">
-            
+
             {{-- Selector de Lado --}}
             <div>
                 <label for="lado" class="block text-sm font-semibold text-gray-700 mb-2">
@@ -111,7 +110,7 @@
                     <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
                 @enderror
             </div>
-            
+
             {{-- Nivel (solo lectura si ya viene de la tabla) --}}
             <div>
                 <label for="nivel" class="block text-sm font-semibold text-gray-700 mb-2">
@@ -191,41 +190,39 @@
                             <i class="fas fa-clipboard-check text-blue-600 mr-2"></i>
                             Seleccione los componentes revisados
                         </label>
-                        @if($alreadyReviewedCount > 0)
-                            <div class="bg-blue-100 border border-blue-400 rounded-lg p-3 mb-3">
-                                <p class="text-sm text-blue-800">
-                                    <i class="fas fa-info-circle mr-2"></i>
-                                    <strong>Ya revisados en este lado y nivel:</strong> {{ $alreadyReviewedCount }} de {{ $totalPiezas }} piezas
-                                </p>
-                                @if(!empty($alreadyReviewedComponents))
-                                    <div class="mt-2 flex flex-wrap gap-1">
-                                        @foreach($alreadyReviewedComponents as $compNum)
-                                            <span class="inline-flex items-center px-2 py-0.5 bg-blue-200 text-blue-800 rounded text-xs">
-                                                #{{ $compNum }}
-                                            </span>
-                                        @endforeach
-                                    </div>
-                                @endif
-                                <p class="text-sm text-blue-800 mt-2">
-                                    <strong>Pendientes en este lado y nivel:</strong> {{ $remainingPiezas }} piezas
-                                </p>
+                        <div id="quick-remaining-info"
+                             class="bg-blue-100 border border-blue-400 rounded-lg p-3 mb-3 {{ $cantidadComponentesRevisados > 0 ? '' : 'hidden' }}">
+                            <p class="text-sm text-blue-800">
+                                <i class="fas fa-info-circle mr-2"></i>
+                                <strong>Ya revisados en este lado y nivel:</strong> {{ $cantidadComponentesRevisados }} de {{ $totalComponentes }} componentes
+                            </p>
+                            <div class="mt-2 flex flex-wrap gap-1" id="quick-reviewed-badges">
+                                @foreach($componentesYaRevisados as $compNum)
+                                    <span class="inline-flex items-center px-2 py-0.5 bg-blue-200 text-blue-800 rounded text-xs">
+                                        #{{ $compNum }}
+                                    </span>
+                                @endforeach
                             </div>
-                        @endif
+                            <p class="text-sm text-blue-800 mt-2">
+                                <strong>Pendientes en este lado y nivel:</strong>
+                                <span id="quick-pending-count">{{ $componentesPendientes }}</span> componentes
+                            </p>
+                        </div>
                     </div>
-                    
+
                     <div id="componentes-checklist" class="grid grid-cols-2 md:grid-cols-3 gap-3">
                         @php
-                            $todosLosNumeros = range(1, $totalPiezas);
+                            $todosLosNumeros = range(1, $totalComponentes);
                         @endphp
-                        
-                        @if($totalPiezas > 0)
+
+                        @if($totalComponentes > 0)
                             @foreach($todosLosNumeros as $numero)
                                 @php
-                                    $yaRevisado = in_array($numero, $alreadyReviewedComponents);
+                                    $yaRevisado = in_array($numero, $componentesYaRevisados);
                                 @endphp
                                 <label class="flex items-center gap-3 p-3 bg-white rounded-lg border {{ $yaRevisado ? 'border-gray-200 bg-gray-50 opacity-60' : 'border-gray-200 hover:border-blue-400 hover:shadow-md' }} transition cursor-pointer">
-                                    <input type="checkbox" 
-                                           data-component-value="{{ $numero }}" 
+                                    <input type="checkbox"
+                                           data-component-value="{{ $numero }}"
                                            class="w-5 h-5 text-blue-600 rounded cursor-pointer focus:ring-blue-500 componente-checkbox"
                                            onchange="actualizarComponentesRevisados()"
                                            {{ $yaRevisado ? 'disabled checked' : '' }}>
@@ -241,47 +238,35 @@
                         @else
                             <div class="col-span-full text-center py-8 bg-yellow-50 rounded-lg border border-yellow-200">
                                 <i class="fas fa-exclamation-triangle text-yellow-500 text-3xl mb-2"></i>
-                                <p class="text-yellow-700 font-medium">No se encontraron piezas para este componente</p>
+                                <p class="text-yellow-700 font-medium">No se encontraron componentes disponibles para este contexto</p>
                             </div>
                         @endif
                     </div>
-                    
+
                     <input type="hidden" name="componentes_revisados" id="componentes_revisados_input" value="{{ json_encode(old('componentes_revisados', [])) }}">
-                    
-                    {{-- Mensaje de lados pendientes --}}
-                    @if(isset($ladosPendientes) && count($ladosPendientes) > 0 && $lado)
-                        <div class="mt-4 p-3 bg-yellow-100 border border-yellow-400 rounded-lg">
-                            <p class="text-sm text-yellow-800">
-                                <i class="fas fa-info-circle mr-2"></i>
-                                <strong>Lados pendientes por revisar:</strong>
-                                @foreach($ladosPendientes as $lp)
-                                    <span class="inline-flex items-center ml-2 px-2 py-1 rounded text-xs {{ $lp === 'VAPOR' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700' }}">
-                                        <i class="fas {{ $lp === 'VAPOR' ? 'fa-wind' : 'fa-walking' }} mr-1"></i>
-                                        {{ $lp === 'VAPOR' ? 'Vapor' : 'Pasillo' }}
-                                    </span>
-                                @endforeach
-                                @if($lado && in_array($lado, $ladosPendientes))
-                                    <span class="ml-2 text-xs">(Actual: {{ $lado === 'VAPOR' ? 'Vapor' : 'Pasillo' }})</span>
-                                @endif
-                            </p>
-                        </div>
-                    @endif
+                    @error('componentes_revisados')
+                        <p class="text-red-500 text-sm mt-3">{{ $message }}</p>
+                    @enderror
+
+                    <div id="lados-pendientes-alert"
+                         class="{{ !empty($ladosPendientes) && $lado ? '' : 'hidden' }} mt-4 p-3 bg-yellow-100 border border-yellow-400 rounded-lg text-sm text-yellow-800">
+                    </div>
                 </div>
                 <p class="text-sm text-gray-600 mt-2">
                     <i class="fas fa-info-circle text-blue-500 mr-1"></i>
                     Marque los componentes que fueron revisados en este análisis
                 </p>
             </div>
-            
+
             {{-- Fecha --}}
             <div>
                 <label class="block text-sm font-semibold text-gray-700 mb-2">
                     <i class="far fa-calendar-alt text-blue-600 mr-1"></i>
                     Fecha del Análisis *
                 </label>
-                <input type="date" 
-                       name="fecha_analisis" 
-                       value="{{ old('fecha_analisis', $fecha ?? now()->format('Y-m-d')) }}"
+                <input type="date"
+                       name="fecha_analisis"
+                       value="{{ old('fecha_analisis', $fechaSugerida ?? now()->format('Y-m-d')) }}"
                        required
                        class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500 shadow-sm
                        @error('fecha_analisis') border-red-500 @enderror">
@@ -289,15 +274,15 @@
                     <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
                 @enderror
             </div>
-            
+
             {{-- Número de Orden --}}
             <div>
                 <label class="block text-sm font-semibold text-gray-700 mb-2">
                     <i class="fas fa-hashtag text-blue-600 mr-1"></i>
                     Número de Orden *
                 </label>
-                <input type="text" 
-                       name="numero_orden" 
+                <input type="text"
+                       name="numero_orden"
                        value="{{ old('numero_orden') }}"
                        required
                        maxlength="50"
@@ -308,7 +293,7 @@
                     <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
                 @enderror
             </div>
-            
+
             {{-- Estado --}}
             <div>
                 <label class="block text-sm font-semibold text-gray-700 mb-2">
@@ -327,14 +312,14 @@
                     <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
                 @enderror
             </div>
-            
+
             {{-- Actividad --}}
             <div>
                 <label class="block text-sm font-semibold text-gray-700 mb-2">
                     <i class="fas fa-sticky-note text-blue-600 mr-1"></i>
                     Actividad *
                 </label>
-                <textarea name="actividad" 
+                <textarea name="actividad"
                           rows="4"
                           placeholder="Describa la actividad realizada, observaciones o notas adicionales sobre el componente..."
                           class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500 shadow-sm
@@ -344,16 +329,16 @@
                     <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
                 @enderror
             </div>
-                
+
             {{-- Evidencia Fotográfica --}}
             <div>
                 <label class="block text-sm font-semibold text-gray-700 mb-2">
                     <i class="fas fa-camera text-blue-600 mr-1"></i>
                     Evidencia Fotográfica
                 </label>
-                <input type="file" 
-                       name="evidencia_fotos[]" 
-                       multiple 
+                <input type="file"
+                       name="evidencia_fotos[]"
+                       multiple
                        accept="image/*"
                        class="w-full text-sm text-gray-500 rounded-lg border border-gray-300 shadow-sm
                               file:mr-4 file:py-2 file:px-4
@@ -364,7 +349,7 @@
                 <p class="text-xs text-gray-500 mt-1">Puede seleccionar múltiples imágenes (Formatos: JPG, PNG. Máx: 5MB cada una)</p>
                 <div id="preview_fotos" class="mt-3 flex flex-wrap gap-2"></div>
             </div>
-            
+
             {{-- Botones --}}
             <div class="flex gap-4 pt-6 border-t border-gray-200">
                 <a href="{{ route('pasteurizadora.analisis-pasteurizadora.index', request()->query()) }}"
@@ -382,98 +367,194 @@
 </div>
 
 <script>
-function actualizarComponentesRevisados() {
-    const checkboxes = document.querySelectorAll('input.componente-checkbox:checked:not(:disabled)');
-    const valores = Array.from(checkboxes).map(cb => parseInt(cb.getAttribute('data-component-value')));
-    const json = JSON.stringify(valores);
-    
-    const input = document.getElementById('componentes_revisados_input');
-    if (input) {
-        input.value = json;
+const quickNivelSelect = document.getElementById('nivel');
+const quickLadoSelect = document.getElementById('lado');
+const quickChecklistContainer = document.getElementById('checklist-container');
+const quickChecklist = document.getElementById('componentes-checklist');
+const quickComponentesInput = document.getElementById('componentes_revisados_input');
+const quickRevisionContextUrl = '{{ route("pasteurizadora.analisis-pasteurizadora.ajax.revision-context") }}';
+const quickComponenteNombre = @json($nombreComponente ?? $componente);
+const quickOldSelection = @json(old('componentes_revisados', []));
+
+function normalizarSeleccionQuick(value) {
+    let valores = value;
+
+    if (typeof valores === 'string' && valores.trim() !== '') {
+        try {
+            valores = JSON.parse(valores);
+        } catch (error) {
+            valores = [];
+        }
     }
-    
-    console.log('Componentes seleccionados:', valores);
-    console.log('JSON a enviar:', json);
+
+    if (!Array.isArray(valores)) {
+        return [];
+    }
+
+    return valores
+        .map((item) => parseInt(item, 10))
+        .filter((item) => Number.isInteger(item) && item > 0);
 }
 
-// Preview de imágenes
+let quickSelectedComponentes = normalizarSeleccionQuick(quickOldSelection);
+
+function actualizarComponentesRevisados() {
+    const checkboxes = document.querySelectorAll('input.componente-checkbox:checked:not(:disabled)');
+    quickSelectedComponentes = Array.from(checkboxes).map((checkbox) => parseInt(checkbox.dataset.componentValue, 10));
+    quickComponentesInput.value = JSON.stringify(quickSelectedComponentes);
+}
+
+function renderChecklistQuick(totalComponentes, componentesYaRevisados, cantidadComponentesRevisados, componentesPendientes) {
+    quickChecklist.innerHTML = '';
+    const componentesBloqueados = (componentesYaRevisados || []).map((item) => parseInt(item, 10));
+
+    if (!totalComponentes) {
+        quickChecklistContainer.classList.add('hidden');
+        return;
+    }
+
+    quickChecklistContainer.classList.remove('hidden');
+
+    for (let indice = 1; indice <= totalComponentes; indice++) {
+        const yaRevisado = componentesBloqueados.includes(indice);
+        const seleccionado = quickSelectedComponentes.includes(indice);
+        const label = document.createElement('label');
+        label.className = `flex items-center gap-3 p-3 bg-white rounded-lg border ${yaRevisado ? 'border-gray-200 bg-gray-50 opacity-60' : 'border-gray-200 hover:border-blue-400 hover:shadow-md'} transition cursor-pointer`;
+        label.innerHTML = `
+            <input type="checkbox"
+                   data-component-value="${indice}"
+                   class="w-5 h-5 text-blue-600 rounded cursor-pointer focus:ring-blue-500 componente-checkbox"
+                   ${yaRevisado ? 'disabled checked' : seleccionado ? 'checked' : ''}>
+            <span class="flex-1 ${yaRevisado ? 'text-gray-400 line-through' : 'text-gray-700 font-medium'}">
+                <i class="fas fa-cube text-blue-500 mr-2"></i>
+                ${quickComponenteNombre} #${indice}
+                ${yaRevisado ? '<span class="ml-2 text-xs text-green-600">(Ya revisado)</span>' : ''}
+            </span>
+        `;
+        quickChecklist.appendChild(label);
+    }
+
+    quickChecklist.querySelectorAll('.componente-checkbox:not(:disabled)').forEach((checkbox) => {
+        checkbox.addEventListener('change', actualizarComponentesRevisados);
+    });
+
+    const infoBox = document.getElementById('quick-remaining-info');
+    const badges = document.getElementById('quick-reviewed-badges');
+    const pendingCount = document.getElementById('quick-pending-count');
+
+    infoBox.classList.toggle('hidden', cantidadComponentesRevisados === 0);
+    badges.innerHTML = componentesBloqueados
+        .map((numero) => `<span class="inline-flex items-center px-2 py-0.5 bg-blue-200 text-blue-800 rounded text-xs">#${numero}</span>`)
+        .join('');
+    pendingCount.textContent = componentesPendientes;
+}
+
+function renderLadosPendientesQuick(ladosPendientes, ladoActual) {
+    const alertBox = document.getElementById('lados-pendientes-alert');
+
+    if (!ladoActual || !ladosPendientes || ladosPendientes.length === 0) {
+        alertBox.classList.add('hidden');
+        alertBox.innerHTML = '';
+        return;
+    }
+
+    alertBox.classList.remove('hidden');
+    alertBox.innerHTML = `
+        <i class="fas fa-info-circle mr-2"></i>
+        <strong>Lados pendientes por revisar:</strong>
+        ${ladosPendientes.map((lado) => `
+            <span class="inline-flex items-center ml-2 px-2 py-1 rounded text-xs ${lado === 'VAPOR' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}">
+                <i class="fas ${lado === 'VAPOR' ? 'fa-wind' : 'fa-walking'} mr-1"></i>
+                ${lado === 'VAPOR' ? 'Vapor' : 'Pasillo'}
+            </span>
+        `).join('')}
+    `;
+}
+
+async function cargarContextoRevisionQuick() {
+    if (!quickNivelSelect.value || !quickLadoSelect.value) {
+        quickChecklistContainer.classList.add('hidden');
+        return;
+    }
+
+    const response = await fetch(quickRevisionContextUrl, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+        },
+        body: JSON.stringify({
+            linea_id: {{ $linea->id }},
+            modulo: {{ (int) ($modulo ?? 0) }},
+            componente: @json($componente ?? ''),
+            nivel: quickNivelSelect.value,
+            lado: quickLadoSelect.value
+        })
+    });
+
+    const data = await response.json();
+    if (!data.success) {
+        return;
+    }
+
+    renderChecklistQuick(
+        data.total_componentes || 0,
+        data.componentes_ya_revisados || [],
+        data.cantidad_componentes_revisados || 0,
+        data.componentes_pendientes || 0
+    );
+    renderLadosPendientesQuick(data.lados_pendientes || [], data.lado);
+    actualizarComponentesRevisados();
+}
+
 document.addEventListener('DOMContentLoaded', function() {
+    quickNivelSelect?.addEventListener('change', cargarContextoRevisionQuick);
+    quickLadoSelect?.addEventListener('change', cargarContextoRevisionQuick);
+
     const inputFotos = document.querySelector('input[name="evidencia_fotos[]"]');
     const previewFotos = document.getElementById('preview_fotos');
-    
+
     if (inputFotos && previewFotos) {
         inputFotos.addEventListener('change', function() {
             previewFotos.innerHTML = '';
-            const files = Array.from(this.files);
-            
-            files.forEach(file => {
-                if(!file.type.startsWith('image/')) return;
-                
+
+            Array.from(this.files).forEach((file) => {
+                if (!file.type.startsWith('image/')) {
+                    return;
+                }
+
                 if (file.size > 5242880) {
                     alert(`La imagen ${file.name} supera el tamaño máximo de 5MB`);
                     return;
                 }
-                
+
                 const reader = new FileReader();
                 reader.onload = function(e) {
-                    const imgContainer = document.createElement('div');
-                    imgContainer.className = 'relative group';
-                    
                     const img = document.createElement('img');
                     img.src = e.target.result;
                     img.className = 'w-20 h-20 object-cover rounded-lg border border-gray-200';
-                    
-                    const removeBtn = document.createElement('button');
-                    removeBtn.type = 'button';
-                    removeBtn.className = 'absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 opacity-0 group-hover:opacity-100 transition text-xs flex items-center justify-center';
-                    removeBtn.innerHTML = '×';
-                    removeBtn.onclick = function() {
-                        imgContainer.remove();
-                        const dt = new DataTransfer();
-                        const inputFiles = inputFotos.files;
-                        
-                        for (let i = 0; i < inputFiles.length; i++) {
-                            if (inputFiles[i] !== file) {
-                                dt.items.add(inputFiles[i]);
-                            }
-                        }
-                        
-                        inputFotos.files = dt.files;
-                    };
-                    
-                    imgContainer.appendChild(img);
-                    imgContainer.appendChild(removeBtn);
-                    previewFotos.appendChild(imgContainer);
-                }
+                    previewFotos.appendChild(img);
+                };
                 reader.readAsDataURL(file);
             });
         });
     }
-    
-    // Inicializar el input con los valores seleccionados
-    actualizarComponentesRevisados();
-    
-    // Validación del formulario
+
     document.getElementById('analisisForm').addEventListener('submit', function(e) {
-        const lado = document.getElementById('lado');
-        if (!lado.value) {
+        const seleccionables = document.querySelectorAll('input.componente-checkbox:not(:disabled)');
+        const seleccionados = document.querySelectorAll('input.componente-checkbox:checked:not(:disabled)');
+
+        if (seleccionables.length > 0 && seleccionados.length === 0) {
             e.preventDefault();
-            alert('Debe seleccionar el lado del análisis (Vapor o Pasillo).');
-            lado.focus();
+            alert('Debe seleccionar al menos un componente revisado.');
             return;
         }
-        
-        const checkboxes = document.querySelectorAll('input.componente-checkbox:checked:not(:disabled)');
-        if (checkboxes.length === 0) {
-            // Verificar si hay piezas disponibles para revisar
-            const hayPiezasDisponibles = document.querySelectorAll('input.componente-checkbox:not(:disabled)').length > 0;
-            if (hayPiezasDisponibles) {
-                e.preventDefault();
-                alert('Debe seleccionar al menos un componente revisado.');
-                return;
-            }
-        }
+
+        actualizarComponentesRevisados();
     });
+
+    actualizarComponentesRevisados();
+    cargarContextoRevisionQuick();
 });
 </script>
 @endsection
