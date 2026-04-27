@@ -20,15 +20,6 @@ class PlanAccionController extends Controller
         $this->notificationService = $notificationService;
     }
 
-    /**
-     * ===========================================================
-     * MÉTODOS PARA RUTAS ESPECÍFICAS (definidas en web.php)
-     * ===========================================================
-     */
-
-    /**
-     * GET /plan-accion/lavadora - Índice de lavadoras
-     */
     public function planAccion(Request $request)
     {
         $tipo = $request->get('tipo', 'lavadora');
@@ -65,9 +56,7 @@ class PlanAccionController extends Controller
         ));
     }
 
-    /**
-     * GET /plan-accion/dashboard - Dashboard de plan de acción
-     */
+   
     public function dashboard()
     {
         $estadisticas = $this->obtenerEstadisticas();
@@ -98,9 +87,7 @@ class PlanAccionController extends Controller
         ));
     }
 
-    /**
-     * GET /plan-accion/por-lavadora/{lavadora} - Filtrar por lavadora específica
-     */
+   
     public function porLavadora($lavadora)
     {
         $linea = Linea::findOrFail($lavadora);
@@ -126,9 +113,7 @@ class PlanAccionController extends Controller
         return view('plan-accion.por-lavadora', compact('planes', 'linea', 'estadisticas'));
     }
 
-    /**
-     * POST /plan-accion/lavadora/edit - Editar plan acción (por POST)
-     */
+ 
     public function editarPlanAccion(Request $request)
     {
         $id = $request->input('id');
@@ -422,13 +407,15 @@ class PlanAccionController extends Controller
     /**
      * Obtener alertas globales
      */
-    private function obtenerAlertasGlobales()
+     private function obtenerAlertasGlobales()
     {
         $alertas = [];
         $hoy = Carbon::now();
         $proximosDias = Carbon::now()->addDays(7);
 
+        // --- CAMBIO IMPORTANTE: Filtrar solo actividades NO completadas ---
         $actividadesProximas = PlanAccion::with('linea')
+            ->where('completado', false) // <-- AÑADIR ESTA LÍNEA
             ->where(function ($query) use ($hoy, $proximosDias) {
                 $query->whereBetween('fecha_pcm1', [$hoy, $proximosDias])
                     ->orWhereBetween('fecha_pcm2', [$hoy, $proximosDias])
@@ -496,24 +483,27 @@ class PlanAccionController extends Controller
     /**
      * Contar actividades próximas en X días
      */
-    private function contarActividadesProximas($dias)
+     private function contarActividadesProximas($dias)
     {
         $fechaLimite = Carbon::now()->addDays($dias);
 
-        return PlanAccion::where(function ($query) use ($fechaLimite) {
-            $query->whereBetween('fecha_pcm1', [now(), $fechaLimite])
-                ->orWhereBetween('fecha_pcm2', [now(), $fechaLimite])
-                ->orWhereBetween('fecha_pcm3', [now(), $fechaLimite])
-                ->orWhereBetween('fecha_pcm4', [now(), $fechaLimite]);
-        })->count();
+        return PlanAccion::where('completado', false) 
+            ->where(function ($query) use ($fechaLimite) {
+                $query->whereBetween('fecha_pcm1', [now(), $fechaLimite])
+                    ->orWhereBetween('fecha_pcm2', [now(), $fechaLimite])
+                    ->orWhereBetween('fecha_pcm3', [now(), $fechaLimite])
+                    ->orWhereBetween('fecha_pcm4', [now(), $fechaLimite]);
+            })->count();
     }
 
-    public function checklist($id)
+      public function checklist($id)
     {
         $plan = PlanAccion::findOrFail($id);
-
         $plan->completado = !$plan->completado;
         $plan->save();
+
+        // Opcional: Aquí podrías agregar lógica para resetear alertas si se desmarca.
+        // Por ahora, solo guardamos el cambio.
 
         return response()->json([
             'completado' => $plan->completado

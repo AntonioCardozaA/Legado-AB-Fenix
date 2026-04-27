@@ -727,6 +727,9 @@
     // Actividades próximas a vencer (próximos 7 días)
     $fechasProximas = 0;
     foreach($planes as $plan) {
+        if ($plan->completado) {
+            continue; 
+        }
         foreach(['pcm1', 'pcm2', 'pcm3', 'pcm4'] as $pcm) {
             $fechaCampo = 'fecha_' . $pcm;
             if($plan->$fechaCampo) {
@@ -742,6 +745,9 @@
     // Actividades vencidas
     $actividadesVencidas = 0;
     foreach($planes as $plan) {
+         if($plan->completado) {
+        continue; 
+    }
         foreach(['pcm1', 'pcm2', 'pcm3', 'pcm4'] as $pcm) {
             $fechaCampo = 'fecha_' . $pcm;
             if($plan->$fechaCampo) {
@@ -988,13 +994,28 @@
                                         @if($fecha)
                                             @php
                                                 $dias = \Carbon\Carbon::now()->startOfDay()->diffInDays(\Carbon\Carbon::parse($fecha)->startOfDay(), false);
-                                                $fechaClass = '';
-                                                if($dias < 0) $fechaClass = 'fecha-vencida';
-                                                elseif($dias <= 3) $fechaClass = 'fecha-proxima';
-                                                elseif($dias <= 7) $fechaClass = 'fecha-cercana';
-                                                else $fechaClass = 'fecha-futura';
-                                            @endphp
-                                            <span class="{{ $fechaClass }}" title="{{ $dias < 0 ? 'Vencida hace ' . abs($dias) . ' días' : ($dias <= 3 ? 'Vence en ' . $dias . ' días' : ($dias <= 7 ? 'Vence en ' . $dias . ' días' : 'Vence en ' . $dias . ' días')) }}">
+                                                    $fechaClass = 'fecha-futura'; // Clase por defecto para completadas o sin problemas
+                                                    $tooltip = '';
+
+                                                    if (!$plan->completado) {
+                                                        // Sólo calcular vencimiento si NO está completada
+                                                        if ($dias < 0) {
+                                                            $fechaClass = 'fecha-vencida';
+                                                            $tooltip = 'Vencida hace ' . abs($dias) . ' días';
+                                                        } elseif ($dias <= 3) {
+                                                            $fechaClass = 'fecha-proxima';
+                                                            $tooltip = 'Vence en ' . $dias . ' días';
+                                                        } elseif ($dias <= 7) {
+                                                            $fechaClass = 'fecha-cercana';
+                                                            $tooltip = 'Vence en ' . $dias . ' días';
+                                                        } else {
+                                                            $tooltip = 'Vence en ' . $dias . ' días';
+                                                        }
+                                                    } else {
+                                                        $tooltip = 'Actividad Completada'; // Mensaje especial para completadas
+                                                    }
+                                                @endphp
+                                          <span class="{{ $fechaClass }}" title="{{ $tooltip }}">
                                                 {{ \Carbon\Carbon::parse($fecha)->format('d/m/Y') }}
                                             </span>
                                         @else

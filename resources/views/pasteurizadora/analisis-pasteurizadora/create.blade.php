@@ -89,7 +89,6 @@
             @csrf
 
             <input type="hidden" name="linea_id" value="{{ $linea->id }}">
-            <input type="hidden" name="seguir_flujo_revision" value="1">
 
             <div>
                 <label for="modulo" class="block text-sm font-semibold text-gray-700 mb-2">
@@ -165,10 +164,6 @@
                 @enderror
             </div>
 
-            <div id="siguiente-revision-alert"
-                 class="hidden bg-blue-50 border border-blue-200 rounded-xl p-4 text-sm text-blue-800">
-            </div>
-
             <div class="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl p-6 border border-indigo-200">
                 <div class="mb-4">
                     <h3 class="text-sm font-bold text-indigo-900 mb-4 flex items-center gap-2">
@@ -226,7 +221,7 @@
                             Checklist de piezas a revisar
                         </label>
                         <p class="text-sm text-blue-800 mb-3">
-                            Marque una o varias piezas para este registro. Las piezas ya revisadas en este lado y nivel aparecen bloqueadas.
+                            Marque las piezas revisadas. Cada tarjeta corresponde a una pieza del componente.
                         </p>
                         <div id="remaining-info" class="bg-blue-100 border border-blue-400 rounded-lg p-3 mb-3 {{ $alreadyReviewedCount > 0 ? '' : 'hidden' }}">
                             <p class="text-sm text-blue-800">
@@ -247,7 +242,7 @@
                         </div>
                     </div>
 
-                    <div id="componentes-checklist" class="grid grid-cols-2 md:grid-cols-3 gap-3"></div>
+                    <div id="componentes-checklist" class="grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
                     <input type="hidden" name="componentes_revisados" id="componentes_revisados_input" value="{{ json_encode(old('componentes_revisados', [])) }}">
 
                     <div id="lados-pendientes-alert"
@@ -408,10 +403,32 @@ function actualizarResumen() {
     document.getElementById('summary-nivel').innerHTML = nivelSelect.value ? nivelLabel(nivelSelect.value) : '<span class="text-gray-400">No especificado</span>';
 }
 
+function actualizarEstadoVisualChecklist() {
+    document.querySelectorAll('[data-checklist-item]').forEach((item) => {
+        const checkbox = item.querySelector('.componente-checkbox');
+        if (!checkbox || checkbox.disabled) {
+            return;
+        }
+
+        if (checkbox.checked) {
+            item.className = 'block rounded-xl border border-blue-500 bg-blue-50 shadow-md ring-2 ring-blue-200 transition cursor-pointer overflow-hidden';
+        } else {
+            item.className = 'block rounded-xl border border-gray-200 bg-white hover:border-blue-400 hover:shadow-md transition cursor-pointer overflow-hidden';
+        }
+    });
+}
+
 function actualizarComponentesRevisados() {
     const checkboxes = document.querySelectorAll('input.componente-checkbox:checked:not(:disabled)');
     selectedComponentes = Array.from(checkboxes).map(cb => parseInt(cb.dataset.componentValue, 10));
     componentesRevisadosInput.value = JSON.stringify(selectedComponentes);
+
+    const selectedCount = document.getElementById('selected-count');
+    if (selectedCount) {
+        selectedCount.textContent = selectedComponentes.length;
+    }
+
+    actualizarEstadoVisualChecklist();
 }
 
 function renderEstadoRevision(estadoRevision) {
@@ -420,10 +437,10 @@ function renderEstadoRevision(estadoRevision) {
         const data = estadoRevision?.[nivel] || { completado: false, lados_pendientes: ['VAPOR', 'PASILLO'] };
         const badge = card.querySelector('[data-status-badge]');
         const detail = card.querySelector('[data-status-detail]');
-
-        card.className = `p-4 rounded-lg ${data.completado ? 'bg-green-100 border border-green-300' : 'bg-white border border-indigo-200'}`;
-        badge.className = `inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold ${data.completado ? 'bg-green-600 text-white' : 'bg-amber-600 text-white'}`;
+        
         badge.innerHTML = `<i class="fas ${data.completado ? 'fa-check-circle' : 'fa-clock'}"></i>${data.completado ? 'Completado' : 'Pendiente'}`;
+        
+        card.className = `p-4 rounded-lg ${data.completado ? 'bg-green-100 border border-green-300' : 'bg-white border border-indigo-200'}`;
 
         if (data.completado) {
             detail.innerHTML = '<div class="text-sm text-green-700"><i class="fas fa-check mr-1"></i>Ambos lados revisados correctamente</div>';
@@ -461,17 +478,27 @@ function renderChecklist(totalPiezas, revisadas, reviewedCount, remainingPiezas,
         const yaRevisado = revisadasNormalizadas.includes(i);
         const seleccionado = selectedComponentes.includes(i);
         const label = document.createElement('label');
-        label.className = `flex items-center gap-3 p-3 bg-white rounded-lg border ${yaRevisado ? 'border-gray-200 bg-gray-50 opacity-60' : 'border-gray-200 hover:border-blue-400 hover:shadow-md'} transition cursor-pointer`;
+        label.dataset.checklistItem = i;
+        label.className = `block rounded-xl border ${yaRevisado ? 'border-gray-200 bg-gray-50 opacity-60' : seleccionado ? 'border-blue-500 bg-blue-50 shadow-md ring-2 ring-blue-200' : 'border-gray-200 bg-white hover:border-blue-400 hover:shadow-md'} transition cursor-pointer overflow-hidden`;
         label.innerHTML = `
-            <input type="checkbox"
-                   data-component-value="${i}"
-                   class="w-5 h-5 text-blue-600 rounded cursor-pointer focus:ring-blue-500 componente-checkbox"
-                   ${yaRevisado ? 'disabled checked' : seleccionado ? 'checked' : ''}>
-            <span class="flex-1 ${yaRevisado ? 'text-gray-400 line-through' : 'text-gray-700 font-medium'}">
-                <i class="fas fa-cube text-blue-500 mr-2"></i>
-                ${componenteNombre} #${i}
-                ${yaRevisado ? '<span class="ml-2 text-xs text-green-600">(Ya revisado)</span>' : ''}
-            </span>
+            <div class="flex items-center justify-between gap-3 p-4">
+                <div class="min-w-0 flex-1">
+                    <div class="${yaRevisado ? 'text-gray-400 line-through' : 'text-gray-800'} font-semibold leading-tight">
+                        ${componenteNombre}
+                    </div>
+                    <div class="text-sm ${yaRevisado ? 'text-gray-400' : 'text-blue-700'}">
+                        Pieza #${i}
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    ${yaRevisado ? '<span class="inline-flex items-center px-2 py-1 text-xs font-semibold rounded-full bg-gray-200 text-gray-600">Bloqueado</span>' : ''}
+                    <input type="checkbox"
+                           data-component-value="${i}"
+                           aria-label="${componenteNombre} pieza ${i}"
+                           class="w-5 h-5 text-blue-600 rounded cursor-pointer focus:ring-blue-500 componente-checkbox"
+                           ${yaRevisado ? 'disabled checked' : seleccionado ? 'checked' : ''}>
+                </div>
+            </div>
         `;
         componentesChecklist.appendChild(label);
     }
@@ -487,6 +514,8 @@ function renderChecklist(totalPiezas, revisadas, reviewedCount, remainingPiezas,
     document.getElementById('already-reviewed-badges').innerHTML = revisadasNormalizadas
         .map((value) => `<span class="inline-flex items-center px-2 py-0.5 bg-blue-200 text-blue-800 rounded text-xs">#${value}</span>`)
         .join('');
+
+    actualizarComponentesRevisados();
 }
 
 function renderLadosPendientes(ladosPendientes, ladoActual) {
@@ -511,111 +540,183 @@ function renderLadosPendientes(ladosPendientes, ladoActual) {
     `;
 }
 
-async function cargarContextoRevision() {
-    actualizarResumen();
-
-    if (!moduloSelect.value || !componenteSelect.value) {
-        checklistContainer.classList.add('hidden');
-        renderEstadoRevision({});
-        return;
-    }
-
-    const response = await fetch(revisionContextUrl, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-        },
-        body: JSON.stringify({
-            linea_id: {{ $linea->id }},
-            modulo: moduloSelect.value,
-            componente: componenteSelect.value,
-            nivel: nivelSelect.value || null,
-            lado: ladoSelect.value || null
-        })
+function seleccionarTodosLosDisponibles() {
+    document.querySelectorAll('.componente-checkbox:not(:disabled)').forEach((checkbox) => {
+        checkbox.checked = true;
     });
-
-    const data = await response.json();
-    if (!data.success) {
-        return;
-    }
-
-    if (data.nivel && nivelSelect.value !== data.nivel) {
-        nivelSelect.value = data.nivel;
-    }
-
-    if (data.lado && ladoSelect.value !== data.lado) {
-        ladoSelect.value = data.lado;
-    }
-
-    actualizarResumen();
-    renderEstadoRevision(data.estado_revision || {});
-    renderChecklist(
-        data.total_piezas || 0,
-        data.already_reviewed_components || [],
-        data.already_reviewed || 0,
-        data.remaining_piezas || 0,
-        data.nombre_componente || componenteSelect.options[componenteSelect.selectedIndex]?.text?.split(' (')[0] || data.componente
-    );
-    renderLadosPendientes(data.lados_pendientes || [], data.lado);
-
-    const siguienteAlert = document.getElementById('siguiente-revision-alert');
-    if (data.siguiente_revision?.nivel && data.siguiente_revision?.lado) {
-        siguienteAlert.classList.remove('hidden');
-        siguienteAlert.innerHTML = `
-            <i class="fas fa-magic mr-2"></i>
-            Se cargó automáticamente la siguiente revisión pendiente:
-            <strong>${nivelLabel(data.siguiente_revision.nivel)}</strong>,
-            <strong>Lado ${ladoLabel(data.siguiente_revision.lado)}</strong>.
-        `;
-    } else {
-        siguienteAlert.classList.add('hidden');
-        siguienteAlert.innerHTML = '';
-    }
     actualizarComponentesRevisados();
 }
 
-document.addEventListener('DOMContentLoaded', function() {
-    [moduloSelect, componenteSelect, nivelSelect, ladoSelect].forEach((field) => {
-        field.addEventListener('change', cargarContextoRevision);
+function limpiarSeleccionChecklist() {
+    document.querySelectorAll('.componente-checkbox:not(:disabled)').forEach((checkbox) => {
+        checkbox.checked = false;
     });
+    actualizarComponentesRevisados();
+}
 
+// Función para inicializar los checkboxes si ya hay datos
+function inicializarCheckboxesSiHayDatos() {
+    const modulo = document.getElementById('modulo')?.value;
+    const componente = document.getElementById('componente')?.value;
+    const nivel = document.getElementById('nivel')?.value;
+    const lado = document.getElementById('lado')?.value;
+    
+    console.log('Inicializando con:', { modulo, componente, nivel, lado });
+    
+    // Si todos los campos necesarios están presentes, cargar los checkboxes
+    if (modulo && componente && nivel && lado) {
+        console.log('Cargando checkboxes automáticamente...');
+        setTimeout(() => {
+            cargarContextoRevision();
+        }, 500);
+    } else if (modulo && componente) {
+        // Si solo tenemos módulo y componente, intentar obtener el próximo nivel/lado
+        console.log('Intentando obtener próximo nivel/lado...');
+        setTimeout(() => {
+            cargarContextoRevision();
+        }, 500);
+    }
+}
+
+// Función principal para cargar el contexto de revisión
+async function cargarContextoRevision() {
+    const modulo = moduloSelect.value;
+    const componente = componenteSelect.value;
+    
+    if (!modulo || !componente) {
+        if (checklistContainer) checklistContainer.classList.add('hidden');
+        return;
+    }
+    
+    try {
+        const response = await fetch(revisionContextUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+            },
+            body: JSON.stringify({
+                linea_id: {{ $linea->id }},
+                modulo: modulo,
+                componente: componente,
+                nivel: nivelSelect.value || null,
+                lado: ladoSelect.value || null
+            })
+        });
+
+        const data = await response.json();
+        if (!data.success) {
+            console.error('Error en respuesta:', data);
+            return;
+        }
+
+        // Actualizar los selects con los valores sugeridos si están vacíos
+        if (data.nivel && !nivelSelect.value) {
+            nivelSelect.value = data.nivel;
+        }
+        
+        if (data.lado && !ladoSelect.value) {
+            ladoSelect.value = data.lado;
+        }
+
+        actualizarResumen();
+        renderEstadoRevision(data.estado_revision || {});
+        renderChecklist(
+            data.total_piezas || 0,
+            data.already_reviewed_components || [],
+            data.already_reviewed || 0,
+            data.remaining_piezas || 0,
+            data.nombre_componente || componenteSelect.options[componenteSelect.selectedIndex]?.text?.split(' (')[0] || data.componente
+        );
+        renderLadosPendientes(data.lados_pendientes || [], data.lado);
+        
+        // Mostrar el checklist container si hay piezas
+        if (checklistContainer && data.total_piezas > 0) {
+            checklistContainer.classList.remove('hidden');
+        }
+    } catch (error) {
+        console.error('Error al cargar contexto:', error);
+    }
+}
+
+// Inicializar cuando el DOM esté listo
+document.addEventListener('DOMContentLoaded', function() {
+    // Configurar event listeners
+    if (moduloSelect) moduloSelect.addEventListener('change', cargarContextoRevision);
+    if (componenteSelect) componenteSelect.addEventListener('change', cargarContextoRevision);
+    if (nivelSelect) nivelSelect.addEventListener('change', cargarContextoRevision);
+    if (ladoSelect) ladoSelect.addEventListener('change', cargarContextoRevision);
+    
+    // Registrar eventos para los botones de selección
+    const selectAllBtn = document.getElementById('select-all-componentes');
+    if (selectAllBtn) selectAllBtn.addEventListener('click', seleccionarTodosLosDisponibles);
+    
+    const clearBtn = document.getElementById('clear-componentes');
+    if (clearBtn) clearBtn.addEventListener('click', limpiarSeleccionChecklist);
+    
+    // Configurar preview de imágenes
     const inputFotos = document.querySelector('input[name="evidencia_fotos[]"]');
     const previewFotos = document.getElementById('preview_fotos');
-
+    
     if (inputFotos && previewFotos) {
         inputFotos.addEventListener('change', function() {
             previewFotos.innerHTML = '';
             Array.from(this.files).forEach((file) => {
-                if (!file.type.startsWith('image/')) {
-                    return;
+                if (file.type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const div = document.createElement('div');
+                        div.className = 'relative group';
+                        const img = document.createElement('img');
+                        img.src = e.target.result;
+                        img.className = 'w-20 h-20 object-cover rounded-lg border border-gray-200';
+                        
+                        const removeBtn = document.createElement('button');
+                        removeBtn.type = 'button';
+                        removeBtn.className = 'absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition';
+                        removeBtn.innerHTML = '×';
+                        removeBtn.onclick = function() {
+                            div.remove();
+                            const dt = new DataTransfer();
+                            const files = Array.from(inputFotos.files);
+                            const fileIndex = files.indexOf(file);
+                            files.splice(fileIndex, 1);
+                            files.forEach(f => dt.items.add(f));
+                            inputFotos.files = dt.files;
+                        };
+                        
+                        div.appendChild(img);
+                        div.appendChild(removeBtn);
+                        previewFotos.appendChild(div);
+                    };
+                    reader.readAsDataURL(file);
                 }
-
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    const img = document.createElement('img');
-                    img.src = e.target.result;
-                    img.className = 'w-20 h-20 object-cover rounded-lg border border-gray-200';
-                    previewFotos.appendChild(img);
-                };
-                reader.readAsDataURL(file);
             });
         });
     }
-
-    document.getElementById('analisisForm').addEventListener('submit', function(e) {
-        const seleccionables = document.querySelectorAll('input.componente-checkbox:not(:disabled)');
-        const seleccionados = document.querySelectorAll('input.componente-checkbox:checked:not(:disabled)');
-
-        if (seleccionables.length > 0 && seleccionados.length === 0) {
-            e.preventDefault();
-            alert('Debe seleccionar al menos un componente revisado.');
-            return;
-        }
-
-        actualizarComponentesRevisados();
-    });
-
+    
+    // Validación del formulario
+    const form = document.getElementById('analisisForm');
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            const checkboxes = document.querySelectorAll('input.componente-checkbox:checked:not(:disabled)');
+            const totalDisponibles = document.querySelectorAll('input.componente-checkbox:not(:disabled)').length;
+            
+            if (totalDisponibles > 0 && checkboxes.length === 0) {
+                e.preventDefault();
+                alert('Debe seleccionar al menos una pieza revisada.');
+            }
+            
+            actualizarComponentesRevisados();
+        });
+    }
+    
+    // Inicializar checkboxes si hay datos precargados
+    setTimeout(() => {
+        inicializarCheckboxesSiHayDatos();
+    }, 300);
+    
+    // Cargar contexto inicial
     cargarContextoRevision();
 });
 </script>

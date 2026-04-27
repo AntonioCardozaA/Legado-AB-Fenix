@@ -209,31 +209,6 @@ class AnalisisPasteurizadoraController extends Controller
             $this->marcarRegistrosAnterioresComoResueltos($analisis);
         }
         
-        $continuarFlujo = $request->boolean('seguir_flujo_revision') || $request->boolean('es_quick');
-        $siguienteRevision = null;
-
-        if ($continuarFlujo) {
-            $siguienteRevision = AnalisisPasteurizadora::getSiguienteRevisionContexto(
-                $validated['linea_id'],
-                $validated['modulo'],
-                $validated['componente'],
-                $validated['nivel'] ?? null,
-                $validated['lado'] ?? null
-            );
-        }
-
-        if ($siguienteRevision) {
-            return redirect()
-                ->route('pasteurizadora.analisis-pasteurizadora.create', [
-                    'linea' => $validated['linea_id'],
-                    'modulo' => $validated['modulo'],
-                    'componente' => $validated['componente'],
-                    'lado' => $siguienteRevision['lado'],
-                    'nivel' => $siguienteRevision['nivel'],
-                    'fecha' => $validated['fecha_analisis']
-                ])
-                ->with('success', 'Análisis registrado correctamente. Se cargó automáticamente la siguiente revisión pendiente.');
-        }
         
         // Redirigir al índice con mensaje de éxito
         return redirect()
@@ -622,6 +597,57 @@ class AnalisisPasteurizadoraController extends Controller
         ]);
     }
 
+    public function getPiezasDisponiblesAjax(Request $request)
+    {
+        $request->validate([
+            'linea_id' => 'required|exists:lineas,id',
+            'modulo' => 'required|integer|min:1',
+            'componente' => 'required|string',
+            'lado' => 'nullable|in:VAPOR,PASILLO',
+            'nivel' => 'nullable|in:SUPERIOR,INFERIOR',
+        ]);
+
+        $linea = Linea::findOrFail($request->linea_id);
+        
+        // Resolver el componente
+        $resolved = AnalisisPasteurizadora::resolveComponentePorLinea($linea->nombre, $request->componente);
+        if (!$resolved) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Componente no válido'
+            ], 400);
+        }
+
+        $componenteKey = $resolved['key'];
+        $totalPiezas = $resolved['config']['cantidad'];
+        
+        // Obtener piezas ya revisadas para esta combinación nivel/lado
+        $alreadyReviewedComponents = AnalisisPasteurizadora::getAlreadyReviewedComponents(
+            $request->linea_id,
+            $request->modulo,
+            $componenteKey,
+            $request->lado,
+            $request->nivel
+        );
+        
+        // Calcular piezas disponibles (pendientes de revisar)
+        $piezasDisponibles = [];
+        for ($i = 1; $i <= $totalPiezas; $i++) {
+            if (!in_array($i, $alreadyReviewedComponents)) {
+                $piezasDisponibles[] = $i;
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'total_piezas' => $totalPiezas,
+            'piezas_disponibles' => $piezasDisponibles,
+            'piezas_ya_revisadas' => $alreadyReviewedComponents,
+            'cantidad_disponibles' => count($piezasDisponibles),
+            'cantidad_revisadas' => count($alreadyReviewedComponents),
+        ]);
+    }
+
     public function getRevisionContextAjax(Request $request)
     {
         $request->validate([
@@ -723,41 +749,67 @@ class AnalisisPasteurizadoraController extends Controller
         return view('pasteurizadora.analisis-pasteurizadora.create', $this->buildCreateViewData($linea, $request));
     }
 
-    private function buildCreateViewData(Linea $linea, Request $request, bool $modoQuick = false): array
-    {
-        return array_merge([
-            'linea' => $linea,
-            'fechaSugerida' => $request->get('fecha', date('Y-m-d')),
-            'modoQuick' => $modoQuick,
-        ], $this->resolveRevisionContext(
-            $linea,
-            $request->get('modulo'),
-            $request->get('componente'),
-            $request->get('lado'),
-            $request->get('nivel'),
-        ));
-    }
+private function buildCreateViewData(Linea $linea, Request $request, bool $modoQuick = false): array
+{
+    // Obtener valores de la request o usar valores por defecto
+    $modulo = $request->get('modulo');
+    $componente = $request->get('componente');
+    $lado = $request->get('lado');
+    $nivel = $request->get('nivel');
+    
+    // Si no hay nivel/lado seleccionado, obtener el siguiente contexto disponible
+    $contexto = $this->resolveRevisionContext($linea, $modulo, $componente, $lado, $nivel);
+    
+    // Asegurar que los valores se propaguen correctamente
+    return array_merge([
+        'linea' => $linea,
+        'fechaSugerida' => $request->get('fecha', date('Y-m-d')),
+        'modoQuick' => $modoQuick,
+        'modulo_seleccionado' => $modulo,
+        'componente_seleccionado' => $componente,
+    ], $contexto);
+}
 
-    private function resolveRevisionContext(Linea $linea, $modulo, $componente, $lado, $nivel): array
-    {
-        $resolved = AnalisisPasteurizadora::resolveComponentePorLinea($linea->nombre, $componente);
-        $componenteKey = $resolved['key'] ?? $componente;
-        $componentConfig = $resolved['config'] ?? null;
-        $siguienteRevision = null;
-        $estadoRevision = [];
-        $effectiveNivel = $nivel;
-        $effectiveLado = $lado;
-        $remainingPiezas = 0;
-        $alreadyReviewedCount = 0;
-        $alreadyReviewedComponents = [];
-        $ladosPendientes = [];
+private function resolveRevisionContext(Linea $linea, $modulo, $componente, $lado, $nivel): array
+{
+    $resolved = AnalisisPasteurizadora::resolveComponentePorLinea($linea->nombre, $componente);
+    $componenteKey = $resolved['key'] ?? $componente;
+    $componentConfig = $resolved['config'] ?? null;
+    $siguienteRevision = null;
+    $estadoRevision = [];
+    $effectiveNivel = $nivel;
+    $effectiveLado = $lado;
+    $remainingPiezas = 0;
+    $alreadyReviewedCount = 0;
+    $alreadyReviewedComponents = [];
+    $ladosPendientes = [];
 
-        if ($modulo && $componenteKey && $componentConfig) {
-            $estadoRevision = AnalisisPasteurizadora::getEstadoRevision($linea->id, $modulo, $componenteKey);
-            $siguienteRevision = AnalisisPasteurizadora::getSiguienteRevisionContexto($linea->id, $modulo, $componenteKey, $nivel, $lado);
-            $effectiveNivel = $effectiveNivel ?: ($siguienteRevision['nivel'] ?? null);
-            $effectiveLado = $effectiveLado ?: ($siguienteRevision['lado'] ?? null);
+    // Si hay módulo y componente configurado, calcular estado real
+    if ($modulo && $componenteKey && $componentConfig) {
+        $estadoRevision = AnalisisPasteurizadora::getEstadoRevision($linea->id, $modulo, $componenteKey);
+        $siguienteRevision = AnalisisPasteurizadora::getSiguienteRevisionContexto($linea->id, $modulo, $componenteKey, $nivel, $lado);
+        
+        // Si no hay nivel/lado específico, usar el siguiente disponible
+        if (!$effectiveNivel && $siguienteRevision) {
+            $effectiveNivel = $siguienteRevision['nivel'];
+        }
+        if (!$effectiveLado && $siguienteRevision) {
+            $effectiveLado = $siguienteRevision['lado'];
+        }
 
+        // Si después de todo sigue sin haber nivel/lado, buscar cualquier pendiente
+        if (!$effectiveNivel || !$effectiveLado) {
+            foreach ($estadoRevision as $niv => $info) {
+                if (!empty($info['lados_pendientes'])) {
+                    $effectiveNivel = $niv;
+                    $effectiveLado = $info['lados_pendientes'][0];
+                    break;
+                }
+            }
+        }
+
+        // Calcular piezas solo si tenemos nivel y lado
+        if ($effectiveNivel && $effectiveLado) {
             $alreadyReviewedComponents = AnalisisPasteurizadora::getAlreadyReviewedComponents(
                 $linea->id,
                 $modulo,
@@ -779,25 +831,24 @@ class AnalisisPasteurizadoraController extends Controller
                 $effectiveLado,
                 $effectiveNivel
             );
-            $ladosPendientes = $effectiveNivel
-                ? AnalisisPasteurizadora::getLadosPendientes($linea->id, $modulo, $componenteKey, $effectiveNivel)
-                : [];
+            $ladosPendientes = AnalisisPasteurizadora::getLadosPendientes($linea->id, $modulo, $componenteKey, $effectiveNivel);
         }
-
-        return [
-            'modulo' => $modulo,
-            'componente' => $componenteKey,
-            'componenteKey' => $componenteKey,
-            'nivel' => $effectiveNivel,
-            'lado' => $effectiveLado,
-            'totalPiezas' => $componentConfig['cantidad'] ?? 0,
-            'remainingPiezas' => $remainingPiezas,
-            'alreadyReviewedCount' => $alreadyReviewedCount,
-            'alreadyReviewedComponents' => $alreadyReviewedComponents,
-            'ladosPendientes' => $ladosPendientes,
-            'nombreComponente' => $componentConfig['nombre'] ?? $componente,
-            'estadoRevision' => $estadoRevision,
-            'siguienteRevision' => $siguienteRevision,
-        ];
     }
+
+    return [
+        'modulo' => $modulo,
+        'componente' => $componenteKey,
+        'componenteKey' => $componenteKey,
+        'nivel' => $effectiveNivel,
+        'lado' => $effectiveLado,
+        'totalPiezas' => $componentConfig['cantidad'] ?? 0,
+        'remainingPiezas' => $remainingPiezas,
+        'alreadyReviewedCount' => $alreadyReviewedCount,
+        'alreadyReviewedComponents' => $alreadyReviewedComponents,
+        'ladosPendientes' => $ladosPendientes,
+        'nombreComponente' => $componentConfig['nombre'] ?? $componente,
+        'estadoRevision' => $estadoRevision,
+        'siguienteRevision' => $siguienteRevision,
+    ];
+}
 }

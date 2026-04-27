@@ -157,4 +157,14 @@ class PlanAccion extends Model
         
         $this->saveQuietly();
     }
+     public function scopeActivas($query)
+    {
+        return $query->where('completado', false);
+    }
+
+    public function scopeCompletadas($query)
+    {
+        return $query->where('completado', true);
+    }
+
 }
