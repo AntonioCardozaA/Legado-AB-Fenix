@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Dashboard')
+@section('title', 'Dashboard - Lavadoras ')
 
 @section('content')
 <style>
@@ -518,6 +518,12 @@
 
 <div class="dashboard-container">
     {{-- Header --}}
+        <div class="mb-4">
+        <a href="{{ route('dashboard') }}" class="inline-flex items-center gap-2 text-gray-600 hover:text-blue-600 transition">
+            <i class="fas fa-arrow-left"></i>
+            <span>Volver</span>
+        </a>
+    </div>
     <div class="mb-6">
         <div class="flex items-center justify-between">
             <div>

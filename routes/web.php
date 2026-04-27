@@ -37,8 +37,26 @@ Route::middleware(['auth'])->group(function () {
     | Dashboard
     |--------------------------------------------------------------------------
     */
+    // Ruta principal - Página de selección de módulos
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+    // Ruta del módulo Lavadora
+    Route::get('/dashboard/lavadora', [DashboardController::class, 'lavadora'])->name('dashboard.lavadora');
+
+    // Ruta del módulo Pasteurizadora  
+    Route::get('/dashboard/pasteurizadora', [DashboardController::class, 'pasteurizadora'])->name('dashboard.pasteurizadora');
+
+    // Rutas que el layout está buscando (compatibilidad)
     Route::get('/lavadora/dashboard', [DashboardController::class, 'lavadora'])->name('lavadora.dashboard');
+    Route::get('/pasteurizadora/dashboard', [DashboardController::class, 'pasteurizadora'])->name('pasteurizadora.dashboard');
+
+    // Si necesitas mantener compatibilidad con enlaces existentes
+    Route::get('/dashboard-antiguo', function() {
+        return redirect()->route('dashboard.lavadora');
+    });
+
+    // API Routes
+    Route::get('/api/danos-tendencia', [DashboardController::class, 'getDanosTendenciaApi'])->name('api.danos-tendencia');
     
     /*
     |--------------------------------------------------------------------------

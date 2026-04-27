@@ -15,14 +15,111 @@ use Carbon\Carbon;
 class DashboardController extends Controller
 {
     /**
-     * Muestra el dashboard principal con todos los módulos integrados.
+     * Muestra la vista principal de selección de módulos.
      */
-    public function index(Request $request)
+    public function index()
     {
-        // ============================================================
-        // SECCIÓN LAVADORA (Código existente)
-        // ============================================================
+        // Configuración de módulos disponibles (escalable para futuro)
+      $modulos = [
+    [
+        'id' => 'lavadora',
+        'nombre' => 'Lavadoras Industriales',
+        'descripcion' => 'Monitoreo de elongaciones, análisis de componentes, plan de acción y métricas de rendimiento para líneas L-04 a L-13.',
+        'icono' => 'fa-industry', // Ícono de FontAwesome como fallback
+        'imagen_personalizada' => true, // Indicamos que usaremos imagen personalizada
+        'icono_imagen' => 'images/icono-maquina.png', // Ruta de la imagen
+        'color' => 'blue',
+        'ruta' => route('dashboard.lavadora'),
+        'estadisticas' => $this->getLavadoraStats(),
+        'activo' => true
+    ],
+    [
+        'id' => 'pasteurizadora',
+        'nombre' => 'Pasteurizadoras',
+        'descripcion' => 'Control de componentes, análisis predictivo, gestión de mantenimiento y seguimiento de estado para líneas P-03 a P-14.',
+        'icono' => 'fa-temperature-high', // Ícono de FontAwesome como fallback
+        'imagen_personalizada' => true, // Indicamos que usaremos imagen personalizada
+        'icono_imagen' => 'images/icono_pas.png', // Ruta de la imagen (cambia el nombre según tu archivo)
+        'color' => 'orange',
+        'ruta' => route('dashboard.pasteurizadora'),
+        'estadisticas' => $this->getPasteurizadoraStats(),
+        'activo' => true
+    ]
+            // Aquí puedes agregar más módulos en el futuro:
+            // [
+            //     'id' => 'nuevo-modulo',
+            //     'nombre' => 'Nuevo Módulo',
+            //     'descripcion' => 'Descripción del nuevo módulo',
+            //     'icono' => 'fa-cogs',
+            //     'color' => 'green',
+            //     'ruta' => route('nuevo-modulo.dashboard'),
+            //     'estadisticas' => $this->getNuevoModuloStats(),
+            //     'activo' => true
+            // ],
+        ];
 
+        return view('dashboard-modulos', compact('modulos'));
+    }
+
+    /**
+     * Obtiene estadísticas resumidas para el módulo de lavadoras.
+     */
+    private function getLavadoraStats()
+    {
+        $lineasLavadora = Linea::where('activo', true)
+            ->whereIn('nombre', ['L-04', 'L-05', 'L-06', 'L-07', 'L-08', 'L-09', 'L-12', 'L-13'])
+            ->orderBy('nombre')
+            ->get();
+
+        $alertasCriticas = 0;
+        $enRiesgo = 0;
+        $buenEstado = 0;
+
+        foreach ($lineasLavadora as $linea) {
+            $estado = $this->calcularEstadoLavadora($linea->id);
+            if ($estado['nivel'] === 'critico') {
+                $alertasCriticas++;
+            } elseif ($estado['nivel'] === 'riesgo') {
+                $enRiesgo++;
+            } else {
+                $buenEstado++;
+            }
+        }
+
+        return [
+            'total_equipos' => $lineasLavadora->count(),
+            'alertas_criticas' => $alertasCriticas,
+            'en_riesgo' => $enRiesgo,
+            'buen_estado' => $buenEstado,
+            'ultima_actualizacion' => now()->format('d/m/Y H:i')
+        ];
+    }
+
+    /**
+     * Obtiene estadísticas resumidas para el módulo de pasteurizadoras.
+     */
+    private function getPasteurizadoraStats()
+    {
+        $pasteurizadorasPermitidas = ['P-03', 'P-04', 'P-05', 'P-06', 'P-07', 'P-08', 'P-09', 'P-10', 'P-11', 'P-12', 'P-13', 'P-14'];
+        $pasteurizadoras = Linea::whereIn('nombre', $pasteurizadorasPermitidas)->get();
+        $analisis = AnalisisPasteurizadora::with('linea')
+            ->where('resuelto_por_cambio', false)
+            ->get();
+
+        return [
+            'total_equipos' => $pasteurizadoras->count(),
+            'alertas_criticas' => $analisis->where('estado', 'Dañado - Requiere cambio')->count(),
+            'en_riesgo' => $analisis->whereIn('estado', ['Desgaste moderado', 'Desgaste severo'])->count(),
+            'buen_estado' => $analisis->where('estado', 'Buen estado')->count(),
+            'ultima_actualizacion' => now()->format('d/m/Y H:i')
+        ];
+    }
+
+    /**
+     * Muestra el dashboard completo de lavadoras.
+     */
+    public function lavadora(Request $request)
+    {
         // 1. Obtener todas las líneas de lavadora activas
         $lineasLavadora = Linea::where('activo', true)
             ->whereIn('nombre', ['L-04', 'L-05', 'L-06', 'L-07', 'L-08', 'L-09', 'L-12', 'L-13'])
@@ -53,10 +150,24 @@ class DashboardController extends Controller
         // 9. Datos para el análisis 52-12-4 (últimos registros)
         $analisis52124 = $this->getAnalisis52124($lineasLavadora);
 
-        // ============================================================
-        // SECCIÓN PASTEURIZADORA (NUEVO CÓDIGO)
-        // ============================================================
+        return view('dashboard-lavadora', compact(
+            'lineasLavadora',
+            'resumenGeneral',
+            'estadoLavadoras',
+            'rankingDanos',
+            'fallasPorLinea',
+            'componentesDanados',
+            'evolucionElongaciones',
+            'historicoRevisiones',
+            'analisis52124'
+        ));
+    }
 
+    /**
+     * Muestra el dashboard completo de pasteurizadoras.
+     */
+    public function pasteurizadora(Request $request)
+    {
         // Obtener las pasteurizadoras (P-03 a P-14)
         $pasteurizadorasPermitidas = ['P-03', 'P-04', 'P-05', 'P-06', 'P-07', 'P-08', 'P-09', 'P-10', 'P-11', 'P-12', 'P-13', 'P-14'];
         $pasteurizadoras = Linea::whereIn('nombre', $pasteurizadorasPermitidas)->get();
@@ -81,20 +192,7 @@ class DashboardController extends Controller
         // Estado detallado de cada pasteurizadora
         $estadoPasteurizadoras = $this->getEstadoPasteurizadoras($pasteurizadoras, $analisisPasteurizadora);
 
-        // ============================================================
-        // RETORNAR VISTA CON AMBOS CONJUNTOS DE DATOS
-        // ============================================================
-
-        return view('dashboard', compact(
-            'lineasLavadora',
-            'resumenGeneral',
-            'estadoLavadoras',
-            'rankingDanos',
-            'fallasPorLinea',
-            'componentesDanados',
-            'evolucionElongaciones',
-            'historicoRevisiones',
-            'analisis52124',
+        return view('dashboard-pasteurizadora', compact(
             'resumenPasteurizadora',
             'estadoPasteurizadoras'
         ));
@@ -199,11 +297,6 @@ class DashboardController extends Controller
         }
 
         return $estadoPasteurizadoras;
-    }
-
-    public function lavadora()
-    {
-        return view('lavadora.dashboard-lavadora');
     }
 
     /**
@@ -652,10 +745,5 @@ class DashboardController extends Controller
             'success' => true,
             'data' => $resultado
         ]);
-    }
-
-    public function dashboard()
-    {
-        return view('pasteurizadora.dashboard');
     }
 }
