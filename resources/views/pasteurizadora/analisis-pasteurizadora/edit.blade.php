@@ -15,7 +15,7 @@
                 Editar Análisis
             </h1>
         </div>
-        
+
         <div class="bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl p-4 border border-gray-200">
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
                 <div>
@@ -65,8 +65,8 @@
                     </label>
                     <select name="nivel" id="nivel" class="w-full rounded-lg border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500">
                         <option value="">Seleccionar nivel...</option>
-                        <option value="SUPERIOR" {{ old('nivel', $analisis->nivel) == 'SUPERIOR' ? 'selected' : '' }}>⬆️ Nivel Superior</option>
-                        <option value="INFERIOR" {{ old('nivel', $analisis->nivel) == 'INFERIOR' ? 'selected' : '' }}>⬇️ Nivel Inferior</option>
+                        <option value="SUPERIOR" {{ old('nivel', $analisis->nivel) == 'SUPERIOR' ? 'selected' : '' }}>â¬†ï¸ Nivel Superior</option>
+                        <option value="INFERIOR" {{ old('nivel', $analisis->nivel) == 'INFERIOR' ? 'selected' : '' }}>â¬‡ï¸ Nivel Inferior</option>
                     </select>
                     @error('nivel')<p class="text-red-500 text-sm mt-1">{{ $message }}</p>@enderror
                 </div>
@@ -78,8 +78,8 @@
                     </label>
                     <select name="lado" id="lado" class="w-full rounded-lg border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500" required>
                         <option value="">Seleccionar lado...</option>
-                        <option value="VAPOR" {{ old('lado', $analisis->lado) == 'VAPOR' ? 'selected' : '' }}>💨 Lado Vapor</option>
-                        <option value="PASILLO" {{ old('lado', $analisis->lado) == 'PASILLO' ? 'selected' : '' }}>🚶 Lado Pasillo</option>
+                        <option value="VAPOR" {{ old('lado', $analisis->lado) == 'VAPOR' ? 'selected' : '' }}>ðŸ’¨ Lado Vapor</option>
+                        <option value="PASILLO" {{ old('lado', $analisis->lado) == 'PASILLO' ? 'selected' : '' }}>ðŸš¶ Lado Pasillo</option>
                     </select>
                     @error('lado')<p class="text-red-500 text-sm mt-1">{{ $message }}</p>@enderror
                 </div>
@@ -89,7 +89,7 @@
                         <i class="far fa-calendar-alt text-blue-600 mr-1"></i>
                         Fecha de Análisis *
                     </label>
-                    <input type="date" name="fecha_analisis" id="fecha_analisis" 
+                    <input type="date" name="fecha_analisis" id="fecha_analisis"
                            value="{{ old('fecha_analisis', $analisis->fecha_analisis->format('Y-m-d')) }}"
                            required class="w-full rounded-lg border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500">
                     @error('fecha_analisis')<p class="text-red-500 text-sm mt-1">{{ $message }}</p>@enderror
@@ -98,9 +98,9 @@
                 <div>
                     <label for="numero_orden" class="block text-sm font-medium text-gray-700 mb-1">
                         <i class="fas fa-hashtag text-blue-600 mr-1"></i>
-                        Número de Orden *
+                        NÃºmero de Orden *
                     </label>
-                    <input type="text" name="numero_orden" id="numero_orden" 
+                    <input type="text" name="numero_orden" id="numero_orden"
                            value="{{ old('numero_orden', $analisis->numero_orden) }}"
                            maxlength="20" required
                            class="w-full rounded-lg border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500">
@@ -116,11 +116,11 @@
                         <option value="">Seleccionar estado...</option>
                         @foreach(\App\Models\AnalisisPasteurizadora::ESTADOS as $estado)
                             <option value="{{ $estado }}" {{ old('estado', $analisis->estado) == $estado ? 'selected' : '' }}>
-                                @if($estado == 'Buen estado') ✅ Buen estado
-                                @elseif($estado == 'Desgaste moderado') ⚠️ Desgaste moderado
-                                @elseif($estado == 'Desgaste severo') ⚠️ Desgaste severo
-                                @elseif($estado == 'Dañado - Requiere cambio') ❌ Dañado - Requiere cambio
-                                @else 🔄 Cambiado
+                                @if($estado == 'Buen estado') âœ… Buen estado
+                                @elseif($estado == 'Desgaste moderado') âš ï¸ Desgaste moderado
+                                @elseif($estado == 'Desgaste severo') âš ï¸ Desgaste severo
+                                @elseif($estado == 'DaÃ±ado - Requiere cambio') âŒ DaÃ±ado - Requiere cambio
+                                @else ðŸ”„ Cambiado
                                 @endif
                             </option>
                         @endforeach
@@ -133,7 +133,7 @@
                         <i class="fas fa-user text-blue-600 mr-1"></i>
                         Responsable
                     </label>
-                    <input type="text" name="responsable" id="responsable" 
+                    <input type="text" name="responsable" id="responsable"
                            value="{{ old('responsable', $analisis->responsable) }}"
                            class="w-full rounded-lg border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500">
                     @error('responsable')<p class="text-red-500 text-sm mt-1">{{ $message }}</p>@enderror
@@ -144,12 +144,17 @@
             @php
                 $componentes = \App\Models\AnalisisPasteurizadora::getComponentesPorLinea($analisis->linea->nombre);
                 $totalComponentes = $componentes[$analisis->componente]['cantidad'] ?? 0;
-                $componentesRevisados = $analisis->componentes_revisados ?? [];
-                
+                $componentesRevisados = \App\Models\AnalisisPasteurizadora::normalizarComponentesRevisados(
+                    $analisis->componentes_revisados,
+                    $totalComponentes
+                );
+
                 // Convertir a array de integers para comparación consistente
-                $componentesRevisados = array_map('intval', (array)$componentesRevisados);
+                if (empty($componentesRevisados) && $analisis->cantidad_componentes_revisados) {
+                    $componentesRevisados = range(1, min($analisis->cantidad_componentes_revisados, $totalComponentes));
+                }
             @endphp
-            
+
             @if($totalComponentes > 0)
             <div class="mb-6 p-4 bg-indigo-50 rounded-lg border border-indigo-200">
                 <h3 class="text-sm font-semibold text-indigo-800 mb-4">
@@ -159,8 +164,8 @@
                 <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
                     @for($i = 1; $i <= $totalComponentes; $i++)
                         <label class="flex items-center gap-3 p-3 bg-white rounded-lg border border-indigo-200 hover:border-indigo-400 hover:shadow-md transition cursor-pointer">
-                            <input type="checkbox" 
-                                   name="componentes_revisados[]" 
+                            <input type="checkbox"
+                                   name="componentes_revisados[]"
                                    value="{{ $i }}"
                                    {{ in_array($i, $componentesRevisados, true) ? 'checked' : '' }}
                                    class="w-4 h-4 text-indigo-600 rounded cursor-pointer focus:ring-indigo-500">
@@ -173,29 +178,6 @@
                 </div>
             </div>
             @endif
-
-            {{-- Cantidad de piezas revisadas --}}
-            @if($analisis->total_piezas && !$analisis->componentes_revisados)
-            <div class="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                <h3 class="text-sm font-semibold text-blue-800 mb-3">
-                    <i class="fas fa-clipboard-list mr-1"></i>
-                    Registro de Piezas
-                </h3>
-                <div>
-                    <label for="revisadas_piezas" class="block text-sm font-medium text-gray-700 mb-1">
-                        Piezas Revisadas
-                    </label>
-                    <input type="number" name="revisadas_piezas" id="revisadas_piezas"
-                           value="{{ old('revisadas_piezas', $analisis->revisadas_piezas) }}"
-                           min="0" max="{{ $analisis->total_piezas }}"
-                           class="w-full rounded-lg border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500">
-                    <p class="text-xs text-gray-500 mt-1">
-                        Total de piezas en el módulo: <span class="font-semibold">{{ $analisis->total_piezas }}</span>
-                    </p>
-                </div>
-            </div>
-            @endif
-
             <div class="mb-6">
                 <label for="actividad" class="block text-sm font-medium text-gray-700 mb-1">
                     <i class="fas fa-sticky-note text-blue-600 mr-1"></i>
@@ -216,9 +198,9 @@
                 <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                     @foreach($analisis->evidencia_fotos as $index => $foto)
                     <div class="relative group">
-                        <img src="{{ Storage::url($foto) }}" alt="Evidencia {{ $index + 1 }}" 
+                        <img src="{{ Storage::url($foto) }}" alt="Evidencia {{ $index + 1 }}"
                              class="w-full h-24 object-cover rounded-lg border border-gray-200">
-                        <button type="button" 
+                        <button type="button"
                                 onclick="eliminarFoto({{ $index }})"
                                 class="absolute top-1 right-1 bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
                             <i class="fas fa-times text-xs"></i>
@@ -270,26 +252,26 @@
         const preview = document.getElementById('preview_fotos');
         preview.innerHTML = '';
         const files = Array.from(this.files);
-        
+
         files.forEach(file => {
             if (!file.type.startsWith('image/')) return;
-            
+
             const reader = new FileReader();
             reader.onload = function(e) {
                 const container = document.createElement('div');
                 container.className = 'relative group';
                 container.innerHTML = `
                     <img src="${e.target.result}" class="w-20 h-20 object-cover rounded-lg border border-gray-200">
-                    <button type="button" class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 text-xs flex items-center justify-center" onclick="this.parentElement.remove()">×</button>
+                    <button type="button" class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 text-xs flex items-center justify-center" onclick="this.parentElement.remove()">Ã—</button>
                 `;
                 preview.appendChild(container);
             }
             reader.readAsDataURL(file);
         });
     });
-    
+
     function eliminarFoto(index) {
-        if (confirm('¿Eliminar esta imagen?')) {
+        if (confirm('Â¿Eliminar esta imagen?')) {
             const form = document.getElementById('deleteFotoForm');
             form.action = "/pasteurizadora/analisis-pasteurizadora/{{ $analisis->id }}/foto/" + index;
             form.submit();

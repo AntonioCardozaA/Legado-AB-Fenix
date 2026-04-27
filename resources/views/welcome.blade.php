@@ -389,38 +389,34 @@
 <main class="landing" id="main-start">
     <div class="hero">
         <!-- Nuevo badge de estado -->
-        <div class="status-badge">
-            ⚡ Sistema Operativo | 99.9% Uptime
-        </div>
-        
         <h1>
             Bienvenido a <span id="typingText">Legado Ave Fénix</span><span class="typing-cursor"></span>
         </h1>
         
         <p>
-            Soluciones integrales en lavado industrial y pasteurización de alta eficiencia.
-            Innovación y trayectoria que transforman procesos.
+            Plataforma integral para el registro, monitoreo y consulta del estado de los componentes de 
+            maquinaria en el Departamento de Envasado CCZ.
         </p>
         
         <!-- Timeline visual del legado -->
         <div class="legacy-timeline">
             <div class="timeline-item">
                 <div class="timeline-dot"></div>
-                <span>+15 años de experiencia</span>
+                <span>Lavadora</span>
             </div>
             <div class="timeline-item">
                 <div class="timeline-dot"></div>
-                <span>Tecnología de punta</span>
+                <span>Pasteurizadora</span>
             </div>
             <div class="timeline-item">
                 <div class="timeline-dot"></div>
-                <span>Certificación ISO</span>
+                <span>Proximamente...</span>
             </div>
         </div>
         
         <div class="login-wrapper">
             <a href="{{ route('login') }}" class="login-button" aria-label="Acceder al sistema">
-                <span>Acceder al Panel</span>
+                <span>Acceder</span>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
                     <polyline points="10 17 15 12 10 7" />
@@ -441,9 +437,9 @@
             <div class="copyright">
                 <span>© <span id="currentYear"></span> Legado Ave Fénix</span>
                 <span>|</span>
-                <span>v3.1 · Industrial Edition</span>
+                <span>v2.2.1 · Edition</span>
                 <span>|</span>
-                <span>🌱 Hecho con precisión</span>
+                <span> Departamento de Envasado CCZ</span>
             </div>
         </div>
     </footer>

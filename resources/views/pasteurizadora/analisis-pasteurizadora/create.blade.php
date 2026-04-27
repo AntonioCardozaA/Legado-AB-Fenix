@@ -213,37 +213,40 @@
                 </div>
             </div>
 
-            <div id="checklist-container" class="{{ $totalPiezas > 0 ? '' : 'hidden' }}">
+            <div id="checklist-container" class="{{ $totalComponentes > 0 ? '' : 'hidden' }}">
                 <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-200">
                     <div class="mb-4">
                         <label class="block text-sm font-bold text-gray-800 mb-2">
                             <i class="fas fa-clipboard-check text-blue-600 mr-2"></i>
-                            Checklist de piezas a revisar
+                            Checklist de componentes revisados
                         </label>
                         <p class="text-sm text-blue-800 mb-3">
-                            Marque las piezas revisadas. Cada tarjeta corresponde a una pieza del componente.
+                            Marque una o varias piezas para este registro. Las piezas ya revisadas en este lado y nivel aparecen bloqueadas.
                         </p>
-                        <div id="remaining-info" class="bg-blue-100 border border-blue-400 rounded-lg p-3 mb-3 {{ $alreadyReviewedCount > 0 ? '' : 'hidden' }}">
+                        <div id="remaining-info" class="bg-blue-100 border border-blue-400 rounded-lg p-3 mb-3 {{ $cantidadComponentesRevisados > 0 ? '' : 'hidden' }}">
                             <p class="text-sm text-blue-800">
                                 <i class="fas fa-info-circle mr-2"></i>
                                 <strong>Ya revisados en este lado y nivel:</strong>
-                                <span id="already-reviewed-count">{{ $alreadyReviewedCount }}</span> de
-                                <span id="total-count">{{ $totalPiezas }}</span> piezas
+                                <span id="already-reviewed-count">{{ $cantidadComponentesRevisados }}</span> de
+                                <span id="total-count">{{ $totalComponentes }}</span> componentes
                             </p>
                             <div class="mt-2 flex flex-wrap gap-1" id="already-reviewed-badges">
-                                @foreach($alreadyReviewedComponents as $compNum)
+                                @foreach($componentesYaRevisados as $compNum)
                                     <span class="inline-flex items-center px-2 py-0.5 bg-blue-200 text-blue-800 rounded text-xs">#{{ $compNum }}</span>
                                 @endforeach
                             </div>
                             <p class="text-sm text-blue-800 mt-2">
                                 <strong>Pendientes en este lado y nivel:</strong>
-                                <span id="remaining-count">{{ $remainingPiezas }}</span> piezas
+                                <span id="remaining-count">{{ $componentesPendientes }}</span> componentes
                             </p>
                         </div>
                     </div>
 
                     <div id="componentes-checklist" class="grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
                     <input type="hidden" name="componentes_revisados" id="componentes_revisados_input" value="{{ json_encode(old('componentes_revisados', [])) }}">
+                    @error('componentes_revisados')
+                        <p class="text-red-500 text-sm mt-3">{{ $message }}</p>
+                    @enderror
 
                     <div id="lados-pendientes-alert"
                          class="{{ !empty($ladosPendientes) && $lado ? '' : 'hidden' }} mt-4 p-3 bg-yellow-100 border border-yellow-400 rounded-lg text-sm text-yellow-800">
@@ -463,18 +466,18 @@ function renderEstadoRevision(estadoRevision) {
     });
 }
 
-function renderChecklist(totalPiezas, revisadas, reviewedCount, remainingPiezas, componenteNombre) {
+function renderChecklist(totalComponentes, componentesYaRevisados, cantidadComponentesRevisados, componentesPendientes, componenteNombre) {
     componentesChecklist.innerHTML = '';
-    const revisadasNormalizadas = (revisadas || []).map((item) => parseInt(item, 10));
+    const revisadasNormalizadas = (componentesYaRevisados || []).map((item) => parseInt(item, 10));
 
-    if (!totalPiezas) {
+    if (!totalComponentes) {
         checklistContainer.classList.add('hidden');
         return;
     }
 
     checklistContainer.classList.remove('hidden');
 
-    for (let i = 1; i <= totalPiezas; i++) {
+    for (let i = 1; i <= totalComponentes; i++) {
         const yaRevisado = revisadasNormalizadas.includes(i);
         const seleccionado = selectedComponentes.includes(i);
         const label = document.createElement('label');
@@ -507,10 +510,10 @@ function renderChecklist(totalPiezas, revisadas, reviewedCount, remainingPiezas,
         checkbox.addEventListener('change', actualizarComponentesRevisados);
     });
 
-    document.getElementById('remaining-info').classList.toggle('hidden', reviewedCount === 0);
-    document.getElementById('already-reviewed-count').textContent = reviewedCount;
-    document.getElementById('remaining-count').textContent = remainingPiezas;
-    document.getElementById('total-count').textContent = totalPiezas;
+    document.getElementById('remaining-info').classList.toggle('hidden', cantidadComponentesRevisados === 0);
+    document.getElementById('already-reviewed-count').textContent = cantidadComponentesRevisados;
+    document.getElementById('remaining-count').textContent = componentesPendientes;
+    document.getElementById('total-count').textContent = totalComponentes;
     document.getElementById('already-reviewed-badges').innerHTML = revisadasNormalizadas
         .map((value) => `<span class="inline-flex items-center px-2 py-0.5 bg-blue-200 text-blue-800 rounded text-xs">#${value}</span>`)
         .join('');
@@ -619,23 +622,29 @@ async function cargarContextoRevision() {
             ladoSelect.value = data.lado;
         }
 
-        actualizarResumen();
-        renderEstadoRevision(data.estado_revision || {});
-        renderChecklist(
-            data.total_piezas || 0,
-            data.already_reviewed_components || [],
-            data.already_reviewed || 0,
-            data.remaining_piezas || 0,
-            data.nombre_componente || componenteSelect.options[componenteSelect.selectedIndex]?.text?.split(' (')[0] || data.componente
-        );
-        renderLadosPendientes(data.lados_pendientes || [], data.lado);
-        
-        // Mostrar el checklist container si hay piezas
-        if (checklistContainer && data.total_piezas > 0) {
-            checklistContainer.classList.remove('hidden');
-        }
-    } catch (error) {
-        console.error('Error al cargar contexto:', error);
+    actualizarResumen();
+    renderEstadoRevision(data.estado_revision || {});
+    renderChecklist(
+        data.total_piezas || 0,
+        data.already_reviewed_components || [],
+        data.already_reviewed || 0,
+        data.remaining_piezas || 0,
+        data.nombre_componente || componenteSelect.options[componenteSelect.selectedIndex]?.text?.split(' (')[0] || data.componente
+    );
+    renderLadosPendientes(data.lados_pendientes || [], data.lado);
+
+    const siguienteAlert = document.getElementById('siguiente-revision-alert');
+    if (data.siguiente_revision?.nivel && data.siguiente_revision?.lado) {
+        siguienteAlert.classList.remove('hidden');
+        siguienteAlert.innerHTML = `
+            <i class="fas fa-magic mr-2"></i>
+            Se cargó automáticamente la siguiente revisión pendiente:
+            <strong>${nivelLabel(data.siguiente_revision.nivel)}</strong>,
+            <strong>Lado ${ladoLabel(data.siguiente_revision.lado)}</strong>.
+        `;
+    } else {
+        siguienteAlert.classList.add('hidden');
+        siguienteAlert.innerHTML = '';
     }
 }
 

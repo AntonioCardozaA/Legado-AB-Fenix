@@ -115,7 +115,7 @@ class HistoricoRevisados extends Model
     }
 
     // ============================================================
-    // MÉTODOS
+    // MÃ‰TODOS
     // ============================================================
 
     /**
@@ -136,8 +136,8 @@ class HistoricoRevisados extends Model
             ->where('componente', $componente)
             ->get();
 
-        // Contar piezas revisadas
-        $cantidadRevisada = $analisis->sum('revisadas_piezas');
+        // Contar componentes revisados
+        $cantidadRevisada = $analisis->sum('cantidad_componentes_revisados');
         $cantidadRevisada = min($cantidadRevisada, $cantidadTotal);
 
         // El porcentaje

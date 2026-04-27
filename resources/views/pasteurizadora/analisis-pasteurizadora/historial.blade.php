@@ -8,12 +8,12 @@
     .timeline-line {
         background: linear-gradient(180deg, #3b82f6 0%, #60a5fa 100%);
     }
-    
+
     .timeline-dot {
         box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.2);
         animation: pulse-dot 2s infinite;
     }
-    
+
     @keyframes pulse-dot {
         0% {
             box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4);
@@ -25,19 +25,19 @@
             box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
         }
     }
-    
+
     .image-hover-zoom {
         transition: transform 0.3s ease;
     }
-    
+
     .image-hover-zoom:hover {
         transform: scale(1.05);
     }
-    
+
     .modal-fade-in {
         animation: fadeIn 0.3s ease-out;
     }
-    
+
     @keyframes fadeIn {
         from {
             opacity: 0;
@@ -48,25 +48,25 @@
             transform: scale(1);
         }
     }
-    
+
     .status-badge {
         transition: all 0.3s ease;
     }
-    
+
     .status-badge:hover {
         transform: translateY(-1px);
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
     }
-    
+
     .history-card {
         transition: all 0.3s ease;
     }
-    
+
     .history-card:hover {
         transform: translateY(-2px);
         box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
     }
-    
+
     .image-counter {
         background: linear-gradient(135deg, rgba(0,0,0,0.7), rgba(0,0,0,0.5));
         backdrop-filter: blur(4px);
@@ -113,8 +113,8 @@
                         'lado' => $item->lado,
                         'nivel' => $item->nivel,
                         'registros' => [],
-                        'total_piezas' => (int) $item->total_piezas,
-                        'todas_piezas_revisadas' => [],
+                        'total_componentes' => (int) $item->total_componentes,
+                        'todas_componentes_revisadas' => [],
                         'fecha_inicio' => null,
                         'fecha_fin' => null,
                         'fecha_ultima_actualizacion' => null,
@@ -136,21 +136,21 @@
                     }
                 }
 
-                // Acumular piezas revisadas
+                // Acumular componentes revisadas
                 foreach ($componentes as $num) {
                     if (is_numeric($num) && (int)$num > 0) {
-                        $agrupados[$key]['todas_piezas_revisadas'][] = (int)$num;
+                        $agrupados[$key]['todas_componentes_revisadas'][] = (int)$num;
                     }
                 }
 
                 // Fallback si no hay array
-                if (empty($componentes) && is_numeric($item->revisadas_piezas)) {
-                    for ($i = 1; $i <= (int)$item->revisadas_piezas; $i++) {
-                        $agrupados[$key]['todas_piezas_revisadas'][] = $i;
+                if (empty($componentes) && is_numeric($item->cantidad_componentes_revisados)) {
+                    for ($i = 1; $i <= (int)$item->cantidad_componentes_revisados; $i++) {
+                        $agrupados[$key]['todas_componentes_revisadas'][] = $i;
                     }
                 }
 
-                $agrupados[$key]['todas_piezas_revisadas'] = array_unique($agrupados[$key]['todas_piezas_revisadas']);
+                $agrupados[$key]['todas_componentes_revisadas'] = array_unique($agrupados[$key]['todas_componentes_revisadas']);
 
                 // Fechas
                 $fecha = $item->fecha_analisis ?? $item->created_at;
@@ -204,7 +204,7 @@
         @endphp
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
-            <div class="rounded-xl p-5 shadow-sm" 
+            <div class="rounded-xl p-5 shadow-sm"
                 style="background: linear-gradient(to bottom right, rgba(31, 35, 72, 0.05), white); border: 1px solid rgba(31, 35, 72, 0.2);">
                 <div class="flex items-center gap-4">
                     <div class="p-3 rounded-lg" style="background-color: rgba(31, 35, 72, 0.1);">
@@ -216,8 +216,8 @@
                     </div>
                 </div>
             </div>
-            
-            <div class="rounded-xl p-5 shadow-sm" 
+
+            <div class="rounded-xl p-5 shadow-sm"
                 style="background: linear-gradient(to bottom right, rgba(31, 35, 72, 0.05), white); border: 1px solid rgba(31, 35, 72, 0.2);">
                 <div class="flex items-center gap-4">
                     <div class="p-3 rounded-lg" style="background-color: rgba(31, 35, 72, 0.1);">
@@ -239,11 +239,11 @@
             <div class="space-y-8">
                 @foreach($agrupados as $grupoIndex => $grupo)
                     @php
-                        $totalPiezas = (int) ($grupo['total_piezas'] ?? 0);
-                        $revisadas = (int) count($grupo['todas_piezas_revisadas']);
+                        $totalComponentes = (int) ($grupo['total_componentes'] ?? 0);
+                        $revisadas = (int) count($grupo['todas_componentes_revisadas']);
                         $porcentaje = 0;
-                        if ($totalPiezas > 0) {
-                            $porcentaje = (int) round(($revisadas / $totalPiezas) * 100);
+                        if ($totalComponentes > 0) {
+                            $porcentaje = (int) round(($revisadas / $totalComponentes) * 100);
                         }
                     @endphp
 
@@ -264,7 +264,7 @@
                             </div>
 
                             <div class="p-6">
-                                @if($totalPiezas > 0)
+                                @if($totalComponentes > 0)
                                 <div class="bg-gradient-to-br from-indigo-50 to-white rounded-xl p-5 border border-indigo-100 mb-4">
                                     <div class="flex items-center justify-between mb-3">
                                         <div class="flex items-center gap-2">
@@ -272,17 +272,17 @@
                                                 <i class="fas fa-tasks text-indigo-600 text-xs"></i>
                                             </div>
                                             <h4 class="text-xs font-semibold text-indigo-600 uppercase tracking-wider">
-                                                Progreso de Piezas
+                                                Progreso de Componentes
                                             </h4>
                                         </div>
-                                        <span class="text-sm font-bold text-indigo-700">{{ $revisadas }}/{{ $totalPiezas }} ({{ $porcentaje }}%)</span>
+                                        <span class="text-sm font-bold text-indigo-700">{{ $revisadas }}/{{ $totalComponentes }} ({{ $porcentaje }}%)</span>
                                     </div>
                                     <div class="w-full bg-gray-200 rounded-full h-2">
                                         <div class="bg-indigo-500 h-2 rounded-full" style="width: {{ $porcentaje }}%"></div>
                                     </div>
                                     @if($revisadas > 0)
                                         <div class="flex flex-wrap gap-1 mt-3">
-                                            @foreach($grupo['todas_piezas_revisadas'] as $num)
+                                            @foreach($grupo['todas_componentes_revisadas'] as $num)
                                                 <span class="inline-flex items-center px-2 py-0.5 rounded-md bg-green-100 text-green-700 text-xs font-medium">
                                                     #{{ (int)$num }}
                                                 </span>
@@ -298,14 +298,14 @@
                         $estado = $item->estado ?? 'Buen estado';
 
                         // Configuración de colores y badges según estado
-                        if (str_contains($estado, 'Dañado - Cambiado')) {
+                        if (str_contains($estado, 'DaÃ±ado - Cambiado')) {
                             $colorBg = 'bg-blue-100';
                             $colorText = 'text-blue-800';
                             $colorBorder = 'border-blue-200';
                             $colorIcon = 'text-blue-600';
                             $badgeIcon = 'fa-exchange-alt';
                             $badgeColor = 'from-blue-500 to-blue-600';
-                        } elseif (str_contains($estado, 'Dañado')) {
+                        } elseif (str_contains($estado, 'DaÃ±ado')) {
                             $colorBg = 'bg-red-100';
                             $colorText = 'text-red-800';
                             $colorBorder = 'border-red-200';
@@ -337,12 +337,12 @@
                         } else {
                             $imagenes = [];
                         }
-                        
+
                         $totalImagenes = count($imagenes);
                     @endphp
 
                     <div class="relative pl-16 history-card">
-                        {{-- Dot del timeline con número --}}
+                        {{-- Dot del timeline con nÃºmero --}}
                         <div class="absolute left-3 top-6 w-8 h-8 bg-gradient-to-r from-blue-600 to-blue-700 rounded-full border-4 border-white shadow-lg timeline-dot flex items-center justify-center text-white text-xs font-bold">
                             {{ $recordIndex + 1 }}
                         </div>
@@ -367,7 +367,7 @@
                                             </h3>
                                         </div>
                                     </div>
-                                    
+
                                     {{-- Badge de estado mejorado --}}
                                     <span class="status-badge inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold {{ $colorBg }} {{ $colorText }} border {{ $colorBorder }} shadow-sm">
                                         <i class="fas {{ $badgeIcon }}"></i>
@@ -387,7 +387,7 @@
                                         </div>
                                         <p class="font-medium text-gray-800">{{ $item->linea->nombre ?? 'N/A' }}</p>
                                     </div>
-                                    
+
                                     <div class="bg-gradient-to-br" style="background: linear-gradient(to bottom right, rgba(31, 35, 72, 0.05), white); border-color: rgba(31, 35, 72, 0.2); border-width: 1px; border-style: solid; border-radius: 0.75rem; padding: 1rem;">
                                         <div class="flex items-center gap-2 mb-2">
                                             <i class="fas fa-cog" style="color: rgb(31, 35, 72);"></i>
@@ -395,7 +395,7 @@
                                         </div>
                                         <p class="font-medium text-gray-800">{{ $item->componente_nombre ?? $item->componente ?? 'N/A' }}</p>
                                     </div>
-                                    
+
                                     <div class="bg-gradient-to-br" style="background: linear-gradient(to bottom right, rgba(31, 35, 72, 0.05), white); border-color: rgba(31, 35, 72, 0.2); border-width: 1px; border-style: solid; border-radius: 0.75rem; padding: 1rem;">
                                         <div class="flex items-center gap-2 mb-2">
                                             <i class="fas fa-compress-alt" style="color: rgb(31, 35, 72);"></i>
@@ -425,7 +425,7 @@
                                     @endif
                                 </div>
 
-                                {{-- Información de piezas revisadas --}}
+                                {{-- Información de componentes revisadas --}}
                                 @php
                                 $componentesRevisados = [];
                                 if (is_array($item->componentes_revisados)) {
@@ -436,12 +436,12 @@
                                         $componentesRevisados = $decoded;
                                     }
                                 }
-                                $totalPiezas = (int) ($item->total_piezas ?? 0);
+                                $totalComponentes = (int) ($item->total_componentes ?? 0);
                                 $revisadas = count($componentesRevisados);
-                                $porcentaje = $totalPiezas > 0 ? (int) round(($revisadas / $totalPiezas) * 100) : 0;
+                                $porcentaje = $totalComponentes > 0 ? (int) round(($revisadas / $totalComponentes) * 100) : 0;
                                 @endphp
 
-                                @if($totalPiezas > 0)
+                                @if($totalComponentes > 0)
                                 <div class="bg-gradient-to-br from-indigo-50 to-white rounded-xl p-5 border border-indigo-100 mb-4">
                                     <div class="flex items-center justify-between mb-3">
                                         <div class="flex items-center gap-2">
@@ -449,10 +449,10 @@
                                                 <i class="fas fa-tasks text-indigo-600 text-xs"></i>
                                             </div>
                                             <h4 class="text-xs font-semibold text-indigo-600 uppercase tracking-wider">
-                                                Progreso de Piezas
+                                                Progreso de Componentes
                                             </h4>
                                         </div>
-                                        <span class="text-sm font-bold text-indigo-700">{{ $revisadas }}/{{ $totalPiezas }} ({{ $porcentaje }}%)</span>
+                                        <span class="text-sm font-bold text-indigo-700">{{ $revisadas }}/{{ $totalComponentes }} ({{ $porcentaje }}%)</span>
                                     </div>
                                     <div class="w-full bg-gray-200 rounded-full h-2">
                                         <div class="bg-indigo-500 h-2 rounded-full" style="width: {{ $porcentaje }}%"></div>
@@ -521,11 +521,11 @@
                                                 </div>
                                             @endforeach
                                         </div>
-                                        
+
                                         {{-- Botón para ver todas las imágenes --}}
                                         @if($totalImagenes > 4)
                                             <div class="mt-4 text-center">
-                                                <button onclick="openAllImages(@json($imagenes), '{{ $item->numero_orden }}')" 
+                                                <button onclick="openAllImages(@json($imagenes), '{{ $item->numero_orden }}')"
                                                         class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-100 text-indigo-700 rounded-lg hover:bg-indigo-200 transition text-sm font-medium">
                                                     <i class="fas fa-images"></i>
                                                     Ver todas las imágenes ({{ $totalImagenes }})
@@ -570,7 +570,7 @@
             </div>
             <h3 class="text-xl font-bold text-gray-800 mb-2">No hay registros disponibles</h3>
             <p class="text-gray-500 mb-6">Comienza realizando un nuevo análisis para ver el historial.</p>
-            <a href="{{ route('analisis-pasteurizadora.index') }}" 
+            <a href="{{ route('analisis-pasteurizadora.index') }}"
                class="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all duration-300 shadow-lg hover:shadow-xl font-medium">
                 <i class="fas fa-plus-circle"></i>
                 Nuevo Análisis
@@ -583,33 +583,33 @@
 <div id="imageModal" class="fixed inset-0 bg-black/90 backdrop-blur-sm hidden items-center justify-center z-50 p-4 transition-all duration-300" onclick="closeImageModal()">
     <div class="relative max-w-6xl w-full max-h-[90vh] flex items-center justify-center modal-fade-in" onclick="event.stopPropagation()">
         {{-- Botón cerrar mejorado --}}
-        <button onclick="closeImageModal()" 
+        <button onclick="closeImageModal()"
                 class="absolute top-4 right-4 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 text-white text-xl flex items-center justify-center backdrop-blur-sm border border-white/30 transition-all z-10 group">
             <i class="fas fa-times group-hover:rotate-90 transition-transform"></i>
         </button>
-        
+
         {{-- Navegación izquierda --}}
-        <button id="prevImageBtn" onclick="navigateImage(-1)" 
+        <button id="prevImageBtn" onclick="navigateImage(-1)"
                 class="absolute left-4 top-1/2 transform -translate-y-1/2 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center backdrop-blur-sm border border-white/30 transition-all opacity-0 group-hover:opacity-100 disabled:opacity-30 disabled:cursor-not-allowed hidden">
             <i class="fas fa-chevron-left text-xl"></i>
         </button>
-        
+
         {{-- Imagen --}}
         <div class="relative">
             <img id="modalImage" src="" alt="Imagen ampliada" class="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl border-4 border-white/20">
-            
+
             {{-- Contador de imágenes --}}
             <div id="imageCounter" class="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black/50 backdrop-blur-sm text-white px-4 py-2 rounded-full text-sm font-medium border border-white/20">
                 <span id="currentImageIndex">1</span> / <span id="totalImages">1</span>
             </div>
         </div>
-        
+
         {{-- Navegación derecha --}}
-        <button id="nextImageBtn" onclick="navigateImage(1)" 
+        <button id="nextImageBtn" onclick="navigateImage(1)"
                 class="absolute right-4 top-1/2 transform -translate-y-1/2 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center backdrop-blur-sm border border-white/30 transition-all opacity-0 group-hover:opacity-100 disabled:opacity-30 disabled:cursor-not-allowed hidden">
             <i class="fas fa-chevron-right text-xl"></i>
         </button>
-        
+
         {{-- Título de la imagen --}}
         <p id="modalCaption" class="absolute bottom-20 left-1/2 transform -translate-x-1/2 text-white text-sm bg-black/50 backdrop-blur-sm px-4 py-2 rounded-full border border-white/20"></p>
     </div>
@@ -631,7 +631,7 @@
                         <p class="text-indigo-100 text-sm">Orden #<span id="galleryOrderNumber"></span></p>
                     </div>
                 </div>
-                <button onclick="closeGalleryModal()" 
+                <button onclick="closeGalleryModal()"
                         class="w-10 h-10 rounded-xl bg-white/20 hover:bg-white/30 transition-all flex items-center justify-center group">
                     <i class="fas fa-times text-xl group-hover:rotate-90 transition-transform"></i>
                 </button>
@@ -661,7 +661,7 @@ function openImageModal(imageSrc, caption, index, total) {
 
     modalImg.src = imageSrc;
     modalCaption.textContent = caption;
-    
+
     if (total > 1) {
         prevBtn.classList.remove('hidden');
         nextBtn.classList.remove('hidden');
@@ -674,7 +674,7 @@ function openImageModal(imageSrc, caption, index, total) {
         nextBtn.classList.add('hidden');
         counter.classList.add('hidden');
     }
-    
+
     modal.classList.remove('hidden');
     modal.classList.add('flex');
     document.body.style.overflow = 'hidden';
@@ -683,13 +683,13 @@ function openImageModal(imageSrc, caption, index, total) {
 // Función para navegar entre imágenes
 function navigateImage(direction) {
     if (!currentImages || currentImages.length === 0) return;
-    
+
     currentImageIndex = (currentImageIndex + direction + currentImages.length) % currentImages.length;
     const newSrc = `{{ Storage::url('') }}${currentImages[currentImageIndex]}`;
     const modalImg = document.getElementById('modalImage');
     const modalCaption = document.getElementById('modalCaption');
     const currentIndexSpan = document.getElementById('currentImageIndex');
-    
+
     modalImg.src = newSrc;
     modalCaption.textContent = `Evidencia ${currentImageIndex + 1} - Orden #${currentOrderNumber}`;
     currentIndexSpan.textContent = currentImageIndex + 1;
@@ -699,21 +699,21 @@ function navigateImage(direction) {
 function openAllImages(imagenes, orden) {
     currentImages = Array.isArray(imagenes) ? imagenes : [];
     currentOrderNumber = orden;
-    
+
     const modal = document.getElementById('galleryModal');
     const grid = document.getElementById('galleryGrid');
     const orderSpan = document.getElementById('galleryOrderNumber');
-    
+
     orderSpan.textContent = orden;
     grid.innerHTML = '';
-    
+
     currentImages.forEach((path, index) => {
         const rutaImagen = `{{ Storage::url('') }}${path}`;
         const item = document.createElement('div');
         item.className = 'relative group cursor-pointer';
         item.innerHTML = `
             <div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-lg z-10"></div>
-            <img src="${rutaImagen}" alt="Evidencia ${index + 1}" 
+            <img src="${rutaImagen}" alt="Evidencia ${index + 1}"
                  class="w-full h-40 object-cover rounded-lg border-2 border-white shadow-md group-hover:shadow-xl transition-all duration-300 image-hover-zoom">
             <div class="absolute top-2 left-2 bg-black/70 text-white text-xs px-2 py-1 rounded-full z-20 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                 <i class="fas fa-search-plus mr-1"></i>
@@ -729,7 +729,7 @@ function openAllImages(imagenes, orden) {
         };
         grid.appendChild(item);
     });
-    
+
     modal.classList.remove('hidden');
     modal.classList.add('flex');
     document.body.style.overflow = 'hidden';
@@ -753,16 +753,16 @@ function closeGalleryModal() {
 document.addEventListener('keydown', function(e) {
     const imageModal = document.getElementById('imageModal');
     const galleryModal = document.getElementById('galleryModal');
-    
+
     if (e.key === 'Escape') {
         closeImageModal();
         closeGalleryModal();
     }
-    
+
     if (e.key === 'ArrowLeft' && !imageModal.classList.contains('hidden') && currentImages.length > 0) {
         navigateImage(-1);
     }
-    
+
     if (e.key === 'ArrowRight' && !imageModal.classList.contains('hidden') && currentImages.length > 0) {
         navigateImage(1);
     }
@@ -782,7 +782,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     });
-    
+
     observer.observe(document.getElementById('imageModal'), { attributes: true });
 });
 </script>

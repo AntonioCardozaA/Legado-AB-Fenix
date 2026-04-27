@@ -27,9 +27,9 @@ class AnalisisPasteurizadora extends Model
         'responsable',
         'observaciones',
         'evidencia_fotos',
-        'revisadas_piezas',
+        'cantidad_componentes_revisados',
         'componentes_revisados',
-        'total_piezas',
+        'total_componentes',
         'valor_anterior_52',
         'valor_actual_52',
         'valor_anterior_12',
@@ -49,7 +49,9 @@ class AnalisisPasteurizadora extends Model
     protected $casts = [
         'fecha_analisis' => 'date',
         'evidencia_fotos' => 'array',
+        'cantidad_componentes_revisados' => 'integer',
         'componentes_revisados' => 'array',
+        'total_componentes' => 'integer',
         'plan_accion_pcm1' => 'array',
         'plan_accion_pcm2' => 'array',
         'plan_accion_pcm3' => 'array',
@@ -63,9 +65,9 @@ class AnalisisPasteurizadora extends Model
     ];
 
     // ============================================================
-    // CONFIGURACIÓN DE PASTEURIZADORES
+    // CONFIGURACIÃ“N DE PASTEURIZADORES
     // ============================================================
-    
+
     const PASTEURIZADORES = [
         'P-03' => ['tipo' => 'sencillo', 'modulos' => 9],
         'P-04' => ['tipo' => 'sencillo', 'modulos' => 12],
@@ -88,8 +90,8 @@ class AnalisisPasteurizadora extends Model
         'VIGAS_FIJAS' => ['nombre' => 'Vigas Fijas', 'cantidad' => 4],
         'VIGA_MOVIMIENTO' => ['nombre' => 'Viga de Movimiento', 'cantidad' => 1],
         'PLACAS_PERNO' => ['nombre' => 'Placas Perno', 'cantidad' => 3],
-        'ESPARRAGOS' => ['nombre' => 'Espárragos', 'cantidad' => 2],
-        
+        'ESPARRAGOS' => ['nombre' => 'Esparragos', 'cantidad' => 2],
+
     ];
 
     const COMPONENTES_DOBLES = [
@@ -99,7 +101,7 @@ class AnalisisPasteurizadora extends Model
         'PLACAS_PERNO' => ['nombre' => 'Placas Perno', 'cantidad' => 5],
         'VIGAS_MOVIMIENTO' => ['nombre' => 'Vigas de Movimiento', 'cantidad' => 2],
         'PISTAS' => ['nombre' => 'Pistas', 'cantidad' => 4],
-        'ESPARRAGOS' => ['nombre' => 'Espárragos', 'cantidad' => 4],
+        'ESPARRAGOS' => ['nombre' => 'Esparragos', 'cantidad' => 4],
     ];
 
     const LADOS = ['VAPOR', 'PASILLO'];
@@ -107,9 +109,9 @@ class AnalisisPasteurizadora extends Model
     const ESTADOS = ['Buen estado', 'Desgaste moderado', 'Desgaste severo', 'Dañado - Requiere cambio', 'Cambiado'];
 
     // ============================================================
-    // MÉTODOS DE CONFIGURACIÓN
+    // MÃ‰TODOS DE CONFIGURACIÃ“N
     // ============================================================
-    
+
     public static function getComponentesPorLinea($lineaNombre)
     {
         $tipo = self::PASTEURIZADORES[$lineaNombre]['tipo'] ?? null;
@@ -154,92 +156,141 @@ class AnalisisPasteurizadora extends Model
         return null;
     }
 
-    public function getTotalPiezasPorComponente()
+    public static function getTotalComponentesPorLineaYComponente($lineaNombre, $componente): int
     {
-        $lineaNombre = $this->linea ? $this->linea->nombre : null;
-        $componentes = self::getComponentesPorLinea($lineaNombre);
-        return $componentes[$this->componente]['cantidad'] ?? 0;
+        $resolved = self::resolveComponentePorLinea($lineaNombre, $componente);
+        return (int) ($resolved['config']['cantidad'] ?? 0);
     }
 
-    // ============================================================
-    // MÉTODOS PARA CONTEO POR LADO Y NIVEL
-    // ============================================================
-    
-    public static function getAlreadyReviewedCount($lineaId, $modulo, $componente, $lado = null, $nivel = null)
+    public function getTotalComponentesPorComponente(): int
     {
+        return self::getTotalComponentesPorLineaYComponente($this->linea?->nombre, $this->componente);
+    }
+
+    public static function normalizarComponentesRevisados($value, ?int $totalComponentes = null): array
+    {
+        $componentes = $value;
+
+        if (is_string($componentes) && trim($componentes) !== '') {
+            $decoded = json_decode($componentes, true);
+            $componentes = is_array($decoded) ? $decoded : [];
+        }
+
+        if (!is_array($componentes)) {
+            return [];
+        }
+
+        return collect($componentes)
+            ->map(fn($item) => is_numeric($item) ? (int) $item : null)
+            ->filter(fn($item) => $item !== null && $item > 0 && ($totalComponentes === null || $item <= $totalComponentes))
+            ->unique()
+            ->sort()
+            ->values()
+            ->all();
+    }
+
+    public static function getComponentesRevisadosRegistrados($lineaId, $modulo, $componente, $lado = null, $nivel = null, ?int $excludeId = null): array
+    {
+        $linea = Linea::find($lineaId);
+        $totalComponentes = self::getTotalComponentesPorLineaYComponente($linea?->nombre, $componente);
+
         $query = self::where('linea_id', $lineaId)
             ->where('modulo', $modulo)
             ->where('componente', $componente);
-        
+
         if ($lado) {
             $query->where('lado', $lado);
         }
-        
+
         if ($nivel) {
             $query->where('nivel', $nivel);
         }
-        
-        return $query->sum('revisadas_piezas') ?? 0;
+
+        if ($excludeId) {
+            $query->where('id', '!=', $excludeId);
+        }
+
+        return $query
+            ->get()
+            ->flatMap(function ($registro) use ($totalComponentes) {
+                $componentes = self::normalizarComponentesRevisados($registro->componentes_revisados, $totalComponentes);
+
+                if (!empty($componentes)) {
+                    return $componentes;
+                }
+
+                $cantidad = min((int) ($registro->cantidad_componentes_revisados ?? 0), $totalComponentes);
+
+                return $cantidad > 0 ? range(1, $cantidad) : [];
+            })
+            ->map(fn($item) => (int) $item)
+            ->filter(fn($item) => $item > 0)
+            ->unique()
+            ->sort()
+            ->values()
+            ->all();
     }
 
-    public static function getRemainingCount($lineaId, $modulo, $componente, $lado = null, $nivel = null)
+    public static function getComponentesPendientes($lineaId, $modulo, $componente, $lado = null, $nivel = null, ?int $excludeId = null): array
     {
-        $linea = \App\Models\Linea::find($lineaId);
+        $linea = Linea::find($lineaId);
+        $totalComponentes = self::getTotalComponentesPorLineaYComponente($linea?->nombre, $componente);
+
+        if ($totalComponentes <= 0) {
+            return [];
+        }
+
+        return array_values(array_diff(
+            range(1, $totalComponentes),
+            self::getComponentesRevisadosRegistrados($lineaId, $modulo, $componente, $lado, $nivel, $excludeId)
+        ));
+    }
+
+    // ============================================================
+    // MÃ‰TODOS PARA CONTEO POR LADO Y NIVEL
+    // ============================================================
+
+    public static function getCantidadComponentesRevisados($lineaId, $modulo, $componente, $lado = null, $nivel = null, ?int $excludeId = null): int
+    {
+        return count(self::getComponentesRevisadosRegistrados($lineaId, $modulo, $componente, $lado, $nivel, $excludeId));
+    }
+
+    public static function getCantidadComponentesPendientes($lineaId, $modulo, $componente, $lado = null, $nivel = null, ?int $excludeId = null): int
+    {
+        $linea = Linea::find($lineaId);
         if (!$linea) {
             return 0;
         }
 
-        $componentes = self::getComponentesPorLinea($linea->nombre);
-        $total = $componentes[$componente]['cantidad'] ?? 0;
-        $alreadyReviewed = self::getAlreadyReviewedCount($lineaId, $modulo, $componente, $lado, $nivel);
+        $total = self::getTotalComponentesPorLineaYComponente($linea->nombre, $componente);
+        $alreadyReviewed = self::getCantidadComponentesRevisados($lineaId, $modulo, $componente, $lado, $nivel, $excludeId);
 
         return max(0, $total - $alreadyReviewed);
     }
 
-    public static function getAlreadyReviewedComponents($lineaId, $modulo, $componente, $lado = null, $nivel = null)
+    public static function getComponentesYaRevisados($lineaId, $modulo, $componente, $lado = null, $nivel = null, ?int $excludeId = null): array
     {
-        $query = self::where('linea_id', $lineaId)
-            ->where('modulo', $modulo)
-            ->where('componente', $componente);
-        
-        if ($lado) {
-            $query->where('lado', $lado);
-        }
-        
-        if ($nivel) {
-            $query->where('nivel', $nivel);
-        }
-        
-        $registros = $query->get();
-        $componentesRevisados = [];
-        
-        foreach ($registros as $registro) {
-            if ($registro->componentes_revisados && is_array($registro->componentes_revisados)) {
-                $componentesRevisados = array_merge($componentesRevisados, $registro->componentes_revisados);
-            }
-        }
-        
-        return array_unique($componentesRevisados);
+        return self::getComponentesRevisadosRegistrados($lineaId, $modulo, $componente, $lado, $nivel, $excludeId);
     }
 
     public static function getLadosPendientes($lineaId, $modulo, $componente, $nivel = null)
     {
         $ladosPendientes = [];
-        
+
         foreach (self::LADOS as $lado) {
-            $remaining = self::getRemainingCount($lineaId, $modulo, $componente, $lado, $nivel);
+            $remaining = self::getCantidadComponentesPendientes($lineaId, $modulo, $componente, $lado, $nivel);
             if ($remaining > 0) {
                 $ladosPendientes[] = $lado;
             }
         }
-        
+
         return $ladosPendientes;
     }
 
     // ============================================================
-    // MÉTODOS PARA GESTIÓN DE LADOS Y NIVELES
+    // MÃ‰TODOS PARA GESTIÃ“N DE LADOS Y NIVELES
     // ============================================================
-    
+
     /**
      * Obtiene el siguiente lado a revisar para un nivel específico
      * @return string|null El siguiente lado (VAPOR o PASILLO) o null si ambos están completos
@@ -247,25 +298,25 @@ class AnalisisPasteurizadora extends Model
     public static function getSiguienteLado($lineaId, $modulo, $componente, $ladoActual = null, $nivel = null)
     {
         $ladosPendientes = self::getLadosPendientes($lineaId, $modulo, $componente, $nivel);
-        
+
         if (empty($ladosPendientes)) {
             return null; // Ambos lados están completos para este nivel
         }
-        
+
         if (!$ladoActual) {
             return reset($ladosPendientes); // Retorna el primer lado pendiente
         }
-        
+
         // Si el lado actual es VAPOR, intenta PASILLO
         if ($ladoActual === 'VAPOR') {
             return in_array('PASILLO', $ladosPendientes) ? 'PASILLO' : null;
         }
-        
+
         // Si el lado actual es PASILLO, intenta VAPOR
         if ($ladoActual === 'PASILLO') {
             return in_array('VAPOR', $ladosPendientes) ? 'VAPOR' : null;
         }
-        
+
         return null;
     }
 
@@ -302,7 +353,7 @@ class AnalisisPasteurizadora extends Model
 
         return null;
     }
-    
+
     /**
      * Obtiene el siguiente nivel a revisar
      * @return string|null El siguiente nivel (SUPERIOR o INFERIOR) o null si ambos están completos
@@ -317,7 +368,7 @@ class AnalisisPasteurizadora extends Model
 
         return $siguiente['nivel'] !== $nivelActual ? $siguiente['nivel'] : null;
     }
-    
+
     /**
      * Verifica si un nivel está completamente revisado
      */
@@ -326,7 +377,7 @@ class AnalisisPasteurizadora extends Model
         $ladosPendientes = self::getLadosPendientes($lineaId, $modulo, $componente, $nivel);
         return empty($ladosPendientes);
     }
-    
+
     /**
      * Obtiene información del estado de revisión de lados y niveles
      */
@@ -334,21 +385,21 @@ class AnalisisPasteurizadora extends Model
     {
         $niveles = self::NIVELES;
         $estado = [];
-        
+
         foreach ($niveles as $niv) {
             $estado[$niv] = [
                 'completado' => self::nivelCompletado($lineaId, $modulo, $componente, $niv),
                 'lados_pendientes' => self::getLadosPendientes($lineaId, $modulo, $componente, $niv)
             ];
         }
-        
+
         return $estado;
     }
 
     // ============================================================
     // RELACIONES
     // ============================================================
-    
+
     public function linea()
     {
         return $this->belongsTo(Linea::class);
@@ -367,7 +418,7 @@ class AnalisisPasteurizadora extends Model
     // ============================================================
     // SCOPES
     // ============================================================
-    
+
     public function scopePorLinea($query, $lineaId)
     {
         return $query->where('linea_id', $lineaId);
@@ -410,13 +461,13 @@ class AnalisisPasteurizadora extends Model
 
     public function scopeRequiereAtencion($query)
     {
-        return $query->where('estado', 'Dañado - Requiere cambio')->where('resuelto_por_cambio', false);
+        return $query->where('estado', 'DaÃ±ado - Requiere cambio')->where('resuelto_por_cambio', false);
     }
 
     // ============================================================
     // ACCESSORS
     // ============================================================
-    
+
     public function getComponenteNombreAttribute()
     {
         $lineaNombre = $this->linea ? $this->linea->nombre : null;
@@ -461,7 +512,7 @@ class AnalisisPasteurizadora extends Model
 
     public function getEsDanioAttribute()
     {
-        return $this->estado === 'Dañado - Requiere cambio';
+        return $this->estado === 'DaÃ±ado - Requiere cambio';
     }
 
     public function getLadoIconoAttribute()
@@ -484,7 +535,7 @@ class AnalisisPasteurizadora extends Model
         return match ($this->estado) {
             'Buen estado' => ['class' => 'bg-green-100 text-green-800', 'icon' => 'fa-check-circle'],
             'Desgaste moderado', 'Desgaste severo' => ['class' => 'bg-yellow-100 text-yellow-800', 'icon' => 'fa-exclamation-triangle'],
-            'Dañado - Requiere cambio' => ['class' => 'bg-red-100 text-red-800', 'icon' => 'fa-times-circle'],
+            'DaÃ±ado - Requiere cambio' => ['class' => 'bg-red-100 text-red-800', 'icon' => 'fa-times-circle'],
             'Cambiado' => ['class' => 'bg-blue-100 text-blue-800', 'icon' => 'fa-exchange-alt'],
             default => ['class' => 'bg-gray-100 text-gray-800', 'icon' => 'fa-question-circle'],
         };
@@ -492,14 +543,13 @@ class AnalisisPasteurizadora extends Model
 
     public function getPorcentajeAvanceAttribute()
     {
-        $total = $this->total_piezas ?? 0;
-        
-        if ($this->componentes_revisados && is_array($this->componentes_revisados)) {
-            $revisadas = count($this->componentes_revisados);
-        } else {
-            $revisadas = $this->revisadas_piezas ?? 0;
+        $total = $this->total_componentes ?? 0;
+        $revisadas = count(self::normalizarComponentesRevisados($this->componentes_revisados, $total));
+
+        if ($revisadas === 0) {
+            $revisadas = $this->cantidad_componentes_revisados ?? 0;
         }
-        
+
         if ($total > 0) {
             return round(($revisadas / $total) * 100, 1);
         }
@@ -507,13 +557,13 @@ class AnalisisPasteurizadora extends Model
     }
 
     // ============================================================
-    // MÉTODOS DE UTILIDAD
+    // MÃ‰TODOS DE UTILIDAD
     // ============================================================
-    
+
     public function isAnalisisCompleto()
     {
-        $total = $this->total_piezas ?? 0;
-        $revisadas = $this->revisadas_piezas ?? 0;
+        $total = $this->total_componentes ?? 0;
+        $revisadas = $this->cantidad_componentes_revisados ?? 0;
         return $revisadas >= $total;
     }
 
@@ -532,7 +582,7 @@ class AnalisisPasteurizadora extends Model
         return self::where('linea_id', $this->linea_id)
             ->where('modulo', $this->modulo)
             ->where('componente', $this->componente)
-            ->where('estado', 'Dañado - Requiere cambio')
+            ->where('estado', 'DaÃ±ado - Requiere cambio')
             ->where('resuelto_por_cambio', false)
             ->where('id', '!=', $this->id)
             ->get();
@@ -548,9 +598,9 @@ class AnalisisPasteurizadora extends Model
     }
 
     // ============================================================
-    // ANÁLISIS 52-12-4
+    // ANÃLISIS 52-12-4
     // ============================================================
-    
+
     public function getAnalisis52124()
     {
         return [
@@ -598,15 +648,9 @@ class AnalisisPasteurizadora extends Model
 
     public function setComponentesRevisadosAttribute($value)
     {
-        $this->attributes['componentes_revisados'] = is_array($value) ? json_encode($value) : $value;
-        
-        if (is_array($value)) {
-            $this->attributes['revisadas_piezas'] = count($value);
-        } elseif (is_string($value) && $value !== null) {
-            $decoded = json_decode($value, true);
-            if (is_array($decoded)) {
-                $this->attributes['revisadas_piezas'] = count($decoded);
-            }
-        }
+        $componentes = self::normalizarComponentesRevisados($value, $this->attributes['total_componentes'] ?? null);
+
+        $this->attributes['componentes_revisados'] = json_encode($componentes);
+        $this->attributes['cantidad_componentes_revisados'] = count($componentes);
     }
 }
