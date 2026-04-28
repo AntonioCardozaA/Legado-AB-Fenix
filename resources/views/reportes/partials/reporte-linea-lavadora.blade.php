@@ -617,7 +617,7 @@
                     <div class="mb-4">
                         <div class="flex justify-between text-xs mb-1">
                             <span class="font-medium">{{ $fecha }}</span>
-                            <span class="text-gray-500">Hodómetro: {{ number_format($registro->hodometro, 0) }}h</span>
+                            <span class="text-gray-500">Hodómetro: {{ $registro->hodometro_formateado ?? '-' }}</span>
                         </div>
                         
                         {{-- Barra Bombas --}}
@@ -692,7 +692,7 @@
                                 @endphp
                                 <tr>
                                     <td>{{ $registro->created_at->format('d/m/Y') }}</td>
-                                    <td>{{ number_format($registro->hodometro, 0) }}h</td>
+                                    <td>{{ $registro->hodometro_formateado ?? '-' }}</td>
                                     <td class="{{ $registro->bombas_porcentaje >= 2.4 ? 'text-red-600' : ($registro->bombas_porcentaje >= 2.0 ? 'text-yellow-600' : 'text-green-600') }}">
                                         {{ number_format($registro->bombas_porcentaje, 2) }}%
                                     </td>

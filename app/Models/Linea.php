@@ -35,6 +35,11 @@ class Linea extends Model
         return $this->hasMany(AnalisisLavadora::class);
     }
 
+    public function cadenaCiclos()
+    {
+        return $this->hasMany(CadenaCiclo::class, 'linea_id');
+    }
+
     /**
      * Relación con componentes a través de análisis_componentes
      */

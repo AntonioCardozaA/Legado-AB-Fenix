@@ -521,6 +521,9 @@ Route::middleware(['web'])
     Route::get('/', 'index')->name('index');
     Route::get('/create', 'create')->name('create');
     Route::post('/', 'store')->name('store');
+    Route::get('/comparacion-ciclos', 'comparacionCiclos')->name('ciclos.comparacion');
+    Route::get('/ciclos/{ciclo}', 'showCiclo')->name('ciclos.show');
+    Route::get('/ultima-lectura/{linea}', 'ultimaLectura')->name('ultima-lectura');
     Route::get('/{elongacion}', 'show')->name('show');
     Route::get('/{elongacion}/edit', 'edit')->name('edit');
     Route::put('/{elongacion}', 'update')->name('update');
@@ -542,3 +545,10 @@ Route::get('/test-notifications/{planId}', function($planId) {
     }
     abort(404);
 });
+
+/*
+|--------------------------------------------------------------------------
+| AUTENTICACIÓN
+|--------------------------------------------------------------------------
+*/
+require __DIR__ . '/auth.php';
