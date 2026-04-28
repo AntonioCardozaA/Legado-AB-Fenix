@@ -554,7 +554,7 @@ $componente = Componente::firstOrCreate(
                 . "📝 Actividad: {$request->actividad}\n";
 
             // Número en formato internacional (México: 521...)
-            $numero = "5214981096696"; // numero
+            $numero = "5214921933175"; // numero
 
             try {
                 WhatsAppService::enviarMensaje($numero, $mensaje);
@@ -593,9 +593,9 @@ $componente = Componente::firstOrCreate(
     }
 
     /**
-     * ===============================
-     * 6️⃣ REDIRECCIÓN INTELIGENTE
-     * ===============================
+     * ==================
+     * 6️⃣ REDIRECCIÓN 
+     * ==================
      */
     if ($request->filled('redirect_to')) {
         return redirect($request->redirect_to)

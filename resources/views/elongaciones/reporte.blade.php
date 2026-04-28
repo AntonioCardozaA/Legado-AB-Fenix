@@ -49,7 +49,7 @@
                         @foreach($mediciones->sortBy('tipo') as $elongacion)
                         <tr>
                             <td>{{ $elongacion->created_at->format('d/m/Y') }}</td>
-                            <td>{{ number_format($elongacion->hodometro, 0) }}</td>
+                            <td>{{ $elongacion->hodometro_formateado ?? '-' }}</td>
                             <td>{{ strtoupper($elongacion->tipo) }}</td>
                             @for($i = 1; $i <= 8; $i++)
                                 <td>

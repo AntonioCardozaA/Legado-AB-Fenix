@@ -2,82 +2,108 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\CadenaCiclo;
 use App\Models\Elongacion;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
+use App\Models\Linea;
 use App\Services\WhatsAppService;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
 
 class ElongacionController extends Controller
 {
-    // Definir constantes de límites
-    const LIMITE_COMPRA = 1.3;    // Límite para considerar compra
-    const LIMITE_CAMBIO = 1.46;   // Límite para cambio de cadena (ROJO)
+    const LIMITE_COMPRA = 1.3;
+    const LIMITE_CAMBIO = 1.46;
 
-    /**
-     * Display a listing of the resource.
-     */
     public function index(Request $request)
     {
-        $query = Elongacion::query();
-        
-        $hasLineaFilter = $request->has('linea') && !empty($request->linea);
-        $hasEstadoFilter = $request->has('estado') && !empty($request->estado);
-        
-        // Filtrar por línea
+        $query = Elongacion::with('cadenaCiclo');
+
+        $hasLineaFilter = $request->filled('linea');
+        $hasEstadoFilter = $request->filled('estado');
+        $hasProveedorFilter = $request->filled('proveedor');
+        $hasCicloFilter = $request->filled('cadena_ciclo_id');
+
         if ($hasLineaFilter) {
             $query->porLinea($request->linea);
         }
-        
-        // Filtrar por estado
+
         if ($hasEstadoFilter) {
             $query->porEstado($request->estado);
         }
-        
-        // 🎯 NUEVA LÓGICA: Si NO hay filtros (ni línea ni estado), mostrar SOLO el último registro de cada línea
-        // Esto permite un monitoreo rápido del estado actual de todas las líneas
-        if (!$hasLineaFilter && !$hasEstadoFilter) {
-            // Obtener los IDs de los últimos registros por línea (el más reciente de cada una)
+
+        if ($hasProveedorFilter) {
+            $query->where('proveedor', 'like', '%' . $request->proveedor . '%');
+        }
+
+        if ($hasCicloFilter) {
+            $query->where('cadena_ciclo_id', $request->cadena_ciclo_id);
+        }
+
+        if (!$hasLineaFilter && !$hasEstadoFilter && !$hasProveedorFilter && !$hasCicloFilter) {
             $ultimosIds = Elongacion::select(DB::raw('MAX(id) as id'))
-                                    ->groupBy('linea')
-                                    ->pluck('id');
-            
-            // Filtrar el query para que solo incluya esos IDs (los últimos registros)
+                ->groupBy('linea')
+                ->pluck('id');
+
             $query->whereIn('id', $ultimosIds);
         }
-        
-        // Ordenar por fecha descendente y paginar
+
         $elongaciones = $query->orderBy('created_at', 'desc')
-                              ->paginate(15)
-                              ->withQueryString();
-        
-        return view('elongaciones.index', compact('elongaciones'));
+            ->paginate(15)
+            ->withQueryString();
+
+        $ciclos = collect();
+        if ($hasLineaFilter) {
+            $ciclos = CadenaCiclo::porLinea($request->linea)
+                ->orderByDesc('numero_ciclo')
+                ->get();
+        }
+
+        return view('elongaciones.index', [
+            'elongaciones' => $elongaciones,
+            'ciclos' => $ciclos,
+            'lineas' => array_keys(Elongacion::PASOS_INICIALES),
+        ]);
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
     public function create(Request $request)
     {
         $lineaSeleccionada = $request->get('linea', 'L-04');
-        
-        // Obtener última lectura para la línea seleccionada
-        $ultimaLectura = Elongacion::where('linea', $lineaSeleccionada)
-                                   ->orderBy('created_at', 'desc')
-                                   ->first();
-        
-        return view('elongaciones.create', compact('lineaSeleccionada', 'ultimaLectura'));
+        $lineas = array_keys(Elongacion::PASOS_INICIALES);
+
+        $ultimasLecturasPorLinea = Elongacion::with('cadenaCiclo')
+            ->whereIn('id', Elongacion::selectRaw('MAX(id) as id')->groupBy('linea'))
+            ->get()
+            ->keyBy('linea');
+
+        $ciclosActivosPorLinea = CadenaCiclo::activos()
+            ->orderBy('linea')
+            ->get()
+            ->keyBy('linea');
+
+        return view('elongaciones.create', [
+            'lineaSeleccionada' => $lineaSeleccionada,
+            'ultimaLectura' => $ultimasLecturasPorLinea->get($lineaSeleccionada),
+            'ultimasLecturasPorLinea' => $ultimasLecturasPorLinea,
+            'lineas' => $lineas,
+            'pasosIniciales' => Elongacion::PASOS_INICIALES,
+            'ciclosActivosPorLinea' => $ciclosActivosPorLinea,
+            'cicloActivo' => $ciclosActivosPorLinea->get($lineaSeleccionada),
+        ]);
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
     public function store(Request $request)
     {
         try {
-            // Validación
             $request->validate([
-                'linea' => 'required|in:L-04,L-05,L-06,L-07,L-08,L-09,L-12,L-13',
+                'linea' => 'required|in:' . implode(',', array_keys(Elongacion::PASOS_INICIALES)),
+                'cadena_ciclo_id' => 'nullable|integer|exists:cadena_ciclos,id',
+                'nueva_cadena' => 'nullable|boolean',
+                'proveedor' => 'nullable|string|max:255',
+                'hodometro_inicial' => 'nullable|integer|min:0',
+                'fecha_instalacion' => 'nullable|date',
+                'observaciones_cadena' => 'nullable|string|max:1000',
                 'hodometro' => 'nullable|integer|min:0',
                 'bombas_1' => 'nullable|numeric|min:0|max:200',
                 'bombas_2' => 'nullable|numeric|min:0|max:200',
@@ -103,228 +129,374 @@ class ElongacionController extends Controller
                 'juego_rodaja_vapor' => 'nullable|numeric|min:0',
             ]);
 
-            // Definir pasos iniciales por línea
-            $pasosIniciales = [
-                'L-04' => 173,
-                'L-05' => 140,
-                'L-06' => 173,
-                'L-07' => 173,
-                'L-08' => 125,
-                'L-09' => 140,
-                'L-12' => 140,
-                'L-13' => 140,
-            ];
-            
-            $pasoInicial = $pasosIniciales[$request->linea] ?? 173;
+            $elongacion = DB::transaction(function () use ($request) {
+                $linea = Linea::where('nombre', $request->linea)->first();
+                $pasoInicial = Elongacion::getPasoInicial($request->linea);
+                $ciclo = $this->resolverCicloParaRegistro($request, $linea, $pasoInicial);
 
-            // Obtener mediciones lado bombas
-            $bombasMediciones = [];
-            for ($i = 1; $i <= 10; $i++) {
-                $bombasMediciones[] = $request->input("bombas_{$i}");
-            }
-            
-            // Calcular promedio lado bombas
-            $bombasPromedio = Elongacion::calcularPromedio($bombasMediciones);
-            $bombasPorcentaje = Elongacion::calcularPorcentaje($bombasPromedio, $pasoInicial);
-            
-            // Obtener mediciones lado vapor
-            $vaporMediciones = [];
-            for ($i = 1; $i <= 10; $i++) {
-                $vaporMediciones[] = $request->input("vapor_{$i}");
-            }
-            
-            // Calcular promedio lado vapor
-            $vaporPromedio = Elongacion::calcularPromedio($vaporMediciones);
-            $vaporPorcentaje = Elongacion::calcularPorcentaje($vaporPromedio, $pasoInicial);
+                $bombasMediciones = $this->obtenerMediciones($request, 'bombas');
+                $vaporMediciones = $this->obtenerMediciones($request, 'vapor');
 
-            // LÍMITES DEFINIDOS: Compra 1.3% - Cambio 1.46%
-            $limiteCompra = self::LIMITE_COMPRA;
-            $limiteCambio = self::LIMITE_CAMBIO;
+                $bombasPromedio = Elongacion::calcularPromedio($bombasMediciones);
+                $vaporPromedio = Elongacion::calcularPromedio($vaporMediciones);
+                $bombasPorcentaje = Elongacion::calcularPorcentaje($bombasPromedio, $pasoInicial);
+                $vaporPorcentaje = Elongacion::calcularPorcentaje($vaporPromedio, $pasoInicial);
 
-            // Determinar estado basado en los límites
-            $estado = 'normal';
-            $estadoDetallado = 'normal';
-            
-            // Evaluar lado bombas (el más crítico prevalece)
-            if ($bombasPorcentaje >= $limiteCambio) {
-                $estado = 'critico';
-                $estadoDetallado = 'cambio';
-            } elseif ($bombasPorcentaje >= $limiteCompra) {
-                if ($estado != 'critico') $estado = 'alerta';
-                $estadoDetallado = 'comprar';
-            }
-            
-            // Evaluar lado vapor
-            if ($vaporPorcentaje >= $limiteCambio) {
-                $estado = 'critico';
-                $estadoDetallado = 'cambio';
-            } elseif ($vaporPorcentaje >= $limiteCompra) {
-                if ($estado != 'critico') $estado = 'alerta';
-                $estadoDetallado = 'comprar';
-            }
+                $estadoDetallado = $this->resolverEstadoDetallado($bombasPorcentaje, $vaporPorcentaje);
+                $estado = $this->resolverEstadoGeneral($estadoDetallado);
+                $requiereCambio = $bombasPorcentaje >= self::LIMITE_CAMBIO || $vaporPorcentaje >= self::LIMITE_CAMBIO;
 
-            // Preparar datos para crear
-            $data = [
-                'linea' => $request->linea,
-                'seccion' => 'LAVADORA',
-                'hodometro' => $request->hodometro,
-                'juego_rodaja_bombas' => $request->juego_rodaja_bombas,
-                'juego_rodaja_vapor' => $request->juego_rodaja_vapor,
-                'bombas_promedio' => $bombasPromedio,
-                'bombas_porcentaje' => $bombasPorcentaje,
-                'vapor_promedio' => $vaporPromedio,
-                'vapor_porcentaje' => $vaporPorcentaje,
-                'estado' => $estado,
-                'estado_detallado' => $estadoDetallado,
-                'paso_inicial' => $pasoInicial,
-            ];
+                $data = [
+                    'linea' => $request->linea,
+                    'cadena_ciclo_id' => $ciclo->id,
+                    'proveedor' => $ciclo->proveedor,
+                    'seccion' => 'LAVADORA',
+                    'hodometro' => $request->hodometro,
+                    'hodometro_ciclo' => $this->calcularHodometroCiclo($request->hodometro, $ciclo->hodometro_inicial),
+                    'juego_rodaja_bombas' => $request->juego_rodaja_bombas,
+                    'juego_rodaja_vapor' => $request->juego_rodaja_vapor,
+                    'bombas_promedio' => $bombasPromedio,
+                    'bombas_porcentaje' => $bombasPorcentaje,
+                    'vapor_promedio' => $vaporPromedio,
+                    'vapor_porcentaje' => $vaporPorcentaje,
+                    'requiere_cambio' => $requiereCambio,
+                    'estado' => $estado,
+                    'estado_detallado' => $estadoDetallado,
+                    'paso_inicial' => $pasoInicial,
+                ];
 
-            // Agregar mediciones individuales
-            for ($i = 1; $i <= 10; $i++) {
-                $data["bombas_{$i}"] = $request->input("bombas_{$i}");
-                $data["vapor_{$i}"] = $request->input("vapor_{$i}");
-            }
+                for ($i = 1; $i <= 10; $i++) {
+                    $data["bombas_{$i}"] = $request->input("bombas_{$i}");
+                    $data["vapor_{$i}"] = $request->input("vapor_{$i}");
+                }
 
-            // Crear registro
-            $elongacion = Elongacion::create($data);
-            
-            // 🚨 NOTIFICACIÓN WHATSAPP POR LÍMITES DE ELONGACIÓN
-            $this->enviarNotificacionWhatsApp($request, $bombasPorcentaje, $vaporPorcentaje);
+                $elongacion = Elongacion::create($data);
 
-            // Mensaje de éxito
+                $this->enviarNotificacionWhatsApp($request, $bombasPorcentaje, $vaporPorcentaje, $ciclo);
+
+                return $elongacion;
+            });
+
             $mensaje = 'Registro guardado exitosamente';
-            
-            if ($bombasPorcentaje >= $limiteCambio || $vaporPorcentaje >= $limiteCambio) {
-                $mensaje .= ' - 🚨 ¡ATENCIÓN! LÍMITE DE CAMBIO ALCANZADO (' . $limiteCambio . '%) - CAMBIO REQUERIDO';
-            } elseif ($bombasPorcentaje >= $limiteCompra || $vaporPorcentaje >= $limiteCompra) {
-                $mensaje .= ' - ⚠️ NOTA: Un lado superó ' . $limiteCompra . '%, considerar compra de cadena';
+            if ($request->boolean('nueva_cadena')) {
+                $mensaje = 'Nueva cadena registrada y medicion guardada exitosamente';
+            }
+
+            if ($elongacion->requiere_cambio) {
+                $mensaje .= ' - CAMBIO REQUERIDO';
+            } elseif ($elongacion->requiere_compra) {
+                $mensaje .= ' - considerar compra de cadena';
             }
 
             return redirect()->route('elongaciones.index', ['linea' => $request->linea])
                 ->with('success', $mensaje);
-
+        } catch (ValidationException $exception) {
+            throw $exception;
         } catch (\Exception $e) {
-            Log::error('Error al guardar elongación: ' . $e->getMessage());
+            Log::error('Error al guardar elongacion: ' . $e->getMessage(), [
+                'linea' => $request->linea,
+            ]);
+
             return back()->withInput()
                 ->with('error', 'Error al guardar el registro: ' . $e->getMessage());
         }
     }
 
-    /**
-     * Enviar notificación por WhatsApp
-     */
-    private function enviarNotificacionWhatsApp($request, $bombasPorcentaje, $vaporPorcentaje)
-    {
-        $limiteCompra = self::LIMITE_COMPRA;
-        $limiteCambio = self::LIMITE_CAMBIO;
-        
-        $numero = "5214981096696"; // tu número o grupo
-        $mensaje = null;
-
-        // Detectar lados afectados
-        $lados = [];
-
-        if ($bombasPorcentaje >= $limiteCompra) {
-            $lados[] = "🔵 Bombas (" . round($bombasPorcentaje, 2) . "%)";
-        }
-
-        if ($vaporPorcentaje >= $limiteCompra) {
-            $lados[] = "🟢 Vapor (" . round($vaporPorcentaje, 2) . "%)";
-        }
-
-        $ladosTexto = !empty($lados) ? implode(' y ', $lados) : 'Sin afectación';
-
-        // 🔴 CRÍTICO (CAMBIO) - SUPERÓ 1.46%
-        if ($bombasPorcentaje >= $limiteCambio || $vaporPorcentaje >= $limiteCambio) {
-            $mensaje = "🔴 *ALERTA CRÍTICA - CAMBIO DE CADENA* 🔴\n\n"
-                . "🏭 Línea: {$request->linea}\n"
-                . "📍 Lado afectado: $ladosTexto\n\n"
-                . "📊 Bombas: " . round($bombasPorcentaje, 2) . "%\n"
-                . "🌫️ Vapor: " . round($vaporPorcentaje, 2) . "%\n\n"
-                . "⚠️ Superó el límite de cambio: *{$limiteCambio}%*\n"
-                . "🔧 *¡CAMBIO INMEDIATO REQUERIDO!*";
-        }
-        // 🟡 COMPRA - SUPERÓ 1.3% PERO NO 1.46%
-        elseif ($bombasPorcentaje >= $limiteCompra || $vaporPorcentaje >= $limiteCompra) {
-            $mensaje = "🟡 *ALERTA - CONSIDERAR COMPRA DE CADENA* 🟡\n\n"
-                . "🏭 Línea: {$request->linea}\n"
-                . "📍 Lado afectado: $ladosTexto\n\n"
-                . "📊 Bombas: " . round($bombasPorcentaje, 2) . "%\n"
-                . "🌫️ Vapor: " . round($vaporPorcentaje, 2) . "%\n\n"
-                . "📦 Superó el límite de compra: *{$limiteCompra}%*\n"
-                . "🛒 *CONSIDERAR COMPRA PARA PRÓXIMO CAMBIO DE CADENA*";
-        }
-
-        // Enviar si hay mensaje
-        if ($mensaje && class_exists(WhatsAppService::class)) {
-            try {
-                WhatsAppService::enviarMensaje($numero, $mensaje);
-                Log::info('WhatsApp elongación enviado', [
-                    'linea' => $request->linea,
-                    'bombas' => $bombasPorcentaje,
-                    'vapor' => $vaporPorcentaje,
-                ]);
-            } catch (\Exception $e) {
-                Log::error('Error WhatsApp elongación: ' . $e->getMessage());
-            }
-        }
-    }
-
-    /**
-     * Display the specified resource.
-     */
     public function show(Elongacion $elongacion)
     {
+        $elongacion->load('cadenaCiclo');
+
         return view('elongaciones.show', compact('elongacion'));
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
+    public function showCiclo(CadenaCiclo $ciclo)
+    {
+        $ciclo->load('lineaModel');
+
+        $elongaciones = $ciclo->elongaciones()
+            ->orderByDesc('created_at')
+            ->paginate(15)
+            ->withQueryString();
+
+        $ultimaMedicion = $ciclo->elongaciones()->latest('created_at')->first();
+
+        $resumen = [
+            'total_registros' => $ciclo->elongaciones()->count(),
+            'vida_util_horas' => $ciclo->elongaciones()->max('hodometro_ciclo'),
+            'max_bombas' => $ciclo->elongaciones()->max('bombas_porcentaje'),
+            'max_vapor' => $ciclo->elongaciones()->max('vapor_porcentaje'),
+            'promedio_bombas' => round((float) $ciclo->elongaciones()->avg('bombas_porcentaje'), 2),
+            'promedio_vapor' => round((float) $ciclo->elongaciones()->avg('vapor_porcentaje'), 2),
+            'ultimo_estado' => $ultimaMedicion?->estado,
+        ];
+
+        return view('elongaciones.ciclos.show', compact('ciclo', 'elongaciones', 'resumen', 'ultimaMedicion'));
+    }
+
+    public function comparacionCiclos(Request $request)
+    {
+        $lineas = array_keys(Elongacion::PASOS_INICIALES);
+        $lineaSeleccionada = $request->get('linea', $lineas[0] ?? null);
+
+        $ciclos = CadenaCiclo::porLinea($lineaSeleccionada)
+            ->orderByDesc('numero_ciclo')
+            ->get()
+            ->map(function (CadenaCiclo $ciclo) {
+                $ultimaMedicion = $ciclo->elongaciones()->latest('created_at')->first();
+                $ultimaFecha = $ciclo->retirada_en ?: $ultimaMedicion?->created_at;
+                $diasOperacion = $ciclo->instalada_en && $ultimaFecha
+                    ? $ciclo->instalada_en->diffInDays($ultimaFecha)
+                    : null;
+
+                return [
+                    'ciclo' => $ciclo,
+                    'registros' => $ciclo->elongaciones()->count(),
+                    'vida_util_horas' => $ciclo->elongaciones()->max('hodometro_ciclo'),
+                    'max_bombas' => $ciclo->elongaciones()->max('bombas_porcentaje'),
+                    'max_vapor' => $ciclo->elongaciones()->max('vapor_porcentaje'),
+                    'promedio_bombas' => round((float) $ciclo->elongaciones()->avg('bombas_porcentaje'), 2),
+                    'promedio_vapor' => round((float) $ciclo->elongaciones()->avg('vapor_porcentaje'), 2),
+                    'ultimo_estado' => $ultimaMedicion?->estado,
+                    'ultima_medicion' => $ultimaMedicion,
+                    'dias_operacion' => $diasOperacion,
+                ];
+            });
+
+        return view('elongaciones.ciclos.comparacion', compact('ciclos', 'lineas', 'lineaSeleccionada'));
+    }
+
     public function destroy(Elongacion $elongacion)
     {
         try {
             $linea = $elongacion->linea;
             $elongacion->delete();
-            
+
             return redirect()->route('elongaciones.index', ['linea' => $linea])
                 ->with('success', 'Registro eliminado exitosamente');
-                
         } catch (\Exception $e) {
-            Log::error('Error al eliminar elongación: ' . $e->getMessage());
+            Log::error('Error al eliminar elongacion: ' . $e->getMessage());
+
             return back()->with('error', 'Error al eliminar el registro');
         }
     }
 
-    /**
-     * API para obtener última lectura
-     */
     public function ultimaLectura($linea)
     {
         try {
-            $ultima = Elongacion::where('linea', $linea)
-                               ->orderBy('created_at', 'desc')
-                               ->first();
-            
+            $ultima = Elongacion::with('cadenaCiclo')
+                ->where('linea', $linea)
+                ->orderBy('created_at', 'desc')
+                ->first();
+
             if ($ultima) {
                 return response()->json([
                     'success' => true,
                     'hodometro' => $ultima->hodometro,
-                    'fecha' => $ultima->created_at->format('d/m/Y H:i')
+                    'hodometro_ciclo' => $ultima->hodometro_ciclo,
+                    'fecha' => $ultima->created_at->format('d/m/Y H:i'),
+                    'ciclo' => $ultima->cadenaCiclo?->codigo,
+                    'proveedor' => $ultima->proveedor_actual,
                 ]);
             }
-            
+
             return response()->json([
                 'success' => true,
                 'hodometro' => null,
-                'fecha' => null
+                'hodometro_ciclo' => null,
+                'fecha' => null,
+                'ciclo' => null,
+                'proveedor' => null,
             ]);
-            
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Error al cargar última lectura'
+                'message' => 'Error al cargar ultima lectura',
             ], 500);
+        }
+    }
+
+    private function obtenerMediciones(Request $request, string $lado): array
+    {
+        $mediciones = [];
+
+        for ($i = 1; $i <= 10; $i++) {
+            $mediciones[] = $request->input("{$lado}_{$i}");
+        }
+
+        return $mediciones;
+    }
+
+    private function resolverCicloParaRegistro(Request $request, ?Linea $linea, int $pasoInicial): CadenaCiclo
+    {
+        $cicloActivo = CadenaCiclo::porLinea($request->linea)
+            ->activos()
+            ->orderByDesc('numero_ciclo')
+            ->first();
+
+        if ($request->filled('cadena_ciclo_id')) {
+            $cicloSeleccionado = CadenaCiclo::whereKey($request->cadena_ciclo_id)
+                ->where('linea', $request->linea)
+                ->first();
+
+            if (!$cicloSeleccionado) {
+                throw ValidationException::withMessages([
+                    'cadena_ciclo_id' => 'El ciclo seleccionado no pertenece a la linea indicada.',
+                ]);
+            }
+
+            return $cicloSeleccionado;
+        }
+
+        if ($request->boolean('nueva_cadena')) {
+            if (!$request->filled('proveedor')) {
+                throw ValidationException::withMessages([
+                    'proveedor' => 'El proveedor es obligatorio al registrar una nueva cadena.',
+                ]);
+            }
+
+            if ($cicloActivo) {
+                $cicloActivo->update([
+                    'activa' => false,
+                    'retirada_en' => $request->input('fecha_instalacion', now()),
+                ]);
+            }
+
+            $numeroCiclo = (int) CadenaCiclo::porLinea($request->linea)->max('numero_ciclo') + 1;
+            $hodometroInicial = $request->filled('hodometro_inicial')
+                ? (int) $request->hodometro_inicial
+                : ($request->filled('hodometro') ? (int) $request->hodometro : 0);
+
+            return CadenaCiclo::create([
+                'linea_id' => $linea?->id,
+                'linea' => $request->linea,
+                'codigo' => $this->buildCodigoCiclo($request->linea, $numeroCiclo),
+                'numero_ciclo' => $numeroCiclo,
+                'proveedor' => $request->proveedor,
+                'paso_inicial' => $pasoInicial,
+                'hodometro_inicial' => $hodometroInicial,
+                'instalada_en' => $request->input('fecha_instalacion', now()),
+                'activa' => true,
+                'observaciones' => $request->observaciones_cadena,
+            ]);
+        }
+
+        if ($cicloActivo) {
+            return $cicloActivo;
+        }
+
+        if (!$request->filled('proveedor')) {
+            throw ValidationException::withMessages([
+                'proveedor' => 'El proveedor es obligatorio para iniciar el primer ciclo de esta linea.',
+            ]);
+        }
+
+        return CadenaCiclo::create([
+            'linea_id' => $linea?->id,
+            'linea' => $request->linea,
+            'codigo' => $this->buildCodigoCiclo($request->linea, 1),
+            'numero_ciclo' => 1,
+            'proveedor' => $request->proveedor,
+            'paso_inicial' => $pasoInicial,
+            'hodometro_inicial' => $request->filled('hodometro_inicial')
+                ? (int) $request->hodometro_inicial
+                : ($request->filled('hodometro') ? (int) $request->hodometro : 0),
+            'instalada_en' => $request->input('fecha_instalacion', now()),
+            'activa' => true,
+            'observaciones' => $request->observaciones_cadena,
+        ]);
+    }
+
+    private function resolverEstadoDetallado(float $bombasPorcentaje, float $vaporPorcentaje): string
+    {
+        $maximo = max($bombasPorcentaje, $vaporPorcentaje);
+
+        if ($maximo >= self::LIMITE_CAMBIO) {
+            return 'cambio';
+        }
+
+        if ($maximo >= self::LIMITE_COMPRA) {
+            return 'comprar';
+        }
+
+        return 'normal';
+    }
+
+    private function resolverEstadoGeneral(string $estadoDetallado): string
+    {
+        return match ($estadoDetallado) {
+            'cambio' => 'critico',
+            'comprar' => 'alerta',
+            default => 'normal',
+        };
+    }
+
+    private function calcularHodometroCiclo($hodometroActual, $hodometroInicial): ?int
+    {
+        if ($hodometroActual === null) {
+            return null;
+        }
+
+        if ($hodometroInicial === null) {
+            return (int) $hodometroActual;
+        }
+
+        return max((int) $hodometroActual - (int) $hodometroInicial, 0);
+    }
+
+    private function buildCodigoCiclo(string $linea, int $numeroCiclo): string
+    {
+        return sprintf('%s-C%03d', $linea, $numeroCiclo);
+    }
+
+    private function enviarNotificacionWhatsApp(Request $request, float $bombasPorcentaje, float $vaporPorcentaje, CadenaCiclo $ciclo): void
+    {
+        $numero = '5214981096696';
+        $mensaje = null;
+        $lados = [];
+
+        if ($bombasPorcentaje >= self::LIMITE_COMPRA) {
+            $lados[] = 'Bombas (' . round($bombasPorcentaje, 2) . '%)';
+        }
+
+        if ($vaporPorcentaje >= self::LIMITE_COMPRA) {
+            $lados[] = 'Vapor (' . round($vaporPorcentaje, 2) . '%)';
+        }
+
+        $ladosTexto = !empty($lados) ? implode(' y ', $lados) : 'Sin afectacion';
+
+        if ($bombasPorcentaje >= self::LIMITE_CAMBIO || $vaporPorcentaje >= self::LIMITE_CAMBIO) {
+            $mensaje = "*ALERTA CRITICA - CAMBIO DE CADENA*\n\n"
+                . "Linea: {$request->linea}\n"
+                . "Ciclo: {$ciclo->codigo}\n"
+                . "Proveedor: {$ciclo->proveedor}\n"
+                . "Lado afectado: {$ladosTexto}\n\n"
+                . "Bombas: " . round($bombasPorcentaje, 2) . "%\n"
+                . "Vapor: " . round($vaporPorcentaje, 2) . "%\n\n"
+                . "Supero el limite de cambio: " . self::LIMITE_CAMBIO . "%\n"
+                . "CAMBIO INMEDIATO REQUERIDO";
+        } elseif ($bombasPorcentaje >= self::LIMITE_COMPRA || $vaporPorcentaje >= self::LIMITE_COMPRA) {
+            $mensaje = "*ALERTA - CONSIDERAR COMPRA DE CADENA*\n\n"
+                . "Linea: {$request->linea}\n"
+                . "Ciclo: {$ciclo->codigo}\n"
+                . "Proveedor: {$ciclo->proveedor}\n"
+                . "Lado afectado: {$ladosTexto}\n\n"
+                . "Bombas: " . round($bombasPorcentaje, 2) . "%\n"
+                . "Vapor: " . round($vaporPorcentaje, 2) . "%\n\n"
+                . "Supero el limite de compra: " . self::LIMITE_COMPRA . "%";
+        }
+
+        if ($mensaje && class_exists(WhatsAppService::class)) {
+            try {
+                WhatsAppService::enviarMensaje($numero, $mensaje);
+                Log::info('WhatsApp elongacion enviado', [
+                    'linea' => $request->linea,
+                    'ciclo' => $ciclo->codigo,
+                    'bombas' => $bombasPorcentaje,
+                    'vapor' => $vaporPorcentaje,
+                ]);
+            } catch (\Exception $e) {
+                Log::error('Error WhatsApp elongacion: ' . $e->getMessage());
+            }
         }
     }
 }
