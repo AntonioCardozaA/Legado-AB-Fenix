@@ -23,7 +23,7 @@ class DashboardController extends Controller
       $modulos = [
     [
         'id' => 'lavadora',
-        'nombre' => 'Lavadoras Industriales',
+        'nombre' => 'Lavadoras',
         'descripcion' => 'Monitoreo de elongaciones, análisis de componentes, plan de acción y métricas de rendimiento para líneas L-04 a L-13.',
         'icono' => 'fa-industry', // Ícono de FontAwesome como fallback
         'imagen_personalizada' => true, // Indicamos que usaremos imagen personalizada
