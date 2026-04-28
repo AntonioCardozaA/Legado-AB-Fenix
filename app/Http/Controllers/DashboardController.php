@@ -23,7 +23,7 @@ class DashboardController extends Controller
       $modulos = [
     [
         'id' => 'lavadora',
-        'nombre' => 'Lavadoras Industriales',
+        'nombre' => 'Lavadoras',
         'descripcion' => 'Monitoreo de elongaciones, análisis de componentes, plan de acción y métricas de rendimiento para líneas L-04 a L-13.',
         'icono' => 'fa-industry', // Ícono de FontAwesome como fallback
         'imagen_personalizada' => true, // Indicamos que usaremos imagen personalizada
@@ -150,7 +150,7 @@ class DashboardController extends Controller
         // 9. Datos para el análisis 52-12-4 (últimos registros)
         $analisis52124 = $this->getAnalisis52124($lineasLavadora);
 
-        return view('dashboard-lavadora', compact(
+        return view('lavadora.dashboard-lavadora', compact(
             'lineasLavadora',
             'resumenGeneral',
             'estadoLavadoras',
@@ -192,7 +192,7 @@ class DashboardController extends Controller
         // Estado detallado de cada pasteurizadora
         $estadoPasteurizadoras = $this->getEstadoPasteurizadoras($pasteurizadoras, $analisisPasteurizadora);
 
-        return view('dashboard-pasteurizadora', compact(
+        return view('pasteurizadora.dashboard', compact(
             'resumenPasteurizadora',
             'estadoPasteurizadoras'
         ));

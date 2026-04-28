@@ -41,10 +41,10 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     // Ruta del módulo Lavadora
-    Route::get('/dashboard/lavadora', [DashboardController::class, 'lavadora'])->name('dashboard.lavadora');
+    Route::get('/dashboard/lavadora', [DashboardController::class, 'lavadora'])->name('lavadora.dashboard-lavadora');
 
     // Ruta del módulo Pasteurizadora  
-    Route::get('/dashboard/pasteurizadora', [DashboardController::class, 'pasteurizadora'])->name('dashboard.pasteurizadora');
+    Route::get('/dashboard/pasteurizadora', [DashboardController::class, 'pasteurizadora'])->name('pasteurizadora.dashboard-pasteurizadora');
 
     // Rutas que el layout está buscando (compatibilidad)
     Route::get('/lavadora/dashboard', [DashboardController::class, 'lavadora'])->name('lavadora.dashboard');
@@ -179,10 +179,10 @@ Route::prefix('pasteurizadora')->name('pasteurizadora.')->middleware('auth')->gr
 
     /*
     |--------------------------------------------------------------------------
-    | DASHBOARD ✅ (FUERA DEL ANALISIS)
+    | DASHBOARD ✅ (CORREGIDO)
     |--------------------------------------------------------------------------
     */
-    Route::get('/dashboard', [DashboardController::class, 'dashboard'])
+    Route::get('/dashboard', [DashboardController::class, 'pasteurizadora'])
     ->name('dashboard');
 
     /*

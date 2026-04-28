@@ -129,7 +129,7 @@
                 <i class="fas fa-chart-line w-5 mr-3 text-gray-500"></i>
                 Dashboard
             </a>
-            <a href="{{ route('lavadora.dashboard') }}"
+            <a href="{{ route('lavadora.dashboard-lavadora') }}"
                 aria-label="Dashboard de Lavadora"
                 class="nav-link flex items-center px-4 py-3 rounded-lg {{ request()->routeIs('lavadora.dashboard') ? 'nav-active' : '' }}">
                 <i class="fas fa-droplet w-5 mr-3 text-gray-500"></i>
