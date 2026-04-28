@@ -177,7 +177,7 @@
                     <div>
                         <label for="hodometro_inicial" class="block text-sm font-medium text-gray-700 mb-2">Hodómetro base del ciclo</label>
                         <input type="number" id="hodometro_inicial" name="hodometro_inicial" value="{{ old('hodometro_inicial') }}" class="block w-full rounded-lg border-gray-300 shadow-sm focus:ring-amber-500 focus:border-amber-500" placeholder="Ej. 1205 para 12:05 h">
-                        <p class="text-xs text-gray-500 mt-1">Los Ãºltimos 2 dÃ­gitos son segundos. Vista previa: <span id="hodometro_inicial_preview">{{ old('hodometro_inicial') !== null && old('hodometro_inicial') !== '' ? \App\Support\HodometroHoras::formatear(old('hodometro_inicial')) : 'Sin captura' }}</span></p>
+                        <p class="text-xs text-gray-500 mt-1">Vista previa: <span id="hodometro_inicial_preview">{{ old('hodometro_inicial') !== null && old('hodometro_inicial') !== '' ? \App\Support\HodometroHoras::formatear(old('hodometro_inicial')) : 'Sin captura' }}</span></p>
                         @error('hodometro_inicial')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
                     </div>
                     <div>
@@ -252,7 +252,7 @@
                             <div class="flex-1"><input type="number" id="hodometro" name="hodometro" value="{{ old('hodometro') }}" class="block w-full rounded-lg border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-lg text-center font-medium py-3" placeholder="Ej. 1205 para 12:05 h"></div>
                             <span class="text-lg font-medium text-gray-700 whitespace-nowrap">HORAS</span>
                         </div>
-                        <p class="text-xs text-center text-gray-500 mt-2">Los Ãºltimos 2 dÃ­gitos son segundos. Vista previa: <span id="hodometro_preview">{{ old('hodometro') !== null && old('hodometro') !== '' ? \App\Support\HodometroHoras::formatear(old('hodometro')) : 'Sin captura' }}</span></p>
+                        <p class="text-xs text-center text-gray-500 mt-2">Vista previa: <span id="hodometro_preview">{{ old('hodometro') !== null && old('hodometro') !== '' ? \App\Support\HodometroHoras::formatear(old('hodometro')) : 'Sin captura' }}</span></p>
                         @error('hodometro')<p class="text-red-500 text-sm text-center mt-2">{{ $message }}</p>@enderror
                         <div class="text-center mt-2 text-sm text-gray-500">
                             <p>Última lectura: <span id="ultima_lectura_resumen">{{ $ultimaLectura && $ultimaLectura->hodometro !== null ? number_format($ultimaLectura->hodometro, 0) . ' h' : 'Sin registro' }}</span></p>
