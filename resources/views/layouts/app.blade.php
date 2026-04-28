@@ -125,19 +125,19 @@
         <nav class="flex-1 px-4 py-6 space-y-2 text-sm">
             <a href="{{ route('dashboard') }}"
                aria-label="Ir al Dashboard"
-               class="nav-link flex items-center px-4 py-3 rounded-lg {{ request()->routeIs('dashboard') ? 'nav-active' : '' }}">
+               class="nav-link flex items-center px-4 py-3 rounded-lg {{ request()->routeIs('dashboard.index') ? 'nav-active' : '' }}">
                 <i class="fas fa-chart-line w-5 mr-3 text-gray-500"></i>
                 Dashboard
             </a>
-            <a href="{{ route('lavadora.dashboard-lavadora') }}"
+         <a href="{{ route('lavadora.dashboard') }}"
                 aria-label="Dashboard de Lavadora"
-                class="nav-link flex items-center px-4 py-3 rounded-lg {{ request()->routeIs('lavadora.dashboard') ? 'nav-active' : '' }}">
+                class="nav-link flex items-center px-4 py-3 rounded-lg {{ request()->routeIs('dashboard.lavadora') ? 'nav-active' : '' }}">
                 <i class="fas fa-droplet w-5 mr-3 text-gray-500"></i>
                 Lavadora
             </a>
             <a href="{{ route('pasteurizadora.dashboard') }}"
                aria-label="Análisis de Pasteurizadora"
-               class="nav-link flex items-center px-4 py-3 rounded-lg {{ request()->routeIs('pasteurizadora.*') ? 'nav-active' : '' }}">
+               class="nav-link flex items-center px-4 py-3 rounded-lg {{ request()->routeIs('dashboard.pasteurizadora') ? 'nav-active' : '' }}">
                 <i class="fas fa-thermometer-half w-5 mr-3 text-gray-500"></i>
                 Pasteurizadora
             </a>

@@ -327,13 +327,15 @@
     </div>
 
     <div class="modulos-grid">
-        @foreach($modulos as $modulo)
-            @if($modulo['activo'])
-                @php
-                    $hasCriticos = $modulo['estadisticas']['alertas_criticas'] > 0;
-                    $tieneImagen = isset($modulo['imagen_personalizada']) && $modulo['imagen_personalizada'] && !empty($modulo['icono_imagen']);
-                @endphp
-                <div class="modulo-card" onclick="window.location.href='{{ $modulo['ruta'] }}'">
+  @foreach($modulos as $modulo)
+    @if($modulo['activo'])
+        @php
+            $hasCriticos = $modulo['estadisticas']['alertas_criticas'] > 0;
+            $tieneImagen = isset($modulo['imagen_personalizada']) && $modulo['imagen_personalizada'] && !empty($modulo['icono_imagen']);
+            // La ruta está definida en el controlador dentro de cada módulo
+            $rutaModulo = $modulo['ruta'] ?? route('dashboard.index');
+        @endphp
+                <div class="modulo-card" onclick="window.location.href='{{ $rutaModulo }}'">
                     <div class="modulo-header">
                         <div class="modulo-icon {{ $modulo['color'] }} {{ $tieneImagen ? 'has-image' : '' }}">
                             @if($tieneImagen)
