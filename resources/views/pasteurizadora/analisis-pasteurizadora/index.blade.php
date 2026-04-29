@@ -312,6 +312,8 @@
                                                 })->first();
                                                 $hasData = $registro !== null;
                                                 $totalComponentesComponente = $compData['cantidad'] ?? 0;
+                                                $esBrazoTorsion = \App\Models\AnalisisPasteurizadora::esBrazoTorsion($codigo);
+                                                $brazoAplicaModulo = !$esBrazoTorsion || $moduloNumero <= \App\Models\AnalisisPasteurizadora::getCantidadBrazosTorsionPorLinea($linea->nombre);
                                                 $componentesRevisadosAcumulados = $registros
                                                     ->flatMap(function ($item) {
                                                         if (is_array($item->componentes_revisados)) {
@@ -389,6 +391,11 @@
                                                 }
                                             @endphp
 
+                                            @if(!$brazoAplicaModulo)
+                                                <td class="px-4 py-3 align-middle bg-gray-50 text-center text-xs text-gray-400">
+                                                    No aplica
+                                                </td>
+                                            @else
                                             <td class="px-4 py-3 align-top {{ $bgColor }} {{ $borderColor }} cursor-pointer hover:shadow-md transition-all"
                                                 @if($hasData)
                                                     onclick="openAnalysisDetail({{ json_encode([
@@ -574,6 +581,7 @@
                                                     </div>
                                                 @endif
                                             </td>
+                                            @endif
                                         @endforeach
                                     </tr>
                                 @endforeach

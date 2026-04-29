@@ -155,7 +155,7 @@
                 }
             @endphp
 
-            @if($totalComponentes > 0)
+            @if($totalComponentes > 0 && !\App\Models\AnalisisPasteurizadora::esBrazoTorsion($analisis->componente))
             <div class="mb-6 p-4 bg-indigo-50 rounded-lg border border-indigo-200">
                 <h3 class="text-sm font-semibold text-indigo-800 mb-4">
                     <i class="fas fa-clipboard-check mr-1"></i>
@@ -171,12 +171,22 @@
                                    class="w-4 h-4 text-indigo-600 rounded cursor-pointer focus:ring-indigo-500">
                             <span class="text-sm font-medium text-gray-700">
                                 <i class="fas fa-cube text-indigo-500 mr-1"></i>
-                                {{ $analisis->componente }} #{{ $i }}
+                                @if(\App\Models\AnalisisPasteurizadora::esBrazoTorsion($analisis->componente))
+                                    {{ $analisis->componente_nombre }} modulo {{ $i }}
+                                @else
+                                    {{ $analisis->componente }} #{{ $i }}
+                                @endif
                             </span>
                         </label>
                     @endfor
                 </div>
             </div>
+            @elseif(\App\Models\AnalisisPasteurizadora::esBrazoTorsion($analisis->componente))
+                <input type="hidden" name="componentes_revisados[]" value="1">
+                <div class="mb-6 p-4 bg-indigo-50 rounded-lg border border-indigo-200 text-sm text-indigo-800">
+                    <i class="fas fa-info-circle mr-1"></i>
+                    Este registro corresponde al Brazo de Torsion del modulo {{ $analisis->modulo }}.
+                </div>
             @endif
             <div class="mb-6">
                 <label for="actividad" class="block text-sm font-medium text-gray-700 mb-1">

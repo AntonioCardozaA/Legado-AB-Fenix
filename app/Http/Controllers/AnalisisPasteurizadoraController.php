@@ -177,6 +177,8 @@ class AnalisisPasteurizadoraController extends Controller
             'componentes_revisados' => $seleccionComponentes['componentes_revisados'],
             'cantidad_componentes_revisados' => count($seleccionComponentes['componentes_revisados']),
             'total_componentes' => $seleccionComponentes['total_componentes'],
+            'brazos_torsion' => $seleccionComponentes['brazos_torsion'],
+            'total_brazos_torsion' => $seleccionComponentes['total_brazos_torsion'],
             'resuelto_por_cambio' => false,
         ]);
 
@@ -316,6 +318,8 @@ class AnalisisPasteurizadoraController extends Controller
             $validated['componentes_revisados'] = $componentesRevisados;
             $validated['cantidad_componentes_revisados'] = count($componentesRevisados);
             $validated['total_componentes'] = $seleccionComponentes['total_componentes'];
+            $validated['brazos_torsion'] = $seleccionComponentes['brazos_torsion'];
+            $validated['total_brazos_torsion'] = $seleccionComponentes['total_brazos_torsion'];
         } elseif (isset($validated['componentes_revisados']) && empty($validated['componentes_revisados'])) {
             // Si enviaron array vacío, no incluir el campo
             unset($validated['componentes_revisados']);
@@ -474,6 +478,13 @@ class AnalisisPasteurizadoraController extends Controller
 
                 for ($modulo = 1; $modulo <= $totalModulos; $modulo++) {
                     foreach ($componentes as $codigo => $compData) {
+                        if (
+                            AnalisisPasteurizadora::esBrazoTorsion($codigo)
+                            && $modulo > AnalisisPasteurizadora::getCantidadBrazosTorsionPorLinea($linea->nombre)
+                        ) {
+                            continue;
+                        }
+
                         foreach ($niveles as $nivel) {
                             $componentesModulos->push([
                                 'linea_id' => $linea->id,
@@ -495,6 +506,13 @@ class AnalisisPasteurizadoraController extends Controller
 
             for ($modulo = 1; $modulo <= $totalModulos; $modulo++) {
                 foreach ($componentes as $codigo => $compData) {
+                    if (
+                        AnalisisPasteurizadora::esBrazoTorsion($codigo)
+                        && $modulo > AnalisisPasteurizadora::getCantidadBrazosTorsionPorLinea($lineaSeleccionada->nombre)
+                    ) {
+                        continue;
+                    }
+
                     foreach ($niveles as $nivel) {
                         $componentesModulos->push([
                             'linea_id' => $lineaSeleccionada->id,
@@ -801,10 +819,26 @@ class AnalisisPasteurizadoraController extends Controller
 
         $componente = $resolved['key'];
         $totalComponentes = (int) ($resolved['config']['cantidad'] ?? 0);
+
+        if (AnalisisPasteurizadora::esBrazoTorsion($componente)) {
+            $modulo = (int) ($contexto['modulo'] ?? 0);
+            $ultimoModuloConBrazo = AnalisisPasteurizadora::getCantidadBrazosTorsionPorLinea($linea->nombre);
+
+            if ($modulo < 1 || $modulo > $ultimoModuloConBrazo) {
+                throw ValidationException::withMessages([
+                    'modulo' => 'El Brazo de Torsion solo aplica del modulo 1 al ' . $ultimoModuloConBrazo . '. El ultimo modulo no tiene brazo.',
+                ]);
+            }
+        }
+
         $componentesSeleccionados = AnalisisPasteurizadora::normalizarComponentesRevisados(
             $request->input('componentes_revisados'),
             $totalComponentes
         );
+
+        if (AnalisisPasteurizadora::esBrazoTorsion($componente)) {
+            $componentesSeleccionados = [1];
+        }
 
         $componentesPendientes = AnalisisPasteurizadora::getComponentesPendientes(
             $linea->id,
@@ -839,6 +873,10 @@ class AnalisisPasteurizadoraController extends Controller
             'componente' => $componente,
             'componentes_revisados' => $componentesSeleccionados,
             'total_componentes' => $totalComponentes,
+            'brazos_torsion' => AnalisisPasteurizadora::esBrazoTorsion($componente) ? $componentesSeleccionados : null,
+            'total_brazos_torsion' => AnalisisPasteurizadora::esBrazoTorsion($componente)
+                ? AnalisisPasteurizadora::getCantidadBrazosTorsionPorLinea($linea->nombre)
+                : null,
         ];
     }
 }

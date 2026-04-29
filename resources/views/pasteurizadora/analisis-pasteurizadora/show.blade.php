@@ -233,7 +233,11 @@
                         <i class="fas fa-check text-indigo-600"></i>
                     </div>
                     <span class="text-sm font-medium text-gray-700">
-                        {{ $analisis->componente_nombre }} #{{ intval($componente_num) }}
+                        @if(\App\Models\AnalisisPasteurizadora::esBrazoTorsion($analisis->componente))
+                            {{ $analisis->componente_nombre }} modulo {{ intval($componente_num) }}
+                        @else
+                            {{ $analisis->componente_nombre }} #{{ intval($componente_num) }}
+                        @endif
                     </span>
                 </div>
                 @endforeach

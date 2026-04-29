@@ -783,10 +783,7 @@ class DashboardController extends Controller
             $analisisLinea = $analisisPasteurizadora->where('linea_id', $pasteurizadora->id);
             $criticos = $analisisLinea->where('estado', 'Dañado - Requiere cambio');
 
-            $tipoPasteurizadora = AnalisisPasteurizadora::PASTEURIZADORES[$pasteurizadora->nombre]['tipo'] ?? 'sencillo';
-            $componentesLista = $tipoPasteurizadora === 'doble'
-                ? AnalisisPasteurizadora::COMPONENTES_DOBLES
-                : AnalisisPasteurizadora::COMPONENTES_SENCILLOS;
+            $componentesLista = AnalisisPasteurizadora::getComponentesPorLinea($pasteurizadora->nombre);
             $totalModulos = AnalisisPasteurizadora::getModulosPorLinea($pasteurizadora->nombre);
 
             $totalComponentesConfigurados = 0;
@@ -796,6 +793,13 @@ class DashboardController extends Controller
 
             foreach ($componentesLista as $codigo => $compData) {
                 for ($modulo = 1; $modulo <= $totalModulos; $modulo++) {
+                    if (
+                        AnalisisPasteurizadora::esBrazoTorsion($codigo)
+                        && $modulo > AnalisisPasteurizadora::getCantidadBrazosTorsionPorLinea($pasteurizadora->nombre)
+                    ) {
+                        continue;
+                    }
+
                     $totalComponentesConfigurados += $compData['cantidad'];
                     $analisisModulo = $analisisLinea->where('modulo', $modulo)
                         ->where('componente', $codigo)

@@ -213,7 +213,7 @@
                 </div>
             </div>
 
-            <div id="checklist-container" class="{{ $totalComponentes > 0 ? '' : 'hidden' }}">
+            <div id="checklist-container" class="{{ $totalComponentes > 0 && $componenteKey !== \App\Models\AnalisisPasteurizadora::COMPONENTE_BRAZO_TORSION ? '' : 'hidden' }}">
                 <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-200">
                     <div class="mb-4">
                         <label class="block text-sm font-bold text-gray-800 mb-2">
@@ -367,6 +367,8 @@ const componentesChecklist = document.getElementById('componentes-checklist');
 const componentesRevisadosInput = document.getElementById('componentes_revisados_input');
 const revisionContextUrl = '{{ route("pasteurizadora.analisis-pasteurizadora.ajax.revision-context") }}';
 const oldComponentesRaw = @json(old('componentes_revisados', []));
+const componenteBrazoTorsion = @json(\App\Models\AnalisisPasteurizadora::COMPONENTE_BRAZO_TORSION);
+const totalBrazosTorsion = {{ \App\Models\AnalisisPasteurizadora::getCantidadBrazosTorsionPorLinea($linea->nombre) }};
 
 function normalizarComponentesSeleccionados(value) {
     let valores = value;
@@ -422,6 +424,12 @@ function actualizarEstadoVisualChecklist() {
 }
 
 function actualizarComponentesRevisados() {
+    if (componenteSelect.value === componenteBrazoTorsion) {
+        selectedComponentes = [1];
+        componentesRevisadosInput.value = JSON.stringify(selectedComponentes);
+        return;
+    }
+
     const checkboxes = document.querySelectorAll('input.componente-checkbox:checked:not(:disabled)');
     selectedComponentes = Array.from(checkboxes).map(cb => parseInt(cb.dataset.componentValue, 10));
     componentesRevisadosInput.value = JSON.stringify(selectedComponentes);
@@ -469,8 +477,16 @@ function renderEstadoRevision(estadoRevision) {
 function renderChecklist(totalComponentes, componentesYaRevisados, cantidadComponentesRevisados, componentesPendientes, componenteNombre) {
     componentesChecklist.innerHTML = '';
     const revisadasNormalizadas = (componentesYaRevisados || []).map((item) => parseInt(item, 10));
+    const esBrazoTorsion = componenteSelect.value === componenteBrazoTorsion;
 
     if (!totalComponentes) {
+        checklistContainer.classList.add('hidden');
+        return;
+    }
+
+    if (esBrazoTorsion) {
+        selectedComponentes = [1];
+        componentesRevisadosInput.value = JSON.stringify(selectedComponentes);
         checklistContainer.classList.add('hidden');
         return;
     }
@@ -490,14 +506,14 @@ function renderChecklist(totalComponentes, componentesYaRevisados, cantidadCompo
                         ${componenteNombre}
                     </div>
                     <div class="text-sm ${yaRevisado ? 'text-gray-400' : 'text-blue-700'}">
-                        Pieza #${i}
+                        ${esBrazoTorsion ? `Modulo ${i}` : `Pieza #${i}`}
                     </div>
                 </div>
                 <div class="flex items-center gap-2">
                     ${yaRevisado ? '<span class="inline-flex items-center px-2 py-1 text-xs font-semibold rounded-full bg-gray-200 text-gray-600">Bloqueado</span>' : ''}
                     <input type="checkbox"
                            data-component-value="${i}"
-                           aria-label="${componenteNombre} pieza ${i}"
+                           aria-label="${componenteNombre} ${esBrazoTorsion ? `modulo ${i}` : `pieza ${i}`}"
                            class="w-5 h-5 text-blue-600 rounded cursor-pointer focus:ring-blue-500 componente-checkbox"
                            ${yaRevisado ? 'disabled checked' : seleccionado ? 'checked' : ''}>
                 </div>
@@ -590,6 +606,14 @@ async function cargarContextoRevision() {
         if (checklistContainer) checklistContainer.classList.add('hidden');
         return;
     }
+
+    if (componente === componenteBrazoTorsion && parseInt(modulo, 10) > totalBrazosTorsion) {
+        checklistContainer.classList.add('hidden');
+        alert(`Brazo de Torsion solo aplica del modulo 1 al ${totalBrazosTorsion}. El ultimo modulo no tiene brazo.`);
+        componenteSelect.value = '';
+        actualizarResumen();
+        return;
+    }
     
     try {
         const response = await fetch(revisionContextUrl, {
@@ -625,16 +649,16 @@ async function cargarContextoRevision() {
     actualizarResumen();
     renderEstadoRevision(data.estado_revision || {});
     renderChecklist(
-        data.total_piezas || 0,
-        data.already_reviewed_components || [],
-        data.already_reviewed || 0,
-        data.remaining_piezas || 0,
+        data.total_componentes || 0,
+        data.componentes_ya_revisados || [],
+        data.cantidad_componentes_revisados || 0,
+        data.componentes_pendientes || 0,
         data.nombre_componente || componenteSelect.options[componenteSelect.selectedIndex]?.text?.split(' (')[0] || data.componente
     );
     renderLadosPendientes(data.lados_pendientes || [], data.lado);
 
     const siguienteAlert = document.getElementById('siguiente-revision-alert');
-    if (data.siguiente_revision?.nivel && data.siguiente_revision?.lado) {
+    if (siguienteAlert && data.siguiente_revision?.nivel && data.siguiente_revision?.lado) {
         siguienteAlert.classList.remove('hidden');
         siguienteAlert.innerHTML = `
             <i class="fas fa-magic mr-2"></i>
@@ -642,9 +666,12 @@ async function cargarContextoRevision() {
             <strong>${nivelLabel(data.siguiente_revision.nivel)}</strong>,
             <strong>Lado ${ladoLabel(data.siguiente_revision.lado)}</strong>.
         `;
-    } else {
+    } else if (siguienteAlert) {
         siguienteAlert.classList.add('hidden');
         siguienteAlert.innerHTML = '';
+    }
+    } catch (error) {
+        console.error('Error cargando el contexto de revision:', error);
     }
 }
 
@@ -708,6 +735,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const form = document.getElementById('analisisForm');
     if (form) {
         form.addEventListener('submit', function(e) {
+            if (componenteSelect.value === componenteBrazoTorsion) {
+                componentesRevisadosInput.value = JSON.stringify([1]);
+                return;
+            }
+
             const checkboxes = document.querySelectorAll('input.componente-checkbox:checked:not(:disabled)');
             const totalDisponibles = document.querySelectorAll('input.componente-checkbox:not(:disabled)').length;
             

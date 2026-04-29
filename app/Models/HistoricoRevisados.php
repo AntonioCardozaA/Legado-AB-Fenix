@@ -129,7 +129,9 @@ class HistoricoRevisados extends Model
             return null;
         }
 
-        $cantidadTotal = $componentesConfig[$componente]['cantidad'] ?? 0;
+        $cantidadTotal = AnalisisPasteurizadora::esBrazoTorsion($componente)
+            ? AnalisisPasteurizadora::getCantidadBrazosTorsionPorLinea($linea->nombre)
+            : ($componentesConfig[$componente]['cantidad'] ?? 0);
 
         // Buscar todos los análisis de este componente
         $analisis = AnalisisPasteurizadora::where('linea_id', $linea->id)

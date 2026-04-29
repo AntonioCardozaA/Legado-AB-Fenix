@@ -183,7 +183,7 @@
             </div>
 
             {{-- Sección de checklist de componentes --}}
-            <div id="checklist-container">
+            <div id="checklist-container" class="{{ ($componente ?? null) === \App\Models\AnalisisPasteurizadora::COMPONENTE_BRAZO_TORSION ? 'hidden' : '' }}">
                 <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-200">
                     <div class="mb-4">
                         <label class="block text-sm font-bold text-gray-800 mb-2">
@@ -215,7 +215,7 @@
                             $todosLosNumeros = range(1, $totalComponentes);
                         @endphp
 
-                        @if($totalComponentes > 0)
+                        @if($totalComponentes > 0 && ($componente ?? null) !== \App\Models\AnalisisPasteurizadora::COMPONENTE_BRAZO_TORSION)
                             @foreach($todosLosNumeros as $numero)
                                 @php
                                     $yaRevisado = in_array($numero, $componentesYaRevisados);
@@ -228,7 +228,11 @@
                                            {{ $yaRevisado ? 'disabled checked' : '' }}>
                                     <span class="flex-1 {{ $yaRevisado ? 'text-gray-400 line-through' : 'text-gray-700 font-medium' }}">
                                         <i class="fas fa-cube text-blue-500 mr-2"></i>
-                                        {{ $nombreComponente ?? $componente }} #{{ $numero }}
+                                        @if(($componente ?? null) === \App\Models\AnalisisPasteurizadora::COMPONENTE_BRAZO_TORSION)
+                                            {{ $nombreComponente ?? $componente }} modulo {{ $numero }}
+                                        @else
+                                            {{ $nombreComponente ?? $componente }} #{{ $numero }}
+                                        @endif
                                         @if($yaRevisado)
                                             <span class="ml-2 text-xs text-green-600">(Ya revisado)</span>
                                         @endif
@@ -243,7 +247,7 @@
                         @endif
                     </div>
 
-                    <input type="hidden" name="componentes_revisados" id="componentes_revisados_input" value="{{ json_encode(old('componentes_revisados', [])) }}">
+                    <input type="hidden" name="componentes_revisados" id="componentes_revisados_input" value="{{ json_encode(($componente ?? null) === \App\Models\AnalisisPasteurizadora::COMPONENTE_BRAZO_TORSION ? [1] : old('componentes_revisados', [])) }}">
                     @error('componentes_revisados')
                         <p class="text-red-500 text-sm mt-3">{{ $message }}</p>
                     @enderror
@@ -375,6 +379,7 @@ const quickComponentesInput = document.getElementById('componentes_revisados_inp
 const quickRevisionContextUrl = '{{ route("pasteurizadora.analisis-pasteurizadora.ajax.revision-context") }}';
 const quickComponenteNombre = @json($nombreComponente ?? $componente);
 const quickOldSelection = @json(old('componentes_revisados', []));
+const quickEsBrazoTorsion = @json(($componente ?? null) === \App\Models\AnalisisPasteurizadora::COMPONENTE_BRAZO_TORSION);
 
 function normalizarSeleccionQuick(value) {
     let valores = value;
@@ -399,6 +404,12 @@ function normalizarSeleccionQuick(value) {
 let quickSelectedComponentes = normalizarSeleccionQuick(quickOldSelection);
 
 function actualizarComponentesRevisados() {
+    if (quickEsBrazoTorsion) {
+        quickSelectedComponentes = [1];
+        quickComponentesInput.value = JSON.stringify(quickSelectedComponentes);
+        return;
+    }
+
     const checkboxes = document.querySelectorAll('input.componente-checkbox:checked:not(:disabled)');
     quickSelectedComponentes = Array.from(checkboxes).map((checkbox) => parseInt(checkbox.dataset.componentValue, 10));
     quickComponentesInput.value = JSON.stringify(quickSelectedComponentes);
@@ -409,6 +420,13 @@ function renderChecklistQuick(totalComponentes, componentesYaRevisados, cantidad
     const componentesBloqueados = (componentesYaRevisados || []).map((item) => parseInt(item, 10));
 
     if (!totalComponentes) {
+        quickChecklistContainer.classList.add('hidden');
+        return;
+    }
+
+    if (quickEsBrazoTorsion) {
+        quickSelectedComponentes = [1];
+        quickComponentesInput.value = JSON.stringify(quickSelectedComponentes);
         quickChecklistContainer.classList.add('hidden');
         return;
     }
@@ -427,7 +445,7 @@ function renderChecklistQuick(totalComponentes, componentesYaRevisados, cantidad
                    ${yaRevisado ? 'disabled checked' : seleccionado ? 'checked' : ''}>
             <span class="flex-1 ${yaRevisado ? 'text-gray-400 line-through' : 'text-gray-700 font-medium'}">
                 <i class="fas fa-cube text-blue-500 mr-2"></i>
-                ${quickComponenteNombre} #${indice}
+                ${quickEsBrazoTorsion ? `${quickComponenteNombre} modulo ${indice}` : `${quickComponenteNombre} #${indice}`}
                 ${yaRevisado ? '<span class="ml-2 text-xs text-green-600">(Ya revisado)</span>' : ''}
             </span>
         `;
@@ -541,6 +559,11 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     document.getElementById('analisisForm').addEventListener('submit', function(e) {
+        if (quickEsBrazoTorsion) {
+            quickComponentesInput.value = JSON.stringify([1]);
+            return;
+        }
+
         const seleccionables = document.querySelectorAll('input.componente-checkbox:not(:disabled)');
         const seleccionados = document.querySelectorAll('input.componente-checkbox:checked:not(:disabled)');
 

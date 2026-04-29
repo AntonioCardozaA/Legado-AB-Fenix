@@ -96,7 +96,7 @@
                 <label class="block text-sm font-medium text-gray-700 mb-1">Componente</label>
                 <select id="filtroComponente" class="w-full rounded-lg border-gray-300">
                     <option value="">Todos los componentes</option>
-                    @foreach(\App\Models\AnalisisPasteurizadora::COMPONENTES_SENCILLOS as $key => $comp)
+                    @foreach(\App\Models\AnalisisPasteurizadora::getComponentesPorLinea('P-03') as $key => $comp)
                         <option value="{{ $key }}">{{ $comp['nombre'] }}</option>
                     @endforeach
                 </select>

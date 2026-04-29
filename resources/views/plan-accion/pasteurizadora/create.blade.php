@@ -46,7 +46,7 @@
                             <label class="block text-sm font-medium text-gray-700 mb-2">Componente <span class="text-red-500">*</span></label>
                             <select name="componente" id="componente" class="w-full px-3 py-2 border border-gray-300 rounded-md" required>
                                 <option value="">Seleccionar componente...</option>
-                                @foreach(\App\Models\AnalisisPasteurizadora::COMPONENTES_SENCILLOS as $key => $comp)
+                                @foreach(\App\Models\AnalisisPasteurizadora::getComponentesPorLinea($lineaObj->nombre ?? 'P-03') as $key => $comp)
                                     <option value="{{ $key }}" {{ old('componente') == $key ? 'selected' : '' }}>{{ $comp['nombre'] }}</option>
                                 @endforeach
                             </select>

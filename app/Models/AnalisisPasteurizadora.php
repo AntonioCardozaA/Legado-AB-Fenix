@@ -30,6 +30,8 @@ class AnalisisPasteurizadora extends Model
         'cantidad_componentes_revisados',
         'componentes_revisados',
         'total_componentes',
+        'brazos_torsion',
+        'total_brazos_torsion',
         'valor_anterior_52',
         'valor_actual_52',
         'valor_anterior_12',
@@ -52,6 +54,8 @@ class AnalisisPasteurizadora extends Model
         'cantidad_componentes_revisados' => 'integer',
         'componentes_revisados' => 'array',
         'total_componentes' => 'integer',
+        'brazos_torsion' => 'array',
+        'total_brazos_torsion' => 'integer',
         'plan_accion_pcm1' => 'array',
         'plan_accion_pcm2' => 'array',
         'plan_accion_pcm3' => 'array',
@@ -82,6 +86,8 @@ class AnalisisPasteurizadora extends Model
         'P-13' => ['tipo' => 'sencillo', 'modulos' => 9],
         'P-14' => ['tipo' => 'sencillo', 'modulos' => 9],
     ];
+
+    const COMPONENTE_BRAZO_TORSION = 'BRAZO_TORSION';
 
     const COMPONENTES_SENCILLOS = [
         'ANILLAS' => ['nombre' => 'Anillas (Ventanas-Cortinas)', 'cantidad' => 3],
@@ -116,11 +122,38 @@ class AnalisisPasteurizadora extends Model
     {
         $tipo = self::PASTEURIZADORES[$lineaNombre]['tipo'] ?? null;
         if ($tipo === 'sencillo') {
-            return self::COMPONENTES_SENCILLOS;
+            return self::withBrazoTorsion(self::COMPONENTES_SENCILLOS, $lineaNombre);
         } elseif ($tipo === 'doble') {
-            return self::COMPONENTES_DOBLES;
+            return self::withBrazoTorsion(self::COMPONENTES_DOBLES, $lineaNombre);
         }
         return [];
+    }
+
+    public static function getCantidadBrazosTorsionPorLinea($lineaNombre): int
+    {
+        return max(0, self::getModulosPorLinea($lineaNombre) - 1);
+    }
+
+    public static function esBrazoTorsion($componente): bool
+    {
+        return strtoupper((string) $componente) === self::COMPONENTE_BRAZO_TORSION;
+    }
+
+    public static function getModuloCorrespondienteBrazoTorsion(int $brazo): int
+    {
+        return $brazo;
+    }
+
+    private static function withBrazoTorsion(array $componentes, $lineaNombre): array
+    {
+        $componentes[self::COMPONENTE_BRAZO_TORSION] = [
+            'nombre' => 'Brazo de Torsion',
+            'cantidad' => 1,
+            'dinamico' => true,
+            'descripcion' => 'Un brazo por modulo, excepto el ultimo',
+        ];
+
+        return $componentes;
     }
 
     public static function getModulosPorLinea($lineaNombre)
