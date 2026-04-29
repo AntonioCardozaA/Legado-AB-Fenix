@@ -35,6 +35,7 @@
         $lineasFiltradas = $lineasFiltradas ?? collect();
         $mostrarTodas = $mostrarTodas ?? true;
         $analisisCollection = isset($analisis) ? collect($analisis) : collect([]);
+        $seguimientoPasteurizadora = $seguimientoPasteurizadora ?? [];
     @endphp
 
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 mb-6">
@@ -111,7 +112,6 @@
         @endphp
 
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
-            {{-- TOTAL --}}
             <div onclick="openEstadoModal('total', {{ json_encode($registrosPorEstado['total']->map(fn($item) => [
                 'id' => $item->id,
                 'linea' => $item->linea->nombre ?? 'N/A',
@@ -134,8 +134,6 @@
                     <div class="text-xs text-gray-500 mt-1">registros totales</div>
                 </div>
             </div>
-
-            {{-- BUEN ESTADO --}}
             <div onclick="openEstadoModal('buen_estado', {{ json_encode($registrosPorEstado['buen_estado']->map(fn($item) => [
                 'id' => $item->id,
                 'linea' => $item->linea->nombre ?? 'N/A',
@@ -158,8 +156,6 @@
                     <div class="text-xs text-green-600 mt-1">en óptimas condiciones</div>
                 </div>
             </div>
-
-            {{-- DESGASTE --}}
             <div onclick="openEstadoModal('desgaste', {{ json_encode($registrosPorEstado['desgaste']->map(fn($item) => [
                 'id' => $item->id,
                 'linea' => $item->linea->nombre ?? 'N/A',
@@ -182,8 +178,6 @@
                     <div class="text-xs text-yellow-600 mt-1">requieren monitoreo</div>
                 </div>
             </div>
-
-            {{-- DAÑADO --}}
             <div onclick="openEstadoModal('danado', {{ json_encode($registrosPorEstado['danado']->map(fn($item) => [
                 'id' => $item->id,
                 'linea' => $item->linea->nombre ?? 'N/A',
@@ -206,8 +200,6 @@
                     <div class="text-xs text-red-600 mt-1">requieren cambio urgente</div>
                 </div>
             </div>
-
-            {{-- CAMBIADO --}}
             <div onclick="openEstadoModal('cambiado', {{ json_encode($registrosPorEstado['cambiado']->map(fn($item) => [
                 'id' => $item->id,
                 'linea' => $item->linea->nombre ?? 'N/A',
@@ -249,6 +241,14 @@
                 $modulosLinea = collect(range(1, $totalModulos));
 
                 $analisisLinea = $analisisCollection->filter(fn($item) => $item->linea_id == $linea->id);
+                $seguimientoLinea = $seguimientoPasteurizadora[$linea->id] ?? [];
+                $resumenLinea = $seguimientoLinea['resumen'] ?? [
+                    'total' => 0,
+                    'completados' => 0,
+                    'pendientes' => 0,
+                    'porcentaje' => 0,
+                    'completado' => false,
+                ];
 
                 $analisisAgrupadosLinea = [];
                 foreach ($analisisLinea as $item) {
@@ -262,15 +262,17 @@
             @if(count($componentesLinea) > 0 && $modulosLinea->count() > 0)
                 <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                     <div class="bg-gradient-to-r from-gray-800 to-gray-900 text-white px-6 py-4">
-                        <div class="flex items-center gap-3">
-                            <div class="w-10 h-10 bg-white/10 rounded-lg flex items-center justify-center">
-                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/>
-                                </svg>
-                            </div>
-                            <div>
-                                <h3 class="text-xl font-bold">{{ $linea->nombre }}</h3>
-                                <p class="text-xs text-gray-300">{{ $totalModulos }} módulos | {{ count($componentesLinea) }} componentes</p>
+                        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 bg-white/10 rounded-lg flex items-center justify-center">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h3 class="text-xl font-bold">{{ $linea->nombre }}</h3>
+                                    <p class="text-xs text-gray-300">{{ $totalModulos }} módulos | {{ count($componentesLinea) }} componentes</p>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -301,8 +303,16 @@
                             <tbody>
                                 @foreach($modulosLinea as $moduloNumero)
                                     <tr class="border-b border-gray-100 hover:bg-gray-50">
-                                        <td class="sticky left-0 bg-white px-4 py-3 font-medium text-gray-900 border-r border-gray-200">
-                                            Módulo {{ $moduloNumero }}
+                                        <td class="sticky left-0 {{ ($seguimientoLinea['modulos'][$moduloNumero]['completado'] ?? false) ? 'bg-green-50' : 'bg-white' }} px-4 py-3 font-medium text-gray-900 border-r border-gray-200">
+                                            <div>Módulo {{ $moduloNumero }}</div>
+                                            @if($seguimientoLinea['modulos'][$moduloNumero]['completado'] ?? false)
+                                                <span class="mt-1 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-100 text-green-700 text-[11px] font-semibold">
+                                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                                    </svg>
+                                                    Terminado
+                                                </span>
+                                            @endif
                                         </td>
                                         @foreach($componentesLinea as $codigo => $compData)
                                             @php
@@ -314,17 +324,16 @@
                                                 $totalComponentesComponente = $compData['cantidad'] ?? 0;
                                                 $esBrazoTorsion = \App\Models\AnalisisPasteurizadora::esBrazoTorsion($codigo);
                                                 $brazoAplicaModulo = !$esBrazoTorsion || $moduloNumero <= \App\Models\AnalisisPasteurizadora::getCantidadBrazosTorsionPorLinea($linea->nombre);
+                                                
                                                 $componentesRevisadosAcumulados = $registros
                                                     ->flatMap(function ($item) {
                                                         if (is_array($item->componentes_revisados)) {
                                                             return $item->componentes_revisados;
                                                         }
-
                                                         if (is_string($item->componentes_revisados)) {
                                                             $decoded = json_decode($item->componentes_revisados, true);
                                                             return is_array($decoded) ? $decoded : [];
                                                         }
-
                                                         return [];
                                                     })
                                                     ->filter(fn($numeroComponente) => is_numeric($numeroComponente))
@@ -373,6 +382,14 @@
                                                     }
                                                 }
 
+                                                $celdaSeguimiento = $seguimientoLinea['celdas'][$moduloNumero][$codigo] ?? null;
+                                                if ($celdaSeguimiento) {
+                                                    $estadoPorNivel = $celdaSeguimiento['estado_por_nivel'];
+                                                    $siguienteRevision = $celdaSeguimiento['siguiente_revision'];
+                                                }
+                                                $procesoCompletado = (bool) ($celdaSeguimiento['completado'] ?? ($hasData && !$siguienteRevision));
+                                                $moduloCompletado = (bool) ($seguimientoLinea['modulos'][$moduloNumero]['completado'] ?? false);
+
                                                 if($hasData){
                                                     $estadoActual = $registro->estado ?? 'Buen estado';
                                                     if ($estadoActual === 'Cambiado') {
@@ -387,6 +404,11 @@
                                                     } else {
                                                         $bgColor = 'bg-green-50';
                                                         $borderColor = 'border-l-4 border-green-500';
+                                                    }
+
+                                                    if ($procesoCompletado) {
+                                                        $bgColor = 'bg-green-50';
+                                                        $borderColor = 'border-l-4 border-green-600 ring-1 ring-green-200';
                                                     }
                                                 }
                                             @endphp
@@ -413,6 +435,14 @@
                                                         'componentes_revisados' => $componentesRevisadosAcumulados,
                                                         'total_componentes' => $totalComponentesComponente ?: $registro->total_componentes,
                                                         'estado_por_nivel' => $estadoPorNivel,
+                                                        'pendientes_por_nivel' => [
+                                                            'SUPERIOR' => isset($estadoPorNivel['SUPERIOR']) && !$estadoPorNivel['SUPERIOR']['completado'] 
+                                                                ? $estadoPorNivel['SUPERIOR']['lados_pendientes'] 
+                                                                : [],
+                                                            'INFERIOR' => isset($estadoPorNivel['INFERIOR']) && !$estadoPorNivel['INFERIOR']['completado'] 
+                                                                ? $estadoPorNivel['INFERIOR']['lados_pendientes'] 
+                                                                : [],
+                                                        ],
                                                         'actualizaciones' => $registros
                                                             ->sortByDesc(function ($item) {
                                                                 return ($item->created_at?->timestamp ?? 0) . '-' . str_pad((string) $item->id, 10, '0', STR_PAD_LEFT);
@@ -449,6 +479,17 @@
                                                 @endif>
                                                 @if($hasData)
                                                     <div class="space-y-2">
+                                                        @if($procesoCompletado)
+                                                            <div class="flex items-center justify-between gap-2 rounded-lg border border-green-200 bg-green-100 px-2 py-1.5 text-green-800">
+                                                                <span class="inline-flex items-center gap-1 text-xs font-bold">
+                                                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                                                    </svg>
+                                                                    Proceso terminado
+                                                                </span>
+                                                            </div>
+                                                        @endif
+                                                        
                                                         <div class="flex items-center justify-between text-xs text-gray-600">
                                                             <span class="flex items-center gap-1">
                                                                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -501,36 +542,8 @@
                                                             </span>
                                                         </div>
 
-                                                        {{-- Mostrar componentes revisados si existen --}}
-                                                        @if($revisadasAcumuladas > 0)
-                                                            <div class="bg-indigo-50 rounded-lg p-2 mt-2">
-                                                                <div class="flex items-center justify-between">
-                                                                    <span class="text-xs font-medium text-indigo-700">Revisados:</span>
-                                                                    <span class="text-xs text-indigo-600 font-semibold">{{ $revisadasAcumuladas }}/{{ $totalComponentesComponente ?: $registro->total_componentes }}</span>
-                                                                </div>
-                                                                <div class="flex flex-wrap gap-1 mt-1">
-                                                                    @foreach($componentesRevisadosAcumulados as $num)
-                                                                        <span class="inline-flex items-center gap-0.5 px-2 py-0.5 bg-indigo-100 text-indigo-700 rounded text-xs font-medium">
-                                                                            <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                                                                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
-                                                                            </svg>
-                                                                            #{{ $num }}
-                                                                        </span>
-                                                                    @endforeach
-                                                                </div>
-                                                                @if($pendientesAcumulados > 0)
-                                                                    <div class="mt-1 p-1 bg-amber-50 border border-amber-200 rounded text-xs text-amber-700">
-                                                                        ⚠️ {{ $pendientesAcumulados }} aún por revisar
-                                                                    </div>
-                                                                @else
-                                                                    <div class="mt-1 p-1 bg-green-50 border border-green-200 rounded text-xs text-green-700">
-                                                                        ✅ Se revisaron todos los componentes
-                                                                    </div>
-                                                                @endif
-                                                            </div>
-                                                        @endif
-
-                                                        <p class="text-xs text-gray-600 line-clamp-2">{{ Str::limit($registro->actividad, 60) }}</p>
+                                                        {{-- Resumen simple de progreso --}}
+                                                 
 
                                                         <div class="flex gap-2 pt-1">
                                                             @if(count($registro->evidencia_fotos ?? []) > 0)
@@ -542,48 +555,66 @@
                                                                     {{ count($registro->evidencia_fotos) }}
                                                                 </button>
                                                             @endif
-                                                         <a href="{{ route('pasteurizadora.analisis-pasteurizadora.create-quick', [
-                                                        'linea_id' => $linea->id,
-                                                        'modulo' => $moduloNumero,
-                                                        'componente' => $codigo,
-                                                        'lado' => $siguienteRevision['lado'] ?? '',
-                                                        'nivel' => $siguienteRevision['nivel'] ?? ''
-                                                    ]) }}"
-                                                                                                                    class="inline-flex items-center gap-1 px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs transition"
-                                                               onclick="event.stopPropagation();">
-                                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                                                                </svg>
-                                                                Continuar
-                                                            </a>
+                                                            @if($procesoCompletado)
+                                                                <span class="inline-flex items-center gap-1 px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-semibold">
+                                                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                                                    </svg>
+                                                                    Terminado
+                                                                </span>
+                                                            @else
+                                                                <a href="{{ route('pasteurizadora.analisis-pasteurizadora.create-quick', [
+                                                                    'linea_id' => $linea->id,
+                                                                    'modulo' => $moduloNumero,
+                                                                    'componente' => $codigo,
+                                                                    'lado' => $siguienteRevision['lado'] ?? '',
+                                                                    'nivel' => $siguienteRevision['nivel'] ?? ''
+                                                                ]) }}"
+                                                                   class="inline-flex items-center gap-1 px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs transition"
+                                                                   onclick="event.stopPropagation();">
+                                                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                                                                    </svg>
+                                                                    Continuar
+                                                                </a>
+                                                            @endif
                                                         </div>
                                                     </div>
                                                 @else
                                                     <div class="text-center py-4">
-                                                        <svg class="w-12 h-12 text-gray-300 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                                                        </svg>
-                                                        <p class="text-xs text-gray-400 mb-2">Sin análisis registrado</p>
-                                                        <a href="{{ route('pasteurizadora.analisis-pasteurizadora.create-quick', [
-                                                            'linea_id' => $linea->id,
-                                                            'modulo' => $moduloNumero,
-                                                            'componente' => $codigo,
-                                                            'lado' => '',
-                                                            'nivel' => ''
-                                                        ]) }}"
-                                                           class="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs transition"
-                                                           onclick="event.stopPropagation();">
-                                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                                                        @if($procesoCompletado)
+                                                            <div class="rounded-lg border border-green-200 bg-green-50 p-3 text-green-800">
+                                                                <svg class="w-10 h-10 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                                                </svg>
+                                                                <p class="text-xs font-bold">Proceso terminado</p>
+                                                            </div>
+                                                        @else
+                                                            <svg class="w-12 h-12 text-gray-300 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                                                             </svg>
-                                                            Crear análisis
-                                                        </a>
+                                                            <p class="text-xs text-gray-400 mb-2">Sin análisis registrado</p>
+                                                            <a href="{{ route('pasteurizadora.analisis-pasteurizadora.create-quick', [
+                                                                'linea_id' => $linea->id,
+                                                                'modulo' => $moduloNumero,
+                                                                'componente' => $codigo,
+                                                                'lado' => '',
+                                                                'nivel' => ''
+                                                            ]) }}"
+                                                               class="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs transition"
+                                                               onclick="event.stopPropagation();">
+                                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                                                                </svg>
+                                                                Crear análisis
+                                                            </a>
+                                                        @endif
                                                     </div>
                                                 @endif
                                             </td>
                                             @endif
                                         @endforeach
-                                    </tr>
+                                    </td>
                                 @endforeach
                             </tbody>
                         </table>
@@ -811,7 +842,7 @@ function cerrarEstadoModalYVerAnalisis(id) {
     closeEstadoModal();
     const registro = currentEstadoData.find(r => r.id === id);
     if (registro) {
-        window.location.href = `/analisis-pasteurizadora/${id}`;
+        window.location.href = `{{ url('/pasteurizadora/analisis-pasteurizadora') }}/${id}`;
     }
 }
 
@@ -864,35 +895,58 @@ function openAnalysisDetail(data) {
         `;
     }
 
+    // Mostrar los pendientes por nivel dentro del modal
     let nivelEstadoHtml = '';
     if (data.estado_por_nivel) {
         const nivelesOrden = ['SUPERIOR', 'INFERIOR'];
         nivelEstadoHtml = `
             <div class="bg-purple-50 border border-purple-200 p-4 rounded-lg mb-6">
                 <h4 class="font-semibold text-purple-900 mb-3 flex items-center gap-2">
-                    <i class="fas fa-layer-group text-purple-600"></i>
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                    </svg>
                     Estado de revisión por nivel
                 </h4>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                     ${nivelesOrden.map((nivel) => {
-                        const info = data.estado_por_nivel[nivel] || { completado: false, lados_pendientes: ['VAPOR', 'PASILLO'] };
+                        const info = data.estado_por_nivel[nivel] || { completado: false, lados_pendientes: [] };
                         const ladosPendientes = info.lados_pendientes || [];
+                        const nivelNombre = nivel === 'SUPERIOR' ? 'Nivel Superior' : 'Nivel Inferior';
+                        const nivelIcono = nivel === 'SUPERIOR' ? '⬆️' : '⬇️';
                         return `
                             <div class="bg-white p-3 rounded-lg border ${info.completado ? 'border-green-200' : 'border-amber-200'}">
                                 <div class="flex items-center justify-between mb-2">
                                     <div class="text-xs font-semibold ${info.completado ? 'text-green-700' : 'text-amber-700'}">
-                                        ${nivel === 'SUPERIOR' ? '⬆️ Nivel Superior' : '⬇️ Nivel Inferior'}
+                                        ${nivelIcono} ${nivelNombre}
                                     </div>
                                     <span class="inline-flex items-center gap-1 px-2 py-1 rounded text-xs ${info.completado ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}">
-                                        <i class="fas ${info.completado ? 'fa-check' : 'fa-clock'}"></i>
+                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            ${info.completado ? 
+                                                '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>' :
+                                                '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>'
+                                            }
+                                        </svg>
                                         ${info.completado ? 'Completado' : 'Pendiente'}
                                     </span>
                                 </div>
                                 <div class="text-sm text-gray-700">
                                     ${info.completado
-                                        ? 'Ambos lados ya fueron revisados.'
-                                        : `Falta revisar: ${ladosPendientes.map((lado) => lado === 'VAPOR' ? 'Vapor' : 'Pasillo').join(', ')}`}
+                                        ? '✓ Ambos lados ya fueron revisados.'
+                                        : ladosPendientes.length > 0 
+                                            ? `⚠️ Falta revisar: ${ladosPendientes.map((lado) => lado === 'VAPOR' ? 'Vapor' : 'Pasillo').join(', ')}`
+                                            : 'Pendiente de revisión'}
                                 </div>
+                                ${!info.completado && ladosPendientes.length > 0 ? `
+                                    <div class="mt-2 pt-2 border-t border-gray-100">
+                                        <div class="flex gap-2">
+                                            ${ladosPendientes.map(lado => `
+                                                <span class="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full ${lado === 'VAPOR' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}">
+                                                    ${lado === 'VAPOR' ? '💨' : '🚶'} ${lado}
+                                                </span>
+                                            `).join('')}
+                                        </div>
+                                    </div>
+                                ` : ''}
                             </div>
                         `;
                     }).join('')}
@@ -907,34 +961,44 @@ function openAnalysisDetail(data) {
             <div class="bg-slate-50 border border-slate-200 p-4 rounded-lg mb-6">
                 <div class="flex items-center justify-between mb-3">
                     <h4 class="font-semibold text-slate-900 flex items-center gap-2">
-                        <i class="fas fa-history text-slate-600"></i>
-                        Actualizaciones registradas
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        Historial de actualizaciones
                     </h4>
                     <span class="text-sm font-bold text-slate-700">${data.actualizaciones.length}</span>
                 </div>
                 <div class="space-y-3">
-                    ${data.actualizaciones.map((item, index) => `
+                    ${data.actualizaciones.map((item, index) => {
+                        const nivelNombre = item.nivel === 'SUPERIOR' ? 'Superior' : (item.nivel === 'INFERIOR' ? 'Inferior' : '');
+                        const ladoNombre = item.lado === 'VAPOR' ? 'Vapor' : (item.lado === 'PASILLO' ? 'Pasillo' : '');
+                        return `
                         <div class="bg-white border border-slate-200 rounded-lg p-3">
                             <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
                                 <div class="flex flex-wrap items-center gap-2 text-sm">
-                                    <span class="inline-flex items-center px-2 py-1 rounded bg-slate-100 text-slate-700 font-semibold">${index === 0 ? 'Última' : 'Registro'}</span>
-                                    <span class="text-slate-700 font-medium">${item.fecha || ''}${item.hora ? ' ' + item.hora : ''}</span>
-                                    ${item.orden ? `<span class="text-slate-500">#${item.orden}</span>` : ''}
+                                    <span class="inline-flex items-center px-2 py-1 rounded bg-slate-100 text-slate-700 font-semibold text-xs">${index === 0 ? 'Último registro' : 'Registro #' + (data.actualizaciones.length - index)}</span>
+                                    <span class="text-slate-700 font-medium">${item.fecha || ''} ${item.hora || ''}</span>
+                                    ${item.orden ? `<span class="text-slate-500 text-xs">Orden #${item.orden}</span>` : ''}
                                 </div>
                                 <div class="flex flex-wrap items-center gap-2">
-                                    ${item.nivel ? `<span class="text-xs px-2 py-1 rounded bg-purple-100 text-purple-700">${item.nivel === 'SUPERIOR' ? '⬆️ Superior' : '⬇️ Inferior'}</span>` : ''}
-                                    ${item.lado ? `<span class="text-xs px-2 py-1 rounded ${item.lado === 'VAPOR' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}">${item.lado === 'VAPOR' ? '💨 Vapor' : '🚶 Pasillo'}</span>` : ''}
-                                    <span class="text-xs px-2 py-1 rounded ${item.estado === 'Buen estado' ? 'bg-green-100 text-green-700' : item.estado.includes('Desgaste') ? 'bg-yellow-100 text-yellow-700' : item.estado === 'Dañado - Requiere cambio' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}">${item.estado}</span>
+                                    ${nivelNombre ? `<span class="text-xs px-2 py-1 rounded ${item.nivel === 'SUPERIOR' ? 'bg-purple-100 text-purple-700' : 'bg-purple-100 text-purple-700'}">${item.nivel === 'SUPERIOR' ? '⬆️' : '⬇️'} ${nivelNombre}</span>` : ''}
+                                    ${ladoNombre ? `<span class="text-xs px-2 py-1 rounded ${item.lado === 'VAPOR' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}">${item.lado === 'VAPOR' ? '💨' : '🚶'} ${ladoNombre}</span>` : ''}
+                                    <span class="text-xs px-2 py-1 rounded ${
+                                        item.estado === 'Buen estado' ? 'bg-green-100 text-green-700' : 
+                                        (item.estado.includes('Desgaste') ? 'bg-yellow-100 text-yellow-700' : 
+                                        (item.estado === 'Dañado - Requiere cambio' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'))
+                                    }">${item.estado}</span>
                                 </div>
                             </div>
                             <p class="text-sm text-slate-700 whitespace-pre-line">${item.actividad || 'Sin actividad registrada.'}</p>
                             ${item.componentes_revisados && item.componentes_revisados.length > 0 ? `
                                 <div class="mt-2 flex flex-wrap gap-2">
-                                    ${item.componentes_revisados.map((numeroComponente) => `<span class="inline-flex items-center px-2 py-1 rounded bg-indigo-100 text-indigo-700 text-xs font-medium">#${numeroComponente}</span>`).join('')}
+                                    <span class="text-xs text-gray-500">Componentes revisados:</span>
+                                    ${item.componentes_revisados.map((numeroComponente) => `<span class="inline-flex items-center px-2 py-0.5 rounded bg-indigo-100 text-indigo-700 text-xs font-medium">#${numeroComponente}</span>`).join('')}
                                 </div>
                             ` : ''}
                         </div>
-                    `).join('')}
+                    `}).join('')}
                 </div>
             </div>
         `;
@@ -944,7 +1008,12 @@ function openAnalysisDetail(data) {
     if (data.imagenes && data.imagenes.length > 0) {
         imagenesHtml = `
             <div class="mt-6">
-                <h4 class="font-semibold text-gray-700 mb-3">📸 Evidencia Fotográfica</h4>
+                <h4 class="font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                    </svg>
+                    Evidencia Fotográfica
+                </h4>
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
                     ${data.imagenes.map((img, idx) => `
                         <div class="relative group cursor-pointer" onclick="openSingleImage('${img}')">
@@ -990,7 +1059,7 @@ function openAnalysisDetail(data) {
         </div>
 
         <div class="bg-gray-50 p-4 rounded-lg mb-6">
-            <p class="text-xs text-gray-500 mb-2">📊 Estado</p>
+            <p class="text-xs text-gray-500 mb-2">📊 Estado actual</p>
             <span class="inline-flex items-center gap-2 px-4 py-2 rounded-lg ${estadoClass}">
                 ${estadoIcon} ${data.estado}
             </span>

@@ -289,7 +289,7 @@
                        name="numero_orden"
                        value="{{ old('numero_orden') }}"
                        required
-                       maxlength="50"
+                       maxlength="8"
                        placeholder="Ej: OT-2024-001"
                        class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500 shadow-sm
                        @error('numero_orden') border-red-500 @enderror">
