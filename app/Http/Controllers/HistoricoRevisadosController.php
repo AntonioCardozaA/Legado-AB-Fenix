@@ -15,7 +15,7 @@ use Carbon\Carbon;
 class HistoricoRevisadosController extends Controller
 {
     /**
-     * Configuración de componentes por línea de lavadora (exactamente como lo proporcionaste)
+     * Configuración de componentes por línea de lavadora
      */
     private $componentesLavadora = [
         'L-04' => [
