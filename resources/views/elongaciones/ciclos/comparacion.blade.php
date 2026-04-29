@@ -9,7 +9,7 @@
             <h1 class="text-3xl font-bold text-gray-800">Comparación de ciclos por línea</h1>
             <p class="text-gray-600 mt-1">Consulta vida útil, proveedor y comportamiento de elongación entre cadenas instaladas en la misma línea.</p>
         </div>
-        <a href="{{ route('elongaciones.index', ['linea' => $lineaSeleccionada]) }}" class="inline-flex items-center gap-2 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition w-fit">
+        <a href="{{ route('elongaciones.index') }}" class="inline-flex items-center gap-2 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition w-fit">
             <i class="fas fa-arrow-left"></i>
             Volver al historial
         </a>

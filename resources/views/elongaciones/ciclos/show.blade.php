@@ -14,7 +14,7 @@
                 <i class="fas fa-code-compare"></i>
                 Comparar ciclos
             </a>
-            <a href="{{ route('elongaciones.index', ['linea' => $ciclo->linea, 'cadena_ciclo_id' => $ciclo->id]) }}" class="inline-flex items-center gap-2 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition">
+            <a href="{{ route('elongaciones.index') }}" class="inline-flex items-center gap-2 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition">
                 <i class="fas fa-arrow-left"></i>
                 Volver
             </a>
@@ -62,13 +62,64 @@
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
                     @foreach($elongaciones as $elongacion)
+                        @php
+                            $limiteCompra = 1.3;
+                            $limiteCambio = 1.46;
+                            $bombasCambio = $elongacion->bombas_porcentaje >= $limiteCambio;
+                            $vaporCambio = $elongacion->vapor_porcentaje >= $limiteCambio;
+                            $bombasCompra = $elongacion->bombas_porcentaje >= $limiteCompra && $elongacion->bombas_porcentaje < $limiteCambio;
+                            $vaporCompra = $elongacion->vapor_porcentaje >= $limiteCompra && $elongacion->vapor_porcentaje < $limiteCambio;
+                            $bombasBarraWidth = $bombasCambio ? 100 : min(($elongacion->bombas_porcentaje / $limiteCambio) * 100, 100);
+                            $vaporBarraWidth = $vaporCambio ? 100 : min(($elongacion->vapor_porcentaje / $limiteCambio) * 100, 100);
+                            $estadoTexto = $bombasCambio || $vaporCambio ? 'CAMBIO' : (($bombasCompra || $vaporCompra) ? 'COMPRA' : 'NORMAL');
+                            $estadoColor = $bombasCambio || $vaporCambio ? 'red' : (($bombasCompra || $vaporCompra) ? 'yellow' : 'green');
+                        @endphp
                         <tr class="hover:bg-gray-50 transition">
                             <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{{ $elongacion->created_at->format('d/m/Y H:i') }}</td>
                             <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{{ $elongacion->hodometro_formateado ?? '-' }}</td>
                             <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{{ $elongacion->hodometro_ciclo_formateado ?? '-' }}</td>
-                            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{{ number_format($elongacion->bombas_porcentaje, 2) }}%</td>
-                            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{{ number_format($elongacion->vapor_porcentaje, 2) }}%</td>
-                            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{{ strtoupper($elongacion->estado) }}</td>
+                            
+                            <!-- Barra de progreso para Bombas -->
+                            <td class="px-4 py-3">
+                                <div class="flex flex-col gap-1 min-w-[110px]">
+                                    <div class="flex items-center justify-between">
+                                        <span class="font-medium text-{{ $bombasCambio ? 'red' : ($bombasCompra ? 'yellow' : 'green') }}-600">
+                                            {{ number_format($elongacion->bombas_porcentaje, 2) }}%
+                                        </span>
+                                    </div>
+                                    <div class="w-full bg-gray-200 rounded-full h-2">
+                                        <div class="h-2 rounded-full transition-all duration-500 {{ $bombasCambio ? 'bg-red-500' : ($bombasCompra ? 'bg-yellow-500' : 'bg-green-500') }}" 
+                                             style="width: {{ $bombasBarraWidth }}%">
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                            
+                            <!-- Barra de progreso para Vapor -->
+                            <td class="px-4 py-3">
+                                <div class="flex flex-col gap-1 min-w-[110px]">
+                                    <div class="flex items-center justify-between">
+                                        <span class="font-medium text-{{ $vaporCambio ? 'red' : ($vaporCompra ? 'yellow' : 'green') }}-600">
+                                            {{ number_format($elongacion->vapor_porcentaje, 2) }}%
+                                        </span>
+                                    </div>
+                                    <div class="w-full bg-gray-200 rounded-full h-2">
+                                        <div class="h-2 rounded-full transition-all duration-500 {{ $vaporCambio ? 'bg-red-500' : ($vaporCompra ? 'bg-yellow-500' : 'bg-green-500') }}" 
+                                             style="width: {{ $vaporBarraWidth }}%">
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                            
+                            <td class="px-4 py-3 whitespace-nowrap">
+                                @if($estadoColor === 'red')
+                                    <span class="px-2 py-1 rounded-full text-xs font-bold bg-red-100 text-red-800">{{ $estadoTexto }}</span>
+                                @elseif($estadoColor === 'yellow')
+                                    <span class="px-2 py-1 rounded-full text-xs font-bold bg-yellow-100 text-yellow-800">{{ $estadoTexto }}</span>
+                                @else
+                                    <span class="px-2 py-1 rounded-full text-xs font-bold bg-green-100 text-green-800">{{ $estadoTexto }}</span>
+                                @endif
+                            </td>
                             <td class="px-4 py-3 whitespace-nowrap text-sm">
                                 <a href="{{ route('elongaciones.show', $elongacion) }}" class="text-blue-600 hover:text-blue-900">
                                     <i class="fas fa-eye"></i>

@@ -450,7 +450,7 @@ class ElongacionController extends Controller
 
     private function enviarNotificacionWhatsApp(Request $request, float $bombasPorcentaje, float $vaporPorcentaje, CadenaCiclo $ciclo): void
     {
-        $numero = '5214981096696';
+        $numero = '5214921933175';
         $mensaje = null;
         $lados = [];
 
