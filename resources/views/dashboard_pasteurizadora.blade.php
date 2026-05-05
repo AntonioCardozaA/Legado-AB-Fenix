@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Dashboard - Pasteurizadoras')
+@section('title', 'Pasteurizadoras')
 
 @section('content')
 <style>
@@ -533,7 +533,6 @@
                     <i class="fas fa-temperature-high text-orange-600"></i>
                     Dashboard Pasteurizadoras
                 </h1>
-                <p class="text-gray-500 mt-1">Monitoreo de componentes y estado de pasteurizadoras</p>
             </div>
             <div class="flex gap-2">
                 <button onclick="refreshData()" class="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition">
@@ -549,11 +548,6 @@
             <div class="stat-icon"><i class="fas fa-industry"></i></div>
             <div class="stat-label">Total Pasteurizadoras</div>
             <div class="stat-value">{{ $resumenPasteurizadora['total_pasteurizadoras'] }}</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-icon"><i class="fas fa-chart-bar"></i></div>
-            <div class="stat-label">Total Análisis</div>
-            <div class="stat-value">{{ $resumenPasteurizadora['total_analisis'] }}</div>
         </div>
         <div class="stat-card" style="border-top: 4px solid var(--danger-red);">
             <div class="stat-icon"><i class="fas fa-exclamation-triangle"></i></div>
@@ -652,9 +646,9 @@
     }
     
     function showPasteurizadoraDetail(pasteurizadora) {
-        // Implementar modal de detalle similar al de lavadora
+    
         alert('Detalle de pasteurizadora: ' + pasteurizadora.nombre + '\nEstado: ' + pasteurizadora.estado.nivel);
-        // Puedes expandir esto con un modal completo
+    
     }
 </script>
 @endsection

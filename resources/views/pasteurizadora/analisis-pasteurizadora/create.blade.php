@@ -88,6 +88,22 @@
               id="analisisForm">
             @csrf
 
+            @if(($registrosYaRealizados ?? collect())->isNotEmpty())
+                <div class="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3">
+                    <p class="text-sm font-bold text-blue-900 mb-2">Analisis ya realizados en esta seleccion</p>
+                    <div class="space-y-2">
+                        @foreach($registrosYaRealizados as $registroRealizado)
+                            <div class="flex flex-wrap items-center gap-2 text-xs text-blue-800">
+                                <span class="rounded bg-white px-2 py-1 font-semibold">{{ $registroRealizado->fecha_analisis?->format('d/m/Y') ?? 'Sin fecha' }}</span>
+                                <span class="rounded bg-white px-2 py-1">Orden #{{ $registroRealizado->numero_orden }}</span>
+                                <span class="rounded bg-white px-2 py-1">{{ $registroRealizado->nivel }} / {{ $registroRealizado->lado }}</span>
+                                <span class="rounded bg-blue-100 px-2 py-1 font-semibold">Realizado por: {{ $registroRealizado->usuario?->name ?? $registroRealizado->responsable ?? 'Usuario no registrado' }}</span>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+            @endif
+
             <input type="hidden" name="linea_id" value="{{ $linea->id }}">
 
             <div>

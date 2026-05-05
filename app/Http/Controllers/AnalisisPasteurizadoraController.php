@@ -28,7 +28,7 @@ class AnalisisPasteurizadoraController extends Controller
         $lineaId = $request->get('linea_id', 'todas');
         $lineaSeleccionada = $lineaId !== 'todas' ? Linea::find($lineaId) : null;
 
-        $query = AnalisisPasteurizadora::with('linea')
+        $query = AnalisisPasteurizadora::with(['linea', 'usuario'])
             ->where('resuelto_por_cambio', false);
 
         if ($lineaId !== 'todas' && $lineaId) {
@@ -181,6 +181,7 @@ class AnalisisPasteurizadoraController extends Controller
             'total_componentes' => $seleccionComponentes['total_componentes'],
             'brazos_torsion' => $seleccionComponentes['brazos_torsion'],
             'total_brazos_torsion' => $seleccionComponentes['total_brazos_torsion'],
+            'usuario_id' => $request->user()?->id,
             'resuelto_por_cambio' => false,
         ]);
 
@@ -240,13 +241,13 @@ class AnalisisPasteurizadoraController extends Controller
 
     public function show($id)
     {
-        $analisis = AnalisisPasteurizadora::with('linea')->findOrFail($id);
+        $analisis = AnalisisPasteurizadora::with(['linea', 'usuario'])->findOrFail($id);
         return view('pasteurizadora.analisis-pasteurizadora.show', compact('analisis'));
     }
 
     public function edit($id)
     {
-        $analisis = AnalisisPasteurizadora::findOrFail($id);
+        $analisis = AnalisisPasteurizadora::with('usuario')->findOrFail($id);
         $lineas = Linea::all();
         return view('pasteurizadora.analisis-pasteurizadora.edit', compact('analisis', 'lineas'));
     }
@@ -718,7 +719,8 @@ class AnalisisPasteurizadoraController extends Controller
             return [];
         }
 
-        $registrosPorLinea = AnalisisPasteurizadora::whereIn('linea_id', $lineaIds)
+        $registrosPorLinea = AnalisisPasteurizadora::with('usuario')
+            ->whereIn('linea_id', $lineaIds)
             ->where('resuelto_por_cambio', false)
             ->get()
             ->groupBy('linea_id');
@@ -857,6 +859,7 @@ class AnalisisPasteurizadoraController extends Controller
         $componentesPendientes = 0;
         $cantidadComponentesRevisados = 0;
         $componentesYaRevisados = [];
+        $registrosYaRealizados = collect();
         $ladosPendientes = [];
 
         if ($modulo && $componenteKey && $componentConfig) {
@@ -872,6 +875,15 @@ class AnalisisPasteurizadoraController extends Controller
                 $effectiveLado,
                 $effectiveNivel
             );
+            $registrosYaRealizados = AnalisisPasteurizadora::with('usuario')
+                ->where('linea_id', $linea->id)
+                ->where('modulo', $modulo)
+                ->where('componente', $componenteKey)
+                ->when($effectiveLado, fn ($query) => $query->where('lado', $effectiveLado))
+                ->when($effectiveNivel, fn ($query) => $query->where('nivel', $effectiveNivel))
+                ->latest('fecha_analisis')
+                ->latest('created_at')
+                ->get();
             $componentesPendientes = AnalisisPasteurizadora::getCantidadComponentesPendientes(
                 $linea->id,
                 $modulo,
@@ -901,6 +913,7 @@ class AnalisisPasteurizadoraController extends Controller
             'componentesPendientes' => $componentesPendientes,
             'cantidadComponentesRevisados' => $cantidadComponentesRevisados,
             'componentesYaRevisados' => $componentesYaRevisados,
+            'registrosYaRealizados' => $registrosYaRealizados,
             'ladosPendientes' => $ladosPendientes,
             'nombreComponente' => $componentConfig['nombre'] ?? $componente,
             'estadoRevision' => $estadoRevision,

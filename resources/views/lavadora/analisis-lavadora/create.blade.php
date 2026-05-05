@@ -46,6 +46,11 @@
     <div class="bg-white rounded-2xl shadow-lg p-8">
         <form method="POST" action="{{ route('analisis-lavadora.store') }}" enctype="multipart/form-data">
             @csrf
+            @error('error')
+                <div class="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+                    {{ $message }}
+                </div>
+            @enderror
             <input type="hidden" name="linea_id" value="{{ $linea->id }}">
 
             {{-- Select Componente y Reductor --}}

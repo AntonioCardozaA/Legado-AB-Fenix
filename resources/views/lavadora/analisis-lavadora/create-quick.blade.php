@@ -68,6 +68,27 @@
               enctype="multipart/form-data"
               class="space-y-6">
             @csrf
+
+            @error('error')
+                <div class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+                    {{ $message }}
+                </div>
+            @enderror
+
+            @if(($analisisRealizados ?? collect())->isNotEmpty())
+                <div class="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3">
+                    <p class="text-sm font-bold text-blue-900 mb-2">Analisis ya registrados para esta seleccion</p>
+                    <div class="space-y-2">
+                        @foreach($analisisRealizados as $registroRealizado)
+                            <div class="flex flex-wrap items-center gap-2 text-xs text-blue-800">
+                                <span class="rounded bg-white px-2 py-1 font-semibold">{{ $registroRealizado->fecha_analisis?->format('d/m/Y') ?? 'Sin fecha' }}</span>
+                                <span class="rounded bg-white px-2 py-1">Orden #{{ $registroRealizado->numero_orden }}</span>
+                                <span class="rounded bg-blue-100 px-2 py-1 font-semibold">Realizado por: {{ $registroRealizado->usuario?->name ?? 'Usuario no registrado' }}</span>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+            @endif
             
             {{-- Campos ocultos con datos pre-establecidos --}}
             <input type="hidden" name="linea_id" value="{{ $linea->id }}">

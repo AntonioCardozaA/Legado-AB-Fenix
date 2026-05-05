@@ -57,9 +57,7 @@ class RoleSeeder extends Seeder
                 'ver reportes', 'generar reportes',
             ],
             'tecnico' => [
-                'ver analisis', 'crear analisis',
-                'ver paros',
-                'ver reportes',
+                'ver analisis', 'crear analisis', 'editar analisis',
             ],
         ];
 

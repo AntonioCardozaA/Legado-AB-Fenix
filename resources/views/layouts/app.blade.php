@@ -141,12 +141,6 @@
                 <i class="fas fa-thermometer-half w-5 mr-3 text-gray-500"></i>
                 Pasteurizadora
             </a>
-            <a href="{{ route('lineas.index') }}"
-               aria-label="Líneas"
-               class="nav-link flex items-center px-4 py-3 rounded-lg {{ request()->routeIs('lineas.*') ? 'nav-active' : '' }}">
-                <i class="fas fa-industry w-5 mr-3 text-gray-500"></i>
-                Líneas
-            </a>
             <a href="{{ route('reportes.index') }}"
                aria-label="Reportes"
                class="nav-link flex items-center px-4 py-3 rounded-lg {{ request()->routeIs('reportes.*') ? 'nav-active' : '' }}">

@@ -4,7 +4,6 @@
 
 @section('content')
 <style>
-    /* Estilos para la página de módulos */
     .modulos-container {
         min-height: calc(100vh - 200px);
         display: flex;
@@ -91,7 +90,6 @@
         overflow: hidden;
     }
 
-    /* Estilos para imágenes personalizadas */
     .modulo-icon.has-image {
         background: transparent !important;
         box-shadow: none !important;
@@ -109,7 +107,6 @@
         transform: scale(1.1);
     }
 
-    /* Mantener el estilo de color para íconos FontAwesome */
     .modulo-icon:not(.has-image) {
         background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
         color: white;
@@ -418,7 +415,7 @@
 </div>
 
 <script>
-    // Animación de entrada para las tarjetas
+    
     document.addEventListener('DOMContentLoaded', function() {
         const cards = document.querySelectorAll('.modulo-card');
         cards.forEach((card, index) => {
@@ -431,12 +428,12 @@
             }, index * 100);
         });
 
-        // Verificar si hay elementos críticos
+        
         const criticalNumbers = document.querySelectorAll('.critical-number.blinking');
         if (criticalNumbers.length > 0) {
             console.log(`⚠️ Hay ${criticalNumbers.length} módulo(s) con alertas críticas`);
             
-            // Cambiar el título de la pestaña si hay críticas
+    
             let originalTitle = document.title;
             let criticalCount = 0;
             document.querySelectorAll('.stat-value.critico').forEach(el => {
@@ -445,7 +442,7 @@
             });
             
             if (criticalCount > 0) {
-                // Cambiar título de la pestaña para llamar la atención
+                
                 setInterval(() => {
                     if (document.title === originalTitle) {
                         document.title = `⚠️ ${criticalCount} ALERTA(S) CRÍTICA(S) ⚠️`;
@@ -457,13 +454,13 @@
         }
     });
 
-    // Función para manejar errores de carga de imágenes
+    
     document.addEventListener('DOMContentLoaded', function() {
         const images = document.querySelectorAll('.modulo-icon img');
         images.forEach(img => {
             img.addEventListener('error', function() {
                 console.error('Error loading image:', this.src);
-                // Opcional: Mostrar un ícono de fallback
+                
                 const parent = this.parentElement;
                 parent.classList.remove('has-image');
                 parent.innerHTML = '<i class="fas fa-industry"></i>';

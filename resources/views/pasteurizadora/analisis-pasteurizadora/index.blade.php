@@ -430,6 +430,7 @@
                                                         'fecha_analisis' => $registro->fecha_analisis ? $registro->fecha_analisis->format('d/m/Y') : $registro->created_at->format('d/m/Y'),
                                                         'numero_orden' => $registro->numero_orden,
                                                         'estado' => $estadoActual,
+                                                        'usuario_nombre' => $registro->usuario?->name ?? $registro->responsable ?? 'Usuario no registrado',
                                                         'actividad' => $registro->actividad,
                                                         'imagenes' => $registro->evidencia_fotos ?? [],
                                                         'componentes_revisados' => $componentesRevisadosAcumulados,
@@ -463,6 +464,7 @@
                                                                     'hora' => $item->created_at?->format('H:i'),
                                                                     'orden' => $item->numero_orden,
                                                                     'estado' => $item->estado,
+                                                                    'usuario_nombre' => $item->usuario?->name ?? $item->responsable ?? 'Usuario no registrado',
                                                                     'actividad' => $item->actividad,
                                                                     'lado' => $item->lado,
                                                                     'nivel' => $item->nivel,
@@ -539,6 +541,15 @@
                                                                     </svg>
                                                                 @endif
                                                                 {{ $estadoActual }}
+                                                            </span>
+                                                        </div>
+
+                                                        <div>
+                                                            <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200">
+                                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.121 17.804A9.004 9.004 0 0112 15c2.21 0 4.234.797 5.879 2.119M15 11a3 3 0 10-6 0 3 3 0 006 0z"/>
+                                                                </svg>
+                                                                Realizado por: {{ $registro->usuario?->name ?? $registro->responsable ?? 'Usuario no registrado' }}
                                                             </span>
                                                         </div>
 
@@ -979,6 +990,7 @@ function openAnalysisDetail(data) {
                                     <span class="inline-flex items-center px-2 py-1 rounded bg-slate-100 text-slate-700 font-semibold text-xs">${index === 0 ? 'Último registro' : 'Registro #' + (data.actualizaciones.length - index)}</span>
                                     <span class="text-slate-700 font-medium">${item.fecha || ''} ${item.hora || ''}</span>
                                     ${item.orden ? `<span class="text-slate-500 text-xs">Orden #${item.orden}</span>` : ''}
+                                    <span class="text-slate-600 text-xs font-semibold">Realizado por: ${item.usuario_nombre || 'Usuario no registrado'}</span>
                                 </div>
                                 <div class="flex flex-wrap items-center gap-2">
                                     ${nivelNombre ? `<span class="text-xs px-2 py-1 rounded ${item.nivel === 'SUPERIOR' ? 'bg-purple-100 text-purple-700' : 'bg-purple-100 text-purple-700'}">${item.nivel === 'SUPERIOR' ? '⬆️' : '⬇️'} ${nivelNombre}</span>` : ''}
@@ -1055,6 +1067,10 @@ function openAnalysisDetail(data) {
             <div class="bg-gray-50 p-4 rounded-lg">
                 <p class="text-xs text-gray-500 mb-1">🔢 Orden</p>
                 <p class="font-bold font-mono text-gray-900">#${data.numero_orden}</p>
+            </div>
+            <div class="bg-blue-50 p-4 rounded-lg border border-blue-100">
+                <p class="text-xs text-blue-600 mb-1">Tecnico</p>
+                <p class="font-bold text-blue-900">Realizado por: ${data.usuario_nombre || 'Usuario no registrado'}</p>
             </div>
         </div>
 
