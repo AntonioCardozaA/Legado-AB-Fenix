@@ -3040,7 +3040,7 @@ function openEstadoModal(tipo, titulo, items) {
 
     modalHeader.className = `px-6 py-4 border-b flex justify-between items-center ${config.bg}`;
     modalTitle.className = `text-xl font-bold ${config.text}`;
-    modalTitle.innerHTML = `<i class="fas fa-chart-pie mr-2"></i>${titulo} (${items.length})`;
+    modalTitle.innerHTML = `<i class="fa-solid fa-bars-staggered"></i> ${titulo} (${items.length})`;
 
     if (!items || items.length === 0) {
         modalContent.innerHTML = `
@@ -3066,7 +3066,7 @@ function openEstadoModal(tipo, titulo, items) {
                     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-5 py-4 bg-white border-b border-slate-200">
                         <div class="flex items-center gap-3">
                             <div class="inline-flex items-center justify-center w-11 h-11 rounded-full bg-slate-100 text-slate-700">
-                                <i class="fas fa-flask"></i>
+                                <i class="fa-solid fa-clipboard-check"></i>
                             </div>
                             <div>
                                 <p class="text-xs uppercase tracking-[0.2em] text-slate-500">Línea</p>

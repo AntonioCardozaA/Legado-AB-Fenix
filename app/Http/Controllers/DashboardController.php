@@ -33,7 +33,7 @@ class DashboardController extends Controller
             [
                 'id' => 'lavadora',
                 'nombre' => 'Lavadoras',
-                'descripcion' => 'Monitoreo de elongaciones, análisis de componentes, plan de acción y métricas de rendimiento para líneas L-04 a L-13.',
+                'descripcion' => '',
                 'icono' => 'fa-industry',
                 'imagen_personalizada' => true,
                 'icono_imagen' => 'images/icono-maquina.png',
@@ -45,7 +45,7 @@ class DashboardController extends Controller
             [
                 'id' => 'pasteurizadora',
                 'nombre' => 'Pasteurizadoras',
-                'descripcion' => 'Control de componentes, análisis predictivo, gestión de mantenimiento y seguimiento de estado para líneas P-03 a P-14.',
+                'descripcion' => '',
                 'icono' => 'fa-temperature-high',
                 'imagen_personalizada' => true,
                 'icono_imagen' => 'images/icono_pas.png',

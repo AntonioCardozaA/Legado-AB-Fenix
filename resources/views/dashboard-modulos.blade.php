@@ -20,7 +20,7 @@
     }
 
     .modulos-header h1 {
-        font-size: 2.5rem;
+        font-size: 2rem;
         font-weight: 800;
         background: linear-gradient(135deg, #1e293b 0%, #3b82f6 100%);
         -webkit-background-clip: text;
@@ -96,6 +96,8 @@
         background: transparent !important;
         box-shadow: none !important;
         padding: 0;
+        width: 200px;    /* Ancho fijo */
+        height: 200px;   /* Alto fijo */
     }
 
     .modulo-icon img {
@@ -104,7 +106,7 @@
         object-fit: contain;
         transition: all 0.3s ease;
     }
-
+    
     .modulo-card:hover .modulo-icon.has-image img {
         transform: scale(1.1);
     }
@@ -321,11 +323,9 @@
 <div class="modulos-container">
     <div class="modulos-header">
         <h1>
-            <i class="fas fa-cubes mr-3"></i>
-            Sistema de Monitoreo
+            Hola {{ Auth::user()->name }}, Bienvenido.
         </h1>
-    </div>
-
+    
     <div class="modulos-grid">
   @foreach($modulos as $modulo)
     @if($modulo['activo'])
