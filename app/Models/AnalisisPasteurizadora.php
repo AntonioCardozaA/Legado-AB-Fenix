@@ -25,6 +25,7 @@ class AnalisisPasteurizadora extends Model
         'estado',
         'actividad',
         'responsable',
+        'usuario_id',
         'observaciones',
         'evidencia_fotos',
         'cantidad_componentes_revisados',
@@ -436,6 +437,11 @@ class AnalisisPasteurizadora extends Model
     public function linea()
     {
         return $this->belongsTo(Linea::class);
+    }
+
+    public function usuario()
+    {
+        return $this->belongsTo(User::class, 'usuario_id');
     }
 
     public function registroResolutor()

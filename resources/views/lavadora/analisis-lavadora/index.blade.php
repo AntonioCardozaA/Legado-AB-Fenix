@@ -1875,6 +1875,7 @@
                                                         'fecha_analisis' => isset($registro->fecha_analisis) ? $registro->fecha_analisis->format('d/m/Y') : '',
                                                         'numero_orden' => $registro->numero_orden,
                                                         'estado' => $registro->estado ?? 'Buen estado',
+                                                        'usuario_nombre' => $registro->usuario?->name ?? 'Usuario no registrado',
                                                         'actividad' => $registro->actividad,
                                                         'imagenes' => $imagenes ?? [],
                                                         'color' => $color,
@@ -1935,6 +1936,10 @@
                                                                 <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium {{ $statusClass }}">
                                                                     <i class="fas {{ $icon }} mr-1"></i>
                                                                     {{ Str::limit($estadoActual, 20) }}
+                                                                </span>
+                                                                <span class="mt-1 inline-flex items-center px-2 py-1 rounded text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200">
+                                                                    <i class="fas fa-user-check mr-1"></i>
+                                                                    Realizado por: {{ $registro->usuario?->name ?? 'Usuario no registrado' }}
                                                                 </span>
                                                             </div>
                                                             
@@ -2388,6 +2393,7 @@
                                                     'fecha_analisis' => isset($registro->fecha_analisis) ? $registro->fecha_analisis->format('d/m/Y') : '',
                                                     'numero_orden' => $registro->numero_orden,
                                                     'estado' => $registro->estado ?? 'Buen estado',
+                                                    'usuario_nombre' => $registro->usuario?->name ?? 'Usuario no registrado',
                                                     'actividad' => $registro->actividad,
                                                     'imagenes' => $imagenes ?? [],
                                                     'color' => $color,
@@ -2452,6 +2458,10 @@
                                                             <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium {{ $statusClass }}">
                                                                 <i class="fas {{ $icon }} mr-1"></i>
                                                                 {{ Str::limit($estadoActual, 20) }}
+                                                            </span>
+                                                            <span class="mt-1 inline-flex items-center px-2 py-1 rounded text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200">
+                                                                <i class="fas fa-user-check mr-1"></i>
+                                                                Realizado por: {{ $registro->usuario?->name ?? 'Usuario no registrado' }}
                                                             </span>
                                                         </div>
                                                         
@@ -2818,6 +2828,18 @@
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                <div class="bg-white rounded-lg p-5 border border-blue-200 shadow-sm">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="bg-blue-100 p-2 rounded-lg">
+                            <i class="fas fa-user-check text-blue-600"></i>
+                        </div>
+                        <h4 class="font-semibold text-gray-700 border-blue-200 border-b-2 uppercase tracking-wider text-sm">Tecnico</h4>
+                    </div>
+                    <div class="flex justify-center">
+                        <div id="detail-usuario" class="px-6 py-3 bg-blue-50 text-blue-700 rounded-lg text-sm w-full text-center font-semibold"></div>
+                    </div>
+                </div>
+
                 <div class="bg-white rounded-lg p-5 border border-green-200 shadow-sm">
                     <div class="flex items-center gap-3 mb-4">
                         <div class="bg-green-100 p-2 rounded-lg">
@@ -3271,6 +3293,7 @@ function openAnalysisDetail(analysisData) {
     document.getElementById('detail-fecha').textContent = analysisData.fecha_analisis;
     document.getElementById('detail-orden').textContent = analysisData.numero_orden;
     document.getElementById('detail-actividad').textContent = analysisData.actividad;
+    document.getElementById('detail-usuario').textContent = `Realizado por: ${analysisData.usuario_nombre || 'Usuario no registrado'}`;
     
     const estadoElement = document.getElementById('detail-estado');
     estadoElement.textContent = analysisData.estado;

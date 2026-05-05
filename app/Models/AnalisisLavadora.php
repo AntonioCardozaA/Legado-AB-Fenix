@@ -35,6 +35,7 @@ class AnalisisLavadora extends Model
         'numero_orden',
         'estado',
         'actividad',
+        'usuario_id',
         'evidencia_fotos',
     ];
 
@@ -57,6 +58,11 @@ class AnalisisLavadora extends Model
     public function componente(): BelongsTo
     {
         return $this->belongsTo(Componente::class);
+    }
+
+    public function usuario(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'usuario_id');
     }
 
     /**

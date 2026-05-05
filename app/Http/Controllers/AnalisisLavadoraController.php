@@ -23,7 +23,7 @@ class AnalisisLavadoraController extends Controller
      */
 public function index(Request $request)
 {
-    $query = AnalisisLavadora::with(['linea', 'componente'])
+    $query = AnalisisLavadora::with(['linea', 'componente', 'usuario'])
         ->orderBy('fecha_analisis', 'desc')
         ->orderBy('created_at', 'desc');
 
@@ -74,7 +74,7 @@ public function index(Request $request)
     
     // Calcular estadísticas basadas en los últimos registros por componente (estado actual)
     $queryEstadisticas = AnalisisLavadora::ultimosPorComponente()
-        ->with(['linea', 'componente']);
+        ->with(['linea', 'componente', 'usuario']);
     
     // Aplicar los mismos filtros que al listado
     if ($request->filled('linea_id') && $request->linea_id !== 'todas') {
@@ -411,12 +411,22 @@ public function index(Request $request)
             }
         }
 
+        $analisisRealizados = AnalisisLavadora::with('usuario')
+            ->where('linea_id', $linea->id)
+            ->where('componente_id', $componente->id)
+            ->where('reductor', $request->reductor)
+            ->latest('fecha_analisis')
+            ->latest('created_at')
+            ->limit(5)
+            ->get();
+
         return view('lavadora/analisis-lavadora.create-quick', [
             'linea'          => $linea,
             'componente'     => $componente,
             'reductor'       => $request->reductor,
             'fecha_sugerida' => $request->fecha ?? now()->toDateString(),
             'redirect_to'    => url()->previous(),
+            'analisisRealizados' => $analisisRealizados,
         ]);
     }
 
@@ -528,6 +538,21 @@ $componente = Componente::firstOrCreate(
      * ===============================
      */
     try {
+        $duplicado = AnalisisLavadora::with('usuario')
+            ->where('linea_id', $linea->id)
+            ->where('componente_id', $componente->id)
+            ->where('reductor', $request->reductor)
+            ->whereDate('fecha_analisis', $request->fecha_analisis)
+            ->when($request->filled('lado'), fn ($query) => $query->where('lado', $request->lado))
+            ->when(!$request->filled('lado'), fn ($query) => $query->whereNull('lado'))
+            ->first();
+
+        if ($duplicado) {
+            return back()->withErrors([
+                'error' => 'Este analisis ya fue realizado por: ' . ($duplicado->usuario?->name ?? 'Usuario no registrado') . '.',
+            ])->withInput();
+        }
+
         $analisis = AnalisisLavadora::create([
             'linea_id'       => $linea->id,
             'componente_id'  => $componente->id,
@@ -537,6 +562,7 @@ $componente = Componente::firstOrCreate(
             'estado'         => $request->estado,
             'actividad'      => $request->actividad,
             'lado'           => $request->lado ?? null,
+            'usuario_id'     => $request->user()?->id,
         ]);
         if ($request->filled('lado')) {
             $data['lado'] = $request->lado;
@@ -636,7 +662,7 @@ $componente = Componente::firstOrCreate(
  */
 public function edit($id)
 {
-    $analisisComponente = AnalisisLavadora::with(['linea', 'componente'])
+    $analisisComponente = AnalisisLavadora::with(['linea', 'componente', 'usuario'])
         ->findOrFail($id);
 
     $componentes = Componente::where('linea', $analisisComponente->linea->nombre)
@@ -735,7 +761,7 @@ public function update(Request $request, $id)
      */
     public function show(AnalisisLavadora $analisislavadora)
     {
-        $analisislavadora->load(['linea', 'componente']);
+        $analisislavadora->load(['linea', 'componente', 'usuario']);
         return view('lavadora/analisis-lavadora.show', compact('analisislavadora'));
     }
     

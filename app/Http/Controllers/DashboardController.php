@@ -28,6 +28,11 @@ class DashboardController extends Controller
      */
     public function index()
     {
+        if (auth()->user()?->hasRole('tecnico')
+            && !auth()->user()?->hasAnyRole(['admin', 'ingeniero_mantenimiento', 'supervisor'])) {
+            return redirect()->route('tecnico.dashboard');
+        }
+
         // Configuración de módulos disponibles (escalable para futuro)
         $modulos = [
             [
@@ -57,6 +62,22 @@ class DashboardController extends Controller
         ];
 
         return view('dashboard-modulos', compact('modulos'));
+    }
+
+    public function tecnico()
+    {
+        $resumen = [
+            'lavadora' => [
+                'total' => AnalisisLavadora::count(),
+                'hoy' => AnalisisLavadora::whereDate('created_at', today())->count(),
+            ],
+            'pasteurizadora' => [
+                'total' => AnalisisPasteurizadora::count(),
+                'hoy' => AnalisisPasteurizadora::whereDate('created_at', today())->count(),
+            ],
+        ];
+
+        return view('tecnico.dashboard', compact('resumen'));
     }
 
     /**

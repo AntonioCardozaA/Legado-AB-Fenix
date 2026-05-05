@@ -37,7 +37,7 @@ require __DIR__ . '/auth.php';
 | RUTAS PROTEGIDAS (AUTH)
 |--------------------------------------------------------------------------
 */
-Route::middleware(['auth'])->group(function () {
+Route::middleware(['auth', 'technician.access'])->group(function () {
 
     // ===========================================================
     // DASHBOARDS (ESTRUCTURA COMPLETA Y LIMPIA)
@@ -48,6 +48,9 @@ Route::middleware(['auth'])->group(function () {
         // Dashboard principal - Selector de módulos
         Route::get('/', [DashboardController::class, 'index'])
             ->name('dashboard');
+
+        Route::get('/tecnico', [DashboardController::class, 'tecnico'])
+            ->name('tecnico.dashboard');
 
         // =======================================================
         // DASHBOARDS GLOBALES (VISTAS PRINCIPALES)
