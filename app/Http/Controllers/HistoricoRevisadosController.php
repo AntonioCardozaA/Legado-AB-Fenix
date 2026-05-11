@@ -11,7 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
-cli_set_process_titlecls
+
 class HistoricoRevisadosController extends Controller
 {
     /**
