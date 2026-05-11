@@ -55,4 +55,4 @@ RUN php artisan route:cache || true
 RUN php artisan view:cache || true
 
 # Iniciar servidor
-CMD php artisan serve --host=0.0.0.0 --port=8080
+CMD sh -c "php artisan migrate --force && php artisan serve --host=0.0.0.0 --port=$PORT"
