@@ -1,5 +1,6 @@
-FROM php:8.4-fpm
+FROM php:8.4-cli
 
+# Instalar dependencias
 RUN apt-get update && apt-get install -y \
     git \
     unzip \
@@ -11,12 +12,8 @@ RUN apt-get update && apt-get install -y \
     libfreetype6-dev \
     libonig-dev \
     libxml2-dev \
-    gnupg \
-    ca-certificates
-
-# Instalar Node.js y npm
-RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
-    && apt-get install -y nodejs
+    nodejs \
+    npm
 
 # Configurar GD
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg
@@ -31,17 +28,31 @@ RUN docker-php-ext-install \
     pcntl \
     gd
 
-# Instalar Composer
+# Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www
 
+# Copiar archivos
 COPY . .
 
-# Instalar dependencias Laravel
-RUN composer install
+# Instalar dependencias PHP
+RUN composer install --no-dev --optimize-autoloader
+
+# Instalar frontend
+RUN npm install
+RUN npm run build
 
 # Permisos
-RUN chown -R www-data:www-data storage bootstrap/cache
+RUN chmod -R 775 storage bootstrap/cache
 
-CMD php artisan serve --host=0.0.0.0 --port=$PORT
+# Puerto
+EXPOSE 8080
+
+# Comandos Laravel
+RUN php artisan config:cache || true
+RUN php artisan route:cache || true
+RUN php artisan view:cache || true
+
+# Iniciar servidor
+CMD php artisan serve --host=0.0.0.0 --port=8080
