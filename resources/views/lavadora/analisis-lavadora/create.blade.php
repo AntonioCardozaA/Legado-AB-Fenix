@@ -207,21 +207,44 @@
                     <i class="fas fa-camera text-blue-600 mr-1"></i>
                     Evidencia Fotográfica
                 </label>
-                <input type="file" id="evidencia_fotos" name="evidencia_fotos[]" multiple accept="image/*"
-                       class="block w-full text-sm text-gray-500 rounded-lg border border-gray-300 shadow-sm
-                              focus:ring-blue-500 focus:border-blue-500
-                              file:mr-4 file:py-2 file:px-4
-                              file:rounded-lg file:border-0
-                              file:text-sm file:font-semibold
-                              file:bg-blue-50 file:text-blue-700
-                              hover:file:bg-blue-100
-                              @error('evidencia_fotos.*') border-red-500 @enderror">
+                <input type="file" id="evidencia_fotos" name="evidencia_fotos[]" multiple accept="image/*" class="hidden">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <button type="button"
+                                id="btn_evidencia_fotos_galeria"
+                                class="flex w-full items-center justify-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-700 transition hover:bg-blue-100">
+                            <i class="fas fa-images"></i>
+                            Subir desde galeria
+                        </button>
+                        <input type="file"
+                               id="evidencia_fotos_galeria"
+                               accept="image/*"
+                               multiple
+                               class="sr-only">
+                    </div>
 
-                <p class="text-gray-500 text-xs mt-1">Puede seleccionar múltiples imágenes (Formatos: JPG, PNG, GIF. Máx: 2MB cada una)</p>
-
+                    <div>
+                        <button type="button"
+                                id="btn_evidencia_fotos_camara"
+                                class="flex w-full items-center justify-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-100">
+                            <i class="fas fa-camera-retro"></i>
+                            Tomar foto ahora
+                        </button>
+                        <input type="file"
+                               id="evidencia_fotos_camara"
+                               accept="image/*"
+                               capture="environment"
+                               multiple
+                               class="sr-only">
+                    </div>
+                </div>
+                <p id="fotos_resumen" class="mt-3 text-sm text-gray-500">Sin imagenes seleccionadas</p>
                 {{-- Contenedor para vista previa --}}
                 <div id="preview_fotos" class="mt-3 flex flex-wrap gap-2"></div>
 
+                @error('evidencia_fotos')
+                    <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+                @enderror
                 @error('evidencia_fotos.*')
                     <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
                 @enderror
@@ -247,15 +270,23 @@
 @section('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    const analisisForm = document.querySelector('form');
     const inputFotos = document.getElementById('evidencia_fotos');
+    const botonGaleria = document.getElementById('btn_evidencia_fotos_galeria');
+    const botonCamara = document.getElementById('btn_evidencia_fotos_camara');
+    const galeriaFotosInput = document.getElementById('evidencia_fotos_galeria');
+    const camaraFotosInput = document.getElementById('evidencia_fotos_camara');
     const previewFotos = document.getElementById('preview_fotos');
+    const fotosResumen = document.getElementById('fotos_resumen');
     const numeroOrdenInput = document.getElementById('numero_orden');
     const componenteSelect = document.getElementById('componente_codigo');
     const ladoSelector = document.getElementById('lado-selector-container');
     const ladoInput = document.getElementById('lado');
+    const maxFotoSize = 5 * 1024 * 1024;
+    const soportaDataTransfer = typeof DataTransfer !== 'undefined';
 
     // Función para mostrar/ocultar el selector de lado
-    function toggleLadoSelector() {
+    window.toggleLadoSelector = function() {
         const componenteSeleccionado = componenteSelect.value;
         // Códigos de componentes que requieren selección de lado
         const componentesConLado = [
@@ -273,50 +304,139 @@ document.addEventListener('DOMContentLoaded', function() {
             ladoInput.removeAttribute('required');
             ladoInput.value = ''; // Limpiar el valor cuando se oculta
         }
-    }
+    };
 
     // Vista previa de imágenes
-    inputFotos.addEventListener('change', function() {
-        previewFotos.innerHTML = ''; // Limpiar previews anteriores
-        const files = Array.from(this.files);
+    function actualizarResumenFotos(totalFotos) {
+        fotosResumen.textContent = totalFotos
+            ? `${totalFotos} imagen${totalFotos === 1 ? '' : 'es'} seleccionada${totalFotos === 1 ? '' : 's'}`
+            : 'Sin imagenes seleccionadas';
+    }
 
-        files.forEach(file => {
-            if(!file.type.startsWith('image/')) return; // Solo imágenes
-            
-            // Validar tamaño (2MB = 2097152 bytes)
-            if (file.size > 2097152) {
-                alert(`La imagen ${file.name} supera el tamaño máximo de 2MB`);
+    function crearDataTransfer(files) {
+        const dataTransfer = new DataTransfer();
+        files.forEach((file) => dataTransfer.items.add(file));
+        return dataTransfer;
+    }
+
+    function getFotosPrincipales() {
+        return Array.from(inputFotos.files || []);
+    }
+
+    function getFotosFallback() {
+        return [
+            ...Array.from(galeriaFotosInput.files || []),
+            ...Array.from(camaraFotosInput.files || []),
+        ];
+    }
+
+    function renderPreview(files, permitirEliminar) {
+        previewFotos.innerHTML = '';
+        actualizarResumenFotos(files.length);
+
+        files.forEach((file, index) => {
+            if (!file.type.startsWith('image/')) {
                 return;
             }
-            
+
             const reader = new FileReader();
             reader.onload = function(e) {
                 const imgContainer = document.createElement('div');
                 imgContainer.className = 'relative group';
-                
+
                 const img = document.createElement('img');
                 img.src = e.target.result;
                 img.className = 'w-24 h-24 object-cover rounded-lg border border-gray-200 shadow-sm';
-                
-                // Botón para eliminar (opcional)
-                const removeBtn = document.createElement('button');
-                removeBtn.type = 'button';
-                removeBtn.className = 'absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 opacity-0 group-hover:opacity-100 transition-opacity text-xs flex items-center justify-center';
-                removeBtn.innerHTML = '×';
-                removeBtn.onclick = function() {
-                    imgContainer.remove();
-                    // Aquí podrías eliminar el archivo del input también
-                };
-                
                 imgContainer.appendChild(img);
-                imgContainer.appendChild(removeBtn);
+
+                if (permitirEliminar) {
+                    const removeBtn = document.createElement('button');
+                    removeBtn.type = 'button';
+                    removeBtn.className = 'absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 opacity-0 group-hover:opacity-100 transition-opacity text-xs flex items-center justify-center';
+                    removeBtn.innerHTML = '&times;';
+                    removeBtn.onclick = function() {
+                        const fotos = getFotosPrincipales();
+                        fotos.splice(index, 1);
+                        inputFotos.files = crearDataTransfer(fotos).files;
+                        renderPreview(getFotosPrincipales(), true);
+                    };
+                    imgContainer.appendChild(removeBtn);
+                }
+
                 previewFotos.appendChild(imgContainer);
-            }
+            };
+
             reader.readAsDataURL(file);
         });
+    }
+
+    function agregarFotos(files) {
+        const fotosActuales = getFotosPrincipales();
+        const firmas = new Set(fotosActuales.map((file) => `${file.name}-${file.size}-${file.lastModified}`));
+        const nuevasFotos = [...fotosActuales];
+
+        Array.from(files || []).forEach((file) => {
+            if (!file.type.startsWith('image/')) {
+                alert(`El archivo ${file.name} no es una imagen vÃ¡lida.`);
+                return;
+            }
+
+            if (file.size > maxFotoSize) {
+                alert(`La imagen ${file.name} supera el tamaÃ±o mÃ¡ximo de 5MB.`);
+                return;
+            }
+
+            const firma = `${file.name}-${file.size}-${file.lastModified}`;
+            if (firmas.has(firma)) {
+                return;
+            }
+
+            firmas.add(firma);
+            nuevasFotos.push(file);
+        });
+
+        inputFotos.files = crearDataTransfer(nuevasFotos).files;
+        renderPreview(getFotosPrincipales(), true);
+    }
+
+    botonGaleria.addEventListener('click', function() {
+        galeriaFotosInput.click();
     });
 
-    // Validación de número de orden (solo números, máximo 8)
+    botonCamara.addEventListener('click', function() {
+        camaraFotosInput.click();
+    });
+
+    inputFotos.addEventListener('change', function() {
+        renderPreview(getFotosPrincipales(), true);
+    });
+
+    if (soportaDataTransfer) {
+        galeriaFotosInput.addEventListener('change', function() {
+            agregarFotos(this.files);
+            this.value = '';
+        });
+
+        camaraFotosInput.addEventListener('change', function() {
+            agregarFotos(this.files);
+            this.value = '';
+        });
+
+        renderPreview(getFotosPrincipales(), true);
+    } else {
+        galeriaFotosInput.name = 'evidencia_fotos[]';
+        camaraFotosInput.name = 'evidencia_fotos[]';
+        inputFotos.disabled = true;
+
+        const renderizarFallback = function() {
+            renderPreview(getFotosFallback(), false);
+        };
+
+        galeriaFotosInput.addEventListener('change', renderizarFallback);
+        camaraFotosInput.addEventListener('change', renderizarFallback);
+        renderizarFallback();
+    }
+
     numeroOrdenInput.addEventListener('input', function(e) {
         // Solo permite números
         this.value = this.value.replace(/[^0-9]/g, '');
@@ -331,6 +451,12 @@ document.addEventListener('DOMContentLoaded', function() {
         toggleLadoSelector();
     });
 
+    analisisForm.addEventListener('submit', function() {
+        if (soportaDataTransfer) {
+            inputFotos.disabled = getFotosPrincipales().length === 0;
+        }
+    });
+
     // Actualizar información al cargar la página si hay valores previos
     if (document.getElementById('componente_codigo').value || document.getElementById('reductor').value) {
         actualizarInformacion();
@@ -339,7 +465,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // Función para actualizar la información del encabezado
-function actualizarInformacion() {
+window.actualizarInformacion = function() {
     const componenteSelect = document.getElementById('componente_codigo');
     const reductorSelect = document.getElementById('reductor');
     

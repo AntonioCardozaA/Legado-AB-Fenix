@@ -1,6 +1,6 @@
-@extends('layouts.app')
+﻿@extends('layouts.app')
 
-@section('title', 'Editar Análisis de Componente')
+@section('title', 'Editar AnÃ¡lisis de Componente')
 
 @section('content')
 <div class="max-w-4xl mx-auto py-10 px-4">
@@ -29,7 +29,7 @@
             </div>
         </div>
         
-        {{-- Mostrar mensajes de éxito/error --}}
+        {{-- Mostrar mensajes de Ã©xito/error --}}
         @if(session('success'))
             <div class="mb-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative" role="alert">
                 <span class="block sm:inline">{{ session('success') }}</span>
@@ -42,13 +42,13 @@
             </div>
         @endif
 
-        {{-- Información del contexto --}}
+        {{-- InformaciÃ³n del contexto --}}
 <div class="bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl p-4 border border-gray-200 mb-6">
 
     {{-- Fila superior --}}
     <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-center text-sm">
 
-        {{-- Ícono de máquina --}}
+        {{-- Ãcono de mÃ¡quina --}}
         <div class="flex justify-center md:justify-start">
             <div class="w-20 h-20">
                 <img 
@@ -124,7 +124,7 @@
             <input type="hidden" name="fecha_analisis" value="{{ $analisisComponente->fecha_analisis }}">
             <input type="hidden" name="redirect_to" value="{{ request()->input('redirect_to') ?? url()->previous() }}">
 
-            {{-- Solo Número de Orden --}}
+            {{-- Solo NÃºmero de Orden --}}
             <div class="mb-6">
                 <label for="numero_orden" class="block text-sm font-medium text-gray-700 mb-1">
                     <i class="fas fa-hashtag text-blue-600 mr-1"></i>
@@ -236,25 +236,44 @@
                     <i class="fas fa-camera text-blue-600 mr-1"></i>
                     Agregar Nuevas Evidencias
                 </label>
-                <input type="file" 
-                       id="evidencia_fotos" 
-                       name="evidencia_fotos[]" 
-                       multiple 
-                       accept="image/*"
-                       class="block w-full text-sm text-gray-500 rounded-lg border border-gray-300 shadow-sm
-                              focus:ring-blue-500 focus:border-blue-500
-                              file:mr-4 file:py-2 file:px-4
-                              file:rounded-lg file:border-0
-                              file:text-sm file:font-semibold
-                              file:bg-blue-50 file:text-blue-700
-                              hover:file:bg-blue-100
-                              @error('evidencia_fotos.*') border-red-500 @enderror">
+                <input type="file" id="evidencia_fotos" name="evidencia_fotos[]" multiple accept="image/*" class="hidden">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <button type="button"
+                                id="btn_evidencia_fotos_galeria"
+                                class="flex w-full items-center justify-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-700 transition hover:bg-blue-100">
+                            <i class="fas fa-images"></i>
+                            Subir desde galeria
+                        </button>
+                        <input type="file"
+                               id="evidencia_fotos_galeria"
+                               accept="image/*"
+                               multiple
+                               class="sr-only">
+                    </div>
 
-                <p class="text-gray-500 text-xs mt-1">Puede seleccionar múltiples imágenes (Formatos: JPG, PNG, GIF. Máx: 2MB cada una)</p>
-
+                    <div>
+                        <button type="button"
+                                id="btn_evidencia_fotos_camara"
+                                class="flex w-full items-center justify-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-100">
+                            <i class="fas fa-camera-retro"></i>
+                            Tomar foto ahora
+                        </button>
+                        <input type="file"
+                               id="evidencia_fotos_camara"
+                               accept="image/*"
+                               capture="environment"
+                               multiple
+                               class="sr-only">
+                    </div>
+                </div>
+                <p id="fotos_resumen" class="mt-3 text-sm text-gray-500">Sin imagenes seleccionadas</p>
                 {{-- Contenedor para vista previa --}}
                 <div id="preview_fotos" class="mt-3 flex flex-wrap gap-2"></div>
 
+                @error('evidencia_fotos')
+                    <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+                @enderror
                 @error('evidencia_fotos.*')
                     <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
                 @enderror
@@ -302,7 +321,7 @@
     </div>
 </div>
 
-{{-- Modal de confirmación para eliminar --}}
+{{-- Modal de confirmaciÃ³n para eliminar --}}
 <div id="deleteModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
     <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
         <div class="mt-3">
@@ -344,75 +363,162 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const inputFotos = document.getElementById('evidencia_fotos');
+    const botonGaleria = document.getElementById('btn_evidencia_fotos_galeria');
+    const botonCamara = document.getElementById('btn_evidencia_fotos_camara');
+    const galeriaFotosInput = document.getElementById('evidencia_fotos_galeria');
+    const camaraFotosInput = document.getElementById('evidencia_fotos_camara');
     const previewFotos = document.getElementById('preview_fotos');
+    const fotosResumen = document.getElementById('fotos_resumen');
     const editarForm = document.getElementById('editarAnalisisForm');
+    const maxFotoSize = 5 * 1024 * 1024;
+    const soportaDataTransfer = typeof DataTransfer !== 'undefined';
+    // DepuraciÃ³n: Verificar datos del formulario antes de enviar
+    function actualizarResumenFotos(totalFotos) {
+        fotosResumen.textContent = totalFotos
+            ? `${totalFotos} imagen${totalFotos === 1 ? '' : 'es'} seleccionada${totalFotos === 1 ? '' : 's'}`
+            : 'Sin imagenes seleccionadas';
+    }
 
-    // Vista previa de nuevas imágenes
-    inputFotos.addEventListener('change', function() {
-        previewFotos.innerHTML = ''; // Limpiar previews anteriores
-        const files = Array.from(this.files);
+    function crearDataTransfer(files) {
+        const dataTransfer = new DataTransfer();
+        files.forEach((file) => dataTransfer.items.add(file));
+        return dataTransfer;
+    }
 
-        files.forEach(file => {
-            if(!file.type.startsWith('image/')) return; // Solo imágenes
-            
-            // Validar tamaño (2MB = 2097152 bytes)
-            if (file.size > 2097152) {
-                alert(`La imagen ${file.name} supera el tamaño máximo de 2MB`);
+    function getFotosPrincipales() {
+        return Array.from(inputFotos.files || []);
+    }
+
+    function getFotosFallback() {
+        return [
+            ...Array.from(galeriaFotosInput.files || []),
+            ...Array.from(camaraFotosInput.files || []),
+        ];
+    }
+
+    function renderPreview(files, permitirEliminar) {
+        previewFotos.innerHTML = '';
+        actualizarResumenFotos(files.length);
+
+        files.forEach((file, index) => {
+            if (!file.type.startsWith('image/')) {
                 return;
             }
-            
+
             const reader = new FileReader();
             reader.onload = function(e) {
                 const imgContainer = document.createElement('div');
                 imgContainer.className = 'relative group border border-gray-200 rounded-lg p-2 bg-gray-50';
-                
+
                 const img = document.createElement('img');
                 img.src = e.target.result;
                 img.className = 'w-24 h-24 object-cover rounded-md border border-gray-300 mb-2';
-                
-                // Nombre del archivo
+
                 const fileName = document.createElement('p');
                 fileName.className = 'text-xs text-gray-600 truncate';
-                fileName.textContent = file.name.length > 15 ? 
-                    file.name.substring(0, 15) + '...' : file.name;
-                
-                // Botón para eliminar de la vista previa
-                const removeBtn = document.createElement('button');
-                removeBtn.type = 'button';
-                removeBtn.className = 'absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 opacity-0 group-hover:opacity-100 transition-opacity text-xs';
-                removeBtn.innerHTML = '×';
-                removeBtn.onclick = function() {
-                    imgContainer.remove();
-                    // Eliminar el archivo del input
-                    const dt = new DataTransfer();
-                    const inputFiles = inputFotos.files;
-                    
-                    for (let i = 0; i < inputFiles.length; i++) {
-                        if (inputFiles[i] !== file) {
-                            dt.items.add(inputFiles[i]);
-                        }
-                    }
-                    
-                    inputFotos.files = dt.files;
-                };
-                
+                fileName.textContent = file.name.length > 15
+                    ? file.name.substring(0, 15) + '...'
+                    : file.name;
+
                 imgContainer.appendChild(img);
                 imgContainer.appendChild(fileName);
-                imgContainer.appendChild(removeBtn);
+
+                if (permitirEliminar) {
+                    const removeBtn = document.createElement('button');
+                    removeBtn.type = 'button';
+                    removeBtn.className = 'absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 opacity-0 group-hover:opacity-100 transition-opacity text-xs';
+                    removeBtn.innerHTML = '&times;';
+                    removeBtn.onclick = function() {
+                        const fotos = getFotosPrincipales();
+                        fotos.splice(index, 1);
+                        inputFotos.files = crearDataTransfer(fotos).files;
+                        renderPreview(getFotosPrincipales(), true);
+                    };
+                    imgContainer.appendChild(removeBtn);
+                }
+
                 previewFotos.appendChild(imgContainer);
-            }
+            };
+
             reader.readAsDataURL(file);
         });
+    }
+
+    function agregarFotos(files) {
+        const fotosActuales = getFotosPrincipales();
+        const firmas = new Set(fotosActuales.map((file) => `${file.name}-${file.size}-${file.lastModified}`));
+        const nuevasFotos = [...fotosActuales];
+
+        Array.from(files || []).forEach((file) => {
+            if (!file.type.startsWith('image/')) {
+                alert(`El archivo ${file.name} no es una imagen valida.`);
+                return;
+            }
+
+            if (file.size > maxFotoSize) {
+                alert(`La imagen ${file.name} supera el tamano maximo de 5MB.`);
+                return;
+            }
+
+            const firma = `${file.name}-${file.size}-${file.lastModified}`;
+            if (firmas.has(firma)) {
+                return;
+            }
+
+            firmas.add(firma);
+            nuevasFotos.push(file);
+        });
+
+        inputFotos.files = crearDataTransfer(nuevasFotos).files;
+        renderPreview(getFotosPrincipales(), true);
+    }
+
+    botonGaleria.addEventListener('click', function() {
+        galeriaFotosInput.click();
     });
 
-    // Depuración: Verificar datos del formulario antes de enviar
-    editarForm.addEventListener('submit', function(e) {
-        console.log('Formulario enviado');
-        console.log('redirect_to:', document.querySelector('input[name="redirect_to"]').value);
+    botonCamara.addEventListener('click', function() {
+        camaraFotosInput.click();
+    });
+
+    inputFotos.addEventListener('change', function() {
+        renderPreview(getFotosPrincipales(), true);
+    });
+
+    if (soportaDataTransfer) {
+        galeriaFotosInput.addEventListener('change', function() {
+            agregarFotos(this.files);
+            this.value = '';
+        });
+
+        camaraFotosInput.addEventListener('change', function() {
+            agregarFotos(this.files);
+            this.value = '';
+        });
+
+        renderPreview(getFotosPrincipales(), true);
+    } else {
+        galeriaFotosInput.name = 'evidencia_fotos[]';
+        camaraFotosInput.name = 'evidencia_fotos[]';
+        inputFotos.disabled = true;
+
+        const renderizarFallback = function() {
+            renderPreview(getFotosFallback(), false);
+        };
+
+        galeriaFotosInput.addEventListener('change', renderizarFallback);
+        camaraFotosInput.addEventListener('change', renderizarFallback);
+        renderizarFallback();
+    }
+
+    editarForm.addEventListener('submit', function() {
+        if (soportaDataTransfer) {
+            inputFotos.disabled = getFotosPrincipales().length === 0;
+        }
     });
 });
 
-// Funciones para el modal de eliminación
+// Funciones para el modal de eliminaciÃ³n
 function confirmarEliminar() {
     document.getElementById('deleteModal').classList.remove('hidden');
 }
@@ -422,3 +528,6 @@ function cerrarModal() {
 }
 </script>
 @endsection
+
+
+

@@ -3325,7 +3325,8 @@ function openAnalysisDetail(analysisData) {
     }
     
     const imagesSection = document.getElementById('detail-images-section');
-    if (analysisData.imagenes && analysisData.imagenes.length > 0) {
+    analysisData.imagenes = normalizeEvidenceImages(analysisData.imagenes);
+    if (analysisData.imagenes.length > 0) {
         imagesSection.classList.remove('hidden');
         buildDetailImageGridEnhanced(analysisData.imagenes);
     } else {
@@ -3337,6 +3338,66 @@ function openAnalysisDetail(analysisData) {
     hideLoading();
 }
 
+function normalizeEvidenceImages(imagenes) {
+    if (!imagenes) {
+        return [];
+    }
+
+    if (typeof imagenes === 'string') {
+        const valor = imagenes.trim();
+
+        if (!valor) {
+            return [];
+        }
+
+        if ((valor.startsWith('[') && valor.endsWith(']')) || (valor.startsWith('"') && valor.endsWith('"'))) {
+            try {
+                return normalizeEvidenceImages(JSON.parse(valor));
+            } catch (error) {
+                return [valor];
+            }
+        }
+
+        return [valor];
+    }
+
+    if (!Array.isArray(imagenes)) {
+        return [];
+    }
+
+    return imagenes
+        .flatMap((item) => normalizeEvidenceImages(item))
+        .map((item) => String(item).trim().replace(/\\/g, '/'))
+        .filter((item) => item.length > 0);
+}
+
+function resolveEvidenceImageUrl(path) {
+    const baseUrl = @json(Storage::url(''));
+    const normalizedPath = String(path ?? '').trim().replace(/\\/g, '/');
+
+    if (!normalizedPath) {
+        return '';
+    }
+
+    if (/^https?:\/\//i.test(normalizedPath)) {
+        return normalizedPath;
+    }
+
+    if (normalizedPath.startsWith('/storage/')) {
+        return normalizedPath;
+    }
+
+    if (normalizedPath.startsWith('storage/')) {
+        return `/${normalizedPath}`;
+    }
+
+    if (normalizedPath.startsWith('/')) {
+        return normalizedPath;
+    }
+
+    return `${baseUrl}${normalizedPath}`;
+}
+
 function buildDetailImageGridEnhanced(imagenes) {
     const grid = document.getElementById('detail-image-grid');
     grid.innerHTML = '';
@@ -3346,7 +3407,7 @@ function buildDetailImageGridEnhanced(imagenes) {
         item.className = 'image-item';
         item.innerHTML = `
             <div class="image-number">#${index + 1}</div>
-            <img src="{{ Storage::url('') }}${path}" class="grid-image" onclick="openSingleImage('${path}', ${index})">
+            <img src="${resolveEvidenceImageUrl(path)}" class="grid-image" onclick="openSingleImage('${path}', ${index})">
             <div class="image-info">
                 <button class="download-image-btn" onclick="event.stopPropagation(); downloadSingleImage('${path}', ${index})">
                     <i class="fas fa-download"></i>
@@ -3360,7 +3421,7 @@ function buildDetailImageGridEnhanced(imagenes) {
 
 function openAllImages(imagenes, fecha, orden, estado) {
     showLoading();
-    currentImages = Array.isArray(imagenes) ? imagenes : [];
+    currentImages = normalizeEvidenceImages(imagenes);
     
     const modal = document.getElementById('allImagesModal');
     const grid = document.getElementById('imageGrid');
@@ -3380,7 +3441,7 @@ function openAllImages(imagenes, fecha, orden, estado) {
             item.className = 'image-item';
             item.innerHTML = `
                 <div class="image-number">#${index + 1}</div>
-                <img src="{{ Storage::url('') }}${path}" class="grid-image" onclick="openSingleImage('${path}', ${index})">
+                <img src="${resolveEvidenceImageUrl(path)}" class="grid-image" onclick="openSingleImage('${path}', ${index})">
                 <div class="image-info">
                     <button class="download-image-btn" onclick="event.stopPropagation(); downloadSingleImage('${path}', ${index})">
                         <i class="fas fa-download"></i>
@@ -3393,6 +3454,7 @@ function openAllImages(imagenes, fecha, orden, estado) {
     }
     
     modal.classList.remove('hidden');
+    modal.classList.add('flex');
     document.body.style.overflow = 'hidden';
     hideLoading();
 }
@@ -3403,19 +3465,20 @@ function openSingleImage(imagePath, index) {
     const img = document.getElementById('singleModalImg');
     const counter = document.getElementById('currentImageCounter');
     
-    img.src = `{{ Storage::url('') }}${imagePath}`;
+    img.src = resolveEvidenceImageUrl(imagePath);
     
     if (currentImages.length > 0) {
         counter.textContent = `${index + 1} / ${currentImages.length}`;
     }
     
     modal.classList.remove('hidden');
+    modal.classList.add('flex');
     document.body.style.overflow = 'hidden';
 }
 
 function downloadSingleImage(imagePath, index) {
     const link = document.createElement('a');
-    link.href = `{{ Storage::url('') }}${imagePath}`;
+    link.href = resolveEvidenceImageUrl(imagePath);
     link.download = `imagen-${index + 1}.jpg`;
     link.click();
 }
@@ -3427,11 +3490,13 @@ function closeAnalysisDetailModal() {
 
 function closeAllImagesModal() {
     document.getElementById('allImagesModal').classList.add('hidden');
+    document.getElementById('allImagesModal').classList.remove('flex');
     document.body.style.overflow = '';
 }
 
 function closeSingleImageModal() {
     document.getElementById('singleImageModal').classList.add('hidden');
+    document.getElementById('singleImageModal').classList.remove('flex');
     document.body.style.overflow = '';
 }
 

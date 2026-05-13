@@ -18,6 +18,9 @@ use App\Services\WhatsAppService;
 
 class AnalisisLavadoraController extends Controller
 {
+    private const EVIDENCIA_FOTOS_DISK = 'public';
+    private const EVIDENCIA_FOTOS_PATH = 'analisis-evidencias';
+
     /**
      * LISTADO + FILTROS
      */
@@ -451,7 +454,8 @@ public function index(Request $request)
         'numero_orden'      => 'required|string|max:20', // 🔥 YA NO digits:8
         'estado'            => 'required|string|max:255',
         'actividad'         => 'required|string',
-        'evidencia_fotos.*' => 'nullable|image|max:2048',
+        'evidencia_fotos'   => 'nullable|array',
+        'evidencia_fotos.*' => $this->evidenciaFotoRules(),
         'redirect_to'       => 'nullable|string',
         'lado'               => 'nullable|string|in:VAPOR,PASILLO',
     ]);
@@ -607,11 +611,7 @@ $componente = Componente::firstOrCreate(
      * ===============================
      */
     if ($request->hasFile('evidencia_fotos')) {
-        $fotos = [];
-
-        foreach ($request->file('evidencia_fotos') as $foto) {
-            $fotos[] = $foto->store('analisis-evidencias', 'public');
-        }
+        $fotos = $this->guardarEvidenciasFotograficas($request->file('evidencia_fotos', []));
 
         $analisis->update([
             'evidencia_fotos' => json_encode($fotos),
@@ -686,7 +686,8 @@ public function update(Request $request, $id)
         'numero_orden'      => 'required|string|max:20',
         'estado'            => 'required|string|max:255',
         'actividad'         => 'required|string',
-        'evidencia_fotos.*' => 'nullable|image|max:2048',
+        'evidencia_fotos'   => 'nullable|array',
+        'evidencia_fotos.*' => $this->evidenciaFotoRules(),
         'eliminar_fotos'    => 'nullable|array',
         'eliminar_fotos.*'  => 'integer',
     ]);
@@ -725,13 +726,10 @@ public function update(Request $request, $id)
        AGREGAR NUEVAS FOTOS
     ========================================= */
     if ($request->hasFile('evidencia_fotos')) {
-
-        foreach ($request->file('evidencia_fotos') as $foto) {
-
-            $ruta = $foto->store('analisis-evidencias', 'public');
-
-            $fotosExistentes[] = $ruta;
-        }
+        $fotosExistentes = array_merge(
+            $fotosExistentes,
+            $this->guardarEvidenciasFotograficas($request->file('evidencia_fotos', []))
+        );
     }
 
     /* =====================================================
@@ -867,6 +865,32 @@ public function update(Request $request, $id)
         
         return back()->with('error', 'Foto no encontrada.');
     }
+
+    private function evidenciaFotoRules(): array
+    {
+        return [
+            'nullable',
+            'file',
+            'mimetypes:image/jpeg,image/png,image/gif,image/webp,image/bmp,image/x-ms-bmp,image/heic,image/heif,image/heic-sequence,image/heif-sequence',
+            'max:5120',
+        ];
+    }
+
+    private function guardarEvidenciasFotograficas(array $archivos): array
+    {
+        $rutas = [];
+
+        foreach ($archivos as $archivo) {
+            if (!$archivo) {
+                continue;
+            }
+
+            $rutas[] = $archivo->store(self::EVIDENCIA_FOTOS_PATH, self::EVIDENCIA_FOTOS_DISK);
+        }
+
+        return $rutas;
+    }
+
         public function historial(Request $request)
     {
         $request->validate([
