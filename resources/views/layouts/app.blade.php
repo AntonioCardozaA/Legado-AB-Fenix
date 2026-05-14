@@ -7,13 +7,8 @@
 
     <link rel="icon" type="image/png" href="{{ asset('images/logoo.png') }}">
 
-    <!-- Tailwind -->
     <script src="https://cdn.tailwindcss.com"></script>
-
-    <!-- ChartJS -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-    <!-- FontAwesome -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
 
     <style>
@@ -22,6 +17,10 @@
             --secondary-blue: #3b82f6;
             --accent-yellow: #f59e0b;
             --accent-red: #ef4444;
+        }
+
+        [x-cloak] {
+            display: none !important;
         }
 
         .sidebar {
@@ -57,35 +56,33 @@
             box-shadow: 0 6px 12px rgba(0, 0, 0, 0.08);
         }
 
-        /* Estilos para el dropdown de notificaciones */
         .notifications-dropdown {
             width: 350px;
             max-height: 400px;
             overflow-y: auto;
         }
-        
+
         .notification-item {
             transition: background-color 0.2s;
         }
-        
+
         .notification-item:hover {
             background-color: #f3f4f6;
         }
-        
+
         .notification-unread {
             background-color: #eff6ff;
         }
-        
+
         .badge-notification {
             font-size: 10px;
             transform: translate(-30%, -50%);
         }
 
-        /* Estilo para el texto del logo */
         .logo-text {
             color: #1e40af;
         }
-        
+
         .logo-text span {
             color: #f59e0b;
         }
@@ -94,23 +91,50 @@
 
 <body class="bg-gray-100">
 
-<div class="flex min-h-screen" x-data="{ sidebarOpen: true }">
+<div
+    class="flex min-h-screen"
+    x-data="{
+        sidebarOpen: false,
+        isDesktop: window.innerWidth >= 1024,
+        init() {
+            this.sidebarOpen = this.isDesktop;
 
-    <!-- SIDEBAR - Fondo blanco con texto negro/azul -->
-    <aside class="sidebar w-64 flex flex-col h-screen sticky top-0 shadow-sm"
-           x-show="sidebarOpen"
-           x-transition:enter="transition ease-out duration-300"
-           x-transition:enter-start="transform -translate-x-full"
-           x-transition:enter-end="transform translate-x-0"
-           x-transition:leave="transition ease-in duration-300"
-           x-transition:leave-start="transform translate-x-0"
-           x-transition:leave-end="transform -translate-x-full">
+            window.addEventListener('resize', () => {
+                this.isDesktop = window.innerWidth >= 1024;
+                this.sidebarOpen = this.isDesktop;
+            });
+        }
+    }"
+    @keydown.escape.window="sidebarOpen = false"
+>
+
+    <!-- OVERLAY MÓVIL -->
+    <div
+        x-cloak
+        x-show="sidebarOpen && !isDesktop"
+        x-transition.opacity
+        @click="sidebarOpen = false"
+        class="fixed inset-0 z-40 bg-black/50 lg:hidden"
+    ></div>
+
+    <!-- SIDEBAR -->
+    <aside
+        x-cloak
+        x-show="sidebarOpen || isDesktop"
+        x-transition:enter="transition ease-out duration-300"
+        x-transition:enter-start="transform -translate-x-full"
+        x-transition:enter-end="transform translate-x-0"
+        x-transition:leave="transition ease-in duration-300"
+        x-transition:leave-start="transform translate-x-0"
+        x-transition:leave-end="transform -translate-x-full"
+        class="sidebar fixed inset-y-0 left-0 z-50 w-64 flex flex-col h-screen shadow-sm lg:sticky lg:top-0 lg:z-auto lg:translate-x-0"
+    >
 
         <!-- Logo -->
         <div class="px-6 py-6 border-b border-gray-200">
             <div class="flex flex-col items-center text-center">
-                <img 
-                    src="{{ asset('images/logo.png') }}" 
+                <img
+                    src="{{ asset('images/logo.png') }}"
                     alt="Logo Legado Ave Fénix"
                     class="w-30 h-30 mb-0 drop-shadow-lg"
                 >
@@ -122,34 +146,71 @@
         </div>
 
         <!-- Navegación -->
-        <nav class="flex-1 px-4 py-6 space-y-2 text-sm">
+        <nav class="flex-1 px-4 py-6 space-y-2 text-sm overflow-y-auto">
+
             <a href="{{ route('dashboard') }}"
+               @click="if (!isDesktop) sidebarOpen = false"
                aria-label="Ir al Dashboard"
-               class="nav-link flex items-center px-4 py-3 rounded-lg {{ request()->routeIs('dashboard.index') ? 'nav-active' : '' }}">
+               class="nav-link flex items-center px-4 py-3 rounded-lg {{ request()->routeIs('dashboard.index') || request()->routeIs('dashboard') ? 'nav-active' : '' }}">
                 <i class="fas fa-chart-line w-5 mr-3 text-gray-500"></i>
                 Dashboard
             </a>
-         <a href="{{ route('lavadora.dashboard') }}"
-                aria-label="Dashboard de Lavadora"
-                class="nav-link flex items-center px-4 py-3 rounded-lg {{ request()->routeIs('dashboard.lavadora') ? 'nav-active' : '' }}">
+
+            <a href="{{ route('lavadora.dashboard') }}"
+               @click="if (!isDesktop) sidebarOpen = false"
+               aria-label="Dashboard de Lavadora"
+               class="nav-link flex items-center px-4 py-3 rounded-lg {{ request()->routeIs('dashboard.lavadora') || request()->routeIs('lavadora.dashboard') || request()->routeIs('dashboard_lavadora') ? 'nav-active' : '' }}">
                 <i class="fas fa-droplet w-5 mr-3 text-gray-500"></i>
                 Lavadora
             </a>
-            <a href="{{ route('pasteurizadora.dashboard') }}"
-               aria-label="Análisis de Pasteurizadora"
-               class="nav-link flex items-center px-4 py-3 rounded-lg {{ request()->routeIs('dashboard.pasteurizadora') ? 'nav-active' : '' }}">
-                <i class="fas fa-thermometer-half w-5 mr-3 text-gray-500"></i>
-                Pasteurizadora
-            </a>
+
+            @auth
+                @if(auth()->user()->role === 'tecnico')
+                    <button type="button"
+                            @click="
+                                if (!isDesktop) sidebarOpen = false;
+                                Swal.fire({
+                                    icon: 'info',
+                                    
+                                    text: 'Estamos trabajando en ello, estará disponible muy pronto.',
+                                    confirmButtonText: 'Entendido',
+                                    confirmButtonColor: '#1e40af'
+                                });
+                            "
+                            aria-label="Análisis de Pasteurizadora"
+                            class="nav-link flex items-center w-full text-left px-4 py-3 rounded-lg">
+                        <i class="fas fa-thermometer-half w-5 mr-3 text-gray-500"></i>
+                        Pasteurizadora
+                    </button>
+                @else
+                    <a href="{{ route('pasteurizadora.dashboard') }}"
+                       @click="if (!isDesktop) sidebarOpen = false"
+                       aria-label="Análisis de Pasteurizadora"
+                       class="nav-link flex items-center px-4 py-3 rounded-lg {{ request()->routeIs('dashboard.pasteurizadora') || request()->routeIs('pasteurizadora.dashboard') || request()->routeIs('dashboard_pasteurizadora') ? 'nav-active' : '' }}">
+                        <i class="fas fa-thermometer-half w-5 mr-3 text-gray-500"></i>
+                        Pasteurizadora
+                    </a>
+                @endif
+            @else
+                <a href="{{ route('pasteurizadora.dashboard') }}"
+                   @click="if (!isDesktop) sidebarOpen = false"
+                   aria-label="Análisis de Pasteurizadora"
+                   class="nav-link flex items-center px-4 py-3 rounded-lg {{ request()->routeIs('dashboard.pasteurizadora') || request()->routeIs('pasteurizadora.dashboard') || request()->routeIs('dashboard_pasteurizadora') ? 'nav-active' : '' }}">
+                    <i class="fas fa-thermometer-half w-5 mr-3 text-gray-500"></i>
+                    Pasteurizadora
+                </a>
+            @endauth
+
             <a href="{{ route('reportes.index') }}"
+               @click="if (!isDesktop) sidebarOpen = false"
                aria-label="Reportes"
                class="nav-link flex items-center px-4 py-3 rounded-lg {{ request()->routeIs('reportes.*') ? 'nav-active' : '' }}">
                 <i class="fas fa-chart-bar w-5 mr-3 text-gray-500"></i>
                 Reportes
             </a>
         </nav>
-        
-        <!-- Footer del sidebar (opcional) -->
+
+        <!-- Footer del sidebar -->
         <div class="px-4 py-4 border-t border-gray-200">
             <div class="flex items-center space-x-3 px-4 py-2 text-xs text-gray-500">
                 <i class="fas fa-copyright"></i>
@@ -159,27 +220,30 @@
     </aside>
 
     <!-- CONTENIDO -->
-    <div class="flex-1 flex flex-col overflow-hidden">
+    <div class="flex-1 flex flex-col overflow-hidden min-w-0">
 
         <!-- Header -->
-        <header class="bg-white shadow-sm border-b px-6 py-4">
-            <div class="flex justify-between items-center">
-                <div class="flex items-center space-x-4">
-                    <button @click="sidebarOpen = !sidebarOpen" 
-                            aria-label="Toggle sidebar"
-                            class="p-2 rounded-full bg-gray-100 hover:bg-gray-200 transition">
+        <header class="bg-white shadow-sm border-b px-4 sm:px-6 py-4">
+            <div class="flex justify-between items-center gap-4">
+
+                <div class="flex items-center space-x-3 min-w-0">
+                    <button
+                        @click="sidebarOpen = !sidebarOpen"
+                        aria-label="Abrir menú"
+                        class="lg:hidden p-2 rounded-full bg-gray-100 hover:bg-gray-200 transition">
                         <i class="fas fa-bars text-gray-600"></i>
                     </button>
-                    <h2 class="text-xl font-semibold text-gray-800">
+
+                    <h2 class="text-lg sm:text-xl font-semibold text-gray-800 truncate">
                         @yield('title', 'Legado Ave Fénix')
                     </h2>
                 </div>
 
-                <div class="flex items-center space-x-4">
+                <div class="flex items-center space-x-2 sm:space-x-4">
                     <!-- NOTIFICACIONES DROPDOWN -->
                     @auth
                     <div class="relative" x-data="{ open: false }">
-                        <button @click="open = !open" 
+                        <button @click="open = !open"
                                 @click.away="open = false"
                                 aria-label="Notificaciones"
                                 class="p-2 rounded-full bg-gray-100 hover:bg-gray-200 transition relative">
@@ -194,17 +258,16 @@
                             @endif
                         </button>
 
-                        <!-- Dropdown menu -->
-                        <div x-show="open" 
+                        <div x-show="open"
                              x-transition:enter="transition ease-out duration-100"
                              x-transition:enter-start="transform opacity-0 scale-95"
                              x-transition:enter-end="transform opacity-100 scale-100"
                              x-transition:leave="transition ease-in duration-75"
                              x-transition:leave-start="transform opacity-100 scale-100"
                              x-transition:leave-end="transform opacity-0 scale-95"
-                             class="absolute right-0 mt-2 w-80 bg-white rounded-md shadow-lg overflow-hidden z-50 border border-gray-200"
+                             class="absolute right-0 mt-2 w-72 sm:w-80 bg-white rounded-md shadow-lg overflow-hidden z-50 border border-gray-200"
                              style="display: none;">
-                            
+
                             <div class="px-4 py-3 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
                                 <span class="text-sm font-semibold text-gray-700">Notificaciones</span>
                                 @if($unreadCount > 0)
@@ -216,10 +279,10 @@
                                     </form>
                                 @endif
                             </div>
-                            
+
                             <div class="max-h-96 overflow-y-auto">
                                 @forelse(auth()->user()->notifications()->take(10)->get() as $notification)
-                                    <a href="{{ $notification->data['url'] ?? '#' }}" 
+                                    <a href="{{ $notification->data['url'] ?? '#' }}"
                                        class="block px-4 py-3 hover:bg-gray-50 border-b border-gray-100 {{ $notification->read_at ? '' : 'bg-blue-50' }}"
                                        onclick="event.preventDefault(); markAsRead('{{ $notification->id }}', '{{ $notification->data['url'] ?? '#' }}')">
                                         <div class="flex items-start space-x-3">
@@ -245,7 +308,7 @@
                                     </div>
                                 @endforelse
                             </div>
-                            
+
                             @if(auth()->user()->notifications()->count() > 10)
                                 <div class="px-4 py-2 bg-gray-50 border-t border-gray-200 text-center">
                                     <a href="{{ route('profile.notifications') }}" class="text-xs text-blue-600 hover:text-blue-800">
@@ -262,7 +325,7 @@
                             <button type="button"
                                     @click="profileMenuOpen = !profileMenuOpen"
                                     aria-label="Perfil de usuario"
-                                    class="inline-flex items-center gap-3 rounded-full bg-gray-100 px-3 py-2 hover:bg-gray-200 transition">
+                                    class="inline-flex items-center gap-2 sm:gap-3 rounded-full bg-gray-100 px-2 sm:px-3 py-2 hover:bg-gray-200 transition">
                                 <div class="hidden sm:block text-right leading-tight">
                                     <p class="text-sm font-semibold text-gray-700">{{ auth()->user()->name }}</p>
                                     <p class="text-xs text-gray-500">Perfil de usuario</p>
@@ -270,7 +333,7 @@
                                 <span class="flex h-10 w-10 items-center justify-center rounded-full bg-blue-600 text-white shadow-sm">
                                     <i class="fas fa-user text-sm"></i>
                                 </span>
-                                <i class="fas fa-chevron-down text-xs text-gray-500"></i>
+                                <i class="fas fa-chevron-down text-xs text-gray-500 hidden sm:inline"></i>
                             </button>
 
                             <div x-show="profileMenuOpen"
@@ -309,7 +372,7 @@
         </header>
 
         <!-- Main -->
-        <main class="flex-1 overflow-auto p-6">
+        <main class="flex-1 overflow-auto p-4 sm:p-6">
             @yield('content')
         </main>
 
@@ -317,10 +380,7 @@
 
 </div>
 
-<!-- Alpine.js para el dropdown -->
 <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
-
-<!-- SweetAlert2 -->
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <script>
@@ -345,7 +405,6 @@ function markAsRead(notificationId, url) {
     });
 }
 
-// Actualizar contador de notificaciones cada 30 segundos
 setInterval(function() {
     fetch('/notifications/unread-count', {
         headers: {
@@ -355,6 +414,7 @@ setInterval(function() {
     .then(response => response.json())
     .then(data => {
         const badge = document.querySelector('.fa-bell + span');
+
         if (badge) {
             if (data.count > 0) {
                 badge.textContent = data.count > 9 ? '9+' : data.count;
@@ -369,6 +429,18 @@ setInterval(function() {
 
 @hasSection('scripts')
     @yield('scripts')
+@endif
+
+@if(session('pasteurizadora_bloqueada'))
+<script>
+    Swal.fire({
+        icon: 'info',
+        title: 'Próximamente',
+        text: '{{ session('pasteurizadora_bloqueada') }}',
+        confirmButtonText: 'Entendido',
+        confirmButtonColor: '#1e40af'
+    });
+</script>
 @endif
 
 </body>

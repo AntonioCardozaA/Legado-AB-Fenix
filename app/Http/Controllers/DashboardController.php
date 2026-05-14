@@ -129,6 +129,13 @@ class DashboardController extends Controller
      */
    public function pasteurizadoraGlobal()
 {
+    if (auth()->user()?->hasRole('tecnico')
+        && !auth()->user()?->hasAnyRole(['admin', 'ingeniero_mantenimiento', 'supervisor'])) {
+        return redirect()
+            ->route('lavadora.dashboard')
+            ->with('pasteurizadora_bloqueada', 'Estamos trabajando en ello, estará disponible muy pronto.');
+    }
+
     $pasteurizadoras = Linea::whereIn('nombre', [
         'P-03','P-04','P-05','P-06','P-07','P-08','P-09','P-10','P-11','P-12','P-13','P-14'
     ])->get();
@@ -137,7 +144,6 @@ class DashboardController extends Controller
         ->where('resuelto_por_cambio', false)
         ->get();
 
-    // 🔥 AQUÍ ARMAS EL RESUMEN (igual que lavadoras pero adaptado)
     $resumenPasteurizadora = [
         'total_pasteurizadoras' => $pasteurizadoras->count(),
         'total_analisis' => $analisis->count(),
@@ -147,9 +153,7 @@ class DashboardController extends Controller
         'pendientes_accion' => $analisis->where('requiere_accion', true)->count(),
     ];
 
-    // 🔥 ESTADO POR CADA PASTEURIZADORA (mínimo necesario)
     $estadoPasteurizadoras = $pasteurizadoras->map(function ($linea) use ($analisis) {
-
         $analisisLinea = $analisis->where('linea_id', $linea->id);
 
         return [
@@ -159,7 +163,7 @@ class DashboardController extends Controller
                 'nivel' => $analisisLinea->count() > 5 ? 'critico' : ($analisisLinea->count() > 2 ? 'riesgo' : 'bueno'),
                 'mensaje' => 'Estado calculado automáticamente',
                 'progreso_revision' => [
-                    'porcentaje' => rand(20,100)
+                    'porcentaje' => rand(20, 100)
                 ],
                 'ultimo_analisis' => $analisisLinea->last()
                     ? ['fecha' => $analisisLinea->last()->created_at->format('d/m/Y')]
@@ -237,38 +241,41 @@ class DashboardController extends Controller
      * VISTA: pasteurizadora/dashboard.blade.php
      * DESCRIPCIÓN: Dashboard operativo de pasteurizadoras
      */
-    public function pasteurizadoraOperativo(Request $request)
-    {
-        // Obtener las pasteurizadoras (P-03 a P-14)
-        $pasteurizadorasPermitidas = ['P-03', 'P-04', 'P-05', 'P-06', 'P-07', 'P-08', 'P-09', 'P-10', 'P-11', 'P-12', 'P-13', 'P-14'];
-        $pasteurizadoras = Linea::whereIn('nombre', $pasteurizadorasPermitidas)->get();
-
-        // Obtener todos los análisis de pasteurizadora
-        $analisisPasteurizadora = AnalisisPasteurizadora::with('linea')
-            ->where('resuelto_por_cambio', false)
-            ->get();
-
-        // Resumen general de pasteurizadoras
-        $resumenPasteurizadora = [
-            'total_pasteurizadoras' => $pasteurizadoras->count(),
-            'total_analisis' => $analisisPasteurizadora->count(),
-            'alertas_criticas' => $analisisPasteurizadora->where('estado', 'Dañado - Requiere cambio')->count(),
-            'en_riesgo' => $analisisPasteurizadora->whereIn('estado', ['Desgaste moderado', 'Desgaste severo'])->count(),
-            'buen_estado' => $analisisPasteurizadora->where('estado', 'Buen estado')->count(),
-            'pendientes_accion' => $analisisPasteurizadora->where('estado', 'Dañado - Requiere cambio')
-                ->where('resuelto_por_cambio', false)
-                ->count(),
-            'ultima_actualizacion' => now()->format('d/m/Y H:i')
-        ];
-
-        // Estado detallado de cada pasteurizadora
-        $estadoPasteurizadoras = $this->getEstadoPasteurizadoras($pasteurizadoras, $analisisPasteurizadora);
-
-        return view('pasteurizadora.dashboard', compact(
-            'resumenPasteurizadora',
-            'estadoPasteurizadoras'
-        ));
+public function pasteurizadoraOperativo(Request $request)
+{
+    if (auth()->user()?->hasRole('tecnico')
+        && !auth()->user()?->hasAnyRole(['admin', 'ingeniero_mantenimiento', 'supervisor'])) {
+        return redirect()
+            ->route('lavadora.dashboard')
+            ->with('pasteurizadora_bloqueada', 'Próximamente estamos trabajando en ello, estará disponible muy pronto.');
     }
+
+    $pasteurizadorasPermitidas = ['P-03', 'P-04', 'P-05', 'P-06', 'P-07', 'P-08', 'P-09', 'P-10', 'P-11', 'P-12', 'P-13', 'P-14'];
+    $pasteurizadoras = Linea::whereIn('nombre', $pasteurizadorasPermitidas)->get();
+
+    $analisisPasteurizadora = AnalisisPasteurizadora::with('linea')
+        ->where('resuelto_por_cambio', false)
+        ->get();
+
+    $resumenPasteurizadora = [
+        'total_pasteurizadoras' => $pasteurizadoras->count(),
+        'total_analisis' => $analisisPasteurizadora->count(),
+        'alertas_criticas' => $analisisPasteurizadora->where('estado', 'Dañado - Requiere cambio')->count(),
+        'en_riesgo' => $analisisPasteurizadora->whereIn('estado', ['Desgaste moderado', 'Desgaste severo'])->count(),
+        'buen_estado' => $analisisPasteurizadora->where('estado', 'Buen estado')->count(),
+        'pendientes_accion' => $analisisPasteurizadora->where('estado', 'Dañado - Requiere cambio')
+            ->where('resuelto_por_cambio', false)
+            ->count(),
+        'ultima_actualizacion' => now()->format('d/m/Y H:i')
+    ];
+
+    $estadoPasteurizadoras = $this->getEstadoPasteurizadoras($pasteurizadoras, $analisisPasteurizadora);
+
+    return view('pasteurizadora.dashboard', compact(
+        'resumenPasteurizadora',
+        'estadoPasteurizadoras'
+    ));
+}
 
     /**
      * ===========================================================
@@ -290,10 +297,10 @@ class DashboardController extends Controller
      * DEPRECADO: Usar pasteurizadoraOperativo() en su lugar
      * Mantenido por compatibilidad con rutas existentes
      */
-    public function pasteurizadora(Request $request)
-    {
-        return $this->pasteurizadoraOperativo($request);
-    }
+   public function pasteurizadora(Request $request)
+{
+    return $this->pasteurizadoraOperativo($request);
+}
 
     /**
      * ===========================================================
