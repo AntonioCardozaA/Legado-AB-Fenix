@@ -3372,31 +3372,50 @@ function normalizeEvidenceImages(imagenes) {
 }
 
 function resolveEvidenceImageUrl(path) {
-    const baseUrl = @json(Storage::url(''));
-    const normalizedPath = String(path ?? '').trim().replace(/\\/g, '/');
+    let normalizedPath = String(path ?? '').trim().replace(/\\/g, '/');
 
     if (!normalizedPath) {
         return '';
     }
 
+    // Si ya viene como URL completa, usarla tal cual.
     if (/^https?:\/\//i.test(normalizedPath)) {
         return normalizedPath;
     }
 
-    if (normalizedPath.startsWith('/storage/')) {
-        return normalizedPath;
+    // Si se guardó accidentalmente con el dominio actual, quitarlo.
+    try {
+        const currentOrigin = window.location.origin;
+        if (normalizedPath.startsWith(currentOrigin)) {
+            normalizedPath = normalizedPath.replace(currentOrigin, '');
+        }
+    } catch (error) {}
+
+    // Quitar barras iniciales para evitar rutas dobles.
+    normalizedPath = normalizedPath.replace(/^\/+/, '');
+
+    // Normalizar formatos comunes que pueden venir desde local o servidor.
+    if (normalizedPath.startsWith('public/')) {
+        normalizedPath = normalizedPath.replace(/^public\//, '');
     }
 
+    if (normalizedPath.startsWith('app/public/')) {
+        normalizedPath = normalizedPath.replace(/^app\/public\//, '');
+    }
+
+    if (normalizedPath.startsWith('storage/app/public/')) {
+        normalizedPath = normalizedPath.replace(/^storage\/app\/public\//, '');
+    }
+
+    // Si ya trae storage, solo asegurar slash inicial.
     if (normalizedPath.startsWith('storage/')) {
-        return `/${normalizedPath}`;
+        return '/' + normalizedPath;
     }
 
-    if (normalizedPath.startsWith('/')) {
-        return normalizedPath;
-    }
-
-    return `${baseUrl}${normalizedPath}`;
+    // Caso correcto de tu sistema: analisis-evidencias/foto.jpg
+    return '/storage/' + normalizedPath;
 }
+
 
 function buildDetailImageGridEnhanced(imagenes) {
     const grid = document.getElementById('detail-image-grid');
