@@ -54,6 +54,7 @@ class ElongacionController extends Controller
             ->withQueryString();
 
         $ciclos = collect();
+
         if ($hasLineaFilter) {
             $ciclos = CadenaCiclo::porLinea($request->linea)
                 ->orderByDesc('numero_ciclo')
@@ -139,11 +140,13 @@ class ElongacionController extends Controller
 
                 $bombasPromedio = Elongacion::calcularPromedio($bombasMediciones);
                 $vaporPromedio = Elongacion::calcularPromedio($vaporMediciones);
+
                 $bombasPorcentaje = Elongacion::calcularPorcentaje($bombasPromedio, $pasoInicial);
                 $vaporPorcentaje = Elongacion::calcularPorcentaje($vaporPromedio, $pasoInicial);
 
                 $estadoDetallado = $this->resolverEstadoDetallado($bombasPorcentaje, $vaporPorcentaje);
                 $estado = $this->resolverEstadoGeneral($estadoDetallado);
+
                 $requiereCambio = $bombasPorcentaje >= self::LIMITE_CAMBIO || $vaporPorcentaje >= self::LIMITE_CAMBIO;
 
                 $data = [
@@ -178,6 +181,7 @@ class ElongacionController extends Controller
             });
 
             $mensaje = 'Registro guardado exitosamente';
+
             if ($request->boolean('nueva_cadena')) {
                 $mensaje = 'Nueva cadena registrada y medicion guardada exitosamente';
             }
@@ -190,6 +194,7 @@ class ElongacionController extends Controller
 
             return redirect()->route('elongaciones.index', ['linea' => $request->linea])
                 ->with('success', $mensaje);
+
         } catch (ValidationException $exception) {
             throw $exception;
         } catch (\Exception $e) {
@@ -243,7 +248,9 @@ class ElongacionController extends Controller
             ->get()
             ->map(function (CadenaCiclo $ciclo) {
                 $ultimaMedicion = $ciclo->elongaciones()->latest('created_at')->first();
+
                 $ultimaFecha = $ciclo->retirada_en ?: $ultimaMedicion?->created_at;
+
                 $diasOperacion = $ciclo->instalada_en && $ultimaFecha
                     ? $ciclo->instalada_en->diffInDays($ultimaFecha)
                     : null;
@@ -273,6 +280,7 @@ class ElongacionController extends Controller
 
             return redirect()->route('elongaciones.index', ['linea' => $linea])
                 ->with('success', 'Registro eliminado exitosamente');
+
         } catch (\Exception $e) {
             Log::error('Error al eliminar elongacion: ' . $e->getMessage());
 
@@ -307,6 +315,7 @@ class ElongacionController extends Controller
                 'ciclo' => null,
                 'proveedor' => null,
             ]);
+
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -362,6 +371,7 @@ class ElongacionController extends Controller
             }
 
             $numeroCiclo = (int) CadenaCiclo::porLinea($request->linea)->max('numero_ciclo') + 1;
+
             $hodometroInicial = $request->filled('hodometro_inicial')
                 ? (int) $request->hodometro_inicial
                 : ($request->filled('hodometro') ? (int) $request->hodometro : 0);
@@ -448,52 +458,94 @@ class ElongacionController extends Controller
         return sprintf('%s-C%03d', $linea, $numeroCiclo);
     }
 
+    private function obtenerEstadoLado(float $porcentaje): string
+    {
+        if ($porcentaje >= self::LIMITE_CAMBIO) {
+            return 'critico';
+        }
+
+        if ($porcentaje >= self::LIMITE_COMPRA) {
+            return 'compra';
+        }
+
+        return 'normal';
+    }
+
+    private function generarDetalleAfectaciones(float $bombasPorcentaje, float $vaporPorcentaje): string
+    {
+        $detalles = [];
+
+        $estadoBombas = $this->obtenerEstadoLado($bombasPorcentaje);
+        $estadoVapor = $this->obtenerEstadoLado($vaporPorcentaje);
+
+        if ($estadoBombas === 'critico') {
+            $detalles[] = '🚨 Bombas: CRITICO / CAMBIO URGENTE (' . round($bombasPorcentaje, 2) . '%)';
+        } elseif ($estadoBombas === 'compra') {
+            $detalles[] = '⚠️ Bombas: ALERTA DE COMPRA (' . round($bombasPorcentaje, 2) . '%)';
+        }
+
+        if ($estadoVapor === 'critico') {
+            $detalles[] = '🚨 Vapor: CRITICO / CAMBIO URGENTE (' . round($vaporPorcentaje, 2) . '%)';
+        } elseif ($estadoVapor === 'compra') {
+            $detalles[] = '⚠️ Vapor: ALERTA DE COMPRA (' . round($vaporPorcentaje, 2) . '%)';
+        }
+
+        return !empty($detalles)
+            ? implode("\n", $detalles)
+            : 'Sin afectacion';
+    }
+
     private function enviarNotificacionWhatsApp(Request $request, float $bombasPorcentaje, float $vaporPorcentaje, CadenaCiclo $ciclo): void
     {
         $numero = '5214921933175';
         $mensaje = null;
-        $lados = [];
 
-        if ($bombasPorcentaje >= self::LIMITE_COMPRA) {
-            $lados[] = 'Bombas (' . round($bombasPorcentaje, 2) . '%)';
-        }
+        $bombasEstado = $this->obtenerEstadoLado($bombasPorcentaje);
+        $vaporEstado = $this->obtenerEstadoLado($vaporPorcentaje);
 
-        if ($vaporPorcentaje >= self::LIMITE_COMPRA) {
-            $lados[] = 'Vapor (' . round($vaporPorcentaje, 2) . '%)';
-        }
+        $hayCritico = $bombasEstado === 'critico' || $vaporEstado === 'critico';
+        $hayCompra = $bombasEstado === 'compra' || $vaporEstado === 'compra';
 
-        $ladosTexto = !empty($lados) ? implode(' y ', $lados) : 'Sin afectacion';
+        $detalleAfectaciones = $this->generarDetalleAfectaciones($bombasPorcentaje, $vaporPorcentaje);
 
-        if ($bombasPorcentaje >= self::LIMITE_CAMBIO || $vaporPorcentaje >= self::LIMITE_CAMBIO) {
-            $mensaje = "*ALERTA CRITICA - CAMBIO DE CADENA*\n\n"
-                . "Linea: {$request->linea}\n"
+        if ($hayCritico) {
+            $mensaje = "*🚨 ALERTA CRITICA - ⛓️ CAMBIO DE CADENA URGENTE PARA EVITAR DAÑOS*\n\n"
+                . "📍 Lav Linea: {$request->linea}\n"
                 . "Ciclo: {$ciclo->codigo}\n"
-                . "Proveedor: {$ciclo->proveedor}\n"
-                . "Lado afectado: {$ladosTexto}\n\n"
-                . "Bombas: " . round($bombasPorcentaje, 2) . "%\n"
-                . "Vapor: " . round($vaporPorcentaje, 2) . "%\n\n"
-                . "Supero el limite de cambio: " . self::LIMITE_CAMBIO . "%\n"
+                . "Proveedor: {$ciclo->proveedor}\n\n"
+                . "📌 Afectaciones detectadas:\n"
+                . "{$detalleAfectaciones}\n\n"
+                . "⚙️ Bombas: " . round($bombasPorcentaje, 2) . "%\n"
+                . "💨 Vapor: " . round($vaporPorcentaje, 2) . "%\n\n"
+                . "Limite de compra: " . self::LIMITE_COMPRA . "%\n"
+                . "Limite de cambio: " . self::LIMITE_CAMBIO . "%\n\n"
                 . "CAMBIO INMEDIATO REQUERIDO";
-        } elseif ($bombasPorcentaje >= self::LIMITE_COMPRA || $vaporPorcentaje >= self::LIMITE_COMPRA) {
-            $mensaje = "*ALERTA - CONSIDERAR COMPRA DE CADENA*\n\n"
-                . "Linea: {$request->linea}\n"
+
+        } elseif ($hayCompra) {
+            $mensaje = "*⚠️ ALERTA - ⛓️ CONSIDERAR COMPRA DE CADENA PARA SU PROXIMO CAMBIO*\n\n"
+                . "📍 Lav Linea: {$request->linea}\n"
                 . "Ciclo: {$ciclo->codigo}\n"
-                . "Proveedor: {$ciclo->proveedor}\n"
-                . "Lado afectado: {$ladosTexto}\n\n"
-                . "Bombas: " . round($bombasPorcentaje, 2) . "%\n"
-                . "Vapor: " . round($vaporPorcentaje, 2) . "%\n\n"
-                . "Supero el limite de compra: " . self::LIMITE_COMPRA . "%";
+                . "Proveedor: {$ciclo->proveedor}\n\n"
+                . "📌 Afectaciones detectadas:\n"
+                . "{$detalleAfectaciones}\n\n"
+                . "⚙️ Bombas: " . round($bombasPorcentaje, 2) . "%\n"
+                . "💨 Vapor: " . round($vaporPorcentaje, 2) . "%\n\n"
+                . "🛒 Supero el limite de compra: " . self::LIMITE_COMPRA . "%";
         }
 
         if ($mensaje && class_exists(WhatsAppService::class)) {
             try {
                 WhatsAppService::enviarMensaje($numero, $mensaje);
+
                 Log::info('WhatsApp elongacion enviado', [
                     'linea' => $request->linea,
                     'ciclo' => $ciclo->codigo,
                     'bombas' => $bombasPorcentaje,
                     'vapor' => $vaporPorcentaje,
+                    'estado_bombas' => $bombasEstado,
+                    'estado_vapor' => $vaporEstado,
                 ]);
+
             } catch (\Exception $e) {
                 Log::error('Error WhatsApp elongacion: ' . $e->getMessage());
             }
