@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>{{ config('app.name', 'Legado Ave Fenix') }} · Industrial</title>
+    <title>{{ config('app.name', 'Legado Ave Fenix') }}</title>
     
     <meta name="description" content="Legado Ave Fénix - Soluciones industriales en lavado y pasteurización.">
     <meta name="author" content="Legado Ave Fénix">
