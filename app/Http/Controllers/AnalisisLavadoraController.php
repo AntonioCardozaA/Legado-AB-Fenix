@@ -542,21 +542,6 @@ $componente = Componente::firstOrCreate(
      * ===============================
      */
     try {
-        $duplicado = AnalisisLavadora::with('usuario')
-            ->where('linea_id', $linea->id)
-            ->where('componente_id', $componente->id)
-            ->where('reductor', $request->reductor)
-            ->whereDate('fecha_analisis', $request->fecha_analisis)
-            ->when($request->filled('lado'), fn ($query) => $query->where('lado', $request->lado))
-            ->when(!$request->filled('lado'), fn ($query) => $query->whereNull('lado'))
-            ->first();
-
-        if ($duplicado) {
-            return back()->withErrors([
-                'error' => 'Este analisis ya fue realizado por: ' . ($duplicado->usuario?->name ?? 'Usuario no registrado') . '.',
-            ])->withInput();
-        }
-
         $analisis = AnalisisLavadora::create([
             'linea_id'       => $linea->id,
             'componente_id'  => $componente->id,
