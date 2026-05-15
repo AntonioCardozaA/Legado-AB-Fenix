@@ -207,7 +207,7 @@
                     <i class="fas fa-camera text-blue-600 mr-1"></i>
                     Evidencia Fotográfica
                 </label>
-                <input type="file" id="evidencia_fotos" name="evidencia_fotos[]" multiple accept="image/*" class="hidden">
+                <input type="file" id="evidencia_fotos" name="evidencia_fotos[]" multiple accept="image/jpeg,image/png,image/jpg,image/webp,image/gif,image/bmp" class="hidden">
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                         <button type="button"
@@ -218,7 +218,7 @@
                         </button>
                         <input type="file"
                                id="evidencia_fotos_galeria"
-                               accept="image/*"
+                               accept="image/jpeg,image/png,image/jpg,image/webp,image/gif,image/bmp"
                                multiple
                                class="sr-only">
                     </div>
@@ -232,7 +232,7 @@
                         </button>
                         <input type="file"
                                id="evidencia_fotos_camara"
-                               accept="image/*"
+                               accept="image/jpeg,image/png,image/jpg,image/webp,image/gif,image/bmp"
                                capture="environment"
                                multiple
                                class="sr-only">

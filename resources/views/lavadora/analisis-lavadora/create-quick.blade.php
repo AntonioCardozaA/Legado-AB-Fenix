@@ -213,7 +213,7 @@
                     <i class="fas fa-camera text-blue-600 mr-1"></i>
                     Evidencia Fotográfica
                 </label>
-                <input type="file" id="evidencia_fotos" name="evidencia_fotos[]" multiple accept="image/*" class="hidden">
+                <input type="file" id="evidencia_fotos" name="evidencia_fotos[]" multiple accept="image/jpeg,image/png,image/jpg,image/webp,image/gif,image/bmp" class="hidden">
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                         <button type="button"
@@ -224,7 +224,7 @@
                         </button>
                         <input type="file"
                                id="evidencia_fotos_galeria"
-                               accept="image/*"
+                               accept="image/jpeg,image/png,image/jpg,image/webp,image/gif,image/bmp"
                                multiple
                                class="sr-only">
                     </div>
@@ -238,7 +238,7 @@
                         </button>
                         <input type="file"
                                id="evidencia_fotos_camara"
-                               accept="image/*"
+                               accept="image/jpeg,image/png,image/jpg,image/webp,image/gif,image/bmp"
                                capture="environment"
                                multiple
                                class="sr-only">
@@ -286,8 +286,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const previewFotos = document.getElementById('preview_fotos');
     const fotosResumen = document.getElementById('fotos_resumen');
     const numeroOrdenInput = document.querySelector('input[name="numero_orden"]');
-    const maxFotoSize = 5 * 1024 * 1024;
+    const maxFotoSize = 12 * 1024 * 1024;
     const soportaDataTransfer = typeof DataTransfer !== 'undefined';
+    const extensionesPermitidas = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'];
     
     // Código del componente desde PHP
     const componenteCodigo = '{{ $componente->codigo }}';
@@ -346,12 +347,25 @@ document.addEventListener('DOMContentLoaded', function() {
         ];
     }
 
+    function esImagenValida(file) {
+        if (!file) {
+            return false;
+        }
+
+        if ((file.type || '').startsWith('image/')) {
+            return true;
+        }
+
+        const extension = (file.name.split('.').pop() || '').toLowerCase();
+        return extensionesPermitidas.includes(extension);
+    }
+
     function renderPreview(files, permitirEliminar) {
         previewFotos.innerHTML = '';
         actualizarResumenFotos(files.length);
 
         files.forEach((file, index) => {
-            if (!file.type.startsWith('image/')) {
+            if (!esImagenValida(file)) {
                 return;
             }
 
@@ -391,7 +405,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const nuevasFotos = [...fotosActuales];
 
         Array.from(files || []).forEach((file) => {
-            if (!file.type.startsWith('image/')) {
+            if (!esImagenValida(file)) {
                 alert(`El archivo ${file.name} no es una imagen vÃ¡lida.`);
                 return;
             }

@@ -1853,7 +1853,7 @@
                                                         $isNew = true;
                                                     }
                                                     
-                                                    $imagenes = $registro->evidencia_fotos ?? null;
+                                                    $imagenes = $registro->evidencia_fotos ?? ($registro->fotos ?? null);
                                                     if (is_string($imagenes)) {
                                                         $imagenes = json_decode($imagenes, true) ?? [];
                                                     } elseif (is_array($imagenes)) {
@@ -2370,7 +2370,7 @@
                                                         $isNew = true;
                                                     }
                                                     
-                                                    $imagenes = $registro->evidencia_fotos ?? null;
+                                                    $imagenes = $registro->evidencia_fotos ?? ($registro->fotos ?? null);
                                                     if (is_string($imagenes)) {
                                                         $imagenes = json_decode($imagenes, true) ?? [];
                                                     } elseif (is_array($imagenes)) {
@@ -2971,6 +2971,27 @@ let currentImages = [];
 let currentAnalysisData = null;
 let currentImageIndex = 0;
 
+/*
+|--------------------------------------------------------------------------
+| BASES REALES PARA MOSTRAR EVIDENCIAS EN PRODUCCIÓN
+|--------------------------------------------------------------------------
+| Se usan URLs generadas por Laravel para que funcione aunque el sistema esté
+| en IONOS, subcarpeta, dominio diferente o sin storage:link tradicional.
+*/
+@php
+    $evidenceBaseUrls = [
+        rtrim(asset('storage'), '/'),
+        rtrim(asset('public/storage'), '/'),
+        rtrim(asset('storage/app/public'), '/'),
+        rtrim(asset('analisis-evidencias'), '/'),
+        rtrim(url('storage'), '/'),
+        rtrim(url('public/storage'), '/'),
+        rtrim(url('storage/app/public'), '/'),
+        rtrim(url('analisis-evidencias'), '/'),
+    ];
+@endphp
+const EVIDENCE_BASE_URLS = @json($evidenceBaseUrls);
+
 // FUNCIONES DE FILTROS
 function toggleAdvancedFilters() {
     const panel = document.getElementById('advancedFiltersPanel');
@@ -3346,11 +3367,12 @@ function normalizeEvidenceImages(imagenes) {
     if (typeof imagenes === 'string') {
         const valor = imagenes.trim();
 
-        if (!valor) {
+        if (!valor || valor === 'null' || valor === '[]') {
             return [];
         }
 
-        if ((valor.startsWith('[') && valor.endsWith(']')) || (valor.startsWith('"') && valor.endsWith('"'))) {
+        // Si viene como JSON desde la base de datos, lo convertimos a arreglo.
+        if ((valor.startsWith('[') && valor.endsWith(']')) || (valor.startsWith('{') && valor.endsWith('}')) || (valor.startsWith('"') && valor.endsWith('"'))) {
             try {
                 return normalizeEvidenceImages(JSON.parse(valor));
             } catch (error) {
@@ -3359,6 +3381,11 @@ function normalizeEvidenceImages(imagenes) {
         }
 
         return [valor];
+    }
+
+    // Si por alguna razón viene como objeto, intentar buscar campos comunes.
+    if (typeof imagenes === 'object' && !Array.isArray(imagenes)) {
+        return normalizeEvidenceImages(Object.values(imagenes));
     }
 
     if (!Array.isArray(imagenes)) {
@@ -3371,51 +3398,122 @@ function normalizeEvidenceImages(imagenes) {
         .filter((item) => item.length > 0);
 }
 
-function resolveEvidenceImageUrl(path) {
+function normalizeEvidencePath(path) {
     let normalizedPath = String(path ?? '').trim().replace(/\\/g, '/');
 
     if (!normalizedPath) {
         return '';
     }
 
-    // Si ya viene como URL completa, usarla tal cual.
-    if (/^https?:\/\//i.test(normalizedPath)) {
-        return normalizedPath;
-    }
-
-    // Si se guardó accidentalmente con el dominio actual, quitarlo.
+    // Quitar dominio cuando viene como URL completa del mismo sitio.
     try {
-        const currentOrigin = window.location.origin;
-        if (normalizedPath.startsWith(currentOrigin)) {
-            normalizedPath = normalizedPath.replace(currentOrigin, '');
+        if (normalizedPath.startsWith(window.location.origin)) {
+            normalizedPath = normalizedPath.replace(window.location.origin, '');
         }
     } catch (error) {}
 
-    // Quitar barras iniciales para evitar rutas dobles.
+    // Quitar querystring por si la imagen viene con ?v=...
+    normalizedPath = normalizedPath.split('?')[0].split('#')[0];
     normalizedPath = normalizedPath.replace(/^\/+/, '');
 
-    // Normalizar formatos comunes que pueden venir desde local o servidor.
-    if (normalizedPath.startsWith('public/')) {
-        normalizedPath = normalizedPath.replace(/^public\//, '');
-    }
+    // Normalizar rutas típicas de Laravel/hosting.
+    normalizedPath = normalizedPath.replace(/^public\//, '');
+    normalizedPath = normalizedPath.replace(/^app\/public\//, '');
+    normalizedPath = normalizedPath.replace(/^storage\/app\/public\//, '');
+    normalizedPath = normalizedPath.replace(/^public\/storage\//, '');
+    normalizedPath = normalizedPath.replace(/^storage\//, '');
 
-    if (normalizedPath.startsWith('app/public/')) {
-        normalizedPath = normalizedPath.replace(/^app\/public\//, '');
-    }
-
-    if (normalizedPath.startsWith('storage/app/public/')) {
-        normalizedPath = normalizedPath.replace(/^storage\/app\/public\//, '');
-    }
-
-    // Si ya trae storage, solo asegurar slash inicial.
-    if (normalizedPath.startsWith('storage/')) {
-        return '/' + normalizedPath;
-    }
-
-    // Caso correcto de tu sistema: analisis-evidencias/foto.jpg
-    return '/storage/' + normalizedPath;
+    return normalizedPath;
 }
 
+function resolveEvidenceImageCandidates(path) {
+    const rawPath = String(path ?? '').trim().replace(/\\/g, '/');
+
+    if (!rawPath) {
+        return [];
+    }
+
+    // URL completa externa o interna.
+    if (/^https?:\/\//i.test(rawPath)) {
+        return [rawPath];
+    }
+
+    const cleanPath = normalizeEvidencePath(rawPath);
+
+    if (!cleanPath) {
+        return [];
+    }
+
+    const fileOnly = cleanPath.split('/').pop();
+    const withFolder = cleanPath.startsWith('analisis-evidencias/')
+        ? cleanPath
+        : 'analisis-evidencias/' + cleanPath;
+
+    const candidates = [];
+
+    // 1) Primero probar URLs generadas por Laravel con asset()/url().
+    (EVIDENCE_BASE_URLS || []).forEach((base) => {
+        if (!base) return;
+
+        const cleanBase = String(base).replace(/\/+$/, '');
+
+        candidates.push(cleanBase + '/' + cleanPath);
+        candidates.push(cleanBase + '/' + withFolder);
+        candidates.push(cleanBase + '/' + fileOnly);
+    });
+
+    // 2) Luego probar rutas absolutas comunes en producción.
+    candidates.push(
+        '/storage/' + cleanPath,
+        '/storage/' + withFolder,
+        '/public/storage/' + cleanPath,
+        '/public/storage/' + withFolder,
+        '/storage/app/public/' + cleanPath,
+        '/storage/app/public/' + withFolder,
+        '/' + cleanPath,
+        '/' + withFolder,
+        '/storage/analisis-evidencias/' + fileOnly,
+        '/public/storage/analisis-evidencias/' + fileOnly,
+        '/storage/app/public/analisis-evidencias/' + fileOnly,
+        '/analisis-evidencias/' + fileOnly
+    );
+
+    return [...new Set(candidates.filter(Boolean))];
+}
+
+function resolveEvidenceImageUrl(path) {
+    const candidates = resolveEvidenceImageCandidates(path);
+    return candidates.length > 0 ? candidates[0] : '';
+}
+
+function setEvidenceImageFallback(img, originalPath) {
+    const candidates = resolveEvidenceImageCandidates(originalPath);
+    img.dataset.fallbackIndex = '0';
+    img.dataset.candidates = JSON.stringify(candidates);
+
+    img.onerror = function () {
+        let urls = [];
+
+        try {
+            urls = JSON.parse(this.dataset.candidates || '[]');
+        } catch (error) {
+            urls = [];
+        }
+
+        let nextIndex = parseInt(this.dataset.fallbackIndex || '0', 10) + 1;
+
+        if (nextIndex < urls.length) {
+            this.dataset.fallbackIndex = String(nextIndex);
+            this.src = urls[nextIndex];
+            return;
+        }
+
+        this.onerror = null;
+        this.classList.add('bg-gray-100');
+        this.alt = 'No se pudo cargar la imagen';
+        this.closest('.image-item')?.classList.add('border-red-300');
+    };
+}
 
 function buildDetailImageGridEnhanced(imagenes) {
     const grid = document.getElementById('detail-image-grid');
@@ -3424,16 +3522,20 @@ function buildDetailImageGridEnhanced(imagenes) {
     imagenes.forEach((path, index) => {
         const item = document.createElement('div');
         item.className = 'image-item';
+        const safePath = String(path).replace(/'/g, "\\'");
+        const imgUrl = resolveEvidenceImageUrl(path);
         item.innerHTML = `
             <div class="image-number">#${index + 1}</div>
-            <img src="${resolveEvidenceImageUrl(path)}" class="grid-image" onclick="openSingleImage('${path}', ${index})">
+            <img src="${imgUrl}" class="grid-image" onclick="openSingleImage('${safePath}', ${index})" alt="Evidencia ${index + 1}">
             <div class="image-info">
-                <button class="download-image-btn" onclick="event.stopPropagation(); downloadSingleImage('${path}', ${index})">
+                <button class="download-image-btn" onclick="event.stopPropagation(); downloadSingleImage('${safePath}', ${index})">
                     <i class="fas fa-download"></i>
                     Descargar
                 </button>
             </div>
         `;
+        const img = item.querySelector('img');
+        setEvidenceImageFallback(img, path);
         grid.appendChild(item);
     });
 }
@@ -3458,16 +3560,19 @@ function openAllImages(imagenes, fecha, orden, estado) {
         currentImages.forEach((path, index) => {
             const item = document.createElement('div');
             item.className = 'image-item';
+            const safePath = String(path).replace(/'/g, "\\'");
             item.innerHTML = `
                 <div class="image-number">#${index + 1}</div>
-                <img src="${resolveEvidenceImageUrl(path)}" class="grid-image" onclick="openSingleImage('${path}', ${index})">
+                <img src="${resolveEvidenceImageUrl(path)}" class="grid-image" onclick="openSingleImage('${safePath}', ${index})" alt="Evidencia ${index + 1}">
                 <div class="image-info">
-                    <button class="download-image-btn" onclick="event.stopPropagation(); downloadSingleImage('${path}', ${index})">
+                    <button class="download-image-btn" onclick="event.stopPropagation(); downloadSingleImage('${safePath}', ${index})">
                         <i class="fas fa-download"></i>
                         Descargar
                     </button>
                 </div>
             `;
+            const img = item.querySelector('img');
+            setEvidenceImageFallback(img, path);
             grid.appendChild(item);
         });
     }

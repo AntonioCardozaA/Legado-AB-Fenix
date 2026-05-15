@@ -9,17 +9,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-
-/**
- * @property int $id
- * @property int|null $linea_id
- * @property int|null $componente_id
- * @property string|null $reductor
- * @property Carbon|null $fecha_analisis
- * @property array<int, string>|null $evidencia_fotos
- * @property Linea|null $linea
- * @property Componente|null $componente
- */
 class AnalisisLavadora extends Model
 {
     use HasFactory;
@@ -45,16 +34,57 @@ class AnalisisLavadora extends Model
     ];
 
     /**
-     * Relación con la línea (lavadora)
+     * Corrige fotos guardadas como JSON, array o texto.
      */
+    public function getEvidenciaFotosAttribute($value): array
+    {
+        if (is_array($value)) {
+            return $value;
+        }
+
+        if (is_null($value) || $value === '') {
+            return [];
+        }
+
+        $decoded = json_decode($value, true);
+
+        if (is_array($decoded)) {
+            return $decoded;
+        }
+
+        return [$value];
+    }
+
+    /**
+     * Guarda siempre las fotos como JSON válido.
+     */
+    public function setEvidenciaFotosAttribute($value): void
+    {
+        if (is_null($value) || $value === '') {
+            $this->attributes['evidencia_fotos'] = json_encode([]);
+            return;
+        }
+
+        if (is_array($value)) {
+            $this->attributes['evidencia_fotos'] = json_encode(array_values($value));
+            return;
+        }
+
+        $decoded = json_decode($value, true);
+
+        if (is_array($decoded)) {
+            $this->attributes['evidencia_fotos'] = json_encode(array_values($decoded));
+            return;
+        }
+
+        $this->attributes['evidencia_fotos'] = json_encode([$value]);
+    }
+
     public function linea(): BelongsTo
     {
         return $this->belongsTo(Linea::class);
     }
 
-    /**
-     * Relación con el componente
-     */
     public function componente(): BelongsTo
     {
         return $this->belongsTo(Componente::class);
@@ -65,22 +95,17 @@ class AnalisisLavadora extends Model
         return $this->belongsTo(User::class, 'usuario_id');
     }
 
-    /**
-     * Relación futura
-     */
     public function analisisGeneral(): BelongsTo
     {
         return $this->belongsTo(AnalisisGeneral::class);
     }
 
-    /**
-     * Scopes
-     */
     public function scopeLinea(Builder $query, mixed $lineaId): Builder
     {
         if ($lineaId) {
             return $query->where('linea_id', $lineaId);
         }
+
         return $query;
     }
 
@@ -89,6 +114,7 @@ class AnalisisLavadora extends Model
         if ($componenteId) {
             return $query->where('componente_id', $componenteId);
         }
+
         return $query;
     }
 
@@ -97,6 +123,7 @@ class AnalisisLavadora extends Model
         if ($reductor) {
             return $query->where('reductor', $reductor);
         }
+
         return $query;
     }
 
@@ -106,13 +133,10 @@ class AnalisisLavadora extends Model
             return $query->whereMonth('fecha_analisis', date('m', strtotime($fecha)))
                          ->whereYear('fecha_analisis', date('Y', strtotime($fecha)));
         }
+
         return $query;
     }
 
-    /**
-     * Scope para obtener solo los registros más recientes por componente y línea
-     * Esto asegura que solo se considere el último análisis por componente
-     */
     public function scopeUltimosPorComponente(Builder $query): Builder
     {
         return $query->whereIn('id', function ($subQuery) {
@@ -121,6 +145,7 @@ class AnalisisLavadora extends Model
                 ->groupBy(['linea_id', 'componente_id', 'reductor']);
         });
     }
+
     public function planAccion(): HasMany
     {
         return $this->hasMany(PlanAccion::class);
@@ -128,9 +153,8 @@ class AnalisisLavadora extends Model
 
     public function getNombreCompletoAttribute()
     {
-    return 'Línea ' . $this->linea_id;
+        return 'Línea ' . $this->linea_id;
     }
-
 
     public function getActividadesPendientesAttribute()
     {
@@ -142,7 +166,7 @@ class AnalisisLavadora extends Model
     public function getProximasActividadesAttribute()
     {
         return $this->planAccion()
-                    ->where(function($query) {
+                    ->where(function ($query) {
                         $query->whereDate('fecha_pcm1', '>=', now())
                               ->orWhereDate('fecha_pcm2', '>=', now())
                               ->orWhereDate('fecha_pcm3', '>=', now())
@@ -158,9 +182,7 @@ class AnalisisLavadora extends Model
                     ->limit(5)
                     ->get();
     }
-        /**
-     * Relación con el historial de restablecimientos
-     */
+
     public function historialRestablecimientos(): HasMany
     {
         return $this->hasMany(HistorialRestablecimiento::class, 'analisis_id');

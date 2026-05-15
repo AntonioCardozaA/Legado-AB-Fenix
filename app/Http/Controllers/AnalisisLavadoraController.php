@@ -614,7 +614,7 @@ $componente = Componente::firstOrCreate(
         $fotos = $this->guardarEvidenciasFotograficas($request->file('evidencia_fotos', []));
 
         $analisis->update([
-            'evidencia_fotos' => json_encode($fotos),
+            'evidencia_fotos' => $fotos,
         ]);
     }
 
@@ -768,9 +768,18 @@ public function update(Request $request, $id)
      */
     public function destroy(AnalisisLavadora $analisisComponente)
     {
-        $fotos = json_decode($analisisComponente->evidencia_fotos ?? '[]', true) ?? [];
+        $fotos = $analisisComponente->evidencia_fotos;
+        if (!is_array($fotos)) {
+            $fotos = json_decode($fotos ?? '[]', true) ?? [];
+        }
+
         foreach ($fotos as $foto) {
             Storage::disk('public')->delete($foto);
+
+            $rutaPublica = public_path('storage/' . $foto);
+            if (file_exists($rutaPublica)) {
+                @unlink($rutaPublica);
+            }
         }
 
         $analisisComponente->delete();
@@ -850,14 +859,24 @@ public function update(Request $request, $id)
      */
     public function deleteFoto(AnalisisLavadora $analisisComponente, $fotoIndex)
     {
-        $fotos = json_decode($analisisComponente->evidencia_fotos ?? '[]', true) ?? [];
+        $fotos = $analisisComponente->evidencia_fotos;
+
+        if (!is_array($fotos)) {
+            $fotos = json_decode($fotos ?? '[]', true) ?? [];
+        }
         
         if (isset($fotos[$fotoIndex])) {
             Storage::disk('public')->delete($fotos[$fotoIndex]);
+
+            $rutaPublica = public_path('storage/' . $fotos[$fotoIndex]);
+            if (file_exists($rutaPublica)) {
+                @unlink($rutaPublica);
+            }
+
             unset($fotos[$fotoIndex]);
             
             $analisisComponente->update([
-                'evidencia_fotos' => json_encode(array_values($fotos))
+                'evidencia_fotos' => array_values($fotos)
             ]);
             
             return back()->with('success', 'Foto eliminada correctamente.');
@@ -871,8 +890,9 @@ public function update(Request $request, $id)
         return [
             'nullable',
             'file',
-            'mimetypes:image/jpeg,image/png,image/gif,image/webp,image/bmp,image/x-ms-bmp,image/heic,image/heif,image/heic-sequence,image/heif-sequence',
-            'max:5120',
+            'mimetypes:image/jpeg,image/png,image/gif,image/webp,image/bmp,image/x-ms-bmp',
+            'extensions:jpg,jpeg,png,gif,webp,bmp',
+            'max:12288',
         ];
     }
 
@@ -881,11 +901,54 @@ public function update(Request $request, $id)
         $rutas = [];
 
         foreach ($archivos as $archivo) {
-            if (!$archivo) {
+            if (!$archivo || !$archivo->isValid()) {
                 continue;
             }
 
-            $rutas[] = $archivo->store(self::EVIDENCIA_FOTOS_PATH, self::EVIDENCIA_FOTOS_DISK);
+            $extension = strtolower($archivo->getClientOriginalExtension() ?: $archivo->extension() ?: 'jpg');
+            $nombreArchivo = now()->format('Ymd_His') . '_' . uniqid() . '.' . $extension;
+
+            /*
+             |------------------------------------------------------------
+             | Guardado principal visible en producción
+             | public/storage/analisis-evidencias
+             |------------------------------------------------------------
+             */
+            $rutaPublica = public_path('storage/' . self::EVIDENCIA_FOTOS_PATH);
+
+            if (!file_exists($rutaPublica)) {
+                mkdir($rutaPublica, 0755, true);
+            }
+
+            $archivo->move($rutaPublica, $nombreArchivo);
+
+            $rutaGuardar = self::EVIDENCIA_FOTOS_PATH . '/' . $nombreArchivo;
+            $rutas[] = $rutaGuardar;
+
+            /*
+             |------------------------------------------------------------
+             | Copia extra para mantener compatibilidad con Laravel storage
+             | storage/app/public/analisis-evidencias
+             |------------------------------------------------------------
+             */
+            try {
+                $rutaStorage = storage_path('app/public/' . self::EVIDENCIA_FOTOS_PATH);
+
+                if (!file_exists($rutaStorage)) {
+                    mkdir($rutaStorage, 0755, true);
+                }
+
+                $origen = public_path('storage/' . $rutaGuardar);
+                $destino = $rutaStorage . '/' . $nombreArchivo;
+
+                if (file_exists($origen) && !file_exists($destino)) {
+                    copy($origen, $destino);
+                }
+            } catch (\Exception $e) {
+                Log::warning('No se pudo copiar evidencia a storage/app/public', [
+                    'error' => $e->getMessage(),
+                ]);
+            }
         }
 
         return $rutas;
