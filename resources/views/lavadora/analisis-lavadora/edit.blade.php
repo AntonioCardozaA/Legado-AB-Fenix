@@ -1,6 +1,6 @@
 ﻿@extends('layouts.app')
 
-@section('title', 'Editar AnÃ¡lisis de Componente')
+@section('title', 'Editar Análisis de Componente')
 
 @section('content')
 <div class="max-w-4xl mx-auto py-10 px-4">
@@ -151,11 +151,11 @@
                     Estado del Componente *
                 </label>
                <select name="estado" class="filter-select" required>
-                    <option value="Buen estado">✅ Buen estado</option>
-                    <option value="Desgaste moderado">⚠️ Desgaste moderado</option>
-                    <option value="Desgaste severo">⚠️ Desgaste severo</option>
-                    <option value="Dañado - Requiere cambio">❌ Dañado - Requiere cambio</option>
-                    <option value="Cambiado">🔄 Cambiado</option>
+                    <option value="Buen estado" {{ old('estado', $analisisComponente->estado) == 'Buen estado' ? 'selected' : '' }}>✅ Buen estado</option>
+                    <option value="Desgaste moderado" {{ old('estado', $analisisComponente->estado) == 'Desgaste moderado' ? 'selected' : '' }}>⚠️ Desgaste moderado</option>
+                    <option value="Desgaste severo" {{ old('estado', $analisisComponente->estado) == 'Desgaste severo' ? 'selected' : '' }}>⚠️ Desgaste severo</option>
+                    <option value="Dañado - Requiere cambio" {{ old('estado', $analisisComponente->estado) == 'Dañado - Requiere cambio' ? 'selected' : '' }}>❌ Dañado - Requiere cambio</option>
+                    <option value="Cambiado" {{ old('estado', $analisisComponente->estado) == 'Cambiado' ? 'selected' : '' }}>🔄 Cambiado</option>
                 </select>
                 @error('estado')
                     <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
@@ -528,6 +528,5 @@ function cerrarModal() {
 }
 </script>
 @endsection
-
 
 
