@@ -2881,28 +2881,29 @@
                 </div>
             </div>
 
-            <div class="flex justify-end gap-3 mt-8 pt-4 border-t border-gray-200">
+            <div class="flex flex-col sm:flex-row sm:justify-end gap-3 mt-8 pt-4 border-t border-gray-200">
                 <a id="detail-edit-btn" 
-                   href="#" 
-                   class="px-6 py-3 bg-gray-800 text-white rounded-lg hover:bg-gray-900 transition-all shadow-md hover:shadow-lg flex items-center gap-2 font-medium border border-gray-700">
+                href="#" 
+                class="w-full sm:w-auto justify-center px-6 py-3 bg-gray-800 text-white rounded-lg hover:bg-gray-900 transition-all shadow-md hover:shadow-lg flex items-center gap-2 font-medium border border-gray-700">
                     <i class="fas fa-edit"></i>
                     Editar Análisis
                 </a>
+
                 <a id="detail-historial-btn"
-                   href="#"
-                   class="px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-all shadow-md hover:shadow-lg flex items-center gap-2 font-medium hidden border border-gray-500">
-                
+                href="#"
+                class="w-full sm:w-auto justify-center px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-all shadow-md hover:shadow-lg flex items-center gap-2 font-medium hidden border border-gray-500">
                     <span id="detail-historial-text">Ver Historial</span>
                 </a>
+
                 <button onclick="closeAnalysisDetailModal()" 
-                        class="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-all shadow-md hover:shadow-lg flex items-center gap-2 font-medium border border-gray-300">
+                        class="w-full sm:w-auto justify-center px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-all shadow-md hover:shadow-lg flex items-center gap-2 font-medium border border-gray-300">
                     <i class="fas fa-times"></i>
                     Cerrar
                 </button>
             </div>
-        </div>
-    </div>
-</div>
+                    </div>
+                </div>
+            </div>
 
 {{-- MODAL DE IMÁGENES MONOCROMÁTICO --}}
 <div id="allImagesModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden items-center justify-center z-50 p-4 transition-all duration-300"
