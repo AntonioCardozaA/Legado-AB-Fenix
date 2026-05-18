@@ -20,14 +20,6 @@
                 Análisis de Pasteurizadoras
             </h1>
         </div>
-
-        <a href="{{ route('pasteurizadora.analisis-pasteurizadora.select-linea') }}"
-           class="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 transition flex items-center gap-2 shadow-lg">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-            </svg>
-            Nuevo Análisis
-        </a>
     </div>
 
     {{-- FILTROS --}}
