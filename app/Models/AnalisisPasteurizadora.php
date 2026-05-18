@@ -88,6 +88,21 @@ class AnalisisPasteurizadora extends Model
         'P-14' => ['tipo' => 'sencillo', 'modulos' => 9],
     ];
 
+    const REGLILLAS_POR_LINEA = [
+        'P-03' => 10,
+        'P-04' => 12,
+        'P-05' => 10,
+        'P-06' => 10,
+        'P-07' => 12,
+        'P-08' => 10,
+        'P-09' => 10,
+        'P-10' => 10,
+        'P-11' => 12,
+        'P-12' => 10,
+        'P-13' => 10,
+        'P-14' => 10,
+    ];
+
     const COMPONENTE_BRAZO_TORSION = 'BRAZO_TORSION';
 
     const COMPONENTES_SENCILLOS = [
@@ -122,12 +137,37 @@ class AnalisisPasteurizadora extends Model
     public static function getComponentesPorLinea($lineaNombre)
     {
         $tipo = self::PASTEURIZADORES[$lineaNombre]['tipo'] ?? null;
+        $componentes = [];
+
         if ($tipo === 'sencillo') {
-            return self::withBrazoTorsion(self::COMPONENTES_SENCILLOS, $lineaNombre);
+            $componentes = self::COMPONENTES_SENCILLOS;
         } elseif ($tipo === 'doble') {
-            return self::withBrazoTorsion(self::COMPONENTES_DOBLES, $lineaNombre);
+            $componentes = self::COMPONENTES_DOBLES;
         }
-        return [];
+
+        if (empty($componentes)) {
+            return [];
+        }
+
+        $cantidadReglillas = self::getCantidadReglillasPorLinea($lineaNombre);
+        if ($cantidadReglillas > 0) {
+            $componentes['REGLILLAS'] = [
+                'nombre' => 'Reglillas / Camillas',
+                'cantidad' => $cantidadReglillas,
+            ];
+        }
+
+        return self::withBrazoTorsion($componentes, $lineaNombre);
+    }
+
+    public static function getPasteurizadoresConfiguracion(): array
+    {
+        return self::PASTEURIZADORES;
+    }
+
+    public static function getCantidadReglillasPorLinea($lineaNombre): int
+    {
+        return self::REGLILLAS_POR_LINEA[$lineaNombre] ?? 0;
     }
 
     public static function getCantidadBrazosTorsionPorLinea($lineaNombre): int

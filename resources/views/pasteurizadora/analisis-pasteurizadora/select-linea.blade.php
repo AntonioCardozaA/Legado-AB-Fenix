@@ -5,7 +5,7 @@
 @section('content')
 <div class="max-w-7xl mx-auto px-4">
 
-    {{-- Encabezado con botón de volver --}}
+    {{-- Encabezado con boton de volver --}}
     <div class="mb-10 flex items-center justify-between">
         <div class="flex items-center gap-4">
             <a href="{{ route('pasteurizadora.analisis-pasteurizadora.index') }}"
@@ -27,20 +27,16 @@
     </div>
 
     @php
-        $todasLasPasteurizadoras = [
-            ['nombre' => 'P-03', 'modulos' => 9, 'tipo' => 'sencillo'],
-            ['nombre' => 'P-04', 'modulos' => 12, 'tipo' => 'sencillo'],
-            ['nombre' => 'P-05', 'modulos' => 9, 'tipo' => 'sencillo'],
-            ['nombre' => 'P-06', 'modulos' => 16, 'tipo' => 'doble'],
-            ['nombre' => 'P-07', 'modulos' => 16, 'tipo' => 'doble'],
-            ['nombre' => 'P-08', 'modulos' => 9, 'tipo' => 'sencillo'],
-            ['nombre' => 'P-09', 'modulos' => 9, 'tipo' => 'sencillo'],
-            ['nombre' => 'P-10', 'modulos' => 9, 'tipo' => 'sencillo'],
-            ['nombre' => 'P-11', 'modulos' => 16, 'tipo' => 'doble'],
-            ['nombre' => 'P-12', 'modulos' => 9, 'tipo' => 'sencillo'],
-            ['nombre' => 'P-13', 'modulos' => 9, 'tipo' => 'sencillo'],
-            ['nombre' => 'P-14', 'modulos' => 9, 'tipo' => 'sencillo'],
-        ];
+        $todasLasPasteurizadoras = collect(\App\Models\AnalisisPasteurizadora::getPasteurizadoresConfiguracion())
+            ->map(function ($config, $nombre) {
+                return [
+                    'nombre' => $nombre,
+                    'modulos' => $config['modulos'],
+                    'tipo' => $config['tipo'],
+                    'reglillas' => \App\Models\AnalisisPasteurizadora::getCantidadReglillasPorLinea($nombre),
+                ];
+            })
+            ->values();
 
         $lineasDisponibles = collect($lineas)->keyBy('nombre');
     @endphp
@@ -70,7 +66,10 @@
                             </h3>
 
                             <p class="text-sm text-gray-500 mb-4 line-clamp-2">
-                                {{ $config['modulos'] }} módulos | Tipo {{ $config['tipo'] }}
+                                {{ $config['modulos'] }} modulos | Tipo {{ $config['tipo'] }}
+                                @if($config['reglillas'] > 0)
+                                    | {{ $config['reglillas'] }} camas
+                                @endif
                             </p>
 
                             <span class="inline-flex items-center gap-1 px-4 py-1.5
@@ -91,7 +90,7 @@
         @endforeach
     </div>
 
-    {{-- Estado vacío --}}
+    {{-- Estado vacio --}}
     @if($lineasDisponibles->isEmpty())
         <div class="text-center py-16">
             <div class="mx-auto w-16 h-16 flex items-center justify-center
@@ -106,7 +105,7 @@
                 No hay pasteurizadoras disponibles
             </h3>
             <p class="text-sm text-gray-500 mt-1">
-                No se encontraron líneas de pasteurizado activas.
+                No se encontraron lineas de pasteurizado activas.
             </p>
 
             <a href="{{ url('/') }}"

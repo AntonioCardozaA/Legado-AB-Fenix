@@ -26,7 +26,9 @@ function cargarComponentes(lineaId, componenteSeleccionado = null) {
             Object.entries(data).forEach(([codigo, compData]) => {
                 const option = document.createElement('option');
                 option.value = codigo;
-                option.textContent = compData.nombre || compData;
+                const nombre = compData.nombre || compData;
+                const cantidad = Number(compData.cantidad || 0);
+                option.textContent = cantidad > 0 ? `${nombre} (${cantidad} und)` : nombre;
                 if (componenteSeleccionado && componenteSeleccionado == codigo) {
                     option.selected = true;
                 }
