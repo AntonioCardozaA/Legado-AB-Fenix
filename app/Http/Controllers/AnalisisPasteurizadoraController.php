@@ -603,30 +603,18 @@ class AnalisisPasteurizadoraController extends Controller
 
     public function planAccion(Request $request)
     {
-        $query = AnalisisPasteurizadora::where('estado', 'DaÃ±ado - Requiere cambio')
-            ->where('resuelto_por_cambio', false)
-            ->with('linea');
-
-        if ($request->filled('linea_id')) {
-            $query->where('linea_id', $request->linea_id);
-        }
-
-        $planes = $query->get();
-
-        $pasteurizadorasPermitidas = ['P-03', 'P-04', 'P-05', 'P-06', 'P-07', 'P-08', 'P-09', 'P-10', 'P-11', 'P-12', 'P-13', 'P-14'];
-        $lineas = Linea::whereIn('nombre', $pasteurizadorasPermitidas)->orderBy('nombre')->get();
-
-        $lineaSeleccionada = $request->linea_id ?? null;
-
-        return view('plan-accion.pasteurizadora.index', compact('planes', 'lineas', 'lineaSeleccionada'));
+        return redirect()->route('plan-accion.index', array_filter([
+            'tipo' => 'pasteurizadora',
+            'linea_id' => $request->get('linea_id'),
+        ]));
     }
 
     public function createPlanAccion(Request $request)
     {
-        $lineas = Linea::all();
-        $lineaSeleccionada = $request->get('linea_id');
-
-        return view('plan-accion.pasteurizadora.create', compact('lineas', 'lineaSeleccionada'));
+        return redirect()->route('plan-accion.create', array_filter([
+            'tipo' => 'pasteurizadora',
+            'linea_id' => $request->get('linea_id'),
+        ]));
     }
 
     // ============================================================
