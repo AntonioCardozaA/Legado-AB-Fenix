@@ -308,7 +308,8 @@
                                         </td>
                                         @foreach($componentesLinea as $codigo => $compData)
                                             @php
-                                                $registros = $analisisAgrupadosLinea[$moduloNumero][$codigo] ?? collect();
+                                                $celdaSeguimiento = $seguimientoLinea['celdas'][$moduloNumero][$codigo] ?? null;
+                                                $registros = collect($celdaSeguimiento['registros_visibles'] ?? []);
                                                 $registro = $registros->sortByDesc(function ($item) {
                                                     return ($item->created_at?->timestamp ?? 0) . '-' . str_pad((string) $item->id, 10, '0', STR_PAD_LEFT);
                                                 })->first();
@@ -341,40 +342,6 @@
                                                 $bgColor = 'bg-white';
                                                 $borderColor = '';
                                                 $estadoActual = '';
-
-                                                foreach (\App\Models\AnalisisPasteurizadora::NIVELES as $nivelRevision) {
-                                                    $ladosPendientesNivel = [];
-
-                                                    foreach (\App\Models\AnalisisPasteurizadora::LADOS as $ladoRevision) {
-                                                        $componentesRevisadas = $registros
-                                                            ->filter(fn($item) => $item->nivel === $nivelRevision && $item->lado === $ladoRevision)
-                                                            ->flatMap(function ($item) {
-                                                                return is_array($item->componentes_revisados) ? $item->componentes_revisados : [];
-                                                            })
-                                                            ->filter(fn($numeroComponente) => is_numeric($numeroComponente))
-                                                            ->map(fn($numeroComponente) => (int) $numeroComponente)
-                                                            ->unique()
-                                                            ->values();
-
-                                                        if ($componentesRevisadas->count() < $totalComponentesComponente) {
-                                                            $ladosPendientesNivel[] = $ladoRevision;
-                                                        }
-                                                    }
-
-                                                    $estadoPorNivel[$nivelRevision] = [
-                                                        'completado' => empty($ladosPendientesNivel),
-                                                        'lados_pendientes' => $ladosPendientesNivel,
-                                                    ];
-
-                                                    if (!$siguienteRevision && !empty($ladosPendientesNivel)) {
-                                                        $siguienteRevision = [
-                                                            'nivel' => $nivelRevision,
-                                                            'lado' => $ladosPendientesNivel[0],
-                                                        ];
-                                                    }
-                                                }
-
-                                                $celdaSeguimiento = $seguimientoLinea['celdas'][$moduloNumero][$codigo] ?? null;
                                                 if ($celdaSeguimiento) {
                                                     $estadoPorNivel = $celdaSeguimiento['estado_por_nivel'];
                                                     $siguienteRevision = $celdaSeguimiento['siguiente_revision'];
@@ -565,6 +532,20 @@
                                                                     </svg>
                                                                     Terminado
                                                                 </span>
+                                                                <a href="{{ route('pasteurizadora.analisis-pasteurizadora.create-quick', [
+                                                                    'linea_id' => $linea->id,
+                                                                    'modulo' => $moduloNumero,
+                                                                    'componente' => $codigo,
+                                                                    'lado' => $siguienteRevision['lado'] ?? '',
+                                                                    'nivel' => $siguienteRevision['nivel'] ?? ''
+                                                                ]) }}"
+                                                                   class="inline-flex items-center gap-1 px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs transition"
+                                                                   onclick="event.stopPropagation();">
+                                                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                                                                    </svg>
+                                                                    Nuevo análisis
+                                                                </a>
                                                             @else
                                                                 <a href="{{ route('pasteurizadora.analisis-pasteurizadora.create-quick', [
                                                                     'linea_id' => $linea->id,

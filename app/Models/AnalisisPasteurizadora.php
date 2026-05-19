@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Collection;
 use Carbon\Carbon;
 
 class AnalisisPasteurizadora extends Model
@@ -263,29 +264,95 @@ class AnalisisPasteurizadora extends Model
             ->all();
     }
 
+    public static function buildResumenCicloComponenteFromCollection($registros, int $totalComponentes): array
+    {
+        $registros = self::ordenarRegistrosCronologicamente($registros);
+        $ciclos = [];
+        $registrosCiclo = collect();
+        $estadoCiclo = self::inicializarEstadoCiclo();
+
+        foreach ($registros as $registro) {
+            $registrosCiclo->push($registro);
+            $estadoCiclo = self::agregarRegistroAlEstadoCiclo($estadoCiclo, $registro, $totalComponentes);
+
+            if (self::estadoCicloCompleto($estadoCiclo, $totalComponentes)) {
+                $ciclos[] = [
+                    'registros' => $registrosCiclo->values(),
+                    'estado' => $estadoCiclo,
+                    'completado' => true,
+                ];
+
+                $registrosCiclo = collect();
+                $estadoCiclo = self::inicializarEstadoCiclo();
+            }
+        }
+
+        if ($registrosCiclo->isNotEmpty()) {
+            $ciclos[] = [
+                'registros' => $registrosCiclo->values(),
+                'estado' => $estadoCiclo,
+                'completado' => self::estadoCicloCompleto($estadoCiclo, $totalComponentes),
+            ];
+        }
+
+        $cicloActivo = null;
+        $ultimoCicloCompletado = null;
+
+        foreach ($ciclos as $ciclo) {
+            if ($ciclo['completado']) {
+                $ultimoCicloCompletado = $ciclo;
+                continue;
+            }
+
+            $cicloActivo = $ciclo;
+        }
+
+        $cicloVisible = $cicloActivo ?: $ultimoCicloCompletado;
+        $estadoVisible = $cicloVisible['estado'] ?? self::inicializarEstadoCiclo();
+        $resumenVisible = self::construirResumenEstadoCiclo($estadoVisible, $totalComponentes);
+        $estadoActual = $cicloActivo['estado'] ?? self::inicializarEstadoCiclo();
+        $resumenActual = self::construirResumenEstadoCiclo($estadoActual, $totalComponentes);
+
+        return [
+            'ciclos' => $ciclos,
+            'ciclo_actual' => $cicloActivo,
+            'ultimo_ciclo_completado' => $ultimoCicloCompletado,
+            'registros_actuales' => collect($cicloActivo['registros'] ?? []),
+            'registros_visibles' => collect($cicloVisible['registros'] ?? []),
+            'estado_actual' => $estadoActual,
+            'estado_visible' => $estadoVisible,
+            'resumen_actual' => $resumenActual,
+            'resumen_visible' => $resumenVisible,
+            'tiene_ciclo_activo' => $cicloActivo !== null,
+            'tiene_ciclo_completado' => $ultimoCicloCompletado !== null,
+        ];
+    }
+
+    public static function getResumenCicloComponente($lineaId, $modulo, $componente, ?int $excludeId = null): array
+    {
+        $linea = Linea::find($lineaId);
+        $totalComponentes = self::getTotalComponentesPorLineaYComponente($linea?->nombre, $componente);
+
+        $registros = self::where('linea_id', $lineaId)
+            ->where('modulo', $modulo)
+            ->where('componente', $componente)
+            ->when($excludeId, fn ($query) => $query->where('id', '!=', $excludeId))
+            ->orderBy('fecha_analisis')
+            ->orderBy('created_at')
+            ->orderBy('id')
+            ->get();
+
+        return self::buildResumenCicloComponenteFromCollection($registros, $totalComponentes);
+    }
+
     public static function getComponentesRevisadosRegistrados($lineaId, $modulo, $componente, $lado = null, $nivel = null, ?int $excludeId = null): array
     {
         $linea = Linea::find($lineaId);
         $totalComponentes = self::getTotalComponentesPorLineaYComponente($linea?->nombre, $componente);
 
-        $query = self::where('linea_id', $lineaId)
-            ->where('modulo', $modulo)
-            ->where('componente', $componente);
-
-        if ($lado) {
-            $query->where('lado', $lado);
-        }
-
-        if ($nivel) {
-            $query->where('nivel', $nivel);
-        }
-
-        if ($excludeId) {
-            $query->where('id', '!=', $excludeId);
-        }
-
-        return $query
-            ->get()
+        return self::getResumenCicloComponente($lineaId, $modulo, $componente, $excludeId)['registros_actuales']
+            ->when($lado, fn (Collection $registros) => $registros->where('lado', $lado))
+            ->when($nivel, fn (Collection $registros) => $registros->where('nivel', $nivel))
             ->flatMap(function ($registro) use ($totalComponentes) {
                 $componentes = self::normalizarComponentesRevisados($registro->componentes_revisados, $totalComponentes);
 
@@ -731,5 +798,113 @@ class AnalisisPasteurizadora extends Model
 
         $this->attributes['componentes_revisados'] = json_encode($componentes);
         $this->attributes['cantidad_componentes_revisados'] = count($componentes);
+    }
+
+    private static function ordenarRegistrosCronologicamente($registros): Collection
+    {
+        return collect($registros)
+            ->sortBy(function ($registro) {
+                $fechaAnalisis = $registro->fecha_analisis?->format('Ymd') ?? '00000000';
+                $createdAt = str_pad((string) ($registro->created_at?->timestamp ?? 0), 12, '0', STR_PAD_LEFT);
+                $id = str_pad((string) ($registro->id ?? 0), 10, '0', STR_PAD_LEFT);
+
+                return $fechaAnalisis . '-' . $createdAt . '-' . $id;
+            })
+            ->values();
+    }
+
+    private static function inicializarEstadoCiclo(): array
+    {
+        $estado = [];
+
+        foreach (self::NIVELES as $nivel) {
+            foreach (self::LADOS as $lado) {
+                $estado[$nivel][$lado] = [];
+            }
+        }
+
+        return $estado;
+    }
+
+    private static function agregarRegistroAlEstadoCiclo(array $estado, $registro, int $totalComponentes): array
+    {
+        $nivel = $registro->nivel;
+        $lado = $registro->lado;
+
+        if (!isset($estado[$nivel][$lado])) {
+            return $estado;
+        }
+
+        $componentes = self::normalizarComponentesRevisados($registro->componentes_revisados, $totalComponentes);
+
+        if (empty($componentes)) {
+            $cantidad = min((int) ($registro->cantidad_componentes_revisados ?? 0), $totalComponentes);
+            $componentes = $cantidad > 0 ? range(1, $cantidad) : [];
+        }
+
+        $estado[$nivel][$lado] = collect(array_merge($estado[$nivel][$lado], $componentes))
+            ->map(fn ($item) => (int) $item)
+            ->filter(fn ($item) => $item > 0)
+            ->unique()
+            ->sort()
+            ->values()
+            ->all();
+
+        return $estado;
+    }
+
+    private static function estadoCicloCompleto(array $estado, int $totalComponentes): bool
+    {
+        if ($totalComponentes <= 0) {
+            return false;
+        }
+
+        foreach (self::NIVELES as $nivel) {
+            foreach (self::LADOS as $lado) {
+                if (count($estado[$nivel][$lado] ?? []) < $totalComponentes) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    private static function construirResumenEstadoCiclo(array $estado, int $totalComponentes): array
+    {
+        $estadoPorNivel = [];
+        $siguienteRevision = null;
+        $completado = $totalComponentes > 0;
+
+        foreach (self::NIVELES as $nivel) {
+            $ladosPendientes = [];
+
+            foreach (self::LADOS as $lado) {
+                $revisados = count($estado[$nivel][$lado] ?? []);
+
+                if ($revisados < $totalComponentes) {
+                    $ladosPendientes[] = $lado;
+                    $completado = false;
+                }
+            }
+
+            $estadoPorNivel[$nivel] = [
+                'completado' => empty($ladosPendientes),
+                'lados_pendientes' => $ladosPendientes,
+            ];
+
+            if (!$siguienteRevision && !empty($ladosPendientes)) {
+                $siguienteRevision = [
+                    'nivel' => $nivel,
+                    'lado' => $ladosPendientes[0],
+                ];
+            }
+        }
+
+        return [
+            'completado' => $completado,
+            'estado_por_nivel' => $estadoPorNivel,
+            'siguiente_revision' => $siguienteRevision,
+        ];
     }
 }

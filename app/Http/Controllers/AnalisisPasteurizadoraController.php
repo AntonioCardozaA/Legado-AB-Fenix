@@ -17,6 +17,206 @@ class AnalisisPasteurizadoraController extends Controller
         $this->middleware('auth');
     }
 
+    private function getRevisionesAgrupadasHistorico($lineas): array
+    {
+        if ($lineas->isEmpty()) {
+            return [];
+        }
+
+        return AnalisisPasteurizadora::query()
+            ->select(['linea_id', 'componente', 'modulo', 'nivel', 'lado', 'cantidad_componentes_revisados'])
+            ->whereIn('linea_id', $lineas->pluck('id'))
+            ->get()
+            ->groupBy(function ($registro) {
+                return $this->buildHistoricoKey(
+                    $registro->linea_id,
+                    $registro->componente,
+                    $registro->modulo,
+                    $registro->nivel,
+                    $registro->lado
+                );
+            })
+            ->map(fn($items) => $items->sum('cantidad_componentes_revisados'))
+            ->toArray();
+    }
+
+    private function buildHistoricoLinea(Linea $linea, array $revisionesAgrupadas, &$componentesModulos, array &$estadisticas): array
+    {
+        $componentes = AnalisisPasteurizadora::getComponentesPorLinea($linea->nombre);
+        $totalModulos = AnalisisPasteurizadora::getModulosPorLinea($linea->nombre);
+        $modulos = [];
+        $totalLinea = 0;
+        $totalRevisadoLinea = 0;
+
+        for ($modulo = 1; $modulo <= $totalModulos; $modulo++) {
+            $niveles = [];
+            $moduleTotal = 0;
+            $moduleRevisado = 0;
+            $moduleSides = [];
+
+            foreach (AnalisisPasteurizadora::NIVELES as $nivel) {
+                $nivelTotal = 0;
+                $nivelRevisado = 0;
+                $ladosNivel = [];
+
+                foreach (AnalisisPasteurizadora::LADOS as $lado) {
+                    $componentesLado = [];
+                    $ladoTotal = 0;
+                    $ladoRevisado = 0;
+
+                    foreach ($componentes as $codigo => $compData) {
+                        if (
+                            AnalisisPasteurizadora::esBrazoTorsion($codigo)
+                            && $modulo > AnalisisPasteurizadora::getCantidadBrazosTorsionPorLinea($linea->nombre)
+                        ) {
+                            continue;
+                        }
+
+                        $total = (int) ($compData['cantidad'] ?? 0);
+                        $revisadas = min(
+                            $revisionesAgrupadas[$this->buildHistoricoKey($linea->id, $codigo, $modulo, $nivel, $lado)] ?? 0,
+                            $total
+                        );
+                        $porcentaje = $total > 0 ? round(($revisadas / $total) * 100) : 0;
+                        $color = $this->getColorClassByPercentage($porcentaje);
+
+                        $estadisticas[$linea->id][$codigo][$modulo][$nivel][$lado] = [
+                            'total' => $total,
+                            'revisadas' => $revisadas,
+                            'porcentaje' => $porcentaje,
+                            'color' => $color,
+                        ];
+
+                        $componentesModulos->push([
+                            'linea_id' => $linea->id,
+                            'linea_nombre' => $linea->nombre,
+                            'codigo' => $codigo,
+                            'nombre' => $compData['nombre'],
+                            'modulo' => $modulo,
+                            'nivel' => $nivel,
+                            'lado' => $lado,
+                            'cantidad_total' => $total,
+                        ]);
+
+                        $componentesLado[] = [
+                            'codigo' => $codigo,
+                            'nombre' => $compData['nombre'],
+                            'total' => $total,
+                            'revisadas' => $revisadas,
+                            'porcentaje' => $porcentaje,
+                            'color' => $color,
+                        ];
+
+                        $ladoTotal += $total;
+                        $ladoRevisado += $revisadas;
+                    }
+
+                    $ladoPorcentaje = $ladoTotal > 0 ? round(($ladoRevisado / $ladoTotal) * 100) : 0;
+
+                    $ladosNivel[] = [
+                        'key' => $lado,
+                        'label' => $lado === 'VAPOR' ? 'Lado vapor' : 'Lado pasillo',
+                        'total' => $ladoTotal,
+                        'revisado' => $ladoRevisado,
+                        'porcentaje' => $ladoPorcentaje,
+                        'color' => $this->getColorClassByPercentage($ladoPorcentaje),
+                        'componentes' => $componentesLado,
+                    ];
+
+                    $nivelTotal += $ladoTotal;
+                    $nivelRevisado += $ladoRevisado;
+                    $moduleSides[$lado] = [
+                        'total' => ($moduleSides[$lado]['total'] ?? 0) + $ladoTotal,
+                        'revisado' => ($moduleSides[$lado]['revisado'] ?? 0) + $ladoRevisado,
+                    ];
+                }
+
+                $nivelPorcentaje = $nivelTotal > 0 ? round(($nivelRevisado / $nivelTotal) * 100) : 0;
+
+                $niveles[] = [
+                    'key' => $nivel,
+                    'label' => $nivel === 'SUPERIOR' ? 'Nivel superior' : 'Nivel inferior',
+                    'total' => $nivelTotal,
+                    'revisado' => $nivelRevisado,
+                    'porcentaje' => $nivelPorcentaje,
+                    'color' => $this->getColorClassByPercentage($nivelPorcentaje),
+                    'lados' => $ladosNivel,
+                ];
+
+                $moduleTotal += $nivelTotal;
+                $moduleRevisado += $nivelRevisado;
+            }
+
+            $modulePorcentaje = $moduleTotal > 0 ? round(($moduleRevisado / $moduleTotal) * 100) : 0;
+            $moduleSides = collect($moduleSides)
+                ->map(function ($sideData, $lado) {
+                    $porcentaje = $sideData['total'] > 0 ? round(($sideData['revisado'] / $sideData['total']) * 100) : 0;
+
+                    return [
+                        'key' => $lado,
+                        'label' => $lado === 'VAPOR' ? 'Lado vapor' : 'Lado pasillo',
+                        'total' => $sideData['total'],
+                        'revisado' => $sideData['revisado'],
+                        'porcentaje' => $porcentaje,
+                        'color' => $this->getColorClassByPercentage($porcentaje),
+                    ];
+                })
+                ->values()
+                ->all();
+
+            $modulos[] = [
+                'numero' => $modulo,
+                'total' => $moduleTotal,
+                'revisado' => $moduleRevisado,
+                'porcentaje' => $modulePorcentaje,
+                'color' => $this->getColorClassByPercentage($modulePorcentaje),
+                'lados' => $moduleSides,
+                'niveles' => $niveles,
+            ];
+
+            $totalLinea += $moduleTotal;
+            $totalRevisadoLinea += $moduleRevisado;
+        }
+
+        return [
+            'linea_id' => $linea->id,
+            'linea_nombre' => $linea->nombre,
+            'totales' => [
+                'total' => $totalLinea,
+                'revisado' => $totalRevisadoLinea,
+            ],
+            'modulos' => $modulos,
+        ];
+    }
+
+    private function buildHistoricoKey($lineaId, $componente, $modulo, $nivel, $lado): string
+    {
+        return implode('|', [
+            $lineaId,
+            strtoupper((string) $componente),
+            (int) $modulo,
+            strtoupper(trim((string) $nivel)),
+            strtoupper(trim((string) $lado)),
+        ]);
+    }
+
+    private function getColorClassByPercentage(int $porcentaje): string
+    {
+        if ($porcentaje >= 80) {
+            return 'success';
+        }
+
+        if ($porcentaje >= 50) {
+            return 'info';
+        }
+
+        if ($porcentaje >= 20) {
+            return 'warning';
+        }
+
+        return 'danger';
+    }
+
     // ============================================================
     // INDEX
     // ============================================================
@@ -455,106 +655,47 @@ class AnalisisPasteurizadoraController extends Controller
         // Obtener todos los componentes para mostrar
         $componentesModulos = collect();
 
-        if ($mostrarTodas) {
-            $niveles = ['SUPERIOR', 'INFERIOR'];
-            foreach ($lineasPasteurizadora as $linea) {
-                $componentes = AnalisisPasteurizadora::getComponentesPorLinea($linea->nombre);
-                $totalModulos = AnalisisPasteurizadora::getModulosPorLinea($linea->nombre);
-
-                for ($modulo = 1; $modulo <= $totalModulos; $modulo++) {
-                    foreach ($componentes as $codigo => $compData) {
-                        if (
-                            AnalisisPasteurizadora::esBrazoTorsion($codigo)
-                            && $modulo > AnalisisPasteurizadora::getCantidadBrazosTorsionPorLinea($linea->nombre)
-                        ) {
-                            continue;
-                        }
-
-                        foreach ($niveles as $nivel) {
-                            $componentesModulos->push([
-                                'linea_id' => $linea->id,
-                                'linea_nombre' => $linea->nombre,
-                                'codigo' => $codigo,
-                                'nombre' => $compData['nombre'],
-                                'modulo' => $modulo,
-                                'nivel' => $nivel,
-                                'cantidad_total' => $compData['cantidad']
-                            ]);
-                        }
-                    }
-                }
-            }
-        } elseif ($lineaSeleccionada) {
-            $componentes = AnalisisPasteurizadora::getComponentesPorLinea($lineaSeleccionada->nombre);
-            $totalModulos = AnalisisPasteurizadora::getModulosPorLinea($lineaSeleccionada->nombre);
-            $niveles = ['SUPERIOR', 'INFERIOR'];
-
-            for ($modulo = 1; $modulo <= $totalModulos; $modulo++) {
-                foreach ($componentes as $codigo => $compData) {
-                    if (
-                        AnalisisPasteurizadora::esBrazoTorsion($codigo)
-                        && $modulo > AnalisisPasteurizadora::getCantidadBrazosTorsionPorLinea($lineaSeleccionada->nombre)
-                    ) {
-                        continue;
-                    }
-
-                    foreach ($niveles as $nivel) {
-                        $componentesModulos->push([
-                            'linea_id' => $lineaSeleccionada->id,
-                            'linea_nombre' => $lineaSeleccionada->nombre,
-                            'codigo' => $codigo,
-                            'nombre' => $compData['nombre'],
-                            'modulo' => $modulo,
-                            'nivel' => $nivel,
-                            'cantidad_total' => $compData['cantidad']
-                        ]);
-                    }
-                }
-            }
-        }
-
-        // Calcular estadísticas
+        $modulosHistorico = collect();
         $estadisticas = [];
         $totalGeneral = 0;
         $totalRevisado = 0;
 
-        if ($lineaSeleccionada || $mostrarTodas) {
-            foreach ($componentesModulos as $item) {
-                $lineaIdParaAnalisis = $item['linea_id'];
-                $analisis = AnalisisPasteurizadora::where('linea_id', $lineaIdParaAnalisis)
-                    ->where('componente', $item['codigo'])
-                    ->where('modulo', $item['modulo'])
-                    ->where('nivel', $item['nivel'])
-                    ->get();
+        $lineasHistorico = $mostrarTodas
+            ? $lineasPasteurizadora
+            : collect($lineaSeleccionada ? [$lineaSeleccionada] : []);
 
-                $total = $item['cantidad_total'];
+        $revisionesAgrupadas = $this->getRevisionesAgrupadasHistorico($lineasHistorico);
 
-                $revisadas = $analisis->sum('cantidad_componentes_revisados');
-                $revisadas = min($revisadas, $total);
-                $porcentaje = $total > 0 ? round(($revisadas / $total) * 100) : 0;
+        foreach ($lineasHistorico as $linea) {
+            $historicoLinea = $this->buildHistoricoLinea(
+                $linea,
+                $revisionesAgrupadas,
+                $componentesModulos,
+                $estadisticas
+            );
 
-                $color = $porcentaje >= 80 ? 'success' : ($porcentaje >= 50 ? 'info' : ($porcentaje >= 20 ? 'warning' : 'danger'));
+            $modulosHistorico->push($historicoLinea);
+            $totalGeneral += $historicoLinea['totales']['total'];
+            $totalRevisado += $historicoLinea['totales']['revisado'];
+        }
 
-                $estadisticas[$item['linea_id']][$item['codigo']][$item['modulo']][$item['nivel']] = [
-                    'total' => $total,
-                    'revisadas' => $revisadas,
-                    'porcentaje' => $porcentaje,
-                    'color' => $color,
-                ];
-
-                $totalGeneral += $total;
-                $totalRevisado += $revisadas;
-            }
-
+        // Calcular estadísticas
+        if ($lineasHistorico->isNotEmpty()) {
             $estadisticas['resumen'] = [
                 'total_general' => $totalGeneral,
                 'total_revisado' => $totalRevisado,
-                'porcentaje_general' => $totalGeneral > 0 ? round(($totalRevisado / $totalGeneral) * 100) : 0
+                'porcentaje_general' => $totalGeneral > 0 ? round(($totalRevisado / $totalGeneral) * 100) : 0,
             ];
         }
 
         return view('historico-revisados.pasteurizadora.index', compact(
-            'lineas', 'lineasPasteurizadora', 'lineaSeleccionada', 'componentesModulos', 'estadisticas', 'mostrarTodas'
+            'lineas',
+            'lineasPasteurizadora',
+            'lineaSeleccionada',
+            'componentesModulos',
+            'modulosHistorico',
+            'estadisticas',
+            'mostrarTodas'
         ));
     }
 
@@ -722,6 +863,9 @@ class AnalisisPasteurizadoraController extends Controller
         $registrosPorLinea = AnalisisPasteurizadora::with('usuario')
             ->whereIn('linea_id', $lineaIds)
             ->where('resuelto_por_cambio', false)
+            ->orderBy('fecha_analisis')
+            ->orderBy('created_at')
+            ->orderBy('id')
             ->get()
             ->groupBy('linea_id');
 
@@ -748,54 +892,22 @@ class AnalisisPasteurizadoraController extends Controller
                     }
 
                     $totalComponentes = (int) ($config['cantidad'] ?? 0);
-                    $estadoPorNivel = [];
-                    $siguienteRevision = null;
-                    $completado = $totalComponentes > 0;
-
-                    foreach (AnalisisPasteurizadora::NIVELES as $nivel) {
-                        $ladosPendientes = [];
-
-                        foreach (AnalisisPasteurizadora::LADOS as $lado) {
-                            $revisados = $registrosLinea
-                                ->where('modulo', $modulo)
-                                ->where('componente', $codigo)
-                                ->where('nivel', $nivel)
-                                ->where('lado', $lado)
-                                ->flatMap(function ($registro) use ($totalComponentes) {
-                                    $componentesRevisados = AnalisisPasteurizadora::normalizarComponentesRevisados(
-                                        $registro->componentes_revisados,
-                                        $totalComponentes
-                                    );
-
-                                    if (!empty($componentesRevisados)) {
-                                        return $componentesRevisados;
-                                    }
-
-                                    $cantidad = min((int) ($registro->cantidad_componentes_revisados ?? 0), $totalComponentes);
-
-                                    return $cantidad > 0 ? range(1, $cantidad) : [];
-                                })
-                                ->unique()
-                                ->count();
-
-                            if ($revisados < $totalComponentes) {
-                                $ladosPendientes[] = $lado;
-                                $completado = false;
-                            }
-                        }
-
-                        $estadoPorNivel[$nivel] = [
-                            'completado' => empty($ladosPendientes),
-                            'lados_pendientes' => $ladosPendientes,
+                    $registrosComponente = $registrosLinea
+                        ->where('modulo', $modulo)
+                        ->where('componente', $codigo)
+                        ->values();
+                    $resumenCiclo = AnalisisPasteurizadora::buildResumenCicloComponenteFromCollection(
+                        $registrosComponente,
+                        $totalComponentes
+                    );
+                    $estadoVisible = $resumenCiclo['resumen_visible'];
+                    $completado = (bool) ($estadoVisible['completado'] ?? false);
+                    $estadoPorNivel = $estadoVisible['estado_por_nivel'] ?? [];
+                    $siguienteRevision = $estadoVisible['siguiente_revision']
+                        ?? [
+                            'nivel' => AnalisisPasteurizadora::NIVELES[0] ?? null,
+                            'lado' => AnalisisPasteurizadora::LADOS[0] ?? null,
                         ];
-
-                        if (!$siguienteRevision && !empty($ladosPendientes)) {
-                            $siguienteRevision = [
-                                'nivel' => $nivel,
-                                'lado' => $ladosPendientes[0],
-                            ];
-                        }
-                    }
 
                     $componentesModulo++;
                     $celdasTotales++;
@@ -809,6 +921,10 @@ class AnalisisPasteurizadoraController extends Controller
                         'completado' => $completado,
                         'estado_por_nivel' => $estadoPorNivel,
                         'siguiente_revision' => $siguienteRevision,
+                        'registros_visibles' => $resumenCiclo['registros_visibles'],
+                        'registros_actuales' => $resumenCiclo['registros_actuales'],
+                        'tiene_ciclo_activo' => $resumenCiclo['tiene_ciclo_activo'],
+                        'tiene_ciclo_completado' => $resumenCiclo['tiene_ciclo_completado'],
                     ];
                 }
 
