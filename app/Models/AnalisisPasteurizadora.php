@@ -715,11 +715,13 @@ class AnalisisPasteurizadora extends Model
 
     public function marcarComoResuelto($registroResolutor, $nota = null)
     {
+        $numeroOrden = $registroResolutor->numero_orden ?: 'sin numero de orden';
+
         $this->update([
             'resuelto_por_cambio' => true,
             'fecha_resolucion' => now(),
             'id_registro_que_resolvio' => $registroResolutor->id,
-            'nota_resolucion' => $nota ?: "Resuelto por orden #{$registroResolutor->numero_orden}"
+            'nota_resolucion' => $nota ?: "Resuelto por orden #{$numeroOrden}"
         ]);
     }
 

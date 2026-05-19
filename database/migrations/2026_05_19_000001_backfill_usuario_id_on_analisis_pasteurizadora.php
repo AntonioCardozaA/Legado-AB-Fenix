@@ -8,19 +8,21 @@ return new class extends Migration
 {
     public function up(): void
     {
-        if (!Schema::hasColumn('analisis_pasteurizadora', 'usuario_id')) {
-            return;
-        }
-
         $adminUserId = $this->resolveAdminUserId();
 
         if (!$adminUserId) {
             return;
         }
 
-        DB::table('analisis_pasteurizadora')
-            ->whereNull('usuario_id')
-            ->update(['usuario_id' => $adminUserId]);
+        foreach (['analisis_pasteurizadora', 'analisis_componentes'] as $table) {
+            if (!Schema::hasColumn($table, 'usuario_id')) {
+                continue;
+            }
+
+            DB::table($table)
+                ->whereNull('usuario_id')
+                ->update(['usuario_id' => $adminUserId]);
+        }
     }
 
     public function down(): void

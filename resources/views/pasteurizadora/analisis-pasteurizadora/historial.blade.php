@@ -570,7 +570,7 @@
             </div>
             <h3 class="text-xl font-bold text-gray-800 mb-2">No hay registros disponibles</h3>
             <p class="text-gray-500 mb-6">Comienza realizando un nuevo análisis para ver el historial.</p>
-            <a href="{{ route('analisis-pasteurizadora.index') }}"
+            <a href="{{ route('pasteurizadora.analisis-pasteurizadora.index') }}"
                class="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all duration-300 shadow-lg hover:shadow-xl font-medium">
                 <i class="fas fa-plus-circle"></i>
                 Nuevo Análisis

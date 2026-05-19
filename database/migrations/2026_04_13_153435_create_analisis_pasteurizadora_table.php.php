@@ -16,7 +16,7 @@ return new class extends Migration
             $table->string('componente');
             $table->string('lado')->nullable();
             $table->date('fecha_analisis');
-            $table->string('numero_orden');
+            $table->string('numero_orden')->nullable();
             $table->text('actividad');
             $table->string('estado');
             $table->string('responsable')->nullable();

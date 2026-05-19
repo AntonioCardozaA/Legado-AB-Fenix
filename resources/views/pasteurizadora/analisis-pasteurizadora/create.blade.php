@@ -292,12 +292,11 @@
             <div>
                 <label class="block text-sm font-semibold text-gray-700 mb-2">
                     <i class="fas fa-hashtag text-blue-600 mr-1"></i>
-                    Número de Orden *
+                    Número de Orden
                 </label>
                 <input type="text"
                        name="numero_orden"
                        value="{{ old('numero_orden') }}"
-                       required
                        maxlength="50"
                        placeholder="Ej: OT-2024-001"
                        class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500 shadow-sm @error('numero_orden') border-red-500 @enderror">

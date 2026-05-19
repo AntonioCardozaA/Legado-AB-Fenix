@@ -68,7 +68,7 @@
 
                         <div class="flex justify-between items-center">
                             <a
-                                href="{{ route('plan-accion.index', ['tipo' => 'pasteurizadora', 'linea_id' => $lineaSeleccionada]) }}"
+                                href="{{ route('pasteurizadora.analisis-pasteurizadora.plan-accion.index', array_filter(['linea_id' => $lineaSeleccionada])) }}"
                                 class="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 flex items-center">
                                 <i class="fas fa-arrow-left mr-2"></i> Cancelar
                             </a>
