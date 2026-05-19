@@ -17,6 +17,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property Carbon|null $fecha_pcm3
  * @property Carbon|null $fecha_pcm4
  * @property string|null $estado
+ * @property string|null $tipo_equipo
  * @property array<int, string>|null $tipo_maquina
  */
 class PlanAccion extends Model
@@ -28,6 +29,7 @@ class PlanAccion extends Model
     protected $fillable = [
         'linea_id',
         'actividad',
+        'tipo_equipo',
         'fecha_pcm1',
         'fecha_pcm2',
         'fecha_pcm3',
@@ -165,6 +167,11 @@ class PlanAccion extends Model
     public function scopeCompletadas($query)
     {
         return $query->where('completado', true);
+    }
+
+    public function scopePorTipoEquipo($query, string $tipoEquipo)
+    {
+        return $query->where('tipo_equipo', $tipoEquipo);
     }
 
 }
