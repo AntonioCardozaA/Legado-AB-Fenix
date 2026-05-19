@@ -551,7 +551,7 @@ class AnalisisPasteurizadoraController extends Controller
 
     public function historial(Request $request)
     {
-        $query = AnalisisPasteurizadora::with('linea')->orderBy('fecha_analisis', 'desc');
+        $query = AnalisisPasteurizadora::with(['linea', 'usuario'])->orderBy('fecha_analisis', 'desc');
 
         if ($request->filled('linea_id')) {
             $query->where('linea_id', $request->linea_id);

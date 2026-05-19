@@ -169,8 +169,8 @@
                 <div class="info-value">{{ $analisis->fecha_formateada }}</div>
             </div>
             <div class="info-item">
-                <div class="info-label"><i class="fas fa-user mr-1"></i> Responsable</div>
-                <div class="info-value">{{ $analisis->responsable ?? 'No especificado' }}</div>
+                <div class="info-label"><i class="fas fa-user mr-1"></i> Realizado por</div>
+                <div class="info-value">{{ $analisis->usuario?->name ?? $analisis->responsable ?? 'Usuario no registrado' }}</div>
             </div>
         </div>
 

@@ -344,18 +344,61 @@
                 @enderror
             </div>
 
-            <div>
-                <label class="block text-sm font-semibold text-gray-700 mb-2">
+            <div class="rounded-xl border border-gray-200 bg-gray-50 p-4 sm:p-5">
+                <label class="block text-sm font-semibold text-gray-800 mb-3">
                     <i class="fas fa-camera text-blue-600 mr-1"></i>
-                    Evidencia Fotográfica
+                    Evidencia fotografica
                 </label>
                 <input type="file"
+                       id="evidencia_fotos"
                        name="evidencia_fotos[]"
                        multiple
-                       accept="image/*"
-                       class="w-full text-sm text-gray-500 rounded-lg border border-gray-300 shadow-sm file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
-                <p class="text-xs text-gray-500 mt-1">Puede seleccionar múltiples imágenes (Formatos: JPG, PNG. Máx: 5MB cada una)</p>
-                <div id="preview_fotos" class="mt-3 flex flex-wrap gap-2"></div>
+                       accept="image/jpeg,image/png,image/jpg,image/webp,image/gif,image/bmp"
+                       class="hidden">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <button type="button"
+                                id="btn_evidencia_fotos_galeria"
+                                class="flex w-full items-center justify-center gap-2 rounded-lg border border-blue-200 bg-white px-4 py-3 text-sm font-semibold text-blue-700 shadow-sm transition hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                            <i class="fas fa-images"></i>
+                            Subir desde galeria
+                        </button>
+                        <input type="file"
+                               id="evidencia_fotos_galeria"
+                               accept="image/jpeg,image/png,image/jpg,image/webp,image/gif,image/bmp"
+                               multiple
+                               class="sr-only">
+                    </div>
+
+                    <div>
+                        <button type="button"
+                                id="btn_evidencia_fotos_camara"
+                                class="flex w-full items-center justify-center gap-2 rounded-lg border border-emerald-200 bg-white px-4 py-3 text-sm font-semibold text-emerald-700 shadow-sm transition hover:bg-emerald-50 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2">
+                            <i class="fas fa-camera-retro"></i>
+                            Tomar foto ahora
+                        </button>
+                        <input type="file"
+                               id="evidencia_fotos_camara"
+                               accept="image/jpeg,image/png,image/jpg,image/webp,image/gif,image/bmp"
+                               capture="environment"
+                               multiple
+                               class="sr-only">
+                    </div>
+                </div>
+                <div class="mt-4 rounded-lg border border-dashed border-gray-300 bg-white p-3">
+                    <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                        <p id="fotos_resumen" class="text-sm font-medium text-gray-600">Sin imagenes seleccionadas</p>
+                        <p class="text-xs text-gray-500">JPG, PNG, WEBP, GIF o BMP. Max. 5MB por imagen.</p>
+                    </div>
+                    <div id="preview_fotos" class="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4"></div>
+                </div>
+
+                @error('evidencia_fotos')
+                    <p class="text-red-500 text-sm mt-2">{{ $message }}</p>
+                @enderror
+                @error('evidencia_fotos.*')
+                    <p class="text-red-500 text-sm mt-2">{{ $message }}</p>
+                @enderror
             </div>
 
             <div class="flex gap-4 pt-6 border-t border-gray-200">
@@ -706,45 +749,160 @@ document.addEventListener('DOMContentLoaded', function() {
     const clearBtn = document.getElementById('clear-componentes');
     if (clearBtn) clearBtn.addEventListener('click', limpiarSeleccionChecklist);
     
-    // Configurar preview de imágenes
-    const inputFotos = document.querySelector('input[name="evidencia_fotos[]"]');
+    // Configurar preview de imagenes
+    const inputFotos = document.getElementById('evidencia_fotos');
+    const botonGaleria = document.getElementById('btn_evidencia_fotos_galeria');
+    const botonCamara = document.getElementById('btn_evidencia_fotos_camara');
+    const galeriaFotosInput = document.getElementById('evidencia_fotos_galeria');
+    const camaraFotosInput = document.getElementById('evidencia_fotos_camara');
     const previewFotos = document.getElementById('preview_fotos');
-    
-    if (inputFotos && previewFotos) {
-        inputFotos.addEventListener('change', function() {
-            previewFotos.innerHTML = '';
-            Array.from(this.files).forEach((file) => {
-                if (file.type.startsWith('image/')) {
-                    const reader = new FileReader();
-                    reader.onload = function(e) {
-                        const div = document.createElement('div');
-                        div.className = 'relative group';
-                        const img = document.createElement('img');
-                        img.src = e.target.result;
-                        img.className = 'w-20 h-20 object-cover rounded-lg border border-gray-200';
-                        
-                        const removeBtn = document.createElement('button');
-                        removeBtn.type = 'button';
-                        removeBtn.className = 'absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition';
-                        removeBtn.innerHTML = '×';
-                        removeBtn.onclick = function() {
-                            div.remove();
-                            const dt = new DataTransfer();
-                            const files = Array.from(inputFotos.files);
-                            const fileIndex = files.indexOf(file);
-                            files.splice(fileIndex, 1);
-                            files.forEach(f => dt.items.add(f));
-                            inputFotos.files = dt.files;
-                        };
-                        
-                        div.appendChild(img);
-                        div.appendChild(removeBtn);
-                        previewFotos.appendChild(div);
+    const fotosResumen = document.getElementById('fotos_resumen');
+    const maxFotoSize = 5 * 1024 * 1024;
+    const soportaDataTransfer = typeof DataTransfer !== 'undefined';
+    const extensionesPermitidas = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'];
+
+    function actualizarResumenFotos(totalFotos) {
+        fotosResumen.textContent = totalFotos
+            ? `${totalFotos} imagen${totalFotos === 1 ? '' : 'es'} seleccionada${totalFotos === 1 ? '' : 's'}`
+            : 'Sin imagenes seleccionadas';
+    }
+
+    function crearDataTransfer(files) {
+        const dataTransfer = new DataTransfer();
+        files.forEach((file) => dataTransfer.items.add(file));
+        return dataTransfer;
+    }
+
+    function getFotosPrincipales() {
+        return Array.from(inputFotos.files || []);
+    }
+
+    function getFotosFallback() {
+        return [
+            ...Array.from(galeriaFotosInput.files || []),
+            ...Array.from(camaraFotosInput.files || []),
+        ];
+    }
+
+    function esImagenValida(file) {
+        if (!file) {
+            return false;
+        }
+
+        if ((file.type || '').startsWith('image/')) {
+            return true;
+        }
+
+        const extension = (file.name.split('.').pop() || '').toLowerCase();
+        return extensionesPermitidas.includes(extension);
+    }
+
+    function renderPreview(files, permitirEliminar) {
+        previewFotos.innerHTML = '';
+        actualizarResumenFotos(files.length);
+
+        files.forEach((file, index) => {
+            if (!esImagenValida(file)) {
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const imgContainer = document.createElement('div');
+                imgContainer.className = 'relative group overflow-hidden rounded-lg border border-gray-200 bg-gray-100 shadow-sm';
+
+                const img = document.createElement('img');
+                img.src = e.target.result;
+                img.alt = file.name;
+                img.className = 'aspect-square w-full object-cover';
+                imgContainer.appendChild(img);
+
+                if (permitirEliminar) {
+                    const removeBtn = document.createElement('button');
+                    removeBtn.type = 'button';
+                    removeBtn.className = 'absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-red-600 text-sm font-bold text-white shadow transition hover:bg-red-700 sm:opacity-0 sm:group-hover:opacity-100';
+                    removeBtn.innerHTML = '&times;';
+                    removeBtn.setAttribute('aria-label', `Quitar ${file.name}`);
+                    removeBtn.onclick = function() {
+                        const fotos = getFotosPrincipales();
+                        fotos.splice(index, 1);
+                        inputFotos.files = crearDataTransfer(fotos).files;
+                        renderPreview(getFotosPrincipales(), true);
                     };
-                    reader.readAsDataURL(file);
+                    imgContainer.appendChild(removeBtn);
                 }
-            });
+
+                previewFotos.appendChild(imgContainer);
+            };
+            reader.readAsDataURL(file);
         });
+    }
+
+    function agregarFotos(files) {
+        const fotosActuales = getFotosPrincipales();
+        const firmas = new Set(fotosActuales.map((file) => `${file.name}-${file.size}-${file.lastModified}`));
+        const nuevasFotos = [...fotosActuales];
+
+        Array.from(files || []).forEach((file) => {
+            if (!esImagenValida(file)) {
+                alert(`El archivo ${file.name} no es una imagen valida.`);
+                return;
+            }
+
+            if (file.size > maxFotoSize) {
+                alert(`La imagen ${file.name} supera el tamano maximo de 5MB.`);
+                return;
+            }
+
+            const firma = `${file.name}-${file.size}-${file.lastModified}`;
+            if (firmas.has(firma)) {
+                return;
+            }
+
+            firmas.add(firma);
+            nuevasFotos.push(file);
+        });
+
+        inputFotos.files = crearDataTransfer(nuevasFotos).files;
+        renderPreview(getFotosPrincipales(), true);
+    }
+
+    botonGaleria?.addEventListener('click', function() {
+        galeriaFotosInput.click();
+    });
+
+    botonCamara?.addEventListener('click', function() {
+        camaraFotosInput.click();
+    });
+
+    inputFotos?.addEventListener('change', function() {
+        renderPreview(getFotosPrincipales(), true);
+    });
+
+    if (inputFotos && previewFotos && soportaDataTransfer) {
+        galeriaFotosInput.addEventListener('change', function() {
+            agregarFotos(this.files);
+            this.value = '';
+        });
+
+        camaraFotosInput.addEventListener('change', function() {
+            agregarFotos(this.files);
+            this.value = '';
+        });
+
+        renderPreview(getFotosPrincipales(), true);
+    } else if (inputFotos && previewFotos) {
+        galeriaFotosInput.name = 'evidencia_fotos[]';
+        camaraFotosInput.name = 'evidencia_fotos[]';
+        inputFotos.disabled = true;
+
+        const renderizarFallback = function() {
+            renderPreview(getFotosFallback(), false);
+        };
+
+        galeriaFotosInput.addEventListener('change', renderizarFallback);
+        camaraFotosInput.addEventListener('change', renderizarFallback);
+        renderizarFallback();
     }
     
     // Validación del formulario

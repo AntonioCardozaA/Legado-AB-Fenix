@@ -68,10 +68,17 @@ class PasteurizadoraAnalysisCycleTest extends TestCase
             'nivel' => 'SUPERIOR',
             'lado' => 'VAPOR',
             'numero_orden' => 'OT-NUEVO-001',
+            'usuario_id' => $user->id,
         ]);
 
         $this->assertSame(2, AnalisisPasteurizadora::getCantidadComponentesPendientes($linea->id, 1, 'ANILLAS', 'VAPOR', 'SUPERIOR'));
         $this->assertSame(1, AnalisisPasteurizadora::getCantidadComponentesRevisados($linea->id, 1, 'ANILLAS', 'VAPOR', 'SUPERIOR'));
+
+        $analisis = AnalisisPasteurizadora::with('usuario')
+            ->where('numero_orden', 'OT-NUEVO-001')
+            ->firstOrFail();
+
+        $this->assertTrue($analisis->usuario->is($user));
     }
 
     private function crearAnalisis(Linea $linea, array $overrides = []): AnalisisPasteurizadora
