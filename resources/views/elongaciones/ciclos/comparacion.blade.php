@@ -92,7 +92,7 @@
                         </div>
                         <div>
                             <p class="text-gray-500">Días operando</p>
-                            <p class="font-semibold text-gray-900">{{ $item['dias_operacion'] !== null ? $item['dias_operacion'] . ' días' : '-' }}</p>
+                            <p class="font-semibold text-gray-900">{{ $item['dias_operacion'] !== null ? (int) $item['dias_operacion'] . ' días' : '-' }}</p>
                         </div>
                     </div>
 

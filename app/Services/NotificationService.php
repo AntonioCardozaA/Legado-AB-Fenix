@@ -26,7 +26,7 @@ class NotificationService
 
         try {
 
-            $hoy = Carbon::now();
+            $hoy = Carbon::now()->startOfDay();
 
             $planes = PlanAccion::with(['linea','responsable'])->get();
 
@@ -39,7 +39,8 @@ class NotificationService
 
                     if (!$fecha) continue;
 
-                    $diasRestantes = $hoy->diffInDays($fecha,false);
+                    $fechaComparacion = Carbon::parse($fecha)->startOfDay();
+                    $diasRestantes = (int) $hoy->diffInDays($fechaComparacion,false);
 
                     if ($diasRestantes < 0) continue;
 
@@ -203,7 +204,11 @@ class NotificationService
                     $channels
                 );
 
-                $resultados['total']++;
+                $resultados['total'] = ($resultados['total'] ?? 0) + 1;
+
+                if (array_key_exists('enviadas', $resultados)) {
+                    $resultados['enviadas']++;
+                }
 
                 Log::info(
                     "Notificación enviada a {$emailToUse} para {$plan->actividad}"
@@ -234,7 +239,7 @@ class NotificationService
 
         $plan = PlanAccion::with(['linea','responsable'])->findOrFail($planId);
 
-        $hoy = Carbon::now();
+        $hoy = Carbon::now()->startOfDay();
 
         $resultados = [
 
@@ -251,7 +256,8 @@ class NotificationService
 
             if (!$fecha) continue;
 
-            $diasRestantes = $hoy->diffInDays($fecha,false);
+            $fechaComparacion = Carbon::parse($fecha)->startOfDay();
+            $diasRestantes = (int) $hoy->diffInDays($fechaComparacion,false);
 
             if ($diasRestantes < 0){
 

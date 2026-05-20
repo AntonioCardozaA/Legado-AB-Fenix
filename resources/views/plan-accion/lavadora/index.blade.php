@@ -733,7 +733,7 @@
         foreach(['pcm1', 'pcm2', 'pcm3', 'pcm4'] as $pcm) {
             $fechaCampo = 'fecha_' . $pcm;
             if($plan->$fechaCampo) {
-                $dias = \Carbon\Carbon::now()->startOfDay()->diffInDays(\Carbon\Carbon::parse($plan->$fechaCampo)->startOfDay(), false);
+                $dias = (int) \Carbon\Carbon::now()->startOfDay()->diffInDays(\Carbon\Carbon::parse($plan->$fechaCampo)->startOfDay(), false);
                 if($dias >= 0 && $dias <= 7) {
                     $fechasProximas++;
                     break;
@@ -751,7 +751,7 @@
         foreach(['pcm1', 'pcm2', 'pcm3', 'pcm4'] as $pcm) {
             $fechaCampo = 'fecha_' . $pcm;
             if($plan->$fechaCampo) {
-                $dias = \Carbon\Carbon::now()->startOfDay()->diffInDays(\Carbon\Carbon::parse($plan->$fechaCampo)->startOfDay(), false);
+                $dias = (int) \Carbon\Carbon::now()->startOfDay()->diffInDays(\Carbon\Carbon::parse($plan->$fechaCampo)->startOfDay(), false);
                 if($dias < 0) {
                     $actividadesVencidas++;
                     break;
@@ -812,7 +812,7 @@
                                                 </span>
                                             @else
                                                 <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
-                                                    {{ $alerta['dias_restantes'] ?? 0 }} día(s)
+                                                    {{ (int) ($alerta['dias_restantes'] ?? 0) }} día(s)
                                                 </span>
                                             @endif
                                         </div>
@@ -993,7 +993,7 @@
                                     <td class="text-center fecha-cell">
                                         @if($fecha)
                                             @php
-                                                $dias = \Carbon\Carbon::now()->startOfDay()->diffInDays(\Carbon\Carbon::parse($fecha)->startOfDay(), false);
+                                                $dias = (int) \Carbon\Carbon::now()->startOfDay()->diffInDays(\Carbon\Carbon::parse($fecha)->startOfDay(), false);
                                                     $fechaClass = 'fecha-futura'; // Clase por defecto para completadas o sin problemas
                                                     $tooltip = '';
 
@@ -1240,7 +1240,7 @@ function cargarNotificaciones() {
                                     <span class="text-gray-500">PCM: ${notif.pcm}</span>
                                     <span class="mx-2">•</span>
                                     <span class="${notif.es_manana ? 'text-red-600 font-bold' : 'text-orange-600'}">
-                                        ${notif.es_manana ? '¡MAÑANA!' : notif.dias_restantes + ' día(s)'}
+                                        ${notif.es_manana ? '¡MAÑANA!' : Math.trunc(Number(notif.dias_restantes)) + ' día(s)'}
                                     </span>
                                 </div>
                                 <p class="text-xs text-gray-500 mt-1">

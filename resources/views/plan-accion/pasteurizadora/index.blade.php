@@ -420,6 +420,27 @@
         color: #64748b;
     }
 
+    .notificacion-lateral {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 1000;
+        max-width: 380px;
+        width: 100%;
+        animation: slideInRight 0.3s ease-out;
+    }
+
+    @keyframes slideInRight {
+        from {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+
     @media (max-width: 768px) {
         .stats-grid {
             grid-template-columns: 1fr;
@@ -437,6 +458,11 @@
 
         .linea-info {
             justify-content: center;
+        }
+
+        .notificacion-lateral {
+            max-width: calc(100% - 40px);
+            right: 20px;
         }
     }
 </style>
@@ -464,7 +490,7 @@
                 continue;
             }
 
-            $dias = \Carbon\Carbon::now()->startOfDay()->diffInDays(\Carbon\Carbon::parse($plan->$fechaCampo)->startOfDay(), false);
+            $dias = (int) \Carbon\Carbon::now()->startOfDay()->diffInDays(\Carbon\Carbon::parse($plan->$fechaCampo)->startOfDay(), false);
 
             if ($dias >= 0 && $dias <= 7) {
                 $fechasProximas++;
@@ -495,6 +521,58 @@
             </h1>
         </div>
     </div>
+
+    @if(isset($alertas) && count($alertas) > 0)
+    <div class="notificacion-lateral" id="notificacionLateral">
+        <div class="bg-white rounded-lg shadow-xl border-l-4 border-yellow-400 overflow-hidden">
+            <div class="p-4">
+                <div class="flex items-start">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-exclamation-triangle text-yellow-400 text-xl"></i>
+                    </div>
+                    <div class="ml-3 w-0 flex-1">
+                        <p class="text-sm font-medium text-gray-900">
+                            Atención: Fechas próximas a vencer ({{ count($alertas) }})
+                        </p>
+                        <div class="mt-2 text-sm text-gray-600">
+                            <div class="max-h-60 overflow-y-auto space-y-2">
+                                @foreach($alertas as $alerta)
+                                <div class="p-2 {{ $alerta['prioridad'] == 'alta' ? 'bg-red-50' : ($alerta['prioridad'] == 'media' ? 'bg-yellow-50' : 'bg-blue-50') }} rounded">
+                                    <div class="flex justify-between items-start">
+                                        <div>
+                                            <span class="font-semibold">{{ $alerta['linea'] ?? 'Sin línea' }}</span>
+                                            <span class="text-xs block">
+                                                {{ Str::limit($alerta['actividad'] ?? 'Sin actividad', 40) }}
+                                            </span>
+                                        </div>
+                                        <div class="text-right ml-2">
+                                            @if($alerta['es_manana'] ?? false)
+                                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
+                                                    MAÑANA
+                                                </span>
+                                            @else
+                                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
+                                                    {{ (int) ($alerta['dias_restantes'] ?? 0) }} día(s)
+                                                </span>
+                                            @endif
+                                        </div>
+                                    </div>
+                                </div>
+                                @endforeach
+                            </div>
+                        </div>
+                    </div>
+                    <div class="ml-4 flex-shrink-0 flex">
+                        <button class="bg-white rounded-md inline-flex text-gray-400 hover:text-gray-500"
+                                onclick="document.getElementById('notificacionLateral').remove()">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
 
     <div class="stats-grid">
         <div class="stat-card">
@@ -632,7 +710,7 @@
                                         <td class="text-center fecha-cell">
                                             @if($fecha)
                                                 @php
-                                                    $dias = \Carbon\Carbon::now()->startOfDay()->diffInDays(\Carbon\Carbon::parse($fecha)->startOfDay(), false);
+                                                    $dias = (int) \Carbon\Carbon::now()->startOfDay()->diffInDays(\Carbon\Carbon::parse($fecha)->startOfDay(), false);
                                                     $fechaClass = 'fecha-futura';
                                                     $tooltip = $plan->completado ? 'Actividad Completada' : 'Vence en ' . $dias . ' días';
 

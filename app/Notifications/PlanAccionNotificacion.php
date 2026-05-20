@@ -26,7 +26,7 @@ class PlanAccionNotificacion extends Notification implements ShouldQueue
         $this->plan = $plan;
         $this->tipo = $tipo;
         $this->pcm = $pcm;
-        $this->diasRestantes = $diasRestantes;
+        $this->diasRestantes = (int) $diasRestantes;
     }
 
     public function via($notifiable)

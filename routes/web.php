@@ -321,6 +321,12 @@ Route::prefix('pasteurizadora')->group(function () {
     Route::post('/plan-accion/{id}/notificar', [PlanAccionController::class, 'notificar'])
         ->name('plan-accion.notificar');
 
+    Route::get('/plan-accion/notificaciones-pendientes', [PlanAccionController::class, 'notificacionesPendientes'])
+        ->name('plan-accion.notificaciones-pendientes');
+
+    Route::post('/plan-accion/notificacion/{id}/marcar-leida', [PlanAccionController::class, 'marcarNotificacionLeida'])
+        ->name('plan-accion.notificacion.marcar-leida');
+
     Route::get('/plan-accion/lavadora', [PlanAccionController::class, 'planAccion'])
         ->name('plan-accion.lavadora.index');
 
@@ -442,7 +448,7 @@ Route::middleware(['web'])
 Route::get('/test-notifications/{planId}', function ($planId) {
     if (app()->environment('local')) {
         $service = app(\App\Services\NotificationService::class);
-        $resultados = $service->notificarActividadManualmente($planId);
+        $resultados = $service->enviarNotificacionesManuales($planId);
 
         return response()->json($resultados);
     }

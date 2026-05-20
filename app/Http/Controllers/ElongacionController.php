@@ -252,7 +252,7 @@ class ElongacionController extends Controller
                 $ultimaFecha = $ciclo->retirada_en ?: $ultimaMedicion?->created_at;
 
                 $diasOperacion = $ciclo->instalada_en && $ultimaFecha
-                    ? $ciclo->instalada_en->diffInDays($ultimaFecha)
+                    ? (int) $ciclo->instalada_en->copy()->startOfDay()->diffInDays($ultimaFecha->copy()->startOfDay())
                     : null;
 
                 return [

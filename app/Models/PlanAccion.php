@@ -105,7 +105,7 @@ class PlanAccion extends Model
 
     public function getProximaFechaAttribute()
     {
-        $hoy = Carbon::now();
+        $hoy = Carbon::now()->startOfDay();
         $proximaFecha = null;
         $proximaPcm = null;
         
@@ -121,7 +121,7 @@ class PlanAccion extends Model
         return $proximaFecha ? [
             'fecha' => $proximaFecha,
             'pcm' => $proximaPcm,
-            'dias_restantes' => $hoy->diffInDays($proximaFecha, false)
+            'dias_restantes' => (int) $hoy->diffInDays(Carbon::parse($proximaFecha)->startOfDay(), false)
         ] : null;
     }
 

@@ -21,7 +21,7 @@ class FechaProximaNotification extends Notification implements ShouldQueue
     {
         $this->plan = $plan;
         $this->pcm = $pcm;
-        $this->diasRestantes = $diasRestantes;
+        $this->diasRestantes = (int) $diasRestantes;
         $this->emailToUse = $emailToUse;
     }
 

@@ -201,6 +201,24 @@ class PlanAccionController extends Controller
         }
     }
 
+    public function notificacionesPendientes(Request $request): JsonResponse
+    {
+        $tipo = $this->normalizarTipo($request->get('tipo', 'lavadora'));
+        $alertas = $this->obtenerAlertasGlobales($tipo);
+
+        return response()->json([
+            'total' => count($alertas),
+            'notificaciones' => $alertas,
+        ]);
+    }
+
+    public function marcarNotificacionLeida($id): JsonResponse
+    {
+        return response()->json([
+            'success' => true,
+        ]);
+    }
+
     /**
      * ===========================================================
      * MÉTODOS DEL RESOURCE (RESTful)
@@ -262,7 +280,7 @@ class PlanAccionController extends Controller
         $plan = PlanAccion::create($validated);
 
         if ($request->has('notificar_ahora') && $request->notificar_ahora) {
-            $this->notificationService->notificarActividadManualmente($plan->id);
+            $this->notificationService->enviarNotificacionesManuales($plan->id);
         }
 
         return redirect()->route('plan-accion.index', [
@@ -350,7 +368,7 @@ class PlanAccionController extends Controller
             foreach (['pcm1', 'pcm2', 'pcm3', 'pcm4'] as $pcm) {
                 $fechaCampo = 'fecha_' . $pcm;
                 if ($plan->$fechaCampo) {
-                    $diasRestantes = now()->diffInDays($plan->$fechaCampo, false);
+                    $diasRestantes = (int) now()->startOfDay()->diffInDays(Carbon::parse($plan->$fechaCampo)->startOfDay(), false);
                     if ($diasRestantes <= 7 && $diasRestantes >= 0) {
                         $fechasProximas = true;
                         $pcmConFechas[] = [
@@ -369,7 +387,7 @@ class PlanAccionController extends Controller
                 ]);
             }
             
-            $resultados = $this->notificationService->notificarActividadManualmente($id);
+            $resultados = $this->notificationService->enviarNotificacionesManuales($id);
             
             $exitosos = 0;
             $fallidos = 0;
@@ -418,16 +436,20 @@ class PlanAccionController extends Controller
      private function obtenerAlertasGlobales($tipo = 'lavadora')
     {
         $alertas = [];
-        $hoy = Carbon::now();
-        $proximosDias = Carbon::now()->addDays(7);
+        $hoy = Carbon::now()->startOfDay();
+        $proximosDias = $hoy->copy()->addDays(7);
+        $hoyFecha = $hoy->toDateString();
+        $proximosDiasFecha = $proximosDias->toDateString();
 
         $actividadesProximas = $this->crearQueryPlanesPorTipo($this->normalizarTipo($tipo))
             ->where('completado', false)
-            ->where(function ($query) use ($hoy, $proximosDias) {
-                $query->whereBetween('fecha_pcm1', [$hoy, $proximosDias])
-                    ->orWhereBetween('fecha_pcm2', [$hoy, $proximosDias])
-                    ->orWhereBetween('fecha_pcm3', [$hoy, $proximosDias])
-                    ->orWhereBetween('fecha_pcm4', [$hoy, $proximosDias]);
+            ->where(function ($query) use ($hoyFecha, $proximosDiasFecha) {
+                foreach (['fecha_pcm1', 'fecha_pcm2', 'fecha_pcm3', 'fecha_pcm4'] as $campoFecha) {
+                    $query->orWhere(function ($subQuery) use ($campoFecha, $hoyFecha, $proximosDiasFecha) {
+                        $subQuery->whereDate($campoFecha, '>=', $hoyFecha)
+                            ->whereDate($campoFecha, '<=', $proximosDiasFecha);
+                    });
+                }
             })
             ->get();
 
@@ -435,11 +457,14 @@ class PlanAccionController extends Controller
             foreach (['pcm1', 'pcm2', 'pcm3', 'pcm4'] as $pcm) {
                 $fechaCampo = 'fecha_' . $pcm;
 
-                if ($plan->$fechaCampo &&
-                    $plan->$fechaCampo >= $hoy &&
-                    $plan->$fechaCampo <= $proximosDias) {
+                if ($plan->$fechaCampo) {
+                    $fechaPcm = Carbon::parse($plan->$fechaCampo)->startOfDay();
 
-                    $diasRestantes = $hoy->diffInDays($plan->$fechaCampo, false);
+                    if (!$fechaPcm->betweenIncluded($hoy, $proximosDias)) {
+                        continue;
+                    }
+
+                    $diasRestantes = (int) $hoy->diffInDays($fechaPcm, false);
                     
                     $prioridad = 'baja';
                     if ($diasRestantes <= 1) {
@@ -455,7 +480,7 @@ class PlanAccionController extends Controller
                         'linea' => optional($plan->linea)->nombre ?? 'Sin línea',
                         'actividad' => $plan->actividad,
                         'pcm' => strtoupper($pcm),
-                        'fecha' => Carbon::parse($plan->$fechaCampo)->format('d/m/Y'),
+                        'fecha' => $fechaPcm->format('d/m/Y'),
                         'dias_restantes' => $diasRestantes,
                         'es_manana' => $esManana,
                         'prioridad' => $prioridad
@@ -494,15 +519,18 @@ class PlanAccionController extends Controller
      */
      private function contarActividadesProximas($dias, $tipo = 'lavadora')
     {
-        $fechaLimite = Carbon::now()->addDays($dias);
+        $hoy = Carbon::now()->startOfDay();
+        $fechaLimite = $hoy->copy()->addDays($dias);
 
         return $this->crearQueryPlanesPorTipo($this->normalizarTipo($tipo))
             ->where('completado', false) 
-            ->where(function ($query) use ($fechaLimite) {
-                $query->whereBetween('fecha_pcm1', [now(), $fechaLimite])
-                    ->orWhereBetween('fecha_pcm2', [now(), $fechaLimite])
-                    ->orWhereBetween('fecha_pcm3', [now(), $fechaLimite])
-                    ->orWhereBetween('fecha_pcm4', [now(), $fechaLimite]);
+            ->where(function ($query) use ($hoy, $fechaLimite) {
+                foreach (['fecha_pcm1', 'fecha_pcm2', 'fecha_pcm3', 'fecha_pcm4'] as $campoFecha) {
+                    $query->orWhere(function ($subQuery) use ($campoFecha, $hoy, $fechaLimite) {
+                        $subQuery->whereDate($campoFecha, '>=', $hoy->toDateString())
+                            ->whereDate($campoFecha, '<=', $fechaLimite->toDateString());
+                    });
+                }
             })->count();
     }
 
