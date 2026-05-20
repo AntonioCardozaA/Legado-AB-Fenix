@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\DB;
 
 class AnalisisLavadora extends Model
 {
@@ -139,16 +140,29 @@ class AnalisisLavadora extends Model
 
     public function scopeUltimosPorComponente(Builder $query): Builder
     {
-        return $query->whereIn('id', function ($subQuery) {
-            $subQuery->selectRaw('MAX(id)')
-                ->from('analisis_componentes')
-                ->groupBy(['linea_id', 'componente_id', 'reductor']);
-        });
+        $latestIds = DB::table('analisis_componentes as actual')
+            ->leftJoin('analisis_componentes as mas_reciente', function ($join) {
+                $join->on('actual.linea_id', '=', 'mas_reciente.linea_id')
+                    ->on('actual.componente_id', '=', 'mas_reciente.componente_id')
+                    ->on('actual.reductor', '=', 'mas_reciente.reductor')
+                    ->whereRaw("COALESCE(actual.lado, '') = COALESCE(mas_reciente.lado, '')")
+                    ->where(function ($subQuery) {
+                        $subQuery->whereColumn('mas_reciente.fecha_analisis', '>', 'actual.fecha_analisis')
+                            ->orWhere(function ($tieBreaker) {
+                                $tieBreaker->whereColumn('mas_reciente.fecha_analisis', '=', 'actual.fecha_analisis')
+                                    ->whereColumn('mas_reciente.id', '>', 'actual.id');
+                            });
+                    });
+            })
+            ->whereNull('mas_reciente.id')
+            ->select('actual.id');
+
+        return $query->whereIn($this->qualifyColumn('id'), $latestIds);
     }
 
     public function planAccion(): HasMany
     {
-        return $this->hasMany(PlanAccion::class);
+        return $this->hasMany(PlanAccion::class, 'linea_id', 'linea_id');
     }
 
     public function getNombreCompletoAttribute()
@@ -159,7 +173,11 @@ class AnalisisLavadora extends Model
     public function getActividadesPendientesAttribute()
     {
         return $this->planAccion()
-                    ->whereIn('estado', ['pendiente', 'en_proceso'])
+                    ->where(function ($query) {
+                        $query->where('tipo_equipo', 'lavadora')
+                              ->orWhereNull('tipo_equipo');
+                    })
+                    ->where('completado', false)
                     ->count();
     }
 
@@ -167,12 +185,16 @@ class AnalisisLavadora extends Model
     {
         return $this->planAccion()
                     ->where(function ($query) {
+                        $query->where('tipo_equipo', 'lavadora')
+                              ->orWhereNull('tipo_equipo');
+                    })
+                    ->where('completado', false)
+                    ->where(function ($query) {
                         $query->whereDate('fecha_pcm1', '>=', now())
                               ->orWhereDate('fecha_pcm2', '>=', now())
                               ->orWhereDate('fecha_pcm3', '>=', now())
                               ->orWhereDate('fecha_pcm4', '>=', now());
                     })
-                    ->where('estado', '!=', 'completada')
                     ->orderByRaw('LEAST(
                         COALESCE(fecha_pcm1, "9999-12-31"),
                         COALESCE(fecha_pcm2, "9999-12-31"),

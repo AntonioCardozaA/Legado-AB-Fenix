@@ -18,6 +18,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property Carbon|null $fecha_pcm4
  * @property string|null $estado
  * @property string|null $tipo_equipo
+ * @property bool $completado
  * @property array<int, string>|null $tipo_maquina
  */
 class PlanAccion extends Model
@@ -48,7 +49,8 @@ class PlanAccion extends Model
         'fecha_pcm3' => 'date',
         'fecha_pcm4' => 'date',
         'fecha_recordatorio' => 'date',
-        'tipo_maquina' => 'array' // Laravel convertirá automáticamente JSON a array
+        'tipo_maquina' => 'array', // Laravel convertirá automáticamente JSON a array
+        'completado' => 'boolean',
     ];
 
     public function linea(): BelongsTo

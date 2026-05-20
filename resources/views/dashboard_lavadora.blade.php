@@ -512,19 +512,23 @@
         list-style: none;
         padding: 0;
         margin: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
     }
 
     .ranking-item {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 14px 16px;
-        border-bottom: 1px solid rgba(59, 130, 246, 0.08);
-        background: linear-gradient(90deg, transparent 0%, rgba(59, 130, 246, 0.01) 50%, transparent 100%);
+        padding: 16px 18px;
+        border: 1px solid rgba(148, 163, 184, 0.16);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 250, 252, 0.92) 100%);
         transition: var(--transition);
         position: relative;
-        border-radius: 10px;
-        margin-bottom: 8px;
+        border-radius: 14px;
+        margin-bottom: 0;
+        box-shadow: var(--shadow-sm);
     }
 
     .ranking-item::before {
@@ -542,9 +546,10 @@
     }
 
     .ranking-item:hover {
-        background: linear-gradient(90deg, rgba(59, 130, 246, 0.05) 0%, rgba(59, 130, 246, 0.08) 50%, rgba(59, 130, 246, 0.05) 100%);
-        transform: translateX(6px);
-        box-shadow: 0 4px 16px rgba(59, 130, 246, 0.12);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 1) 0%, rgba(239, 246, 255, 0.92) 100%);
+        transform: translateY(-2px);
+        box-shadow: 0 10px 24px rgba(59, 130, 246, 0.12);
+        border-color: rgba(59, 130, 246, 0.18);
     }
 
     .ranking-item:hover::before {
@@ -552,7 +557,6 @@
     }
 
     .ranking-item:last-child {
-        border-bottom: none;
         margin-bottom: 0;
     }
 
@@ -682,7 +686,7 @@
 
     /* Información adicional del ranking */
     .ranking-footer {
-        margin-top: 24px;
+        margin-top: 16px;
         padding: 16px 20px;
         background: linear-gradient(135deg, rgba(59, 130, 246, 0.06) 0%, rgba(139, 92, 246, 0.06) 100%);
         border-radius: 12px;
@@ -985,6 +989,471 @@
             font-size: 10px;
         }
     }
+
+    .dashboard-panel {
+        position: relative;
+    }
+
+    .panel-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 16px;
+        margin-bottom: 18px;
+    }
+
+    .panel-copy {
+        margin-top: 0;
+        margin-bottom: 14px;
+        font-size: 12px;
+        color: var(--text-secondary);
+        line-height: 1.5;
+        max-width: 760px;
+    }
+
+    .panel-actions {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+    }
+
+    .panel-link,
+    .panel-select,
+    .filter-chip {
+        border: 1px solid var(--border-light);
+        background: white;
+        border-radius: 10px;
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--text-primary);
+        transition: var(--transition);
+    }
+
+    .panel-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 14px;
+        text-decoration: none;
+        box-shadow: var(--shadow-sm);
+    }
+
+    .panel-link:hover {
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-md);
+        background: #f8fafc;
+    }
+
+    .panel-select {
+        min-width: 150px;
+        padding: 10px 12px;
+        box-shadow: var(--shadow-sm);
+        outline: none;
+    }
+
+    .panel-select:focus {
+        border-color: var(--primary-blue);
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.18);
+    }
+
+    .filter-chip-group {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .filter-chip {
+        padding: 9px 12px;
+        cursor: pointer;
+        box-shadow: var(--shadow-sm);
+    }
+
+    .filter-chip:hover {
+        background: #f8fafc;
+        transform: translateY(-1px);
+    }
+
+    .filter-chip.active {
+        background: linear-gradient(135deg, #0f172a, #334155);
+        border-color: #0f172a;
+        color: white;
+    }
+
+    .mini-stats-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+        margin-bottom: 18px;
+    }
+
+    .mini-stats-grid.compact {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .mini-stat {
+        background: white;
+        border: 1px solid var(--border-light);
+        border-radius: 14px;
+        padding: 14px;
+        box-shadow: var(--shadow-sm);
+        min-height: 88px;
+    }
+
+    .mini-stat.danger { border-top: 4px solid var(--danger-red); }
+    .mini-stat.warning { border-top: 4px solid var(--warning-yellow); }
+    .mini-stat.success { border-top: 4px solid var(--success-green); }
+    .mini-stat.info { border-top: 4px solid var(--primary-blue); }
+
+    .mini-stat-label {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+        color: var(--text-secondary);
+        font-weight: 700;
+        margin-bottom: 6px;
+    }
+
+    .mini-stat-value {
+        font-size: 24px;
+        font-weight: 800;
+        color: var(--text-primary);
+        line-height: 1.1;
+    }
+
+    .mini-stat-meta {
+        margin-top: 6px;
+        font-size: 11px;
+        color: var(--text-secondary);
+    }
+
+    .status-banner {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 14px 16px;
+        border-radius: 14px;
+        margin-bottom: 18px;
+        font-size: 13px;
+        font-weight: 700;
+        border: 1px solid transparent;
+    }
+
+    .status-banner.critico {
+        background: var(--danger-light);
+        color: #991b1b;
+        border-color: rgba(239, 68, 68, 0.18);
+    }
+
+    .status-banner.riesgo {
+        background: var(--warning-light);
+        color: #92400e;
+        border-color: rgba(245, 158, 11, 0.18);
+    }
+
+    .status-banner.estable {
+        background: var(--success-light);
+        color: #065f46;
+        border-color: rgba(16, 185, 129, 0.18);
+    }
+
+    .chart-shell {
+        position: relative;
+        margin: 16px 0 14px;
+        border-radius: 14px;
+        overflow: hidden;
+    }
+
+    .chart-shell .chart-container {
+        margin: 0;
+        padding: 14px 12px;
+        border: 1px solid rgba(148, 163, 184, 0.14);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75);
+    }
+
+    .chart-shell.compact .chart-container {
+        height: 236px;
+    }
+
+    .chart-container.tall {
+        height: 312px;
+    }
+
+    .card-loader {
+        position: absolute;
+        inset: 0;
+        z-index: 3;
+        border-radius: 12px;
+        background: rgba(248, 250, 252, 0.92);
+        backdrop-filter: blur(2px);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: 12px;
+        padding: 22px;
+        border: 1px solid rgba(148, 163, 184, 0.12);
+        transition: opacity 0.25s ease, visibility 0.25s ease;
+    }
+
+    .card-loader.is-hidden {
+        display: none;
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+    }
+
+    .card-loader[hidden] {
+        display: none !important;
+    }
+
+    .skeleton-line {
+        height: 12px;
+        border-radius: 999px;
+        background: linear-gradient(90deg, rgba(226, 232, 240, 0.95) 0%, rgba(248, 250, 252, 1) 50%, rgba(226, 232, 240, 0.95) 100%);
+        background-size: 220% 100%;
+        animation: shimmer 1.4s linear infinite;
+    }
+
+    .skeleton-line.small { width: 42%; }
+    .skeleton-line.medium { width: 68%; }
+    .skeleton-line.large { width: 100%; }
+
+    @keyframes shimmer {
+        0% { background-position: 200% 0; }
+        100% { background-position: -200% 0; }
+    }
+
+    .chart-empty-state {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        gap: 10px;
+        min-height: 260px;
+        padding: 28px 24px;
+        border-radius: 12px;
+        border: 1px dashed var(--border-light);
+        background: white;
+        text-align: center;
+        color: var(--text-secondary);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75);
+    }
+
+    .chart-empty-state[hidden] {
+        display: none !important;
+    }
+
+    .chart-empty-state i {
+        font-size: 26px;
+        color: var(--dark-gray);
+    }
+
+    .severity-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 12px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+    }
+
+    .severity-pill.critico {
+        background: var(--danger-light);
+        color: #991b1b;
+    }
+
+    .severity-pill.severo,
+    .severity-pill.moderado {
+        background: var(--warning-light);
+        color: #92400e;
+    }
+
+    .severity-pill.estable,
+    .severity-pill.cambiado {
+        background: var(--success-light);
+        color: #065f46;
+    }
+
+    .linea-breakdown,
+    .priority-list,
+    .worklist {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .breakdown-item,
+    .priority-row,
+    .work-item {
+        background: rgba(255, 255, 255, 0.84);
+        border: 1px solid rgba(148, 163, 184, 0.18);
+        border-radius: 14px;
+        padding: 13px 14px;
+    }
+
+    .breakdown-item-top,
+    .priority-row-top,
+    .work-item-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .breakdown-title,
+    .priority-title,
+    .work-title {
+        font-weight: 800;
+        color: var(--text-primary);
+        font-size: 13px;
+    }
+
+    .breakdown-meta,
+    .priority-meta,
+    .work-meta {
+        margin-top: 5px;
+        font-size: 11px;
+        color: var(--text-secondary);
+    }
+
+    .progress-track {
+        margin-top: 10px;
+        width: 100%;
+        height: 8px;
+        border-radius: 999px;
+        background: #e2e8f0;
+        overflow: hidden;
+    }
+
+    .progress-bar {
+        height: 100%;
+        border-radius: 999px;
+        background: linear-gradient(90deg, #0f172a, #3b82f6);
+    }
+
+    .subpanel-title {
+        font-size: 13px;
+        font-weight: 800;
+        color: var(--text-primary);
+        margin-bottom: 10px;
+    }
+
+    .subpanel-copy {
+        font-size: 11px;
+        color: var(--text-secondary);
+        margin-top: -4px;
+        margin-bottom: 10px;
+    }
+
+    .asset-media {
+        width: 46px;
+        height: 46px;
+        border-radius: 12px;
+        background: white;
+        border: 1px solid var(--border-light);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        box-shadow: var(--shadow-sm);
+    }
+
+    .asset-media img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        border-radius: 12px;
+        padding: 4px;
+    }
+
+    .ranking-asset {
+        flex: 1;
+        margin-left: 14px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        min-width: 0;
+    }
+
+    .ranking-meta {
+        font-size: 10px;
+        color: var(--text-secondary);
+        margin-top: 6px;
+        line-height: 1.45;
+    }
+
+    .info-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+    }
+
+    .legend-inline {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 14px;
+    }
+
+    .legend-item {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 11px;
+        font-weight: 700;
+        color: var(--text-secondary);
+    }
+
+    .legend-swatch {
+        width: 12px;
+        height: 12px;
+        border-radius: 999px;
+    }
+
+    @media (max-width: 1024px) {
+        .mini-stats-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .panel-header {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .panel-actions {
+            justify-content: flex-start;
+        }
+    }
+
+    @media (max-width: 640px) {
+        .mini-stats-grid,
+        .mini-stats-grid.compact,
+        .info-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .chart-container,
+        .chart-shell.compact .chart-container,
+        .chart-container.tall {
+            height: 260px;
+        }
+
+        .panel-link,
+        .panel-select,
+        .filter-chip {
+            width: 100%;
+            justify-content: center;
+        }
+
+        .ranking-asset {
+            margin-left: 10px;
+            gap: 10px;
+        }
+    }
 </style>
 
 <div class="dashboard-container">
@@ -1171,6 +1640,12 @@
     </div>
 
     {{-- Gráficas Mejoradas --}}
+    @php
+        $lineaOptions = $lineasLavadora
+            ->map(fn ($linea) => ['id' => $linea->id, 'nombre' => $linea->nombre])
+            ->values();
+    @endphp
+
     <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
         {{-- Gráfica 1: Fallas por Línea --}}
         <div class="chart-card">
@@ -1210,8 +1685,8 @@
                 <i class="fas fa-trophy"></i>
                 <span>Ranking de Daño</span>
             </h3>
-            <ul class="ranking-list">
-                @foreach($rankingDanos as $index => $item)
+            <ul class="ranking-list" id="rankingList">
+                @foreach([] as $index => $item)
                     <li class="ranking-item">
                         <div class="ranking-position {{ $index === 0 ? 'top-1' : ($index === 1 ? 'top-2' : ($index === 2 ? 'top-3' : '')) }}">
                             {{ $index + 1 }}
@@ -1230,7 +1705,7 @@
                     </li>
                 @endforeach
             </ul>
-            <div class="ranking-footer">
+            <div class="ranking-footer" id="rankingFooter">
                 <div>
                     <i class="fas fa-info-circle"></i>
                     Ordenado por nivel de criticidad
@@ -1273,8 +1748,8 @@
                             </th>
                         </tr>
                     </thead>
-                    <tbody>
-                        @foreach($historicoRevisiones as $item)
+                    <tbody id="historicoTableBody">
+                        @foreach([] as $item)
                             <tr>
                                 <td><i class="fas fa-microchip mr-2 text-gray-400"></i>{{ $item['componente'] }}</td>
                                 <td>{{ $item['total_analisis'] }}</td>
@@ -2055,5 +2530,1002 @@
             closeModal();
         }
     });
+</script>
+<script>
+(() => {
+    const data = {
+        lineas: @json($lineaOptions),
+        fallas: @json($fallasPorLinea),
+        planes: @json($planesAccionDashboard),
+        ranking: @json($rankingDanos),
+        elongaciones: @json($evolucionElongaciones),
+        historico: @json($historicoRevisiones),
+        tendencia: @json($analisis52124)
+    };
+
+    const charts = {
+        fallas: null,
+        planes: null,
+        elongaciones: null,
+        historico: null,
+        tendencia: null
+    };
+
+    const state = {
+        fallasFilter: 'all',
+        rankingScope: 'all',
+        rankingSort: 'puntaje',
+        elongacionLineaId: data.elongaciones?.default_linea_id ?? data.lineas?.[0]?.id ?? null,
+        historicoScope: 'Todas',
+        tendenciaLineaId: data.tendencia?.default_linea_id ?? data.lineas?.[0]?.id ?? null
+    };
+
+    let layoutReady = false;
+
+    window.initCharts = initCharts = function () {
+        if (!layoutReady) {
+            setupLayout();
+            layoutReady = true;
+        }
+
+        renderFallas();
+        renderPlanes();
+        renderRanking();
+        renderElongaciones();
+        renderHistorico();
+        renderTendencia();
+    };
+
+    function setupLayout() {
+        setupFallasCard();
+        setupPlanesCard();
+        setupRankingCard();
+        setupElongacionesCard();
+        setupHistoricoCard();
+        setupTendenciaCard();
+    }
+
+    function setupFallasCard() {
+        const card = cardFromCanvas('fallasChart');
+        if (!card) return;
+
+        card.classList.add('dashboard-panel');
+        updateCardTitle(card, 'Fallas por linea', 'fas fa-chart-bar');
+        ensureAfterHeading(card, 'fallasCopy', `<p id="fallasCopy" class="panel-copy">Estadisticas reales por lavadora con filtros por severidad y lectura clara del impacto actual.</p>`);
+        ensureAfterElement('fallasCopy', 'fallasToolbar', `
+            <div id="fallasToolbar" class="panel-actions" style="margin-bottom: 18px; justify-content: flex-start;">
+                <div class="filter-chip-group" id="fallasSeverityFilters">
+                    <button type="button" class="filter-chip active" data-filter="all">Vista total</button>
+                    <button type="button" class="filter-chip" data-filter="criticas">Criticas</button>
+                    <button type="button" class="filter-chip" data-filter="severas_moderadas">Severas y moderadas</button>
+                </div>
+            </div>
+        `);
+        ensureChartShell('fallasChart', 'fallas');
+
+        const description = card.querySelector('.chart-description');
+        if (description && !document.getElementById('fallasLegend')) {
+            description.insertAdjacentHTML('beforebegin', `
+                <div class="legend-inline" id="fallasLegend">
+                    <span class="legend-item"><span class="legend-swatch" style="background: rgba(239, 68, 68, 0.92);"></span> Critico</span>
+                    <span class="legend-item"><span class="legend-swatch" style="background: rgba(249, 115, 22, 0.9);"></span> Severo / Moderado</span>
+                    <span class="legend-item"><span class="legend-swatch" style="background: rgba(16, 185, 129, 0.9);"></span> Estable</span>
+                </div>
+            `);
+            description.insertAdjacentHTML('afterend', `
+                <div class="subpanel-title" style="margin-top: 18px;">Lavadoras con mayor impacto</div>
+                <p class="subpanel-copy">Ordenadas automaticamente segun el filtro activo y el porcentaje de afectacion.</p>
+                <div class="linea-breakdown" id="fallasBreakdown"></div>
+            `);
+        }
+
+        document.querySelectorAll('#fallasSeverityFilters .filter-chip').forEach((button) => {
+            if (button.dataset.bound === 'true') return;
+            button.dataset.bound = 'true';
+            button.addEventListener('click', function () {
+                state.fallasFilter = this.dataset.filter;
+                document.querySelectorAll('#fallasSeverityFilters .filter-chip').forEach((item) => item.classList.toggle('active', item === this));
+                renderFallas();
+            });
+        });
+    }
+
+    function setupPlanesCard() {
+        const card = cardFromCanvas('componentesChart');
+        if (!card) return;
+
+        card.classList.add('dashboard-panel');
+        updateCardTitle(card, 'Planes de accion', 'fas fa-clipboard-check');
+        ensureAfterHeading(card, 'planesCopy', `<p id="planesCopy" class="panel-copy">Seguimiento operativo de planes activos, pendientes y completados con prioridad de atencion por lavadora.</p>`);
+        ensureAfterElement('planesCopy', 'planesActions', `
+            <div id="planesActions" class="panel-actions" style="margin-bottom: 18px; justify-content: flex-start;">
+                <a href="{{ route('plan-accion.lavadora.index') }}" class="panel-link">
+                    <i class="fas fa-arrow-up-right-from-square"></i>
+                    Ir al modulo
+                </a>
+            </div>
+        `);
+        ensureAfterElement('planesActions', 'planesBanner', `<div id="planesBanner" class="status-banner estable"></div>`);
+        ensureChartShell('componentesChart', 'planes', { compact: true });
+
+        const description = card.querySelector('.chart-description');
+        if (description) {
+            description.innerHTML = '<i class="fas fa-info-circle"></i> Seguimiento de planes activos, pendientes y completados por lavadora';
+        }
+
+        if (description && !document.getElementById('planesPriorityList')) {
+            description.insertAdjacentHTML('afterend', `
+                <div class="subpanel-title" style="margin-top: 18px;">Carga por lavadora</div>
+                <p class="subpanel-copy">Balance de apertura, cierre y avance por linea.</p>
+                <div class="priority-list" id="planesPriorityList"></div>
+                <div class="subpanel-title" style="margin-top: 18px;">Planes activos prioritarios</div>
+                <p class="subpanel-copy">Actividades abiertas con mayor urgencia o sin fecha definida.</p>
+                <div class="worklist" id="planesWorkList"></div>
+            `);
+        }
+    }
+
+    function setupRankingCard() {
+        const list = document.getElementById('rankingList');
+        if (!list) return;
+
+        const card = list.closest('.chart-card');
+        card.classList.add('dashboard-panel');
+        updateCardTitle(card, 'Ranking de dano', 'fas fa-trophy');
+        ensureAfterHeading(card, 'rankingCopy', `<p id="rankingCopy" class="panel-copy">Componentes que requieren mayor prioridad de atencion, ordenados dinamicamente por criticidad o antiguedad.</p>`);
+        ensureAfterElement('rankingCopy', 'rankingActions', `
+            <div id="rankingActions" class="panel-actions" style="margin-bottom: 18px; justify-content: flex-start;">
+                <select id="rankingScopeSelect" class="panel-select">
+                    <option value="all">Todos los danos</option>
+                    <option value="requiere_cambio">Solo requiere cambio</option>
+                </select>
+                <select id="rankingSortSelect" class="panel-select">
+                    <option value="puntaje">Mas criticos</option>
+                    <option value="dias_desde_revision">Mayor antiguedad</option>
+                </select>
+            </div>
+        `);
+        if (!document.getElementById('rankingLoader')) {
+            list.insertAdjacentHTML('beforebegin', loaderMarkup('rankingLoader'));
+            list.insertAdjacentHTML('beforebegin', `<div class="chart-empty-state" id="rankingEmpty" hidden></div>`);
+        }
+
+        const scopeSelect = document.getElementById('rankingScopeSelect');
+        const sortSelect = document.getElementById('rankingSortSelect');
+
+        if (scopeSelect && scopeSelect.dataset.bound !== 'true') {
+            scopeSelect.dataset.bound = 'true';
+            scopeSelect.addEventListener('change', function () {
+                state.rankingScope = this.value;
+                renderRanking();
+            });
+        }
+
+        if (sortSelect && sortSelect.dataset.bound !== 'true') {
+            sortSelect.dataset.bound = 'true';
+            sortSelect.addEventListener('change', function () {
+                state.rankingSort = this.value;
+                renderRanking();
+            });
+        }
+    }
+
+    function setupElongacionesCard() {
+        const card = cardFromCanvas('elongacionesChart');
+        if (!card) return;
+
+        card.classList.add('dashboard-panel');
+        updateCardTitle(card, 'Evolucion de elongaciones', 'fas fa-chart-line');
+        ensureAfterHeading(card, 'elongacionesCopy', `<p id="elongacionesCopy" class="panel-copy">Tendencia historica por lavadora desde la primera medicion disponible hasta la revision mas reciente.</p>`);
+        ensureAfterElement('elongacionesCopy', 'elongacionesActions', `
+            <div id="elongacionesActions" class="panel-actions" style="margin-bottom: 18px; justify-content: flex-start;">
+                <select id="elongacionesLineaSelect" class="panel-select">${lineaOptions(state.elongacionLineaId)}</select>
+            </div>
+        `);
+        ensureChartShell('elongacionesChart', 'elongaciones', { tall: true });
+
+        const select = document.getElementById('elongacionesLineaSelect');
+        if (select && select.dataset.bound !== 'true') {
+            select.dataset.bound = 'true';
+            select.addEventListener('change', function () {
+                state.elongacionLineaId = Number(this.value);
+                renderElongaciones();
+            });
+        }
+    }
+
+    function setupHistoricoCard() {
+        const body = document.getElementById('historicoTableBody');
+        if (!body) return;
+
+        const card = body.closest('.chart-card');
+        card.classList.add('dashboard-panel');
+        updateCardTitle(card, 'Historico de revisiones', 'fas fa-history');
+        ensureAfterHeading(card, 'historicoCopy', `<p id="historicoCopy" class="panel-copy">Lectura mensual de revisiones y detalle reciente para facilitar analisis, trazabilidad y seguimiento.</p>`);
+        ensureAfterElement('historicoCopy', 'historicoActions', `
+            <div id="historicoActions" class="panel-actions" style="margin-bottom: 18px; justify-content: flex-start;">
+                <select id="historicoScopeSelect" class="panel-select">
+                    <option value="Todas">Todas las lavadoras</option>
+                    ${data.lineas.map((linea) => `<option value="${escapeHtml(linea.nombre)}">${escapeHtml(linea.nombre)}</option>`).join('')}
+                </select>
+            </div>
+        `);
+        const tableWrapper = card.querySelector('.overflow-x-auto');
+        if (tableWrapper && !document.getElementById('historicoChart')) {
+            tableWrapper.insertAdjacentHTML('beforebegin', `
+                <div class="chart-shell compact">
+                    ${loaderMarkup('historicoLoader')}
+                    <div class="chart-empty-state" id="historicoEmpty" hidden></div>
+                    <div class="chart-container" data-chart-container="historico">
+                        <canvas id="historicoChart"></canvas>
+                    </div>
+                </div>
+                <div class="subpanel-title" style="margin-top: 18px;">Ultimas revisiones registradas</div>
+                <p class="subpanel-copy">Se muestran los registros recientes disponibles segun el alcance seleccionado.</p>
+            `);
+        }
+
+        const headerRow = card.querySelector('thead tr');
+        if (headerRow) {
+            headerRow.innerHTML = `
+                <th><i class="fas fa-calendar-day" style="color: #3b82f6;"></i> Fecha</th>
+                <th><i class="fas fa-industry" style="color: #2563eb;"></i> Lavadora</th>
+                <th><i class="fas fa-cube" style="color: #0f172a;"></i> Componente</th>
+                <th><i class="fas fa-location-dot" style="color: #7c3aed;"></i> Ubicacion</th>
+                <th><i class="fas fa-signal" style="color: #ef4444;"></i> Estado</th>
+                <th><i class="fas fa-user" style="color: #10b981;"></i> Revision</th>
+            `;
+        }
+
+        const select = document.getElementById('historicoScopeSelect');
+        if (select && select.dataset.bound !== 'true') {
+            select.dataset.bound = 'true';
+            select.addEventListener('change', function () {
+                state.historicoScope = this.value;
+                renderHistorico();
+            });
+        }
+    }
+
+    function setupTendenciaCard() {
+        const card = cardFromCanvas('analisis52124Chart');
+        if (!card) return;
+
+        card.classList.add('dashboard-panel');
+        updateCardTitle(card, 'Analisis 52-12-4 | Tendencia de danos', 'fas fa-wave-square');
+        ensureAfterHeading(card, 'tendenciaCopy', `<p id="tendenciaCopy" class="panel-copy">Comparativa dinamica de tendencia acumulada por lavadora en ventanas de 52, 12 y 4 semanas.</p>`);
+        ensureAfterElement('tendenciaCopy', 'tendenciaActions', `
+            <div id="tendenciaActions" class="panel-actions" style="margin-bottom: 18px; justify-content: flex-start;">
+                <select id="analisis52124LineaSelect" class="panel-select">${lineaOptions(state.tendenciaLineaId)}</select>
+            </div>
+        `);
+        ensureChartShell('analisis52124Chart', 'analisis52124', { tall: true });
+
+        const select = document.getElementById('analisis52124LineaSelect');
+        if (select && select.dataset.bound !== 'true') {
+            select.dataset.bound = 'true';
+            select.addEventListener('change', function () {
+                state.tendenciaLineaId = Number(this.value);
+                renderTendencia();
+            });
+        }
+    }
+
+    function renderFallas() {
+        const stats = document.getElementById('fallasStats');
+        const breakdown = document.getElementById('fallasBreakdown');
+        const description = cardFromCanvas('fallasChart')?.querySelector('.chart-description');
+        const rows = Array.isArray(data.fallas) ? [...data.fallas] : [];
+        const hasData = rows.some((item) => Number(item.total_componentes || 0) > 0);
+
+        if (!hasData) {
+            if (stats) {
+                stats.innerHTML = miniStats([
+                    ['Lavadoras sin datos', '0', 'No hay analisis vigentes', 'info'],
+                    ['Criticas', '0', 'Sin registros', 'danger'],
+                    ['Severas / Moderadas', '0', 'Sin registros', 'warning']
+                ]);
+            }
+            if (breakdown) breakdown.innerHTML = infoBox('No hay datos disponibles para construir la matriz de fallas por linea.');
+            if (description) description.innerHTML = '<i class="fas fa-info-circle"></i> La grafica se activara cuando existan analisis vigentes por lavadora';
+            destroy(charts.fallas);
+            setChartState('fallas', true, 'Sin datos de fallas', 'No existen componentes evaluados para mostrar la distribucion por linea.', 'fa-database');
+            return;
+        }
+
+        const key = state.fallasFilter === 'criticas' ? 'criticas' : (state.fallasFilter === 'severas_moderadas' ? 'severas_moderadas' : 'impactados');
+        const sorted = rows.slice().sort((a, b) => Number(b[key] || 0) - Number(a[key] || 0) || Number(b.porcentaje_impacto || 0) - Number(a.porcentaje_impacto || 0));
+
+        const criticas = rows.reduce((sum, item) => sum + Number(item.criticas || 0), 0);
+        const warnings = rows.reduce((sum, item) => sum + Number(item.severas_moderadas || 0), 0);
+        const impactadas = rows.filter((item) => Number(item.impactados || 0) > 0).length;
+        const promedio = rows.length ? rows.reduce((sum, item) => sum + Number(item.porcentaje_impacto || 0), 0) / rows.length : 0;
+
+        if (stats) {
+            stats.innerHTML = miniStats([
+                ['Lavadoras impactadas', impactadas, `${rows.length} monitoreadas`, 'info'],
+                ['Fallas criticas', criticas, 'Rojo = requiere cambio', 'danger'],
+                ['Severas / Moderadas', warnings, 'Naranja = seguimiento', 'warning'],
+                ['Impacto promedio', percent(promedio, 1), 'Sobre componentes vigentes', 'success']
+            ]);
+        }
+
+        if (breakdown) {
+            breakdown.innerHTML = sorted.slice(0, 5).map((item) => `
+                <div class="breakdown-item">
+                    <div class="breakdown-item-top">
+                        <div>
+                            <div class="breakdown-title">${escapeHtml(item.linea)}</div>
+                            <div class="breakdown-meta">Criticas: ${Number(item.criticas || 0)} · Severo/Moderado: ${Number(item.severas_moderadas || 0)} · Ultima revision: ${escapeHtml(item.ultima_revision_humana || 'Sin fecha')}</div>
+                        </div>
+                        <span class="severity-pill ${item.estado === 'critico' ? 'critico' : (item.estado === 'riesgo' ? 'severo' : 'estable')}">${percent(item.porcentaje_impacto || 0, 1)}</span>
+                    </div>
+                    <div class="progress-track"><div class="progress-bar" style="width: ${Math.min(Number(item.porcentaje_impacto || 0), 100)}%;"></div></div>
+                </div>
+            `).join('');
+        }
+
+        if (description) {
+            const copy = state.fallasFilter === 'criticas'
+                ? 'Vista enfocada solo en fallas criticas que requieren cambio inmediato.'
+                : (state.fallasFilter === 'severas_moderadas'
+                    ? 'Vista enfocada en desgaste severo y moderado para seguimiento preventivo.'
+                    : 'Vista integral con criticidad y desgaste por cada lavadora.');
+            description.innerHTML = `<i class="fas fa-info-circle"></i> ${copy}`;
+        }
+
+        const datasets = state.fallasFilter === 'all'
+            ? [
+                { label: 'Criticas', data: sorted.map((item) => Number(item.criticas || 0)), backgroundColor: 'rgba(239, 68, 68, 0.92)', borderColor: '#dc2626', borderWidth: 2, borderRadius: 10, borderSkipped: false },
+                { label: 'Severas / Moderadas', data: sorted.map((item) => Number(item.severas_moderadas || 0)), backgroundColor: 'rgba(249, 115, 22, 0.88)', borderColor: '#ea580c', borderWidth: 2, borderRadius: 10, borderSkipped: false },
+                { label: 'Estables', data: sorted.map((item) => Number(item.estables || 0)), backgroundColor: 'rgba(16, 185, 129, 0.24)', borderColor: '#10b981', borderWidth: 1, borderRadius: 10, borderSkipped: false }
+            ]
+            : [{
+                label: state.fallasFilter === 'criticas' ? 'Criticas' : 'Severas / Moderadas',
+                data: sorted.map((item) => Number(item[state.fallasFilter] || 0)),
+                backgroundColor: state.fallasFilter === 'criticas' ? 'rgba(239, 68, 68, 0.92)' : 'rgba(249, 115, 22, 0.9)',
+                borderColor: state.fallasFilter === 'criticas' ? '#dc2626' : '#ea580c',
+                borderWidth: 2,
+                borderRadius: 10,
+                borderSkipped: false
+            }];
+
+        destroy(charts.fallas);
+        setChartState('fallas', false);
+        charts.fallas = new Chart(document.getElementById('fallasChart').getContext('2d'), {
+            type: 'bar',
+            data: { labels: sorted.map((item) => item.linea), datasets },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                scales: {
+                    x: { stacked: state.fallasFilter === 'all', grid: { display: false }, ticks: { color: '#334155', font: { size: 12, weight: 700 } } },
+                    y: { beginAtZero: true, stacked: state.fallasFilter === 'all', grid: { color: 'rgba(148, 163, 184, 0.16)' }, ticks: { precision: 0, color: '#64748b' } }
+                },
+                plugins: {
+                    legend: { display: state.fallasFilter === 'all', labels: { usePointStyle: true, padding: 16, color: '#334155', font: { size: 11, weight: 700 } } },
+                    tooltip: {
+                        backgroundColor: 'rgba(15, 23, 42, 0.96)',
+                        titleColor: '#fff',
+                        bodyColor: '#e2e8f0',
+                        callbacks: {
+                            afterBody: (context) => {
+                                const item = sorted[context[0].dataIndex];
+                                return [`Impactados: ${Number(item.impactados || 0)}`, `Impacto: ${percent(item.porcentaje_impacto || 0, 1)}`, `Ultima revision: ${item.ultima_revision_humana || 'Sin fecha'}`];
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    function renderPlanes() {
+        const summary = data.planes?.resumen || {};
+        const status = data.planes?.estado_general || {};
+        const porLinea = Array.isArray(data.planes?.por_linea) ? data.planes.por_linea : [];
+        const plans = Array.isArray(data.planes?.planes) ? data.planes.planes : [];
+        const stats = document.getElementById('planesStats');
+        const banner = document.getElementById('planesBanner');
+        const priority = document.getElementById('planesPriorityList');
+        const work = document.getElementById('planesWorkList');
+        const description = cardFromCanvas('componentesChart')?.querySelector('.chart-description');
+
+        if (banner) {
+            banner.className = `status-banner ${status.nivel || 'estable'}`;
+            banner.innerHTML = `<i class="fas fa-shield-heart"></i><span>${escapeHtml(status.label || 'Controlado')}: ${escapeHtml(status.mensaje || 'Sin alertas activas')}</span>`;
+        }
+
+        if (stats) {
+            stats.innerHTML = miniStats([
+                ['Activos', Number(summary.activos || 0), `${Number(summary.vencidos || 0)} vencidos`, 'danger'],
+                ['Pendientes', Number(summary.pendientes || 0), `${Number(summary.proximos_7_dias || 0)} proximos a vencer`, 'warning'],
+                ['Completados', Number(summary.completados || 0), `${Number(summary.avance || 0)}% avance global`, 'success'],
+                ['Alta prioridad', Number(summary.prioridad_alta || 0), `${Number(summary.lineas_comprometidas || 0)} lavadoras comprometidas`, 'info']
+            ]);
+        }
+
+        if (description) {
+            description.innerHTML = `<i class="fas fa-info-circle"></i> Avance global: ${Number(summary.avance || 0)}% · Total de planes registrados: ${Number(summary.total || 0)}`;
+        }
+
+        if (!Number(summary.total || 0)) {
+            if (priority) priority.innerHTML = infoBox('No hay planes registrados para las lavadoras seleccionadas.');
+            if (work) work.innerHTML = infoBox('Cuando existan actividades abiertas se mostraran aqui.');
+            destroy(charts.planes);
+            setChartState('planes', true, 'Sin planes registrados', 'No existen planes de accion para construir el seguimiento operativo.', 'fa-clipboard');
+            return;
+        }
+
+        if (priority) {
+            priority.innerHTML = porLinea.slice(0, 5).map((item) => `
+                <div class="priority-row">
+                    <div class="priority-row-top">
+                        <div>
+                            <div class="priority-title">${escapeHtml(item.linea)}</div>
+                            <div class="priority-meta">Abiertos: ${Number(item.abiertos || 0)} · Completados: ${Number(item.completados || 0)} · Alta prioridad: ${Number(item.alta_prioridad || 0)}</div>
+                        </div>
+                        <span class="severity-pill ${Number(item.alta_prioridad || 0) > 0 ? 'critico' : (Number(item.abiertos || 0) > 0 ? 'severo' : 'estable')}">${Number(item.porcentaje_cierre || 0)}% cierre</span>
+                    </div>
+                    <div class="progress-track"><div class="progress-bar" style="width: ${Math.min(Number(item.porcentaje_cierre || 0), 100)}%;"></div></div>
+                </div>
+            `).join('');
+        }
+
+        if (work) {
+            work.innerHTML = plans.length
+                ? plans.map((item) => `
+                    <div class="work-item">
+                        <div class="work-item-top">
+                            <div>
+                                <div class="work-title">${escapeHtml(item.linea)}</div>
+                                <div class="work-meta">${escapeHtml(item.actividad || 'Sin descripcion')}</div>
+                            </div>
+                            <span class="severity-pill ${planClass(item.prioridad)}">${escapeHtml(item.prioridad_label || 'Sin fecha')}</span>
+                        </div>
+                        <div class="work-meta" style="margin-top: 8px;">Proxima fecha: ${escapeHtml(item.proxima_fecha_humana || 'Sin fecha')} · ${daysLabel(item.dias_restantes)}</div>
+                    </div>
+                `).join('')
+                : infoBox('No hay actividades abiertas prioritarias en este momento.');
+        }
+
+        destroy(charts.planes);
+        setChartState('planes', false);
+        charts.planes = new Chart(document.getElementById('componentesChart').getContext('2d'), {
+            type: 'doughnut',
+            data: {
+                labels: ['Pendientes criticos', 'Activos programados', 'Completados'],
+                datasets: [{
+                    data: [Number(summary.pendientes || 0), Number(summary.programados || 0), Number(summary.completados || 0)],
+                    backgroundColor: ['rgba(239, 68, 68, 0.92)', 'rgba(245, 158, 11, 0.88)', 'rgba(16, 185, 129, 0.88)'],
+                    borderColor: ['#dc2626', '#d97706', '#059669'],
+                    borderWidth: 2,
+                    hoverOffset: 10
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '68%',
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: 'rgba(15, 23, 42, 0.96)',
+                        titleColor: '#fff',
+                        bodyColor: '#e2e8f0',
+                        callbacks: { label: (context) => `${context.label}: ${context.raw}` }
+                    }
+                }
+            },
+            plugins: [{
+                id: 'planesCenterLabel',
+                beforeDraw(chart) {
+                    const { ctx } = chart;
+                    ctx.save();
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillStyle = '#0f172a';
+                    ctx.font = '700 24px sans-serif';
+                    ctx.fillText(`${Number(summary.avance || 0)}%`, chart.width / 2, chart.height / 2 - 6);
+                    ctx.fillStyle = '#64748b';
+                    ctx.font = '600 11px sans-serif';
+                    ctx.fillText('avance global', chart.width / 2, chart.height / 2 + 16);
+                    ctx.restore();
+                }
+            }]
+        });
+    }
+
+    function renderRanking() {
+        const list = document.getElementById('rankingList');
+        const stats = document.getElementById('rankingStats');
+        const footer = document.getElementById('rankingFooter');
+        const empty = document.getElementById('rankingEmpty');
+
+        const rows = (Array.isArray(data.ranking) ? data.ranking : []).filter((item) => state.rankingScope === 'requiere_cambio' ? Boolean(item.requiere_cambio) : true);
+        rows.sort((a, b) => state.rankingSort === 'dias_desde_revision'
+            ? Number(b.dias_desde_revision || 0) - Number(a.dias_desde_revision || 0) || Number(b.puntaje || 0) - Number(a.puntaje || 0)
+            : Number(b.puntaje || 0) - Number(a.puntaje || 0) || Number(b.dias_desde_revision || 0) - Number(a.dias_desde_revision || 0));
+
+        if (stats) {
+            stats.innerHTML = miniStats([
+                ['Hallazgos', rows.length, `${Array.isArray(data.ranking) ? data.ranking.length : 0} evaluados`, 'info'],
+                ['Cambio requerido', rows.filter((item) => item.requiere_cambio).length, 'Criticos inmediatos', 'danger'],
+                ['Severos / Moderados', rows.filter((item) => !item.requiere_cambio).length, 'Seguimiento preventivo', 'warning'],
+                ['Antiguedad media', rows.length ? `${number(rows.reduce((sum, item) => sum + Number(item.dias_desde_revision || 0), 0) / rows.length, 0)} dias` : '0 dias', 'Desde la ultima revision', 'success']
+            ]);
+        }
+
+        hideLoader('rankingLoader');
+
+        if (!rows.length) {
+            list.hidden = true;
+            if (footer) footer.hidden = true;
+            if (empty) {
+                empty.hidden = false;
+                empty.innerHTML = emptyMarkup('Sin componentes en este criterio', 'Prueba con otro alcance del ranking o espera nuevos analisis.', 'fa-list-check');
+            }
+            return;
+        }
+
+        if (empty) empty.hidden = true;
+        list.hidden = false;
+        if (footer) {
+            footer.hidden = false;
+            footer.innerHTML = `<div><i class="fas fa-info-circle"></i> Orden actual: ${state.rankingSort === 'puntaje' ? 'criticidad total' : 'mayor antiguedad sin revisar'}.</div>`;
+        }
+
+        list.innerHTML = rows.slice(0, 10).map((item, index) => `
+            <li class="ranking-item">
+                <div class="ranking-position ${index === 0 ? 'top-1' : (index === 1 ? 'top-2' : (index === 2 ? 'top-3' : ''))}">${index + 1}</div>
+                <div class="ranking-asset">
+                    <div class="asset-media">
+                        <img src="${escapeHtml(item.icono || '/images/componentes-lavadora/default.png')}" alt="${escapeHtml(item.componente || 'Componente')}" onerror="this.src='/images/componentes-lavadora/default.png'">
+                    </div>
+                    <div class="ranking-info">
+                        <div class="ranking-linea">${escapeHtml(item.componente || 'Componente sin nombre')}</div>
+                        <div class="ranking-puntaje"><i class="fas fa-industry"></i> ${escapeHtml(item.linea || 'Sin linea')} · ${escapeHtml(item.reductor || 'Sin reductor')}${item.lado ? ` · ${escapeHtml(item.lado)}` : ''}</div>
+                        <div class="ranking-meta">Revision: ${escapeHtml(item.fecha_analisis_humana || 'Sin fecha')} · ${elapsedDaysLabel(item.dias_desde_revision)}</div>
+                    </div>
+                </div>
+                <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 8px;">
+                    <span class="severity-pill ${severityClass(item.prioridad)}">${escapeHtml(item.prioridad_label || 'Estable')}</span>
+                    <div class="ranking-badge"><i class="fas fa-bolt"></i> Puntaje ${number(item.puntaje || 0, 2)}</div>
+                </div>
+            </li>
+        `).join('');
+    }
+
+    function renderElongaciones() {
+        const stats = document.getElementById('elongacionesStats');
+        const description = cardFromCanvas('elongacionesChart')?.querySelector('.chart-description');
+        const select = document.getElementById('elongacionesLineaSelect');
+        const rows = Array.isArray(data.elongaciones?.lineas) ? data.elongaciones.lineas : [];
+        const item = rows.find((row) => Number(row.linea_id) === Number(state.elongacionLineaId)) || rows[0];
+
+        if (select) select.value = String(item?.linea_id ?? state.elongacionLineaId ?? '');
+
+        if (!item || item.sin_datos || !Array.isArray(item.labels) || !item.labels.length) {
+            if (stats) {
+                stats.innerHTML = miniStats([
+                    ['Mediciones', 0, 'Sin historial', 'info'],
+                    ['Periodo', '-', 'No hay fechas', 'warning'],
+                    ['Max actual', '0%', 'Sin lecturas', 'danger']
+                ]);
+            }
+            if (description) description.innerHTML = '<i class="fas fa-info-circle"></i> No existe historico de elongaciones para la lavadora seleccionada';
+            destroy(charts.elongaciones);
+            setChartState('elongaciones', true, 'Sin historial de elongaciones', 'Registra mediciones para visualizar la tendencia de la cadena.', 'fa-wave-square');
+            return;
+        }
+
+        const current = Number(item.actual_max || 0);
+        const status = current >= Number(item.threshold_cambio || 0) ? 'critico' : (current >= Number(item.threshold_compra || 0) ? 'warning' : 'success');
+        if (stats) {
+            stats.innerHTML = miniStats([
+                ['Mediciones', Number(item.mediciones || 0), escapeHtml(item.linea || ''), 'info'],
+                ['Desde', escapeHtml(item.desde || '-'), `Hasta ${escapeHtml(item.hasta || '-')}`, 'success'],
+                ['Max actual', percent(current, 2), `Compra ${percent(item.threshold_compra || 0, 2)}`, 'warning'],
+                ['Estado', current >= Number(item.threshold_cambio || 0) ? 'Critico' : (current >= Number(item.threshold_compra || 0) ? 'Seguimiento' : 'Estable'), `Cambio ${percent(item.threshold_cambio || 0, 2)}`, status]
+            ]);
+        }
+
+        if (description) {
+            description.innerHTML = `<i class="fas fa-info-circle"></i> ${escapeHtml(item.linea)} · ${Number(item.mediciones || 0)} mediciones desde ${escapeHtml(item.desde || '-')} hasta ${escapeHtml(item.hasta || '-')}`;
+        }
+
+        const promedio = Array.isArray(item.promedio) ? item.promedio.map((value) => Number(value || 0)) : [];
+        destroy(charts.elongaciones);
+        setChartState('elongaciones', false);
+        charts.elongaciones = new Chart(document.getElementById('elongacionesChart').getContext('2d'), {
+            type: 'line',
+            data: {
+                labels: item.labels,
+                datasets: [
+                    { label: 'Bombas', data: (item.bombas || []).map((value) => Number(value || 0)), borderColor: '#2563eb', backgroundColor: 'rgba(37, 99, 235, 0.12)', borderWidth: 3, pointRadius: 4, tension: 0.35, fill: true },
+                    { label: 'Vapor', data: (item.vapor || []).map((value) => Number(value || 0)), borderColor: '#ef4444', backgroundColor: 'rgba(239, 68, 68, 0.08)', borderWidth: 3, pointRadius: 4, tension: 0.35, fill: true },
+                    { label: 'Promedio', data: promedio, borderColor: '#334155', borderWidth: 2, pointRadius: 0, tension: 0.25, borderDash: [4, 4] },
+                    { label: 'Tendencia', data: trend(promedio), borderColor: '#0f172a', borderWidth: 3, pointRadius: 0, tension: 0.1 },
+                    { label: 'Umbral compra', data: new Array(item.labels.length).fill(Number(item.threshold_compra || 0)), borderColor: '#f59e0b', borderWidth: 2, pointRadius: 0, borderDash: [8, 4] },
+                    { label: 'Umbral cambio', data: new Array(item.labels.length).fill(Number(item.threshold_cambio || 0)), borderColor: '#10b981', borderWidth: 2, pointRadius: 0, borderDash: [8, 4] }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: 'rgba(15, 23, 42, 0.96)',
+                        titleColor: '#fff',
+                        bodyColor: '#e2e8f0',
+                        callbacks: { label: (context) => `${context.dataset.label}: ${percent(context.raw || 0, 2)}` }
+                    }
+                },
+                scales: {
+                    x: { grid: { display: false }, ticks: { color: '#64748b', maxRotation: 45, minRotation: 45 } },
+                    y: { beginAtZero: true, grid: { color: 'rgba(148, 163, 184, 0.16)' }, ticks: { color: '#64748b', callback: (value) => `${value}%` } }
+                }
+            }
+        });
+    }
+
+    function renderHistorico() {
+        const stats = document.getElementById('historicoStats');
+        const footer = document.getElementById('historicoTableBody')?.closest('.chart-card')?.querySelector('.table-footer');
+        const body = document.getElementById('historicoTableBody');
+        const labels = Array.isArray(data.historico?.labels) ? data.historico.labels : [];
+        const series = data.historico?.series || {};
+        const values = Array.isArray(series[state.historicoScope]) ? series[state.historicoScope] : (Array.isArray(series.Todas) ? series.Todas : []);
+        const registros = Array.isArray(data.historico?.registros) ? data.historico.registros.filter((item) => state.historicoScope === 'Todas' || item.linea === state.historicoScope) : [];
+        const total = values.reduce((sum, value) => sum + Number(value || 0), 0);
+        const peak = values.length ? Math.max(...values.map((value) => Number(value || 0))) : 0;
+        const average = values.length ? total / values.length : 0;
+        const last = registros[0]?.fecha_humana || data.historico?.resumen?.ultima_revision || 'Sin revision';
+
+        if (stats) {
+            stats.innerHTML = miniStats([
+                ['Revisiones 12m', total, state.historicoScope === 'Todas' ? 'Vista consolidada' : escapeHtml(state.historicoScope), 'info'],
+                ['Promedio mensual', number(average, 1), `${values.length || 0} cortes considerados`, 'success'],
+                ['Pico mensual', peak, 'Mes con mayor actividad', 'warning'],
+                ['Ultima revision', escapeHtml(last), `${registros.length} registros visibles`, 'danger']
+            ]);
+        }
+
+        if (!values.length && !registros.length) {
+            if (body) body.innerHTML = `<tr><td colspan="6" class="text-center text-gray-500 py-6">No hay historial disponible para el filtro seleccionado.</td></tr>`;
+            if (footer) footer.innerHTML = '<i class="fas fa-info-circle"></i> Se mostrara la trazabilidad cuando existan revisiones registradas.';
+            destroy(charts.historico);
+            setChartState('historico', true, 'Sin historico disponible', 'No existen revisiones suficientes para construir la tendencia mensual.', 'fa-history');
+            return;
+        }
+
+        if (body) {
+            body.innerHTML = registros.length
+                ? registros.map((item) => `
+                    <tr>
+                        <td>${escapeHtml(item.fecha_humana || '-')}</td>
+                        <td>${escapeHtml(item.linea || '-')}</td>
+                        <td>${escapeHtml(item.componente || '-')}</td>
+                        <td>${escapeHtml(item.reductor || '-')}${item.lado ? ` · ${escapeHtml(item.lado)}` : ''}</td>
+                        <td><span class="severity-pill ${severityFromEstado(item.estado)}">${escapeHtml(item.estado || 'Sin estado')}</span></td>
+                        <td>${escapeHtml(item.usuario || 'Sin usuario')}${item.actividad ? `<div class="text-xs text-gray-500 mt-1">${escapeHtml(item.actividad)}</div>` : ''}</td>
+                    </tr>
+                `).join('')
+                : `<tr><td colspan="6" class="text-center text-gray-500 py-6">No hay registros recientes para este alcance.</td></tr>`;
+        }
+
+        if (footer) {
+            footer.innerHTML = `<i class="fas fa-info-circle"></i> Historial dinamico de revisiones para ${escapeHtml(state.historicoScope === 'Todas' ? 'todas las lavadoras' : state.historicoScope)}.`;
+        }
+
+        destroy(charts.historico);
+        setChartState('historico', false);
+        charts.historico = new Chart(document.getElementById('historicoChart').getContext('2d'), {
+            type: 'line',
+            data: {
+                labels,
+                datasets: [{
+                    label: state.historicoScope === 'Todas' ? 'Todas las lavadoras' : state.historicoScope,
+                    data: values.map((value) => Number(value || 0)),
+                    borderColor: '#2563eb',
+                    backgroundColor: 'rgba(37, 99, 235, 0.14)',
+                    borderWidth: 3,
+                    tension: 0.35,
+                    pointRadius: 4,
+                    pointBackgroundColor: '#2563eb',
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: 'rgba(15, 23, 42, 0.96)',
+                        titleColor: '#fff',
+                        bodyColor: '#e2e8f0',
+                        callbacks: { label: (context) => `Revisiones: ${context.raw}` }
+                    }
+                },
+                scales: {
+                    x: { grid: { display: false }, ticks: { color: '#64748b' } },
+                    y: { beginAtZero: true, grid: { color: 'rgba(148, 163, 184, 0.16)' }, ticks: { precision: 0, color: '#64748b' } }
+                }
+            }
+        });
+    }
+
+    function renderTendencia() {
+        const stats = document.getElementById('analisis52124Stats');
+        const description = cardFromCanvas('analisis52124Chart')?.querySelector('.chart-description');
+        const select = document.getElementById('analisis52124LineaSelect');
+        const rows = Array.isArray(data.tendencia?.lineas) ? data.tendencia.lineas : [];
+        const item = rows.find((row) => Number(row.linea_id) === Number(state.tendenciaLineaId)) || rows[0];
+
+        if (select) select.value = String(item?.linea_id ?? state.tendenciaLineaId ?? '');
+
+        if (!item || item.sin_datos || !Array.isArray(item.labels) || !item.labels.length) {
+            if (stats) {
+                stats.innerHTML = miniStats([
+                    ['52 semanas', 0, 'Sin datos', 'info'],
+                    ['12 semanas', 0, 'Sin datos', 'warning'],
+                    ['4 semanas', 0, 'Sin datos', 'success']
+                ]);
+            }
+            if (description) description.innerHTML = '<i class="fas fa-info-circle"></i> La tendencia 52-12-4 se activara cuando exista historial suficiente';
+            destroy(charts.tendencia);
+            setChartState('analisis52124', true, 'Sin tendencia disponible', 'Aun no existe historial para calcular las ventanas 52-12-4.', 'fa-wave-square');
+            return;
+        }
+
+        const resumen = item.resumen || {};
+        const current = Number(resumen.semanas_4 || 0);
+        const medium = Number(resumen.semanas_12 || 0);
+        const label = current > medium ? 'Acelerando' : (current === 0 ? 'Controlado' : 'Estable');
+
+        if (stats) {
+            stats.innerHTML = miniStats([
+                ['52 semanas', Number(resumen.semanas_52 || 0), `Corte ${escapeHtml(item.ultimo_corte || '-')}`, 'info'],
+                ['12 semanas', medium, 'Tendencia media', 'warning'],
+                ['4 semanas', current, 'Tendencia corta', 'success'],
+                ['Estado actual', label, escapeHtml(item.linea || ''), label === 'Acelerando' ? 'danger' : 'success']
+            ]);
+        }
+
+        if (description) {
+            description.innerHTML = `<i class="fas fa-info-circle"></i> ${escapeHtml(item.linea)} · Corte mas reciente ${escapeHtml(item.ultimo_corte || '-')}`;
+        }
+
+        destroy(charts.tendencia);
+        setChartState('analisis52124', false);
+        charts.tendencia = new Chart(document.getElementById('analisis52124Chart').getContext('2d'), {
+            type: 'line',
+            data: {
+                labels: item.labels,
+                datasets: [
+                    { label: '52 semanas', data: (item.semanas_52 || []).map((value) => Number(value || 0)), borderColor: '#2563eb', backgroundColor: 'rgba(37, 99, 235, 0.14)', borderWidth: 3, tension: 0.3, pointRadius: 3, fill: true },
+                    { label: '12 semanas', data: (item.semanas_12 || []).map((value) => Number(value || 0)), borderColor: '#f59e0b', backgroundColor: 'rgba(245, 158, 11, 0.10)', borderWidth: 3, tension: 0.3, pointRadius: 3, fill: true },
+                    { label: '4 semanas', data: (item.semanas_4 || []).map((value) => Number(value || 0)), borderColor: '#10b981', backgroundColor: 'rgba(16, 185, 129, 0.08)', borderWidth: 3, tension: 0.3, pointRadius: 3, fill: true }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                plugins: {
+                    legend: { position: 'top', labels: { usePointStyle: true, padding: 18, color: '#334155', font: { size: 11, weight: 700 } } },
+                    tooltip: { backgroundColor: 'rgba(15, 23, 42, 0.96)', titleColor: '#fff', bodyColor: '#e2e8f0' }
+                },
+                scales: {
+                    x: { grid: { display: false }, ticks: { color: '#64748b' } },
+                    y: { beginAtZero: true, grid: { color: 'rgba(148, 163, 184, 0.16)' }, ticks: { precision: 0, color: '#64748b' } }
+                }
+            }
+        });
+    }
+
+    function ensureChartShell(canvasId, prefix, options = {}) {
+        const canvas = document.getElementById(canvasId);
+        if (!canvas) return;
+
+        const container = canvas.closest('.chart-container');
+        if (!container) return;
+
+        container.dataset.chartContainer = prefix;
+        if (options.tall) container.classList.add('tall');
+
+        let shell = container.parentElement;
+        if (!shell.classList.contains('chart-shell')) {
+            const nextShell = document.createElement('div');
+            nextShell.className = `chart-shell${options.compact ? ' compact' : ''}`;
+            container.parentNode.insertBefore(nextShell, container);
+            nextShell.appendChild(container);
+            shell = nextShell;
+        } else if (options.compact) {
+            shell.classList.add('compact');
+        }
+
+        if (!document.getElementById(`${prefix}Loader`)) {
+            shell.insertAdjacentHTML('afterbegin', loaderMarkup(`${prefix}Loader`));
+        }
+
+        if (!document.getElementById(`${prefix}Empty`)) {
+            shell.insertAdjacentHTML('afterbegin', `<div class="chart-empty-state" id="${prefix}Empty" hidden></div>`);
+        }
+    }
+
+    function setChartState(prefix, empty, title = '', message = '', icon = 'fa-database') {
+        const loader = document.getElementById(`${prefix}Loader`);
+        const emptyNode = document.getElementById(`${prefix}Empty`);
+        const container = document.querySelector(`[data-chart-container="${prefix}"]`);
+
+        if (loader) loader.classList.add('is-hidden');
+        if (container) container.hidden = empty;
+        if (emptyNode) {
+            emptyNode.hidden = !empty;
+            if (empty) emptyNode.innerHTML = emptyMarkup(title, message, icon);
+        }
+    }
+
+    function ensureAfterHeading(card, id, html) {
+        if (document.getElementById(id)) return;
+        const heading = card.querySelector('h3');
+        if (heading) heading.insertAdjacentHTML('afterend', html);
+    }
+
+    function ensureAfterElement(referenceId, id, html) {
+        if (document.getElementById(id)) return;
+        const reference = document.getElementById(referenceId);
+        if (reference) reference.insertAdjacentHTML('afterend', html);
+    }
+
+    function updateCardTitle(card, text, iconClass) {
+        const title = card.querySelector('h3 span');
+        const icon = card.querySelector('h3 i');
+        if (title) title.textContent = text;
+        if (icon) icon.className = iconClass;
+    }
+
+    function cardFromCanvas(id) {
+        return document.getElementById(id)?.closest('.chart-card') ?? null;
+    }
+
+    function loaderMarkup(id) {
+        return `
+            <div class="card-loader" id="${id}">
+                <div class="skeleton-line large"></div>
+                <div class="skeleton-line medium"></div>
+                <div class="skeleton-line large"></div>
+                <div class="skeleton-line small"></div>
+            </div>
+        `;
+    }
+
+    function miniStats(items) {
+        return items.map(([label, value, meta, tone]) => `
+            <div class="mini-stat ${tone || 'info'}">
+                <div class="mini-stat-label">${escapeHtml(String(label))}</div>
+                <div class="mini-stat-value">${escapeHtml(String(value))}</div>
+                <div class="mini-stat-meta">${escapeHtml(String(meta || ''))}</div>
+            </div>
+        `).join('');
+    }
+
+    function infoBox(message) {
+        return `<div class="breakdown-item"><div class="breakdown-meta">${escapeHtml(message)}</div></div>`;
+    }
+
+    function emptyMarkup(title, message, icon) {
+        return `<i class="fas ${escapeHtml(icon)}"></i><div style="font-weight: 800; color: #0f172a;">${escapeHtml(title)}</div><div>${escapeHtml(message)}</div>`;
+    }
+
+    function lineaOptions(selectedId) {
+        return (data.lineas || []).map((linea) => `<option value="${linea.id}" ${Number(linea.id) === Number(selectedId) ? 'selected' : ''}>${escapeHtml(linea.nombre)}</option>`).join('');
+    }
+
+    function destroy(instance) {
+        if (instance) instance.destroy();
+    }
+
+    function hideLoader(id) {
+        const loader = document.getElementById(id);
+        if (loader) loader.classList.add('is-hidden');
+    }
+
+    function number(value, decimals = 0) {
+        return Number(value || 0).toLocaleString('es-MX', {
+            minimumFractionDigits: decimals,
+            maximumFractionDigits: decimals
+        });
+    }
+
+    function percent(value, decimals = 1) {
+        return `${number(value, decimals)}%`;
+    }
+
+    function daysLabel(value) {
+        if (value === null || value === undefined || Number.isNaN(Number(value))) return 'Sin fecha programada';
+        const days = Number(value);
+        if (days < 0) return `Vencido por ${Math.abs(days)} dias`;
+        if (days === 0) return 'Vence hoy';
+        if (days === 1) return 'Vence en 1 dia';
+        return `Vence en ${days} dias`;
+    }
+
+    function elapsedDaysLabel(value) {
+        if (value === null || value === undefined || Number.isNaN(Number(value))) return 'Sin antiguedad disponible';
+        const days = Math.max(Math.round(Number(value)), 0);
+        if (days === 0) return 'Revisado hoy';
+        if (days === 1) return 'Sin revisar desde 1 dia';
+        return `Sin revisar desde ${days} dias`;
+    }
+
+    function severityClass(level) {
+        switch (level) {
+            case 'critico':
+            case 'alta':
+                return 'critico';
+            case 'severo':
+            case 'moderado':
+            case 'media':
+            case 'sin_fecha':
+                return 'severo';
+            case 'cambiado':
+                return 'cambiado';
+            default:
+                return 'estable';
+        }
+    }
+
+    function planClass(level) {
+        switch (level) {
+            case 'alta':
+                return 'critico';
+            case 'media':
+            case 'sin_fecha':
+                return 'severo';
+            default:
+                return 'estable';
+        }
+    }
+
+    function severityFromEstado(estado) {
+        if (estado === 'Dañado - Requiere cambio') return 'critico';
+        if (estado === 'Desgaste severo') return 'severo';
+        if (estado === 'Desgaste moderado') return 'moderado';
+        if (estado === 'Cambiado') return 'cambiado';
+        return 'estable';
+    }
+
+    function trend(values) {
+        const series = Array.isArray(values) ? values.map((value) => Number(value || 0)) : [];
+        const total = series.length;
+        if (!total) return [];
+
+        const sumX = series.reduce((sum, _, index) => sum + index, 0);
+        const sumY = series.reduce((sum, value) => sum + value, 0);
+        const sumXY = series.reduce((sum, value, index) => sum + (index * value), 0);
+        const sumXX = series.reduce((sum, _, index) => sum + (index * index), 0);
+        const divisor = (total * sumXX) - (sumX * sumX);
+        if (!divisor) return [...series];
+
+        const slope = ((total * sumXY) - (sumX * sumY)) / divisor;
+        const intercept = (sumY - (slope * sumX)) / total;
+        return series.map((_, index) => Number((intercept + (slope * index)).toFixed(2)));
+    }
+
+    function escapeHtml(value) {
+        return String(value ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+})();
 </script>
 @endsection
