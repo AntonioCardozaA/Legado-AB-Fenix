@@ -537,6 +537,70 @@ class AnalisisPasteurizadora extends Model
         return $estado;
     }
 
+    /**
+     * Obtiene los componentes revisados únicos agrupados por clave (linea|componente|modulo|nivel|lado)
+     * Optimizado para extracción de datos del histórico de revisados
+     */
+    public static function getComponentesRevisadosAgrupadosParaHistorico($lineaIds): array
+    {
+        if (empty($lineaIds)) {
+            return [];
+        }
+
+        $registros = self::query()
+            ->select(['linea_id', 'componente', 'modulo', 'nivel', 'lado', 'componentes_revisados'])
+            ->whereIn('linea_id', $lineaIds)
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        $agrupado = $registros->groupBy(function ($registro) {
+            return implode('|', [
+                $registro->linea_id,
+                strtoupper((string) $registro->componente),
+                (int) $registro->modulo,
+                strtoupper(trim((string) $registro->nivel)),
+                strtoupper(trim((string) $registro->lado)),
+            ]);
+        });
+
+        $resultado = [];
+        foreach ($agrupado as $clave => $items) {
+            $componentesUnicos = collect();
+            foreach ($items as $item) {
+                if (!empty($item->componentes_revisados)) {
+                    if (is_array($item->componentes_revisados)) {
+                        $componentesUnicos = $componentesUnicos->merge($item->componentes_revisados);
+                    } elseif (is_string($item->componentes_revisados)) {
+                        $decoded = json_decode($item->componentes_revisados, true);
+                        if (is_array($decoded)) {
+                            $componentesUnicos = $componentesUnicos->merge($decoded);
+                        }
+                    }
+                }
+            }
+            $resultado[$clave] = $componentesUnicos->unique()->count();
+        }
+
+        return $resultado;
+    }
+
+    /**
+     * Obtiene el último registro de análisis para una combinación específica
+     * Útil para mostrar información actualizada en el histórico
+     */
+    public static function getUltimoRegistro($lineaId, $modulo, $componente, $nivel, $lado)
+    {
+        return self::where('linea_id', $lineaId)
+            ->where('modulo', $modulo)
+            ->where('componente', $componente)
+            ->where('nivel', $nivel)
+            ->where('lado', $lado)
+            ->where('resuelto_por_cambio', false)
+            ->latest('fecha_analisis')
+            ->latest('created_at')
+            ->first();
+    }
+
     // ============================================================
     // RELACIONES
     // ============================================================

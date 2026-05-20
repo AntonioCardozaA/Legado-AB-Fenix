@@ -24,21 +24,8 @@ class AnalisisPasteurizadoraController extends Controller
             return [];
         }
 
-        return AnalisisPasteurizadora::query()
-            ->select(['linea_id', 'componente', 'modulo', 'nivel', 'lado', 'cantidad_componentes_revisados'])
-            ->whereIn('linea_id', $lineas->pluck('id'))
-            ->get()
-            ->groupBy(function ($registro) {
-                return $this->buildHistoricoKey(
-                    $registro->linea_id,
-                    $registro->componente,
-                    $registro->modulo,
-                    $registro->nivel,
-                    $registro->lado
-                );
-            })
-            ->map(fn($items) => $items->sum('cantidad_componentes_revisados'))
-            ->toArray();
+        // Usar el método optimizado del modelo
+        return AnalisisPasteurizadora::getComponentesRevisadosAgrupadosParaHistorico($lineas->pluck('id')->all());
     }
 
     private function buildHistoricoLinea(Linea $linea, array $revisionesAgrupadas, &$componentesModulos, array &$estadisticas): array
