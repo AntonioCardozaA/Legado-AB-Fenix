@@ -138,6 +138,14 @@ class ReporteController extends Controller
         ));
     }
 
+    public function pasteurizadora(Request $request)
+    {
+        return redirect()->route('reportes.index', array_merge(
+            $request->query(),
+            ['tipo' => 'pasteurizadoras']
+        ));
+    }
+
     private function generarReporteIndexOptimizado($tipoEquipo, $fechaInicio, $fechaFin)
     {
         $nombresLineas = $this->getLineasPorTipo($tipoEquipo);

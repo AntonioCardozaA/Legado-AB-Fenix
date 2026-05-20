@@ -228,9 +228,13 @@
 <script>
 let chart = null;
 let currentPeriodo = '52';
+const estadisticasTendenciaUrl = '{{ route('analisis-tendencia-mensual.pasteurizadora.estadisticas', [], false) }}';
+const detalleTendenciaBaseUrl = '{{ rtrim(route('analisis-tendencia-mensual.pasteurizadora.index', [], false), '/') }}';
+const updateTendenciaUrl = '{{ route('analisis-tendencia-mensual.pasteurizadora.update', [], false) }}';
 
 document.addEventListener('DOMContentLoaded', function() {
     inicializarGrafica();
+    actualizarDatos();
     
     document.getElementById('filtroLinea')?.addEventListener('change', function() {
         actualizarDatos();
@@ -284,8 +288,13 @@ function cambiarPeriodo(periodo) {
 function actualizarDatos() {
     const lineaId = document.getElementById('filtroLinea')?.value || '';
     const componente = document.getElementById('filtroComponente')?.value || '';
+    const params = new URLSearchParams({
+        linea_id: lineaId,
+        componente: componente,
+        periodo: currentPeriodo
+    });
     
-    fetch(`/analisis-pasteurizadora/ajax/estadisticas-tendencia?linea_id=${lineaId}&componente=${componente}&periodo=${currentPeriodo}`)
+    fetch(`${estadisticasTendenciaUrl}?${params.toString()}`)
         .then(res => res.json())
         .then(data => {
             if (chart) {
@@ -305,13 +314,13 @@ function editarValores(id) {
     const modal = document.getElementById('editModal');
     const form = document.getElementById('editForm');
     
-    fetch(`/analisis-pasteurizadora/${id}`)
+    fetch(`${detalleTendenciaBaseUrl}/${id}/json`)
         .then(res => res.json())
         .then(data => {
             document.getElementById('editValor52').value = data.valor_actual_52 || '';
             document.getElementById('editValor12').value = data.valor_actual_12 || '';
             document.getElementById('editValor4').value = data.valor_actual_4 || '';
-            form.action = `/analisis-pasteurizadora/analisis-52124`;
+            form.action = updateTendenciaUrl;
             
             const inputId = document.createElement('input');
             inputId.type = 'hidden';
@@ -340,7 +349,10 @@ document.getElementById('editForm')?.addEventListener('submit', function(e) {
     fetch(this.action, {
         method: 'POST',
         body: formData,
-        headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' }
+        headers: {
+            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+            'Accept': 'application/json'
+        }
     })
     .then(res => res.json())
     .then(() => {

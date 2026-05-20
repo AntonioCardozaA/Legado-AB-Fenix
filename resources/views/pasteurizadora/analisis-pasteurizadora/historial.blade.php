@@ -298,14 +298,14 @@
                         $estado = $item->estado ?? 'Buen estado';
 
                         // Configuración de colores y badges según estado
-                        if (str_contains($estado, 'DaÃ±ado - Cambiado')) {
+                        if (str_contains($estado, 'Dañado - Cambiado') || str_contains($estado, 'Danado - Cambiado') || str_contains($estado, 'DaÃ±ado - Cambiado')) {
                             $colorBg = 'bg-blue-100';
                             $colorText = 'text-blue-800';
                             $colorBorder = 'border-blue-200';
                             $colorIcon = 'text-blue-600';
                             $badgeIcon = 'fa-exchange-alt';
                             $badgeColor = 'from-blue-500 to-blue-600';
-                        } elseif (str_contains($estado, 'DaÃ±ado')) {
+                        } elseif (str_contains($estado, 'Dañado') || str_contains($estado, 'Danado') || str_contains($estado, 'DaÃ±ado')) {
                             $colorBg = 'bg-red-100';
                             $colorText = 'text-red-800';
                             $colorBorder = 'border-red-200';

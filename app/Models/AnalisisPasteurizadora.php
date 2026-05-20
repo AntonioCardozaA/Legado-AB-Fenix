@@ -129,6 +129,13 @@ class AnalisisPasteurizadora extends Model
 
     const LADOS = ['VAPOR', 'PASILLO'];
     const NIVELES = ['SUPERIOR', 'INFERIOR'];
+    const ESTADO_DANADO = 'Dañado - Requiere cambio';
+    const ESTADOS_DANADO_COMPATIBLES = [
+        'Dañado - Requiere cambio',
+        'Danado - Requiere cambio',
+        'DaÃ±ado - Requiere cambio',
+        'DaÃƒÂ±ado - Requiere cambio',
+    ];
     const ESTADOS = ['Buen estado', 'Desgaste moderado', 'Desgaste severo', 'Dañado - Requiere cambio', 'Cambiado'];
 
     // ============================================================
@@ -164,6 +171,22 @@ class AnalisisPasteurizadora extends Model
     public static function getPasteurizadoresConfiguracion(): array
     {
         return self::PASTEURIZADORES;
+    }
+
+    public static function estadosDanado(): array
+    {
+        return self::ESTADOS_DANADO_COMPATIBLES;
+    }
+
+    public static function normalizarEstado($estado): string
+    {
+        $estado = trim((string) $estado);
+
+        if (in_array($estado, self::ESTADOS_DANADO_COMPATIBLES, true)) {
+            return self::ESTADO_DANADO;
+        }
+
+        return $estado;
     }
 
     public static function getCantidadReglillasPorLinea($lineaNombre): int
@@ -671,7 +694,7 @@ class AnalisisPasteurizadora extends Model
 
     public function scopeRequiereAtencion($query)
     {
-        return $query->where('estado', 'DaÃ±ado - Requiere cambio')->where('resuelto_por_cambio', false);
+        return $query->whereIn('estado', self::estadosDanado())->where('resuelto_por_cambio', false);
     }
 
     // ============================================================
@@ -722,7 +745,7 @@ class AnalisisPasteurizadora extends Model
 
     public function getEsDanioAttribute()
     {
-        return $this->estado === 'DaÃ±ado - Requiere cambio';
+        return in_array($this->estado, self::estadosDanado(), true);
     }
 
     public function getLadoIconoAttribute()
@@ -742,13 +765,21 @@ class AnalisisPasteurizadora extends Model
 
     public function getEstadoBadgeAttribute()
     {
+        if ($this->es_danio) {
+            return ['class' => 'bg-red-100 text-red-800', 'icon' => 'fa-times-circle'];
+        }
+
         return match ($this->estado) {
             'Buen estado' => ['class' => 'bg-green-100 text-green-800', 'icon' => 'fa-check-circle'],
             'Desgaste moderado', 'Desgaste severo' => ['class' => 'bg-yellow-100 text-yellow-800', 'icon' => 'fa-exclamation-triangle'],
-            'DaÃ±ado - Requiere cambio' => ['class' => 'bg-red-100 text-red-800', 'icon' => 'fa-times-circle'],
             'Cambiado' => ['class' => 'bg-blue-100 text-blue-800', 'icon' => 'fa-exchange-alt'],
             default => ['class' => 'bg-gray-100 text-gray-800', 'icon' => 'fa-question-circle'],
         };
+    }
+
+    public function getEstadoAttribute($value)
+    {
+        return self::normalizarEstado($value);
     }
 
     public function getPorcentajeAvanceAttribute()
@@ -794,7 +825,7 @@ class AnalisisPasteurizadora extends Model
         return self::where('linea_id', $this->linea_id)
             ->where('modulo', $this->modulo)
             ->where('componente', $this->componente)
-            ->where('estado', 'DaÃ±ado - Requiere cambio')
+            ->whereIn('estado', self::estadosDanado())
             ->where('resuelto_por_cambio', false)
             ->where('id', '!=', $this->id)
             ->get();
@@ -864,6 +895,11 @@ class AnalisisPasteurizadora extends Model
 
         $this->attributes['componentes_revisados'] = json_encode($componentes);
         $this->attributes['cantidad_componentes_revisados'] = count($componentes);
+    }
+
+    public function setEstadoAttribute($value)
+    {
+        $this->attributes['estado'] = self::normalizarEstado($value);
     }
 
     private static function ordenarRegistrosCronologicamente($registros): Collection

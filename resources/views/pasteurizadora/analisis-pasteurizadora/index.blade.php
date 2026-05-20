@@ -893,7 +893,7 @@
                 'total' => $analisisCollection,
                 'buen_estado' => $analisisCollection->where('estado', 'Buen estado'),
                 'desgaste' => $analisisCollection->whereIn('estado', ['Desgaste moderado', 'Desgaste severo']),
-                'danado' => $analisisCollection->where('estado', 'Dañado - Requiere cambio'),
+                'danado' => $analisisCollection->whereIn('estado', \App\Models\AnalisisPasteurizadora::estadosDanado()),
                 'cambiado' => $analisisCollection->where('estado', 'Cambiado'),
             ];
 
@@ -1504,7 +1504,7 @@
                         <div class="bg-blue-100 p-2 rounded-lg">
                             <i class="fas fa-user-check text-blue-600"></i>
                         </div>
-                        <h4 class="font-semibold text-gray-700 border-blue-200 border-b-2 uppercase tracking-wider text-sm">Técnico</h4>
+                        <h4 class="font-semibold text-gray-700 border-blue-200 border-b-2 uppercase tracking-wider text-sm">Responsable</h4>
                     </div>
                     <div class="flex justify-center">
                         <div id="detail-usuario" class="px-6 py-3 bg-blue-50 text-blue-700 rounded-lg text-sm w-full text-center font-semibold"></div>

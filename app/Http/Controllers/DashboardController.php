@@ -393,7 +393,7 @@ public function pasteurizadoraOperativo(Request $request)
 
         return [
             'total_equipos' => $pasteurizadoras->count(),
-            'alertas_criticas' => $analisis->where('estado', 'Dañado - Requiere cambio')->count(),
+            'alertas_criticas' => $analisis->whereIn('estado', AnalisisPasteurizadora::estadosDanado())->count(),
             'en_riesgo' => $analisis->whereIn('estado', ['Desgaste moderado', 'Desgaste severo'])->count(),
             'buen_estado' => $analisis->where('estado', 'Buen estado')->count(),
             'ultima_actualizacion' => now()->format('d/m/Y H:i')
@@ -815,10 +815,10 @@ public function pasteurizadoraOperativo(Request $request)
             return [
                 'linea' => $linea->nombre,
                 'total_fallas' => $analisisLinea->filter(function ($item) {
-                    return $item->estado === 'Dañado - Requiere cambio'
+                    return in_array($item->estado, AnalisisPasteurizadora::estadosDanado(), true)
                         || $item->estado === 'Desgaste severo';
                 })->count(),
-                'criticos' => $analisisLinea->where('estado', 'Dañado - Requiere cambio')->count(),
+                'criticos' => $analisisLinea->whereIn('estado', AnalisisPasteurizadora::estadosDanado())->count(),
                 'desgaste' => $analisisLinea->where('estado', 'Desgaste severo')->count(),
             ];
         })->sortByDesc('total_fallas')->values();
@@ -831,7 +831,7 @@ public function pasteurizadoraOperativo(Request $request)
     {
         return $analisisPasteurizadora
             ->filter(function ($item) {
-                return $item->estado === 'Dañado - Requiere cambio'
+                return in_array($item->estado, AnalisisPasteurizadora::estadosDanado(), true)
                     || in_array($item->estado, ['Desgaste moderado', 'Desgaste severo'], true);
             })
             ->groupBy(fn($item) => $item->componente_nombre ?? $item->componente ?? 'Sin componente')
@@ -894,7 +894,7 @@ public function pasteurizadoraOperativo(Request $request)
             ->get();
 
         return $analisisPasteurizadora
-            ->where('estado', 'Dañado - Requiere cambio')
+            ->whereIn('estado', AnalisisPasteurizadora::estadosDanado())
             ->sortByDesc('fecha_analisis')
             ->values();
     }
@@ -908,7 +908,7 @@ public function pasteurizadoraOperativo(Request $request)
 
         foreach ($pasteurizadoras as $pasteurizadora) {
             $analisisLinea = $analisisPasteurizadora->where('linea_id', $pasteurizadora->id);
-            $criticos = $analisisLinea->where('estado', 'Dañado - Requiere cambio');
+            $criticos = $analisisLinea->whereIn('estado', AnalisisPasteurizadora::estadosDanado());
 
             $componentesLista = AnalisisPasteurizadora::getComponentesPorLinea($pasteurizadora->nombre);
             $totalModulos = AnalisisPasteurizadora::getModulosPorLinea($pasteurizadora->nombre);

@@ -240,7 +240,11 @@ Route::prefix('pasteurizadora')->group(function () {
         ->controller(AnalisisPasteurizadoraController::class)
         ->group(function () {
             Route::get('/', 'analisis52124')->name('index');
+            Route::get('/estadisticas', 'getEstadisticasTendencia52124')->name('estadisticas');
             Route::post('/update', 'updateAnalisis52124')->name('update');
+            Route::get('/{analisis}/json', 'showAnalisis52124Json')
+                ->whereNumber('analisis')
+                ->name('show-json');
         });
 
     /*

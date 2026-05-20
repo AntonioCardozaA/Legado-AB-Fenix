@@ -4,14 +4,17 @@ namespace App\Http\Controllers;
 
 use App\Models\AnalisisPasteurizadora;
 use App\Models\Linea;
+use App\Exports\AnalisisPasteurizadoraExport;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Maatwebsite\Excel\Facades\Excel;
 
 class AnalisisPasteurizadoraController extends Controller
 {
     private const EVIDENCIAS_PASTEURIZADORA_DIR = 'analisis-pasteurizadora';
+    private const PASTEURIZADORAS_PERMITIDAS = ['P-03', 'P-04', 'P-05', 'P-06', 'P-07', 'P-08', 'P-09', 'P-10', 'P-11', 'P-12', 'P-13', 'P-14'];
 
     public function __construct()
     {
@@ -257,7 +260,7 @@ class AnalisisPasteurizadoraController extends Controller
         });
 
         $totalAnalisis = $analisis->count();
-        $totalDanados = $analisis->where('estado', 'Dañado - Requiere cambio')->count();
+        $totalDanados = $analisis->whereIn('estado', AnalisisPasteurizadora::estadosDanado())->count();
         $totalCambiados = $analisis->where('estado', 'Cambiado')->count();
 
         // Filtrar solo líneas de pasteurizadora (P-03 a P-14)
@@ -281,7 +284,7 @@ class AnalisisPasteurizadoraController extends Controller
     $analisis = AnalisisPasteurizadora::with('linea')->latest()->take(10)->get();
 
     $total = AnalisisPasteurizadora::count();
-    $danados = AnalisisPasteurizadora::where('estado', 'DaÃ±ado - Requiere cambio')->count();
+    $danados = AnalisisPasteurizadora::whereIn('estado', AnalisisPasteurizadora::estadosDanado())->count();
     $cambiados = AnalisisPasteurizadora::where('estado', 'Cambiado')->count();
 
     return view('pasteurizadora.dashboard', compact(
@@ -437,7 +440,7 @@ class AnalisisPasteurizadoraController extends Controller
         $registrosAnteriores = AnalisisPasteurizadora::where('linea_id', $nuevoAnalisis->linea_id)
             ->where('modulo', $nuevoAnalisis->modulo)
             ->where('componente', $nuevoAnalisis->componente)
-            ->where('estado', 'DaÃ±ado - Requiere cambio')
+            ->whereIn('estado', AnalisisPasteurizadora::estadosDanado())
             ->where('resuelto_por_cambio', false)
             ->where('id', '!=', $nuevoAnalisis->id)
             ->get();
@@ -735,6 +738,33 @@ class AnalisisPasteurizadoraController extends Controller
         ));
     }
 
+    public function exportExcel(Request $request)
+    {
+        $analisis = $this->getAnalisisPasteurizadoraParaExportar($request);
+        $filename = 'analisis_pasteurizadora_' . now()->format('Ymd_His') . '.xlsx';
+
+        return Excel::download(new AnalisisPasteurizadoraExport($analisis), $filename);
+    }
+
+    public function exportPdf(Request $request)
+    {
+        $analisis = $this->getAnalisisPasteurizadoraParaExportar($request);
+        $filename = 'analisis_pasteurizadora_' . now()->format('Ymd_His') . '.pdf';
+
+        return Pdf::loadHTML($this->renderAnalisisPasteurizadoraPdf($analisis))
+            ->setPaper('a4', 'landscape')
+            ->download($filename);
+    }
+
+    public function exportProcess(Request $request)
+    {
+        $formato = $request->get('formato', $request->get('export_format', 'excel'));
+
+        return $formato === 'pdf'
+            ? $this->exportPdf($request)
+            : $this->exportExcel($request);
+    }
+
     // ============================================================
     // MÃ‰TODOS AJAX
     // ============================================================
@@ -823,6 +853,80 @@ class AnalisisPasteurizadoraController extends Controller
         ]);
     }
 
+    public function getPiezasDisponiblesAjax(Request $request)
+    {
+        $request->validate([
+            'linea_id' => 'required|exists:lineas,id',
+            'modulo' => 'required|integer|min:1',
+            'componente' => 'required|string',
+            'lado' => 'nullable|in:VAPOR,PASILLO',
+            'nivel' => 'nullable|in:SUPERIOR,INFERIOR',
+        ]);
+
+        $linea = Linea::findOrFail($request->linea_id);
+        $resolved = AnalisisPasteurizadora::resolveComponentePorLinea($linea->nombre, $request->componente);
+
+        if (!$resolved) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Componente no valido para la pasteurizadora seleccionada.',
+            ], 422);
+        }
+
+        $componentesDisponibles = AnalisisPasteurizadora::getComponentesPendientes(
+            $linea->id,
+            $request->modulo,
+            $resolved['key'],
+            $request->lado,
+            $request->nivel
+        );
+
+        return response()->json([
+            'success' => true,
+            'piezas_disponibles' => $componentesDisponibles,
+            'componentes_disponibles' => $componentesDisponibles,
+            'total_disponibles' => count($componentesDisponibles),
+        ]);
+    }
+
+    public function getActividadesPorModulo(Request $request)
+    {
+        $query = AnalisisPasteurizadora::query()
+            ->when($request->filled('linea_id'), fn ($query) => $query->where('linea_id', $request->linea_id))
+            ->when($request->filled('modulo'), fn ($query) => $query->where('modulo', $request->modulo))
+            ->when($request->filled('componente'), fn ($query) => $query->where('componente', $request->componente))
+            ->whereNotNull('actividad')
+            ->latest('fecha_analisis')
+            ->latest('created_at');
+
+        return response()->json([
+            'success' => true,
+            'actividades' => $query->limit(30)->pluck('actividad')->filter()->unique()->values(),
+        ]);
+    }
+
+    public function getEstadisticasComponentesAjax(Request $request)
+    {
+        $query = AnalisisPasteurizadora::query()
+            ->when($request->filled('linea_id'), fn ($query) => $query->where('linea_id', $request->linea_id))
+            ->when($request->filled('modulo'), fn ($query) => $query->where('modulo', $request->modulo))
+            ->when($request->filled('componente'), fn ($query) => $query->where('componente', $request->componente))
+            ->when($request->filled('nivel'), fn ($query) => $query->where('nivel', $request->nivel))
+            ->when($request->filled('lado'), fn ($query) => $query->where('lado', $request->lado))
+            ->where('resuelto_por_cambio', false);
+
+        $registros = $query->get();
+
+        return response()->json([
+            'success' => true,
+            'total' => $registros->count(),
+            'buen_estado' => $registros->where('estado', 'Buen estado')->count(),
+            'desgaste' => $registros->whereIn('estado', ['Desgaste moderado', 'Desgaste severo'])->count(),
+            'danado' => $registros->whereIn('estado', AnalisisPasteurizadora::estadosDanado())->count(),
+            'cambiado' => $registros->where('estado', 'Cambiado')->count(),
+        ]);
+    }
+
     public function deleteFoto($id, $fotoIndex)
     {
         $analisis = AnalisisPasteurizadora::findOrFail($id);
@@ -839,13 +943,93 @@ class AnalisisPasteurizadoraController extends Controller
 
         return redirect()->back()->with('error', 'No se pudo eliminar la foto');
     }
-    public function analisis52124()
+    public function analisis52124(Request $request)
     {
-        return view('analisis-tendencia-mensual.pasteurizadora.index');
+        $lineas = $this->getLineasPasteurizadora();
+        $lineaIds = $lineas->pluck('id');
+
+        $analisis = AnalisisPasteurizadora::with('linea')
+            ->whereIn('linea_id', $lineaIds)
+            ->latest('fecha_analisis')
+            ->latest('created_at')
+            ->limit(100)
+            ->get();
+
+        return view('analisis-tendencia-mensual.pasteurizadora.index', compact('lineas', 'analisis'));
     }
+    public function getEstadisticasTendencia52124(Request $request)
+    {
+        $validated = $request->validate([
+            'linea_id' => 'nullable|exists:lineas,id',
+            'componente' => 'nullable|string',
+            'periodo' => 'nullable|in:52,12,4',
+        ]);
+
+        $periodo = $validated['periodo'] ?? '52';
+        $columna = "valor_actual_{$periodo}";
+        $lineaIds = $this->getLineasPasteurizadora()->pluck('id');
+
+        $registros = AnalisisPasteurizadora::with('linea')
+            ->whereIn('linea_id', $lineaIds)
+            ->when(!empty($validated['linea_id']), fn ($query) => $query->where('linea_id', $validated['linea_id']))
+            ->when(!empty($validated['componente']), fn ($query) => $query->where('componente', $validated['componente']))
+            ->whereNotNull($columna)
+            ->orderBy('fecha_analisis')
+            ->orderBy('created_at')
+            ->get();
+
+        $valores = $registros->pluck($columna)->map(fn ($valor) => round((float) $valor, 2))->values();
+        $ultimo = $valores->last();
+        $anterior = $valores->count() > 1 ? $valores[$valores->count() - 2] : null;
+        $variacion = $ultimo !== null && $anterior !== null ? round($ultimo - $anterior, 2) : null;
+        $mejorRegistro = $registros->sortByDesc($columna)->first();
+
+        return response()->json([
+            'labels' => $registros->map(fn ($item) => $item->fecha_analisis?->format('d/m/Y') ?? 'Sin fecha')->values(),
+            'valores' => $valores,
+            'promedio' => $valores->isNotEmpty() ? number_format($valores->avg(), 2) : null,
+            'tendencia' => $this->formatearTendencia52124($variacion),
+            'mejor_valor' => $mejorRegistro ? number_format((float) $mejorRegistro->{$columna}, 2) : null,
+            'mejor_fecha' => $mejorRegistro?->fecha_analisis?->format('d/m/Y'),
+        ]);
+    }
+
+    public function showAnalisis52124Json($id)
+    {
+        $analisis = AnalisisPasteurizadora::with('linea')->findOrFail($id);
+
+        return response()->json([
+            'id' => $analisis->id,
+            'valor_actual_52' => $analisis->valor_actual_52,
+            'valor_actual_12' => $analisis->valor_actual_12,
+            'valor_actual_4' => $analisis->valor_actual_4,
+        ]);
+    }
+
     public function updateAnalisis52124(Request $request)
     {
-        // lÃ³gica futura
+        $validated = $request->validate([
+            'id' => 'required|exists:analisis_pasteurizadora,id',
+            'valor_52' => 'nullable|numeric',
+            'valor_12' => 'nullable|numeric',
+            'valor_4' => 'nullable|numeric',
+        ]);
+
+        $analisis = AnalisisPasteurizadora::findOrFail($validated['id']);
+
+        $analisis->update([
+            'valor_anterior_52' => $analisis->valor_actual_52,
+            'valor_actual_52' => $validated['valor_52'] ?? null,
+            'valor_anterior_12' => $analisis->valor_actual_12,
+            'valor_actual_12' => $validated['valor_12'] ?? null,
+            'valor_anterior_4' => $analisis->valor_actual_4,
+            'valor_actual_4' => $validated['valor_4'] ?? null,
+        ]);
+
+        if ($request->expectsJson()) {
+            return response()->json(['success' => true]);
+        }
+
         return back()->with('success', 'Datos actualizados correctamente');
     }
 
@@ -853,14 +1037,14 @@ class AnalisisPasteurizadoraController extends Controller
     {
         try {
             $lineasExistentes = Linea::pluck('nombre')->toArray();
-            $lineasNecesarias = ['P-03', 'P-04', 'P-05', 'P-06', 'P-07', 'P-08', 'P-09', 'P-10', 'P-11', 'P-12', 'P-13', 'P-14'];
+            $lineasNecesarias = self::PASTEURIZADORAS_PERMITIDAS;
             $creadas = [];
 
             foreach ($lineasNecesarias as $nombre) {
                 if (!in_array($nombre, $lineasExistentes)) {
                     $linea = Linea::create([
                         'nombre' => $nombre,
-                        'nombre_completo' => 'Pasteurizadora ' . $nombre,
+                        'descripcion' => 'Pasteurizadora ' . $nombre,
                         'activo' => true
                     ]);
                     $creadas[] = $nombre;
@@ -879,12 +1063,161 @@ class AnalisisPasteurizadoraController extends Controller
             ], 500);
         }
     }
+
+    public function apiGetComponentes($linea)
+    {
+        $linea = $this->resolverLineaPasteurizadora($linea);
+
+        if (!$linea) {
+            return response()->json(['success' => false, 'message' => 'Pasteurizadora no encontrada.'], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'linea' => $linea->nombre,
+            'componentes' => AnalisisPasteurizadora::getComponentesPorLinea($linea->nombre),
+            'modulos' => AnalisisPasteurizadora::getModulosPorLinea($linea->nombre),
+        ]);
+    }
+
+    public function apiGetEstadisticas($linea)
+    {
+        $linea = $this->resolverLineaPasteurizadora($linea);
+
+        if (!$linea) {
+            return response()->json(['success' => false, 'message' => 'Pasteurizadora no encontrada.'], 404);
+        }
+
+        $registros = AnalisisPasteurizadora::where('linea_id', $linea->id)
+            ->where('resuelto_por_cambio', false)
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'linea' => $linea->nombre,
+            'total' => $registros->count(),
+            'buen_estado' => $registros->where('estado', 'Buen estado')->count(),
+            'desgaste' => $registros->whereIn('estado', ['Desgaste moderado', 'Desgaste severo'])->count(),
+            'danado' => $registros->whereIn('estado', AnalisisPasteurizadora::estadosDanado())->count(),
+            'cambiado' => $registros->where('estado', 'Cambiado')->count(),
+        ]);
+    }
+
+    public function apiGetAnalisis52124(Request $request)
+    {
+        $lineaIds = $this->getLineasPasteurizadora()->pluck('id');
+
+        $analisis = AnalisisPasteurizadora::with('linea')
+            ->whereIn('linea_id', $lineaIds)
+            ->where(function ($query) {
+                $query->whereNotNull('valor_actual_52')
+                    ->orWhereNotNull('valor_actual_12')
+                    ->orWhereNotNull('valor_actual_4');
+            })
+            ->latest('fecha_analisis')
+            ->latest('created_at')
+            ->limit((int) $request->get('limit', 25))
+            ->get()
+            ->map(fn ($item) => [
+                'id' => $item->id,
+                'linea' => $item->linea->nombre ?? null,
+                'fecha' => $item->fecha_analisis?->format('Y-m-d'),
+                'modulo' => $item->modulo,
+                'componente' => $item->componente,
+                'valor_actual_52' => $item->valor_actual_52,
+                'valor_actual_12' => $item->valor_actual_12,
+                'valor_actual_4' => $item->valor_actual_4,
+            ]);
+
+        return response()->json(['success' => true, 'data' => $analisis]);
+    }
+
+    public function updatePlanAccion(Request $request)
+    {
+        return app(PlanAccionController::class)->updatePlanAccion($request->merge(['tipo' => 'pasteurizadora']));
+    }
+
     public function createWithLinea($linea)
     {
         $linea = Linea::findOrFail($linea);
         $request = request();
 
         return view('pasteurizadora.analisis-pasteurizadora.create', $this->buildCreateViewData($linea, $request));
+    }
+
+    private function getLineasPasteurizadora()
+    {
+        return Linea::whereIn('nombre', self::PASTEURIZADORAS_PERMITIDAS)
+            ->orderBy('nombre')
+            ->get();
+    }
+
+    private function resolverLineaPasteurizadora($linea): ?Linea
+    {
+        return Linea::whereIn('nombre', self::PASTEURIZADORAS_PERMITIDAS)
+            ->where(function ($query) use ($linea) {
+                $query->where('id', $linea)
+                    ->orWhere('nombre', $linea);
+            })
+            ->first();
+    }
+
+    private function getAnalisisPasteurizadoraParaExportar(Request $request)
+    {
+        $lineaIds = $this->getLineasPasteurizadora()->pluck('id');
+
+        return AnalisisPasteurizadora::with(['linea', 'usuario'])
+            ->whereIn('linea_id', $lineaIds)
+            ->when($request->filled('linea_id') && $request->linea_id !== 'todas', fn ($query) => $query->where('linea_id', $request->linea_id))
+            ->when($request->filled('modulo'), fn ($query) => $query->where('modulo', $request->modulo))
+            ->when($request->filled('componente'), fn ($query) => $query->where('componente', $request->componente))
+            ->when($request->filled('estado'), fn ($query) => $query->where('estado', AnalisisPasteurizadora::normalizarEstado($request->estado)))
+            ->when($request->filled('fecha_inicio'), fn ($query) => $query->whereDate('fecha_analisis', '>=', $request->fecha_inicio))
+            ->when($request->filled('fecha_fin'), fn ($query) => $query->whereDate('fecha_analisis', '<=', $request->fecha_fin))
+            ->latest('fecha_analisis')
+            ->latest('created_at')
+            ->get();
+    }
+
+    private function renderAnalisisPasteurizadoraPdf($analisis): string
+    {
+        $rows = $analisis->map(function ($item) {
+            return '<tr>'
+                . '<td>' . e($item->fecha_analisis?->format('d/m/Y')) . '</td>'
+                . '<td>' . e($item->linea->nombre ?? '') . '</td>'
+                . '<td>' . e($item->modulo) . '</td>'
+                . '<td>' . e($item->nivel) . '</td>'
+                . '<td>' . e($item->lado) . '</td>'
+                . '<td>' . e($item->componente_nombre) . '</td>'
+                . '<td>' . e($item->estado) . '</td>'
+                . '<td>' . e($item->numero_orden) . '</td>'
+                . '<td>' . e($item->actividad) . '</td>'
+                . '</tr>';
+        })->implode('');
+
+        return '<!doctype html><html><head><meta charset="utf-8"><title>Analisis Pasteurizadora</title></head><body>'
+            . '<h1>Analisis Pasteurizadora</h1>'
+            . '<table width="100%" border="1" cellspacing="0" cellpadding="4">'
+            . '<thead><tr><th>Fecha</th><th>Pasteurizadora</th><th>Modulo</th><th>Nivel</th><th>Lado</th><th>Componente</th><th>Estado</th><th>Orden</th><th>Actividad</th></tr></thead>'
+            . '<tbody>' . $rows . '</tbody>'
+            . '</table></body></html>';
+    }
+
+    private function formatearTendencia52124(?float $variacion): ?string
+    {
+        if ($variacion === null) {
+            return null;
+        }
+
+        if ($variacion > 0) {
+            return '<span class="trend-up">+' . number_format($variacion, 2) . '</span>';
+        }
+
+        if ($variacion < 0) {
+            return '<span class="trend-down">' . number_format($variacion, 2) . '</span>';
+        }
+
+        return '<span class="trend-neutral">0.00</span>';
     }
 
     private function buildSeguimientoPasteurizadora($lineas): array

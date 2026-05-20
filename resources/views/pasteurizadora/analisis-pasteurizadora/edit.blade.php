@@ -31,7 +31,7 @@
     ];
     $estadoBadge = $estadoBadges[$analisis->estado] ?? 'bg-red-100 text-red-800 border-red-200';
     $estadoActualLabel = str_contains((string) $analisis->estado, 'Requiere cambio')
-        ? 'Danado - Requiere cambio'
+        ? 'Dañado - Requiere cambio'
         : $analisis->estado;
 @endphp
 
@@ -206,7 +206,7 @@
                         @foreach(\App\Models\AnalisisPasteurizadora::ESTADOS as $estado)
                             @php
                                 $estadoLabel = str_contains((string) $estado, 'Requiere cambio')
-                                    ? 'Danado - Requiere cambio'
+                                    ? 'Dañado - Requiere cambio'
                                     : $estado;
                             @endphp
                             <option value="{{ $estado }}" {{ old('estado', $analisis->estado) === $estado ? 'selected' : '' }}>
