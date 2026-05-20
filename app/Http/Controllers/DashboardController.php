@@ -112,7 +112,7 @@ class DashboardController extends Controller
     $fallasPorLinea = $this->getFallasPorLinea($lineasLavadora, $analisisActuales);
     $planesAccionDashboard = $this->getPlanesAccionDashboard($lineasLavadora);
     $componentesDanados = [];
-    $rankingDanos = $this->getRankingDanos($lineasLavadora, $analisisActuales);
+    $rankingDanos = $this->getRankingDanosPorLavadora($lineasLavadora, $analisisActuales);
     $evolucionElongaciones = $this->getEvolucionElongaciones($lineasLavadora);
     $historicoRevisiones = $this->getHistoricoRevisiones($lineasLavadora, $analisisHistoricos);
     $analisis52124 = $this->getAnalisis52124($lineasLavadora, $analisisHistoricos);
@@ -835,6 +835,57 @@ public function pasteurizadoraOperativo(Request $request)
                 ];
             })
             ->sortByDesc(fn ($item) => ($item['puntaje'] * 100) + (($item['dias_desde_revision'] ?? 0) / 10))
+            ->values()
+            ->take(10)
+            ->all();
+    }
+
+    /**
+     * Obtiene el ranking de dano agrupado por lavadora.
+     */
+    private function getRankingDanosPorLavadora($lineasLavadora, ?Collection $analisisActuales = null): array
+    {
+        $analisisActuales = $analisisActuales ?: $this->getAnalisisActualesLavadoras($lineasLavadora);
+        $agrupados = $analisisActuales->groupBy('linea_id');
+
+        return $lineasLavadora
+            ->map(function ($linea) use ($agrupados) {
+                $analisisLinea = $agrupados->get($linea->id, collect());
+                $criticas = $analisisLinea->where('estado', 'DaÃ±ado - Requiere cambio')->count();
+                $severos = $analisisLinea->where('estado', 'Desgaste severo')->count();
+                $moderados = $analisisLinea->where('estado', 'Desgaste moderado')->count();
+                $totalDanos = $criticas + $severos + $moderados;
+                $ultimaRevision = $analisisLinea
+                    ->filter(fn ($item) => $item->fecha_analisis)
+                    ->sortByDesc(fn ($item) => $item->fecha_analisis->format('Y-m-d') . '-' . str_pad((string) $item->id, 10, '0', STR_PAD_LEFT))
+                    ->first();
+                $diasDesdeRevision = $ultimaRevision?->fecha_analisis
+                    ? $ultimaRevision->fecha_analisis->copy()->startOfDay()->diffInDays(now()->copy()->startOfDay())
+                    : null;
+
+                return [
+                    'linea_id' => $linea->id,
+                    'linea' => $linea->nombre,
+                    'criticas' => $criticas,
+                    'severos' => $severos,
+                    'moderados' => $moderados,
+                    'severas_moderadas' => $severos + $moderados,
+                    'total_danos' => $totalDanos,
+                    'total_componentes' => $analisisLinea->count(),
+                    'porcentaje_impacto' => $analisisLinea->count() > 0
+                        ? round(($totalDanos / $analisisLinea->count()) * 100, 1)
+                        : 0,
+                    'fecha_analisis' => $ultimaRevision?->fecha_analisis?->format('Y-m-d'),
+                    'fecha_analisis_humana' => $ultimaRevision?->fecha_analisis?->format('d/m/Y'),
+                    'dias_desde_revision' => $diasDesdeRevision,
+                    'prioridad' => $criticas > 0 ? 'critico' : ($severos > 0 ? 'severo' : 'moderado'),
+                    'prioridad_label' => $criticas > 0 ? 'Critico' : ($severos > 0 ? 'Severo' : 'Moderado'),
+                    'puntaje' => $totalDanos,
+                    'requiere_cambio' => $criticas > 0,
+                ];
+            })
+            ->filter(fn ($item) => $item['total_danos'] > 0)
+            ->sortByDesc(fn ($item) => ($item['total_danos'] * 1000) + ($item['criticas'] * 100) + ($item['severos'] * 10) + $item['moderados'] + (($item['dias_desde_revision'] ?? 0) / 100))
             ->values()
             ->take(10)
             ->all();
