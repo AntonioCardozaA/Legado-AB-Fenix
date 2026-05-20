@@ -59,7 +59,7 @@
     {{-- Header --}}
     <div class="mb-8">
         <div class="flex items-center gap-3 mb-4">
-            <a href="{{ route('analisis-pasteurizadora.index') }}"
+            <a href="{{ route('pasteurizadora.analisis-pasteurizadora.index') }}"
                class="inline-flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 
                       bg-gray-100 hover:bg-gray-200 rounded-lg transition">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

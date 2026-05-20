@@ -3,6 +3,777 @@
 @section('title', 'Análisis de Pasteurizadoras')
 
 @section('content')
+<style>
+    /* VARIABLES CSS PARA CONSISTENCIA */
+    :root {
+        --primary-blue: #3b82f6;
+        --success-green: #10b981;
+        --warning-yellow: #f59e0b;
+        --danger-red: #ef4444;
+        --changed-blue: #3b82f6;
+        --light-gray: #f9fafb;
+        --medium-gray: #e5e7eb;
+        --dark-gray: #6b7280;
+    }
+    
+    .sticky-top { position: sticky; top: 0; z-index: 30; }
+    .sticky-left { position: sticky; left: 0; z-index: 20; }
+    .sticky-top-left { position: sticky; top: 0; left: 0; z-index: 40; }
+    .cell-ok { background-color: #f0f9ff; border-left: 4px solid var(--success-green); }
+    .cell-warning { background-color: #fffbeb; border-left: 4px solid var(--warning-yellow); }
+    .cell-danger { background-color: #fef2f2; border-left: 4px solid var(--danger-red); }
+    .cell-changed { background-color: #eff6ff; border-left: 4px solid var(--changed-blue); }
+    .cell-empty { background-color: var(--light-gray); }
+    .cell-header { background-color: #eff6ff; }
+    
+    .compact-table td, .compact-table th {
+        padding: 8px !important;
+        font-size: 0.75rem !important;
+        min-width: 120px;
+    }
+    
+    .table-container {
+        max-height: 600px;
+        overflow-y: auto;
+    }
+    
+    .image-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 16px;
+        margin-top: 20px;
+        max-height: 60vh;
+        overflow-y: auto;
+        padding: 10px;
+    }
+    
+    .image-item {
+        position: relative;
+        border-radius: 8px;
+        overflow: hidden;
+        border: 2px solid var(--medium-gray);
+        transition: all 0.3s ease;
+        background: white;
+    }
+    
+    .image-item:hover {
+        border-color: var(--primary-blue);
+        transform: translateY(-2px);
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    }
+    
+    .grid-image {
+        width: 100%;
+        height: 150px;
+        object-fit: cover;
+        cursor: pointer;
+        transition: transform 0.3s ease;
+    }
+    
+    .grid-image:hover {
+        transform: scale(1.05);
+    }
+    
+    .image-info {
+        padding: 8px;
+        background: linear-gradient(to bottom, rgba(255,255,255,0.9), white);
+        border-top: 1px solid #f3f4f6;
+    }
+    
+    .image-number {
+        position: absolute;
+        top: 8px;
+        left: 8px;
+        background: rgba(0, 0, 0, 0.7);
+        color: white;
+        font-size: 12px;
+        font-weight: bold;
+        padding: 2px 8px;
+        border-radius: 12px;
+        z-index: 10;
+    }
+    
+    .download-image-btn {
+        width: 100%;
+        padding: 6px;
+        margin-top: 8px;
+        background: var(--primary-blue);
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 12px;
+        transition: background 0.3s ease;
+    }
+    
+    .download-image-btn:hover {
+        background: #2563eb;
+    }
+    
+    .download-all-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 20px;
+        background: var(--success-green);
+        color: white;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 500;
+        transition: background 0.3s ease;
+    }
+    
+    .download-all-btn:hover {
+        background: #059669;
+    }
+    
+    .empty-images {
+        text-align: center;
+        padding: 40px;
+        color: var(--dark-gray);
+    }
+    
+    .analysis-cell {
+        cursor: pointer;
+        transition: all 0.2s ease;
+        position: relative;
+        min-height: 120px;
+    }
+    
+    .analysis-cell.no-data {
+        cursor: default;
+    }
+    
+    .analysis-cell.no-data:hover {
+        background-color: inherit !important;
+        transform: none;
+    }
+    
+    .click-indicator {
+        position: absolute;
+        bottom: 8px;
+        right: 8px;
+        background: rgba(59, 130, 246, 0.1);
+        border: 1px solid rgba(59, 130, 246, 0.3);
+        border-radius: 4px;
+        padding: 2px 6px;
+        font-size: 10px;
+        color: var(--primary-blue);
+        opacity: 0;
+        transition: opacity 0.2s ease;
+    }
+    
+    .analysis-cell:not(.no-data):hover .click-indicator {
+        opacity: 1;
+    }
+    
+    .detail-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 20px;
+        margin-top: 20px;
+    }
+    
+    .detail-card {
+        background: white;
+        border-radius: 10px;
+        padding: 20px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        border: 1px solid var(--medium-gray);
+    }
+    
+    .detail-card h4 {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--dark-gray);
+        margin-bottom: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .detail-card p {
+        font-size: 15px;
+        color: #374151;
+        line-height: 1.5;
+    }
+    
+    .activity-content {
+        background: #f9fafb;
+        border-radius: 8px;
+        padding: 15px;
+        margin-top: 5px;
+        border-left: 4px solid var(--primary-blue);
+    }
+    
+    .activity-content p {
+        white-space: pre-wrap;
+        word-break: break-word;
+    }
+    
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-weight: 500;
+        font-size: 14px;
+    }
+    
+    .status-badge.ok {
+        background-color: #d1fae5;
+        color: #065f46;
+    }
+    
+    .status-badge.warning {
+        background-color: #fef3c7;
+        color: #92400e;
+    }
+    
+    .status-badge.danger {
+        background-color: #fee2e2;
+        color: #991b1b;
+    }
+    
+    .status-badge.changed {
+        background-color: #dbeafe;
+        color: #1e40af;
+    }
+    
+    .lado-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 4px 10px;
+        border-radius: 16px;
+        font-weight: 500;
+        font-size: 13px;
+    }
+    
+    .lado-badge.vapor {
+        background-color: #fee2e2;
+        color: #991b1b;
+    }
+    
+    .lado-badge.pasillo {
+        background-color: #dbeafe;
+        color: #1e40af;
+    }
+    
+    .detail-images-container {
+        background: white;
+        border-radius: 10px;
+        padding: 20px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        border: 1px solid var(--medium-gray);
+        margin-top: 20px;
+    }
+    
+    .detail-actions {
+        display: flex;
+        gap: 10px;
+        margin-top: 20px;
+        justify-content: center;
+    }
+    
+    .empty-cell {
+        min-height: 120px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        color: var(--dark-gray);
+        padding: 10px;
+    }
+    
+    .no-records {
+        text-align: center;
+        padding: 20px;
+        color: var(--dark-gray);
+    }
+    
+    .empty-cell-icon {
+        font-size: 24px;
+        margin-bottom: 8px;
+        color: #d1d5db;
+    }
+    
+    .component-header {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        padding: 8px 4px;
+    }
+    
+    .component-name {
+        font-weight: 600;
+        color: #1e40af;
+        font-size: 11px;
+        line-height: 1.2;
+        margin-bottom: 4px;
+    }
+    
+    .component-code {
+        font-size: 9px;
+        color: var(--dark-gray);
+        background: #f3f4f6;
+        padding: 2px 4px;
+        border-radius: 3px;
+    }
+    
+    .table-wrapper {
+        position: relative;
+        overflow: auto;
+        border: 1px solid var(--medium-gray);
+        border-radius: 8px;
+    }
+    
+    .table-corner {
+        background: #eff6ff;
+        border-right: 1px solid #dbeafe;
+        border-bottom: 1px solid #dbeafe;
+    }
+    
+    .scroll-indicator {
+        position: absolute;
+        bottom: 10px;
+        right: 10px;
+        background: rgba(0, 0, 0, 0.7);
+        color: white;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 10px;
+        z-index: 50;
+        display: none;
+    }
+    
+    .table-wrapper:hover .scroll-indicator {
+        display: block;
+    }
+    
+    .cell-highlight {
+        animation: highlight-pulse 2s ease-out;
+    }
+    
+    @keyframes highlight-pulse {
+        0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4); }
+        70% { box-shadow: 0 0 0 10px rgba(59, 130, 246, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+    }
+    
+    .badge-new {
+        position: absolute;
+        top: 5px;
+        right: 5px;
+        background: #ef4444;
+        color: white;
+        font-size: 8px;
+        padding: 2px 6px;
+        border-radius: 10px;
+        z-index: 5;
+    }
+    
+    .loading-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(255, 255, 255, 0.8);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 100;
+    }
+    
+    /* ESTILOS DE FILTROS */
+    .filters-section {
+        background: white;
+        border-radius: 16px;
+        padding: 24px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        margin-bottom: 24px;
+        border: 1px solid #e2e8f0;
+    }
+    
+    .lineas-title {
+        font-size: 14px;
+        font-weight: 700;
+        color: #1e293b;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 16px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .lineas-title i {
+        color: #3b82f6;
+        font-size: 16px;
+    }
+    
+    .lineas-grid {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 12px;
+    }
+    
+    .linea-item {
+        display: inline-flex;
+        align-items: center;
+        padding: 8px 20px;
+        background: #f8fafc;
+        border: 2px solid #e2e8f0;
+        border-radius: 40px;
+        font-size: 14px;
+        font-weight: 600;
+        color: #475569;
+        transition: all 0.2s ease;
+        cursor: pointer;
+        text-decoration: none;
+    }
+    
+    .linea-item i {
+        margin-right: 8px;
+        font-size: 14px;
+        color: #94a3b8;
+    }
+
+    .linea-item-icon {
+        width: 24px;
+        height: 24px;
+        margin-right: 10px;
+        object-fit: contain;
+        flex-shrink: 0;
+    }
+
+    .lineas-title-icon {
+        width: 24px;
+        height: 24px;
+        object-fit: contain;
+        flex-shrink: 0;
+    }
+    
+    .linea-item:hover {
+        background: #f1f5f9;
+        border-color: #94a3b8;
+        transform: translateY(-1px);
+    }
+    
+    .linea-item.active {
+        background: #2563eb;
+        border-color: #2563eb;
+        color: white;
+    }
+    
+    .linea-item.active i {
+        color: white;
+    }
+    
+    .filters-divider {
+        height: 1px;
+        background: linear-gradient(to right, transparent, #cbd5e1, transparent);
+        margin: 16px 0;
+    }
+    
+    .filters-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        align-items: center;
+        justify-content: flex-start;
+    }
+    
+    .filter-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 16px;
+        background: #f8fafc;
+        border: 2px solid #e2e8f0;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        color: #475569;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    
+    .filter-link i {
+        font-size: 14px;
+        color: #94a3b8;
+    }
+    
+    .filter-link:hover {
+        background: #f1f5f9;
+        border-color: #94a3b8;
+    }
+    
+    .filter-link.active {
+        background: #2563eb;
+        border-color: #2563eb;
+        color: white;
+    }
+    
+    .filter-link.active i {
+        color: white;
+    }
+    
+    .btn-apply {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 8px 24px;
+        background: #10b981;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    
+    .btn-apply:hover {
+        background: #059669;
+        transform: translateY(-1px);
+    }
+    
+    .btn-clear {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 8px 24px;
+        background: #ef4444;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        text-decoration: none;
+    }
+    
+    .btn-clear:hover {
+        background: #dc2626;
+        transform: translateY(-1px);
+    }
+    
+    .advanced-filters-panel {
+        display: none;
+        margin-top: 16px;
+        padding-top: 16px;
+        border-top: 1px solid #e2e8f0;
+    }
+    
+    .advanced-filters-panel.show {
+        display: block;
+    }
+    
+    .advanced-filters-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 16px;
+    }
+    
+    .filter-group {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .filter-group label {
+        font-size: 12px;
+        font-weight: 700;
+        color: #1e293b;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .filter-select, .filter-input {
+        padding: 10px 12px;
+        border: 2px solid #e2e8f0;
+        border-radius: 8px;
+        font-size: 14px;
+        background: white;
+        transition: all 0.2s ease;
+    }
+    
+    .filter-select:focus, .filter-input:focus {
+        outline: none;
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+    
+    /* Estilos responsivos */
+    @media (max-width: 768px) {
+        .filters-row {
+            gap: 8px;
+        }
+        
+        .advanced-filters-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+    
+    /* Estilos para media queries responsivas -->
+    @media (max-width: 768px) {
+        .compact-table td, .compact-table th {
+            padding: 6px !important;
+            font-size: 0.65rem !important;
+            min-width: 80px;
+        }
+    }
+    
+    @media (max-width: 480px) {
+        .lineas-grid {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        
+        .linea-item {
+            width: 100%;
+            justify-content: center;
+        }
+    }
+
+    /* ESTILOS PARA MODALES */
+    @keyframes modalIn {
+        from {
+            opacity: 0;
+            transform: scale(0.95);
+        }
+        to {
+            opacity: 1;
+            transform: scale(1);
+        }
+    }
+    
+    .animate-modalIn {
+        animation: modalIn 0.3s ease-out;
+    }
+    
+    .custom-scrollbar::-webkit-scrollbar {
+        width: 8px;
+    }
+    
+    .custom-scrollbar::-webkit-scrollbar-track {
+        background: #f1f5f9;
+        border-radius: 4px;
+    }
+    
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 4px;
+    }
+    
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8;
+    }
+
+    /* Grid de imagenes mejorado para el modal monocromatico */
+    .image-grid-enhanced {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+        gap: 20px;
+    }
+
+    .image-grid-enhanced .image-item {
+        position: relative;
+        border-radius: 8px;
+        overflow: hidden;
+        border: 2px solid #e5e7eb;
+        transition: all 0.3s ease;
+        background: white;
+    }
+
+    .image-grid-enhanced .image-item:hover {
+        border-color: #4b5563;
+        transform: translateY(-2px);
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2);
+    }
+
+    .image-grid-enhanced .grid-image {
+        width: 100%;
+        height: 150px;
+        object-fit: cover;
+        cursor: pointer;
+        transition: transform 0.3s ease;
+    }
+
+    .image-grid-enhanced .grid-image:hover {
+        transform: scale(1.05);
+    }
+
+    .image-grid-enhanced .image-number {
+        position: absolute;
+        top: 8px;
+        left: 8px;
+        background: rgba(31, 41, 55, 0.9);
+        color: white;
+        font-size: 12px;
+        font-weight: bold;
+        padding: 2px 8px;
+        border-radius: 4px;
+        z-index: 10;
+        border: 1px solid #6b7280;
+        font-family: monospace;
+    }
+
+    .image-grid-enhanced .image-info {
+        padding: 8px;
+        background: white;
+        border-top: 1px solid #e5e7eb;
+    }
+
+    .image-grid-enhanced .download-image-btn {
+        width: 100%;
+        padding: 6px;
+        background: #374151;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 12px;
+        font-family: monospace;
+        transition: background 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+    }
+
+    .image-grid-enhanced .download-image-btn:hover {
+        background: #1f2937;
+    }
+
+    @media (max-width: 768px) {
+        .image-grid-enhanced {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+
+        .image-grid-enhanced .grid-image {
+            height: 120px;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .image-grid-enhanced {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
 <div class="max-w-full mx-auto px-4 py-6">
     {{-- HEADER --}}
     <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
@@ -13,77 +784,109 @@
                 </svg>
                 <span class="font-medium">Volver</span>
             </a>
-            <h1 class="text-2xl font-bold text-gray-800 flex items-center gap-2 mt-2">
-                <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
-                </svg>
-                Análisis de Pasteurizadoras
+            <h1 class="text-3xl font-bold text-gray-900 flex items-center gap-3 mt-3">
+                <span>Análisis de Pasteurizadoras</span>
             </h1>
         </div>
     </div>
 
-    {{-- FILTROS --}}
+    {{-- FILTROS ESTILO IMAGEN - CON VER MÁS FUNCIONAL --}}
     @php
         $lineasFiltradas = $lineasFiltradas ?? collect();
         $mostrarTodas = $mostrarTodas ?? true;
         $analisisCollection = isset($analisis) ? collect($analisis) : collect([]);
         $seguimientoPasteurizadora = $seguimientoPasteurizadora ?? [];
+        // Cambia esta ruta para usar el icono que quieras en todas las pasteurizadoras.
+        $iconoPasteurizadora = 'images/icono_pas.png';
+        $tieneIconoPasteurizadora = file_exists(public_path($iconoPasteurizadora));
     @endphp
 
-    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 mb-6">
-        <div class="flex flex-wrap items-center justify-between gap-4">
-            <div class="flex flex-wrap gap-2">
-                <a href="{{ route('pasteurizadora.analisis-pasteurizadora.index', ['linea_id' => 'todas']) }}"
-                   class="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 {{ $mostrarTodas ? 'bg-blue-600 text-white shadow-md' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
+    @if(isset($lineasFiltradas) && $lineasFiltradas->count() > 0)
+    <div class="filters-section">
+        {{-- LÍNEAS: con las pasteurizadoras específicas --}}
+        <div class="lineas-title">
+       
+            LÍNEAS DE PASTEURIZADORA:
+        </div>
+        
+        <form method="GET" action="{{ route('pasteurizadora.analisis-pasteurizadora.index') }}" id="filterForm">
+            <div class="lineas-grid">
+                <!-- Todas -->
+                <a href="{{ route('pasteurizadora.analisis-pasteurizadora.index', ['linea_id' => 'todas']) }}" 
+                   class="linea-item {{ $mostrarTodas ? 'active' : '' }}">
+                    <i class="fas fa-globe"></i>
                     Todas
                 </a>
+                
                 @foreach($lineasFiltradas as $l)
-                    <a href="{{ route('pasteurizadora.analisis-pasteurizadora.index', ['linea_id' => $l->id]) }}"
-                       class="inline-flex items-center gap-4 px-9 py-4 rounded-full text-sm font-medium transition-all duration-200 {{ (!$mostrarTodas && request('linea_id') == $l->id) ? 'bg-blue-600 text-white shadow-md' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">
+                    <div class="linea-item {{ request('linea_id') == $l->id ? 'active' : '' }}" 
+                         onclick="selectLinea('{{ $l->id }}')">
+                    
                         {{ $l->nombre }}
-                    </a>
+                    </div>
                 @endforeach
+                
+                {{-- Select oculto para el valor real --}}
+                <input type="hidden" name="linea_id" id="lineaInput" value="{{ request('linea_id') }}">
+                <input type="hidden" name="modulo" id="moduloInput" value="{{ request('modulo') }}">
+                <input type="hidden" name="estado" value="{{ request('estado') }}" id="estadoInput">
             </div>
 
-            <div class="flex gap-2">
-                <form method="GET" action="{{ route('pasteurizadora.analisis-pasteurizadora.index') }}" class="flex gap-2">
-                    <input type="hidden" name="linea_id" value="{{ request('linea_id') }}">
-                    <select name="modulo" class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                        <option value="">Todos los módulos</option>
-                        @for($i = 1; $i <= 16; $i++)
-                            <option value="{{ $i }}" {{ request('modulo') == $i ? 'selected' : '' }}>Módulo {{ $i }}</option>
-                        @endfor
-                    </select>
-                    <select name="estado" class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                        <option value="">Todos los estados</option>
-                        @php
-                            $estados = ['Buen estado', 'Desgaste moderado', 'Desgaste severo', 'Dañado - Requiere cambio', 'Cambiado'];
-                        @endphp
-                        @foreach($estados as $estado)
-                            <option value="{{ $estado }}" {{ request('estado') == $estado ? 'selected' : '' }}>{{ $estado }}</option>
-                        @endforeach
-                    </select>
-                    <button type="submit" class="inline-flex items-center gap-2 px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-                        </svg>
-                        Filtrar
-                    </button>
-                </form>
-                <a href="{{ route('pasteurizadora.analisis-pasteurizadora.index', ['linea_id' => request('linea_id', 'todas')]) }}" class="inline-flex items-center gap-2 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                    </svg>
+            <div class="filters-divider"></div>
+
+            {{-- FILTROS AVANZADOS Y ACCIONES --}}
+            <div class="filters-row">
+                <div class="filter-link {{ request()->has('modulo') || request()->has('estado') ? 'active' : '' }}" 
+                     onclick="toggleAdvancedFilters()">
+                    <i class="fas fa-sliders-h"></i>
+                    Filtros avanzados
+                    <i id="advancedFiltersIcon" class="fas fa-chevron-down ml-1"></i>
+                </div>
+                
+                <button type="submit" class="btn-apply">
+                    <i class="fas fa-search"></i>
+                    Aplicar filtros
+                </button>
+                
+                <a href="{{ route('pasteurizadora.analisis-pasteurizadora.index', ['linea_id' => 'todas']) }}" class="btn-clear">
+                    <i class="fas fa-times"></i>
                     Limpiar
                 </a>
             </div>
-        </div>
-    </div>
 
-    {{-- ESTADÍSTICAS --}}
+            {{-- PANEL DE FILTROS AVANZADOS --}}
+            <div id="advancedFiltersPanel" class="advanced-filters-panel {{ request()->has('modulo') || request()->has('estado') ? 'show' : '' }}">
+                <div class="advanced-filters-grid">
+                    <div class="filter-group">
+                        <label><i class="fas fa-cube mr-1"></i> Módulo</label>
+                        <select name="modulo" class="filter-select">
+                            <option value="">Todos los módulos</option>
+                            @for($i = 1; $i <= 16; $i++)
+                                <option value="{{ $i }}" {{ request('modulo') == $i ? 'selected' : '' }}>
+                                    Módulo {{ $i }}
+                                </option>
+                            @endfor
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <label><i class="fas fa-clipboard-check mr-1"></i> Estado</label>
+                        <select name="estado" class="filter-select">
+                            <option value="">Todos los estados</option>
+                            <option value="Buen estado" {{ request('estado') == 'Buen estado' ? 'selected' : '' }}>✅ Buen estado</option>
+                            <option value="Desgaste moderado" {{ request('estado') == 'Desgaste moderado' ? 'selected' : '' }}>⚠️ Desgaste moderado</option>
+                            <option value="Desgaste severo" {{ request('estado') == 'Desgaste severo' ? 'selected' : '' }}>⚠️ Desgaste severo</option>
+                            <option value="Dañado - Requiere cambio" {{ request('estado') == 'Dañado - Requiere cambio' ? 'selected' : '' }}>❌ Dañado - Requiere cambio</option>
+                            <option value="Cambiado" {{ request('estado') == 'Cambiado' ? 'selected' : '' }}>🔄 Cambiado</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+    @endif
+
+    {{-- ESTADÍSTICAS / INDICADORES --}}
     @if($analisisCollection->count() > 0)
         @php
             $registrosPorEstado = [
@@ -103,8 +906,42 @@
             ];
         @endphp
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
-            <div onclick="openEstadoModal('total', {{ json_encode($registrosPorEstado['total']->map(fn($item) => [
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4 mb-6">
+            {{-- TOTAL ANÁLISIS --}}
+            <div class="bg-white rounded-xl shadow-sm p-4 border-t-4 border-gray-600 hover:shadow-lg transition-all">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Total análisis</p>
+                        <h3 class="text-2xl font-bold text-gray-700 mt-1">{{ $estadisticas['total'] ?? 0 }}</h3>
+                    </div>
+                    <div class="bg-gray-100 text-gray-600 p-2 rounded-full"><i class="fas fa-chart-line"></i></div>
+                </div>
+            </div>
+            
+            {{-- BUEN ESTADO (BOTÓN CLICKEABLE) --}}
+            <button onclick="openEstadoModal('buen_estado', 'Buen Estado', {{ json_encode($registrosPorEstado['buen_estado']->map(fn($item) => [
+                'id' => $item->id,
+                'linea' => $item->linea->nombre ?? 'N/A',
+                'modulo' => $item->modulo,
+                'componente' => $item->componente_nombre,
+                'estado' => $item->estado,
+                'fecha' => $item->fecha_formateada ?? $item->created_at->format('d/m/Y'),
+                'actividad' => Str::limit($item->actividad, 80),
+                'lado' => $item->lado,
+            ])->values()) }})" 
+                    class="bg-white rounded-xl shadow-sm p-4 border-t-4 border-emerald-600 hover:shadow-lg hover:bg-emerald-50 transition-all text-left w-full cursor-pointer group">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-semibold text-emerald-600 uppercase tracking-wide">Buen estado</p>
+                        <h3 class="text-2xl font-bold text-emerald-600 mt-1">{{ $estadisticas['buen_estado'] ?? 0 }}</h3>
+                        <p class="text-xs text-emerald-500 group-hover:text-emerald-700 mt-1"><i class="fas fa-eye text-xs"></i> Ver detalles</p>
+                    </div>
+                    <div class="bg-emerald-100 text-emerald-600 p-2 rounded-full group-hover:bg-emerald-200 transition"><i class="fas fa-check-circle"></i></div>
+                </div>
+            </button>
+            
+            {{-- DESGASTE (BOTÓN CLICKEABLE) --}}
+            <button onclick="openEstadoModal('desgaste', 'Desgaste', {{ json_encode($registrosPorEstado['desgaste']->map(fn($item) => [
                 'id' => $item->id,
                 'linea' => $item->linea->nombre ?? 'N/A',
                 'modulo' => $item->modulo,
@@ -114,19 +951,19 @@
                 'actividad' => Str::limit($item->actividad, 80),
                 'lado' => $item->lado,
             ])->values()) }})"
-                class="bg-white rounded-xl p-5 shadow-sm border border-gray-200 cursor-pointer transition-all duration-300 hover:shadow-md hover:border-gray-300">
+                    class="bg-white rounded-xl shadow-sm p-4 border-t-4 border-amber-500 hover:shadow-lg hover:bg-amber-50 transition-all text-left w-full cursor-pointer group">
                 <div class="flex items-center justify-between">
-                    <span class="text-sm font-medium text-gray-600">Total análisis</span>
-                    <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-                    </svg>
+                    <div>
+                        <p class="text-xs font-semibold text-amber-600 uppercase tracking-wide">Desgaste</p>
+                        <h3 class="text-2xl font-bold text-amber-600 mt-1">{{ $estadisticas['desgaste'] ?? 0 }}</h3>
+                        <p class="text-xs text-amber-500 group-hover:text-amber-700 mt-1"><i class="fas fa-eye text-xs"></i> Ver detalles</p>
+                    </div>
+                    <div class="bg-amber-100 text-amber-600 p-2 rounded-full group-hover:bg-amber-200 transition"><i class="fas fa-exclamation-triangle"></i></div>
                 </div>
-                <div class="mt-3">
-                    <div class="text-3xl font-bold text-gray-900">{{ $estadisticas['total'] }}</div>
-                    <div class="text-xs text-gray-500 mt-1">registros totales</div>
-                </div>
-            </div>
-            <div onclick="openEstadoModal('buen_estado', {{ json_encode($registrosPorEstado['buen_estado']->map(fn($item) => [
+            </button>
+            
+            {{-- DAÑADOS (BOTÓN CLICKEABLE) --}}
+            <button onclick="openEstadoModal('danado', 'Dañados', {{ json_encode($registrosPorEstado['danado']->map(fn($item) => [
                 'id' => $item->id,
                 'linea' => $item->linea->nombre ?? 'N/A',
                 'modulo' => $item->modulo,
@@ -136,19 +973,19 @@
                 'actividad' => Str::limit($item->actividad, 80),
                 'lado' => $item->lado,
             ])->values()) }})"
-                class="bg-white rounded-xl p-5 shadow-sm border border-green-200 cursor-pointer transition-all duration-300 hover:shadow-md hover:border-green-300">
+                    class="bg-white rounded-xl shadow-sm p-4 border-t-4 border-red-600 hover:shadow-lg hover:bg-red-50 transition-all text-left w-full cursor-pointer group">
                 <div class="flex items-center justify-between">
-                    <span class="text-sm font-medium text-green-700">Buen estado</span>
-                    <svg class="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
+                    <div>
+                        <p class="text-xs font-semibold text-red-600 uppercase tracking-wide">Dañados</p>
+                        <h3 class="text-2xl font-bold text-red-600 mt-1">{{ ($estadisticas['danado'] ?? 0) }}</h3>
+                        <p class="text-xs text-red-500 group-hover:text-red-700 mt-1"><i class="fas fa-eye text-xs"></i> Ver detalles</p>
+                    </div>
+                    <div class="bg-red-100 text-red-600 p-2 rounded-full group-hover:bg-red-200 transition"><i class="fas fa-times-circle"></i></div>
                 </div>
-                <div class="mt-3">
-                    <div class="text-3xl font-bold text-green-700">{{ $estadisticas['buen_estado'] }}</div>
-                    <div class="text-xs text-green-600 mt-1">en óptimas condiciones</div>
-                </div>
-            </div>
-            <div onclick="openEstadoModal('desgaste', {{ json_encode($registrosPorEstado['desgaste']->map(fn($item) => [
+            </button>
+            
+            {{-- CAMBIADOS (BOTÓN CLICKEABLE) --}}
+            <button onclick="openEstadoModal('cambiado', 'Cambiados', {{ json_encode($registrosPorEstado['cambiado']->map(fn($item) => [
                 'id' => $item->id,
                 'linea' => $item->linea->nombre ?? 'N/A',
                 'modulo' => $item->modulo,
@@ -158,62 +995,16 @@
                 'actividad' => Str::limit($item->actividad, 80),
                 'lado' => $item->lado,
             ])->values()) }})"
-                class="bg-white rounded-xl p-5 shadow-sm border border-yellow-200 cursor-pointer transition-all duration-300 hover:shadow-md hover:border-yellow-300">
+                    class="bg-white rounded-xl shadow-sm p-4 border-t-4 border-sky-600 hover:shadow-lg hover:bg-sky-50 transition-all text-left w-full cursor-pointer group">
                 <div class="flex items-center justify-between">
-                    <span class="text-sm font-medium text-yellow-700">Desgaste</span>
-                    <svg class="w-8 h-8 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
-                    </svg>
+                    <div>
+                        <p class="text-xs font-semibold text-sky-600 uppercase tracking-wide">Cambiados</p>
+                        <h3 class="text-2xl font-bold text-sky-600 mt-1">{{ $estadisticas['cambiado'] ?? 0 }}</h3>
+                        <p class="text-xs text-sky-500 group-hover:text-sky-700 mt-1"><i class="fas fa-eye text-xs"></i> Ver detalles</p>
+                    </div>
+                    <div class="bg-sky-100 text-sky-600 p-2 rounded-full group-hover:bg-sky-200 transition"><i class="fas fa-sync-alt"></i></div>
                 </div>
-                <div class="mt-3">
-                    <div class="text-3xl font-bold text-yellow-700">{{ $estadisticas['desgaste'] }}</div>
-                    <div class="text-xs text-yellow-600 mt-1">requieren monitoreo</div>
-                </div>
-            </div>
-            <div onclick="openEstadoModal('danado', {{ json_encode($registrosPorEstado['danado']->map(fn($item) => [
-                'id' => $item->id,
-                'linea' => $item->linea->nombre ?? 'N/A',
-                'modulo' => $item->modulo,
-                'componente' => $item->componente_nombre,
-                'estado' => $item->estado,
-                'fecha' => $item->fecha_formateada ?? $item->created_at->format('d/m/Y'),
-                'actividad' => Str::limit($item->actividad, 80),
-                'lado' => $item->lado,
-            ])->values()) }})"
-                class="bg-white rounded-xl p-5 shadow-sm border border-red-200 cursor-pointer transition-all duration-300 hover:shadow-md hover:border-red-300">
-                <div class="flex items-center justify-between">
-                    <span class="text-sm font-medium text-red-700">Dañado</span>
-                    <svg class="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
-                </div>
-                <div class="mt-3">
-                    <div class="text-3xl font-bold text-red-700">{{ $estadisticas['danado'] }}</div>
-                    <div class="text-xs text-red-600 mt-1">requieren cambio urgente</div>
-                </div>
-            </div>
-            <div onclick="openEstadoModal('cambiado', {{ json_encode($registrosPorEstado['cambiado']->map(fn($item) => [
-                'id' => $item->id,
-                'linea' => $item->linea->nombre ?? 'N/A',
-                'modulo' => $item->modulo,
-                'componente' => $item->componente_nombre,
-                'estado' => $item->estado,
-                'fecha' => $item->fecha_formateada ?? $item->created_at->format('d/m/Y'),
-                'actividad' => Str::limit($item->actividad, 80),
-                'lado' => $item->lado,
-            ])->values()) }})"
-                class="bg-white rounded-xl p-5 shadow-sm border border-blue-200 cursor-pointer transition-all duration-300 hover:shadow-md hover:border-blue-300">
-                <div class="flex items-center justify-between">
-                    <span class="text-sm font-medium text-blue-700">Cambiado</span>
-                    <svg class="w-8 h-8 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-                    </svg>
-                </div>
-                <div class="mt-3">
-                    <div class="text-3xl font-bold text-blue-700">{{ $estadisticas['cambiado'] }}</div>
-                    <div class="text-xs text-blue-600 mt-1">componentes reemplazados</div>
-                </div>
-            </div>
+            </button>
         </div>
     @endif
 
@@ -517,7 +1308,7 @@
 
                                                         <div class="flex gap-2 pt-1">
                                                             @if(count($registro->evidencia_fotos ?? []) > 0)
-                                                                <button onclick="event.stopPropagation(); openAllImages({{ json_encode($registro->evidencia_fotos) }}, '{{ $registro->numero_orden }}')"
+                                                                <button onclick="event.stopPropagation(); openAllImages({{ Illuminate\Support\Js::from($registro->evidencia_fotos ?? []) }}, {{ Illuminate\Support\Js::from($registro->numero_orden) }})"
                                                                         class="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-xs transition">
                                                                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
@@ -609,21 +1400,183 @@
     </div>
 </div>
 
-{{-- MODAL DE DETALLE DE ANÁLISIS --}}
-<div id="analysisDetailModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50 p-4" onclick="if(event.target === this) closeAnalysisDetailModal()">
+{{-- MODAL DE DETALLES --}}
+<div id="analysisDetailModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50 p-4"
+     onclick="if(event.target === this) closeAnalysisDetailModal()">
     <div class="bg-white rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
-        <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50">
-            <h3 class="text-lg font-semibold text-gray-900">Detalle del Análisis</h3>
-            <button onclick="closeAnalysisDetailModal()" class="w-8 h-8 rounded-lg hover:bg-gray-200 flex items-center justify-center transition">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                </svg>
-            </button>
+        
+        <div class="px-6 py-4 border-b border-gray-100">
+            <div class="flex justify-between items-center">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-chart-line text-gray-600 text-sm"></i>
+                    </div>
+                    <h3 class="font-medium text-gray-900" id="detailModalTitle">
+                        Detalle del Análisis
+                    </h3>
+                </div>
+                <button onclick="closeAnalysisDetailModal()" 
+                        class="w-8 h-8 rounded-lg hover:bg-gray-100 flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
         </div>
-        <div class="p-6 overflow-auto max-h-[calc(90vh-100px)]" id="detailModalContent">
-            <div class="text-center py-8">
-                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-                <p class="mt-2 text-gray-500">Cargando...</p>
+        
+        <div class="p-8 overflow-auto max-h-[calc(90vh-100px)] bg-gray-50">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div class="bg-white rounded-lg p-5 border-l-4 border-gray-700 shadow-sm hover:shadow-md transition-all">
+                    <div class="flex items-start gap-3">
+                        <div class="bg-gray-100 p-3 rounded-lg">
+                            <i class="fas fa-industry text-gray-700 text-xl"></i>
+                        </div>
+                        <div class="flex-1">
+                            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider font-mono">Línea</p>
+                            <p id="detail-linea" class="font-bold text-gray-800 text-lg mt-1"></p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-lg p-5 border-l-4 border-gray-700 shadow-sm hover:shadow-md transition-all">
+                    <div class="flex items-start gap-3">
+                        <div class="bg-gray-100 p-3 rounded-lg">
+                            <i class="fas fa-cube text-gray-700 text-xl"></i>
+                        </div>
+                        <div class="flex-1">
+                            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider font-mono">Módulo</p>
+                            <p id="detail-modulo" class="font-bold text-gray-800 text-lg mt-1"></p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-lg p-5 border-l-4 border-gray-700 shadow-sm hover:shadow-md transition-all">
+                    <div class="flex items-start gap-3">
+                        <div class="bg-gray-100 p-3 rounded-lg">
+                            <i class="fas fa-cog text-gray-700 text-xl"></i>
+                        </div>
+                        <div class="flex-1">
+                            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider font-mono">Componente</p>
+                            <p id="detail-componente" class="font-bold text-gray-800 text-lg mt-1"></p>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="detail-lado-container" class="bg-white rounded-lg p-5 border-l-4 border-gray-700 shadow-sm hover:shadow-md transition-all">
+                    <div class="flex items-start gap-3">
+                        <div class="bg-gray-100 p-3 rounded-lg">
+                            <i class="fas fa-arrows-alt-h text-gray-700 text-xl"></i>
+                        </div>
+                        <div class="flex-1">
+                            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider font-mono">Lado</p>
+                            <p id="detail-lado" class="font-bold text-gray-800 text-lg mt-1"></p>
+                            <div id="detail-lado-badge-container" class="mt-2"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-lg p-5 border-l-4 border-gray-700 shadow-sm hover:shadow-md transition-all">
+                    <div class="flex items-start gap-3">
+                        <div class="bg-gray-100 p-3 rounded-lg">
+                            <i class="far fa-calendar-alt text-gray-700 text-xl"></i>
+                        </div>
+                        <div class="flex-1">
+                            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider font-mono">Fecha</p>
+                            <p id="detail-fecha" class="font-bold text-gray-800 text-lg mt-1 font-mono"></p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-lg p-5 border-l-4 border-gray-700 shadow-sm hover:shadow-md transition-all">
+                    <div class="flex items-start gap-3">
+                        <div class="bg-gray-100 p-3 rounded-lg">
+                            <i class="fas fa-hashtag text-gray-700 text-xl"></i>
+                        </div>
+                        <div class="flex-1">
+                            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider font-mono">Orden</p>
+                            <p id="detail-orden" class="font-bold text-gray-800 text-lg mt-1 font-mono"></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                <div class="bg-white rounded-lg p-5 border border-blue-200 shadow-sm">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="bg-blue-100 p-2 rounded-lg">
+                            <i class="fas fa-user-check text-blue-600"></i>
+                        </div>
+                        <h4 class="font-semibold text-gray-700 border-blue-200 border-b-2 uppercase tracking-wider text-sm">Técnico</h4>
+                    </div>
+                    <div class="flex justify-center">
+                        <div id="detail-usuario" class="px-6 py-3 bg-blue-50 text-blue-700 rounded-lg text-sm w-full text-center font-semibold"></div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-lg p-5 border border-green-200 shadow-sm">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="bg-green-100 p-2 rounded-lg">
+                            <i class="fas fa-clipboard-check text-green-600"></i>
+                        </div>
+                        <h4 class="font-semibold text-gray-700 border-green-200 border-b-2 uppercase tracking-wider text-sm">Estado</h4>
+                    </div>
+                    <div class="flex justify-center">
+                        <div id="detail-estado" class="px-6 py-3 bg-green-100 text-green-700 rounded-lg text-sm w-full text-center"></div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-lg p-5 border border-gray-200 shadow-sm md:col-span-2">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="bg-gray-200 p-2 rounded-lg">
+                            <i class="fas fa-sticky-note text-gray-700"></i>
+                        </div>
+                        <h4 class="font-semibold text-gray-700 uppercase tracking-wider text-sm font-mono">Actividad</h4>
+                    </div>
+                    <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                        <p id="detail-actividad" class="text-gray-700 whitespace-pre-line leading-relaxed text-sm"></p>
+                    </div>
+                </div>
+            </div>
+
+            <div id="detail-componentes-section" class="mt-6 hidden"></div>
+
+            <div id="detail-niveles-section" class="mt-6 hidden"></div>
+
+            <div id="detail-actualizaciones-section" class="mt-6 hidden"></div>
+            
+            <div id="detail-images-section" class="mt-6 hidden">
+                <div class=" text-gray-700 px-6 py-4">
+                    <div class="flex items-center gap-3">
+                        <div class=" p-2 rounded-lg">
+                            <i class="fas fa-images text-xl"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-lg uppercase tracking-wider font-mono">Evidencia Fotográfica</h4>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-white p-6 border-x-2 border-b-2 border-gray-200">
+                    <div id="detail-image-grid" class="image-grid-enhanced"></div>
+                </div>
+            </div>
+
+            <div class="flex flex-col sm:flex-row sm:justify-end gap-3 mt-8 pt-4 border-t border-gray-200">
+                <a id="detail-edit-btn" 
+                href="#" 
+                class="w-full sm:w-auto justify-center px-6 py-3 bg-gray-800 text-white rounded-lg hover:bg-gray-900 transition-all shadow-md hover:shadow-lg flex items-center gap-2 font-medium border border-gray-700">
+                    <i class="fas fa-edit"></i>
+                    Editar Análisis
+                </a>
+
+                <a id="detail-historial-btn"
+                href="#"
+                class="w-full sm:w-auto justify-center px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-all shadow-md hover:shadow-lg flex items-center gap-2 font-medium hidden border border-gray-500">
+                    <span id="detail-historial-text">Ver Historial</span>
+                </a>
+
+                <button onclick="closeAnalysisDetailModal()" 
+                        class="w-full sm:w-auto justify-center px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-all shadow-md hover:shadow-lg flex items-center gap-2 font-medium border border-gray-300">
+                    <i class="fas fa-times"></i>
+                    Cerrar
+                </button>
             </div>
         </div>
     </div>
@@ -676,7 +1629,7 @@
 let currentAnalysisData = null;
 let currentEstadoData = [];
 
-function openEstadoModal(tipo, registros) {
+function openEstadoModal(tipo, nombre, registros) {
     currentEstadoData = registros;
     const modal = document.getElementById('estadoModal');
     const title = document.getElementById('estadoModalTitle');
@@ -689,34 +1642,34 @@ function openEstadoModal(tipo, registros) {
             bgColor = 'bg-gray-100';
             textColor = 'text-gray-800';
             icono = '📊';
-            title.innerHTML = `${icono} Todos los registros (${registros.length})`;
+            title.innerHTML = `${icono} ${nombre} (${registros.length})`;
             break;
         case 'buen_estado':
-            bgColor = 'bg-green-100';
-            textColor = 'text-green-800';
+            bgColor = 'bg-emerald-100';
+            textColor = 'text-emerald-800';
             icono = '✅';
-            title.innerHTML = `${icono} Registros en Buen Estado (${registros.length})`;
+            title.innerHTML = `${icono} ${nombre} (${registros.length})`;
             break;
         case 'desgaste':
-            bgColor = 'bg-yellow-100';
-            textColor = 'text-yellow-800';
+            bgColor = 'bg-amber-100';
+            textColor = 'text-amber-800';
             icono = '⚠️';
-            title.innerHTML = `${icono} Registros con Desgaste (${registros.length})`;
+            title.innerHTML = `${icono} ${nombre} (${registros.length})`;
             break;
         case 'danado':
             bgColor = 'bg-red-100';
             textColor = 'text-red-800';
             icono = '❌';
-            title.innerHTML = `${icono} Registros Dañados (${registros.length})`;
+            title.innerHTML = `${icono} ${nombre} (${registros.length})`;
             break;
         case 'cambiado':
-            bgColor = 'bg-blue-100';
-            textColor = 'text-blue-800';
+            bgColor = 'bg-sky-100';
+            textColor = 'text-sky-800';
             icono = '🔄';
-            title.innerHTML = `${icono} Registros Cambiados (${registros.length})`;
+            title.innerHTML = `${icono} ${nombre} (${registros.length})`;
             break;
         default:
-            title.innerHTML = `Registros (${registros.length})`;
+            title.innerHTML = `${nombre} (${registros.length})`;
     }
 
     header.className = `px-6 py-4 border-b flex justify-between items-center ${bgColor}`;
@@ -832,268 +1785,306 @@ function cerrarEstadoModalYVerAnalisis(id) {
 
 function openAnalysisDetail(data) {
     currentAnalysisData = data;
-    const modal = document.getElementById('analysisDetailModal');
-    const content = document.getElementById('detailModalContent');
 
-    let estadoClass = '';
-    let estadoIcon = '';
-    if (data.estado === 'Buen estado') {
-        estadoClass = 'bg-green-100 text-green-700';
-        estadoIcon = '✅';
-    } else if (data.estado.includes('Desgaste')) {
-        estadoClass = 'bg-yellow-100 text-yellow-700';
-        estadoIcon = '⚠️';
-    } else if (data.estado === 'Dañado - Requiere cambio') {
-        estadoClass = 'bg-red-100 text-red-700';
-        estadoIcon = '❌';
-    } else if (data.estado === 'Cambiado') {
-        estadoClass = 'bg-blue-100 text-blue-700';
-        estadoIcon = '🔄';
-    }
+    document.getElementById('detail-linea').textContent = data.linea || 'N/A';
+    document.getElementById('detail-modulo').textContent = data.modulo ? `Modulo ${data.modulo}` : 'N/A';
+    document.getElementById('detail-componente').textContent = data.componente || 'N/A';
+    document.getElementById('detail-fecha').textContent = data.fecha_analisis || 'N/A';
+    document.getElementById('detail-orden').textContent = data.numero_orden || 'N/A';
+    document.getElementById('detail-actividad').textContent = data.actividad || 'No especificada';
+    document.getElementById('detail-usuario').textContent = `Realizado por: ${data.usuario_nombre || 'Usuario no registrado'}`;
 
-    let componentesRevisadosHtml = '';
-    if (data.componentes_revisados && data.componentes_revisados.length > 0) {
-        const totalComponentes = data.total_componentes || data.componentes_revisados.length;
-        componentesRevisadosHtml = `
-            <div class="bg-indigo-50 border border-indigo-200 p-4 rounded-lg mb-6">
-                <div class="flex items-center justify-between mb-3">
-                    <h4 class="font-semibold text-indigo-900 flex items-center gap-2">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                        </svg>
-                        Componentes revisados
-                    </h4>
-                    <span class="text-sm font-bold text-indigo-700">${data.componentes_revisados.length} de ${totalComponentes}</span>
-                </div>
-                <div class="flex flex-wrap gap-2">
-                    ${data.componentes_revisados.map(num => `
-                        <span class="inline-flex items-center gap-1 px-3 py-1.5 bg-indigo-100 text-indigo-700 rounded-full text-sm font-medium">
-                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
-                            </svg>
-                            #${num}
-                        </span>
-                    `).join('')}
-                </div>
-            </div>
-        `;
-    }
+    const ladoContainer = document.getElementById('detail-lado-container');
+    const ladoElement = document.getElementById('detail-lado');
+    const ladoBadgeContainer = document.getElementById('detail-lado-badge-container');
 
-    // Mostrar los pendientes por nivel dentro del modal
-    let nivelEstadoHtml = '';
-    if (data.estado_por_nivel) {
-        const nivelesOrden = ['SUPERIOR', 'INFERIOR'];
-        nivelEstadoHtml = `
-            <div class="bg-purple-50 border border-purple-200 p-4 rounded-lg mb-6">
-                <h4 class="font-semibold text-purple-900 mb-3 flex items-center gap-2">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
-                    </svg>
-                    Estado de revisión por nivel
-                </h4>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    ${nivelesOrden.map((nivel) => {
-                        const info = data.estado_por_nivel[nivel] || { completado: false, lados_pendientes: [] };
-                        const ladosPendientes = info.lados_pendientes || [];
-                        const nivelNombre = nivel === 'SUPERIOR' ? 'Nivel Superior' : 'Nivel Inferior';
-                        const nivelIcono = nivel === 'SUPERIOR' ? '⬆️' : '⬇️';
-                        return `
-                            <div class="bg-white p-3 rounded-lg border ${info.completado ? 'border-green-200' : 'border-amber-200'}">
-                                <div class="flex items-center justify-between mb-2">
-                                    <div class="text-xs font-semibold ${info.completado ? 'text-green-700' : 'text-amber-700'}">
-                                        ${nivelIcono} ${nivelNombre}
-                                    </div>
-                                    <span class="inline-flex items-center gap-1 px-2 py-1 rounded text-xs ${info.completado ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}">
-                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            ${info.completado ? 
-                                                '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>' :
-                                                '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>'
-                                            }
-                                        </svg>
-                                        ${info.completado ? 'Completado' : 'Pendiente'}
-                                    </span>
-                                </div>
-                                <div class="text-sm text-gray-700">
-                                    ${info.completado
-                                        ? '✓ Ambos lados ya fueron revisados.'
-                                        : ladosPendientes.length > 0 
-                                            ? `⚠️ Falta revisar: ${ladosPendientes.map((lado) => lado === 'VAPOR' ? 'Vapor' : 'Pasillo').join(', ')}`
-                                            : 'Pendiente de revisión'}
-                                </div>
-                                ${!info.completado && ladosPendientes.length > 0 ? `
-                                    <div class="mt-2 pt-2 border-t border-gray-100">
-                                        <div class="flex gap-2">
-                                            ${ladosPendientes.map(lado => `
-                                                <span class="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full ${lado === 'VAPOR' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}">
-                                                    ${lado === 'VAPOR' ? '💨' : '🚶'} ${lado}
-                                                </span>
-                                            `).join('')}
-                                        </div>
-                                    </div>
-                                ` : ''}
-                            </div>
-                        `;
-                    }).join('')}
-                </div>
-            </div>
-        `;
-    }
-
-    let actualizacionesHtml = '';
-    if (data.actualizaciones && data.actualizaciones.length > 0) {
-        actualizacionesHtml = `
-            <div class="bg-slate-50 border border-slate-200 p-4 rounded-lg mb-6">
-                <div class="flex items-center justify-between mb-3">
-                    <h4 class="font-semibold text-slate-900 flex items-center gap-2">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                        </svg>
-                        Historial de actualizaciones
-                    </h4>
-                    <span class="text-sm font-bold text-slate-700">${data.actualizaciones.length}</span>
-                </div>
-                <div class="space-y-3">
-                    ${data.actualizaciones.map((item, index) => {
-                        const nivelNombre = item.nivel === 'SUPERIOR' ? 'Superior' : (item.nivel === 'INFERIOR' ? 'Inferior' : '');
-                        const ladoNombre = item.lado === 'VAPOR' ? 'Vapor' : (item.lado === 'PASILLO' ? 'Pasillo' : '');
-                        return `
-                        <div class="bg-white border border-slate-200 rounded-lg p-3">
-                            <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
-                                <div class="flex flex-wrap items-center gap-2 text-sm">
-                                    <span class="inline-flex items-center px-2 py-1 rounded bg-slate-100 text-slate-700 font-semibold text-xs">${index === 0 ? 'Último registro' : 'Registro #' + (data.actualizaciones.length - index)}</span>
-                                    <span class="text-slate-700 font-medium">${item.fecha || ''} ${item.hora || ''}</span>
-                                    ${item.orden ? `<span class="text-slate-500 text-xs">Orden #${item.orden}</span>` : ''}
-                                    <span class="text-slate-600 text-xs font-semibold">Realizado por: ${item.usuario_nombre || 'Usuario no registrado'}</span>
-                                </div>
-                                <div class="flex flex-wrap items-center gap-2">
-                                    ${nivelNombre ? `<span class="text-xs px-2 py-1 rounded ${item.nivel === 'SUPERIOR' ? 'bg-purple-100 text-purple-700' : 'bg-purple-100 text-purple-700'}">${item.nivel === 'SUPERIOR' ? '⬆️' : '⬇️'} ${nivelNombre}</span>` : ''}
-                                    ${ladoNombre ? `<span class="text-xs px-2 py-1 rounded ${item.lado === 'VAPOR' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}">${item.lado === 'VAPOR' ? '💨' : '🚶'} ${ladoNombre}</span>` : ''}
-                                    <span class="text-xs px-2 py-1 rounded ${
-                                        item.estado === 'Buen estado' ? 'bg-green-100 text-green-700' : 
-                                        (item.estado.includes('Desgaste') ? 'bg-yellow-100 text-yellow-700' : 
-                                        (item.estado === 'Dañado - Requiere cambio' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'))
-                                    }">${item.estado}</span>
-                                </div>
-                            </div>
-                            <p class="text-sm text-slate-700 whitespace-pre-line">${item.actividad || 'Sin actividad registrada.'}</p>
-                            ${item.componentes_revisados && item.componentes_revisados.length > 0 ? `
-                                <div class="mt-2 flex flex-wrap gap-2">
-                                    <span class="text-xs text-gray-500">Componentes revisados:</span>
-                                    ${item.componentes_revisados.map((numeroComponente) => `<span class="inline-flex items-center px-2 py-0.5 rounded bg-indigo-100 text-indigo-700 text-xs font-medium">#${numeroComponente}</span>`).join('')}
-                                </div>
-                            ` : ''}
-                        </div>
-                    `}).join('')}
-                </div>
-            </div>
-        `;
-    }
-
-    let imagenesHtml = '';
-    if (data.imagenes && data.imagenes.length > 0) {
-        imagenesHtml = `
-            <div class="mt-6">
-                <h4 class="font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                    </svg>
-                    Evidencia Fotográfica
-                </h4>
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    ${data.imagenes.map((img, idx) => `
-                        <div class="relative group cursor-pointer" onclick="openSingleImage('${img}')">
-                            <img src="/storage/${img}" class="w-full h-32 object-cover rounded-lg border-2 border-gray-200 hover:border-blue-500 transition">
-                            <div class="absolute bottom-2 right-2 bg-black/70 text-white text-xs w-6 h-6 rounded-full flex items-center justify-center">${idx + 1}</div>
-                        </div>
-                    `).join('')}
-                </div>
-            </div>
-        `;
-    }
-
-    content.innerHTML = `
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <div class="bg-gray-50 p-4 rounded-lg">
-                <p class="text-xs text-gray-500 mb-1">🏭 Línea</p>
-                <p class="font-bold text-gray-900">${data.linea}</p>
-            </div>
-            <div class="bg-gray-50 p-4 rounded-lg">
-                <p class="text-xs text-gray-500 mb-1">🔧 Módulo</p>
-                <p class="font-bold text-gray-900">Módulo ${data.modulo}</p>
-            </div>
-            <div class="bg-gray-50 p-4 rounded-lg">
-                <p class="text-xs text-gray-500 mb-1">⚙️ Componente</p>
-                <p class="font-bold text-gray-900">${data.componente}</p>
-            </div>
-            ${data.lado ? `
-            <div class="bg-gray-50 p-4 rounded-lg">
-                <p class="text-xs text-gray-500 mb-1">📍 Lado</p>
-                <span class="inline-flex items-center gap-1 px-2 py-1 rounded text-sm ${data.lado === 'VAPOR' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}">
-                    ${data.lado === 'VAPOR' ? '💨' : '🚶'} ${data.lado}
-                </span>
-            </div>
-            ` : ''}
-            <div class="bg-gray-50 p-4 rounded-lg">
-                <p class="text-xs text-gray-500 mb-1">📅 Fecha</p>
-                <p class="font-bold text-gray-900">${data.fecha_analisis}</p>
-            </div>
-            <div class="bg-gray-50 p-4 rounded-lg">
-                <p class="text-xs text-gray-500 mb-1">🔢 Orden</p>
-                <p class="font-bold font-mono text-gray-900">#${data.numero_orden}</p>
-            </div>
-            <div class="bg-blue-50 p-4 rounded-lg border border-blue-100">
-                <p class="text-xs text-blue-600 mb-1">Tecnico</p>
-                <p class="font-bold text-blue-900">Realizado por: ${data.usuario_nombre || 'Usuario no registrado'}</p>
-            </div>
-        </div>
-
-        <div class="bg-gray-50 p-4 rounded-lg mb-6">
-            <p class="text-xs text-gray-500 mb-2">📊 Estado actual</p>
-            <span class="inline-flex items-center gap-2 px-4 py-2 rounded-lg ${estadoClass}">
-                ${estadoIcon} ${data.estado}
+    if (data.lado) {
+        ladoContainer.classList.remove('hidden');
+        ladoElement.textContent = data.lado === 'VAPOR' ? 'Lado Vapor' : 'Lado Pasillo';
+        ladoBadgeContainer.innerHTML = `
+            <span class="lado-badge ${data.lado === 'VAPOR' ? 'vapor' : 'pasillo'}">
+                <i class="fas ${data.lado === 'VAPOR' ? 'fa-wind' : 'fa-walking'}"></i>
+                ${data.lado === 'VAPOR' ? 'Vapor' : 'Pasillo'}
             </span>
-        </div>
+        `;
+    } else {
+        ladoContainer.classList.add('hidden');
+        ladoElement.textContent = '';
+        ladoBadgeContainer.innerHTML = '';
+    }
 
-        ${nivelEstadoHtml}
+    const estadoElement = document.getElementById('detail-estado');
+    let bgClass = 'bg-gray-800';
+    if (data.estado === 'Buen estado') {
+        bgClass = 'bg-green-800';
+    } else if ((data.estado || '').includes('Desgaste')) {
+        bgClass = 'bg-yellow-700';
+    } else if (data.estado === 'Danado - Requiere cambio' || data.estado === 'Dañado - Requiere cambio') {
+        bgClass = 'bg-red-800';
+    } else if (data.estado === 'Cambiado') {
+        bgClass = 'bg-blue-800';
+    }
 
-        <div class="bg-gray-50 p-4 rounded-lg mb-6">
-            <p class="text-xs text-gray-500 mb-2">📝 Actividad Realizada</p>
-            <p class="text-gray-700 whitespace-pre-line">${data.actividad || 'No especificada'}</p>
-        </div>
+    estadoElement.className = `px-6 py-3 ${bgClass} text-white rounded-lg font-mono text-sm tracking-wider w-full text-center`;
+    estadoElement.textContent = data.estado || 'N/A';
 
-        ${componentesRevisadosHtml}
+    document.getElementById('detail-edit-btn').href = data.edit_url || '#';
+    const historialBtn = document.getElementById('detail-historial-btn');
+    const historialText = document.getElementById('detail-historial-text');
+    historialBtn.classList.remove('hidden');
+    historialBtn.href = data.historial_url || '#';
+    historialText.innerHTML = '<i class="fas fa-history mr-2"></i>Ver Historial';
 
-        ${actualizacionesHtml}
+    renderComponentesRevisados(data);
+    renderEstadoPorNivel(data);
+    renderActualizaciones(data);
+    renderDetailImages(data.imagenes || []);
 
-        ${imagenesHtml}
-
-        <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-200">
-            <a href="${data.edit_url}" class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition">
-                ✏️ Editar
-            </a>
-            <a href="${data.historial_url}" class="inline-flex items-center gap-2 px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition">
-                📜 Ver Historial
-            </a>
-            <button onclick="closeAnalysisDetailModal()" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg transition">
-                Cerrar
-            </button>
-        </div>
-    `;
-
+    const modal = document.getElementById('analysisDetailModal');
     modal.classList.remove('hidden');
     modal.classList.add('flex');
     document.body.style.overflow = 'hidden';
 }
 
+function renderComponentesRevisados(data) {
+    const section = document.getElementById('detail-componentes-section');
+    const componentes = Array.isArray(data.componentes_revisados) ? data.componentes_revisados : [];
+
+    if (componentes.length === 0) {
+        section.classList.add('hidden');
+        section.innerHTML = '';
+        return;
+    }
+
+    section.classList.remove('hidden');
+    section.innerHTML = `
+        <div class="bg-white rounded-lg p-5 border border-indigo-200 shadow-sm">
+            <div class="flex items-center justify-between gap-3 mb-4">
+                <div class="flex items-center gap-3">
+                    <div class="bg-indigo-100 p-2 rounded-lg">
+                        <i class="fas fa-check-circle text-indigo-600"></i>
+                    </div>
+                    <h4 class="font-semibold text-gray-700 border-indigo-200 border-b-2 uppercase tracking-wider text-sm">Componentes revisados</h4>
+                </div>
+                <span class="text-sm font-bold text-indigo-700">${componentes.length} de ${data.total_componentes || componentes.length}</span>
+            </div>
+            <div class="flex flex-wrap gap-2">
+                ${componentes.map(num => `
+                    <span class="inline-flex items-center gap-1 px-3 py-1.5 bg-indigo-50 text-indigo-700 rounded-lg text-sm font-semibold border border-indigo-100">
+                        <i class="fas fa-check text-xs"></i>
+                        #${num}
+                    </span>
+                `).join('')}
+            </div>
+        </div>
+    `;
+}
+
+function renderEstadoPorNivel(data) {
+    const section = document.getElementById('detail-niveles-section');
+
+    if (!data.estado_por_nivel) {
+        section.classList.add('hidden');
+        section.innerHTML = '';
+        return;
+    }
+
+    const nivelesOrden = ['SUPERIOR', 'INFERIOR'];
+    section.classList.remove('hidden');
+    section.innerHTML = `
+        <div class="bg-white rounded-lg p-5 border border-purple-200 shadow-sm">
+            <div class="flex items-center gap-3 mb-4">
+                <div class="bg-purple-100 p-2 rounded-lg">
+                    <i class="fas fa-layer-group text-purple-600"></i>
+                </div>
+                <h4 class="font-semibold text-gray-700 border-purple-200 border-b-2 uppercase tracking-wider text-sm">Estado de revision por nivel</h4>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                ${nivelesOrden.map((nivel) => {
+                    const info = data.estado_por_nivel[nivel] || { completado: false, lados_pendientes: [] };
+                    const ladosPendientes = info.lados_pendientes || [];
+                    const completado = Boolean(info.completado);
+
+                    return `
+                        <div class="rounded-lg border p-4 ${completado ? 'border-green-200 bg-green-50' : 'border-amber-200 bg-amber-50'}">
+                            <div class="flex items-center justify-between gap-2 mb-2">
+                                <span class="text-xs font-semibold ${completado ? 'text-green-700' : 'text-amber-700'} uppercase tracking-wider">
+                                    <i class="fas ${nivel === 'SUPERIOR' ? 'fa-arrow-up' : 'fa-arrow-down'} mr-1"></i>
+                                    Nivel ${nivel === 'SUPERIOR' ? 'Superior' : 'Inferior'}
+                                </span>
+                                <span class="px-2 py-1 rounded text-xs font-semibold ${completado ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}">
+                                    ${completado ? 'Completado' : 'Pendiente'}
+                                </span>
+                            </div>
+                            <p class="text-sm text-gray-700">
+                                ${completado
+                                    ? 'Ambos lados ya fueron revisados.'
+                                    : ladosPendientes.length > 0
+                                        ? `Falta revisar: ${ladosPendientes.map((lado) => lado === 'VAPOR' ? 'Vapor' : 'Pasillo').join(', ')}`
+                                        : 'Pendiente de revision'}
+                            </p>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+        </div>
+    `;
+}
+
+function renderActualizaciones(data) {
+    const section = document.getElementById('detail-actualizaciones-section');
+    const actualizaciones = Array.isArray(data.actualizaciones) ? data.actualizaciones : [];
+
+    if (actualizaciones.length === 0) {
+        section.classList.add('hidden');
+        section.innerHTML = '';
+        return;
+    }
+
+    section.classList.remove('hidden');
+    section.innerHTML = `
+        <div class="bg-white rounded-lg p-5 border border-slate-200 shadow-sm">
+            <div class="flex items-center justify-between gap-3 mb-4">
+                <div class="flex items-center gap-3">
+                    <div class="bg-slate-200 p-2 rounded-lg">
+                        <i class="fas fa-clock text-slate-700"></i>
+                    </div>
+                    <h4 class="font-semibold text-gray-700 border-slate-200 border-b-2 uppercase tracking-wider text-sm">Historial de actualizaciones</h4>
+                </div>
+                <span class="text-sm font-bold text-slate-700">${actualizaciones.length}</span>
+            </div>
+            <div class="space-y-3">
+                ${actualizaciones.map((item, index) => {
+                    const estadoClass = getEstadoPillClass(item.estado || '');
+                    const ladoClass = item.lado === 'VAPOR' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700';
+                    const nivelNombre = item.nivel === 'SUPERIOR' ? 'Superior' : (item.nivel === 'INFERIOR' ? 'Inferior' : '');
+                    const ladoNombre = item.lado === 'VAPOR' ? 'Vapor' : (item.lado === 'PASILLO' ? 'Pasillo' : '');
+                    const componentes = Array.isArray(item.componentes_revisados) ? item.componentes_revisados : [];
+
+                    return `
+                        <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                            <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+                                <div class="flex flex-wrap items-center gap-2 text-sm">
+                                    <span class="inline-flex items-center px-2 py-1 rounded bg-gray-200 text-gray-700 font-semibold text-xs">${index === 0 ? 'Ultimo registro' : 'Registro #' + (actualizaciones.length - index)}</span>
+                                    <span class="text-gray-700 font-medium">${item.fecha || ''} ${item.hora || ''}</span>
+                                    ${item.orden ? `<span class="text-gray-500 text-xs">Orden #${item.orden}</span>` : ''}
+                                    <span class="text-gray-600 text-xs font-semibold">Realizado por: ${item.usuario_nombre || 'Usuario no registrado'}</span>
+                                </div>
+                                <div class="flex flex-wrap items-center gap-2">
+                                    ${nivelNombre ? `<span class="text-xs px-2 py-1 rounded bg-purple-100 text-purple-700">${nivelNombre}</span>` : ''}
+                                    ${ladoNombre ? `<span class="text-xs px-2 py-1 rounded ${ladoClass}">${ladoNombre}</span>` : ''}
+                                    <span class="text-xs px-2 py-1 rounded ${estadoClass}">${item.estado || 'N/A'}</span>
+                                </div>
+                            </div>
+                            <p class="text-sm text-gray-700 whitespace-pre-line">${item.actividad || 'Sin actividad registrada.'}</p>
+                            ${componentes.length > 0 ? `
+                                <div class="mt-2 flex flex-wrap gap-2">
+                                    <span class="text-xs text-gray-500">Componentes revisados:</span>
+                                    ${componentes.map((numeroComponente) => `<span class="inline-flex items-center px-2 py-0.5 rounded bg-indigo-100 text-indigo-700 text-xs font-medium">#${numeroComponente}</span>`).join('')}
+                                </div>
+                            ` : ''}
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+        </div>
+    `;
+}
+
+function getEstadoPillClass(estado) {
+    if (estado === 'Buen estado') return 'bg-green-100 text-green-700';
+    if (estado.includes('Desgaste')) return 'bg-yellow-100 text-yellow-700';
+    if (estado === 'Danado - Requiere cambio' || estado === 'Dañado - Requiere cambio') return 'bg-red-100 text-red-700';
+    if (estado === 'Cambiado') return 'bg-blue-100 text-blue-700';
+    return 'bg-gray-100 text-gray-700';
+}
+
+function renderDetailImages(imagenes) {
+    const imagesSection = document.getElementById('detail-images-section');
+    const grid = document.getElementById('detail-image-grid');
+    const normalizedImages = normalizeEvidenceImages(imagenes);
+
+    grid.innerHTML = '';
+
+    if (normalizedImages.length === 0) {
+        imagesSection.classList.add('hidden');
+        return;
+    }
+
+    imagesSection.classList.remove('hidden');
+    normalizedImages.forEach((path, index) => {
+        const item = document.createElement('div');
+        item.className = 'image-item';
+        const safePath = String(path).replace(/'/g, "\\'");
+        item.innerHTML = `
+            <div class="image-number">#${index + 1}</div>
+            <img src="${resolveEvidenceImageUrl(path)}" class="grid-image" onclick="openSingleImage('${safePath}')" alt="Evidencia ${index + 1}">
+            <div class="image-info">
+                <button class="download-image-btn" onclick="event.stopPropagation(); downloadImage('${safePath}', ${index + 1})">
+                    <i class="fas fa-download"></i>
+                    Descargar
+                </button>
+            </div>
+        `;
+        grid.appendChild(item);
+    });
+}
+
+function normalizeEvidenceImages(imagenes) {
+    if (!imagenes) return [];
+
+    if (typeof imagenes === 'string') {
+        const valor = imagenes.trim();
+        if (!valor || valor === 'null' || valor === '[]') return [];
+
+        if ((valor.startsWith('[') && valor.endsWith(']')) || (valor.startsWith('{') && valor.endsWith('}')) || (valor.startsWith('"') && valor.endsWith('"'))) {
+            try {
+                return normalizeEvidenceImages(JSON.parse(valor));
+            } catch (error) {
+                return [valor];
+            }
+        }
+
+        return [valor];
+    }
+
+    if (typeof imagenes === 'object' && !Array.isArray(imagenes)) {
+        return normalizeEvidenceImages(Object.values(imagenes));
+    }
+
+    if (!Array.isArray(imagenes)) return [];
+
+    return imagenes
+        .flatMap((item) => normalizeEvidenceImages(item))
+        .map((item) => String(item).trim().replace(/\\/g, '/'))
+        .filter((item) => item.length > 0);
+}
+
+function resolveEvidenceImageUrl(path) {
+    const rawPath = String(path || '').trim().replace(/\\/g, '/');
+    if (/^https?:\/\//i.test(rawPath)) return rawPath;
+
+    let cleanPath = rawPath
+        .replace(/^\/+/, '')
+        .replace(/^public\//, '')
+        .replace(/^app\/public\//, '')
+        .replace(/^storage\/app\/public\//, '')
+        .replace(/^public\/storage\//, '')
+        .replace(/^storage\//, '');
+
+    return `/storage/${cleanPath}`;
+}
+
 function closeAnalysisDetailModal() {
     document.getElementById('analysisDetailModal').classList.add('hidden');
+    document.getElementById('analysisDetailModal').classList.remove('flex');
     document.body.style.overflow = '';
 }
 
 let currentImages = [];
 
 function openAllImages(imagenes, orden) {
-    currentImages = imagenes;
+    currentImages = normalizeEvidenceImages(imagenes);
     const modal = document.getElementById('allImagesModal');
     const grid = document.getElementById('imageGrid');
     const empty = document.getElementById('emptyImages');
@@ -1110,10 +2101,11 @@ function openAllImages(imagenes, orden) {
         currentImages.forEach((path, index) => {
             const item = document.createElement('div');
             item.className = 'relative group cursor-pointer';
+            const safePath = String(path).replace(/'/g, "\\'");
             item.innerHTML = `
-                <img src="/storage/${path}" class="w-full h-40 object-cover rounded-lg border-2 border-gray-200 hover:border-blue-500 transition" onclick="openSingleImage('${path}')">
+                <img src="${resolveEvidenceImageUrl(path)}" class="w-full h-40 object-cover rounded-lg border-2 border-gray-200 hover:border-blue-500 transition" onclick="openSingleImage('${safePath}')">
                 <div class="absolute bottom-2 right-2 bg-black/70 text-white text-xs w-6 h-6 rounded-full flex items-center justify-center">${index + 1}</div>
-                <button onclick="event.stopPropagation(); downloadImage('${path}', ${index + 1})" class="absolute top-2 right-2 bg-blue-600 text-white p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition">
+                <button onclick="event.stopPropagation(); downloadImage('${safePath}', ${index + 1})" class="absolute top-2 right-2 bg-blue-600 text-white p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
                     </svg>
@@ -1130,16 +2122,17 @@ function openAllImages(imagenes, orden) {
 
 function closeAllImagesModal() {
     document.getElementById('allImagesModal').classList.add('hidden');
+    document.getElementById('allImagesModal').classList.remove('flex');
     document.body.style.overflow = '';
 }
 
 function openSingleImage(path) {
-    window.open(`/storage/${path}`, '_blank');
+    window.open(resolveEvidenceImageUrl(path), '_blank');
 }
 
 function downloadImage(path, index) {
     const link = document.createElement('a');
-    link.href = `/storage/${path}`;
+    link.href = resolveEvidenceImageUrl(path);
     link.download = `imagen-${index}.jpg`;
     link.click();
 }
@@ -1151,5 +2144,18 @@ document.addEventListener('keydown', function(e) {
         closeEstadoModal();
     }
 });
+
+function selectLinea(lineaId) {
+    document.getElementById('lineaInput').value = lineaId;
+    document.getElementById('filterForm').submit();
+}
+
+function toggleAdvancedFilters() {
+    const panel = document.getElementById('advancedFiltersPanel');
+    const icon = document.getElementById('advancedFiltersIcon');
+    
+    panel.classList.toggle('show');
+    icon.style.transform = panel.classList.contains('show') ? 'rotate(180deg)' : 'rotate(0deg)';
+}
 </script>
 @endsection

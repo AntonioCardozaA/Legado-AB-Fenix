@@ -991,14 +991,12 @@
                 <div class="linea-group-title">
                     <div class="linea-group-main">
                         <span class="linea-group-name">Linea {{ $lineaHistorico['linea_nombre'] }}</span>
-                        <span class="linea-group-meta">{{ count($lineaHistorico['modulos']) }} modulos disponibles con niveles y lados separados</span>
                     </div>
                     <div class="linea-group-progress">
                         <div class="progress-container">
                             <span class="progress-label">{{ $lineaPorcentaje }}%</span>
                             <div class="progress-bar bg-{{ $lineaColor }}" style="width: {{ $lineaPorcentaje }}%;"></div>
                         </div>
-                        <span class="linea-group-meta">{{ $lineaRevisado }}/{{ $lineaTotal }} revisados en la linea</span>
                     </div>
                 </div>
 
@@ -1007,7 +1005,6 @@
                         <div class="modulo-summary-header">
                             <div>
                                 <h4 class="modulo-summary-title">Modulo {{ $moduloData['numero'] }}</h4>
-                                <div class="modulo-summary-subtitle">{{ $lineaHistorico['linea_nombre'] }} · niveles y lados independientes</div>
                             </div>
                             <span class="modulo-summary-badge">{{ count($moduloData['niveles']) }} niveles / {{ count($moduloData['lados']) }} lados</span>
                         </div>
@@ -1047,7 +1044,7 @@
                                 class="btn btn-primary"
                                 onclick="abrirModalNiveles('modulo-template-{{ $lineaHistorico['linea_id'] }}-{{ $moduloData['numero'] }}', 'Modulo {{ $moduloData['numero'] }}', '{{ $lineaHistorico['linea_nombre'] }}')">
                                 <i class="fas fa-layer-group"></i>
-                                Ver niveles
+                                Ver Detalles
                             </button>
                         </div>
                     </div>
@@ -1178,11 +1175,9 @@
         <div class="grafica-section">
             <div class="grafica-title">
                 <i class="fas fa-chart-pie text-blue-600"></i>
-                Grafica en pastel por pasteurizadora y modulos
+                Grafica.
             </div>
-            <div class="grafica-subtitle">
-                Cada grafica muestra como se distribuye el avance revisado entre los modulos de cada pasteurizadora. La leyenda mantiene el detalle de revisados, total y porcentaje por modulo.
-            </div>
+
 
             <div class="grafica-lineas-grid">
                 @foreach($modulosHistorico as $lineaHistorico)
@@ -1207,7 +1202,7 @@
                         <div class="grafica-linea-header">
                             <div>
                                 <div class="grafica-linea-title">Linea {{ $lineaHistorico['linea_nombre'] }}</div>
-                                <div class="grafica-linea-summary">{{ $lineaRevisado }}/{{ $lineaTotal }} revisados · {{ $lineaPorcentaje }}% general</div>
+                                <div class="grafica-linea-summary">{{ $lineaPorcentaje }}% general</div>
                             </div>
                             <span class="modulo-summary-badge">{{ count($lineaHistorico['modulos']) }} modulos</span>
                         </div>
@@ -1219,13 +1214,13 @@
                                     <div class="grafica-pie-center">
                                         <div class="grafica-pie-center-value">{{ $lineaPorcentaje }}%</div>
                                         <div class="grafica-pie-center-label">avance general</div>
-                                        <div class="grafica-linea-summary" style="margin-top: 6px;">{{ $lineaRevisado }}/{{ $lineaTotal }}</div>
+                                       
                                     </div>
                                 </div>
                             </div>
 
                             <div class="grafica-legend">
-                                <div class="grafica-legend-title">Distribucion por modulo</div>
+                                <div class="grafica-legend-title">Módulos</div>
                                 @foreach($chartModules as $moduloChart)
                                     <div class="grafica-legend-item">
                                         <div class="grafica-legend-head">

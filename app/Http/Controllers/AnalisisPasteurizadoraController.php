@@ -6,12 +6,13 @@ use App\Models\AnalisisPasteurizadora;
 use App\Models\Linea;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use Barryvdh\DomPDF\Facade\Pdf;
 
 class AnalisisPasteurizadoraController extends Controller
 {
+    private const EVIDENCIAS_PASTEURIZADORA_DIR = 'analisis-pasteurizadora';
+
     public function __construct()
     {
         $this->middleware('auth');
@@ -23,21 +24,8 @@ class AnalisisPasteurizadoraController extends Controller
             return [];
         }
 
-        return AnalisisPasteurizadora::query()
-            ->select(['linea_id', 'componente', 'modulo', 'nivel', 'lado', 'cantidad_componentes_revisados'])
-            ->whereIn('linea_id', $lineas->pluck('id'))
-            ->get()
-            ->groupBy(function ($registro) {
-                return $this->buildHistoricoKey(
-                    $registro->linea_id,
-                    $registro->componente,
-                    $registro->modulo,
-                    $registro->nivel,
-                    $registro->lado
-                );
-            })
-            ->map(fn($items) => $items->sum('cantidad_componentes_revisados'))
-            ->toArray();
+        // Usar el método optimizado del modelo
+        return AnalisisPasteurizadora::getComponentesRevisadosAgrupadosParaHistorico($lineas->pluck('id')->all());
     }
 
     private function buildHistoricoLinea(Linea $linea, array $revisionesAgrupadas, &$componentesModulos, array &$estadisticas): array
@@ -340,7 +328,7 @@ class AnalisisPasteurizadoraController extends Controller
             'componente' => 'required|string',
             'lado' => 'required|in:VAPOR,PASILLO',
             'fecha_analisis' => 'required|date',
-            'numero_orden' => 'required|string|max:50',
+            'numero_orden' => 'nullable|string|max:50',
             'estado' => 'required|in:' . implode(',', AnalisisPasteurizadora::ESTADOS),
             'actividad' => 'required|string',
             'evidencia_fotos' => 'nullable|array',
@@ -358,8 +346,7 @@ class AnalisisPasteurizadoraController extends Controller
         if ($request->hasFile('evidencia_fotos')) {
             foreach ($request->file('evidencia_fotos') as $foto) {
                 if ($foto) {
-                    $path = $foto->store('analisis-pasteurizadora', 'public');
-                    $fotosPaths[] = $path;
+                    $fotosPaths[] = $this->guardarEvidenciaPasteurizadora($foto);
                 }
             }
         }
@@ -372,7 +359,7 @@ class AnalisisPasteurizadoraController extends Controller
             'componente' => $validated['componente'],
             'lado' => $validated['lado'],
             'fecha_analisis' => $validated['fecha_analisis'],
-            'numero_orden' => $validated['numero_orden'],
+            'numero_orden' => $validated['numero_orden'] ?? null,
             'estado' => $validated['estado'],
             'actividad' => $validated['actividad'],
             'evidencia_fotos' => $fotosPaths,
@@ -415,6 +402,34 @@ class AnalisisPasteurizadoraController extends Controller
         return $this->store($request);
     }
 
+    private function guardarEvidenciaPasteurizadora($foto): string
+    {
+        $directorioRelativo = self::EVIDENCIAS_PASTEURIZADORA_DIR;
+        $directorioPublico = public_path('storage/' . $directorioRelativo);
+
+        if (!is_dir($directorioPublico)) {
+            mkdir($directorioPublico, 0755, true);
+        }
+
+        $nombreArchivo = $foto->hashName();
+        $foto->move($directorioPublico, $nombreArchivo);
+
+        return $directorioRelativo . '/' . $nombreArchivo;
+    }
+
+    private function eliminarEvidenciaPasteurizadora(?string $foto): void
+    {
+        if (!$foto) {
+            return;
+        }
+
+        $ruta = public_path('storage/' . ltrim(str_replace('\\', '/', $foto), '/'));
+
+        if (is_file($ruta)) {
+            unlink($ruta);
+        }
+    }
+
 
 
     private function marcarRegistrosAnterioresComoResueltos($nuevoAnalisis)
@@ -428,10 +443,12 @@ class AnalisisPasteurizadoraController extends Controller
             ->get();
 
         foreach ($registrosAnteriores as $registro) {
+            $numeroOrden = $nuevoAnalisis->numero_orden ?: 'sin numero de orden';
+
             $registro->update([
                 'resuelto_por_cambio' => true,
                 'fecha_resolucion' => now(),
-                'nota_resolucion' => "Resuelto por cambio en orden #{$nuevoAnalisis->numero_orden}"
+                'nota_resolucion' => "Resuelto por cambio en orden #{$numeroOrden}"
             ]);
         }
     }
@@ -461,14 +478,19 @@ class AnalisisPasteurizadoraController extends Controller
             'componente' => 'nullable|string',
             'nivel' => 'nullable|in:SUPERIOR,INFERIOR',
             'fecha_analisis' => 'nullable|date',
-            'numero_orden' => 'nullable|string',
+            'numero_orden' => 'nullable|string|max:50',
             'actividad' => 'nullable|string',
             'estado' => 'nullable|string|in:' . implode(',', AnalisisPasteurizadora::ESTADOS),
             'lado' => 'nullable|in:VAPOR,PASILLO',
-            'responsable' => 'nullable|string',
             'observaciones' => 'nullable|string',
             'componentes_revisados' => 'nullable|array',
+            'evidencia_fotos' => 'nullable|array',
+            'evidencia_fotos.*' => 'nullable|image|max:5120',
+            'eliminar_fotos' => 'nullable|array',
+            'eliminar_fotos.*' => 'integer|min:0',
         ]);
+
+        unset($validated['eliminar_fotos'], $validated['responsable']);
 
         $contextoActualizado = [
             'modulo' => $validated['modulo'] ?? $analisis->modulo,
@@ -490,7 +512,7 @@ class AnalisisPasteurizadoraController extends Controller
                 'linea_id' => $analisis->linea_id,
                 'modulo' => $validated['modulo'] ?? $analisis->modulo,
                 'componente' => $validated['componente'] ?? $analisis->componente,
-                'numero_orden' => $validated['numero_orden'] ?? $analisis->numero_orden,
+                'numero_orden' => array_key_exists('numero_orden', $validated) ? $validated['numero_orden'] : $analisis->numero_orden,
             ];
             $this->marcarRegistrosAnterioresComoResueltos($tempAnalisis);
         }
@@ -509,6 +531,32 @@ class AnalisisPasteurizadoraController extends Controller
             unset($validated['componentes_revisados']);
         }
 
+        $fotosExistentes = $analisis->evidencia_fotos ?? [];
+        if (!is_array($fotosExistentes)) {
+            $fotosExistentes = json_decode($fotosExistentes, true) ?? [];
+        }
+
+        if ($request->filled('eliminar_fotos')) {
+            foreach ($request->input('eliminar_fotos', []) as $index) {
+                if (isset($fotosExistentes[$index])) {
+                    $this->eliminarEvidenciaPasteurizadora($fotosExistentes[$index]);
+                    unset($fotosExistentes[$index]);
+                }
+            }
+
+            $fotosExistentes = array_values($fotosExistentes);
+        }
+
+        if ($request->hasFile('evidencia_fotos')) {
+            foreach ($request->file('evidencia_fotos', []) as $foto) {
+                if ($foto && $foto->isValid()) {
+                    $fotosExistentes[] = $this->guardarEvidenciaPasteurizadora($foto);
+                }
+            }
+        }
+
+        $validated['evidencia_fotos'] = $fotosExistentes;
+
         $analisis->update($validated);
 
         return redirect()
@@ -522,7 +570,7 @@ class AnalisisPasteurizadoraController extends Controller
 
         if ($analisis->evidencia_fotos) {
             foreach ($analisis->evidencia_fotos as $foto) {
-                Storage::disk('public')->delete($foto);
+                $this->eliminarEvidenciaPasteurizadora($foto);
             }
         }
 
@@ -551,7 +599,7 @@ class AnalisisPasteurizadoraController extends Controller
 
     public function historial(Request $request)
     {
-        $query = AnalisisPasteurizadora::with('linea')->orderBy('fecha_analisis', 'desc');
+        $query = AnalisisPasteurizadora::with(['linea', 'usuario'])->orderBy('fecha_analisis', 'desc');
 
         if ($request->filled('linea_id')) {
             $query->where('linea_id', $request->linea_id);
@@ -780,7 +828,7 @@ class AnalisisPasteurizadoraController extends Controller
         $analisis = AnalisisPasteurizadora::findOrFail($id);
 
         if (isset($analisis->evidencia_fotos[$fotoIndex])) {
-            Storage::disk('public')->delete($analisis->evidencia_fotos[$fotoIndex]);
+            $this->eliminarEvidenciaPasteurizadora($analisis->evidencia_fotos[$fotoIndex]);
             $fotos = $analisis->evidencia_fotos;
             unset($fotos[$fotoIndex]);
             $analisis->evidencia_fotos = array_values($fotos);

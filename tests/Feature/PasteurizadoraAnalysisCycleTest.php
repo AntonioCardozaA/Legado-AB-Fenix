@@ -6,6 +6,7 @@ use App\Models\AnalisisPasteurizadora;
 use App\Models\Linea;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Tests\TestCase;
 
 class PasteurizadoraAnalysisCycleTest extends TestCase
@@ -68,10 +69,93 @@ class PasteurizadoraAnalysisCycleTest extends TestCase
             'nivel' => 'SUPERIOR',
             'lado' => 'VAPOR',
             'numero_orden' => 'OT-NUEVO-001',
+            'usuario_id' => $user->id,
         ]);
 
         $this->assertSame(2, AnalisisPasteurizadora::getCantidadComponentesPendientes($linea->id, 1, 'ANILLAS', 'VAPOR', 'SUPERIOR'));
         $this->assertSame(1, AnalisisPasteurizadora::getCantidadComponentesRevisados($linea->id, 1, 'ANILLAS', 'VAPOR', 'SUPERIOR'));
+
+        $analisis = AnalisisPasteurizadora::with('usuario')
+            ->where('numero_orden', 'OT-NUEVO-001')
+            ->firstOrFail();
+
+        $this->assertTrue($analisis->usuario->is($user));
+    }
+
+    public function test_pasteurizadora_evidence_is_stored_in_pasteurizadora_public_folder(): void
+    {
+        $user = User::factory()->create();
+        $linea = Linea::create([
+            'nombre' => 'P-03',
+            'descripcion' => 'Pasteurizadora de prueba',
+            'activo' => true,
+        ]);
+
+        $response = $this->actingAs($user)->post(
+            route('pasteurizadora.analisis-pasteurizadora.store'),
+            [
+                'linea_id' => $linea->id,
+                'modulo' => 1,
+                'nivel' => 'SUPERIOR',
+                'componente' => 'ANILLAS',
+                'lado' => 'VAPOR',
+                'fecha_analisis' => now()->toDateString(),
+                'numero_orden' => 'OT-FOTO-001',
+                'estado' => 'Buen estado',
+                'actividad' => 'Registro con evidencia fotografica',
+                'componentes_revisados' => [1],
+                'evidencia_fotos' => [
+                    UploadedFile::fake()->image('evidencia.jpg', 800, 600),
+                ],
+            ]
+        );
+
+        $response->assertRedirect(route('pasteurizadora.analisis-pasteurizadora.index', ['linea_id' => $linea->id]));
+
+        $analisis = AnalisisPasteurizadora::where('numero_orden', 'OT-FOTO-001')->firstOrFail();
+        $this->assertCount(1, $analisis->evidencia_fotos);
+        $this->assertStringStartsWith('analisis-pasteurizadora/', $analisis->evidencia_fotos[0]);
+
+        $rutaPublica = public_path('storage/' . $analisis->evidencia_fotos[0]);
+        $this->assertFileExists($rutaPublica);
+
+        @unlink($rutaPublica);
+    }
+
+    public function test_pasteurizadora_analysis_can_be_stored_without_order_number(): void
+    {
+        $user = User::factory()->create();
+        $linea = Linea::create([
+            'nombre' => 'P-03',
+            'descripcion' => 'Pasteurizadora de prueba',
+            'activo' => true,
+        ]);
+
+        $response = $this->actingAs($user)->post(
+            route('pasteurizadora.analisis-pasteurizadora.store'),
+            [
+                'linea_id' => $linea->id,
+                'modulo' => 1,
+                'nivel' => 'SUPERIOR',
+                'componente' => 'ANILLAS',
+                'lado' => 'VAPOR',
+                'fecha_analisis' => now()->toDateString(),
+                'numero_orden' => '',
+                'estado' => 'Buen estado',
+                'actividad' => 'Registro sin numero de orden',
+                'componentes_revisados' => [1],
+            ]
+        );
+
+        $response->assertRedirect(route('pasteurizadora.analisis-pasteurizadora.index', ['linea_id' => $linea->id]));
+
+        $this->assertDatabaseHas('analisis_pasteurizadora', [
+            'linea_id' => $linea->id,
+            'modulo' => 1,
+            'componente' => 'ANILLAS',
+            'numero_orden' => null,
+            'usuario_id' => $user->id,
+        ]);
     }
 
     private function crearAnalisis(Linea $linea, array $overrides = []): AnalisisPasteurizadora

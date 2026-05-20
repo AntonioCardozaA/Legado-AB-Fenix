@@ -11,7 +11,7 @@
                             <i class="fas fa-edit mr-3"></i>
                             Editar Plan de Acción
                         </h3>
-                        <a href="{{ route('plan-accion.index', ['tipo' => 'pasteurizadora', 'linea_id' => $plan->linea_id]) }}"
+                        <a href="{{ route('pasteurizadora.analisis-pasteurizadora.plan-accion.index', ['linea_id' => $plan->linea_id]) }}"
                            class="inline-flex items-center px-4 py-2 bg-white/20 hover:bg-white/30 text-white text-sm font-medium rounded-lg transition-all duration-200 backdrop-blur-sm">
                             <i class="fas fa-arrow-left mr-2"></i>
                             Volver
@@ -122,7 +122,7 @@
                                     <i class="fas fa-save mr-2"></i>
                                     Actualizar Plan
                                 </button>
-                                <a href="{{ route('plan-accion.index', ['tipo' => 'pasteurizadora', 'linea_id' => $plan->linea_id]) }}"
+                                <a href="{{ route('pasteurizadora.analisis-pasteurizadora.plan-accion.index', ['linea_id' => $plan->linea_id]) }}"
                                    class="flex-1 sm:flex-none px-6 py-2.5 bg-gray-500 hover:bg-gray-600 text-white text-sm font-medium rounded-lg transition-all duration-200 flex items-center justify-center">
                                     <i class="fas fa-times mr-2"></i>
                                     Cancelar
