@@ -799,6 +799,62 @@
         // Cambia esta ruta para usar el icono que quieras en todas las pasteurizadoras.
         $iconoPasteurizadora = 'images/icono_pas.png';
         $tieneIconoPasteurizadora = file_exists(public_path($iconoPasteurizadora));
+        $diagramasPasteurizadoraBase = 'images/Diagramas-Pasteurizadoras';
+        $configuracionPasteurizadoras = \App\Models\AnalisisPasteurizadora::getPasteurizadoresConfiguracion();
+        $nombreLineaSeleccionada = $lineaSeleccionada->nombre ?? null;
+        $tipoLineaSeleccionada = $nombreLineaSeleccionada
+            ? ($configuracionPasteurizadoras[$nombreLineaSeleccionada]['tipo'] ?? null)
+            : null;
+        $lineaSlug = $nombreLineaSeleccionada
+            ? strtolower(preg_replace('/[^a-z0-9]+/i', '-', $nombreLineaSeleccionada))
+            : null;
+        $lineaCompacta = $nombreLineaSeleccionada
+            ? strtolower(preg_replace('/[^a-z0-9]+/i', '', $nombreLineaSeleccionada))
+            : null;
+        $lineaNumeroSeleccionada = $nombreLineaSeleccionada
+            ? preg_replace('/\D+/', '', $nombreLineaSeleccionada)
+            : null;
+        $lineaNumeroSimple = $lineaNumeroSeleccionada !== null
+            ? ltrim($lineaNumeroSeleccionada, '0')
+            : null;
+        $lineaNumeroSimple = $lineaNumeroSimple === '' ? '0' : $lineaNumeroSimple;
+        $diagramaPasteurizadoraPath = null;
+        $diagramaPasteurizadoraEsReferencia = false;
+
+        $diagramaPasteurizadoraCandidates = array_filter([
+            $nombreLineaSeleccionada ? $diagramasPasteurizadoraBase . '/' . $nombreLineaSeleccionada . '.png' : null,
+            $nombreLineaSeleccionada ? $diagramasPasteurizadoraBase . '/' . strtolower($nombreLineaSeleccionada) . '.png' : null,
+            $lineaSlug ? $diagramasPasteurizadoraBase . '/' . $lineaSlug . '.png' : null,
+            $lineaCompacta ? $diagramasPasteurizadoraBase . '/' . $lineaCompacta . '.png' : null,
+            $lineaNumeroSeleccionada ? $diagramasPasteurizadoraBase . '/linea' . $lineaNumeroSeleccionada . '.png' : null,
+            $lineaNumeroSeleccionada ? $diagramasPasteurizadoraBase . '/linea-' . $lineaNumeroSeleccionada . '.png' : null,
+            $lineaNumeroSimple ? $diagramasPasteurizadoraBase . '/linea' . $lineaNumeroSimple . '.png' : null,
+            $lineaNumeroSimple ? $diagramasPasteurizadoraBase . '/linea-' . $lineaNumeroSimple . '.png' : null,
+            $nombreLineaSeleccionada ? $diagramasPasteurizadoraBase . '/' . $nombreLineaSeleccionada . '.jpg' : null,
+            $lineaSlug ? $diagramasPasteurizadoraBase . '/' . $lineaSlug . '.jpg' : null,
+            $lineaNumeroSeleccionada ? $diagramasPasteurizadoraBase . '/linea' . $lineaNumeroSeleccionada . '.jpg' : null,
+            $lineaNumeroSeleccionada ? $diagramasPasteurizadoraBase . '/linea-' . $lineaNumeroSeleccionada . '.jpg' : null,
+            $lineaNumeroSimple ? $diagramasPasteurizadoraBase . '/linea' . $lineaNumeroSimple . '.jpg' : null,
+            $lineaNumeroSimple ? $diagramasPasteurizadoraBase . '/linea-' . $lineaNumeroSimple . '.jpg' : null,
+            $tipoLineaSeleccionada ? $diagramasPasteurizadoraBase . '/' . $tipoLineaSeleccionada . '.png' : null,
+            $tipoLineaSeleccionada ? $diagramasPasteurizadoraBase . '/pasteurizadora-' . $tipoLineaSeleccionada . '.png' : null,
+            $tipoLineaSeleccionada ? $diagramasPasteurizadoraBase . '/diagrama-' . $tipoLineaSeleccionada . '.png' : null,
+            $diagramasPasteurizadoraBase . '/diagramapas.png',
+            $diagramasPasteurizadoraBase . '/diagrama-pasteurizadora.png',
+            $diagramasPasteurizadoraBase . '/pasteurizadora.png',
+        ]);
+
+        foreach ($diagramaPasteurizadoraCandidates as $candidate) {
+            if (file_exists(public_path($candidate))) {
+                $diagramaPasteurizadoraPath = $candidate;
+                break;
+            }
+        }
+
+        if (!$diagramaPasteurizadoraPath && $tieneIconoPasteurizadora) {
+            $diagramaPasteurizadoraPath = $iconoPasteurizadora;
+            $diagramaPasteurizadoraEsReferencia = true;
+        }
     @endphp
 
     @if(isset($lineasFiltradas) && $lineasFiltradas->count() > 0)
@@ -887,6 +943,72 @@
     @endif
 
     {{-- ESTADÍSTICAS / INDICADORES --}}
+    {{-- DIAGRAMA DE PASTEURIZADORA SEGUN LINEA SELECCIONADA --}}
+    @if(!$mostrarTodas && isset($lineaSeleccionada) && is_object($lineaSeleccionada))
+        <div class="mb-6 bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white">
+                <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+                    <div>
+                        <h2 class="text-lg font-semibold flex items-center gap-2">
+                            <i class="fas fa-diagram-project text-sky-300"></i>
+                            <span>Diagrama {{ $lineaSeleccionada->nombre }}</span>
+                        </h2>
+                        <p class="text-sm text-slate-300 mt-1">Referencia visual de 2 modulos de la linea seleccionada</p>
+                    </div>
+
+                    <div class="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-wide">
+                        @if($tipoLineaSeleccionada)
+                            <span class="px-3 py-1 rounded-full bg-white/10 border border-white/15">
+                                Tipo {{ $tipoLineaSeleccionada }}
+                            </span>
+                        @endif
+                        <span class="px-3 py-1 rounded-full bg-sky-500/20 text-sky-100 border border-sky-400/20">
+                            {{ \App\Models\AnalisisPasteurizadora::getModulosPorLinea($lineaSeleccionada->nombre) }} modulos
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            @if($diagramaPasteurizadoraPath)
+                <div class="p-6">
+                    <div class="rounded-xl border border-gray-200 bg-gradient-to-br from-slate-50 to-white p-4 md:p-6">
+                        <img
+                            src="{{ asset($diagramaPasteurizadoraPath) }}"
+                            alt="Diagrama Pasteurizadora {{ $lineaSeleccionada->nombre }}"
+                            class="max-w-full h-auto mx-auto rounded-lg border border-gray-300 shadow-md"
+                        >
+                    </div>
+
+                    @if($diagramaPasteurizadoraEsReferencia)
+                        <div class="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                            No se encontro un diagrama cargado para {{ $lineaSeleccionada->nombre }}.
+                            Se muestra una referencia temporal. Puedes agregar la imagen en
+                            <span class="font-semibold">{{ $diagramasPasteurizadoraBase }}</span>.
+                        </div>
+                    @endif
+                </div>
+            @else
+                <div class="px-6 py-5">
+                    <div class="rounded-lg border border-dashed border-amber-300 bg-amber-50 px-4 py-5 text-sm text-amber-800">
+                        No hay un diagrama disponible para {{ $lineaSeleccionada->nombre }}.
+                        Agrega una imagen en <span class="font-semibold">{{ $diagramasPasteurizadoraBase }}</span>
+                        para mostrarla aqui automaticamente.
+                    </div>
+                </div>
+            @endif
+        </div>
+    @elseif($mostrarTodas)
+        <div class="mb-6 p-4 bg-sky-50 rounded-lg border border-sky-200">
+            <div class="flex items-center gap-3">
+                <i class="fas fa-info-circle text-sky-500 text-xl"></i>
+                <p class="text-sky-700">
+                    Selecciona una pasteurizadora especifica para ver su diagrama
+                </p>
+            </div>
+        </div>
+    @endif
+
+    {{-- ESTADISTICAS / INDICADORES --}}
     @if($analisisCollection->count() > 0)
         @php
             $registrosPorEstado = [
