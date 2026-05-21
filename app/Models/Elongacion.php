@@ -13,6 +13,7 @@ class Elongacion extends Model
     protected $table = 'elongaciones';
 
     protected $fillable = [
+        'linea_id',
         'linea',
         'cadena_ciclo_id',
         'proveedor',
@@ -52,6 +53,7 @@ class Elongacion extends Model
     ];
 
     protected $casts = [
+        'linea_id' => 'integer',
         'cadena_ciclo_id' => 'integer',
         'bombas_1' => 'decimal:1',
         'bombas_2' => 'decimal:1',
@@ -104,6 +106,11 @@ class Elongacion extends Model
     public function cadenaCiclo()
     {
         return $this->belongsTo(CadenaCiclo::class, 'cadena_ciclo_id');
+    }
+
+    public function lineaModel()
+    {
+        return $this->belongsTo(Linea::class, 'linea_id');
     }
 
     public static function getPasoInicial($linea)

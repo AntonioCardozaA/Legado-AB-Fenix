@@ -150,6 +150,7 @@ class ElongacionController extends Controller
                 $requiereCambio = $bombasPorcentaje >= self::LIMITE_CAMBIO || $vaporPorcentaje >= self::LIMITE_CAMBIO;
 
                 $data = [
+                    'linea_id' => $linea?->id,
                     'linea' => $request->linea,
                     'cadena_ciclo_id' => $ciclo->id,
                     'proveedor' => $ciclo->proveedor,

@@ -14,6 +14,7 @@ class Linea extends Model
     protected $fillable = [
         'nombre',
         'descripcion',
+        'tipo',
         'activo',
     ];
 

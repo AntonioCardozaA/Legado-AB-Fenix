@@ -44,6 +44,8 @@ return [
     'ultramsg' => [
         'instance' => env('ULTRAMSG_INSTANCE'),
         'token' => env('ULTRAMSG_TOKEN'),
+        'url' => env('ULTRAMSG_URL', 'https://api.ultramsg.com'),
+        'default_country_code' => env('ULTRAMSG_DEFAULT_COUNTRY_CODE', '521'),
     ],
 
 ];
