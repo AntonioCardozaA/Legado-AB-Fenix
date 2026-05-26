@@ -820,7 +820,7 @@
         </table>
         
         <div class="text-center mt-4">
-            <a href="{{ route('analisis-tendencia-mensual-lavadora.index', ['linea_id' => $reporte['linea']->id]) }}" 
+            <a href="{{ route('analisis-tendencia-mensual.lavadora.index', ['linea_id' => $reporte['linea']->id]) }}"
                class="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition">
                 <i class="fas fa-calendar-alt"></i>
                 Ver análisis completo

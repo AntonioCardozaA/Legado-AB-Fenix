@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class NumeroR extends Model
 {
@@ -22,9 +23,14 @@ class NumeroR extends Model
        Relaciones
     ======================= */
     
-    public function categoria()
+    public function categoria(): BelongsTo
     {
-        return $this->belongsTo(Linea::class, 'categoria_id'); // asumiendo que categoria = Linea
+        return $this->belongsTo(Categoria::class, 'categoria_id');
+    }
+
+    public function linea(): BelongsTo
+    {
+        return $this->belongsTo(Linea::class, 'linea_id');
     }
 
     public function componentes()

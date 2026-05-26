@@ -41,9 +41,7 @@ public function index(Request $request)
     }
 
     if ($request->filled('categoria_id')) {
-        $query->whereHas('componente', function ($q) use ($request) {
-            $q->where('categoria_id', $request->categoria_id);
-        });
+        $query->where('categoria_id', $request->categoria_id);
     }
 
     if ($request->filled('reductor')) {
@@ -98,11 +96,13 @@ public function index(Request $request)
         $linea = Linea::findOrFail($lineaId);
         $componente = Componente::findOrFail($componenteId);
         $categorias = Categoria::where('activo', true)->get();
+        $numerosR = NumeroR::where('activo', true)->orderBy('codigo')->get();
 
         return view('analisis.create', compact(
             'linea',
             'componente',
-            'categorias'
+            'categorias',
+            'numerosR'
         ));
     }
 
@@ -114,7 +114,7 @@ public function index(Request $request)
         return response()->json(
             NumeroR::where('categoria_id', $categoriaId)
                 ->where('activo', true)
-                ->orderBy('numero')
+                ->orderBy('codigo')
                 ->get()
         );
     }
@@ -188,7 +188,7 @@ public function index(Request $request)
         $lineas = Linea::where('activo', true)->get();
         $componentes = Componente::where('activo', true)->get();
         $categorias = Categoria::where('activo', true)->get();
-        $numerosR = NumeroR::where('categoria_id', $analisis->categoria_id)->get();
+        $numerosR = NumeroR::where('activo', true)->orderBy('codigo')->get();
 
         return view('analisis.edit', compact(
             'analisis',

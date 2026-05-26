@@ -16,11 +16,12 @@ class LandingFlowTest extends TestCase
 
         $response
             ->assertOk()
-            ->assertSee('Iniciar sesion')
+            ->assertSee('Acceder')
+            ->assertSee('Plataforma integral')
             ->assertSee(route('login', absolute: false), false);
     }
 
-    public function test_authenticated_user_can_open_the_welcome_view_and_see_profile_access(): void
+    public function test_authenticated_user_can_open_the_welcome_view_without_changing_the_landing_flow(): void
     {
         $user = User::factory()->create();
 
@@ -30,9 +31,8 @@ class LandingFlowTest extends TestCase
 
         $response
             ->assertOk()
-            ->assertSee(route('dashboard', absolute: false), false)
-            ->assertSee(route('profile.edit', absolute: false), false)
-            ->assertSee('Cerrar sesion');
+            ->assertSee('Acceder')
+            ->assertSee(route('login', absolute: false), false);
     }
 
     public function test_guest_is_redirected_to_login_when_trying_to_open_the_profile(): void

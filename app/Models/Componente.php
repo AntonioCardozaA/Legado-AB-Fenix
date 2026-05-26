@@ -14,9 +14,11 @@ class Componente extends Model
     protected $fillable = [
         'nombre',
         'codigo',
+        'linea',
         'reductor',
         'ubicacion',
         'cantidad_total',
+        'numero_r_id',
         'activo',
     ];
 

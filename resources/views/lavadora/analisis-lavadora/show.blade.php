@@ -24,7 +24,7 @@
                     <div class="btn-group">
                         <a href="{{ route('analisis-lavadora.edit', $analisislavadora) }}" 
                            class="btn btn-warning btn-lg">
-                            <i class="fas fa-edit me-2"></i> Editarrrrrrrrrrrrr
+                            <i class="fas fa-edit me-2"></i> Editar
                         </a>
                         <a href="{{ route('analisis-lavadora.index') }}" class="btn btn-secondary btn-lg">
                             <i class="fas fa-arrow-left me-2"></i> Volver
@@ -55,7 +55,7 @@
                                             </div>
                                             <div class="info-value">
                                                 <span class="badge bg-primary-light text-primary">
-                                                    {{ $analisislavadora->linea->nombre ?? 'Lavadora ' . $analisisComponente->linea_id }}
+                                                    {{ $analisislavadora->linea->nombre ?? 'Lavadora ' . $analisislavadora->linea_id }}
                                                 </span>
                                             </div>
                                         </div>
@@ -67,7 +67,7 @@
                                             </div>
                                             <div class="info-value">
                                                 <span class="badge bg-success-light text-success">
-                                                    {{ $analisisComponente->componente->nombre ?? 'N/A' }}
+                                                    {{ $analisislavadora->componente->nombre ?? 'N/A' }}
                                                 </span>
                                             </div>
                                         </div>
@@ -124,7 +124,7 @@
                     </div>
 
                     <!-- Evidencia Fotográfica -->
-                    @if(!empty($analisisComponente->evidencia_fotos))
+                    @if(!empty($analisislavadora->evidencia_fotos))
                         <div class="row mt-5">
                             <div class="col-12">
                                 <div class="section-header mb-4">
@@ -132,13 +132,13 @@
                                         <i class="fas fa-camera me-2 text-danger"></i>
                                         Evidencia Fotográficaaaaaaaaaaa
                                         <span class="badge bg-danger ms-2">
-                                            {{ count($analisisComponente->evidencia_fotos) }}
+                                            {{ count($analisislavadora->evidencia_fotos) }}
                                         </span>
                                     </h3>
                                 </div>
                                 
                                 <div class="gallery-container">
-                                    @foreach($analisisComponente->evidencia_fotos as $index => $foto)
+                                    @foreach($analisislavadora->evidencia_fotos as $index => $foto)
                                         <div class="photo-card">
                                             <div class="photo-header">
                                                 <span class="photo-number">#{{ $index + 1 }}</span>
@@ -160,7 +160,7 @@
                                                 </div>
                                             </div>
                                             <div class="photo-footer">
-                                                <form action="{{ route('analisis-componentes.delete-foto', [$analisisComponente, $index]) }}" 
+                                                <form action="{{ route('analisis-lavadora.delete-foto', [$analisislavadora, $index]) }}"
                                                       method="POST" 
                                                       class="delete-form">
                                                     @csrf

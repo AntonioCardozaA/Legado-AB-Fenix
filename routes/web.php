@@ -257,26 +257,32 @@ Route::prefix('pasteurizadora')->group(function () {
         ->controller(AnalisisController::class)
         ->group(function () {
             Route::get('/nuevo', 'seleccionarLinea')->name('nuevo');
-            Route::get('/{linea}/seleccionar-componente', 'seleccionarComponente')->name('seleccionar-componente');
-            Route::get('/{linea}/crear/{componente}', 'crear')->name('crear');
+            Route::get('/{linea}/seleccionar-componente', 'seleccionarComponente')
+                ->whereNumber('linea')
+                ->name('seleccionar-componente');
+
+            Route::get('/{linea}/crear/{componente}', 'crear')
+                ->whereNumber('linea')
+                ->whereNumber('componente')
+                ->name('crear');
 
             Route::get('numeros-r/{categoria}', 'getNumerosR')->name('numeros-r');
 
             Route::get('/', 'index')->name('index');
             Route::post('/', 'store')->name('store');
-            Route::get('/{analisis}', 'show')->name('show');
-            Route::get('/{analisis}/edit', 'edit')->name('edit');
-            Route::put('/{analisis}', 'update')->name('update');
-            Route::delete('/{analisis}', 'destroy')->name('destroy');
-
             Route::get('/linea/{linea}', 'porLinea')->name('porLinea');
             Route::get('/exportar/excel', 'exportarExcel')->name('exportar.excel');
-            Route::get('/{analisis}/pdf', 'exportPdf')->name('exportar.pdf');
             Route::get('/analisis/exportar/lavadoras', 'exportarTodas')->name('analisis.exportar.lavadoras');
             Route::get('/estadisticas', 'estadisticas')->name('estadisticas');
+            Route::get('/{analisis}/pdf', 'exportPdf')->whereNumber('analisis')->name('exportar.pdf');
             Route::post('/{analisis}/eliminar-foto', 'eliminarFoto')->name('eliminar-foto');
             Route::get('/linea/{linea}/componentes', 'getComponentes')->name('linea.componentes');
             Route::get('/componente/{componente}/reductores', 'getReductores')->name('componente.reductores');
+
+            Route::get('/{analisis}', 'show')->whereNumber('analisis')->name('show');
+            Route::get('/{analisis}/edit', 'edit')->whereNumber('analisis')->name('edit');
+            Route::put('/{analisis}', 'update')->whereNumber('analisis')->name('update');
+            Route::delete('/{analisis}', 'destroy')->whereNumber('analisis')->name('destroy');
         });
 
     /*
@@ -296,14 +302,20 @@ Route::prefix('pasteurizadora')->group(function () {
     |--------------------------------------------------------------------------
     */
     Route::prefix('api')->name('api.')->group(function () {
-        Route::get('categorias/{categoria}/numeros-r', [AnalisisController::class, 'getNumerosR']);
-        Route::get('estadisticas/dashboard', [ApiController::class, 'dashboard']);
-        Route::get('analisis/tendencia/{linea}', [ApiController::class, 'tendenciaLinea']);
+        Route::get('categorias/{categoria}/numeros-r', [AnalisisController::class, 'getNumerosR'])
+            ->name('categorias.numeros-r');
+        Route::get('estadisticas/dashboard', [ApiController::class, 'dashboard'])
+            ->name('estadisticas.dashboard');
+        Route::get('analisis/tendencia/{linea}', [ApiController::class, 'tendenciaLinea'])
+            ->name('analisis.tendencia');
 
         Route::prefix('pasteurizadora')->name('pasteurizadora.')->group(function () {
-            Route::get('componentes/{linea}', [AnalisisPasteurizadoraController::class, 'apiGetComponentes']);
-            Route::get('estadisticas/{linea}', [AnalisisPasteurizadoraController::class, 'apiGetEstadisticas']);
-            Route::get('analisis-52-12-4', [AnalisisPasteurizadoraController::class, 'apiGetAnalisis52124']);
+            Route::get('componentes/{linea}', [AnalisisPasteurizadoraController::class, 'apiGetComponentes'])
+                ->name('componentes');
+            Route::get('estadisticas/{linea}', [AnalisisPasteurizadoraController::class, 'apiGetEstadisticas'])
+                ->name('estadisticas');
+            Route::get('analisis-52-12-4', [AnalisisPasteurizadoraController::class, 'apiGetAnalisis52124'])
+                ->name('analisis-52-12-4');
         });
     });
 
@@ -336,7 +348,7 @@ Route::prefix('pasteurizadora')->group(function () {
     Route::post('/plan-accion/lavadora/update', [PlanAccionController::class, 'updatePlanAccion'])
         ->name('plan-accion.lavadora.update');
 
-    Route::post('/plan-accion/lavadora/destroy', [PlanAccionController::class, 'destroy'])
+    Route::post('/plan-accion/lavadora/destroy', [PlanAccionController::class, 'destroyPlanAccion'])
         ->name('plan-accion.lavadora.destroy');
 
     Route::post('/plan-accion/{id}/checklist', [PlanAccionController::class, 'checklist']);

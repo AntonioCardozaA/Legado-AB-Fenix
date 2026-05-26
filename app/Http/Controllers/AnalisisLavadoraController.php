@@ -1120,7 +1120,7 @@ public function historicoRevisados(Request $request)
         'porcentaje_general' => $totalGeneral > 0 ? round(($revisadoGeneral / $totalGeneral) * 100, 1) : 0
     ];
     
-    return view('/historico-revisados.index', compact(
+    return view('historico-revisados.index', compact(
         'lineas',
         'lineasLavadora',
         'lineasPasteurizadora',

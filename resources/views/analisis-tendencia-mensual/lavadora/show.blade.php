@@ -6,7 +6,7 @@
 @section('content')
 <div class="max-w-6xl mx-auto px-4 py-6">
     <div class="mb-6">
-        <a href="{{ route('analisis-tendencia-mensual-lavadora.index', ['linea_id' => $analisis->linea_id]) }}" 
+        <a href="{{ route('analisis-tendencia-mensual.lavadora.index', ['linea_id' => $analisis->linea_id]) }}"
            class="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900">
             <i class="fas fa-arrow-left"></i>
             Volver al análisis

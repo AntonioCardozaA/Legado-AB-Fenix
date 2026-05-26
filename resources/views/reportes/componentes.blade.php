@@ -881,7 +881,9 @@ function exportarExcel() {
     
     // Construir URL con filtros actuales
     const params = new URLSearchParams(window.location.search);
-   window.location.href = "{{ route('export.excel') }}?tipo=componentes&" + params.toString();
+    params.set('export_format', 'excel');
+    params.set('export_tipo', 'componentes');
+    window.location.href = "{{ route('reportes.export-excel') }}?" + params.toString();
     
     // Ocultar loading después de un tiempo
     setTimeout(hideLoading, 3000);

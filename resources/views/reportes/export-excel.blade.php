@@ -14,7 +14,7 @@
             </p>
         </div>
 
-        <a href="{{ route('analisis-componentes.export', request()->query()) }}"
+        <a href="{{ route('analisis.exportar.excel', request()->query()) }}"
            class="btn btn-success btn-lg shadow">
             <i class="fas fa-file-excel me-2"></i> Exportar Excel
         </a>
@@ -27,7 +27,7 @@
         </div>
 
         <div class="card-body">
-            <form method="GET" action="{{ route('analisis-componentes.index') }}">
+            <form method="GET" action="{{ route('analisis.index') }}">
                 <div class="row g-3">
 
                     {{-- Lavadora --}}
@@ -81,7 +81,7 @@
                             <i class="fas fa-search me-1"></i> Filtrar
                         </button>
 
-                        <a href="{{ route('analisis-componentes.index') }}"
+                        <a href="{{ route('analisis.index') }}"
                            class="btn btn-outline-secondary w-100">
                             Limpiar
                         </a>

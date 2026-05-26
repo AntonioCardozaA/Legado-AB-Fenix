@@ -1,59 +1,169 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Legado AB Fenix
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Sistema Laravel para seguimiento operativo de lavadoras, pasteurizadoras, elongaciones de cadena, planes de accion, reportes y notificaciones.
 
-## About Laravel
+Este repositorio esta orientado a operacion interna. La aplicacion ya contiene modulos funcionales para registro de analisis, dashboards, historial, reportes PDF/Excel y alertas por correo/WhatsApp.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## Modulos Principales
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+- Lavadoras: registros de componentes por linea, reductor, lado, estado, evidencia fotografica e historial.
+- Pasteurizadoras: analisis por linea, modulo, componente, nivel, lado, ciclos de revision y evidencia.
+- Elongaciones: mediciones de cadena, ciclos activos, comparacion de ciclos y recordatorios programados.
+- Plan de accion: actividades por equipo, fechas PCM, checklist, alertas y notificaciones.
+- Reportes: vistas consolidadas, exportacion PDF y Excel.
+- Usuarios y roles: admin, ingeniero de mantenimiento, supervisor y tecnico.
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## Requisitos
 
-## Learning Laravel
+- PHP 8.2 o superior
+- Composer
+- Node.js y npm
+- MySQL o MariaDB
+- Extension PHP para ZIP, GD/Imagick, PDO MySQL y OpenSSL
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+## Instalacion Local
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+1. Instalar dependencias PHP:
 
-## Laravel Sponsors
+```bash
+composer install
+```
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+2. Instalar dependencias frontend:
 
-### Premium Partners
+```bash
+npm install
+```
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+3. Crear el archivo de entorno:
 
-## Contributing
+```bash
+cp .env.example .env
+```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+En Windows PowerShell:
 
-## Code of Conduct
+```powershell
+Copy-Item .env.example .env
+```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+4. Generar la llave de Laravel:
 
-## Security Vulnerabilities
+```bash
+php artisan key:generate
+```
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+5. Configurar la base de datos en `.env` y ejecutar migraciones:
 
-## License
+```bash
+php artisan migrate --seed
+```
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+6. Crear el enlace publico de storage para evidencias:
+
+```bash
+php artisan storage:link
+```
+
+7. Compilar assets:
+
+```bash
+npm run build
+```
+
+8. Levantar el servidor local:
+
+```bash
+php artisan serve
+```
+
+Tambien puedes usar el script integrado:
+
+```bash
+composer run dev
+```
+
+## Comandos Utiles
+
+```bash
+php artisan test
+composer run test
+npm run dev
+npm run build
+php artisan route:list --except-vendor
+php artisan elongaciones:send-reminders --dry-run
+php artisan notifications:send-activities
+php artisan componentes:reset-estadisticas --simular
+```
+
+## Tareas Programadas
+
+El scheduler ejecuta recordatorios de elongacion desde `routes/console.php`.
+
+Para produccion se debe configurar un cron que llame al scheduler cada minuto:
+
+```bash
+* * * * * cd /ruta/del/proyecto && php artisan schedule:run >> /dev/null 2>&1
+```
+
+En Windows se puede usar el Programador de tareas apuntando a:
+
+```powershell
+php artisan schedule:run
+```
+
+## Variables de Entorno Importantes
+
+- `APP_URL`: URL base de la aplicacion.
+- `DB_*`: conexion a base de datos.
+- `MAIL_*`: configuracion de correo.
+- `ULTRAMSG_*`: envio de WhatsApp por UltraMsg.
+- `TWILIO_*`: envio SMS si se usa Twilio.
+- `ELONGACION_ALERT_*`: horario, zona horaria y destinatarios de recordatorios.
+- `QUEUE_CONNECTION`: usar `database` o un driver de colas real en produccion si las notificaciones deben procesarse en segundo plano.
+
+Nunca guardes credenciales reales en `.env.example`, README, seeders publicos o archivos versionados.
+
+## Pruebas
+
+La configuracion de PHPUnit usa SQLite en memoria. Para ejecutar la suite:
+
+```bash
+php artisan test
+```
+
+O mediante Composer:
+
+```bash
+composer run test
+```
+
+## Estructura Relevante
+
+- `app/Http/Controllers`: controladores de modulos operativos.
+- `app/Models`: modelos principales del dominio.
+- `app/Services`: servicios de notificaciones y WhatsApp.
+- `app/Console/Commands`: comandos programados o manuales.
+- `database/migrations`: estructura de base de datos.
+- `database/seeders`: datos base de roles, lineas y usuarios iniciales.
+- `resources/views`: pantallas Blade.
+- `routes/web.php`: rutas web autenticadas y rutas internas.
+- `routes/console.php`: agenda de comandos.
+- `tests`: pruebas feature/unit.
+
+## Seguridad Operativa
+
+- Mantener `.env` fuera de Git.
+- Rotar cualquier token o password que haya sido compartido en plantillas o respaldos.
+- Usar `APP_DEBUG=false` en produccion.
+- Evitar credenciales fijas en seeders de produccion.
+- Revisar permisos por rol antes de exponer rutas nuevas.
+- Mantener respaldos SQL y ZIP fuera del repositorio.
+
+## Documentacion Interna
+
+Tambien se incluyen notas de soporte en:
+
+- `docs/PROJECT_MAP.md`
+- `docs/OPERATIONS.md`
+- `docs/SECURITY_CHECKLIST.md`

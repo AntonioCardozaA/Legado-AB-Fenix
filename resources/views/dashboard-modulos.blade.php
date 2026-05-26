@@ -330,7 +330,7 @@
             $hasCriticos = $modulo['estadisticas']['alertas_criticas'] > 0;
             $tieneImagen = isset($modulo['imagen_personalizada']) && $modulo['imagen_personalizada'] && !empty($modulo['icono_imagen']);
             // La ruta está definida en el controlador dentro de cada módulo
-            $rutaModulo = $modulo['ruta'] ?? route('dashboard.index');
+            $rutaModulo = $modulo['ruta'] ?? route('dashboard');
         @endphp
                 <div class="modulo-card" onclick="window.location.href='{{ $rutaModulo }}'">
                     <div class="modulo-header">

@@ -1,4 +1,6 @@
 *.log
+*.sql
+*.zip
 .DS_Store
 .env
 .env.backup
@@ -19,6 +21,15 @@
 /storage/*.key
 /storage/pail
 /vendor
+/backup.sql
+/backup*.sql
+/vendor.zip
+/bootstrap/cache.zip
+/check_*.php
+/execute-migrations.php
+/test_email.php
+/git
+/public/test_componentes.html
 Homestead.json
 Homestead.yaml
 Thumbs.db

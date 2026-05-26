@@ -1,9 +1,9 @@
 {
     "$schema": "https://getcomposer.org/schema.json",
-    "name": "laravel/laravel",
+    "name": "legado/ab-fenix",
     "type": "project",
-    "description": "The skeleton application for the Laravel framework.",
-    "keywords": ["laravel", "framework"],
+    "description": "Sistema de gestion operativa para lavadoras, pasteurizadoras, elongaciones, planes de accion y reportes.",
+    "keywords": ["laravel", "mantenimiento", "lavadoras", "pasteurizadoras", "reportes"],
     "license": "MIT",
     "require": {
         "php": "^8.2",
@@ -18,13 +18,13 @@
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",
+        "larastan/larastan": "3.9",
         "laravel/breeze": "^2.3",
         "laravel/pail": "^1.2.2",
         "laravel/pint": "^1.24",
         "laravel/sail": "^1.41",
         "mockery/mockery": "^1.6",
         "nunomaduro/collision": "^8.6",
-        "nunomaduro/larastan": "^3.9",
         "phpunit/phpunit": "^11.5.3"
     },
     "autoload": {
@@ -55,6 +55,9 @@
         "test": [
             "@php artisan config:clear --ansi",
             "@php artisan test"
+        ],
+        "analyse": [
+            "vendor/bin/phpstan analyse"
         ],
         "post-autoload-dump": [
             "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
