@@ -54,14 +54,8 @@
                     </form>
 
                     <a href="{{ route('dashboard') }}" class="inline-flex items-center justify-center rounded-xl border border-gray-200 bg-white px-5 py-3 text-sm font-semibold text-gray-700 transition hover:border-gray-300 hover:bg-gray-50">
-                        Volver al dashboard
+                        Volver al panel
                     </a>
-                </div>
-            </div>
-
-            <div class="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-gray-100 sm:p-8">
-                <div class="max-w-none">
-                    @include('profile.partials.delete-user-form')
                 </div>
             </div>
         </div>

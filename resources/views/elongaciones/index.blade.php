@@ -13,15 +13,12 @@
                 </svg>
                 <span class="font-medium">Volver</span>
             </a>
-
             <div>
                 <h1 class="text-3xl font-bold text-gray-800 flex items-center gap-3">
                     <i class="fas fa-history text-blue-600"></i>
                     Historial de elongaciones
                 </h1>
-                <p class="text-gray-500 mt-1">El monitoreo actual sigue mostrando el último registro por línea cuando no aplicas filtros.</p>
-            </div>
-
+            </div>      
             <div class="flex flex-wrap gap-3">
                 <a href="{{ route('elongaciones.ciclos.comparacion', ['linea' => request('linea')]) }}"
                    class="inline-flex items-center gap-2 px-5 py-3 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition shadow-md">
