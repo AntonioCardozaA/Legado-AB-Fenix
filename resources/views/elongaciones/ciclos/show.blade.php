@@ -28,7 +28,7 @@
         </div>
         <div class="bg-white rounded-xl p-4 shadow border border-gray-200">
             <p class="text-sm text-gray-600">Vida útil acumulada</p>
-            <p class="text-2xl font-bold text-gray-900">{{ $resumen['vida_util_horas'] !== null ? number_format($resumen['vida_util_horas'], 0) . ' h' : '-' }}</p>
+            <p class="text-2xl font-bold text-gray-900">{{ \App\Support\HodometroHoras::formatear($resumen['vida_util_horas']) ?? '-' }}</p>
         </div>
         <div class="bg-white rounded-xl p-4 shadow border border-gray-200">
             <p class="text-sm text-gray-600">Máx. bombas / vapor</p>
