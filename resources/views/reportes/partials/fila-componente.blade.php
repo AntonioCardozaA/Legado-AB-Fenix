@@ -17,6 +17,7 @@
     </td>
 
     <td><span class="badge bueno">{{ $item['estados']['BUENO'] ?? 0 }}</span></td>
+    <td><span class="badge revision">{{ $item['estados']['REQUIERE_REVISION'] ?? 0 }}</span></td>
     <td><span class="badge regular">{{ $item['estados']['DESGASTE_MODERADO'] ?? 0 }}</span></td>
     <td><span class="badge regular">{{ $item['estados']['DESGASTE_SEVERO'] ?? 0 }}</span></td>
     <td><span class="badge danado">{{ $item['estados']['DANADO_REQUIERE'] ?? 0 }}</span></td>

@@ -371,6 +371,15 @@
                             </div>
                             <div class="stat-value riesgo">{{ $modulo['estadisticas']['en_riesgo'] }}</div>
                         </div>
+                        @if(isset($modulo['estadisticas']['requiere_revision']))
+                            <div class="stat-item">
+                                <div class="stat-label">
+                                    <i class="fas fa-tools mr-1"></i>
+                                    Revisión
+                                </div>
+                                <div class="stat-value" style="color: #f97316;">{{ $modulo['estadisticas']['requiere_revision'] }}</div>
+                            </div>
+                        @endif
                         <div class="stat-item">
                             <div class="stat-label">
                                 <i class="fas fa-check-circle mr-1"></i>

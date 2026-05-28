@@ -14,6 +14,7 @@
     $totalPasteurizadoras = max((int) ($resumenPasteurizadora['total_pasteurizadoras'] ?? $pasteurizadoras->count()), 1);
     $estadoLineas = [
         'bueno' => $pasteurizadoras->where('estado.nivel', 'bueno')->count(),
+        'operativo' => $pasteurizadoras->where('estado.nivel', 'operativo')->count(),
         'riesgo' => $pasteurizadoras->where('estado.nivel', 'riesgo')->count(),
         'critico' => $pasteurizadoras->where('estado.nivel', 'critico')->count(),
     ];
@@ -21,7 +22,7 @@
     $totalRevisados = $pasteurizadoras->sum(fn($item) => (int) data_get($item, 'estado.progreso_revision.revisados', 0));
     $totalConfigurados = $pasteurizadoras->sum(fn($item) => (int) data_get($item, 'estado.progreso_revision.total', 0));
     $rankingPasteurizadoras = $pasteurizadoras
-        ->sortByDesc(fn($item) => (($item['estado']['nivel'] ?? 'bueno') === 'critico' ? 300 : (($item['estado']['nivel'] ?? 'bueno') === 'riesgo' ? 200 : 100)) + (int) data_get($item, 'estado.acciones_pendientes', 0))
+        ->sortByDesc(fn($item) => (($item['estado']['nivel'] ?? 'bueno') === 'critico' ? 300 : (($item['estado']['nivel'] ?? 'bueno') === 'riesgo' ? 220 : (($item['estado']['nivel'] ?? 'bueno') === 'operativo' ? 160 : 100))) + (int) data_get($item, 'estado.acciones_pendientes', 0))
         ->take(5)
         ->values();
 @endphp
@@ -33,6 +34,8 @@
         --accent-blue: #0284c7;
         --success-green: #10b981;
         --success-light: #d1fae5;
+        --operational-orange: #f97316;
+        --operational-light: #ffedd5;
         --warning-yellow: #f59e0b;
         --warning-light: #fef3c7;
         --danger-red: #ef4444;
@@ -143,6 +146,11 @@
         border-left: 6px solid var(--warning-yellow);
     }
 
+    .lavadora-card.operativo-estado {
+        background-color: #fff7ed;
+        border-left: 6px solid var(--operational-orange);
+    }
+
     .lavadora-card.critico-estado {
         background-color: #fef2f2;
         border-left: 6px solid var(--danger-red);
@@ -174,6 +182,7 @@
     }
 
     .buen-estado .status-icon { color: var(--success-green); }
+    .operativo-estado .status-icon { color: var(--operational-orange); }
     .riesgo-estado .status-icon { color: var(--warning-yellow); }
     .critico-estado .status-icon { color: var(--danger-red); }
 
@@ -189,6 +198,7 @@
     }
 
     .status-tag.bueno { background: var(--success-light); color: #065f46; }
+    .status-tag.operativo { background: var(--operational-light); color: #9a3412; }
     .status-tag.riesgo { background: var(--warning-light); color: #92400e; }
     .status-tag.critico { background: var(--danger-light); color: #991b1b; }
 
@@ -883,6 +893,11 @@
             <div class="stat-label">En Riesgo</div>
             <div class="stat-value" style="color: var(--warning-yellow);">{{ $resumenPasteurizadora['en_riesgo'] }}</div>
         </div>
+        <div class="stat-card" style="border-top: 4px solid var(--operational-orange);">
+            <div class="stat-icon"><i class="fas fa-tools"></i></div>
+            <div class="stat-label">Requiere Revisión</div>
+            <div class="stat-value" style="color: var(--operational-orange);">{{ $resumenPasteurizadora['requiere_revision'] }}</div>
+        </div>
         <div class="stat-card" style="border-top: 4px solid var(--success-green);">
             <div class="stat-icon"><i class="fas fa-check-circle"></i></div>
             <div class="stat-label">Buen Estado</div>
@@ -906,7 +921,9 @@
                 $estado = $pasteurizadora['estado'];
                 $nivel = $estado['nivel'] ?? 'bueno';
                 $isCritical = $nivel === 'critico';
-                $cardClass = $nivel === 'bueno' ? 'buen-estado' : ($nivel === 'riesgo' ? 'riesgo-estado' : 'critico-estado');
+                $cardClass = $nivel === 'bueno'
+                    ? 'buen-estado'
+                    : ($nivel === 'operativo' ? 'operativo-estado' : ($nivel === 'riesgo' ? 'riesgo-estado' : 'critico-estado'));
                 if ($isCritical) {
                     $cardClass .= ' alert-critical';
                 }
@@ -920,8 +937,8 @@
                         {{ $pasteurizadora['nombre'] }}
                     </div>
                     <div>
-                        <span class="status-tag {{ $nivel === 'bueno' ? 'bueno' : ($nivel === 'riesgo' ? 'riesgo' : 'critico') }}">
-                            <i class="fas {{ $nivel === 'bueno' ? 'fa-check-circle' : ($nivel === 'riesgo' ? 'fa-exclamation-triangle' : 'fa-times-circle') }}"></i>
+                        <span class="status-tag {{ $nivel === 'bueno' ? 'bueno' : ($nivel === 'operativo' ? 'operativo' : ($nivel === 'riesgo' ? 'riesgo' : 'critico')) }}">
+                            <i class="fas {{ $nivel === 'bueno' ? 'fa-check-circle' : ($nivel === 'operativo' ? 'fa-tools' : ($nivel === 'riesgo' ? 'fa-exclamation-triangle' : 'fa-times-circle')) }}"></i>
                             {{ ucfirst($nivel) }}
                         </span>
                     </div>
@@ -1493,7 +1510,7 @@
         modalTitle.innerHTML = `Detalle - ${escapeHtml(pasteurizadora.nombre)}`;
 
         let html = `
-            <div class="mb-4 p-4 rounded-lg ${estado.nivel === 'critico' ? 'bg-red-50 border-l-4 border-red-500' : (estado.nivel === 'riesgo' ? 'bg-yellow-50 border-l-4 border-yellow-500' : 'bg-green-50 border-l-4 border-green-500')}">
+            <div class="mb-4 p-4 rounded-lg ${estado.nivel === 'critico' ? 'bg-red-50 border-l-4 border-red-500' : (estado.nivel === 'riesgo' ? 'bg-yellow-50 border-l-4 border-yellow-500' : (estado.nivel === 'operativo' ? 'bg-orange-50 border-l-4 border-orange-500' : 'bg-green-50 border-l-4 border-green-500'))}">
                 <h4 class="font-bold text-lg mb-2">Estado: ${escapeHtml((estado.nivel || 'bueno').toUpperCase())}</h4>
                 <p class="text-gray-700">${escapeHtml(estado.mensaje || 'Sin mensaje de estado')}</p>
             </div>

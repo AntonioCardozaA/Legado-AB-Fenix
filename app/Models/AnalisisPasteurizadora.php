@@ -129,14 +129,25 @@ class AnalisisPasteurizadora extends Model
 
     const LADOS = ['VAPOR', 'PASILLO'];
     const NIVELES = ['SUPERIOR', 'INFERIOR'];
+    const ESTADO_BUENO = 'Buen estado';
+    const ESTADO_REQUIERE_REVISION = 'Requiere revisión';
+    const ESTADOS_DESGASTE = ['Desgaste moderado', 'Desgaste severo'];
     const ESTADO_DANADO = 'Dañado - Requiere cambio';
+    const ESTADO_CAMBIADO = 'Cambiado';
     const ESTADOS_DANADO_COMPATIBLES = [
         'Dañado - Requiere cambio',
         'Danado - Requiere cambio',
         'DaÃ±ado - Requiere cambio',
         'DaÃƒÂ±ado - Requiere cambio',
     ];
-    const ESTADOS = ['Buen estado', 'Desgaste moderado', 'Desgaste severo', 'Dañado - Requiere cambio', 'Cambiado'];
+    const ESTADOS = [
+        self::ESTADO_BUENO,
+        self::ESTADO_REQUIERE_REVISION,
+        'Desgaste moderado',
+        'Desgaste severo',
+        self::ESTADO_DANADO,
+        self::ESTADO_CAMBIADO,
+    ];
 
     // ============================================================
     // MÃ‰TODOS DE CONFIGURACIÃ“N
@@ -176,6 +187,43 @@ class AnalisisPasteurizadora extends Model
     public static function estadosDanado(): array
     {
         return self::ESTADOS_DANADO_COMPATIBLES;
+    }
+
+    public static function getEstadoOpciones(): array
+    {
+        return [
+            self::ESTADO_BUENO => '✅ Buen estado',
+            self::ESTADO_REQUIERE_REVISION => '🔧 Requiere revisión',
+            'Desgaste moderado' => '⚠️ Desgaste moderado',
+            'Desgaste severo' => '⚠️ Desgaste severo',
+            self::ESTADO_DANADO => '❌ Dañado - Requiere cambio',
+            self::ESTADO_CAMBIADO => '🔄 Cambiado',
+        ];
+    }
+
+    public static function esEstadoBueno(?string $estado): bool
+    {
+        return $estado === self::ESTADO_BUENO;
+    }
+
+    public static function esEstadoRequiereRevision(?string $estado): bool
+    {
+        return $estado === self::ESTADO_REQUIERE_REVISION;
+    }
+
+    public static function esEstadoDesgaste(?string $estado): bool
+    {
+        return in_array($estado, self::ESTADOS_DESGASTE, true);
+    }
+
+    public static function esEstadoDanado(?string $estado): bool
+    {
+        return in_array($estado, self::ESTADOS_DANADO_COMPATIBLES, true);
+    }
+
+    public static function esEstadoCambiado(?string $estado): bool
+    {
+        return $estado === self::ESTADO_CAMBIADO;
     }
 
     public static function normalizarEstado($estado): string
@@ -740,12 +788,12 @@ class AnalisisPasteurizadora extends Model
 
     public function getEsCambioAttribute()
     {
-        return $this->estado === 'Cambiado';
+        return self::esEstadoCambiado($this->estado);
     }
 
     public function getEsDanioAttribute()
     {
-        return in_array($this->estado, self::estadosDanado(), true);
+        return self::esEstadoDanado($this->estado);
     }
 
     public function getLadoIconoAttribute()
@@ -770,9 +818,10 @@ class AnalisisPasteurizadora extends Model
         }
 
         return match ($this->estado) {
-            'Buen estado' => ['class' => 'bg-green-100 text-green-800', 'icon' => 'fa-check-circle'],
+            self::ESTADO_BUENO => ['class' => 'bg-green-100 text-green-800', 'icon' => 'fa-check-circle'],
+            self::ESTADO_REQUIERE_REVISION => ['class' => 'bg-orange-100 text-orange-800', 'icon' => 'fa-tools'],
             'Desgaste moderado', 'Desgaste severo' => ['class' => 'bg-yellow-100 text-yellow-800', 'icon' => 'fa-exclamation-triangle'],
-            'Cambiado' => ['class' => 'bg-blue-100 text-blue-800', 'icon' => 'fa-exchange-alt'],
+            self::ESTADO_CAMBIADO => ['class' => 'bg-blue-100 text-blue-800', 'icon' => 'fa-exchange-alt'],
             default => ['class' => 'bg-gray-100 text-gray-800', 'icon' => 'fa-question-circle'],
         };
     }

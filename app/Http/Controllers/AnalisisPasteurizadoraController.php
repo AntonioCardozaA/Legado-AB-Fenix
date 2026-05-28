@@ -255,13 +255,18 @@ class AnalisisPasteurizadoraController extends Controller
                 return true;
             }
 
-            // Si no es de hoy, solo mostrar si está "Cambiado" o "Buen estado"
-            return in_array($item->estado, ['Cambiado', 'Buen estado']);
+            // Si no es de hoy, solo mostrar si está "Cambiado", "Buen estado" o en revisión operativa
+            return in_array($item->estado, [
+                AnalisisPasteurizadora::ESTADO_CAMBIADO,
+                AnalisisPasteurizadora::ESTADO_BUENO,
+                AnalisisPasteurizadora::ESTADO_REQUIERE_REVISION,
+            ], true);
         });
 
         $totalAnalisis = $analisis->count();
         $totalDanados = $analisis->whereIn('estado', AnalisisPasteurizadora::estadosDanado())->count();
-        $totalCambiados = $analisis->where('estado', 'Cambiado')->count();
+        $totalCambiados = $analisis->where('estado', AnalisisPasteurizadora::ESTADO_CAMBIADO)->count();
+        $totalRequiereRevision = $analisis->where('estado', AnalisisPasteurizadora::ESTADO_REQUIERE_REVISION)->count();
 
         // Filtrar solo líneas de pasteurizadora (P-03 a P-14)
         $pasteurizadorasPermitidas = ['P-03', 'P-04', 'P-05', 'P-06', 'P-07', 'P-08', 'P-09', 'P-10', 'P-11', 'P-12', 'P-13', 'P-14'];
@@ -275,7 +280,7 @@ class AnalisisPasteurizadoraController extends Controller
 
         return view('pasteurizadora.analisis-pasteurizadora.index', compact(
             'analisis', 'lineasFiltradas', 'totalAnalisis', 'totalDanados', 'totalCambiados',
-            'lineaSeleccionada', 'mostrarTodas', 'seguimientoPasteurizadora'
+            'totalRequiereRevision', 'lineaSeleccionada', 'mostrarTodas', 'seguimientoPasteurizadora'
         ));
     }
 
@@ -285,13 +290,15 @@ class AnalisisPasteurizadoraController extends Controller
 
     $total = AnalisisPasteurizadora::count();
     $danados = AnalisisPasteurizadora::whereIn('estado', AnalisisPasteurizadora::estadosDanado())->count();
-    $cambiados = AnalisisPasteurizadora::where('estado', 'Cambiado')->count();
+    $cambiados = AnalisisPasteurizadora::where('estado', AnalisisPasteurizadora::ESTADO_CAMBIADO)->count();
+    $requiereRevision = AnalisisPasteurizadora::where('estado', AnalisisPasteurizadora::ESTADO_REQUIERE_REVISION)->count();
 
     return view('pasteurizadora.dashboard', compact(
         'analisis',
         'total',
         'danados',
-        'cambiados'
+        'cambiados',
+        'requiereRevision'
     ));
 }
     // ============================================================
@@ -376,7 +383,7 @@ class AnalisisPasteurizadoraController extends Controller
         ]);
 
         // Marcar como resuelto si es necesario
-        if ($validated['estado'] === 'Cambiado') {
+        if ($validated['estado'] === AnalisisPasteurizadora::ESTADO_CAMBIADO) {
             $this->marcarRegistrosAnterioresComoResueltos($analisis);
         }
 
@@ -510,7 +517,11 @@ class AnalisisPasteurizadoraController extends Controller
         );
         $validated['componente'] = $seleccionComponentes['componente'];
 
-        if (isset($validated['estado']) && $validated['estado'] === 'Cambiado' && $analisis->estado !== 'Cambiado') {
+        if (
+            isset($validated['estado'])
+            && $validated['estado'] === AnalisisPasteurizadora::ESTADO_CAMBIADO
+            && $analisis->estado !== AnalisisPasteurizadora::ESTADO_CAMBIADO
+        ) {
             $tempAnalisis = (object)[
                 'linea_id' => $analisis->linea_id,
                 'modulo' => $validated['modulo'] ?? $analisis->modulo,
@@ -639,7 +650,11 @@ class AnalisisPasteurizadoraController extends Controller
             }
 
             // Si no es de hoy, solo mostrar si está "Cambiado" o "Buen estado"
-            return in_array($item->estado, ['Cambiado', 'Buen estado']);
+            return in_array($item->estado, [
+                AnalisisPasteurizadora::ESTADO_CAMBIADO,
+                AnalisisPasteurizadora::ESTADO_BUENO,
+                AnalisisPasteurizadora::ESTADO_REQUIERE_REVISION,
+            ], true);
         });
 
         $pasteurizadorasPermitidas = ['P-03', 'P-04', 'P-05', 'P-06', 'P-07', 'P-08', 'P-09', 'P-10', 'P-11', 'P-12', 'P-13', 'P-14'];
@@ -920,10 +935,11 @@ class AnalisisPasteurizadoraController extends Controller
         return response()->json([
             'success' => true,
             'total' => $registros->count(),
-            'buen_estado' => $registros->where('estado', 'Buen estado')->count(),
-            'desgaste' => $registros->whereIn('estado', ['Desgaste moderado', 'Desgaste severo'])->count(),
+            'buen_estado' => $registros->where('estado', AnalisisPasteurizadora::ESTADO_BUENO)->count(),
+            'requiere_revision' => $registros->where('estado', AnalisisPasteurizadora::ESTADO_REQUIERE_REVISION)->count(),
+            'desgaste' => $registros->whereIn('estado', AnalisisPasteurizadora::ESTADOS_DESGASTE)->count(),
             'danado' => $registros->whereIn('estado', AnalisisPasteurizadora::estadosDanado())->count(),
-            'cambiado' => $registros->where('estado', 'Cambiado')->count(),
+            'cambiado' => $registros->where('estado', AnalisisPasteurizadora::ESTADO_CAMBIADO)->count(),
         ]);
     }
 
@@ -1096,10 +1112,11 @@ class AnalisisPasteurizadoraController extends Controller
             'success' => true,
             'linea' => $linea->nombre,
             'total' => $registros->count(),
-            'buen_estado' => $registros->where('estado', 'Buen estado')->count(),
-            'desgaste' => $registros->whereIn('estado', ['Desgaste moderado', 'Desgaste severo'])->count(),
+            'buen_estado' => $registros->where('estado', AnalisisPasteurizadora::ESTADO_BUENO)->count(),
+            'requiere_revision' => $registros->where('estado', AnalisisPasteurizadora::ESTADO_REQUIERE_REVISION)->count(),
+            'desgaste' => $registros->whereIn('estado', AnalisisPasteurizadora::ESTADOS_DESGASTE)->count(),
             'danado' => $registros->whereIn('estado', AnalisisPasteurizadora::estadosDanado())->count(),
-            'cambiado' => $registros->where('estado', 'Cambiado')->count(),
+            'cambiado' => $registros->where('estado', AnalisisPasteurizadora::ESTADO_CAMBIADO)->count(),
         ]);
     }
 

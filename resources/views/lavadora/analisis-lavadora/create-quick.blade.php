@@ -178,11 +178,9 @@
                 </label>
                 <select name="estado" class="block w-full rounded-lg border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm" required>
                     <option value="">Seleccionar estado...</option>
-                    <option value="Buen estado">✅ Buen estado</option>
-                    <option value="Desgaste moderado">⚠️ Desgaste moderado</option>
-                    <option value="Desgaste severo">⚠️ Desgaste severo</option>
-                    <option value="Dañado - Requiere cambio">❌ Dañado - Requiere cambio</option>
-                    <option value="Cambiado">🔄 Cambiado</option>
+                    @foreach(\App\Models\AnalisisLavadora::getEstadoOpciones() as $estado => $label)
+                        <option value="{{ $estado }}" {{ old('estado') === $estado ? 'selected' : '' }}>{{ $label }}</option>
+                    @endforeach
                 </select>
                 @error('estado')
                     <p class="text-red-500 text-sm mt-1">{{ $message }}</p>

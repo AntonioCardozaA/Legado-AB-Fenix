@@ -20,6 +20,7 @@
     .sticky-left { position: sticky; left: 0; z-index: 20; }
     .sticky-top-left { position: sticky; top: 0; left: 0; z-index: 40; }
     .cell-ok { background-color: #f0f9ff; border-left: 4px solid var(--success-green); }
+    .cell-review { background-color: #fff7ed; border-left: 4px solid #f97316; }
     .cell-warning { background-color: #fffbeb; border-left: 4px solid var(--warning-yellow); }
     .cell-danger { background-color: #fef2f2; border-left: 4px solid var(--danger-red); }
     .cell-changed { background-color: #eff6ff; border-left: 4px solid var(--changed-blue); }
@@ -224,6 +225,11 @@
     .status-badge.ok {
         background-color: #d1fae5;
         color: #065f46;
+    }
+    
+    .status-badge.review {
+        background-color: #ffedd5;
+        color: #9a3412;
     }
     
     .status-badge.warning {
@@ -1290,11 +1296,9 @@
                             <label><i class="fas fa-clipboard-check mr-1"></i> Estado</label>
                             <select name="estado" class="filter-select">
                                 <option value="">Todos los estados</option>
-                                <option value="Buen estado" {{ request('estado') == 'Buen estado' ? 'selected' : '' }}>✅ Buen estado</option>
-                                <option value="Desgaste moderado" {{ request('estado') == 'Desgaste moderado' ? 'selected' : '' }}>⚠️ Desgaste moderado</option>
-                                <option value="Desgaste severo" {{ request('estado') == 'Desgaste severo' ? 'selected' : '' }}>⚠️ Desgaste severo</option>
-                                <option value="Dañado - Requiere cambio" {{ request('estado') == 'Dañado - Requiere cambio' ? 'selected' : '' }}>❌ Dañado - Requiere cambio</option>
-                                <option value="Cambiado" {{ request('estado') == 'Cambiado' ? 'selected' : '' }}>🔄 Cambiado</option>
+                                @foreach(\App\Models\AnalisisLavadora::getEstadoOpciones() as $estado => $label)
+                                    <option value="{{ $estado }}" {{ request('estado') === $estado ? 'selected' : '' }}>{{ $label }}</option>
+                                @endforeach
                             </select>
                         </div>
                     </div>
@@ -1342,6 +1346,7 @@
             $estadisticas = $estadisticas ?? [
                 'total' => 0,
                 'buen_estado' => 0,
+                'requiere_revision' => 0,
                 'desgaste' => 0,
                 'danado_requiere' => 0,
                 'cambiado' => 0,
@@ -1350,6 +1355,7 @@
             // Para el modal, usar SOLO el registro más reciente por componente+reductor
             $analisisPorEstado = [
                 'buen_estado' => [],
+                'requiere_revision' => [],
                 'desgaste' => [],
                 'danado' => [],
                 'cambiado' => []
@@ -1371,7 +1377,7 @@
                 $componenteNombre = $item->componente->nombre ?? 'Sin componente';
                 $reductor = is_numeric($item->reductor) ? "Reductor {$item->reductor}" : $item->reductor;
                 
-                if ($estado === 'Buen estado') {
+                if (\App\Models\AnalisisLavadora::esEstadoBueno($estado)) {
                     $analisisPorEstado['buen_estado'][] = [
                         'linea' => $lineaNombre,
                         'componente' => $componenteNombre,
@@ -1380,7 +1386,16 @@
                         'estado' => $estado,
                         'id' => $item->id
                     ];
-                } elseif (str_contains($estado, 'Desgaste')) {
+                } elseif (\App\Models\AnalisisLavadora::esEstadoRequiereRevision($estado)) {
+                    $analisisPorEstado['requiere_revision'][] = [
+                        'linea' => $lineaNombre,
+                        'componente' => $componenteNombre,
+                        'reductor' => $reductor,
+                        'estado' => $estado,
+                        'fecha' => isset($item->fecha_analisis) ? $item->fecha_analisis->format('d/m/Y') : '-',
+                        'id' => $item->id
+                    ];
+                } elseif (\App\Models\AnalisisLavadora::esEstadoDesgaste($estado)) {
                     $analisisPorEstado['desgaste'][] = [
                         'linea' => $lineaNombre,
                         'componente' => $componenteNombre,
@@ -1389,7 +1404,7 @@
                         'fecha' => isset($item->fecha_analisis) ? $item->fecha_analisis->format('d/m/Y') : '-',
                         'id' => $item->id
                     ];
-                } elseif ($estado === 'Dañado - Requiere cambio') {
+                } elseif (\App\Models\AnalisisLavadora::esEstadoDanado($estado)) {
                     $analisisPorEstado['danado'][] = [
                         'linea' => $lineaNombre,
                         'componente' => $componenteNombre,
@@ -1397,7 +1412,7 @@
                         'fecha' => isset($item->fecha_analisis) ? $item->fecha_analisis->format('d/m/Y') : '-',
                         'id' => $item->id
                     ];
-                } elseif ($estado === 'Cambiado') {
+                } elseif (\App\Models\AnalisisLavadora::esEstadoCambiado($estado)) {
                     $analisisPorEstado['cambiado'][] = [
                         'linea' => $lineaNombre,
                         'componente' => $componenteNombre,
@@ -1409,7 +1424,7 @@
             }
         @endphp
         
-        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4 mb-6">
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4 mb-6">
             {{-- TOTAL ANÁLISIS --}}
             <div class="bg-white rounded-xl shadow-sm p-4 border-t-4 border-gray-600 hover:shadow-lg transition-all">
                 <div class="flex items-center justify-between">
@@ -1434,6 +1449,19 @@
                 </div>
             </button>
             
+            {{-- REQUIERE REVISIÓN (BOTÓN CLICKEABLE) --}}
+            <button onclick="openEstadoModal('requiere_revision', 'Requiere revisión', {{ json_encode($analisisPorEstado['requiere_revision']) }})"
+                    class="bg-white rounded-xl shadow-sm p-4 border-t-4 border-orange-500 hover:shadow-lg hover:bg-orange-50 transition-all text-left w-full cursor-pointer group">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-semibold text-orange-600 uppercase tracking-wide">Requiere revisión</p>
+                        <h3 class="text-2xl font-bold text-orange-600 mt-1">{{ $estadisticas['requiere_revision'] ?? 0 }}</h3>
+                        <p class="text-xs text-orange-500 group-hover:text-orange-700 mt-1"><i class="fas fa-eye text-xs"></i> Ver detalles</p>
+                    </div>
+                    <div class="bg-orange-100 text-orange-600 p-2 rounded-full group-hover:bg-orange-200 transition"><i class="fas fa-tools"></i></div>
+                </div>
+            </button>
+
             {{-- DESGASTE (BOTÓN CLICKEABLE) --}}
             <button onclick="openEstadoModal('desgaste', 'Desgaste', {{ json_encode($analisisPorEstado['desgaste']) }})"
                     class="bg-white rounded-xl shadow-sm p-4 border-t-4 border-amber-500 hover:shadow-lg hover:bg-amber-50 transition-all text-left w-full cursor-pointer group">
@@ -1484,6 +1512,7 @@
                 $estadisticasGlobales = [
                     'total' => 0,
                     'buen_estado' => 0,
+                    'requiere_revision' => 0,
                     'desgaste' => 0,
                     'danado_requiere' => 0,
                     'cambiado' => 0,
@@ -1492,6 +1521,7 @@
                 // Para el modal, usar SOLO el registro más reciente por componente+reductor (global)
                 $analisisPorEstadoGlobal = [
                     'buen_estado' => [],
+                    'requiere_revision' => [],
                     'desgaste' => [],
                     'danado' => [],
                     'cambiado' => []
@@ -1515,7 +1545,7 @@
                     
                     $estadisticasGlobales['total']++;
                     
-                    if ($estado === 'Buen estado') {
+                    if (\App\Models\AnalisisLavadora::esEstadoBueno($estado)) {
                         $estadisticasGlobales['buen_estado']++;
                         $analisisPorEstadoGlobal['buen_estado'][] = [
                             'linea' => $lineaNombre,
@@ -1525,7 +1555,17 @@
                             'estado' => $estado,
                             'id' => $item->id
                         ];
-                    } elseif (str_contains($estado, 'Desgaste')) {
+                    } elseif (\App\Models\AnalisisLavadora::esEstadoRequiereRevision($estado)) {
+                        $estadisticasGlobales['requiere_revision']++;
+                        $analisisPorEstadoGlobal['requiere_revision'][] = [
+                            'linea' => $lineaNombre,
+                            'componente' => $componenteNombre,
+                            'reductor' => $reductor,
+                            'estado' => $estado,
+                            'fecha' => isset($item->fecha_analisis) ? $item->fecha_analisis->format('d/m/Y') : '-',
+                            'id' => $item->id
+                        ];
+                    } elseif (\App\Models\AnalisisLavadora::esEstadoDesgaste($estado)) {
                         $estadisticasGlobales['desgaste']++;
                         $analisisPorEstadoGlobal['desgaste'][] = [
                             'linea' => $lineaNombre,
@@ -1535,7 +1575,7 @@
                             'fecha' => isset($item->fecha_analisis) ? $item->fecha_analisis->format('d/m/Y') : '-',
                             'id' => $item->id
                         ];
-                    } elseif ($estado === 'Dañado - Requiere cambio') {
+                    } elseif (\App\Models\AnalisisLavadora::esEstadoDanado($estado)) {
                         $estadisticasGlobales['danado_requiere']++;
                         $analisisPorEstadoGlobal['danado'][] = [
                             'linea' => $lineaNombre,
@@ -1544,7 +1584,7 @@
                             'fecha' => isset($item->fecha_analisis) ? $item->fecha_analisis->format('d/m/Y') : '-',
                             'id' => $item->id
                         ];
-                    } elseif ($estado === 'Cambiado') {
+                    } elseif (\App\Models\AnalisisLavadora::esEstadoCambiado($estado)) {
                         $estadisticasGlobales['cambiado']++;
                         $analisisPorEstadoGlobal['cambiado'][] = [
                             'linea' => $lineaNombre,
@@ -1557,7 +1597,7 @@
                 }
             @endphp
             
-            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4 mb-6">
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4 mb-6">
                 {{-- TOTAL ANÁLISIS --}}
                 <div class="bg-white rounded-xl shadow-sm p-4 border-t-4 border-gray-600 hover:shadow-lg transition-all">
                     <div class="flex items-center justify-between">
@@ -1582,6 +1622,19 @@
                     </div>
                 </button>
                 
+                {{-- REQUIERE REVISIÓN (BOTÓN CLICKEABLE) --}}
+                <button onclick="openEstadoModal('requiere_revision', 'Requiere revisión', {{ json_encode($analisisPorEstadoGlobal['requiere_revision']) }})"
+                        class="bg-white rounded-xl shadow-sm p-4 border-t-4 border-orange-500 hover:shadow-lg hover:bg-orange-50 transition-all text-left w-full cursor-pointer group">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-semibold text-orange-600 uppercase tracking-wide">Requiere revisión</p>
+                            <h3 class="text-2xl font-bold text-orange-600 mt-1">{{ $estadisticasGlobales['requiere_revision'] ?? 0 }}</h3>
+                            <p class="text-xs text-orange-500 group-hover:text-orange-700 mt-1"><i class="fas fa-eye text-xs"></i> Ver detalles</p>
+                        </div>
+                        <div class="bg-orange-100 text-orange-600 p-2 rounded-full group-hover:bg-orange-200 transition"><i class="fas fa-tools"></i></div>
+                    </div>
+                </button>
+
                 {{-- DESGASTE (BOTÓN CLICKEABLE) --}}
                 <button onclick="openEstadoModal('desgaste', 'Desgaste', {{ json_encode($analisisPorEstadoGlobal['desgaste']) }})"
                         class="bg-white rounded-xl shadow-sm p-4 border-t-4 border-amber-500 hover:shadow-lg hover:bg-amber-50 transition-all text-left w-full cursor-pointer group">
@@ -1672,6 +1725,7 @@
                     foreach($componentesLinea as $c) {
                         $conteoEstadosComponente[$c->id] = [
                             'ok' => 0,
+                            'review' => 0,
                             'warning' => 0,
                             'danger' => 0,
                             'changed' => 0,
@@ -1710,15 +1764,19 @@
                         if (isset($conteoEstadosComponente[$claveComponente])) {
                             $estado = $item->estado ?? 'Buen estado';
                             
-                            if ($estado === 'Cambiado') {
+                            if (\App\Models\AnalisisLavadora::esEstadoCambiado($estado)) {
                                 $conteoEstadosComponente[$claveComponente]['changed']++;
                                 $conteoEstadosComponente[$claveComponente]['empty']--;
                             } 
-                            elseif ($estado === 'Dañado - Requiere cambio') {
+                            elseif (\App\Models\AnalisisLavadora::esEstadoDanado($estado)) {
                                 $conteoEstadosComponente[$claveComponente]['danger']++;
                                 $conteoEstadosComponente[$claveComponente]['empty']--;
                             } 
-                            elseif (str_contains($estado, 'Desgaste')) {
+                            elseif (\App\Models\AnalisisLavadora::esEstadoRequiereRevision($estado)) {
+                                $conteoEstadosComponente[$claveComponente]['review']++;
+                                $conteoEstadosComponente[$claveComponente]['empty']--;
+                            } 
+                            elseif (\App\Models\AnalisisLavadora::esEstadoDesgaste($estado)) {
                                 $conteoEstadosComponente[$claveComponente]['warning']++;
                                 $conteoEstadosComponente[$claveComponente]['empty']--;
                             } 
@@ -1785,6 +1843,7 @@
                                             $conteoReductor = [
                                                 'total' => 0,
                                                 'ok' => 0,
+                                                'review' => 0,
                                                 'warning' => 0,
                                                 'danger' => 0,
                                                 'changed' => 0
@@ -1796,13 +1855,16 @@
                                                     $primerRegistro = $analisisAgrupadosLinea[$r][$c->id]->sortByDesc('fecha_analisis')->first();
                                                     $estado = $primerRegistro->estado ?? 'Buen estado';
                                                     
-                                                    if ($estado === 'Cambiado') {
+                                                    if (\App\Models\AnalisisLavadora::esEstadoCambiado($estado)) {
                                                         $conteoReductor['changed']++;
                                                     } 
-                                                    elseif ($estado === 'Dañado - Requiere cambio') {
+                                                    elseif (\App\Models\AnalisisLavadora::esEstadoDanado($estado)) {
                                                         $conteoReductor['danger']++;
                                                     } 
-                                                    elseif (str_contains($estado, 'Desgaste')) {
+                                                    elseif (\App\Models\AnalisisLavadora::esEstadoRequiereRevision($estado)) {
+                                                        $conteoReductor['review']++;
+                                                    } 
+                                                    elseif (\App\Models\AnalisisLavadora::esEstadoDesgaste($estado)) {
                                                         $conteoReductor['warning']++;
                                                     } 
                                                     else {
@@ -1835,13 +1897,16 @@
                                                     if($hasData && $registro){
                                                         $estadoActual = $registro->estado ?? 'Buen estado';
                                                         
-                                                        if ($estadoActual === 'Cambiado') {
+                                                        if (\App\Models\AnalisisLavadora::esEstadoCambiado($estadoActual)) {
                                                             $color = 'cell-changed';
                                                         } 
-                                                        elseif ($estadoActual === 'Dañado - Requiere cambio') {
+                                                        elseif (\App\Models\AnalisisLavadora::esEstadoDanado($estadoActual)) {
                                                             $color = 'cell-danger';
                                                         } 
-                                                        elseif (str_contains($estadoActual, 'Desgaste')) {
+                                                        elseif (\App\Models\AnalisisLavadora::esEstadoRequiereRevision($estadoActual)) {
+                                                            $color = 'cell-review';
+                                                        } 
+                                                        elseif (\App\Models\AnalisisLavadora::esEstadoDesgaste($estadoActual)) {
                                                             $color = 'cell-warning';
                                                         } 
                                                         else {
@@ -1916,15 +1981,19 @@
                                                                 @php
                                                                     $estadoActual = $registro->estado ?? 'Buen estado';
                                                                     
-                                                                    if ($estadoActual === 'Cambiado') {
+                                                                    if (\App\Models\AnalisisLavadora::esEstadoCambiado($estadoActual)) {
                                                                         $statusClass = 'bg-blue-100 text-blue-800 border-blue-200';
                                                                         $icon = 'fa-exchange-alt';
                                                                     } 
-                                                                    elseif ($estadoActual === 'Dañado - Requiere cambio') {
+                                                                    elseif (\App\Models\AnalisisLavadora::esEstadoDanado($estadoActual)) {
                                                                         $statusClass = 'bg-red-100 text-red-800 border-red-200';
                                                                         $icon = 'fa-times-circle';
                                                                     } 
-                                                                    elseif (str_contains($estadoActual, 'Desgaste')) {
+                                                                    elseif (\App\Models\AnalisisLavadora::esEstadoRequiereRevision($estadoActual)) {
+                                                                        $statusClass = 'bg-orange-100 text-orange-800 border-orange-200';
+                                                                        $icon = 'fa-tools';
+                                                                    } 
+                                                                    elseif (\App\Models\AnalisisLavadora::esEstadoDesgaste($estadoActual)) {
                                                                         $statusClass = 'bg-yellow-100 text-yellow-800 border-yellow-200';
                                                                         $icon = 'fa-exclamation-triangle';
                                                                     } 
@@ -2246,6 +2315,7 @@
                                         @php
                                             $conteoEstado = [
                                                 'ok' => 0,
+                                                'review' => 0,
                                                 'warning' => 0,
                                                 'danger' => 0,
                                                 'changed' => 0,
@@ -2262,10 +2332,13 @@
                                                     if (str_contains($estado, 'Dañado - Cambiado')) {
                                                         $conteoEstado['changed']++;
                                                         $conteoEstado['empty']--;
-                                                    } elseif(str_contains($estado, 'Dañado')) {
+                                                    } elseif(\App\Models\AnalisisLavadora::esEstadoDanado($estado)) {
                                                         $conteoEstado['danger']++;
                                                         $conteoEstado['empty']--;
-                                                    } elseif(str_contains($estado, 'Desgaste')) {
+                                                    } elseif(\App\Models\AnalisisLavadora::esEstadoRequiereRevision($estado)) {
+                                                        $conteoEstado['review']++;
+                                                        $conteoEstado['empty']--;
+                                                    } elseif(\App\Models\AnalisisLavadora::esEstadoDesgaste($estado)) {
                                                         $conteoEstado['warning']++;
                                                         $conteoEstado['empty']--;
                                                     } else {
@@ -2288,6 +2361,9 @@
                                                     @if($conteoEstado['ok'] > 0)
                                                         <span class="w-1.5 h-1.5 bg-green-500 rounded-full"></span>
                                                     @endif
+                                                    @if($conteoEstado['review'] > 0)
+                                                        <span class="w-1.5 h-1.5 bg-orange-500 rounded-full"></span>
+                                                    @endif
                                                     @if($conteoEstado['warning'] > 0)
                                                         <span class="w-1.5 h-1.5 bg-yellow-500 rounded-full"></span>
                                                     @endif
@@ -2309,6 +2385,7 @@
                                         $conteoReductor = [
                                             'total' => 0,
                                             'ok' => 0,
+                                            'review' => 0,
                                             'warning' => 0,
                                             'danger' => 0,
                                             'changed' => 0
@@ -2322,9 +2399,11 @@
                                                 
                                                 if (str_contains($estado, 'Dañado - Cambiado')) {
                                                     $conteoReductor['changed']++;
-                                                } elseif(str_contains($estado, 'Dañado')) {
+                                                } elseif(\App\Models\AnalisisLavadora::esEstadoDanado($estado)) {
                                                     $conteoReductor['danger']++;
-                                                } elseif(str_contains($estado, 'Desgaste')) {
+                                                } elseif(\App\Models\AnalisisLavadora::esEstadoRequiereRevision($estado)) {
+                                                    $conteoReductor['review']++;
+                                                } elseif(\App\Models\AnalisisLavadora::esEstadoDesgaste($estado)) {
                                                     $conteoReductor['warning']++;
                                                 } else {
                                                     $conteoReductor['ok']++;
@@ -2358,9 +2437,11 @@
                                                     
                                                     if (str_contains($estadoActual, 'Dañado - Cambiado')) {
                                                         $color = 'cell-changed';
-                                                    } elseif (str_contains($estadoActual, 'Dañado')) {
+                                                    } elseif (\App\Models\AnalisisLavadora::esEstadoDanado($estadoActual)) {
                                                         $color = 'cell-danger';
-                                                    } elseif (str_contains($estadoActual, 'Desgaste')) {
+                                                    } elseif (\App\Models\AnalisisLavadora::esEstadoRequiereRevision($estadoActual)) {
+                                                        $color = 'cell-review';
+                                                    } elseif (\App\Models\AnalisisLavadora::esEstadoDesgaste($estadoActual)) {
                                                         $color = 'cell-warning';
                                                     } else {
                                                         $color = 'cell-ok';
@@ -2444,10 +2525,13 @@
                                                                 if (str_contains($estadoActual, 'Dañado - Cambiado')) {
                                                                     $statusClass = 'bg-blue-100 text-blue-800 border-blue-200';
                                                                     $icon = 'fa-exchange-alt';
-                                                                } elseif (str_contains($estadoActual, 'Dañado')) {
+                                                                } elseif (\App\Models\AnalisisLavadora::esEstadoDanado($estadoActual)) {
                                                                     $statusClass = 'bg-red-100 text-red-800 border-red-200';
                                                                     $icon = 'fa-times-circle';
-                                                                } elseif (str_contains($estadoActual, 'Desgaste')) {
+                                                                } elseif (\App\Models\AnalisisLavadora::esEstadoRequiereRevision($estadoActual)) {
+                                                                    $statusClass = 'bg-orange-100 text-orange-800 border-orange-200';
+                                                                    $icon = 'fa-tools';
+                                                                } elseif (\App\Models\AnalisisLavadora::esEstadoDesgaste($estadoActual)) {
                                                                     $statusClass = 'bg-yellow-100 text-yellow-800 border-yellow-200';
                                                                     $icon = 'fa-exclamation-triangle';
                                                                 } else {
@@ -2710,7 +2794,7 @@
             </button>
         </div>
         <div class="p-6 overflow-auto max-h-[calc(85vh-80px)] bg-gray-50" id="previewModalContent">
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6" id="previewStatsGrid"></div>
+            <div class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6" id="previewStatsGrid"></div>
             <div class="bg-white rounded-lg p-5 border border-gray-200 mb-4">
                 <div class="flex justify-between items-center mb-3">
                     <h4 class="font-bold text-gray-700">Progreso General</h4>
@@ -3054,6 +3138,14 @@ function openEstadoModal(tipo, titulo, items) {
             badge: 'bg-emerald-100 text-emerald-800',
             icon: ''
         },
+        requiere_revision: {
+            bg: 'bg-orange-500',
+            text: 'text-white',
+            card: 'bg-orange-50',
+            borderLeft: 'border-orange-300',
+            badge: 'bg-orange-100 text-orange-800',
+            icon: ''
+        },
         desgaste: {
             bg: 'bg-amber-500',
             text: 'text-white',
@@ -3127,7 +3219,9 @@ function openEstadoModal(tipo, titulo, items) {
             lineItems.forEach(item => {
                 const estadoText = escapeHtml(item.estado || 'Sin estado');
                 let estadoBadge = `<span class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold ${config.badge}"><i class="fas fa-check-circle"></i>${estadoText}</span>`;
-                if (tipo === 'desgaste') {
+                if (tipo === 'requiere_revision') {
+                    estadoBadge = `<span class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold ${config.badge}"><i class="fas fa-tools"></i>${estadoText}</span>`;
+                } else if (tipo === 'desgaste') {
                     estadoBadge = `<span class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold ${config.badge}"><i class="fas fa-exclamation-triangle"></i>${estadoText}</span>`;
                 } else if (tipo === 'danado') {
                     estadoBadge = `<span class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold ${config.badge}"><i class="fas fa-times-circle"></i>${estadoText}</span>`;
@@ -3223,6 +3317,11 @@ function showLineaPreview(lineaNombre, lineaId, estadosPreview, totalCeldas, cel
             <i class="fas fa-check-circle text-green-600 text-2xl mb-2"></i>
             <p class="text-xs text-gray-500">Buen Estado</p>
             <p class="text-2xl font-bold text-green-600">${estadosPreview.buen_estado || 0}</p>
+        </div>
+        <div class="bg-orange-50 rounded-lg p-4 text-center border border-orange-200">
+            <i class="fas fa-tools text-orange-600 text-2xl mb-2"></i>
+            <p class="text-xs text-gray-500">Requiere revisión</p>
+            <p class="text-2xl font-bold text-orange-600">${estadosPreview.requiere_revision || 0}</p>
         </div>
         <div class="bg-yellow-50 rounded-lg p-4 text-center border border-yellow-200">
             <i class="fas fa-exclamation-triangle text-yellow-600 text-2xl mb-2"></i>
@@ -3323,6 +3422,8 @@ function openAnalysisDetail(analysisData) {
     let bgClass = 'bg-gray-800';
     if (analysisData.color === 'cell-ok') {
         bgClass = 'bg-green-800';
+    } else if (analysisData.color === 'cell-review') {
+        bgClass = 'bg-orange-700';
     } else if (analysisData.color === 'cell-warning') {
         bgClass = 'bg-yellow-700';
     } else if (analysisData.color === 'cell-danger') {

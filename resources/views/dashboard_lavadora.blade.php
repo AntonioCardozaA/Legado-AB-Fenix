@@ -11,6 +11,8 @@
         --accent-blue: #0284c7;
         --success-green: #10b981;
         --success-light: #d1fae5;
+        --operational-orange: #f97316;
+        --operational-light: #ffedd5;
         --warning-yellow: #f59e0b;
         --warning-light: #fef3c7;
         --danger-red: #ef4444;
@@ -125,6 +127,11 @@
         border-left: 6px solid var(--warning-yellow);
     }
 
+    .lavadora-card.operativo-estado {
+        background-color: #fff7ed;
+        border-left: 6px solid var(--operational-orange);
+    }
+
     .lavadora-card.critico-estado {
         background-color: #fef2f2;
         border-left: 6px solid var(--danger-red);
@@ -156,6 +163,7 @@
     }
 
     .buen-estado .status-icon { color: var(--success-green); }
+    .operativo-estado .status-icon { color: var(--operational-orange); }
     .riesgo-estado .status-icon { color: var(--warning-yellow); }
     .critico-estado .status-icon { color: var(--danger-red); }
 
@@ -171,6 +179,7 @@
     }
 
     .status-tag.bueno { background: var(--success-light); color: #065f46; }
+    .status-tag.operativo { background: var(--operational-light); color: #9a3412; }
     .status-tag.riesgo { background: var(--warning-light); color: #92400e; }
     .status-tag.critico { background: var(--danger-light); color: #991b1b; }
 
@@ -1266,6 +1275,11 @@
         color: #991b1b;
     }
 
+    .severity-pill.revision {
+        background: var(--operational-light);
+        color: #9a3412;
+    }
+
     .severity-pill.severo,
     .severity-pill.moderado {
         background: var(--warning-light);
@@ -1497,6 +1511,11 @@
             <div class="stat-label">En Riesgo</div>
             <div class="stat-value" style="color: var(--warning-yellow);">{{ $resumenGeneral['en_riesgo'] }}</div>
         </div>
+        <div class="stat-card" style="border-top: 4px solid var(--operational-orange);">
+            <div class="stat-icon"><i class="fas fa-tools"></i></div>
+            <div class="stat-label">Requiere Revisión</div>
+            <div class="stat-value" style="color: var(--operational-orange);">{{ $resumenGeneral['requiere_revision'] }}</div>
+        </div>
         <div class="stat-card" style="border-top: 4px solid var(--success-green);">
             <div class="stat-icon"><i class="fas fa-check-circle"></i></div>
             <div class="stat-label">Buen Estado</div>
@@ -1522,6 +1541,8 @@
                 $cardClass = '';
                 if ($estado['nivel'] === 'bueno') {
                     $cardClass = 'buen-estado';
+                } elseif ($estado['nivel'] === 'operativo') {
+                    $cardClass = 'operativo-estado';
                 } elseif ($estado['nivel'] === 'riesgo') {
                     $cardClass = 'riesgo-estado';
                 } else {
@@ -1538,8 +1559,8 @@
                         {{ $lavadora['nombre'] }}
                     </div>
                     <div>
-                        <span class="status-tag {{ $estado['nivel'] === 'bueno' ? 'bueno' : ($estado['nivel'] === 'riesgo' ? 'riesgo' : 'critico') }}">
-                            <i class="fas {{ $estado['nivel'] === 'bueno' ? 'fa-check-circle' : ($estado['nivel'] === 'riesgo' ? 'fa-exclamation-triangle' : 'fa-times-circle') }}"></i>
+                        <span class="status-tag {{ $estado['nivel'] === 'bueno' ? 'bueno' : ($estado['nivel'] === 'operativo' ? 'operativo' : ($estado['nivel'] === 'riesgo' ? 'riesgo' : 'critico')) }}">
+                            <i class="fas {{ $estado['nivel'] === 'bueno' ? 'fa-check-circle' : ($estado['nivel'] === 'operativo' ? 'fa-tools' : ($estado['nivel'] === 'riesgo' ? 'fa-exclamation-triangle' : 'fa-times-circle')) }}"></i>
                             {{ ucfirst($estado['nivel']) }}
                         </span>
                     </div>
@@ -2413,7 +2434,7 @@
         modalTitle.innerHTML = `Detalle - ${lavadora.nombre}`;
 
         let html = `
-            <div class="mb-4 p-4 rounded-lg ${lavadora.estado.nivel === 'critico' ? 'bg-red-50 border-l-4 border-red-500' : (lavadora.estado.nivel === 'riesgo' ? 'bg-yellow-50 border-l-4 border-yellow-500' : 'bg-green-50 border-l-4 border-green-500')}">
+            <div class="mb-4 p-4 rounded-lg ${lavadora.estado.nivel === 'critico' ? 'bg-red-50 border-l-4 border-red-500' : (lavadora.estado.nivel === 'riesgo' ? 'bg-yellow-50 border-l-4 border-yellow-500' : (lavadora.estado.nivel === 'operativo' ? 'bg-orange-50 border-l-4 border-orange-500' : 'bg-green-50 border-l-4 border-green-500'))}">
                 <h4 class="font-bold text-lg mb-2">Estado: ${lavadora.estado.nivel.toUpperCase()}</h4>
                 <p class="text-gray-700">${lavadora.estado.mensaje}</p>
             </div>
@@ -3521,6 +3542,7 @@
 
     function severityFromEstado(estado) {
         if (estado === 'Dañado - Requiere cambio') return 'critico';
+        if (estado === 'Requiere revisión') return 'revision';
         if (estado === 'Desgaste severo') return 'severo';
         if (estado === 'Desgaste moderado') return 'moderado';
         if (estado === 'Cambiado') return 'cambiado';

@@ -14,6 +14,20 @@ class AnalisisLavadora extends Model
 {
     use HasFactory;
 
+    public const ESTADO_BUENO = 'Buen estado';
+    public const ESTADO_REQUIERE_REVISION = 'Requiere revisión';
+    public const ESTADOS_DESGASTE = ['Desgaste moderado', 'Desgaste severo'];
+    public const ESTADO_DANADO = 'Dañado - Requiere cambio';
+    public const ESTADO_CAMBIADO = 'Cambiado';
+    public const ESTADOS = [
+        self::ESTADO_BUENO,
+        self::ESTADO_REQUIERE_REVISION,
+        'Desgaste moderado',
+        'Desgaste severo',
+        self::ESTADO_DANADO,
+        self::ESTADO_CAMBIADO,
+    ];
+
     protected $table = 'analisis_componentes';
 
     protected $fillable = [
@@ -33,6 +47,43 @@ class AnalisisLavadora extends Model
         'evidencia_fotos' => 'array',
         'fecha_analisis' => 'date',
     ];
+
+    public static function getEstadoOpciones(): array
+    {
+        return [
+            self::ESTADO_BUENO => '✅ Buen estado',
+            self::ESTADO_REQUIERE_REVISION => '🔧 Requiere revisión',
+            'Desgaste moderado' => '⚠️ Desgaste moderado',
+            'Desgaste severo' => '⚠️ Desgaste severo',
+            self::ESTADO_DANADO => '❌ Dañado - Requiere cambio',
+            self::ESTADO_CAMBIADO => '🔄 Cambiado',
+        ];
+    }
+
+    public static function esEstadoBueno(?string $estado): bool
+    {
+        return $estado === self::ESTADO_BUENO;
+    }
+
+    public static function esEstadoRequiereRevision(?string $estado): bool
+    {
+        return $estado === self::ESTADO_REQUIERE_REVISION;
+    }
+
+    public static function esEstadoDesgaste(?string $estado): bool
+    {
+        return in_array($estado, self::ESTADOS_DESGASTE, true);
+    }
+
+    public static function esEstadoDanado(?string $estado): bool
+    {
+        return $estado === self::ESTADO_DANADO;
+    }
+
+    public static function esEstadoCambiado(?string $estado): bool
+    {
+        return $estado === self::ESTADO_CAMBIADO;
+    }
 
     /**
      * Corrige fotos guardadas como JSON, array o texto.

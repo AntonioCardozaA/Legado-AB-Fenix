@@ -312,15 +312,8 @@
                 </label>
                 <select name="estado" class="w-full rounded-lg border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 @error('estado') border-red-500 @enderror" required>
                     <option value="">Seleccionar estado...</option>
-                    @foreach(\App\Models\AnalisisPasteurizadora::ESTADOS as $estado)
-                        <option value="{{ $estado }}" {{ old('estado') == $estado ? 'selected' : '' }}>
-                            @if($estado === 'Buen estado') ✅ Buen estado
-                            @elseif($estado === 'Desgaste moderado') ⚠️ Desgaste moderado
-                            @elseif($estado === 'Desgaste severo') ⚠️ Desgaste severo
-                            @elseif($estado === 'Dañado - Requiere cambio') ❌ Dañado - Requiere cambio
-                            @else 🔄 Cambiado
-                            @endif
-                        </option>
+                    @foreach(\App\Models\AnalisisPasteurizadora::getEstadoOpciones() as $estado => $label)
+                        <option value="{{ $estado }}" {{ old('estado') === $estado ? 'selected' : '' }}>{{ $label }}</option>
                     @endforeach
                 </select>
                 @error('estado')

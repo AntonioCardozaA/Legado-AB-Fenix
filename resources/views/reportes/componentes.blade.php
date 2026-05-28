@@ -316,6 +316,11 @@
         color: #065f46;
     }
     
+    .badge.revision {
+        background-color: #ffedd5;
+        color: #9a3412;
+    }
+    
     .badge.regular {
         background-color: #fef3c7;
         color: #92400e;
@@ -579,6 +584,7 @@
                     <select name="estado" class="filter-select">
                         <option value="">Todos los estados</option>
                         <option value="Buen estado" {{ request('estado') == 'Buen estado' ? 'selected' : '' }}>✅ Buen estado</option>
+                        <option value="Requiere revisión" {{ request('estado') == 'Requiere revisión' ? 'selected' : '' }}>🔧 Requiere revisión</option>
                         <option value="Desgaste moderado" {{ request('estado') == 'Desgaste moderado' ? 'selected' : '' }}>⚠️ Desgaste moderado</option>
                         <option value="Desgaste severo" {{ request('estado') == 'Desgaste severo' ? 'selected' : '' }}>⚠️ Desgaste severo</option>
                         <option value="Dañado - Requiere cambio" {{ request('estado') == 'Dañado - Requiere cambio' ? 'selected' : '' }}>❌ Dañado - Requiere cambio</option>
@@ -614,6 +620,12 @@
             <div class="stat-label">Buen Estado</div>
             <div class="stat-value text-green-600">{{ $estadisticas['buen_estado'] ?? 0 }}</div>
             <div class="stat-trend">{{ $estadisticas['porcentaje_bueno'] ?? 0 }}% del total</div>
+        </div>
+
+        <div class="stat-card border-t-4 border-orange-500">
+            <div class="stat-label">Requiere Revisión</div>
+            <div class="stat-value text-orange-600">{{ $estadisticas['requiere_revision'] ?? 0 }}</div>
+            <div class="stat-trend">{{ $estadisticas['porcentaje_revision'] ?? 0 }}% del total</div>
         </div>
 
         <div class="stat-card border-t-4 border-yellow-500">
@@ -679,6 +691,7 @@
                     $statsLinea = $estadisticasPorLinea[$linea->id] ?? [
                         'total' => 0,
                         'buen_estado' => 0,
+                        'requiere_revision' => 0,
                         'desgaste' => 0,
                         'danado' => 0,
                         'reemplazado' => 0
@@ -699,6 +712,10 @@
                         <div class="linea-stat">
                             <div class="linea-stat-value text-green-600">{{ $statsLinea['buen_estado'] }}</div>
                             <div class="linea-stat-label">Buenos</div>
+                        </div>
+                        <div class="linea-stat">
+                            <div class="linea-stat-value text-orange-600">{{ $statsLinea['requiere_revision'] }}</div>
+                            <div class="linea-stat-label">Revisión</div>
                         </div>
                         <div class="linea-stat">
                             <div class="linea-stat-value text-yellow-600">{{ $statsLinea['desgaste'] }}</div>
@@ -742,6 +759,7 @@
                             <th>Código</th>
                             <th>Total / Revisados</th>
                             <th>Buen Estado</th>
+                            <th>Requiere Revisión</th>
                             <th>Desgaste Moderado</th>
                             <th>Desgaste Severo</th>
                             <th>Dañado - Requiere</th>
@@ -779,6 +797,7 @@
                                 <th>Código</th>
                                 <th>Total / Revisados</th>
                                 <th>Buen Estado</th>
+                                <th>Requiere Revisión</th>
                                 <th>Desgaste Moderado</th>
                                 <th>Desgaste Severo</th>
                                 <th>Dañado - Requiere</th>

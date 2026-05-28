@@ -166,6 +166,13 @@
                             $colorIcon = 'text-red-600';
                             $badgeIcon = 'fa-times-circle';
                             $badgeColor = 'from-red-500 to-red-600';
+                        } elseif ($estado === 'Requiere revisión') {
+                            $colorBg = 'bg-orange-100';
+                            $colorText = 'text-orange-800';
+                            $colorBorder = 'border-orange-200';
+                            $colorIcon = 'text-orange-600';
+                            $badgeIcon = 'fa-tools';
+                            $badgeColor = 'from-orange-500 to-orange-600';
                         } elseif (str_contains($estado, 'Desgaste')) {
                             $colorBg = 'bg-yellow-100';
                             $colorText = 'text-yellow-800';

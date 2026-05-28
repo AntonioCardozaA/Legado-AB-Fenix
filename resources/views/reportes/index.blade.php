@@ -303,6 +303,8 @@
                                                 if ($ultimoAnalisis) {
                                                     if ($ultimoAnalisis['estado'] === 'Cambiado') {
                                                         $cellClass = 'bg-blue-50';
+                                                    } elseif ($ultimoAnalisis['estado'] === 'Requiere revisión') {
+                                                        $cellClass = 'bg-orange-50';
                                                     } elseif ($ultimoAnalisis['estado'] === 'Dañado - Requiere cambio') {
                                                         $cellClass = 'bg-red-50';
                                                     } elseif (str_contains($ultimoAnalisis['estado'], 'Desgaste')) {
@@ -319,6 +321,7 @@
                                                         <div class="flex items-center justify-between">
                                                             <span class="text-xs font-semibold 
                                                                 @if($ultimoAnalisis['estado'] === 'Cambiado') text-blue-700
+                                                                @elseif($ultimoAnalisis['estado'] === 'Requiere revisión') text-orange-700
                                                                 @elseif($ultimoAnalisis['estado'] === 'Dañado - Requiere cambio') text-red-700
                                                                 @elseif(str_contains($ultimoAnalisis['estado'], 'Desgaste')) text-yellow-700
                                                                 @else text-green-700

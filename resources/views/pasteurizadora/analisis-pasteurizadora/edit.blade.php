@@ -25,14 +25,14 @@
 
     $estadoBadges = [
         'Buen estado' => 'bg-green-100 text-green-800 border-green-200',
+        'Requiere revisión' => 'bg-orange-100 text-orange-800 border-orange-200',
         'Desgaste moderado' => 'bg-amber-100 text-amber-800 border-amber-200',
         'Desgaste severo' => 'bg-orange-100 text-orange-800 border-orange-200',
         'Cambiado' => 'bg-blue-100 text-blue-800 border-blue-200',
     ];
     $estadoBadge = $estadoBadges[$analisis->estado] ?? 'bg-red-100 text-red-800 border-red-200';
-    $estadoActualLabel = str_contains((string) $analisis->estado, 'Requiere cambio')
-        ? 'Dañado - Requiere cambio'
-        : $analisis->estado;
+    $estadoActualLabel = \App\Models\AnalisisPasteurizadora::getEstadoOpciones()[$analisis->estado]
+        ?? (str_contains((string) $analisis->estado, 'Requiere cambio') ? '❌ Dañado - Requiere cambio' : $analisis->estado);
 @endphp
 
 <div class="max-w-4xl mx-auto py-10 px-4">
@@ -203,15 +203,8 @@
                     </label>
                     <select name="estado" id="estado" required class="w-full rounded-lg border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 @error('estado') border-red-500 @enderror">
                         <option value="">Seleccionar estado...</option>
-                        @foreach(\App\Models\AnalisisPasteurizadora::ESTADOS as $estado)
-                            @php
-                                $estadoLabel = str_contains((string) $estado, 'Requiere cambio')
-                                    ? 'Dañado - Requiere cambio'
-                                    : $estado;
-                            @endphp
-                            <option value="{{ $estado }}" {{ old('estado', $analisis->estado) === $estado ? 'selected' : '' }}>
-                                {{ $estadoLabel }}
-                            </option>
+                        @foreach(\App\Models\AnalisisPasteurizadora::getEstadoOpciones() as $estado => $estadoLabel)
+                            <option value="{{ $estado }}" {{ old('estado', $analisis->estado) === $estado ? 'selected' : '' }}>{{ $estadoLabel }}</option>
                         @endforeach
                     </select>
                     @error('estado')<p class="text-red-500 text-sm mt-1">{{ $message }}</p>@enderror

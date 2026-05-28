@@ -1,6 +1,6 @@
-﻿@extends('layouts.app')
+@extends('layouts.app')
 
-@section('title', 'Editar Análisis de Componente')
+@section('title', "Editar Análisis de Componente")
 
 @section('content')
 <div class="max-w-4xl mx-auto py-10 px-4">
@@ -150,12 +150,13 @@
                     <i class="fas fa-clipboard-check text-blue-600 mr-1"></i>
                     Estado del Componente *
                 </label>
-               <select name="estado" class="filter-select" required>
-                    <option value="Buen estado" {{ old('estado', $analisisComponente->estado) == 'Buen estado' ? 'selected' : '' }}>✅ Buen estado</option>
-                    <option value="Desgaste moderado" {{ old('estado', $analisisComponente->estado) == 'Desgaste moderado' ? 'selected' : '' }}>⚠️ Desgaste moderado</option>
-                    <option value="Desgaste severo" {{ old('estado', $analisisComponente->estado) == 'Desgaste severo' ? 'selected' : '' }}>⚠️ Desgaste severo</option>
-                    <option value="Dañado - Requiere cambio" {{ old('estado', $analisisComponente->estado) == 'Dañado - Requiere cambio' ? 'selected' : '' }}>❌ Dañado - Requiere cambio</option>
-                    <option value="Cambiado" {{ old('estado', $analisisComponente->estado) == 'Cambiado' ? 'selected' : '' }}>🔄 Cambiado</option>
+               <select id="estado"
+                       name="estado"
+                       class="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 @error('estado') border-red-500 @enderror"
+                       required>
+                    @foreach(\App\Models\AnalisisLavadora::getEstadoOpciones() as $estado => $label)
+                        <option value="{{ $estado }}" {{ old('estado', $analisisComponente->estado) === $estado ? 'selected' : '' }}>{{ $label }}</option>
+                    @endforeach
                 </select>
                 @error('estado')
                     <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
@@ -528,5 +529,3 @@ function cerrarModal() {
 }
 </script>
 @endsection
-
-

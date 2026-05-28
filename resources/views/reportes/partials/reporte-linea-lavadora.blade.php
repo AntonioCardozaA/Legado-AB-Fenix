@@ -266,6 +266,12 @@
         border: 1px solid #bfdbfe;
     }
 
+    .estado-revision {
+        background: #ffedd5;
+        color: #9a3412;
+        border: 1px solid #fdba74;
+    }
+
     .estado-normal {
         background: #dcfce7;
         color: #166534;
@@ -493,6 +499,7 @@
                 @php
                     $estadoColor = match($componente['ultimo_estado'] ?? '') {
                         'Dañado - Requiere cambio' => 'danado',
+                        'Requiere revisión' => 'revision',
                         'Desgaste severo' => 'desgaste-severo',
                         'Desgaste moderado' => 'desgaste-moderado',
                         'Cambiado' => 'cambiado',
@@ -529,6 +536,7 @@
                                 <span class="estado-badge estado-{{ $estadoColor }}">
                                     <i class="fas 
                                         @if($estadoColor == 'danado') fa-times-circle
+                                        @elseif($estadoColor == 'revision') fa-tools
                                         @elseif($estadoColor == 'desgaste-severo') fa-exclamation-triangle
                                         @elseif($estadoColor == 'desgaste-moderado') fa-exclamation-circle
                                         @elseif($estadoColor == 'cambiado') fa-exchange-alt
@@ -865,6 +873,7 @@
                     @php
                         $estadoColor = match($item->estado) {
                             'Dañado - Requiere cambio' => 'danado',
+                            'Requiere revisión' => 'revision',
                             'Desgaste severo' => 'desgaste-severo',
                             'Desgaste moderado' => 'desgaste-moderado',
                             'Cambiado' => 'cambiado',

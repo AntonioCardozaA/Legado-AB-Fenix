@@ -166,6 +166,16 @@
             font-weight: bold;
             display: inline-block;
         }
+
+        .estado-review {
+            background-color: #ffedd5;
+            color: #9a3412;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 8px;
+            font-weight: bold;
+            display: inline-block;
+        }
         
         .estado-danger {
             background-color: #fee2e2;
@@ -291,6 +301,7 @@
             $estadisticas = [
                 'total' => $items->count(),
                 'ok' => $items->where('estado', 'Buen estado')->count(),
+                'review' => $items->where('estado', 'Requiere revisión')->count(),
                 'warning' => $items->filter(fn($item) => 
                     str_contains($item->estado ?? '', 'Desgaste')
                 )->count(),
@@ -305,6 +316,7 @@
                 <h2>🏭 LAVADORA: {{ $lavadora }}</h2>
                 <div class="lavadora-stats">
                     <span>✅ Buen estado: {{ $estadisticas['ok'] }}</span>
+                    <span>🔧 Requiere revisión: {{ $estadisticas['review'] }}</span>
                     <span>⚠️ Desgaste: {{ $estadisticas['warning'] }}</span>
                     <span>❌ Dañados: {{ $estadisticas['danger'] }}</span>
                     <span>📊 Total: {{ $estadisticas['total'] }}</span>
@@ -327,7 +339,9 @@
                     @foreach($items as $index => $item)
                         @php
                             $estadoClass = 'estado-ok';
-                            if (str_contains($item->estado ?? '', 'Desgaste')) {
+                            if (($item->estado ?? '') === 'Requiere revisión') {
+                                $estadoClass = 'estado-review';
+                            } elseif (str_contains($item->estado ?? '', 'Desgaste')) {
                                 $estadoClass = 'estado-warning';
                             } elseif (str_contains($item->estado ?? '', 'Dañado')) {
                                 $estadoClass = 'estado-danger';
@@ -366,12 +380,14 @@
         @php
             $totalAnalisis = 0;
             $totalOk = 0;
+            $totalReview = 0;
             $totalWarning = 0;
             $totalDanger = 0;
             
             foreach($analisisAgrupados as $items) {
                 $totalAnalisis += $items->count();
                 $totalOk += $items->where('estado', 'Buen estado')->count();
+                $totalReview += $items->where('estado', 'Requiere revisión')->count();
                 $totalWarning += $items->filter(fn($item) => 
                     str_contains($item->estado ?? '', 'Desgaste')
                 )->count();
@@ -395,6 +411,11 @@
                 <div class="resumen-item">
                     <div class="resumen-number" style="color: #10b981;">{{ $totalOk }}</div>
                     <div class="resumen-label">✅ Buen Estado</div>
+                </div>
+                
+                <div class="resumen-item">
+                    <div class="resumen-number" style="color: #f97316;">{{ $totalReview }}</div>
+                    <div class="resumen-label">🔧 Requiere revisión</div>
                 </div>
                 
                 <div class="resumen-item">

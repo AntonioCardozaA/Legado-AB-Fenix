@@ -18,6 +18,7 @@ class DashboardController extends Controller
     private const LAVADORA_NOMBRES = ['L-04', 'L-05', 'L-06', 'L-07', 'L-08', 'L-09', 'L-12', 'L-13'];
     private const LAVADORA_DAMAGE_STATES = ['Dañado - Requiere cambio', 'Desgaste severo', 'Desgaste moderado'];
     private const LAVADORA_WARNING_STATES = ['Desgaste severo', 'Desgaste moderado'];
+    private const LAVADORA_REVIEW_STATES = ['Requiere revisión'];
 
     /**
      * ===========================================================
@@ -166,6 +167,7 @@ class DashboardController extends Controller
         'total_analisis' => $analisisHistorico->count(),
         'alertas_criticas' => $estadoPasteurizadoras->where('estado.nivel', 'critico')->count(),
         'en_riesgo' => $estadoPasteurizadoras->where('estado.nivel', 'riesgo')->count(),
+        'requiere_revision' => $estadoPasteurizadoras->where('estado.nivel', 'operativo')->count(),
         'buen_estado' => $estadoPasteurizadoras->where('estado.nivel', 'bueno')->count(),
         'pendientes_accion' => $planesPendientesPasteurizadora->count(),
         'ultima_actualizacion' => now()->format('d/m/Y H:i'),
@@ -276,6 +278,7 @@ public function pasteurizadoraOperativo(Request $request)
         'total_analisis' => $analisisPasteurizadora->count(),
         'alertas_criticas' => $estadoPasteurizadorasResumen->where('estado.nivel', 'critico')->count(),
         'en_riesgo' => $estadoPasteurizadorasResumen->where('estado.nivel', 'riesgo')->count(),
+        'requiere_revision' => $estadoPasteurizadorasResumen->where('estado.nivel', 'operativo')->count(),
         'buen_estado' => $estadoPasteurizadorasResumen->where('estado.nivel', 'bueno')->count(),
         'pendientes_accion' => $estadoPasteurizadorasResumen->sum('estado.acciones_pendientes'),
         'ultima_actualizacion' => now()->format('d/m/Y H:i')
@@ -368,6 +371,7 @@ public function pasteurizadoraOperativo(Request $request)
 
         $alertasCriticas = 0;
         $enRiesgo = 0;
+        $requiereRevision = 0;
         $buenEstado = 0;
 
         foreach ($lineasLavadora as $linea) {
@@ -376,6 +380,8 @@ public function pasteurizadoraOperativo(Request $request)
                 $alertasCriticas++;
             } elseif ($estado['nivel'] === 'riesgo') {
                 $enRiesgo++;
+            } elseif ($estado['nivel'] === 'operativo') {
+                $requiereRevision++;
             } else {
                 $buenEstado++;
             }
@@ -385,6 +391,7 @@ public function pasteurizadoraOperativo(Request $request)
             'total_equipos' => $lineasLavadora->count(),
             'alertas_criticas' => $alertasCriticas,
             'en_riesgo' => $enRiesgo,
+            'requiere_revision' => $requiereRevision,
             'buen_estado' => $buenEstado,
             'ultima_actualizacion' => now()->format('d/m/Y H:i')
         ];
@@ -400,12 +407,14 @@ public function pasteurizadoraOperativo(Request $request)
         $analisis = AnalisisPasteurizadora::with('linea')
             ->where('resuelto_por_cambio', false)
             ->get();
+        $estadoPasteurizadoras = collect($this->getEstadoPasteurizadoras($pasteurizadoras, $analisis));
 
         return [
             'total_equipos' => $pasteurizadoras->count(),
-            'alertas_criticas' => $analisis->whereIn('estado', AnalisisPasteurizadora::estadosDanado())->count(),
-            'en_riesgo' => $analisis->whereIn('estado', ['Desgaste moderado', 'Desgaste severo'])->count(),
-            'buen_estado' => $analisis->where('estado', 'Buen estado')->count(),
+            'alertas_criticas' => $estadoPasteurizadoras->where('estado.nivel', 'critico')->count(),
+            'en_riesgo' => $estadoPasteurizadoras->where('estado.nivel', 'riesgo')->count(),
+            'requiere_revision' => $estadoPasteurizadoras->where('estado.nivel', 'operativo')->count(),
+            'buen_estado' => $estadoPasteurizadoras->where('estado.nivel', 'bueno')->count(),
             'ultima_actualizacion' => now()->format('d/m/Y H:i')
         ];
     }
@@ -419,6 +428,7 @@ public function pasteurizadoraOperativo(Request $request)
         $totalAnalisis = AnalisisLavadora::whereIn('linea_id', $lineasLavadora->pluck('id'))->count();
         $totalAlertasCriticas = 0;
         $totalEnRiesgo = 0;
+        $totalRequiereRevision = 0;
         $totalBuenEstado = 0;
         $totalPendientesAccion = PlanAccion::whereIn('linea_id', $lineasLavadora->pluck('id'))
             ->where(function ($query) {
@@ -434,6 +444,8 @@ public function pasteurizadoraOperativo(Request $request)
                 $totalAlertasCriticas++;
             } elseif ($estado['nivel'] === 'riesgo') {
                 $totalEnRiesgo++;
+            } elseif ($estado['nivel'] === 'operativo') {
+                $totalRequiereRevision++;
             } else {
                 $totalBuenEstado++;
             }
@@ -444,6 +456,7 @@ public function pasteurizadoraOperativo(Request $request)
             'total_analisis' => $totalAnalisis,
             'alertas_criticas' => $totalAlertasCriticas,
             'en_riesgo' => $totalEnRiesgo,
+            'requiere_revision' => $totalRequiereRevision,
             'buen_estado' => $totalBuenEstado,
             'pendientes_accion' => $totalPendientesAccion,
         ];
@@ -500,6 +513,16 @@ public function pasteurizadoraOperativo(Request $request)
             ->whereIn('estado', self::LAVADORA_WARNING_STATES)
             ->count();
 
+        $analisisRevision = AnalisisLavadora::ultimosPorComponente()
+            ->where('linea_id', $lineaId)
+            ->whereIn('estado', self::LAVADORA_REVIEW_STATES)
+            ->with('componente')
+            ->orderBy('fecha_analisis', 'desc')
+            ->limit(5)
+            ->get()
+            ->map(fn ($analisis) => $this->attachLavadoraComponentIcon($analisis))
+            ->toArray();
+
         $nivel = 'bueno';
         $color = 'green';
         $mensaje = 'Funcionando correctamente';
@@ -524,6 +547,10 @@ public function pasteurizadoraOperativo(Request $request)
             $nivel = 'riesgo';
             $color = 'yellow';
             $mensaje = 'Presenta componentes con desgaste, programar mantenimiento.';
+        } elseif (count($analisisRevision) > 0) {
+            $nivel = 'operativo';
+            $color = 'indigo';
+            $mensaje = 'Presenta anomalías operativas que requieren revisión.';
         }
 
         return [
@@ -531,17 +558,26 @@ public function pasteurizadoraOperativo(Request $request)
             'color' => $color,
             'mensaje' => $mensaje,
             'analisis_criticos' => $analisisCriticos,
+            'analisis_revision' => $analisisRevision,
             'ultima_elongacion' => $ultimaElongacion,
             'acciones_pendientes' => $accionesPendientes,
             'analisis_desgaste' => $analisisDesgaste,
-            'alert_carousel' => $this->buildLavadoraAlertCarousel($analisisCriticos, $accionesPendientes, $ultimaElongacion, $analisisDesgaste, $nivel),
+            'requiere_revision' => count($analisisRevision),
+            'alert_carousel' => $this->buildLavadoraAlertCarousel(
+                $analisisCriticos,
+                $analisisRevision,
+                $accionesPendientes,
+                $ultimaElongacion,
+                $analisisDesgaste,
+                $nivel
+            ),
         ];
     }
 
     /**
      * Construye los items del carrusel para la tarjeta de estado.
      */
-    private function buildLavadoraAlertCarousel(array $analisisCriticos, int $accionesPendientes, $ultimaElongacion, int $analisisDesgaste, string $nivel)
+    private function buildLavadoraAlertCarousel(array $analisisCriticos, array $analisisRevision, int $accionesPendientes, $ultimaElongacion, int $analisisDesgaste, string $nivel)
     {
         $items = [];
 
@@ -603,6 +639,29 @@ public function pasteurizadoraOperativo(Request $request)
                 'description' => 'Existen componentes con signos de desgaste o anomalías que deben revisarse pronto.',
                 'icon' => 'fa-cog',
             ];
+        }
+
+        if (count($analisisRevision) > 0) {
+            foreach ($analisisRevision as $analisis) {
+                $subtitleParts = [];
+                if (!empty($analisis['modulo'])) {
+                    $subtitleParts[] = "Módulo {$analisis['modulo']}";
+                }
+                if (!empty($analisis['lado'])) {
+                    $subtitleParts[] = $analisis['lado'];
+                }
+
+                $items[] = [
+                    'type' => 'componente',
+                    'title' => $analisis['componente']['nombre'] ?? 'Componente en revisión',
+                    'subtitle' => count($subtitleParts) ? implode(' · ', $subtitleParts) : 'Requiere revisión operativa',
+                    'image' => $analisis['componente']['icono'] ?? asset('images/componentes-lavadora/default.png'),
+                    'detail' => $analisis['actividad'] ?? 'Se detectó una anomalía operativa que debe revisarse.',
+                    'reductor' => $analisis['reductor'] ?? null,
+                    'fecha' => isset($analisis['fecha_analisis']) ? Carbon::parse($analisis['fecha_analisis'])->format('d/m/Y') : null,
+                    'icon' => 'fa-tools',
+                ];
+            }
         }
 
         if (empty($items)) {
@@ -1205,6 +1264,12 @@ public function pasteurizadoraOperativo(Request $request)
                 'color' => '#ef4444',
                 'score' => 100,
             ],
+            'Requiere revisión' => [
+                'level' => 'revision',
+                'label' => 'Revisión',
+                'color' => '#f97316',
+                'score' => 20,
+            ],
             'Desgaste severo' => [
                 'level' => 'severo',
                 'label' => 'Severo',
@@ -1469,7 +1534,9 @@ public function pasteurizadoraOperativo(Request $request)
             $porcentajeRevision = $totalComponentesConfigurados > 0 ? round(($cantidadComponentesRevisados / $totalComponentesConfigurados) * 100) : 0;
 
             $criticosCount = $criticos->count();
-            $desgasteCount = $analisisLinea->whereIn('estado', ['Desgaste moderado', 'Desgaste severo'])->count();
+            $desgasteCount = $analisisLinea->whereIn('estado', AnalisisPasteurizadora::ESTADOS_DESGASTE)->count();
+            $revisionOperativa = $analisisLinea->where('estado', AnalisisPasteurizadora::ESTADO_REQUIERE_REVISION)->values();
+            $revisionOperativaCount = $revisionOperativa->count();
 
             if ($criticosCount > 0) {
                 $nivel = 'critico';
@@ -1477,6 +1544,9 @@ public function pasteurizadoraOperativo(Request $request)
             } elseif ($desgasteCount > 0) {
                 $nivel = 'riesgo';
                 $mensaje = "⚠️ {$desgasteCount} componente(s) presentan desgaste";
+            } elseif ($revisionOperativaCount > 0) {
+                $nivel = 'operativo';
+                $mensaje = "🔧 {$revisionOperativaCount} componente(s) requieren revisión";
             } else {
                 $nivel = 'bueno';
                 $mensaje = "✅ Todos los componentes en buen estado";
@@ -1502,7 +1572,20 @@ public function pasteurizadoraOperativo(Request $request)
                             'fecha_formateada' => $item->fecha_formateada
                         ];
                     })->toArray(),
+                    'analisis_revision' => $revisionOperativa->map(function ($item) {
+                        return [
+                            'id' => $item->id,
+                            'modulo' => $item->modulo,
+                            'componente_nombre' => $item->componente_nombre,
+                            'lado' => $item->lado,
+                            'numero_orden' => $item->numero_orden,
+                            'actividad' => $item->actividad,
+                            'fecha_analisis' => $item->fecha_analisis,
+                            'fecha_formateada' => $item->fecha_formateada,
+                        ];
+                    })->toArray(),
                     'acciones_pendientes' => $criticosCount,
+                    'requiere_revision' => $revisionOperativaCount,
                     'ultimo_analisis' => $ultimoAnalisis ? [
                         'fecha' => $ultimoAnalisis->fecha_formateada,
                         'modulos' => $totalModulos
@@ -1516,6 +1599,7 @@ public function pasteurizadoraOperativo(Request $request)
                     ],
                     'alert_carousel' => $this->buildPasteurizadoraAlertCarousel(
                         $criticos->values(),
+                        $revisionOperativa,
                         $desgasteCount,
                         $criticosCount,
                         $porcentajeRevision,
@@ -1532,7 +1616,7 @@ public function pasteurizadoraOperativo(Request $request)
     /**
      * Construye los items del carrusel para tarjetas de pasteurizadoras.
      */
-    private function buildPasteurizadoraAlertCarousel($criticos, int $desgasteCount, int $accionesPendientes, int $porcentajeRevision, $ultimoAnalisis, string $nivel)
+    private function buildPasteurizadoraAlertCarousel($criticos, $revisionOperativa, int $desgasteCount, int $accionesPendientes, int $porcentajeRevision, $ultimoAnalisis, string $nivel)
     {
         $items = [];
 
@@ -1567,6 +1651,21 @@ public function pasteurizadoraOperativo(Request $request)
                 'subtitle' => "{$desgasteCount} componente(s) con desgaste",
                 'description' => 'Existen componentes con desgaste moderado o severo que deben monitorearse.',
                 'icon' => 'fa-exclamation-triangle',
+            ];
+        }
+
+        foreach ($revisionOperativa as $analisis) {
+            $codigo = strtoupper((string) $analisis->componente);
+            $items[] = [
+                'type' => 'componente',
+                'title' => $analisis->componente_nombre ?? 'Componente en revisión',
+                'subtitle' => "Módulo {$analisis->modulo}" . ($analisis->lado ? " · {$analisis->lado}" : ''),
+                'image' => asset("images/componentes-pasteurizadora/{$codigo}.png"),
+                'fallback_image' => asset('images/icono-pasteurizadora.png'),
+                'detail' => $analisis->actividad ?? 'Se detectó una anomalía operativa que debe revisarse.',
+                'meta' => $analisis->numero_orden,
+                'fecha' => $analisis->fecha_formateada,
+                'icon' => 'fa-tools',
             ];
         }
 

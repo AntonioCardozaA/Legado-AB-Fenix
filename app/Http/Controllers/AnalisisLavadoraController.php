@@ -115,10 +115,11 @@ public function index(Request $request)
     
     $estadisticas = [
         'total' => $analisisParaEstadisticas->count(),
-        'buen_estado' => $analisisParaEstadisticas->where('estado', 'Buen estado')->count(),
-        'desgaste' => $analisisParaEstadisticas->whereIn('estado', ['Desgaste moderado', 'Desgaste severo'])->count(),
-        'danado_requiere' => $analisisParaEstadisticas->where('estado', 'Dañado - Requiere cambio')->count(),
-        'cambiado' => $analisisParaEstadisticas->where('estado', 'Cambiado')->count(),
+        'buen_estado' => $analisisParaEstadisticas->where('estado', AnalisisLavadora::ESTADO_BUENO)->count(),
+        'requiere_revision' => $analisisParaEstadisticas->where('estado', AnalisisLavadora::ESTADO_REQUIERE_REVISION)->count(),
+        'desgaste' => $analisisParaEstadisticas->whereIn('estado', AnalisisLavadora::ESTADOS_DESGASTE)->count(),
+        'danado_requiere' => $analisisParaEstadisticas->where('estado', AnalisisLavadora::ESTADO_DANADO)->count(),
+        'cambiado' => $analisisParaEstadisticas->where('estado', AnalisisLavadora::ESTADO_CAMBIADO)->count(),
     ];
     $diagramasPorLinea = [
     'L-04' => 'linea4.png',
@@ -452,7 +453,7 @@ public function index(Request $request)
         'reductor'          => 'required|string|max:255',
         'fecha_analisis'    => 'required|date',
         'numero_orden'      => 'required|string|max:20', // 🔥 YA NO digits:8
-        'estado'            => 'required|string|max:255',
+        'estado'            => 'required|string|in:' . implode(',', AnalisisLavadora::ESTADOS),
         'actividad'         => 'required|string',
         'evidencia_fotos'   => 'nullable|array',
         'evidencia_fotos.*' => $this->evidenciaFotoRules(),
@@ -558,7 +559,7 @@ $componente = Componente::firstOrCreate(
         }
         Log::info('Análisis creado', ['id' => $analisis->id]);
         // 🚨 ENVIAR WHATSAPP SI ESTÁ DAÑADO
-        if ($request->estado === 'Dañado - Requiere cambio') {
+        if ($request->estado === AnalisisLavadora::ESTADO_DANADO) {
 
             $mensaje = "🚨 *ALERTA DE COMPONENTE DAÑADO* 🚨\n\n"
                 . "🔧 Línea: {$linea->nombre}\n"
@@ -669,7 +670,7 @@ public function update(Request $request, $id)
     $validator = Validator::make($request->all(), [
         'fecha_analisis'    => 'required|date',
         'numero_orden'      => 'required|string|max:20',
-        'estado'            => 'required|string|max:255',
+        'estado'            => 'required|string|in:' . implode(',', AnalisisLavadora::ESTADOS),
         'actividad'         => 'required|string',
         'evidencia_fotos'   => 'nullable|array',
         'evidencia_fotos.*' => $this->evidenciaFotoRules(),
@@ -1179,6 +1180,7 @@ public function getEstadisticasProgreso(Request $request)
         
         $estados = [
             'buen_estado' => 0,
+            'requiere_revision' => 0,
             'desgaste' => 0,
             'danado' => 0,
             'cambiado' => 0,
@@ -1200,11 +1202,13 @@ public function getEstadisticasProgreso(Request $request)
                     $celdasConDatos++;
                     $estado = $analisis->estado;
                     
-                    if ($estado === 'Cambiado') {
+                    if (AnalisisLavadora::esEstadoCambiado($estado)) {
                         $estados['cambiado']++;
-                    } elseif ($estado === 'Dañado - Requiere cambio') {
+                    } elseif (AnalisisLavadora::esEstadoDanado($estado)) {
                         $estados['danado']++;
-                    } elseif (str_contains($estado, 'Desgaste')) {
+                    } elseif (AnalisisLavadora::esEstadoRequiereRevision($estado)) {
+                        $estados['requiere_revision']++;
+                    } elseif (AnalisisLavadora::esEstadoDesgaste($estado)) {
                         $estados['desgaste']++;
                     } else {
                         $estados['buen_estado']++;

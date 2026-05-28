@@ -226,6 +226,11 @@
         color: #065f46;
     }
     
+    .status-badge.review {
+        background-color: #ffedd5;
+        color: #9a3412;
+    }
+    
     .status-badge.warning {
         background-color: #fef3c7;
         color: #92400e;
@@ -929,11 +934,9 @@
                         <label><i class="fas fa-clipboard-check mr-1"></i> Estado</label>
                         <select name="estado" class="filter-select">
                             <option value="">Todos los estados</option>
-                            <option value="Buen estado" {{ request('estado') == 'Buen estado' ? 'selected' : '' }}>✅ Buen estado</option>
-                            <option value="Desgaste moderado" {{ request('estado') == 'Desgaste moderado' ? 'selected' : '' }}>⚠️ Desgaste moderado</option>
-                            <option value="Desgaste severo" {{ request('estado') == 'Desgaste severo' ? 'selected' : '' }}>⚠️ Desgaste severo</option>
-                            <option value="Dañado - Requiere cambio" {{ request('estado') == 'Dañado - Requiere cambio' ? 'selected' : '' }}>❌ Dañado - Requiere cambio</option>
-                            <option value="Cambiado" {{ request('estado') == 'Cambiado' ? 'selected' : '' }}>🔄 Cambiado</option>
+                            @foreach(\App\Models\AnalisisPasteurizadora::getEstadoOpciones() as $estado => $label)
+                                <option value="{{ $estado }}" {{ request('estado') === $estado ? 'selected' : '' }}>{{ $label }}</option>
+                            @endforeach
                         </select>
                     </div>
                 </div>
@@ -1013,22 +1016,24 @@
         @php
             $registrosPorEstado = [
                 'total' => $analisisCollection,
-                'buen_estado' => $analisisCollection->where('estado', 'Buen estado'),
-                'desgaste' => $analisisCollection->whereIn('estado', ['Desgaste moderado', 'Desgaste severo']),
+                'buen_estado' => $analisisCollection->where('estado', \App\Models\AnalisisPasteurizadora::ESTADO_BUENO),
+                'requiere_revision' => $analisisCollection->where('estado', \App\Models\AnalisisPasteurizadora::ESTADO_REQUIERE_REVISION),
+                'desgaste' => $analisisCollection->whereIn('estado', \App\Models\AnalisisPasteurizadora::ESTADOS_DESGASTE),
                 'danado' => $analisisCollection->whereIn('estado', \App\Models\AnalisisPasteurizadora::estadosDanado()),
-                'cambiado' => $analisisCollection->where('estado', 'Cambiado'),
+                'cambiado' => $analisisCollection->where('estado', \App\Models\AnalisisPasteurizadora::ESTADO_CAMBIADO),
             ];
 
             $estadisticas = [
                 'total' => $analisisCollection->count(),
                 'buen_estado' => $registrosPorEstado['buen_estado']->count(),
+                'requiere_revision' => $registrosPorEstado['requiere_revision']->count(),
                 'desgaste' => $registrosPorEstado['desgaste']->count(),
                 'danado' => $registrosPorEstado['danado']->count(),
                 'cambiado' => $registrosPorEstado['cambiado']->count(),
             ];
         @endphp
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4 mb-6">
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4 mb-6">
             {{-- TOTAL ANÁLISIS --}}
             <div class="bg-white rounded-xl shadow-sm p-4 border-t-4 border-gray-600 hover:shadow-lg transition-all">
                 <div class="flex items-center justify-between">
@@ -1062,6 +1067,28 @@
                 </div>
             </button>
             
+            {{-- REQUIERE REVISIÓN (BOTÓN CLICKEABLE) --}}
+            <button onclick="openEstadoModal('requiere_revision', '🔧 Requiere revisión', {{ json_encode($registrosPorEstado['requiere_revision']->map(fn($item) => [
+                'id' => $item->id,
+                'linea' => $item->linea->nombre ?? 'N/A',
+                'modulo' => $item->modulo,
+                'componente' => $item->componente_nombre,
+                'estado' => $item->estado,
+                'fecha' => $item->fecha_formateada ?? $item->created_at->format('d/m/Y'),
+                'actividad' => Str::limit($item->actividad, 80),
+                'lado' => $item->lado,
+            ])->values()) }})"
+                    class="bg-white rounded-xl shadow-sm p-4 border-t-4 border-orange-500 hover:shadow-lg hover:bg-orange-50 transition-all text-left w-full cursor-pointer group">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-semibold text-orange-600 uppercase tracking-wide">🔧 Requiere revisión</p>
+                        <h3 class="text-2xl font-bold text-orange-600 mt-1">{{ $estadisticas['requiere_revision'] ?? 0 }}</h3>
+                        <p class="text-xs text-orange-500 group-hover:text-orange-700 mt-1"><i class="fas fa-eye text-xs"></i> Ver detalles</p>
+                    </div>
+                    <div class="bg-orange-100 text-orange-600 p-2 rounded-full group-hover:bg-orange-200 transition"><i class="fas fa-tools"></i></div>
+                </div>
+            </button>
+
             {{-- DESGASTE (BOTÓN CLICKEABLE) --}}
             <button onclick="openEstadoModal('desgaste', 'Desgaste', {{ json_encode($registrosPorEstado['desgaste']->map(fn($item) => [
                 'id' => $item->id,
@@ -1264,13 +1291,16 @@
 
                                                 if($hasData){
                                                     $estadoActual = $registro->estado ?? 'Buen estado';
-                                                    if ($estadoActual === 'Cambiado') {
+                                                    if (\App\Models\AnalisisPasteurizadora::esEstadoCambiado($estadoActual)) {
                                                         $bgColor = 'bg-blue-50';
                                                         $borderColor = 'border-l-4 border-blue-500';
-                                                    } elseif ($estadoActual === 'Dañado - Requiere cambio') {
+                                                    } elseif (\App\Models\AnalisisPasteurizadora::esEstadoDanado($estadoActual)) {
                                                         $bgColor = 'bg-red-50';
                                                         $borderColor = 'border-l-4 border-red-500';
-                                                    } elseif (str_contains($estadoActual, 'Desgaste')) {
+                                                    } elseif (\App\Models\AnalisisPasteurizadora::esEstadoRequiereRevision($estadoActual)) {
+                                                        $bgColor = 'bg-orange-50';
+                                                        $borderColor = 'border-l-4 border-orange-500';
+                                                    } elseif (\App\Models\AnalisisPasteurizadora::esEstadoDesgaste($estadoActual)) {
                                                         $bgColor = 'bg-yellow-50';
                                                         $borderColor = 'border-l-4 border-yellow-500';
                                                     } else {
@@ -1390,20 +1420,23 @@
 
                                                         <div>
                                                             <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium
-                                                                @if($estadoActual == 'Buen estado') bg-green-100 text-green-700
-                                                                @elseif(str_contains($estadoActual, 'Desgaste')) bg-yellow-100 text-yellow-700
-                                                                @elseif($estadoActual == 'Dañado - Requiere cambio') bg-red-100 text-red-700
+                                                                @if(\App\Models\AnalisisPasteurizadora::esEstadoBueno($estadoActual)) bg-green-100 text-green-700
+                                                                @elseif(\App\Models\AnalisisPasteurizadora::esEstadoRequiereRevision($estadoActual)) bg-orange-100 text-orange-700
+                                                                @elseif(\App\Models\AnalisisPasteurizadora::esEstadoDesgaste($estadoActual)) bg-yellow-100 text-yellow-700
+                                                                @elseif(\App\Models\AnalisisPasteurizadora::esEstadoDanado($estadoActual)) bg-red-100 text-red-700
                                                                 @else bg-blue-100 text-blue-700
                                                                 @endif">
-                                                                @if($estadoActual == 'Buen estado')
+                                                                @if(\App\Models\AnalisisPasteurizadora::esEstadoBueno($estadoActual))
                                                                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                                                                     </svg>
-                                                                @elseif(str_contains($estadoActual, 'Desgaste'))
+                                                                @elseif(\App\Models\AnalisisPasteurizadora::esEstadoRequiereRevision($estadoActual))
+                                                                    <i class="fas fa-tools text-[10px]"></i>
+                                                                @elseif(\App\Models\AnalisisPasteurizadora::esEstadoDesgaste($estadoActual))
                                                                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
                                                                     </svg>
-                                                                @elseif($estadoActual == 'Dañado - Requiere cambio')
+                                                                @elseif(\App\Models\AnalisisPasteurizadora::esEstadoDanado($estadoActual))
                                                                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                                                                     </svg>
@@ -1772,6 +1805,12 @@ function openEstadoModal(tipo, nombre, registros) {
             icono = '✅';
             title.innerHTML = `${icono} ${nombre} (${registros.length})`;
             break;
+        case 'requiere_revision':
+            bgColor = 'bg-orange-100';
+            textColor = 'text-orange-800';
+            icono = '🔧';
+            title.innerHTML = `${icono} ${nombre} (${registros.length})`;
+            break;
         case 'desgaste':
             bgColor = 'bg-amber-100';
             textColor = 'text-amber-800';
@@ -1837,6 +1876,10 @@ function openEstadoModal(tipo, nombre, registros) {
                     estadoClass = 'border-l-green-500';
                     estadoIcon = '✅';
                     estadoColor = 'bg-green-50';
+                } else if (reg.estado === 'Requiere revisión') {
+                    estadoClass = 'border-l-orange-500';
+                    estadoIcon = '🔧';
+                    estadoColor = 'bg-orange-50';
                 } else if (reg.estado.includes('Desgaste')) {
                     estadoClass = 'border-l-yellow-500';
                     estadoIcon = '⚠️';
@@ -1866,8 +1909,9 @@ function openEstadoModal(tipo, nombre, registros) {
                             <div class="flex items-center gap-2">
                                 <span class="text-xs px-2 py-1 rounded-full font-medium
                                     ${reg.estado === 'Buen estado' ? 'bg-green-100 text-green-700' :
+                                      (reg.estado === 'Requiere revisión' ? 'bg-orange-100 text-orange-700' :
                                       (reg.estado.includes('Desgaste') ? 'bg-yellow-100 text-yellow-700' :
-                                      (reg.estado === 'Dañado - Requiere cambio' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'))}">
+                                      (reg.estado === 'Dañado - Requiere cambio' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700')))}">
                                     ${estadoIcon} ${reg.estado}
                                 </span>
                                 <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1939,6 +1983,8 @@ function openAnalysisDetail(data) {
     let bgClass = 'bg-gray-800';
     if (data.estado === 'Buen estado') {
         bgClass = 'bg-green-800';
+    } else if (data.estado === 'Requiere revisión') {
+        bgClass = 'bg-orange-700';
     } else if ((data.estado || '').includes('Desgaste')) {
         bgClass = 'bg-yellow-700';
     } else if (data.estado === 'Danado - Requiere cambio' || data.estado === 'Dañado - Requiere cambio') {
@@ -2115,6 +2161,7 @@ function renderActualizaciones(data) {
 
 function getEstadoPillClass(estado) {
     if (estado === 'Buen estado') return 'bg-green-100 text-green-700';
+    if (estado === 'Requiere revisión') return 'bg-orange-100 text-orange-700';
     if (estado.includes('Desgaste')) return 'bg-yellow-100 text-yellow-700';
     if (estado === 'Danado - Requiere cambio' || estado === 'Dañado - Requiere cambio') return 'bg-red-100 text-red-700';
     if (estado === 'Cambiado') return 'bg-blue-100 text-blue-700';
