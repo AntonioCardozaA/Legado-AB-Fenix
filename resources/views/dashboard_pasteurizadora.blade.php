@@ -122,38 +122,71 @@
     }
 
     .lavadora-card {
-        border-radius: 12px;
+        --card-bg-start: #ffffff;
+        --card-bg-end: #f8fafc;
+        --card-accent: var(--medium-gray);
+        --card-surface: rgba(255, 255, 255, 0.58);
+        --card-footer-bg: rgba(255, 255, 255, 0.34);
+        --card-button-bg: rgba(255, 255, 255, 0.9);
+        --card-button-hover: #ffffff;
+        --card-button-text: #0f172a;
+        --card-button-border: rgba(148, 163, 184, 0.24);
+        --card-message-color: #334155;
+        border-radius: 14px;
         overflow: hidden;
         transition: var(--transition);
-        box-shadow: var(--shadow-sm);
-        background: white;
-        border: 1px solid var(--medium-gray);
+        box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+        background: linear-gradient(180deg, var(--card-bg-start) 0%, var(--card-bg-end) 100%);
+        border: 1px solid rgba(148, 163, 184, 0.16);
+        border-left: 6px solid var(--card-accent);
         min-width: 280px;
+        display: flex;
+        flex-direction: column;
     }
 
     .lavadora-card:hover {
         transform: translateY(-4px);
-        box-shadow: var(--shadow-xl);
+        box-shadow: 0 18px 34px rgba(15, 23, 42, 0.14);
     }
 
     .lavadora-card.buen-estado {
-        background-color: #f0fdf4;
-        border-left: 6px solid var(--success-green);
+        --card-bg-start: #f0fdf4;
+        --card-bg-end: #dcfce7;
+        --card-accent: var(--success-green);
+        --card-surface: rgba(255, 255, 255, 0.55);
+        --card-footer-bg: rgba(220, 252, 231, 0.72);
+        --card-button-border: rgba(16, 185, 129, 0.2);
     }
 
     .lavadora-card.riesgo-estado {
-        background-color: #fefce8;
-        border-left: 6px solid var(--warning-yellow);
+        --card-bg-start: #fefce8;
+        --card-bg-end: #fef3c7;
+        --card-accent: var(--warning-yellow);
+        --card-surface: rgba(255, 255, 255, 0.48);
+        --card-footer-bg: rgba(254, 240, 138, 0.38);
+        --card-button-border: rgba(245, 158, 11, 0.25);
     }
 
     .lavadora-card.operativo-estado {
-        background-color: #fff7ed;
-        border-left: 6px solid var(--operational-orange);
+        --card-bg-start: #fff7ed;
+        --card-bg-end: #ffedd5;
+        --card-accent: var(--operational-orange);
+        --card-surface: rgba(255, 255, 255, 0.5);
+        --card-footer-bg: rgba(254, 215, 170, 0.42);
+        --card-button-border: rgba(249, 115, 22, 0.24);
     }
 
     .lavadora-card.critico-estado {
-        background-color: #fef2f2;
-        border-left: 6px solid var(--danger-red);
+        --card-bg-start: #fee2e2;
+        --card-bg-end: #fecaca;
+        --card-accent: var(--danger-red);
+        --card-surface: rgba(255, 255, 255, 0.34);
+        --card-footer-bg: rgba(252, 165, 165, 0.42);
+        --card-button-bg: linear-gradient(135deg, #dc2626 0%, #ef4444 100%);
+        --card-button-hover: linear-gradient(135deg, #b91c1c 0%, #dc2626 100%);
+        --card-button-text: #ffffff;
+        --card-button-border: rgba(127, 29, 29, 0.22);
+        --card-message-color: #7f1d1d;
     }
 
     .lavadora-card.critico-estado.alert-critical {
@@ -161,17 +194,19 @@
     }
 
     .lavadora-card-header {
-        padding: 10px 12px;
-        border-bottom: 1px solid rgba(0,0,0,0.05);
+        padding: 12px 14px 10px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.32);
         display: flex;
         justify-content: space-between;
         align-items: center;
+        gap: 8px;
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.16) 0%, var(--card-surface) 100%);
     }
 
     .lavadora-nombre {
         font-size: 13px;
         font-weight: 700;
-        color: var(--text-primary);
+        color: #0f172a;
         display: flex;
         align-items: center;
         gap: 6px;
@@ -203,23 +238,36 @@
     .status-tag.critico { background: var(--danger-light); color: #991b1b; }
 
     .lavadora-card-body {
-        padding: 10px 12px;
+        padding: 12px 14px 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        flex: 1;
     }
 
     .lavadora-mensaje {
         font-size: 12px;
-        color: #475569;
-        margin-bottom: 10px;
+        color: var(--card-message-color);
+        margin-bottom: 0;
         line-height: 1.4;
         min-height: 34px;
+        background: var(--card-surface);
+        border: 1px solid rgba(255, 255, 255, 0.32);
+        border-radius: 10px;
+        padding: 10px 12px;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18);
+    }
+
+    .lavadora-mensaje i {
+        color: var(--card-accent);
     }
 
     .lavadora-carousel {
-        background: #f8fafc;
-        border: 1px solid rgba(148, 163, 184, 0.25);
+        background: var(--card-surface);
+        border: 1px solid rgba(255, 255, 255, 0.32);
         border-radius: 12px;
         overflow: hidden;
-        margin-bottom: 10px;
+        margin-bottom: 0;
     }
 
     .lavadora-carousel-track {
@@ -350,17 +398,21 @@
     .lavadora-metricas {
         display: flex;
         justify-content: space-between;
-        margin-bottom: 10px;
+        gap: 8px;
+        margin-bottom: 0;
         font-size: 11px;
-        background: linear-gradient(135deg, rgba(59, 130, 246, 0.05), rgba(139, 92, 246, 0.05));
-        padding: 8px;
-        border-radius: 10px;
-        border: 1px solid rgba(59, 130, 246, 0.1);
+        background: var(--card-surface);
+        padding: 10px;
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.32);
     }
 
     .metric-item {
         text-align: center;
         flex: 1;
+        padding: 4px 6px;
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.18);
     }
 
     .metric-label {
@@ -393,11 +445,41 @@
     }
 
     .lavadora-card-footer {
-        padding: 8px 12px;
-        background: linear-gradient(135deg, #f8fafc, #f1f5f9);
-        border-top: 1px solid var(--border-light);
+        padding: 0 14px 14px;
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, var(--card-footer-bg) 58%, var(--card-footer-bg) 100%);
+        border-top: 1px solid rgba(255, 255, 255, 0.2);
         display: flex;
-        justify-content: flex-end;
+        justify-content: stretch;
+    }
+
+    .card-detail-button {
+        width: 100%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 10px 14px;
+        border-radius: 12px;
+        border: 1px solid var(--card-button-border);
+        background: var(--card-button-bg);
+        color: var(--card-button-text);
+        font-size: 12px;
+        font-weight: 700;
+        line-height: 1.2;
+        box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
+        transition: var(--transition);
+    }
+
+    .card-detail-button:hover {
+        background: var(--card-button-hover);
+        color: var(--card-button-text);
+        transform: translateY(-1px);
+        box-shadow: 0 12px 22px rgba(15, 23, 42, 0.12);
+    }
+
+    .card-detail-button:focus {
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.18);
     }
 
     .chart-card {
@@ -1036,7 +1118,7 @@
                 </div>
                 <div class="lavadora-card-footer">
                     <button onclick='showPasteurizadoraDetail(@json($pasteurizadora))'
-                            class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition text-sm font-medium shadow-sm">
+                            class="card-detail-button">
                         <i class="fas fa-chart-simple mr-1"></i> Ver Detalle Completo
                     </button>
                 </div>
