@@ -161,7 +161,9 @@ class ReporteController extends Controller
                 'linea_id',
                 DB::raw('COUNT(*) as total_analisis'),
                 DB::raw('COUNT(DISTINCT componente_id) as componentes_revisados'),
-                DB::raw('SUM(CASE WHEN estado IN ("Dañado - Requiere cambio", "Desgaste severo") THEN 1 ELSE 0 END) as componentes_criticos')
+                DB::raw('SUM(CASE WHEN estado = "Dañado - Requiere cambio" THEN 1 ELSE 0 END) as componentes_criticos'),
+                DB::raw('SUM(CASE WHEN estado IN ("Desgaste moderado", "Desgaste severo") THEN 1 ELSE 0 END) as componentes_severos_moderados'),
+                DB::raw('SUM(CASE WHEN estado = "Requiere revisión" THEN 1 ELSE 0 END) as componentes_revision')
             )
             ->groupBy('linea_id')
             ->get()
@@ -230,6 +232,8 @@ class ReporteController extends Controller
                     ? Carbon::parse($ultimaRevision->fecha_restablecimiento)->format('d/m/Y')
                     : null,
                 'componentes_criticos' => $estadisticas->componentes_criticos ?? 0,
+                'componentes_severos_moderados' => $estadisticas->componentes_severos_moderados ?? 0,
+                'componentes_revision' => $estadisticas->componentes_revision ?? 0,
                 'reductores_count' => count($this->reductoresPorLinea[$linea->nombre] ?? []),
                 'estado_general' => $this->determinarEstadoGeneral($linea->id, $fechaInicio, $fechaFin)
             ];
@@ -490,7 +494,9 @@ class ReporteController extends Controller
             'resumen' => [
                 'total_analisis' => $analisisLinea->count(),
                 'componentes_revisados' => $analisisLinea->pluck('componente_codigo')->unique()->count(),
-                'componentes_criticos' => $analisisLinea->whereIn('estado', ['Dañado - Requiere cambio', 'Desgaste severo'])->count(),
+                'componentes_criticos' => $analisisLinea->where('estado', 'Dañado - Requiere cambio')->count(),
+                'componentes_severos_moderados' => $analisisLinea->whereIn('estado', ['Desgaste moderado', 'Desgaste severo'])->count(),
+                'componentes_revision' => $analisisLinea->where('estado', 'Requiere revisión')->count(),
                 'componentes_definidos' => $this->getComponentesDefinidos($tipoEquipo)
             ],
             'componentes_lista' => $componentesLinea,
@@ -532,7 +538,9 @@ class ReporteController extends Controller
             ->selectRaw('
                 COUNT(*) as total_analisis,
                 COUNT(DISTINCT componente_id) as componentes_revisados,
-                SUM(CASE WHEN estado = "Dañado - Requiere cambio" THEN 1 ELSE 0 END) as componentes_criticos
+                SUM(CASE WHEN estado = "Dañado - Requiere cambio" THEN 1 ELSE 0 END) as componentes_criticos,
+                SUM(CASE WHEN estado IN ("Desgaste moderado", "Desgaste severo") THEN 1 ELSE 0 END) as componentes_severos_moderados,
+                SUM(CASE WHEN estado = "Requiere revisión" THEN 1 ELSE 0 END) as componentes_revision
             ')
             ->first();
 
@@ -568,6 +576,8 @@ class ReporteController extends Controller
                 'total_analisis' => $estadisticas->total_analisis ?? 0,
                 'componentes_revisados' => $estadisticas->componentes_revisados ?? 0,
                 'componentes_criticos' => $estadisticas->componentes_criticos ?? 0,
+                'componentes_severos_moderados' => $estadisticas->componentes_severos_moderados ?? 0,
+                'componentes_revision' => $estadisticas->componentes_revision ?? 0,
                 'componentes_definidos' => $this->getComponentesDefinidos($tipoEquipo)
             ],
             'analisis' => $analisis,
@@ -657,16 +667,32 @@ class ReporteController extends Controller
     private function determinarEstadoGeneral($lineaId, $fechaInicio, $fechaFin)
     {
         // CORRECCIÓN: Usar el mismo DB::table que en el resto del controlador
-        $criticos = DB::table('analisis_componentes')
+        $consulta = DB::table('analisis_componentes')
             ->where('linea_id', $lineaId)
-            ->whereIn('estado', ['Dañado - Requiere cambio', 'Desgaste severo'])
-            ->whereBetween('fecha_analisis', [$fechaInicio, $fechaFin])
+            ->whereBetween('fecha_analisis', [$fechaInicio, $fechaFin]);
+
+        $criticos = (clone $consulta)
+            ->where('estado', 'Dañado - Requiere cambio')
             ->count();
 
-        if ($criticos > 3) {
+        $severosModerados = (clone $consulta)
+            ->whereIn('estado', ['Desgaste moderado', 'Desgaste severo'])
+            ->count();
+
+        $requiereRevision = (clone $consulta)
+            ->where('estado', 'Requiere revisión')
+            ->count();
+
+        if ($criticos > 0) {
             return ['texto' => 'CRÍTICO', 'color' => 'red'];
-        } elseif ($criticos > 0) {
-            return ['texto' => 'ALERTA', 'color' => 'yellow'];
+        }
+
+        if ($severosModerados > 0) {
+            return ['texto' => 'SEVERO / MODERADO', 'color' => 'orange'];
+        }
+
+        if ($requiereRevision > 0) {
+            return ['texto' => 'REQUIERE REVISIÓN', 'color' => 'yellow'];
         }
 
         return ['texto' => 'ESTABLE', 'color' => 'green'];

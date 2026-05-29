@@ -158,8 +158,8 @@
         }
         
         .estado-warning {
-            background-color: #fef3c7;
-            color: #92400e;
+            background-color: #ffedd5;
+            color: #9a3412;
             padding: 2px 8px;
             border-radius: 12px;
             font-size: 8px;
@@ -168,8 +168,8 @@
         }
 
         .estado-review {
-            background-color: #ffedd5;
-            color: #9a3412;
+            background-color: #fef3c7;
+            color: #92400e;
             padding: 2px 8px;
             border-radius: 12px;
             font-size: 8px;
@@ -317,7 +317,7 @@
                 <div class="lavadora-stats">
                     <span>✅ Buen estado: {{ $estadisticas['ok'] }}</span>
                     <span>🔧 Requiere revisión: {{ $estadisticas['review'] }}</span>
-                    <span>⚠️ Desgaste: {{ $estadisticas['warning'] }}</span>
+                    <span>⚠️ Severo / Moderado: {{ $estadisticas['warning'] }}</span>
                     <span>❌ Dañados: {{ $estadisticas['danger'] }}</span>
                     <span>📊 Total: {{ $estadisticas['total'] }}</span>
                 </div>
@@ -414,13 +414,13 @@
                 </div>
                 
                 <div class="resumen-item">
-                    <div class="resumen-number" style="color: #f97316;">{{ $totalReview }}</div>
+                    <div class="resumen-number" style="color: #f59e0b;">{{ $totalReview }}</div>
                     <div class="resumen-label">🔧 Requiere revisión</div>
                 </div>
                 
                 <div class="resumen-item">
-                    <div class="resumen-number" style="color: #f59e0b;">{{ $totalWarning }}</div>
-                    <div class="resumen-label">⚠️ Desgaste</div>
+                    <div class="resumen-number" style="color: #f97316;">{{ $totalWarning }}</div>
+                    <div class="resumen-label">⚠️ Severo / Moderado</div>
                 </div>
                 
                 <div class="resumen-item">

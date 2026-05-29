@@ -20,8 +20,8 @@
     .sticky-left { position: sticky; left: 0; z-index: 20; }
     .sticky-top-left { position: sticky; top: 0; left: 0; z-index: 40; }
     .cell-ok { background-color: #f0f9ff; border-left: 4px solid var(--success-green); }
-    .cell-review { background-color: #fff7ed; border-left: 4px solid #f97316; }
-    .cell-warning { background-color: #fffbeb; border-left: 4px solid var(--warning-yellow); }
+    .cell-review { background-color: #fefce8; border-left: 4px solid var(--warning-yellow); }
+    .cell-warning { background-color: #fff7ed; border-left: 4px solid #f97316; }
     .cell-danger { background-color: #fef2f2; border-left: 4px solid var(--danger-red); }
     .cell-changed { background-color: #eff6ff; border-left: 4px solid var(--changed-blue); }
     .cell-empty { background-color: var(--light-gray); }
@@ -1451,27 +1451,27 @@
             
             {{-- REQUIERE REVISIÓN (BOTÓN CLICKEABLE) --}}
             <button onclick="openEstadoModal('requiere_revision', 'Requiere revisión', {{ json_encode($analisisPorEstado['requiere_revision']) }})"
-                    class="bg-white rounded-xl shadow-sm p-4 border-t-4 border-orange-500 hover:shadow-lg hover:bg-orange-50 transition-all text-left w-full cursor-pointer group">
+                    class="bg-white rounded-xl shadow-sm p-4 border-t-4 border-yellow-500 hover:shadow-lg hover:bg-yellow-50 transition-all text-left w-full cursor-pointer group">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-xs font-semibold text-orange-600 uppercase tracking-wide">Requiere revisión</p>
-                        <h3 class="text-2xl font-bold text-orange-600 mt-1">{{ $estadisticas['requiere_revision'] ?? 0 }}</h3>
-                        <p class="text-xs text-orange-500 group-hover:text-orange-700 mt-1"><i class="fas fa-eye text-xs"></i> Ver detalles</p>
+                        <p class="text-xs font-semibold text-yellow-600 uppercase tracking-wide">Requiere revisión</p>
+                        <h3 class="text-2xl font-bold text-yellow-600 mt-1">{{ $estadisticas['requiere_revision'] ?? 0 }}</h3>
+                        <p class="text-xs text-yellow-500 group-hover:text-yellow-700 mt-1"><i class="fas fa-eye text-xs"></i> Ver detalles</p>
                     </div>
-                    <div class="bg-orange-100 text-orange-600 p-2 rounded-full group-hover:bg-orange-200 transition"><i class="fas fa-tools"></i></div>
+                    <div class="bg-yellow-100 text-yellow-600 p-2 rounded-full group-hover:bg-yellow-200 transition"><i class="fas fa-tools"></i></div>
                 </div>
             </button>
 
             {{-- DESGASTE (BOTÓN CLICKEABLE) --}}
-            <button onclick="openEstadoModal('desgaste', 'Desgaste', {{ json_encode($analisisPorEstado['desgaste']) }})"
-                    class="bg-white rounded-xl shadow-sm p-4 border-t-4 border-amber-500 hover:shadow-lg hover:bg-amber-50 transition-all text-left w-full cursor-pointer group">
+            <button onclick="openEstadoModal('desgaste', 'Severo / Moderado', {{ json_encode($analisisPorEstado['desgaste']) }})"
+                    class="bg-white rounded-xl shadow-sm p-4 border-t-4 border-orange-500 hover:shadow-lg hover:bg-orange-50 transition-all text-left w-full cursor-pointer group">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-xs font-semibold text-amber-600 uppercase tracking-wide">Desgaste</p>
-                        <h3 class="text-2xl font-bold text-amber-600 mt-1">{{ $estadisticas['desgaste'] ?? 0 }}</h3>
-                        <p class="text-xs text-amber-500 group-hover:text-amber-700 mt-1"><i class="fas fa-eye text-xs"></i> Ver detalles</p>
+                        <p class="text-xs font-semibold text-orange-600 uppercase tracking-wide">Severo / Moderado</p>
+                        <h3 class="text-2xl font-bold text-orange-600 mt-1">{{ $estadisticas['desgaste'] ?? 0 }}</h3>
+                        <p class="text-xs text-orange-500 group-hover:text-orange-700 mt-1"><i class="fas fa-eye text-xs"></i> Ver detalles</p>
                     </div>
-                    <div class="bg-amber-100 text-amber-600 p-2 rounded-full group-hover:bg-amber-200 transition"><i class="fas fa-exclamation-triangle"></i></div>
+                    <div class="bg-orange-100 text-orange-600 p-2 rounded-full group-hover:bg-orange-200 transition"><i class="fas fa-exclamation-triangle"></i></div>
                 </div>
             </button>
             
@@ -1624,27 +1624,27 @@
                 
                 {{-- REQUIERE REVISIÓN (BOTÓN CLICKEABLE) --}}
                 <button onclick="openEstadoModal('requiere_revision', 'Requiere revisión', {{ json_encode($analisisPorEstadoGlobal['requiere_revision']) }})"
-                        class="bg-white rounded-xl shadow-sm p-4 border-t-4 border-orange-500 hover:shadow-lg hover:bg-orange-50 transition-all text-left w-full cursor-pointer group">
+                        class="bg-white rounded-xl shadow-sm p-4 border-t-4 border-yellow-500 hover:shadow-lg hover:bg-yellow-50 transition-all text-left w-full cursor-pointer group">
                     <div class="flex items-center justify-between">
                         <div>
-                            <p class="text-xs font-semibold text-orange-600 uppercase tracking-wide">Requiere revisión</p>
-                            <h3 class="text-2xl font-bold text-orange-600 mt-1">{{ $estadisticasGlobales['requiere_revision'] ?? 0 }}</h3>
-                            <p class="text-xs text-orange-500 group-hover:text-orange-700 mt-1"><i class="fas fa-eye text-xs"></i> Ver detalles</p>
+                            <p class="text-xs font-semibold text-yellow-600 uppercase tracking-wide">Requiere revisión</p>
+                            <h3 class="text-2xl font-bold text-yellow-600 mt-1">{{ $estadisticasGlobales['requiere_revision'] ?? 0 }}</h3>
+                            <p class="text-xs text-yellow-500 group-hover:text-yellow-700 mt-1"><i class="fas fa-eye text-xs"></i> Ver detalles</p>
                         </div>
-                        <div class="bg-orange-100 text-orange-600 p-2 rounded-full group-hover:bg-orange-200 transition"><i class="fas fa-tools"></i></div>
+                        <div class="bg-yellow-100 text-yellow-600 p-2 rounded-full group-hover:bg-yellow-200 transition"><i class="fas fa-tools"></i></div>
                     </div>
                 </button>
 
                 {{-- DESGASTE (BOTÓN CLICKEABLE) --}}
-                <button onclick="openEstadoModal('desgaste', 'Desgaste', {{ json_encode($analisisPorEstadoGlobal['desgaste']) }})"
-                        class="bg-white rounded-xl shadow-sm p-4 border-t-4 border-amber-500 hover:shadow-lg hover:bg-amber-50 transition-all text-left w-full cursor-pointer group">
+                <button onclick="openEstadoModal('desgaste', 'Severo / Moderado', {{ json_encode($analisisPorEstadoGlobal['desgaste']) }})"
+                        class="bg-white rounded-xl shadow-sm p-4 border-t-4 border-orange-500 hover:shadow-lg hover:bg-orange-50 transition-all text-left w-full cursor-pointer group">
                     <div class="flex items-center justify-between">
                         <div>
-                            <p class="text-xs font-semibold text-amber-600 uppercase tracking-wide">Desgaste</p>
-                            <h3 class="text-2xl font-bold text-amber-600 mt-1">{{ $estadisticasGlobales['desgaste'] ?? 0 }}</h3>
-                            <p class="text-xs text-amber-500 group-hover:text-amber-700 mt-1"><i class="fas fa-eye text-xs"></i> Ver detalles</p>
+                            <p class="text-xs font-semibold text-orange-600 uppercase tracking-wide">Severo / Moderado</p>
+                            <h3 class="text-2xl font-bold text-orange-600 mt-1">{{ $estadisticasGlobales['desgaste'] ?? 0 }}</h3>
+                            <p class="text-xs text-orange-500 group-hover:text-orange-700 mt-1"><i class="fas fa-eye text-xs"></i> Ver detalles</p>
                         </div>
-                        <div class="bg-amber-100 text-amber-600 p-2 rounded-full group-hover:bg-amber-200 transition"><i class="fas fa-exclamation-triangle"></i></div>
+                        <div class="bg-orange-100 text-orange-600 p-2 rounded-full group-hover:bg-orange-200 transition"><i class="fas fa-exclamation-triangle"></i></div>
                     </div>
                 </button>
                 
@@ -1822,8 +1822,11 @@
                                                         @if($conteoEstadosComponente[$c->id]['ok'] > 0)
                                                             <span class="w-1.5 h-1.5 bg-green-500 rounded-full"></span>
                                                         @endif
-                                                        @if($conteoEstadosComponente[$c->id]['warning'] > 0)
+                                                        @if($conteoEstadosComponente[$c->id]['review'] > 0)
                                                             <span class="w-1.5 h-1.5 bg-yellow-500 rounded-full"></span>
+                                                        @endif
+                                                        @if($conteoEstadosComponente[$c->id]['warning'] > 0)
+                                                            <span class="w-1.5 h-1.5 bg-orange-500 rounded-full"></span>
                                                         @endif
                                                         @if($conteoEstadosComponente[$c->id]['danger'] > 0)
                                                             <span class="w-1.5 h-1.5 bg-red-500 rounded-full"></span>
@@ -1990,11 +1993,11 @@
                                                                         $icon = 'fa-times-circle';
                                                                     } 
                                                                     elseif (\App\Models\AnalisisLavadora::esEstadoRequiereRevision($estadoActual)) {
-                                                                        $statusClass = 'bg-orange-100 text-orange-800 border-orange-200';
+                                                                        $statusClass = 'bg-yellow-100 text-yellow-800 border-yellow-200';
                                                                         $icon = 'fa-tools';
                                                                     } 
                                                                     elseif (\App\Models\AnalisisLavadora::esEstadoDesgaste($estadoActual)) {
-                                                                        $statusClass = 'bg-yellow-100 text-yellow-800 border-yellow-200';
+                                                                        $statusClass = 'bg-orange-100 text-orange-800 border-orange-200';
                                                                         $icon = 'fa-exclamation-triangle';
                                                                     } 
                                                                     else {
@@ -2362,10 +2365,10 @@
                                                         <span class="w-1.5 h-1.5 bg-green-500 rounded-full"></span>
                                                     @endif
                                                     @if($conteoEstado['review'] > 0)
-                                                        <span class="w-1.5 h-1.5 bg-orange-500 rounded-full"></span>
+                                                        <span class="w-1.5 h-1.5 bg-yellow-500 rounded-full"></span>
                                                     @endif
                                                     @if($conteoEstado['warning'] > 0)
-                                                        <span class="w-1.5 h-1.5 bg-yellow-500 rounded-full"></span>
+                                                        <span class="w-1.5 h-1.5 bg-orange-500 rounded-full"></span>
                                                     @endif
                                                     @if($conteoEstado['danger'] > 0)
                                                         <span class="w-1.5 h-1.5 bg-red-500 rounded-full"></span>
@@ -2529,10 +2532,10 @@
                                                                     $statusClass = 'bg-red-100 text-red-800 border-red-200';
                                                                     $icon = 'fa-times-circle';
                                                                 } elseif (\App\Models\AnalisisLavadora::esEstadoRequiereRevision($estadoActual)) {
-                                                                    $statusClass = 'bg-orange-100 text-orange-800 border-orange-200';
+                                                                    $statusClass = 'bg-yellow-100 text-yellow-800 border-yellow-200';
                                                                     $icon = 'fa-tools';
                                                                 } elseif (\App\Models\AnalisisLavadora::esEstadoDesgaste($estadoActual)) {
-                                                                    $statusClass = 'bg-yellow-100 text-yellow-800 border-yellow-200';
+                                                                    $statusClass = 'bg-orange-100 text-orange-800 border-orange-200';
                                                                     $icon = 'fa-exclamation-triangle';
                                                                 } else {
                                                                     $statusClass = 'bg-green-100 text-green-800 border-green-200';
@@ -3139,19 +3142,19 @@ function openEstadoModal(tipo, titulo, items) {
             icon: ''
         },
         requiere_revision: {
+            bg: 'bg-yellow-500',
+            text: 'text-white',
+            card: 'bg-yellow-50',
+            borderLeft: 'border-yellow-300',
+            badge: 'bg-yellow-100 text-yellow-800',
+            icon: ''
+        },
+        desgaste: {
             bg: 'bg-orange-500',
             text: 'text-white',
             card: 'bg-orange-50',
             borderLeft: 'border-orange-300',
             badge: 'bg-orange-100 text-orange-800',
-            icon: ''
-        },
-        desgaste: {
-            bg: 'bg-amber-500',
-            text: 'text-white',
-            card: 'bg-amber-50',
-            borderLeft: 'border-amber-300',
-            badge: 'bg-amber-100 text-amber-800',
             icon: ''
         },
         danado: {
@@ -3318,15 +3321,15 @@ function showLineaPreview(lineaNombre, lineaId, estadosPreview, totalCeldas, cel
             <p class="text-xs text-gray-500">Buen Estado</p>
             <p class="text-2xl font-bold text-green-600">${estadosPreview.buen_estado || 0}</p>
         </div>
-        <div class="bg-orange-50 rounded-lg p-4 text-center border border-orange-200">
-            <i class="fas fa-tools text-orange-600 text-2xl mb-2"></i>
-            <p class="text-xs text-gray-500">Requiere revisión</p>
-            <p class="text-2xl font-bold text-orange-600">${estadosPreview.requiere_revision || 0}</p>
-        </div>
         <div class="bg-yellow-50 rounded-lg p-4 text-center border border-yellow-200">
-            <i class="fas fa-exclamation-triangle text-yellow-600 text-2xl mb-2"></i>
-            <p class="text-xs text-gray-500">Desgaste</p>
-            <p class="text-2xl font-bold text-yellow-600">${estadosPreview.desgaste || 0}</p>
+            <i class="fas fa-tools text-yellow-600 text-2xl mb-2"></i>
+            <p class="text-xs text-gray-500">Requiere revisión</p>
+            <p class="text-2xl font-bold text-yellow-600">${estadosPreview.requiere_revision || 0}</p>
+        </div>
+        <div class="bg-orange-50 rounded-lg p-4 text-center border border-orange-200">
+            <i class="fas fa-exclamation-triangle text-orange-600 text-2xl mb-2"></i>
+            <p class="text-xs text-gray-500">Severo / Moderado</p>
+            <p class="text-2xl font-bold text-orange-600">${estadosPreview.desgaste || 0}</p>
         </div>
         <div class="bg-red-50 rounded-lg p-4 text-center border border-red-200">
             <i class="fas fa-times-circle text-red-600 text-2xl mb-2"></i>
@@ -3423,9 +3426,9 @@ function openAnalysisDetail(analysisData) {
     if (analysisData.color === 'cell-ok') {
         bgClass = 'bg-green-800';
     } else if (analysisData.color === 'cell-review') {
-        bgClass = 'bg-orange-700';
-    } else if (analysisData.color === 'cell-warning') {
         bgClass = 'bg-yellow-700';
+    } else if (analysisData.color === 'cell-warning') {
+        bgClass = 'bg-orange-700';
     } else if (analysisData.color === 'cell-danger') {
         bgClass = 'bg-red-800';
     } else if (analysisData.color === 'cell-changed') {

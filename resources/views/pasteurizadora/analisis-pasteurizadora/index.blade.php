@@ -1078,19 +1078,19 @@
                 'actividad' => Str::limit($item->actividad, 80),
                 'lado' => $item->lado,
             ])->values()) }})"
-                    class="bg-white rounded-xl shadow-sm p-4 border-t-4 border-orange-500 hover:shadow-lg hover:bg-orange-50 transition-all text-left w-full cursor-pointer group">
+                    class="bg-white rounded-xl shadow-sm p-4 border-t-4 border-yellow-500 hover:shadow-lg hover:bg-yellow-50 transition-all text-left w-full cursor-pointer group">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-xs font-semibold text-orange-600 uppercase tracking-wide">🔧 Requiere revisión</p>
-                        <h3 class="text-2xl font-bold text-orange-600 mt-1">{{ $estadisticas['requiere_revision'] ?? 0 }}</h3>
-                        <p class="text-xs text-orange-500 group-hover:text-orange-700 mt-1"><i class="fas fa-eye text-xs"></i> Ver detalles</p>
+                        <p class="text-xs font-semibold text-yellow-600 uppercase tracking-wide">🔧 Requiere revisión</p>
+                        <h3 class="text-2xl font-bold text-yellow-600 mt-1">{{ $estadisticas['requiere_revision'] ?? 0 }}</h3>
+                        <p class="text-xs text-yellow-500 group-hover:text-yellow-700 mt-1"><i class="fas fa-eye text-xs"></i> Ver detalles</p>
                     </div>
-                    <div class="bg-orange-100 text-orange-600 p-2 rounded-full group-hover:bg-orange-200 transition"><i class="fas fa-tools"></i></div>
+                    <div class="bg-yellow-100 text-yellow-600 p-2 rounded-full group-hover:bg-yellow-200 transition"><i class="fas fa-tools"></i></div>
                 </div>
             </button>
 
             {{-- DESGASTE (BOTÓN CLICKEABLE) --}}
-            <button onclick="openEstadoModal('desgaste', 'Desgaste', {{ json_encode($registrosPorEstado['desgaste']->map(fn($item) => [
+            <button onclick="openEstadoModal('desgaste', 'Severo / Moderado', {{ json_encode($registrosPorEstado['desgaste']->map(fn($item) => [
                 'id' => $item->id,
                 'linea' => $item->linea->nombre ?? 'N/A',
                 'modulo' => $item->modulo,
@@ -1100,14 +1100,14 @@
                 'actividad' => Str::limit($item->actividad, 80),
                 'lado' => $item->lado,
             ])->values()) }})"
-                    class="bg-white rounded-xl shadow-sm p-4 border-t-4 border-amber-500 hover:shadow-lg hover:bg-amber-50 transition-all text-left w-full cursor-pointer group">
+                    class="bg-white rounded-xl shadow-sm p-4 border-t-4 border-orange-500 hover:shadow-lg hover:bg-orange-50 transition-all text-left w-full cursor-pointer group">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-xs font-semibold text-amber-600 uppercase tracking-wide">Desgaste</p>
-                        <h3 class="text-2xl font-bold text-amber-600 mt-1">{{ $estadisticas['desgaste'] ?? 0 }}</h3>
-                        <p class="text-xs text-amber-500 group-hover:text-amber-700 mt-1"><i class="fas fa-eye text-xs"></i> Ver detalles</p>
+                        <p class="text-xs font-semibold text-orange-600 uppercase tracking-wide">Severo / Moderado</p>
+                        <h3 class="text-2xl font-bold text-orange-600 mt-1">{{ $estadisticas['desgaste'] ?? 0 }}</h3>
+                        <p class="text-xs text-orange-500 group-hover:text-orange-700 mt-1"><i class="fas fa-eye text-xs"></i> Ver detalles</p>
                     </div>
-                    <div class="bg-amber-100 text-amber-600 p-2 rounded-full group-hover:bg-amber-200 transition"><i class="fas fa-exclamation-triangle"></i></div>
+                    <div class="bg-orange-100 text-orange-600 p-2 rounded-full group-hover:bg-orange-200 transition"><i class="fas fa-exclamation-triangle"></i></div>
                 </div>
             </button>
             
@@ -1298,11 +1298,11 @@
                                                         $bgColor = 'bg-red-50';
                                                         $borderColor = 'border-l-4 border-red-500';
                                                     } elseif (\App\Models\AnalisisPasteurizadora::esEstadoRequiereRevision($estadoActual)) {
-                                                        $bgColor = 'bg-orange-50';
-                                                        $borderColor = 'border-l-4 border-orange-500';
-                                                    } elseif (\App\Models\AnalisisPasteurizadora::esEstadoDesgaste($estadoActual)) {
                                                         $bgColor = 'bg-yellow-50';
                                                         $borderColor = 'border-l-4 border-yellow-500';
+                                                    } elseif (\App\Models\AnalisisPasteurizadora::esEstadoDesgaste($estadoActual)) {
+                                                        $bgColor = 'bg-orange-50';
+                                                        $borderColor = 'border-l-4 border-orange-500';
                                                     } else {
                                                         $bgColor = 'bg-green-50';
                                                         $borderColor = 'border-l-4 border-green-500';
@@ -1421,8 +1421,8 @@
                                                         <div>
                                                             <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium
                                                                 @if(\App\Models\AnalisisPasteurizadora::esEstadoBueno($estadoActual)) bg-green-100 text-green-700
-                                                                @elseif(\App\Models\AnalisisPasteurizadora::esEstadoRequiereRevision($estadoActual)) bg-orange-100 text-orange-700
-                                                                @elseif(\App\Models\AnalisisPasteurizadora::esEstadoDesgaste($estadoActual)) bg-yellow-100 text-yellow-700
+                                                                @elseif(\App\Models\AnalisisPasteurizadora::esEstadoRequiereRevision($estadoActual)) bg-yellow-100 text-yellow-700
+                                                                @elseif(\App\Models\AnalisisPasteurizadora::esEstadoDesgaste($estadoActual)) bg-orange-100 text-orange-700
                                                                 @elseif(\App\Models\AnalisisPasteurizadora::esEstadoDanado($estadoActual)) bg-red-100 text-red-700
                                                                 @else bg-blue-100 text-blue-700
                                                                 @endif">
@@ -1806,14 +1806,14 @@ function openEstadoModal(tipo, nombre, registros) {
             title.innerHTML = `${icono} ${nombre} (${registros.length})`;
             break;
         case 'requiere_revision':
-            bgColor = 'bg-orange-100';
-            textColor = 'text-orange-800';
+            bgColor = 'bg-yellow-100';
+            textColor = 'text-yellow-800';
             icono = '🔧';
             title.innerHTML = `${icono} ${nombre} (${registros.length})`;
             break;
         case 'desgaste':
-            bgColor = 'bg-amber-100';
-            textColor = 'text-amber-800';
+            bgColor = 'bg-orange-100';
+            textColor = 'text-orange-800';
             icono = '⚠️';
             title.innerHTML = `${icono} ${nombre} (${registros.length})`;
             break;
@@ -1877,13 +1877,13 @@ function openEstadoModal(tipo, nombre, registros) {
                     estadoIcon = '✅';
                     estadoColor = 'bg-green-50';
                 } else if (reg.estado === 'Requiere revisión') {
-                    estadoClass = 'border-l-orange-500';
-                    estadoIcon = '🔧';
-                    estadoColor = 'bg-orange-50';
-                } else if (reg.estado.includes('Desgaste')) {
                     estadoClass = 'border-l-yellow-500';
-                    estadoIcon = '⚠️';
+                    estadoIcon = '🔧';
                     estadoColor = 'bg-yellow-50';
+                } else if (reg.estado.includes('Desgaste')) {
+                    estadoClass = 'border-l-orange-500';
+                    estadoIcon = '⚠️';
+                    estadoColor = 'bg-orange-50';
                 } else if (reg.estado === 'Dañado - Requiere cambio') {
                     estadoClass = 'border-l-red-500';
                     estadoIcon = '❌';
@@ -1907,10 +1907,10 @@ function openEstadoModal(tipo, nombre, registros) {
                                 <p class="text-sm text-gray-600">${reg.actividad}</p>
                             </div>
                             <div class="flex items-center gap-2">
-                                <span class="text-xs px-2 py-1 rounded-full font-medium
-                                    ${reg.estado === 'Buen estado' ? 'bg-green-100 text-green-700' :
-                                      (reg.estado === 'Requiere revisión' ? 'bg-orange-100 text-orange-700' :
-                                      (reg.estado.includes('Desgaste') ? 'bg-yellow-100 text-yellow-700' :
+                                    <span class="text-xs px-2 py-1 rounded-full font-medium
+                                      ${reg.estado === 'Buen estado' ? 'bg-green-100 text-green-700' :
+                                      (reg.estado === 'Requiere revisión' ? 'bg-yellow-100 text-yellow-700' :
+                                      (reg.estado.includes('Desgaste') ? 'bg-orange-100 text-orange-700' :
                                       (reg.estado === 'Dañado - Requiere cambio' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700')))}">
                                     ${estadoIcon} ${reg.estado}
                                 </span>
@@ -1984,9 +1984,9 @@ function openAnalysisDetail(data) {
     if (data.estado === 'Buen estado') {
         bgClass = 'bg-green-800';
     } else if (data.estado === 'Requiere revisión') {
-        bgClass = 'bg-orange-700';
-    } else if ((data.estado || '').includes('Desgaste')) {
         bgClass = 'bg-yellow-700';
+    } else if ((data.estado || '').includes('Desgaste')) {
+        bgClass = 'bg-orange-700';
     } else if (data.estado === 'Danado - Requiere cambio' || data.estado === 'Dañado - Requiere cambio') {
         bgClass = 'bg-red-800';
     } else if (data.estado === 'Cambiado') {
@@ -2161,8 +2161,8 @@ function renderActualizaciones(data) {
 
 function getEstadoPillClass(estado) {
     if (estado === 'Buen estado') return 'bg-green-100 text-green-700';
-    if (estado === 'Requiere revisión') return 'bg-orange-100 text-orange-700';
-    if (estado.includes('Desgaste')) return 'bg-yellow-100 text-yellow-700';
+    if (estado === 'Requiere revisión') return 'bg-yellow-100 text-yellow-700';
+    if (estado.includes('Desgaste')) return 'bg-orange-100 text-orange-700';
     if (estado === 'Danado - Requiere cambio' || estado === 'Dañado - Requiere cambio') return 'bg-red-100 text-red-700';
     if (estado === 'Cambiado') return 'bg-blue-100 text-blue-700';
     return 'bg-gray-100 text-gray-700';

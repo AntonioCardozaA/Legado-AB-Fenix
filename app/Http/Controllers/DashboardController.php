@@ -17,7 +17,7 @@ class DashboardController extends Controller
 {
     private const LAVADORA_NOMBRES = ['L-04', 'L-05', 'L-06', 'L-07', 'L-08', 'L-09', 'L-12', 'L-13'];
     private const LAVADORA_DAMAGE_STATES = ['Dañado - Requiere cambio', 'Desgaste severo', 'Desgaste moderado'];
-    private const LAVADORA_WARNING_STATES = ['Desgaste severo', 'Desgaste moderado'];
+    private const LAVADORA_SEVERE_STATES = ['Desgaste severo', 'Desgaste moderado'];
     private const LAVADORA_REVIEW_STATES = ['Requiere revisión'];
 
     /**
@@ -510,7 +510,7 @@ public function pasteurizadoraOperativo(Request $request)
 
         $analisisDesgaste = AnalisisLavadora::ultimosPorComponente()
             ->where('linea_id', $lineaId)
-            ->whereIn('estado', self::LAVADORA_WARNING_STATES)
+            ->whereIn('estado', self::LAVADORA_SEVERE_STATES)
             ->count();
 
         $analisisRevision = AnalisisLavadora::ultimosPorComponente()
@@ -523,6 +523,11 @@ public function pasteurizadoraOperativo(Request $request)
             ->map(fn ($analisis) => $this->attachLavadoraComponentIcon($analisis))
             ->toArray();
 
+        $elongacionCritica = $ultimaElongacion
+            && ($ultimaElongacion->vapor_porcentaje >= 1.46 || $ultimaElongacion->bombas_porcentaje >= 1.46);
+        $elongacionCompra = $ultimaElongacion
+            && ($ultimaElongacion->vapor_porcentaje >= 1.3 || $ultimaElongacion->bombas_porcentaje >= 1.3);
+
         $nivel = 'bueno';
         $color = 'green';
         $mensaje = 'Funcionando correctamente';
@@ -531,25 +536,25 @@ public function pasteurizadoraOperativo(Request $request)
             $nivel = 'critico';
             $color = 'red';
             $mensaje = 'Presenta componentes dañados que requieren cambio inmediato.';
-        } elseif ($accionesPendientes > 0) {
-            $nivel = 'riesgo';
-            $color = 'yellow';
-            $mensaje = "Tiene {$accionesPendientes} acción(es) pendiente(s) en el plan de acción.";
-        } elseif ($ultimaElongacion && ($ultimaElongacion->vapor_porcentaje >= 1.46 || $ultimaElongacion->bombas_porcentaje >= 1.46)) {
+        } elseif ($elongacionCritica) {
             $nivel = 'critico';
             $color = 'red';
             $mensaje = 'Elongación crítica (>1.46%), cambio de cadena requerido.';
-        } elseif ($ultimaElongacion && ($ultimaElongacion->vapor_porcentaje >= 1.3 || $ultimaElongacion->bombas_porcentaje >= 1.3)) {
-            $nivel = 'riesgo';
-            $color = 'yellow';
-            $mensaje = 'Elongación en nivel de compra (>1.3%), considerar cambio de cadena.';
         } elseif ($analisisDesgaste > 0) {
             $nivel = 'riesgo';
-            $color = 'yellow';
-            $mensaje = 'Presenta componentes con desgaste, programar mantenimiento.';
+            $color = 'orange';
+            $mensaje = 'Presenta componentes con condición severa o moderada, programar mantenimiento.';
+        } elseif ($accionesPendientes > 0) {
+            $nivel = 'riesgo';
+            $color = 'orange';
+            $mensaje = "Tiene {$accionesPendientes} acción(es) pendiente(s) en el plan de acción.";
+        } elseif ($elongacionCompra) {
+            $nivel = 'riesgo';
+            $color = 'orange';
+            $mensaje = 'Elongación en nivel de compra (>1.3%), considerar cambio de cadena.';
         } elseif (count($analisisRevision) > 0) {
             $nivel = 'operativo';
-            $color = 'indigo';
+            $color = 'yellow';
             $mensaje = 'Presenta anomalías operativas que requieren revisión.';
         }
 
@@ -634,9 +639,9 @@ public function pasteurizadoraOperativo(Request $request)
         if ($analisisDesgaste > 0) {
             $items[] = [
                 'type' => 'alert',
-                'title' => 'Desgaste detectado',
-                'subtitle' => "{$analisisDesgaste} elementos con desgaste o alguna anomalía",
-                'description' => 'Existen componentes con signos de desgaste o anomalías que deben revisarse pronto.',
+                'title' => 'Severidad detectada',
+                'subtitle' => "{$analisisDesgaste} elementos con condición severa o moderada",
+                'description' => 'Existen componentes con condición severa o moderada que deben revisarse pronto.',
                 'icon' => 'fa-cog',
             ];
         }
@@ -937,8 +942,8 @@ public function pasteurizadoraOperativo(Request $request)
                     'fecha_analisis' => $ultimaRevision?->fecha_analisis?->format('Y-m-d'),
                     'fecha_analisis_humana' => $ultimaRevision?->fecha_analisis?->format('d/m/Y'),
                     'dias_desde_revision' => $diasDesdeRevision,
-                    'prioridad' => $criticas > 0 ? 'critico' : ($severos > 0 ? 'severo' : 'moderado'),
-                    'prioridad_label' => $criticas > 0 ? 'Critico' : ($severos > 0 ? 'Severo' : 'Moderado'),
+                    'prioridad' => $criticas > 0 ? 'critico' : 'severo',
+                    'prioridad_label' => $criticas > 0 ? 'Crítico' : 'Severo / Moderado',
                     'puntaje' => $totalDanos,
                     'requiere_cambio' => $criticas > 0,
                 ];
@@ -962,8 +967,10 @@ public function pasteurizadoraOperativo(Request $request)
             ->map(function ($linea) use ($agrupados) {
                 $componentes = $agrupados->get($linea->id, collect());
                 $criticas = $componentes->where('estado', 'Dañado - Requiere cambio')->count();
-                $severasModeradas = $componentes->whereIn('estado', self::LAVADORA_WARNING_STATES)->count();
+                $severasModeradas = $componentes->whereIn('estado', self::LAVADORA_SEVERE_STATES)->count();
+                $requiereRevision = $componentes->whereIn('estado', self::LAVADORA_REVIEW_STATES)->count();
                 $estables = $componentes->filter(fn ($item) => in_array($item->estado, ['Buen estado', 'Cambiado'], true))->count();
+                $impactados = $criticas + $severasModeradas + $requiereRevision;
                 $ultimaRevision = $componentes
                     ->filter(fn ($item) => $item->fecha_analisis)
                     ->sortByDesc(fn ($item) => $item->fecha_analisis->format('Y-m-d') . '-' . str_pad((string) $item->id, 10, '0', STR_PAD_LEFT))
@@ -973,16 +980,24 @@ public function pasteurizadoraOperativo(Request $request)
                     'linea_id' => $linea->id,
                     'linea' => $linea->nombre,
                     'criticas' => $criticas,
+                    'requiere_revision' => $requiereRevision,
                     'severas_moderadas' => $severasModeradas,
                     'estables' => $estables,
                     'total_componentes' => $componentes->count(),
-                    'impactados' => $criticas + $severasModeradas,
+                    'impactados' => $impactados,
+                    'total_fallas' => $impactados,
                     'porcentaje_impacto' => $componentes->count() > 0
-                        ? round((($criticas + $severasModeradas) / $componentes->count()) * 100, 1)
+                        ? round(($impactados / $componentes->count()) * 100, 1)
                         : 0,
                     'ultima_revision' => $ultimaRevision?->fecha_analisis?->format('Y-m-d'),
                     'ultima_revision_humana' => $ultimaRevision?->fecha_analisis?->format('d/m/Y'),
-                    'estado' => $criticas > 0 ? 'critico' : ($severasModeradas > 0 ? 'riesgo' : ($componentes->isNotEmpty() ? 'estable' : 'sin_datos')),
+                    'estado' => $criticas > 0
+                        ? 'critico'
+                        : ($severasModeradas > 0
+                            ? 'riesgo'
+                            : ($requiereRevision > 0
+                                ? 'operativo'
+                                : ($componentes->isNotEmpty() ? 'estable' : 'sin_datos'))),
                     'sin_datos' => $componentes->isEmpty(),
                 ];
             })
@@ -1266,20 +1281,20 @@ public function pasteurizadoraOperativo(Request $request)
             ],
             'Requiere revisión' => [
                 'level' => 'revision',
-                'label' => 'Revisión',
-                'color' => '#f97316',
+                'label' => 'Requiere revisión',
+                'color' => '#f59e0b',
                 'score' => 20,
             ],
             'Desgaste severo' => [
                 'level' => 'severo',
-                'label' => 'Severo',
+                'label' => 'Severo / Moderado',
                 'color' => '#f97316',
                 'score' => 70,
             ],
             'Desgaste moderado' => [
-                'level' => 'moderado',
-                'label' => 'Moderado',
-                'color' => '#f59e0b',
+                'level' => 'severo',
+                'label' => 'Severo / Moderado',
+                'color' => '#f97316',
                 'score' => 45,
             ],
             'Cambiado' => [
@@ -1383,15 +1398,16 @@ public function pasteurizadoraOperativo(Request $request)
             $analisisLinea = $analisisPasteurizadora
                 ->where('linea_id', $linea->id)
                 ->filter(fn($item) => $item->fecha_analisis && $item->fecha_analisis->gte($fechaLimite));
+            $criticos = $analisisLinea->whereIn('estado', AnalisisPasteurizadora::estadosDanado())->count();
+            $desgaste = $analisisLinea->whereIn('estado', AnalisisPasteurizadora::ESTADOS_DESGASTE)->count();
+            $requiereRevision = $analisisLinea->where('estado', AnalisisPasteurizadora::ESTADO_REQUIERE_REVISION)->count();
 
             return [
                 'linea' => $linea->nombre,
-                'total_fallas' => $analisisLinea->filter(function ($item) {
-                    return in_array($item->estado, AnalisisPasteurizadora::estadosDanado(), true)
-                        || $item->estado === 'Desgaste severo';
-                })->count(),
-                'criticos' => $analisisLinea->whereIn('estado', AnalisisPasteurizadora::estadosDanado())->count(),
-                'desgaste' => $analisisLinea->where('estado', 'Desgaste severo')->count(),
+                'total_fallas' => $criticos + $desgaste + $requiereRevision,
+                'criticos' => $criticos,
+                'desgaste' => $desgaste,
+                'requiere_revision' => $requiereRevision,
             ];
         })->sortByDesc('total_fallas')->values();
     }
@@ -1543,7 +1559,7 @@ public function pasteurizadoraOperativo(Request $request)
                 $mensaje = "⚠️ {$criticosCount} componente(s) requieren cambio urgente";
             } elseif ($desgasteCount > 0) {
                 $nivel = 'riesgo';
-                $mensaje = "⚠️ {$desgasteCount} componente(s) presentan desgaste";
+                $mensaje = "⚠️ {$desgasteCount} componente(s) presentan condición severa o moderada";
             } elseif ($revisionOperativaCount > 0) {
                 $nivel = 'operativo';
                 $mensaje = "🔧 {$revisionOperativaCount} componente(s) requieren revisión";
@@ -1647,9 +1663,9 @@ public function pasteurizadoraOperativo(Request $request)
         if ($desgasteCount > 0) {
             $items[] = [
                 'type' => 'alert',
-                'title' => 'Desgaste detectado',
-                'subtitle' => "{$desgasteCount} componente(s) con desgaste",
-                'description' => 'Existen componentes con desgaste moderado o severo que deben monitorearse.',
+                'title' => 'Severidad detectada',
+                'subtitle' => "{$desgasteCount} componente(s) con condición severa o moderada",
+                'description' => 'Existen componentes con severidad moderada o severa que deben monitorearse.',
                 'icon' => 'fa-exclamation-triangle',
             ];
         }

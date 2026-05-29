@@ -22,7 +22,8 @@
     // Estado general
     $colorEstado = match($resumen['estado_general']['texto'] ?? 'SIN DATOS') {
         'CRÍTICO' => 'danger',
-        'ALERTA' => 'warning',
+        'SEVERO / MODERADO', 'ALERTA' => 'warning',
+        'REQUIERE REVISIÓN' => 'revision',
         'ESTABLE' => 'success',
         default => 'gray'
     };
@@ -243,9 +244,9 @@
     }
 
     .estado-desgaste-moderado {
-        background: #fef3c7;
-        color: #92400e;
-        border: 1px solid #fde68a;
+        background: #ffedd5;
+        color: #9a3412;
+        border: 1px solid #fdba74;
     }
 
     .estado-desgaste-severo {
@@ -267,9 +268,9 @@
     }
 
     .estado-revision {
-        background: #ffedd5;
-        color: #9a3412;
-        border: 1px solid #fdba74;
+        background: #fef3c7;
+        color: #92400e;
+        border: 1px solid #fde68a;
     }
 
     .estado-normal {
