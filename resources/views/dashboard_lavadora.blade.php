@@ -49,11 +49,26 @@
     }
 
     /* Tarjetas de resumen */
+    .dashboard-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16px;
+        flex-wrap: wrap;
+    }
+
+    .dashboard-actions {
+        display: flex;
+        gap: 12px;
+        flex-shrink: 0;
+    }
+
     .stats-grid {
         display: grid;
-        grid-template-columns: repeat(5, 1fr);
+        grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: 12px;
         margin-bottom: 16px;
+        align-items: stretch;
     }
 
     .stat-card {
@@ -63,6 +78,7 @@
         box-shadow: var(--shadow-sm);
         border: 1px solid var(--medium-gray);
         transition: var(--transition);
+        min-width: 0;
     }
 
     .stat-card:hover {
@@ -972,9 +988,24 @@
     }
 
     /* Responsive */
+    @media (min-width: 1280px) {
+        .stats-grid {
+            grid-template-columns: repeat(6, minmax(0, 1fr));
+        }
+    }
+
     @media (max-width: 768px) {
         .dashboard-container {
             padding: 16px;
+        }
+        .dashboard-header {
+            align-items: stretch;
+        }
+        .dashboard-actions {
+            width: 100%;
+        }
+        .dashboard-actions > * {
+            flex: 1;
         }
         .stats-grid {
             grid-template-columns: repeat(2, 1fr);
@@ -1512,14 +1543,14 @@
         </a>
     </div>
     <div class="mb-6">
-        <div class="flex items-center justify-between">
+        <div class="dashboard-header">
             <div>
                 <h1 class="text-2xl font-bold text-gray-800 flex items-center gap-2">
                     <i class="fas fa-chart-line text-blue-600"></i>
                     Dashboard Lavadoras
                 </h1>
             </div>
-            <div class="flex gap-2">
+            <div class="dashboard-actions">
                 <button onclick="refreshData()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
                     <i class="fas fa-sync-alt mr-2"></i>Actualizar
                 </button>
