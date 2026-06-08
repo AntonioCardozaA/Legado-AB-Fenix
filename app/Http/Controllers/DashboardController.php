@@ -495,7 +495,6 @@ public function pasteurizadoraOperativo(Request $request)
             ->where('estado', 'Dañado - Requiere cambio')
             ->with('componente')
             ->orderBy('fecha_analisis', 'desc')
-            ->limit(5)
             ->get()
             ->map(fn ($analisis) => $this->attachLavadoraComponentIcon($analisis))
             ->toArray();
@@ -518,7 +517,6 @@ public function pasteurizadoraOperativo(Request $request)
             ->whereIn('estado', self::LAVADORA_REVIEW_STATES)
             ->with('componente')
             ->orderBy('fecha_analisis', 'desc')
-            ->limit(5)
             ->get()
             ->map(fn ($analisis) => $this->attachLavadoraComponentIcon($analisis))
             ->toArray();
@@ -571,8 +569,6 @@ public function pasteurizadoraOperativo(Request $request)
             'alert_carousel' => $this->buildLavadoraAlertCarousel(
                 $analisisCriticos,
                 $analisisRevision,
-                $accionesPendientes,
-                $ultimaElongacion,
                 $analisisDesgaste,
                 $nivel
             ),
@@ -582,10 +578,11 @@ public function pasteurizadoraOperativo(Request $request)
     /**
      * Construye los items del carrusel para la tarjeta de estado.
      */
-    private function buildLavadoraAlertCarousel(array $analisisCriticos, array $analisisRevision, int $accionesPendientes, $ultimaElongacion, int $analisisDesgaste, string $nivel)
+    private function buildLavadoraAlertCarousel(array $analisisCriticos, array $analisisRevision, int $analisisDesgaste, string $nivel)
     {
         $items = [];
 
+        // El carrusel de estado muestra solo alertas asociadas a componentes.
         if (count($analisisCriticos) > 0) {
             foreach ($analisisCriticos as $analisis) {
                 $subtitleParts = [];
@@ -608,78 +605,45 @@ public function pasteurizadoraOperativo(Request $request)
             }
         }
 
-        if ($accionesPendientes > 0) {
-            $items[] = [
-                'type' => 'alert',
-                'title' => 'Acciones pendientes',
-                'subtitle' => "{$accionesPendientes} tarea(s) sin cerrar",
-                'description' => 'Revisa el plan de acción para validar y cerrar las actividades pendientes.',
-                'icon' => 'fa-tasks',
-            ];
-        }
+        if (count($analisisRevision) > 0) {
+            $cantidadRevision = count($analisisRevision);
 
-        if ($ultimaElongacion && ($ultimaElongacion->vapor_porcentaje >= 1.46 || $ultimaElongacion->bombas_porcentaje >= 1.46)) {
             $items[] = [
                 'type' => 'alert',
-                'title' => 'Elongación crítica',
-                'subtitle' => 'Cambio de cadena requerido',
-                'description' => "Bombas: {$ultimaElongacion->bombas_porcentaje}% · Vapor: {$ultimaElongacion->vapor_porcentaje}%",
-                'icon' => 'fa-exclamation-triangle',
-            ];
-        } elseif ($ultimaElongacion && ($ultimaElongacion->vapor_porcentaje >= 1.3 || $ultimaElongacion->bombas_porcentaje >= 1.3)) {
-            $items[] = [
-                'type' => 'alert',
-                'title' => 'Elongación en riesgo',
-                'subtitle' => 'Monitorear posible cambio',
-                'description' => "Bombas: {$ultimaElongacion->bombas_porcentaje}% · Vapor: {$ultimaElongacion->vapor_porcentaje}%",
-                'icon' => 'fa-chart-line',
+                'title' => 'Componentes que Requieren Revisión',
+                'subtitle' => $cantidadRevision === 1
+                    ? '1 componente en este estado'
+                    : "{$cantidadRevision} componentes en este estado",
+                'icon' => 'fa-tools',
             ];
         }
 
         if ($analisisDesgaste > 0) {
             $items[] = [
                 'type' => 'alert',
-                'title' => 'Severidad detectada',
-                'subtitle' => "{$analisisDesgaste} elementos con condición severa o moderada",
-                'description' => 'Existen componentes con condición severa o moderada que deben revisarse pronto.',
+                'title' => 'Componentes Severo / Moderado',
+                'subtitle' => $analisisDesgaste === 1
+                    ? '1 componente en este estado'
+                    : "{$analisisDesgaste} componentes en este estado",
                 'icon' => 'fa-cog',
             ];
         }
 
-        if (count($analisisRevision) > 0) {
-            foreach ($analisisRevision as $analisis) {
-                $subtitleParts = [];
-                if (!empty($analisis['modulo'])) {
-                    $subtitleParts[] = "Módulo {$analisis['modulo']}";
-                }
-                if (!empty($analisis['lado'])) {
-                    $subtitleParts[] = $analisis['lado'];
-                }
-
-                $items[] = [
-                    'type' => 'componente',
-                    'title' => $analisis['componente']['nombre'] ?? 'Componente en revisión',
-                    'subtitle' => count($subtitleParts) ? implode(' · ', $subtitleParts) : 'Requiere revisión operativa',
-                    'image' => $analisis['componente']['icono'] ?? asset('images/componentes-lavadora/default.png'),
-                    'detail' => $analisis['actividad'] ?? 'Se detectó una anomalía operativa que debe revisarse.',
-                    'reductor' => $analisis['reductor'] ?? null,
-                    'fecha' => isset($analisis['fecha_analisis']) ? Carbon::parse($analisis['fecha_analisis'])->format('d/m/Y') : null,
-                    'icon' => 'fa-tools',
-                ];
-            }
+        if (!empty($items)) {
+            return $items;
         }
 
-        if (empty($items)) {
-            $items[] = [
+        if ($nivel === 'bueno') {
+            return [[
                 'type' => 'info',
                 'title' => 'Sin alertas activas',
                 'subtitle' => 'La lavadora está en buen estado',
                 'description' => 'No hay componentes dañados ni alertas críticas en este momento.',
                 'icon' => 'fa-check-circle',
-            ];
+            ]];
         }
 
-        return $items;
+        return [];
     }
 
     /**
