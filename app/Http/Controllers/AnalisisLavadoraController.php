@@ -134,20 +134,34 @@ public function index(Request $request)
     // Determinar qué líneas mostrar y los reductores
     $lineaMostrar = 'Todas las líneas';
     $reductoresMostrar = [];
+    $lineaSeleccionadaParaDiagrama = null;
     
     if ($request->filled('linea_id') && $request->linea_id !== 'todas') {
         $linea = Linea::find($request->linea_id);
         if ($linea) {
             $lineaMostrar = $linea->nombre;
             $reductoresMostrar = $this->getReductoresPorLinea($lineaMostrar);
+            $lineaSeleccionadaParaDiagrama = $linea;
         }
     } else {
         // Si es "todas" o no hay línea seleccionada, no filtramos por línea
         $reductoresMostrar = []; // Se usarán los reductores de cada línea en la vista
     }
 
+    $analisisMonitorDiagrama = collect();
+
+    if ($lineaSeleccionadaParaDiagrama) {
+        $analisisMonitorDiagrama = AnalisisLavadora::ultimosPorComponente()
+            ->with(['linea', 'componente', 'usuario'])
+            ->where('linea_id', $lineaSeleccionadaParaDiagrama->id)
+            ->orderBy('fecha_analisis', 'desc')
+            ->orderBy('created_at', 'desc')
+            ->get();
+    }
+
     return view('lavadora/analisis-lavadora.index', [
         'analisis' => $analisis,
+        'analisisMonitorDiagrama' => $analisisMonitorDiagrama,
         'lineas' => Linea::where('activo', true)->orderBy('nombre')->get(),
         'diagramasPorLinea' => $diagramasPorLinea,
         'componentesPorLinea' => $this->getComponentesPorLinea(),

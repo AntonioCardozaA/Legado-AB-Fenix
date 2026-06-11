@@ -20,6 +20,7 @@
     .sticky-left { position: sticky; left: 0; z-index: 20; }
     .sticky-top-left { position: sticky; top: 0; left: 0; z-index: 40; }
     .cell-ok { background-color: #f0f9ff; border-left: 4px solid var(--success-green); }
+    .cell-review { background-color: #fff7ed; border-left: 4px solid #f97316; }
     .cell-warning { background-color: #fffbeb; border-left: 4px solid var(--warning-yellow); }
     .cell-danger { background-color: #fef2f2; border-left: 4px solid var(--danger-red); }
     .cell-changed { background-color: #eff6ff; border-left: 4px solid var(--changed-blue); }
@@ -482,17 +483,15 @@
     }
     
     .filters-divider {
-        height: 1px;
-        background: linear-gradient(to right, transparent, #cbd5e1, transparent);
-        margin: 16px 0;
+        margin: 24px 0 16px 0;
+        border-top: 2px solid #f1f5f9;
     }
     
     .filters-row {
         display: flex;
         flex-wrap: wrap;
-        gap: 12px;
         align-items: center;
-        justify-content: flex-start;
+        gap: 16px;
     }
     
     .filter-link {
@@ -500,84 +499,86 @@
         align-items: center;
         gap: 8px;
         padding: 8px 16px;
-        background: #f8fafc;
-        border: 2px solid #e2e8f0;
-        border-radius: 8px;
-        font-size: 14px;
-        font-weight: 600;
         color: #475569;
-        cursor: pointer;
+        font-size: 14px;
+        font-weight: 500;
+        border-radius: 8px;
         transition: all 0.2s ease;
+        cursor: pointer;
+        text-decoration: none;
     }
     
     .filter-link i {
+        color: #64748b;
         font-size: 14px;
-        color: #94a3b8;
     }
     
     .filter-link:hover {
-        background: #f1f5f9;
-        border-color: #94a3b8;
+        background: #f8fafc;
+        color: #2563eb;
+    }
+    
+    .filter-link:hover i {
+        color: #2563eb;
     }
     
     .filter-link.active {
-        background: #2563eb;
-        border-color: #2563eb;
-        color: white;
-    }
-    
-    .filter-link.active i {
-        color: white;
+        color: #2563eb;
+        font-weight: 600;
     }
     
     .btn-apply {
         display: inline-flex;
         align-items: center;
-        justify-content: center;
         gap: 8px;
-        padding: 8px 24px;
-        background: #10b981;
+        padding: 10px 28px;
+        background: #2563eb;
         color: white;
-        border: none;
-        border-radius: 8px;
         font-size: 14px;
         font-weight: 600;
+        border: none;
+        border-radius: 40px;
         cursor: pointer;
         transition: all 0.2s ease;
+        margin-left: auto;
+        box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);
     }
     
     .btn-apply:hover {
-        background: #059669;
+        background: #1d4ed8;
         transform: translateY(-1px);
+        box-shadow: 0 6px 10px -1px rgba(37, 99, 235, 0.3);
     }
     
     .btn-clear {
         display: inline-flex;
         align-items: center;
-        justify-content: center;
         gap: 8px;
-        padding: 8px 24px;
-        background: #ef4444;
-        color: white;
-        border: none;
-        border-radius: 8px;
+        padding: 10px 24px;
+        background: white;
+        color: #64748b;
         font-size: 14px;
         font-weight: 600;
+        border: 2px solid #e2e8f0;
+        border-radius: 40px;
         cursor: pointer;
         transition: all 0.2s ease;
         text-decoration: none;
     }
     
     .btn-clear:hover {
-        background: #dc2626;
-        transform: translateY(-1px);
+        background: #f8fafc;
+        border-color: #94a3b8;
+        color: #475569;
     }
     
     .advanced-filters-panel {
+        margin-top: 20px;
+        padding: 20px;
+        background: #f8fafc;
+        border-radius: 12px;
         display: none;
-        margin-top: 16px;
-        padding-top: 16px;
-        border-top: 1px solid #e2e8f0;
+        border: 1px solid #e2e8f0;
     }
     
     .advanced-filters-panel.show {
@@ -598,57 +599,109 @@
     
     .filter-group label {
         font-size: 12px;
-        font-weight: 700;
-        color: #1e293b;
+        font-weight: 600;
+        color: #64748b;
         text-transform: uppercase;
         letter-spacing: 0.5px;
     }
     
     .filter-select, .filter-input {
-        padding: 10px 12px;
+        width: 100%;
+        padding: 10px 14px;
         border: 2px solid #e2e8f0;
-        border-radius: 8px;
+        border-radius: 10px;
         font-size: 14px;
+        color: #1e293b;
         background: white;
         transition: all 0.2s ease;
     }
     
     .filter-select:focus, .filter-input:focus {
-        outline: none;
         border-color: #3b82f6;
-        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(16, 83, 192, 0.1);
     }
     
-    /* Estilos responsivos */
+    /* Estilos para media queries responsivas */
     @media (max-width: 768px) {
-        .filters-row {
+        .lineas-grid {
             gap: 8px;
         }
-        
-        .advanced-filters-grid {
-            grid-template-columns: 1fr;
+
+        .linea-item {
+            padding: 6px 16px;
+            font-size: 13px;
         }
-    }
-    
-    /* Estilos para media queries responsivas -->
-    @media (max-width: 768px) {
+
+        .filters-row {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .btn-apply {
+            margin-left: 0;
+            justify-content: center;
+        }
+
         .compact-table td, .compact-table th {
+            min-width: 100px;
+            font-size: 0.7rem !important;
             padding: 6px !important;
-            font-size: 0.65rem !important;
-            min-width: 80px;
         }
     }
-    
+
     @media (max-width: 480px) {
         .lineas-grid {
             flex-direction: column;
             align-items: stretch;
         }
-        
+
         .linea-item {
             width: 100%;
             justify-content: center;
         }
+    }
+
+    /* ESTILOS PARA SECCION DE TODAS LAS PASTEURIZADORAS */
+    .pasteurizadoras-section {
+        margin-top: 30px;
+    }
+
+    .pasteurizadora-card {
+        background: white;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        margin-bottom: 30px;
+        border: 1px solid #e2e8f0;
+    }
+
+    .pasteurizadora-card-header {
+        background: linear-gradient(135deg, #1e293b, #0f172a);
+        color: white;
+        padding: 15px 20px;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+
+    .pasteurizadora-card-header h3 {
+        font-size: 20px;
+        font-weight: 700;
+        margin: 0;
+    }
+
+    .pasteurizadora-card-header .badge {
+        background: rgba(255, 255, 255, 0.2);
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+    }
+
+    .pasteurizadora-card .table-wrapper {
+        border-radius: 0;
+        border: none;
+        border-top: 1px solid #e2e8f0;
     }
 
     /* ESTILOS PARA MODALES */
@@ -783,13 +836,13 @@
     {{-- HEADER --}}
     <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
         <div>
-            <a href="{{ route('pasteurizadora.dashboard') }}" class="inline-flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 rounded-lg transition-all duration-300">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <a href="{{ route('pasteurizadora.dashboard') }}" class="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 rounded-lg transition-all duration-300 group">
+                <svg class="w-5 h-5 group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
                 </svg>
                 <span class="font-medium">Volver</span>
             </a>
-            <h1 class="text-3xl font-bold text-gray-900 flex items-center gap-3 mt-3">
+            <h1 class="text-2xl font-bold text-gray-800 flex items-center gap-2">
                 <span>Análisis de Pasteurizadoras</span>
             </h1>
         </div>
@@ -948,24 +1001,24 @@
     {{-- ESTADÍSTICAS / INDICADORES --}}
     {{-- DIAGRAMA DE PASTEURIZADORA SEGUN LINEA SELECCIONADA --}}
     @if(!$mostrarTodas && isset($lineaSeleccionada) && is_object($lineaSeleccionada))
-        <div class="mb-6 bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-            <div class="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white">
+        <div class="mb-6 p-4 bg-white rounded-lg shadow-sm border border-gray-200">
+            <div class="flex items-center justify-between">
                 <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
                     <div>
-                        <h2 class="text-lg font-semibold flex items-center gap-2">
-                            <i class="fas fa-diagram-project text-sky-300"></i>
+                        <h2 class="text-lg font-semibold text-gray-700">
+                            <i class="fas fa-diagram-project text-blue-600 mr-2"></i>
                             <span>Diagrama {{ $lineaSeleccionada->nombre }}</span>
                         </h2>
-                        <p class="text-sm text-slate-300 mt-1">Referencia visual de 2 modulos de la linea seleccionada</p>
+                        <p class="text-sm text-gray-500 mt-1">Diagrama de referencia</p>
                     </div>
 
-                    <div class="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-wide">
+                    <div class="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
                         @if($tipoLineaSeleccionada)
-                            <span class="px-3 py-1 rounded-full bg-white/10 border border-white/15">
+                            <span class="px-3 py-1 rounded-full bg-slate-100 border border-slate-200">
                                 Tipo {{ $tipoLineaSeleccionada }}
                             </span>
                         @endif
-                        <span class="px-3 py-1 rounded-full bg-sky-500/20 text-sky-100 border border-sky-400/20">
+                        <span class="px-3 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-100">
                             {{ \App\Models\AnalisisPasteurizadora::getModulosPorLinea($lineaSeleccionada->nombre) }} modulos
                         </span>
                     </div>
@@ -973,12 +1026,12 @@
             </div>
 
             @if($diagramaPasteurizadoraPath)
-                <div class="p-6">
-                    <div class="rounded-xl border border-gray-200 bg-gradient-to-br from-slate-50 to-white p-4 md:p-6">
+                <div class="mt-4">
+                    <div class="flex justify-center">
                         <img
                             src="{{ asset($diagramaPasteurizadoraPath) }}"
                             alt="Diagrama Pasteurizadora {{ $lineaSeleccionada->nombre }}"
-                            class="max-w-full h-auto mx-auto rounded-lg border border-gray-300 shadow-md"
+                            class="max-w-full h-auto rounded-lg border border-gray-300 shadow-md"
                         >
                     </div>
 
@@ -991,7 +1044,7 @@
                     @endif
                 </div>
             @else
-                <div class="px-6 py-5">
+                <div class="mt-4">
                     <div class="rounded-lg border border-dashed border-amber-300 bg-amber-50 px-4 py-5 text-sm text-amber-800">
                         No hay un diagrama disponible para {{ $lineaSeleccionada->nombre }}.
                         Agrega una imagen en <span class="font-semibold">{{ $diagramasPasteurizadoraBase }}</span>
@@ -1001,10 +1054,10 @@
             @endif
         </div>
     @elseif($mostrarTodas)
-        <div class="mb-6 p-4 bg-sky-50 rounded-lg border border-sky-200">
+        <div class="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
             <div class="flex items-center gap-3">
-                <i class="fas fa-info-circle text-sky-500 text-xl"></i>
-                <p class="text-sky-700">
+                <i class="fas fa-info-circle text-blue-500 text-xl"></i>
+                <p class="text-blue-700">
                     Selecciona una pasteurizadora especifica para ver su diagrama
                 </p>
             </div>
@@ -1158,7 +1211,7 @@
     @endif
 
     {{-- SECCIÓN PRINCIPAL - TABLA DE ANÁLISIS --}}
-    <div class="space-y-6">
+    <div class="pasteurizadoras-section">
         @php
             $lineasToShow = $mostrarTodas ? $lineasFiltradas : collect([$lineaSeleccionada ?? null])->filter();
         @endphp
@@ -1192,40 +1245,44 @@
             @endphp
 
             @if(count($componentesLinea) > 0 && $modulosLinea->count() > 0)
-                <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                    <div class="bg-gradient-to-r from-gray-800 to-gray-900 text-white px-6 py-4">
-                        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                <div class="pasteurizadora-card">
+                    <div class="pasteurizadora-card-header">
+                        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 w-full">
                             <div class="flex items-center gap-3">
-                                <div class="w-10 h-10 bg-white/10 rounded-lg flex items-center justify-center">
-                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/>
-                                    </svg>
+                                <div class="w-12 h-12">
+                                    <img src="{{ asset('images/icono_pas.png') }}" alt="Icono" class="w-full h-full object-contain">
                                 </div>
                                 <div>
-                                    <h3 class="text-xl font-bold">{{ $linea->nombre }}</h3>
-                                    <p class="text-xs text-gray-300">{{ $totalModulos }} módulos | {{ count($componentesLinea) }} componentes</p>
+                                    <h3>{{ $linea->nombre }}</h3>
+                                    <div class="badge">{{ $totalModulos }} módulos | {{ count($componentesLinea) }} componentes</div>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-sm">
-                            <thead class="bg-gray-50 border-b border-gray-200">
-                                <tr>
-                                    <th class="sticky left-0 bg-gray-50 px-4 py-3 text-left font-semibold text-gray-900 border-r border-gray-200 min-w-[100px]">
-                                        Módulo
+                    <div class="table-wrapper">
+                        <div class="scroll-indicator">
+                            <i class="fas fa-arrows-alt-h mr-1"></i> Desplazate para ver mas
+                        </div>
+                        <table class="w-full compact-table border-collapse">
+                            <thead>
+                                <tr class="bg-gray-50 border-b border-gray-200">
+                                    <th class="sticky-left cell-header text-blue-900 font-bold px-3 py-2 border text-center whitespace-nowrap text-sm">
+                                        <div class="reductor-header">
+                                            <div class="reductor-name">MÓDULO</div>
+                                            <div class="reductor-label">COMPONENTE</div>
+                                        </div>
                                     </th>
                                     @foreach($componentesLinea as $codigo => $compData)
-                                        <th class="px-4 py-3 text-left font-semibold text-gray-900 min-w-[200px]">
-                                            <div class="flex flex-col items-center text-center gap-2">
-                                                <div class="text-sm font-semibold text-gray-900">
+                                        <th class="cell-header text-blue-900 font-bold px-3 py-2 border text-center whitespace-nowrap text-sm">
+                                            <div class="component-header">
+                                                <div class="component-name">
                                                     {{ $compData['nombre'] }}
                                                 </div>
                                                 <img
                                                     src="{{ asset('images/componentes-pasteurizadora/' . $codigo . '.png') }}"
                                                     alt="Icono {{ $compData['nombre'] }}"
-                                                    class="w-20 h-20 object-contain hover:scale-110 transition-transform"
+                                                    class="w-20 h-20 object-contain"
                                                     onerror="this.src='{{ asset('images/icono-pasteurizadora.png') }}'">
                                             </div>
                                         </th>
@@ -1234,9 +1291,11 @@
                             </thead>
                             <tbody>
                                 @foreach($modulosLinea as $moduloNumero)
-                                    <tr class="border-b border-gray-100 hover:bg-gray-50">
-                                        <td class="sticky left-0 {{ ($seguimientoLinea['modulos'][$moduloNumero]['completado'] ?? false) ? 'bg-green-50' : 'bg-white' }} px-4 py-3 font-medium text-gray-900 border-r border-gray-200">
-                                            <div>Módulo {{ $moduloNumero }}</div>
+                                    <tr>
+                                        <td class="sticky-left cell-header text-blue-900 font-bold px-3 py-2 border text-center whitespace-nowrap text-sm align-top">
+                                            <div class="reductor-header">
+                                                <div class="reductor-name">Módulo {{ $moduloNumero }}</div>
+                                            </div>
                                             @if($seguimientoLinea['modulos'][$moduloNumero]['completado'] ?? false)
                                                 <span class="mt-1 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-100 text-green-700 text-[11px] font-semibold">
                                                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1279,7 +1338,7 @@
                                                 $estadoPorNivel = [];
                                                 $siguienteRevision = null;
 
-                                                $bgColor = 'bg-white';
+                                                $bgColor = 'cell-empty';
                                                 $borderColor = '';
                                                 $estadoActual = '';
                                                 if ($celdaSeguimiento) {
@@ -1292,35 +1351,35 @@
                                                 if($hasData){
                                                     $estadoActual = $registro->estado ?? 'Buen estado';
                                                     if (\App\Models\AnalisisPasteurizadora::esEstadoCambiado($estadoActual)) {
-                                                        $bgColor = 'bg-blue-50';
-                                                        $borderColor = 'border-l-4 border-blue-500';
+                                                        $bgColor = 'cell-changed';
+                                                        $borderColor = '';
                                                     } elseif (\App\Models\AnalisisPasteurizadora::esEstadoDanado($estadoActual)) {
-                                                        $bgColor = 'bg-red-50';
-                                                        $borderColor = 'border-l-4 border-red-500';
+                                                        $bgColor = 'cell-danger';
+                                                        $borderColor = '';
                                                     } elseif (\App\Models\AnalisisPasteurizadora::esEstadoRequiereRevision($estadoActual)) {
-                                                        $bgColor = 'bg-orange-50';
-                                                        $borderColor = 'border-l-4 border-orange-500';
+                                                        $bgColor = 'cell-review';
+                                                        $borderColor = '';
                                                     } elseif (\App\Models\AnalisisPasteurizadora::esEstadoDesgaste($estadoActual)) {
-                                                        $bgColor = 'bg-yellow-50';
-                                                        $borderColor = 'border-l-4 border-yellow-500';
+                                                        $bgColor = 'cell-warning';
+                                                        $borderColor = '';
                                                     } else {
-                                                        $bgColor = 'bg-green-50';
-                                                        $borderColor = 'border-l-4 border-green-500';
+                                                        $bgColor = 'cell-ok';
+                                                        $borderColor = '';
                                                     }
 
                                                     if ($procesoCompletado) {
-                                                        $bgColor = 'bg-green-50';
-                                                        $borderColor = 'border-l-4 border-green-600 ring-1 ring-green-200';
+                                                        $bgColor = 'cell-ok';
+                                                        $borderColor = 'ring-1 ring-green-200';
                                                     }
                                                 }
                                             @endphp
 
                                             @if(!$brazoAplicaModulo)
-                                                <td class="px-4 py-3 align-middle bg-gray-50 text-center text-xs text-gray-400">
+                                                <td class="border px-3 py-2 align-middle cell-empty text-center text-xs text-gray-400">
                                                     No aplica
                                                 </td>
                                             @else
-                                            <td class="px-4 py-3 align-top {{ $bgColor }} {{ $borderColor }} cursor-pointer hover:shadow-md transition-all"
+                                            <td class="border px-3 py-2 align-top {{ $bgColor }} {{ $borderColor }} {{ $hasData ? 'analysis-cell' : 'analysis-cell no-data' }}"
                                                 @if($hasData)
                                                     onclick="openAnalysisDetail({{ json_encode([
                                                         'id' => $registro->id,
@@ -1464,7 +1523,7 @@
                                                         <div class="flex gap-2 pt-1">
                                                             @if(count($registro->evidencia_fotos ?? []) > 0)
                                                                 <button onclick="event.stopPropagation(); openAllImages({{ Illuminate\Support\Js::from($registro->evidencia_fotos ?? []) }}, {{ Illuminate\Support\Js::from($registro->numero_orden) }})"
-                                                                        class="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-xs transition">
+                                                                        class="inline-flex items-center justify-center gap-1 px-3 py-1.5 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition text-xs font-medium">
                                                                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                                                                     </svg>
@@ -1485,7 +1544,7 @@
                                                                     'lado' => $siguienteRevision['lado'] ?? '',
                                                                     'nivel' => $siguienteRevision['nivel'] ?? ''
                                                                 ]) }}"
-                                                                   class="inline-flex items-center gap-1 px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs transition"
+                                                                   class="inline-flex items-center justify-center gap-1 px-3 py-1.5 bg-green-100 text-green-700 rounded hover:bg-green-200 transition text-xs font-medium"
                                                                    onclick="event.stopPropagation();">
                                                                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
@@ -1500,7 +1559,7 @@
                                                                     'lado' => $siguienteRevision['lado'] ?? '',
                                                                     'nivel' => $siguienteRevision['nivel'] ?? ''
                                                                 ]) }}"
-                                                                   class="inline-flex items-center gap-1 px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs transition"
+                                                                   class="inline-flex items-center justify-center gap-1 px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 transition text-xs font-medium"
                                                                    onclick="event.stopPropagation();">
                                                                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
@@ -1511,7 +1570,7 @@
                                                         </div>
                                                     </div>
                                                 @else
-                                                    <div class="text-center py-4">
+                                                    <div class="empty-cell">
                                                         @if($procesoCompletado)
                                                             <div class="rounded-lg border border-green-200 bg-green-50 p-3 text-green-800">
                                                                 <svg class="w-10 h-10 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1520,10 +1579,10 @@
                                                                 <p class="text-xs font-bold">Proceso terminado</p>
                                                             </div>
                                                         @else
-                                                            <svg class="w-12 h-12 text-gray-300 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                                                            </svg>
-                                                            <p class="text-xs text-gray-400 mb-2">Sin análisis registrado</p>
+                                                            <div class="empty-cell-icon">
+                                                                <i class="fas fa-clipboard"></i>
+                                                            </div>
+                                                            <p class="text-xs text-gray-400 mb-2">Sin análisis</p>
                                                             <a href="{{ route('pasteurizadora.analisis-pasteurizadora.create-quick', [
                                                                 'linea_id' => $linea->id,
                                                                 'modulo' => $moduloNumero,
@@ -1531,7 +1590,7 @@
                                                                 'lado' => '',
                                                                 'nivel' => ''
                                                             ]) }}"
-                                                               class="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs transition"
+                                                               class="inline-flex items-center justify-center gap-1 px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 transition text-xs font-medium"
                                                                onclick="event.stopPropagation();">
                                                                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>

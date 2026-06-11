@@ -252,14 +252,7 @@
                         <p class="text-red-500 text-sm mt-3">{{ $message }}</p>
                     @enderror
 
-                    <div id="lados-pendientes-alert"
-                         class="{{ !empty($ladosPendientes) && $lado ? '' : 'hidden' }} mt-4 p-3 bg-yellow-100 border border-yellow-400 rounded-lg text-sm text-yellow-800">
-                    </div>
                 </div>
-                <p class="text-sm text-gray-600 mt-2">
-                    <i class="fas fa-info-circle text-blue-500 mr-1"></i>
-                    Marque los componentes que fueron revisados en este análisis
-                </p>
             </div>
 
             {{-- Fecha --}}
@@ -372,13 +365,6 @@
                                multiple
                                class="sr-only">
                     </div>
-                </div>
-                <div class="mt-4 rounded-lg border border-dashed border-gray-300 bg-white p-3">
-                    <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                        <p id="fotos_resumen" class="text-sm font-medium text-gray-600">Sin imagenes seleccionadas</p>
-                        <p class="text-xs text-gray-500">JPG, PNG, WEBP, GIF o BMP. Max. 5MB por imagen.</p>
-                    </div>
-                    <div id="preview_fotos" class="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4"></div>
                 </div>
 
                 @error('evidencia_fotos')
@@ -504,6 +490,10 @@ function renderChecklistQuick(totalComponentes, componentesYaRevisados, cantidad
 
 function renderLadosPendientesQuick(ladosPendientes, ladoActual) {
     const alertBox = document.getElementById('lados-pendientes-alert');
+
+    if (!alertBox) {
+        return;
+    }
 
     if (!ladoActual || !ladosPendientes || ladosPendientes.length === 0) {
         alertBox.classList.add('hidden');
