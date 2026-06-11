@@ -1,43 +1,104 @@
 <?php
-// app/Console/Commands/SendActivityNotifications.php
+
 namespace App\Console\Commands;
 
 use App\Services\NotificationService;
+use Carbon\CarbonImmutable;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
 
 class SendActivityNotifications extends Command
 {
-    protected $signature = 'notifications:send-activities';
-    protected $description = 'Send notifications for upcoming activities';
+    protected $signature = 'notifications:send-activities
+                            {--date= : Fecha/hora de referencia para simular el calculo}
+                            {--dry-run : Muestra el resultado sin crear notificaciones}';
 
-    protected $notificationService;
+    protected $description = 'Genera notificaciones internas para planes de accion proximos a vencer.';
 
-    public function __construct(NotificationService $notificationService)
-    {
+    public function __construct(
+        private readonly NotificationService $notificationService
+    ) {
         parent::__construct();
-        $this->notificationService = $notificationService;
     }
 
-    public function handle()
+    public function handle(): int
     {
-        $this->info('Iniciando envío de notificaciones...');
-        
+        $this->info('Evaluando planes de accion proximos a vencer...');
+
         try {
-            $resultados = $this->notificationService->verificarYNotificarActividadesProximas();
-            
-            $this->info("Total notificaciones enviadas: {$resultados['total']}");
-            
-            if (!empty($resultados['errores'])) {
-                $this->error("Errores encontrados: " . count($resultados['errores']));
-                Log::warning('Errores en notificaciones', $resultados['errores']);
+            $referenceTime = $this->resolveReferenceTime();
+            $dryRun = (bool) $this->option('dry-run');
+
+            if ($referenceTime) {
+                $this->line('Fecha de referencia: ' . $referenceTime->format('Y-m-d H:i:s'));
             }
-            
-            return Command::SUCCESS;
-        } catch (\Exception $e) {
-            $this->error('Error: ' . $e->getMessage());
-            Log::error('Error en comando de notificaciones: ' . $e->getMessage());
-            return Command::FAILURE;
+
+            if ($dryRun) {
+                $this->warn('Modo simulacion activo: no se crearan notificaciones.');
+            }
+
+            $results = $this->notificationService
+                ->verificarYNotificarActividadesProximas($referenceTime, $dryRun);
+
+            if (!empty($results['alerts'])) {
+                $this->line('Planes detectados:');
+
+                foreach ($results['alerts'] as $alert) {
+                    $this->line(sprintf(
+                        '- Plan %d | %s | %s | %s | vence %s | faltan %d dias',
+                        $alert['plan_id'],
+                        $alert['linea'],
+                        $alert['pcm'],
+                        $alert['actividad'] ?? 'Sin actividad',
+                        CarbonImmutable::parse($alert['fecha_limite'])->format('d/m/Y'),
+                        $alert['dias_restantes']
+                    ));
+                }
+            }
+
+            $this->line(sprintf(
+                'Planes evaluados: %d | Destinatarios: %d | Simuladas: %d | Enviadas: %d | Omitidas: %d | Errores: %d',
+                $results['plans_evaluated'],
+                $results['recipients'],
+                $results['simulated'],
+                $results['sent'],
+                $results['skipped'],
+                count($results['errores'])
+            ));
+
+            if ($dryRun) {
+                return self::SUCCESS;
+            }
+
+            if (!empty($results['errores'])) {
+                Log::warning('El comando de planes de accion termino con errores.', $results);
+
+                return self::FAILURE;
+            }
+
+            return self::SUCCESS;
+        } catch (\Throwable $exception) {
+            Log::error('Error no controlado al generar notificaciones de planes de accion.', [
+                'error' => $exception->getMessage(),
+            ]);
+
+            $this->error($exception->getMessage());
+
+            return self::FAILURE;
         }
+    }
+
+    private function resolveReferenceTime(): ?CarbonImmutable
+    {
+        $dateOption = $this->option('date');
+
+        if (!$dateOption) {
+            return null;
+        }
+
+        return CarbonImmutable::parse(
+            (string) $dateOption,
+            config('elongacion-alerts.timezone', 'America/Mexico_City')
+        );
     }
 }

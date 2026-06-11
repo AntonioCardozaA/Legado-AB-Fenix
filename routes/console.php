@@ -13,3 +13,9 @@ Schedule::command('elongaciones:send-reminders')
     ->timezone(config('elongacion-alerts.timezone', 'America/Mexico_City'))
     ->name('elongaciones-send-reminders')
     ->withoutOverlapping(30);
+
+Schedule::command('notifications:send-activities')
+    ->dailyAt(config('elongacion-alerts.schedule_time', '09:00'))
+    ->timezone(config('elongacion-alerts.timezone', 'America/Mexico_City'))
+    ->name('notifications-send-activities')
+    ->withoutOverlapping(30);

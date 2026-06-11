@@ -12,6 +12,7 @@ use App\Http\Controllers\LineaController;
 use App\Http\Controllers\ApiController;
 use App\Http\Controllers\AnalisisTendenciaMensualLavadoraController;
 use App\Http\Controllers\HistoricoRevisadosController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\NotificationSettingsController;
 use App\Http\Controllers\ProfileController;
 
@@ -412,19 +413,22 @@ Route::prefix('pasteurizadora')->group(function () {
     | NOTIFICACIONES Y PERFIL
     |--------------------------------------------------------------------------
     */
-    Route::get('/profile/notifications', [ProfileController::class, 'notificationSettings'])
+    Route::get('/profile/notifications', [NotificationSettingsController::class, 'index'])
         ->name('profile.notifications');
 
-    Route::put('/profile/notifications', [ProfileController::class, 'updateNotificationSettings'])
+    Route::put('/profile/notifications', [NotificationSettingsController::class, 'update'])
         ->name('profile.notifications.update');
 
-    Route::post('/notifications/{id}/read', [App\Http\Controllers\NotificationController::class, 'markAsRead'])
+    Route::get('/notifications', [NotificationController::class, 'index'])
+        ->name('notifications.index');
+
+    Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead'])
         ->name('notifications.read');
 
-    Route::post('/notifications/read-all', [App\Http\Controllers\NotificationController::class, 'markAllAsRead'])
+    Route::post('/notifications/read-all', [NotificationController::class, 'markAllAsRead'])
         ->name('notifications.read-all');
 
-    Route::get('/notifications/unread-count', [App\Http\Controllers\NotificationController::class, 'unreadCount'])
+    Route::get('/notifications/unread-count', [NotificationController::class, 'unreadCount'])
         ->name('notifications.unread-count');
 });
 

@@ -3,8 +3,10 @@
 namespace App\Services;
 
 use App\Models\Elongacion;
+use App\Models\NotificationDispatchLog;
 use App\Models\ElongacionReminderNotification;
 use App\Models\UserNotificationSetting;
+use App\Notifications\ElongacionReminderDatabaseNotification;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Collection;
@@ -17,7 +19,8 @@ use Throwable;
 class ElongacionReminderService
 {
     public function __construct(
-        private readonly WhatsAppService $whatsAppService
+        private readonly WhatsAppService $whatsAppService,
+        private readonly NotificationRecipientService $notificationRecipientService
     ) {
     }
 
@@ -141,6 +144,104 @@ class ElongacionReminderService
                 $this->markAsFailed($notification, $now, $exception);
                 $results['failed'][] = [
                     'recipient' => $recipient['number'],
+                    'error' => $exception->getMessage(),
+                ];
+            }
+        }
+
+        return $results;
+    }
+
+    /**
+     * @return array{
+     *     date: string,
+     *     pending_lines: int,
+     *     recipients: int,
+     *     simulated: int,
+     *     sent: int,
+     *     skipped: int,
+     *     dry_run: bool,
+     *     alerts: array<int, array{
+     *         linea: string,
+     *         linea_id: int|null,
+     *         last_recorded_at: string,
+     *         due_at: string,
+     *         days_remaining: int,
+     *         status: string
+     *     }>,
+     *     failed: array<int, array{recipient: string, error: string}>
+     * }
+     */
+    public function sendInternalNotifications(?CarbonImmutable $referenceTime = null, bool $dryRun = false): array
+    {
+        $timezone = $this->timezone();
+        $now = ($referenceTime ?? CarbonImmutable::now($timezone))->setTimezone($timezone);
+        $today = $now->startOfDay();
+        $pendingAlerts = $this->getPendingAlerts($today)
+            ->filter(static fn (array $alert): bool => $alert['alert_starts_at']->equalTo($today))
+            ->values();
+        $recipients = $this->notificationRecipientService->getInternalRecipients();
+
+        $results = [
+            'date' => $today->toDateString(),
+            'pending_lines' => $pendingAlerts->count(),
+            'recipients' => $recipients->count(),
+            'simulated' => 0,
+            'sent' => 0,
+            'skipped' => 0,
+            'dry_run' => $dryRun,
+            'alerts' => $this->buildSnapshot($pendingAlerts),
+            'failed' => [],
+        ];
+
+        if ($pendingAlerts->isEmpty() || $recipients->isEmpty()) {
+            return $results;
+        }
+
+        foreach ($recipients as $recipient) {
+            $alertsForRecipient = $this->notificationRecipientService
+                ->filterAlertsForLinePreference($pendingAlerts, $recipient['line_ids']);
+
+            if ($alertsForRecipient->isEmpty()) {
+                continue;
+            }
+
+            if ($dryRun) {
+                $results['simulated']++;
+                continue;
+            }
+
+            $user = $recipient['user'];
+            $uniqueKey = 'elongacion:' . $today->toDateString();
+
+            $log = NotificationDispatchLog::query()->firstOrCreate(
+                [
+                    'type' => 'elongacion_reminder',
+                    'notifiable_type' => $user::class,
+                    'notifiable_id' => $user->getKey(),
+                    'unique_key' => $uniqueKey,
+                ],
+                [
+                    'context' => [
+                        'lineas' => $alertsForRecipient->pluck('linea')->values()->all(),
+                        'linea_ids' => $alertsForRecipient->pluck('linea_id')->filter()->values()->all(),
+                    ],
+                    'sent_at' => $now,
+                ]
+            );
+
+            if (!$log->wasRecentlyCreated) {
+                $results['skipped']++;
+                continue;
+            }
+
+            try {
+                $user->notify(new ElongacionReminderDatabaseNotification($alertsForRecipient));
+                $results['sent']++;
+            } catch (Throwable $exception) {
+                $log->delete();
+                $results['failed'][] = [
+                    'recipient' => $user->email,
                     'error' => $exception->getMessage(),
                 ];
             }

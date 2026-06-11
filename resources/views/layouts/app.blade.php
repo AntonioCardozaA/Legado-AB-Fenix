@@ -242,20 +242,21 @@
                 <div class="flex items-center space-x-2 sm:space-x-4">
                     <!-- NOTIFICACIONES DROPDOWN -->
                     @auth
+                    @php
+                        $notificationItems = auth()->user()->notifications()->latest()->limit(10)->get();
+                        $notificationsCount = auth()->user()->notifications()->count();
+                        $unreadCount = auth()->user()->unreadNotifications()->count();
+                    @endphp
                     <div class="relative" x-data="{ open: false }">
                         <button @click="open = !open"
                                 @click.away="open = false"
                                 aria-label="Notificaciones"
                                 class="p-2 rounded-full bg-gray-100 hover:bg-gray-200 transition relative">
                             <i class="fas fa-bell text-gray-600"></i>
-                            @php
-                                $unreadCount = auth()->user()->unreadNotifications->count();
-                            @endphp
-                            @if($unreadCount > 0)
-                                <span class="absolute top-0 right-0 inline-flex items-center justify-center px-1 py-0.5 text-xs font-bold leading-none text-white transform translate-x-1/2 -translate-y-1/2 bg-red-600 rounded-full">
-                                    {{ $unreadCount > 9 ? '9+' : $unreadCount }}
-                                </span>
-                            @endif
+                            <span id="notification-badge"
+                                  class="absolute top-0 right-0 inline-flex items-center justify-center px-1 py-0.5 text-xs font-bold leading-none text-white transform translate-x-1/2 -translate-y-1/2 bg-red-600 rounded-full {{ $unreadCount > 0 ? '' : 'hidden' }}">
+                                {{ $unreadCount > 9 ? '9+' : $unreadCount }}
+                            </span>
                         </button>
 
                         <div x-show="open"
@@ -281,7 +282,7 @@
                             </div>
 
                             <div class="max-h-96 overflow-y-auto">
-                                @forelse(auth()->user()->notifications()->take(10)->get() as $notification)
+                                @forelse($notificationItems as $notification)
                                     <a href="{{ $notification->data['url'] ?? '#' }}"
                                        class="block px-4 py-3 hover:bg-gray-50 border-b border-gray-100 {{ $notification->read_at ? '' : 'bg-blue-50' }}"
                                        onclick="event.preventDefault(); markAsRead('{{ $notification->id }}', '{{ $notification->data['url'] ?? '#' }}')">
@@ -309,9 +310,9 @@
                                 @endforelse
                             </div>
 
-                            @if(auth()->user()->notifications()->count() > 10)
+                            @if($notificationsCount > 10)
                                 <div class="px-4 py-2 bg-gray-50 border-t border-gray-200 text-center">
-                                    <a href="{{ route('profile.notifications') }}" class="text-xs text-blue-600 hover:text-blue-800">
+                                    <a href="{{ route('notifications.index') }}" class="text-xs text-blue-600 hover:text-blue-800">
                                         Ver todas las notificaciones
                                     </a>
                                 </div>
@@ -396,12 +397,20 @@ function markAsRead(notificationId, url) {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            window.location.href = url;
+            if (url && url !== '#') {
+                window.location.href = url;
+            } else {
+                window.location.reload();
+            }
         }
     })
     .catch(error => {
         console.error('Error:', error);
-        window.location.href = url;
+        if (url && url !== '#') {
+            window.location.href = url;
+        } else {
+            window.location.reload();
+        }
     });
 }
 
@@ -413,15 +422,17 @@ setInterval(function() {
     })
     .then(response => response.json())
     .then(data => {
-        const badge = document.querySelector('.fa-bell + span');
+        const badge = document.getElementById('notification-badge');
 
-        if (badge) {
-            if (data.count > 0) {
-                badge.textContent = data.count > 9 ? '9+' : data.count;
-                badge.classList.remove('hidden');
-            } else {
-                badge.classList.add('hidden');
-            }
+        if (!badge) {
+            return;
+        }
+
+        if (data.count > 0) {
+            badge.textContent = data.count > 9 ? '9+' : data.count;
+            badge.classList.remove('hidden');
+        } else {
+            badge.classList.add('hidden');
         }
     });
 }, 30000);

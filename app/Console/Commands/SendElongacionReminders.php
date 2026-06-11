@@ -38,6 +38,7 @@ class SendElongacionReminders extends Command
             }
 
             $results = $this->reminderService->sendPendingAlerts($referenceTime, $dryRun);
+            $internalResults = $this->reminderService->sendInternalNotifications($referenceTime, $dryRun);
 
             if (!empty($results['alerts'])) {
                 $this->line('Lineas pendientes:');
@@ -66,7 +67,7 @@ class SendElongacionReminders extends Command
             }
 
             $this->line(sprintf(
-                'Pendientes: %d | Destinatarios: %d | Simulados: %d | Enviados: %d | Omitidos: %d | Fallidos: %d',
+                'WhatsApp -> Pendientes: %d | Destinatarios: %d | Simulados: %d | Enviados: %d | Omitidos: %d | Fallidos: %d',
                 $results['pending_lines'],
                 $results['recipients'],
                 $results['simulated'],
@@ -75,12 +76,25 @@ class SendElongacionReminders extends Command
                 count($results['failed'])
             ));
 
+            $this->line(sprintf(
+                'Internas -> Pendientes: %d | Destinatarios: %d | Simulados: %d | Enviadas: %d | Omitidas: %d | Fallidas: %d',
+                $internalResults['pending_lines'],
+                $internalResults['recipients'],
+                $internalResults['simulated'],
+                $internalResults['sent'],
+                $internalResults['skipped'],
+                count($internalResults['failed'])
+            ));
+
             if ($dryRun) {
                 return self::SUCCESS;
             }
 
-            if (!empty($results['failed'])) {
-                Log::warning('El comando de recordatorios de elongacion termino con fallos.', $results);
+            if (!empty($results['failed']) || !empty($internalResults['failed'])) {
+                Log::warning('El comando de recordatorios de elongacion termino con fallos.', [
+                    'whatsapp' => $results,
+                    'database' => $internalResults,
+                ]);
                 return self::FAILURE;
             }
 

@@ -570,7 +570,7 @@ $componente = Componente::firstOrCreate(
                 . "📝 Actividad: {$request->actividad}\n";
 
             // Número en formato internacional (México: 521...)
-            $numero = "5214921933175"; // numero
+            $numero = "5214981239090"; // numero
 
             try {
                 WhatsAppService::enviarMensaje($numero, $mensaje);

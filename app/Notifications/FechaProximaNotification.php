@@ -2,138 +2,161 @@
 
 namespace App\Notifications;
 
+use App\Models\PlanAccion;
 use Illuminate\Bus\Queueable;
-use Illuminate\Notifications\Notification;
-use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Notifications\Messages\MailMessage;
+use Illuminate\Notifications\Notification;
 
 class FechaProximaNotification extends Notification implements ShouldQueue
 {
     use Queueable;
 
-    protected $plan;
-    protected $pcm;
-    protected $diasRestantes;
-    protected $emailToUse;
-
-    public function __construct($plan, $pcm, $diasRestantes, $emailToUse = null)
-    {
-        $this->plan = $plan;
-        $this->pcm = $pcm;
-        $this->diasRestantes = (int) $diasRestantes;
-        $this->emailToUse = $emailToUse;
+    public function __construct(
+        protected PlanAccion $plan,
+        protected string $pcm,
+        protected int $diasRestantes
+    ) {
     }
 
-    public function via($notifiable)
+    public function via($notifiable): array
     {
         $channels = ['database'];
-        
         $settings = $notifiable->notificationSettings;
-        
+
         if ($settings && $settings->email_notifications) {
             $channels[] = 'mail';
         }
-        
+
         return $channels;
     }
 
-    public function toMail($notifiable)
+    public function toMail($notifiable): MailMessage
     {
         $fecha = $this->getFechaPcm();
         $estado = $this->getEstadoNotificacion();
-        
-        // Usar el email personalizado si existe
-        $email = $this->emailToUse ?? $notifiable->email;
-        
+
         return (new MailMessage)
             ->subject($estado['asunto'])
-            ->greeting('¡Hola ' . $notifiable->name . '!')
+            ->greeting('Hola ' . $notifiable->name . ',')
             ->line($estado['mensaje'])
             ->line('**Actividad:** ' . $this->plan->actividad)
-            ->line('**Línea:** ' . ($this->plan->linea->nombre_completo ?? 'No asignada'))
+            ->line('**Linea:** ' . $this->resolveLineaNombre())
             ->line('**PCM:** ' . strtoupper($this->pcm))
-            ->line('**Fecha límite:** ' . $fecha->format('d/m/Y'))
-            ->line('**Días restantes:** ' . abs($this->diasRestantes))
-            ->action('Ver actividad', url('/plan-accion/' . $this->plan->id . '?tipo=lavadora'))
+            ->line('**Fecha limite:** ' . $fecha->format('d/m/Y'))
+            ->line('**Dias restantes:** ' . max($this->diasRestantes, 0))
+            ->action('Ver plan', $this->resolveUrl())
             ->line('Por favor, toma las acciones necesarias.')
-            ->salutation('Saludos, Sistema de Gestión');
+            ->salutation('Saludos, Sistema de Gestion');
     }
 
-    public function toArray($notifiable)
+    /**
+     * @return array<string, mixed>
+     */
+    public function toArray($notifiable): array
     {
         $fecha = $this->getFechaPcm();
         $estado = $this->getEstadoNotificacion();
+        $lineaNombre = $this->resolveLineaNombre();
+        $message = sprintf(
+            'PLANES DE ACCION POR VENCER: El plan "%s" de la %s vence el %s.',
+            $this->plan->actividad,
+            $lineaNombre,
+            $fecha->format('d/m/Y')
+        );
 
         return [
+            'type' => 'plan_accion_due',
             'plan_id' => $this->plan->id,
             'actividad' => $this->plan->actividad,
-            'linea' => $this->plan->linea->nombre_completo ?? 'No asignada',
+            'linea' => $lineaNombre,
             'linea_id' => $this->plan->linea_id,
-            'pcm' => $this->pcm,
+            'pcm' => strtoupper($this->pcm),
             'fecha_limite' => $fecha->format('Y-m-d'),
-            'dias_restantes' => abs($this->diasRestantes),
+            'dias_restantes' => max($this->diasRestantes, 0),
             'tipo' => $estado['tipo'],
-            'mensaje' => $estado['mensaje_corto'],
-            'url' => url('/plan-accion/' . $this->plan->id . '?tipo=lavadora'),
-            'prioridad' => $this->getPrioridad()
+            'title' => 'Plan de accion por vencer',
+            'mensaje' => $message,
+            'message' => $message,
+            'url' => $this->resolveUrl(),
+            'prioridad' => $this->getPrioridad(),
         ];
     }
 
     protected function getFechaPcm()
     {
-        switch ($this->pcm) {
-            case 'pcm1':
-                return $this->plan->fecha_pcm1;
-            case 'pcm2':
-                return $this->plan->fecha_pcm2;
-            case 'pcm3':
-                return $this->plan->fecha_pcm3;
-            case 'pcm4':
-                return $this->plan->fecha_pcm4;
-            default:
-                return now();
-        }
+        return match ($this->pcm) {
+            'pcm1' => $this->plan->fecha_pcm1,
+            'pcm2' => $this->plan->fecha_pcm2,
+            'pcm3' => $this->plan->fecha_pcm3,
+            'pcm4' => $this->plan->fecha_pcm4,
+            default => now(),
+        };
     }
 
-    protected function getEstadoNotificacion()
+    /**
+     * @return array{asunto: string, mensaje: string, mensaje_corto: string, tipo: string}
+     */
+    protected function getEstadoNotificacion(): array
     {
         if ($this->diasRestantes < 0) {
             return [
-                'asunto' => '⚠️ ACTIVIDAD VENCIDA - Plan de Acción',
-                'mensaje' => 'La siguiente actividad se encuentra VENCIDA:',
-                'mensaje_corto' => "Actividad VENCIDA: {$this->plan->actividad}",
-                'tipo' => 'vencida'
-            ];
-        } elseif ($this->diasRestantes == 0) {
-            return [
-                'asunto' => '🔴 ACTIVIDAD PARA HOY - Plan de Acción',
-                'mensaje' => 'La siguiente actividad debe realizarse HOY:',
-                'mensaje_corto' => "Actividad para HOY: {$this->plan->actividad}",
-                'tipo' => 'hoy'
-            ];
-        } elseif ($this->diasRestantes <= 3) {
-            return [
-                'asunto' => '🟡 ACTIVIDAD PRÓXIMA - Plan de Acción',
-                'mensaje' => "La siguiente actividad vence en {$this->diasRestantes} días:",
-                'mensaje_corto' => "Actividad próxima ({$this->diasRestantes} días): {$this->plan->actividad}",
-                'tipo' => 'proxima'
-            ];
-        } else {
-            return [
-                'asunto' => '🔔 RECORDATORIO - Plan de Acción',
-                'mensaje' => "Recordatorio: Actividad programada para dentro de {$this->diasRestantes} días:",
-                'mensaje_corto' => "Recordatorio ({$this->diasRestantes} días): {$this->plan->actividad}",
-                'tipo' => 'recordatorio'
+                'asunto' => 'ACTIVIDAD VENCIDA - Plan de Accion',
+                'mensaje' => 'La siguiente actividad se encuentra vencida:',
+                'mensaje_corto' => "Actividad vencida: {$this->plan->actividad}",
+                'tipo' => 'vencida',
             ];
         }
+
+        if ($this->diasRestantes === 0) {
+            return [
+                'asunto' => 'ACTIVIDAD PARA HOY - Plan de Accion',
+                'mensaje' => 'La siguiente actividad debe realizarse hoy:',
+                'mensaje_corto' => "Actividad para hoy: {$this->plan->actividad}",
+                'tipo' => 'hoy',
+            ];
+        }
+
+        if ($this->diasRestantes <= 3) {
+            return [
+                'asunto' => 'ACTIVIDAD PROXIMA - Plan de Accion',
+                'mensaje' => "La siguiente actividad vence en {$this->diasRestantes} dias:",
+                'mensaje_corto' => "Actividad proxima ({$this->diasRestantes} dias): {$this->plan->actividad}",
+                'tipo' => 'proxima',
+            ];
+        }
+
+        return [
+            'asunto' => 'RECORDATORIO - Plan de Accion',
+            'mensaje' => "Recordatorio: actividad programada para dentro de {$this->diasRestantes} dias:",
+            'mensaje_corto' => "Recordatorio ({$this->diasRestantes} dias): {$this->plan->actividad}",
+            'tipo' => 'recordatorio',
+        ];
     }
 
-    protected function getPrioridad()
+    protected function getPrioridad(): string
     {
-        if ($this->diasRestantes < 0) return 'alta';
-        if ($this->diasRestantes <= 1) return 'alta';
-        if ($this->diasRestantes <= 3) return 'media';
+        if ($this->diasRestantes <= 1) {
+            return 'alta';
+        }
+
+        if ($this->diasRestantes <= 3) {
+            return 'media';
+        }
+
         return 'baja';
+    }
+
+    protected function resolveLineaNombre(): string
+    {
+        return $this->plan->linea?->nombre ?? 'Linea sin asignar';
+    }
+
+    protected function resolveUrl(): string
+    {
+        return route('plan-accion.edit', [
+            'plan_accion' => $this->plan->id,
+            'tipo' => $this->plan->tipo_equipo,
+        ]);
     }
 }

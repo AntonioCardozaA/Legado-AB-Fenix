@@ -541,7 +541,7 @@ public function pasteurizadoraOperativo(Request $request)
         } elseif ($analisisDesgaste > 0) {
             $nivel = 'riesgo';
             $color = 'orange';
-            $mensaje = 'Presenta componentes con condición severa o moderada, programar mantenimiento.';
+            $mensaje = 'Presenta componentes con daños severos o moderados, programar mantenimiento.';
         } elseif ($accionesPendientes > 0) {
             $nivel = 'riesgo';
             $color = 'orange';
@@ -549,7 +549,7 @@ public function pasteurizadoraOperativo(Request $request)
         } elseif ($elongacionCompra) {
             $nivel = 'riesgo';
             $color = 'orange';
-            $mensaje = 'Elongación en nivel de compra (>1.3%), considerar cambio de cadena.';
+            $mensaje = 'Elongación en nivel de compra (>1.3%), considerar compra de cadena';
         } elseif (count($analisisRevision) > 0) {
             $nivel = 'operativo';
             $color = 'yellow';

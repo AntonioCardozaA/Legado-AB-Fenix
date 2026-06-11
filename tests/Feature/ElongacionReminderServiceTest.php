@@ -6,6 +6,7 @@ use App\Models\CadenaCiclo;
 use App\Models\Elongacion;
 use App\Models\ElongacionReminderNotification;
 use App\Models\Linea;
+use App\Models\User;
 use App\Services\ElongacionReminderService;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -175,6 +176,35 @@ class ElongacionReminderServiceTest extends TestCase
         $this->assertSame(0, $results['sent']);
         $this->assertCount(1, $results['recipient_targets']);
         Http::assertNothingSent();
+    }
+
+    public function test_it_creates_a_single_internal_notification_on_the_alert_start_date(): void
+    {
+        $user = User::factory()->create();
+
+        $this->crearLinea('L-04');
+        $this->crearElongacion('L-04', '2026-03-30 18:00:00');
+
+        $service = app(ElongacionReminderService::class);
+        $referenceTime = CarbonImmutable::parse('2026-05-27 09:00:00', 'America/Mexico_City');
+
+        $firstRun = $service->sendInternalNotifications($referenceTime);
+        $secondRun = $service->sendInternalNotifications($referenceTime->addHour());
+
+        $this->assertSame(1, $firstRun['sent']);
+        $this->assertSame(1, $firstRun['pending_lines']);
+        $this->assertSame(0, $secondRun['sent']);
+        $this->assertSame(1, $secondRun['skipped']);
+
+        $user->refresh();
+
+        $this->assertSame(1, $user->notifications()->count());
+        $this->assertSame(1, $user->unreadNotifications()->count());
+
+        $notification = $user->notifications()->firstOrFail();
+
+        $this->assertSame('elongacion_reminder', $notification->data['type']);
+        $this->assertSame(['L-04'], $notification->data['lineas']);
     }
 
     private function crearLinea(string $nombre): Linea
