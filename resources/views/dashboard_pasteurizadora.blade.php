@@ -142,13 +142,13 @@
     }
 
     .lavadora-card.riesgo-estado {
-        background-color: #fefce8;
-        border-left: 6px solid var(--warning-yellow);
+        background-color: #fff7ed;
+        border-left: 6px solid var(--operational-orange);
     }
 
     .lavadora-card.operativo-estado {
-        background-color: #fff7ed;
-        border-left: 6px solid var(--operational-orange);
+        background-color: #fefce8;
+        border-left: 6px solid var(--warning-yellow);
     }
 
     .lavadora-card.critico-estado {
@@ -182,8 +182,8 @@
     }
 
     .buen-estado .status-icon { color: var(--success-green); }
-    .operativo-estado .status-icon { color: var(--operational-orange); }
-    .riesgo-estado .status-icon { color: var(--warning-yellow); }
+    .operativo-estado .status-icon { color: var(--warning-yellow); }
+    .riesgo-estado .status-icon { color: var(--operational-orange); }
     .critico-estado .status-icon { color: var(--danger-red); }
 
     .status-tag {
@@ -198,8 +198,8 @@
     }
 
     .status-tag.bueno { background: var(--success-light); color: #065f46; }
-    .status-tag.operativo { background: var(--operational-light); color: #9a3412; }
-    .status-tag.riesgo { background: var(--warning-light); color: #92400e; }
+    .status-tag.operativo { background: var(--warning-light); color: #92400e; }
+    .status-tag.riesgo { background: var(--operational-light); color: #9a3412; }
     .status-tag.critico { background: var(--danger-light); color: #991b1b; }
 
     .lavadora-card-body {
@@ -394,10 +394,35 @@
 
     .lavadora-card-footer {
         padding: 8px 12px;
-        background: linear-gradient(135deg, #f8fafc, #f1f5f9);
-        border-top: 1px solid var(--border-light);
+        background: transparent;
+        border-top: 1px solid rgba(148, 163, 184, 0.18);
         display: flex;
         justify-content: flex-end;
+    }
+
+    .lavadora-card-action {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 16px;
+        border-radius: 10px;
+        border: 1px solid rgba(148, 163, 184, 0.35);
+        background: rgba(255, 255, 255, 0.92);
+        color: #334155;
+        font-size: 0.875rem;
+        font-weight: 600;
+        box-shadow: var(--shadow-sm);
+        transition: var(--transition);
+    }
+
+    .lavadora-card-action:hover {
+        background: white;
+        transform: translateY(-1px);
+    }
+
+    .critico-estado .lavadora-card-footer {
+        background: linear-gradient(135deg, rgba(239, 68, 68, 0.18), rgba(220, 38, 38, 0.26));
+        border-top-color: rgba(185, 28, 28, 0.18);
     }
 
     .chart-card {
@@ -888,15 +913,15 @@
             <div class="stat-label">Alertas Críticas</div>
             <div class="stat-value" style="color: var(--danger-red);">{{ $resumenPasteurizadora['alertas_criticas'] }}</div>
         </div>
-        <div class="stat-card" style="border-top: 4px solid var(--warning-yellow);">
-            <div class="stat-icon"><i class="fas fa-chart-line"></i></div>
-            <div class="stat-label">En Riesgo</div>
-            <div class="stat-value" style="color: var(--warning-yellow);">{{ $resumenPasteurizadora['en_riesgo'] }}</div>
-        </div>
         <div class="stat-card" style="border-top: 4px solid var(--operational-orange);">
+            <div class="stat-icon"><i class="fas fa-chart-line"></i></div>
+            <div class="stat-label">Severo / Moderado</div>
+            <div class="stat-value" style="color: var(--operational-orange);">{{ $resumenPasteurizadora['en_riesgo'] }}</div>
+        </div>
+        <div class="stat-card" style="border-top: 4px solid var(--warning-yellow);">
             <div class="stat-icon"><i class="fas fa-tools"></i></div>
             <div class="stat-label">Requiere Revisión</div>
-            <div class="stat-value" style="color: var(--operational-orange);">{{ $resumenPasteurizadora['requiere_revision'] }}</div>
+            <div class="stat-value" style="color: var(--warning-yellow);">{{ $resumenPasteurizadora['requiere_revision'] }}</div>
         </div>
         <div class="stat-card" style="border-top: 4px solid var(--success-green);">
             <div class="stat-icon"><i class="fas fa-check-circle"></i></div>
@@ -939,7 +964,7 @@
                     <div>
                         <span class="status-tag {{ $nivel === 'bueno' ? 'bueno' : ($nivel === 'operativo' ? 'operativo' : ($nivel === 'riesgo' ? 'riesgo' : 'critico')) }}">
                             <i class="fas {{ $nivel === 'bueno' ? 'fa-check-circle' : ($nivel === 'operativo' ? 'fa-tools' : ($nivel === 'riesgo' ? 'fa-exclamation-triangle' : 'fa-times-circle')) }}"></i>
-                            {{ ucfirst($nivel) }}
+                            {{ $nivel === 'bueno' ? 'Buen estado' : ($nivel === 'operativo' ? 'Requiere revisión' : ($nivel === 'riesgo' ? 'Severo / Moderado' : 'Crítico')) }}
                         </span>
                     </div>
                 </div>
@@ -1036,7 +1061,7 @@
                 </div>
                 <div class="lavadora-card-footer">
                     <button onclick='showPasteurizadoraDetail(@json($pasteurizadora))'
-                            class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition text-sm font-medium shadow-sm">
+                            class="lavadora-card-action">
                         <i class="fas fa-chart-simple mr-1"></i> Ver Detalle Completo
                     </button>
                 </div>
@@ -1084,6 +1109,12 @@
                 @forelse($rankingPasteurizadoras as $index => $item)
                     @php
                         $estado = $item['estado'];
+                        $nivelEstado = $estado['nivel'] ?? 'bueno';
+                        $estadoLabel = $nivelEstado === 'bueno'
+                            ? 'Buen estado'
+                            : ($nivelEstado === 'operativo'
+                                ? 'Requiere revisión'
+                                : ($nivelEstado === 'riesgo' ? 'Severo / Moderado' : 'Crítico'));
                         $pendientes = (int) ($estado['acciones_pendientes'] ?? 0);
                     @endphp
                     <li class="ranking-item">
@@ -1094,7 +1125,7 @@
                             <div class="ranking-linea">{{ $item['nombre'] }}</div>
                             <div class="ranking-puntaje">
                                 <i class="fas fa-star"></i>
-                                Estado: <strong>{{ ucfirst($estado['nivel'] ?? 'bueno') }}</strong>
+                                Estado: <strong>{{ $estadoLabel }}</strong>
                             </div>
                         </div>
                         <div class="ranking-badge">
@@ -1252,28 +1283,35 @@
             type: 'bar',
             data: {
                 labels: fallasPorLineaPasteurizadora.map(item => item.linea),
-                datasets: [{
-                    label: 'Total de fallas',
-                    data: fallasPorLineaPasteurizadora.map(item => item.total_fallas),
-                    backgroundColor: fallasPorLineaPasteurizadora.map((item, index) => {
-                        const colors = [
-                            'rgba(239, 68, 68, 0.9)',
-                            'rgba(248, 113, 113, 0.85)',
-                            'rgba(252, 165, 165, 0.8)',
-                            'rgba(254, 202, 202, 0.75)',
-                            'rgba(245, 158, 11, 0.85)',
-                            'rgba(59, 130, 246, 0.85)'
-                        ];
-                        return colors[index] || colors[0];
-                    }),
-                    borderColor: '#dc2626',
-                    borderWidth: 2,
-                    borderRadius: 12,
-                    borderSkipped: false,
-                    hoverBackgroundColor: 'rgba(239, 68, 68, 1)',
-                    hoverBorderColor: '#991b1b',
-                    hoverBorderWidth: 3
-                }]
+                datasets: [
+                    {
+                        label: 'Críticos',
+                        data: fallasPorLineaPasteurizadora.map(item => item.criticos || 0),
+                        backgroundColor: 'rgba(239, 68, 68, 0.9)',
+                        borderColor: '#dc2626',
+                        borderWidth: 2,
+                        borderRadius: 12,
+                        borderSkipped: false
+                    },
+                    {
+                        label: 'Requiere revisión',
+                        data: fallasPorLineaPasteurizadora.map(item => item.requiere_revision || 0),
+                        backgroundColor: 'rgba(245, 158, 11, 0.9)',
+                        borderColor: '#d97706',
+                        borderWidth: 2,
+                        borderRadius: 12,
+                        borderSkipped: false
+                    },
+                    {
+                        label: 'Severo / Moderado',
+                        data: fallasPorLineaPasteurizadora.map(item => item.desgaste || 0),
+                        backgroundColor: 'rgba(249, 115, 22, 0.88)',
+                        borderColor: '#ea580c',
+                        borderWidth: 2,
+                        borderRadius: 12,
+                        borderSkipped: false
+                    }
+                ]
             },
             options: {
                 responsive: true,
@@ -1281,16 +1319,22 @@
                 scales: {
                     y: {
                         beginAtZero: true,
+                        stacked: true,
                         grid: { color: 'rgba(0, 0, 0, 0.05)', drawBorder: false, drawTicks: false },
                         ticks: { font: { size: 12, weight: 600 }, color: '#64748b', padding: 8 }
                     },
                     x: {
+                        stacked: true,
                         grid: { display: false, drawBorder: false },
                         ticks: { font: { size: 13, weight: 600 }, color: '#334155', padding: 8 }
                     }
                 },
                 plugins: {
-                    legend: { display: false },
+                    legend: {
+                        display: true,
+                        position: 'top',
+                        labels: { usePointStyle: true, padding: 18, font: { size: 12, weight: 'bold' }, color: '#334155' }
+                    },
                     tooltip: {
                         backgroundColor: 'rgba(15, 23, 42, 0.95)',
                         titleColor: '#ffffff',
@@ -1300,7 +1344,11 @@
                         padding: 14,
                         callbacks: {
                             label: function(context) {
-                                return `Fallas: ${context.raw}`;
+                                return `${context.dataset.label}: ${context.raw}`;
+                            },
+                            footer: function(items) {
+                                const item = fallasPorLineaPasteurizadora[items[0]?.dataIndex];
+                                return item ? `Total: ${item.total_fallas || 0}` : '';
                             }
                         }
                     }
@@ -1510,7 +1558,7 @@
         modalTitle.innerHTML = `Detalle - ${escapeHtml(pasteurizadora.nombre)}`;
 
         let html = `
-            <div class="mb-4 p-4 rounded-lg ${estado.nivel === 'critico' ? 'bg-red-50 border-l-4 border-red-500' : (estado.nivel === 'riesgo' ? 'bg-yellow-50 border-l-4 border-yellow-500' : (estado.nivel === 'operativo' ? 'bg-orange-50 border-l-4 border-orange-500' : 'bg-green-50 border-l-4 border-green-500'))}">
+            <div class="mb-4 p-4 rounded-lg ${estado.nivel === 'critico' ? 'bg-red-50 border-l-4 border-red-500' : (estado.nivel === 'riesgo' ? 'bg-orange-50 border-l-4 border-orange-500' : (estado.nivel === 'operativo' ? 'bg-yellow-50 border-l-4 border-yellow-500' : 'bg-green-50 border-l-4 border-green-500'))}">
                 <h4 class="font-bold text-lg mb-2">Estado: ${escapeHtml((estado.nivel || 'bueno').toUpperCase())}</h4>
                 <p class="text-gray-700">${escapeHtml(estado.mensaje || 'Sin mensaje de estado')}</p>
             </div>

@@ -819,8 +819,8 @@ class AnalisisPasteurizadora extends Model
 
         return match ($this->estado) {
             self::ESTADO_BUENO => ['class' => 'bg-green-100 text-green-800', 'icon' => 'fa-check-circle'],
-            self::ESTADO_REQUIERE_REVISION => ['class' => 'bg-orange-100 text-orange-800', 'icon' => 'fa-tools'],
-            'Desgaste moderado', 'Desgaste severo' => ['class' => 'bg-yellow-100 text-yellow-800', 'icon' => 'fa-exclamation-triangle'],
+            self::ESTADO_REQUIERE_REVISION => ['class' => 'bg-yellow-100 text-yellow-800', 'icon' => 'fa-tools'],
+            'Desgaste moderado', 'Desgaste severo' => ['class' => 'bg-orange-100 text-orange-800', 'icon' => 'fa-exclamation-triangle'],
             self::ESTADO_CAMBIADO => ['class' => 'bg-blue-100 text-blue-800', 'icon' => 'fa-exchange-alt'],
             default => ['class' => 'bg-gray-100 text-gray-800', 'icon' => 'fa-question-circle'],
         };

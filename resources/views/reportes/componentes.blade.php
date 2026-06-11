@@ -622,15 +622,15 @@
             <div class="stat-trend">{{ $estadisticas['porcentaje_bueno'] ?? 0 }}% del total</div>
         </div>
 
-        <div class="stat-card border-t-4 border-orange-500">
+        <div class="stat-card border-t-4 border-yellow-500">
             <div class="stat-label">Requiere Revisión</div>
-            <div class="stat-value text-orange-600">{{ $estadisticas['requiere_revision'] ?? 0 }}</div>
+            <div class="stat-value text-yellow-600">{{ $estadisticas['requiere_revision'] ?? 0 }}</div>
             <div class="stat-trend">{{ $estadisticas['porcentaje_revision'] ?? 0 }}% del total</div>
         </div>
 
-        <div class="stat-card border-t-4 border-yellow-500">
-            <div class="stat-label">Desgaste</div>
-            <div class="stat-value text-yellow-500">{{ $estadisticas['desgaste'] ?? 0 }}</div>
+        <div class="stat-card border-t-4 border-orange-500">
+            <div class="stat-label">Severo / Moderado</div>
+            <div class="stat-value text-orange-500">{{ $estadisticas['desgaste'] ?? 0 }}</div>
             <div class="stat-trend">{{ $estadisticas['porcentaje_desgaste'] ?? 0 }}% del total</div>
         </div>
 
@@ -714,12 +714,12 @@
                             <div class="linea-stat-label">Buenos</div>
                         </div>
                         <div class="linea-stat">
-                            <div class="linea-stat-value text-orange-600">{{ $statsLinea['requiere_revision'] }}</div>
-                            <div class="linea-stat-label">Revisión</div>
+                            <div class="linea-stat-value text-yellow-600">{{ $statsLinea['requiere_revision'] }}</div>
+                            <div class="linea-stat-label">Requiere revisión</div>
                         </div>
                         <div class="linea-stat">
-                            <div class="linea-stat-value text-yellow-600">{{ $statsLinea['desgaste'] }}</div>
-                            <div class="linea-stat-label">Desgaste</div>
+                            <div class="linea-stat-value text-orange-600">{{ $statsLinea['desgaste'] }}</div>
+                            <div class="linea-stat-label">Severo / Moderado</div>
                         </div>
                         <div class="linea-stat">
                             <div class="linea-stat-value text-red-600">{{ $statsLinea['danado'] }}</div>
@@ -917,12 +917,16 @@ new Chart(estadoCtx, {
         labels: {!! json_encode(array_keys($estados)) !!},
         datasets: [{
             data: {!! json_encode(array_column($estados, 'cantidad')) !!},
-            backgroundColor: [
-                '#10b981',
-                '#f59e0b',
-                '#ef4444',
-                '#3b82f6'
-            ],
+            backgroundColor: {!! json_encode(array_map(function ($label) {
+                return match ($label) {
+                    'Buen estado' => '#10b981',
+                    'Requiere revisión' => '#f59e0b',
+                    'Desgaste moderado', 'Desgaste severo' => '#f97316',
+                    'Dañado - Requiere cambio' => '#ef4444',
+                    'Dañado - Cambiado', 'Cambiado' => '#3b82f6',
+                    default => '#94a3b8',
+                };
+            }, array_keys($estados))) !!},
             borderWidth: 0,
             borderRadius: 4
         }]

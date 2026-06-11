@@ -238,7 +238,7 @@
     }
 
     .stat-value.riesgo {
-        color: #f59e0b;
+        color: #f97316;
     }
 
     .stat-value.bueno {
@@ -367,7 +367,7 @@
                         <div class="stat-item">
                             <div class="stat-label">
                                 <i class="fas fa-chart-line mr-1"></i>
-                                En Riesgo
+                                Severo / Moderado
                             </div>
                             <div class="stat-value riesgo">{{ $modulo['estadisticas']['en_riesgo'] }}</div>
                         </div>
@@ -377,7 +377,7 @@
                                     <i class="fas fa-tools mr-1"></i>
                                     Revisión
                                 </div>
-                                <div class="stat-value" style="color: #f97316;">{{ $modulo['estadisticas']['requiere_revision'] }}</div>
+                                <div class="stat-value" style="color: #f59e0b;">{{ $modulo['estadisticas']['requiere_revision'] }}</div>
                             </div>
                         @endif
                         <div class="stat-item">

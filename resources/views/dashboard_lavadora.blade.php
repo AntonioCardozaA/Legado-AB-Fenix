@@ -49,11 +49,26 @@
     }
 
     /* Tarjetas de resumen */
+    .dashboard-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16px;
+        flex-wrap: wrap;
+    }
+
+    .dashboard-actions {
+        display: flex;
+        gap: 12px;
+        flex-shrink: 0;
+    }
+
     .stats-grid {
         display: grid;
-        grid-template-columns: repeat(5, 1fr);
+        grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: 12px;
         margin-bottom: 16px;
+        align-items: stretch;
     }
 
     .stat-card {
@@ -63,6 +78,7 @@
         box-shadow: var(--shadow-sm);
         border: 1px solid var(--medium-gray);
         transition: var(--transition);
+        min-width: 0;
     }
 
     .stat-card:hover {
@@ -123,13 +139,13 @@
     }
 
     .lavadora-card.riesgo-estado {
-        background-color: #fefce8;
-        border-left: 6px solid var(--warning-yellow);
+        background-color: #fff7ed;
+        border-left: 6px solid var(--operational-orange);
     }
 
     .lavadora-card.operativo-estado {
-        background-color: #fff7ed;
-        border-left: 6px solid var(--operational-orange);
+        background-color: #fefce8;
+        border-left: 6px solid var(--warning-yellow);
     }
 
     .lavadora-card.critico-estado {
@@ -163,8 +179,8 @@
     }
 
     .buen-estado .status-icon { color: var(--success-green); }
-    .operativo-estado .status-icon { color: var(--operational-orange); }
-    .riesgo-estado .status-icon { color: var(--warning-yellow); }
+    .operativo-estado .status-icon { color: var(--warning-yellow); }
+    .riesgo-estado .status-icon { color: var(--operational-orange); }
     .critico-estado .status-icon { color: var(--danger-red); }
 
     .status-tag {
@@ -179,8 +195,8 @@
     }
 
     .status-tag.bueno { background: var(--success-light); color: #065f46; }
-    .status-tag.operativo { background: var(--operational-light); color: #9a3412; }
-    .status-tag.riesgo { background: var(--warning-light); color: #92400e; }
+    .status-tag.operativo { background: var(--warning-light); color: #92400e; }
+    .status-tag.riesgo { background: var(--operational-light); color: #9a3412; }
     .status-tag.critico { background: var(--danger-light); color: #991b1b; }
 
     .lavadora-card-body {
@@ -358,10 +374,35 @@
 
     .lavadora-card-footer {
         padding: 8px 12px;
-        background: linear-gradient(135deg, #f8fafc, #f1f5f9);
-        border-top: 1px solid var(--border-light);
+        background: transparent;
+        border-top: 1px solid rgba(148, 163, 184, 0.18);
         display: flex;
         justify-content: flex-end;
+    }
+
+    .lavadora-card-action {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 16px;
+        border-radius: 10px;
+        border: 1px solid rgba(148, 163, 184, 0.35);
+        background: rgba(255, 255, 255, 0.92);
+        color: #334155;
+        font-size: 0.875rem;
+        font-weight: 600;
+        box-shadow: var(--shadow-sm);
+        transition: var(--transition);
+    }
+
+    .lavadora-card-action:hover {
+        background: white;
+        transform: translateY(-1px);
+    }
+
+    .critico-estado .lavadora-card-footer {
+        background: linear-gradient(135deg, rgba(239, 68, 68, 0.18), rgba(220, 38, 38, 0.26));
+        border-top-color: rgba(185, 28, 28, 0.18);
     }
 
     /* ═══════════════════════════════════════════════════════════════ */
@@ -947,9 +988,24 @@
     }
 
     /* Responsive */
+    @media (min-width: 1280px) {
+        .stats-grid {
+            grid-template-columns: repeat(6, minmax(0, 1fr));
+        }
+    }
+
     @media (max-width: 768px) {
         .dashboard-container {
             padding: 16px;
+        }
+        .dashboard-header {
+            align-items: stretch;
+        }
+        .dashboard-actions {
+            width: 100%;
+        }
+        .dashboard-actions > * {
+            flex: 1;
         }
         .stats-grid {
             grid-template-columns: repeat(2, 1fr);
@@ -1111,7 +1167,9 @@
     }
 
     .mini-stat.danger { border-top: 4px solid var(--danger-red); }
-    .mini-stat.warning { border-top: 4px solid var(--warning-yellow); }
+    .mini-stat.warning,
+    .mini-stat.revision { border-top: 4px solid var(--warning-yellow); }
+    .mini-stat.severo { border-top: 4px solid var(--operational-orange); }
     .mini-stat.success { border-top: 4px solid var(--success-green); }
     .mini-stat.info { border-top: 4px solid var(--primary-blue); }
 
@@ -1155,10 +1213,16 @@
         border-color: rgba(239, 68, 68, 0.18);
     }
 
-    .status-banner.riesgo {
+    .status-banner.operativo {
         background: var(--warning-light);
         color: #92400e;
         border-color: rgba(245, 158, 11, 0.18);
+    }
+
+    .status-banner.riesgo {
+        background: var(--operational-light);
+        color: #9a3412;
+        border-color: rgba(249, 115, 22, 0.18);
     }
 
     .status-banner.estable {
@@ -1276,14 +1340,14 @@
     }
 
     .severity-pill.revision {
-        background: var(--operational-light);
-        color: #9a3412;
+        background: var(--warning-light);
+        color: #92400e;
     }
 
     .severity-pill.severo,
     .severity-pill.moderado {
-        background: var(--warning-light);
-        color: #92400e;
+        background: var(--operational-light);
+        color: #9a3412;
     }
 
     .severity-pill.estable,
@@ -1479,14 +1543,14 @@
         </a>
     </div>
     <div class="mb-6">
-        <div class="flex items-center justify-between">
+        <div class="dashboard-header">
             <div>
                 <h1 class="text-2xl font-bold text-gray-800 flex items-center gap-2">
                     <i class="fas fa-chart-line text-blue-600"></i>
                     Dashboard Lavadoras
                 </h1>
             </div>
-            <div class="flex gap-2">
+            <div class="dashboard-actions">
                 <button onclick="refreshData()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
                     <i class="fas fa-sync-alt mr-2"></i>Actualizar
                 </button>
@@ -1506,15 +1570,15 @@
             <div class="stat-label">Alertas Críticas</div>
             <div class="stat-value" style="color: var(--danger-red);">{{ $resumenGeneral['alertas_criticas'] }}</div>
         </div>
-        <div class="stat-card" style="border-top: 4px solid var(--warning-yellow);">
-            <div class="stat-icon"><i class="fas fa-chart-line"></i></div>
-            <div class="stat-label">En Riesgo</div>
-            <div class="stat-value" style="color: var(--warning-yellow);">{{ $resumenGeneral['en_riesgo'] }}</div>
-        </div>
         <div class="stat-card" style="border-top: 4px solid var(--operational-orange);">
+            <div class="stat-icon"><i class="fas fa-chart-line"></i></div>
+            <div class="stat-label">Severo / Moderado</div>
+            <div class="stat-value" style="color: var(--operational-orange);">{{ $resumenGeneral['en_riesgo'] }}</div>
+        </div>
+        <div class="stat-card" style="border-top: 4px solid var(--warning-yellow);">
             <div class="stat-icon"><i class="fas fa-tools"></i></div>
             <div class="stat-label">Requiere Revisión</div>
-            <div class="stat-value" style="color: var(--operational-orange);">{{ $resumenGeneral['requiere_revision'] }}</div>
+            <div class="stat-value" style="color: var(--warning-yellow);">{{ $resumenGeneral['requiere_revision'] }}</div>
         </div>
         <div class="stat-card" style="border-top: 4px solid var(--success-green);">
             <div class="stat-icon"><i class="fas fa-check-circle"></i></div>
@@ -1561,7 +1625,7 @@
                     <div>
                         <span class="status-tag {{ $estado['nivel'] === 'bueno' ? 'bueno' : ($estado['nivel'] === 'operativo' ? 'operativo' : ($estado['nivel'] === 'riesgo' ? 'riesgo' : 'critico')) }}">
                             <i class="fas {{ $estado['nivel'] === 'bueno' ? 'fa-check-circle' : ($estado['nivel'] === 'operativo' ? 'fa-tools' : ($estado['nivel'] === 'riesgo' ? 'fa-exclamation-triangle' : 'fa-times-circle')) }}"></i>
-                            {{ ucfirst($estado['nivel']) }}
+                            {{ $estado['nivel'] === 'bueno' ? 'Buen estado' : ($estado['nivel'] === 'operativo' ? 'Requiere revisión' : ($estado['nivel'] === 'riesgo' ? 'Severo / Moderado' : 'Crítico')) }}
                         </span>
                     </div>
                 </div>
@@ -1652,7 +1716,7 @@
                 </div>
                 <div class="lavadora-card-footer">
                     <button onclick='showAlertDetail(@json($lavadora))' 
-                            class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition text-sm font-medium shadow-sm">
+                            class="lavadora-card-action">
                         <i class="fas fa-chart-simple mr-1"></i> Ver Detalle Completo
                     </button>
                 </div>
@@ -2434,7 +2498,7 @@
         modalTitle.innerHTML = `Detalle - ${lavadora.nombre}`;
 
         let html = `
-            <div class="mb-4 p-4 rounded-lg ${lavadora.estado.nivel === 'critico' ? 'bg-red-50 border-l-4 border-red-500' : (lavadora.estado.nivel === 'riesgo' ? 'bg-yellow-50 border-l-4 border-yellow-500' : (lavadora.estado.nivel === 'operativo' ? 'bg-orange-50 border-l-4 border-orange-500' : 'bg-green-50 border-l-4 border-green-500'))}">
+            <div class="mb-4 p-4 rounded-lg ${lavadora.estado.nivel === 'critico' ? 'bg-red-50 border-l-4 border-red-500' : (lavadora.estado.nivel === 'riesgo' ? 'bg-orange-50 border-l-4 border-orange-500' : (lavadora.estado.nivel === 'operativo' ? 'bg-yellow-50 border-l-4 border-yellow-500' : 'bg-green-50 border-l-4 border-green-500'))}">
                 <h4 class="font-bold text-lg mb-2">Estado: ${lavadora.estado.nivel.toUpperCase()}</h4>
                 <p class="text-gray-700">${lavadora.estado.mensaje}</p>
             </div>
@@ -2617,8 +2681,9 @@
             <div id="fallasToolbar" class="panel-actions" style="margin-bottom: 18px; justify-content: flex-start;">
                 <div class="filter-chip-group" id="fallasSeverityFilters">
                     <button type="button" class="filter-chip active" data-filter="all">Vista total</button>
-                    <button type="button" class="filter-chip" data-filter="criticas">Criticas</button>
-                    <button type="button" class="filter-chip" data-filter="severas_moderadas">Severas y moderadas</button>
+                    <button type="button" class="filter-chip" data-filter="criticas">Críticas</button>
+                    <button type="button" class="filter-chip" data-filter="requiere_revision">Requiere revisión</button>
+                    <button type="button" class="filter-chip" data-filter="severas_moderadas">Severo / Moderado</button>
                 </div>
             </div>
         `);
@@ -2628,7 +2693,8 @@
         if (description && !document.getElementById('fallasLegend')) {
             description.insertAdjacentHTML('beforebegin', `
                 <div class="legend-inline" id="fallasLegend">
-                    <span class="legend-item"><span class="legend-swatch" style="background: rgba(239, 68, 68, 0.92);"></span> Critico</span>
+                    <span class="legend-item"><span class="legend-swatch" style="background: rgba(239, 68, 68, 0.92);"></span> Crítico</span>
+                    <span class="legend-item"><span class="legend-swatch" style="background: rgba(245, 158, 11, 0.92);"></span> Requiere revisión</span>
                     <span class="legend-item"><span class="legend-swatch" style="background: rgba(249, 115, 22, 0.9);"></span> Severo / Moderado</span>
                     <span class="legend-item"><span class="legend-swatch" style="background: rgba(16, 185, 129, 0.9);"></span> Estable</span>
                 </div>
@@ -2762,7 +2828,7 @@
                 <th><i class="fas fa-cube" style="color: #0f172a;"></i> Componente</th>
                 <th><i class="fas fa-location-dot" style="color: #7c3aed;"></i> Ubicacion</th>
                 <th><i class="fas fa-signal" style="color: #ef4444;"></i> Estado</th>
-                <th><i class="fas fa-user" style="color: #10b981;"></i> Revision</th>
+                <th><i class="fas fa-user" style="color: #10b981;"></i> Revisión</th>
             `;
         }
 
@@ -2811,8 +2877,9 @@
             if (stats) {
                 stats.innerHTML = miniStats([
                     ['Lavadoras sin datos', '0', 'No hay analisis vigentes', 'info'],
-                    ['Criticas', '0', 'Sin registros', 'danger'],
-                    ['Severas / Moderadas', '0', 'Sin registros', 'warning']
+                    ['Críticas', '0', 'Sin registros', 'danger'],
+                    ['Requiere revisión', '0', 'Sin registros', 'revision'],
+                    ['Severo / Moderado', '0', 'Sin registros', 'severo']
                 ]);
             }
             if (breakdown) breakdown.innerHTML = infoBox('No hay datos disponibles para construir la matriz de fallas por linea.');
@@ -2822,10 +2889,15 @@
             return;
         }
 
-        const key = state.fallasFilter === 'criticas' ? 'criticas' : (state.fallasFilter === 'severas_moderadas' ? 'severas_moderadas' : 'impactados');
+        const key = state.fallasFilter === 'criticas'
+            ? 'criticas'
+            : (state.fallasFilter === 'requiere_revision'
+                ? 'requiere_revision'
+                : (state.fallasFilter === 'severas_moderadas' ? 'severas_moderadas' : 'impactados'));
         const sorted = rows.slice().sort((a, b) => Number(b[key] || 0) - Number(a[key] || 0) || Number(b.porcentaje_impacto || 0) - Number(a.porcentaje_impacto || 0));
 
         const criticas = rows.reduce((sum, item) => sum + Number(item.criticas || 0), 0);
+        const revisiones = rows.reduce((sum, item) => sum + Number(item.requiere_revision || 0), 0);
         const warnings = rows.reduce((sum, item) => sum + Number(item.severas_moderadas || 0), 0);
         const impactadas = rows.filter((item) => Number(item.impactados || 0) > 0).length;
         const promedio = rows.length ? rows.reduce((sum, item) => sum + Number(item.porcentaje_impacto || 0), 0) / rows.length : 0;
@@ -2833,8 +2905,9 @@
         if (stats) {
             stats.innerHTML = miniStats([
                 ['Lavadoras impactadas', impactadas, `${rows.length} monitoreadas`, 'info'],
-                ['Fallas criticas', criticas, 'Rojo = requiere cambio', 'danger'],
-                ['Severas / Moderadas', warnings, 'Naranja = seguimiento', 'warning'],
+                ['Fallas críticas', criticas, 'Rojo = requiere cambio', 'danger'],
+                ['Requiere revisión', revisiones, 'Amarillo = validar componente', 'revision'],
+                ['Severo / Moderado', warnings, 'Naranja = seguimiento', 'severo'],
                 ['Impacto promedio', percent(promedio, 1), 'Sobre componentes vigentes', 'success']
             ]);
         }
@@ -2845,35 +2918,73 @@
                     <div class="breakdown-item-top">
                         <div>
                             <div class="breakdown-title">${escapeHtml(item.linea)}</div>
-                            <div class="breakdown-meta">Criticas: ${Number(item.criticas || 0)} · Severo/Moderado: ${Number(item.severas_moderadas || 0)} · Ultima revision: ${escapeHtml(item.ultima_revision_humana || 'Sin fecha')}</div>
+                            <div class="breakdown-meta">Críticas: ${Number(item.criticas || 0)} · Revisión: ${Number(item.requiere_revision || 0)} · Severo / Moderado: ${Number(item.severas_moderadas || 0)} · Última revisión: ${escapeHtml(item.ultima_revision_humana || 'Sin fecha')}</div>
                         </div>
-                        <span class="severity-pill ${item.estado === 'critico' ? 'critico' : (item.estado === 'riesgo' ? 'severo' : 'estable')}">${percent(item.porcentaje_impacto || 0, 1)}</span>
+                        <span class="severity-pill ${item.estado === 'critico' ? 'critico' : (item.estado === 'riesgo' ? 'severo' : (item.estado === 'operativo' ? 'revision' : 'estable'))}">${percent(item.porcentaje_impacto || 0, 1)}</span>
                     </div>
                     <div class="progress-track"><div class="progress-bar" style="width: ${Math.min(Number(item.porcentaje_impacto || 0), 100)}%;"></div></div>
                 </div>
             `).join('');
+
+            breakdown.querySelectorAll('.breakdown-item').forEach((node, index) => {
+                const item = sorted[index] || {};
+                const meta = node.querySelector('.breakdown-meta');
+                const pill = node.querySelector('.severity-pill');
+
+                if (meta) {
+                    meta.textContent = `Críticas: ${Number(item.criticas || 0)} · Revisión: ${Number(item.requiere_revision || 0)} · Severo / Moderado: ${Number(item.severas_moderadas || 0)} · Última revisión: ${item.ultima_revision_humana || 'Sin fecha'}`;
+                }
+
+                if (pill) {
+                    const tone = item.estado === 'critico'
+                        ? 'critico'
+                        : (item.estado === 'riesgo' ? 'severo' : (item.estado === 'operativo' ? 'revision' : 'estable'));
+                    pill.className = `severity-pill ${tone}`;
+                }
+            });
         }
 
         if (description) {
             const copy = state.fallasFilter === 'criticas'
-                ? 'Vista enfocada solo en fallas criticas que requieren cambio inmediato.'
-                : (state.fallasFilter === 'severas_moderadas'
-                    ? 'Vista enfocada en desgaste severo y moderado para seguimiento preventivo.'
-                    : 'Vista integral con criticidad y desgaste por cada lavadora.');
+                    ? 'Vista enfocada solo en fallas críticas que requieren cambio inmediato.'
+                    : (state.fallasFilter === 'requiere_revision'
+                        ? 'Vista enfocada en componentes con alerta operativa para revisión.'
+                        : (state.fallasFilter === 'severas_moderadas'
+                            ? 'Vista enfocada en desgaste severo y moderado para seguimiento preventivo.'
+                            : 'Vista integral con criticidad, revisión y desgaste por cada lavadora.'));
             description.innerHTML = `<i class="fas fa-info-circle"></i> ${copy}`;
         }
 
+        const singleDatasetMeta = {
+            criticas: {
+                label: 'Críticas',
+                backgroundColor: 'rgba(239, 68, 68, 0.92)',
+                borderColor: '#dc2626'
+            },
+            requiere_revision: {
+                label: 'Requiere revisión',
+                backgroundColor: 'rgba(245, 158, 11, 0.92)',
+                borderColor: '#d97706'
+            },
+            severas_moderadas: {
+                label: 'Severo / Moderado',
+                backgroundColor: 'rgba(249, 115, 22, 0.9)',
+                borderColor: '#ea580c'
+            }
+        };
+
         const datasets = state.fallasFilter === 'all'
             ? [
-                { label: 'Criticas', data: sorted.map((item) => Number(item.criticas || 0)), backgroundColor: 'rgba(239, 68, 68, 0.92)', borderColor: '#dc2626', borderWidth: 2, borderRadius: 10, borderSkipped: false },
-                { label: 'Severas / Moderadas', data: sorted.map((item) => Number(item.severas_moderadas || 0)), backgroundColor: 'rgba(249, 115, 22, 0.88)', borderColor: '#ea580c', borderWidth: 2, borderRadius: 10, borderSkipped: false },
+                { label: 'Críticas', data: sorted.map((item) => Number(item.criticas || 0)), backgroundColor: 'rgba(239, 68, 68, 0.92)', borderColor: '#dc2626', borderWidth: 2, borderRadius: 10, borderSkipped: false },
+                { label: 'Requiere revisión', data: sorted.map((item) => Number(item.requiere_revision || 0)), backgroundColor: 'rgba(245, 158, 11, 0.92)', borderColor: '#d97706', borderWidth: 2, borderRadius: 10, borderSkipped: false },
+                { label: 'Severo / Moderado', data: sorted.map((item) => Number(item.severas_moderadas || 0)), backgroundColor: 'rgba(249, 115, 22, 0.88)', borderColor: '#ea580c', borderWidth: 2, borderRadius: 10, borderSkipped: false },
                 { label: 'Estables', data: sorted.map((item) => Number(item.estables || 0)), backgroundColor: 'rgba(16, 185, 129, 0.24)', borderColor: '#10b981', borderWidth: 1, borderRadius: 10, borderSkipped: false }
             ]
             : [{
-                label: state.fallasFilter === 'criticas' ? 'Criticas' : 'Severas / Moderadas',
+                label: (singleDatasetMeta[state.fallasFilter] || singleDatasetMeta.severas_moderadas).label,
                 data: sorted.map((item) => Number(item[state.fallasFilter] || 0)),
-                backgroundColor: state.fallasFilter === 'criticas' ? 'rgba(239, 68, 68, 0.92)' : 'rgba(249, 115, 22, 0.9)',
-                borderColor: state.fallasFilter === 'criticas' ? '#dc2626' : '#ea580c',
+                backgroundColor: (singleDatasetMeta[state.fallasFilter] || singleDatasetMeta.severas_moderadas).backgroundColor,
+                borderColor: (singleDatasetMeta[state.fallasFilter] || singleDatasetMeta.severas_moderadas).borderColor,
                 borderWidth: 2,
                 borderRadius: 10,
                 borderSkipped: false
@@ -2901,7 +3012,14 @@
                         callbacks: {
                             afterBody: (context) => {
                                 const item = sorted[context[0].dataIndex];
-                                return [`Impactados: ${Number(item.impactados || 0)}`, `Impacto: ${percent(item.porcentaje_impacto || 0, 1)}`, `Ultima revision: ${item.ultima_revision_humana || 'Sin fecha'}`];
+                                return [
+                                    `Críticas: ${Number(item.criticas || 0)}`,
+                                    `Requiere revisión: ${Number(item.requiere_revision || 0)}`,
+                                    `Severo / Moderado: ${Number(item.severas_moderadas || 0)}`,
+                                    `Impactados: ${Number(item.impactados || 0)}`,
+                                    `Impacto: ${percent(item.porcentaje_impacto || 0, 1)}`,
+                                    `Última revisión: ${item.ultima_revision_humana || 'Sin fecha'}`
+                                ];
                             }
                         }
                     }
@@ -3067,7 +3185,7 @@
                     <div class="ranking-info">
                         <div class="ranking-linea">${escapeHtml(item.linea || 'Sin linea')}</div>
                         <div class="ranking-puntaje"><i class="fas fa-industry"></i> ${escapeHtml(item.linea || 'Sin linea')} · ${escapeHtml(item.reductor || 'Sin reductor')}${item.lado ? ` · ${escapeHtml(item.lado)}` : ''}</div>
-                        <div class="ranking-meta">Revision: ${escapeHtml(item.fecha_analisis_humana || 'Sin fecha')} · ${elapsedDaysLabel(item.dias_desde_revision)}</div>
+                        <div class="ranking-meta">Revisión: ${escapeHtml(item.fecha_analisis_humana || 'Sin fecha')} · ${elapsedDaysLabel(item.dias_desde_revision)}</div>
                     </div>
                 </div>
                 <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 8px;">
@@ -3086,11 +3204,11 @@
             const badge = element.querySelector('.ranking-badge');
 
             if (puntaje) {
-                puntaje.innerHTML = `<i class="fas fa-triangle-exclamation"></i> Criticas: ${Number(item.criticas || 0)} · Severos: ${Number(item.severos || 0)} · Moderados: ${Number(item.moderados || 0)}`;
+                puntaje.innerHTML = `<i class="fas fa-triangle-exclamation"></i> Críticas: ${Number(item.criticas || 0)} · Severo / Moderado: ${Number(item.severos || 0) + Number(item.moderados || 0)}`;
             }
 
             if (meta) {
-                meta.textContent = `Total con dano: ${Number(item.total_danos || 0)} de ${Number(item.total_componentes || 0)} componentes · Impacto ${percent(item.porcentaje_impacto || 0, 1)} · ${elapsedDaysLabel(item.dias_desde_revision)}`;
+                meta.textContent = `Total con daño: ${Number(item.total_danos || 0)} de ${Number(item.total_componentes || 0)} componentes · Impacto ${percent(item.porcentaje_impacto || 0, 1)} · ${elapsedDaysLabel(item.dias_desde_revision)}`;
             }
 
             if (badge) {
@@ -3171,13 +3289,14 @@
         }
 
         const current = Number(item.actual_max || 0);
-        const status = current >= Number(item.threshold_cambio || 0) ? 'critico' : (current >= Number(item.threshold_compra || 0) ? 'warning' : 'success');
+        const maxTone = current >= Number(item.threshold_cambio || 0) ? 'danger' : (current >= Number(item.threshold_compra || 0) ? 'severo' : 'success');
+        const status = current >= Number(item.threshold_cambio || 0) ? 'critico' : (current >= Number(item.threshold_compra || 0) ? 'severo' : 'success');
         if (stats) {
             stats.innerHTML = miniStats([
                 ['Mediciones', Number(item.mediciones || 0), escapeHtml(item.linea || ''), 'info'],
                 ['Desde', escapeHtml(item.desde || '-'), `Hasta ${escapeHtml(item.hasta || '-')}`, 'success'],
-                ['Max actual', percent(current, 2), `Compra ${percent(item.threshold_compra || 0, 2)}`, 'warning'],
-                ['Estado', current >= Number(item.threshold_cambio || 0) ? 'Critico' : (current >= Number(item.threshold_compra || 0) ? 'Seguimiento' : 'Estable'), `Cambio ${percent(item.threshold_cambio || 0, 2)}`, status]
+                ['Max actual', percent(current, 2), `Compra ${percent(item.threshold_compra || 0, 2)}`, maxTone],
+                ['Estado', current >= Number(item.threshold_cambio || 0) ? 'Crítico' : (current >= Number(item.threshold_compra || 0) ? 'Seguimiento' : 'Estable'), `Cambio ${percent(item.threshold_cambio || 0, 2)}`, status]
             ]);
         }
 
@@ -3194,8 +3313,8 @@
                 datasets: [
                     { label: 'Bombas', data: (item.bombas || []).map((value) => Number(value || 0)), borderColor: '#2563eb', backgroundColor: 'rgba(37, 99, 235, 0.12)', borderWidth: 3, pointRadius: 4, tension: 0.35, fill: true },
                     { label: 'Vapor', data: (item.vapor || []).map((value) => Number(value || 0)), borderColor: '#ef4444', backgroundColor: 'rgba(239, 68, 68, 0.08)', borderWidth: 3, pointRadius: 4, tension: 0.35, fill: true },
-                    { label: 'Umbral compra', data: new Array(item.labels.length).fill(Number(item.threshold_compra || 0)), borderColor: '#f59e0b', borderWidth: 2, pointRadius: 0, borderDash: [8, 4] },
-                    { label: 'Umbral cambio', data: new Array(item.labels.length).fill(Number(item.threshold_cambio || 0)), borderColor: '#10b981', borderWidth: 2, pointRadius: 0, borderDash: [8, 4] }
+                    { label: 'Umbral compra', data: new Array(item.labels.length).fill(Number(item.threshold_compra || 0)), borderColor: '#f97316', borderWidth: 2, pointRadius: 0, borderDash: [8, 4] },
+                    { label: 'Umbral cambio', data: new Array(item.labels.length).fill(Number(item.threshold_cambio || 0)), borderColor: '#ef4444', borderWidth: 2, pointRadius: 0, borderDash: [8, 4] }
                 ]
             },
             options: {
