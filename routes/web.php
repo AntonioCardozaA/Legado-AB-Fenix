@@ -27,6 +27,31 @@ Route::get('/', function () {
 
 /*
 |--------------------------------------------------------------------------
+| DIAGRAMAS ANIMADOS - PRUEBA
+|--------------------------------------------------------------------------
+*/
+Route::get('/diagramas-animados', function () {
+    return view('diagram-test');
+})->name('diagramas.animados');
+
+Route::prefix('lavadoras/diagramas')->name('lavadoras.diagramas.')->group(function () {
+    Route::redirect('/', '/lavadoras/diagramas/l05-l12-l13')->name('index');
+
+    Route::get('/l04-l09', function () {
+        return view('lavadoras.diagramas.l04-l09');
+    })->name('l04-l09');
+
+    Route::get('/l05-l12-l13', function () {
+        return view('lavadoras.diagramas.l05-l12-l13');
+    })->name('l05-l12-l13');
+
+    Route::get('/l06-l07', function () {
+        return view('lavadoras.diagramas.l06-l07');
+    })->name('l06-l07');
+});
+
+/*
+|--------------------------------------------------------------------------
 | RUTAS PROTEGIDAS
 |--------------------------------------------------------------------------
 */

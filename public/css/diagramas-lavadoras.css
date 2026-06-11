@@ -1,0 +1,715 @@
+:root {
+    --diagrama-azul: #3134d4;
+    --diagrama-amarillo: #fff66f;
+    --diagrama-gris: #dedede;
+    --cadena-rojo: #c93813;
+    --cadena-rojo-oscuro: #7f1e0a;
+    --cadena-brillo: #ff8d45;
+    --flecha-verde: #5cf03a;
+    --duracion-cadena: 2s;
+    --duracion-catarina: 2s;
+}
+
+.diagramas-lavadoras-page {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.diagrama-page-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.diagrama-page-title {
+    color: #111827;
+    font-size: 1.45rem;
+    font-weight: 800;
+    line-height: 1.15;
+    margin: 0;
+}
+
+.diagrama-page-subtitle {
+    color: #4b5563;
+    font-size: 0.9rem;
+    margin: 6px 0 0;
+}
+
+.diagrama-nav {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.diagrama-nav-link {
+    align-items: center;
+    background: #fff;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    color: #1f2937;
+    display: inline-flex;
+    font-size: 0.84rem;
+    font-weight: 700;
+    min-height: 36px;
+    padding: 8px 12px;
+    text-decoration: none;
+    transition: border-color 160ms ease, color 160ms ease, background 160ms ease;
+}
+
+.diagrama-nav-link:hover,
+.diagrama-nav-link.is-active {
+    background: #eaf1ff;
+    border-color: #1d4ed8;
+    color: #1d4ed8;
+}
+
+.diagrama-lavadora {
+    --duracion-cadena: 2s;
+    --duracion-catarina: 2s;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+    overflow: hidden;
+}
+
+.diagrama-lavadora.is-embedded {
+    border: 1px solid #e5e7eb;
+    box-shadow: none;
+}
+
+.diagrama-toolbar {
+    align-items: center;
+    background: #f9fafb;
+    border-bottom: 1px solid #e5e7eb;
+    display: flex;
+    gap: 12px;
+    justify-content: space-between;
+    padding: 10px 12px;
+}
+
+.diagrama-toolbar-title {
+    color: #111827;
+    font-size: 0.94rem;
+    font-weight: 800;
+    line-height: 1.2;
+}
+
+.diagrama-actions {
+    align-items: center;
+    display: flex;
+    gap: 8px;
+}
+
+.diagrama-icon-button {
+    align-items: center;
+    background: #fff;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    color: #1f2937;
+    cursor: pointer;
+    display: inline-flex;
+    height: 36px;
+    justify-content: center;
+    transition: border-color 160ms ease, color 160ms ease, background 160ms ease;
+    width: 36px;
+}
+
+.diagrama-icon-button:hover {
+    background: #edf4ff;
+    border-color: #2563eb;
+    color: #1d4ed8;
+}
+
+.diagrama-speed {
+    align-items: center;
+    background: #fff;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    color: #374151;
+    display: inline-flex;
+    gap: 8px;
+    height: 36px;
+    padding: 0 10px;
+}
+
+.diagrama-speed input {
+    accent-color: #2563eb;
+    width: 110px;
+}
+
+.diagrama-svg-wrap {
+    background: #fff;
+    overflow-x: auto;
+    padding: 10px;
+}
+
+.diagrama-lavadora-svg {
+    display: block;
+    height: auto;
+    min-width: 960px;
+    width: 100%;
+}
+
+.diagrama-lavadora-svg.is-wide {
+    min-width: 1100px;
+}
+
+.plano-fondo {
+    fill: #fff;
+}
+
+.plano-borde {
+    fill: none;
+    stroke: var(--diagrama-azul);
+    stroke-linejoin: round;
+    stroke-width: 3;
+}
+
+.zona-panel {
+    opacity: 0.96;
+}
+
+.zona-borde,
+.linea-interna,
+.ranura-interna {
+    fill: none;
+    stroke: var(--diagrama-azul);
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 3;
+}
+
+.ranura-interna {
+    fill: #e4e7ff;
+}
+
+.red-label {
+    fill: #111;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: 0;
+    paint-order: stroke;
+    stroke: rgba(255, 255, 255, 0.92);
+    stroke-width: 3;
+}
+
+.red-label-bottom {
+    font-size: 18px;
+}
+
+.texto-espreado {
+    fill: #2b2ed4;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 42px;
+    font-weight: 800;
+    letter-spacing: 0;
+    paint-order: stroke;
+    stroke: #ccd0ff;
+    stroke-width: 1.5;
+}
+
+.texto-loca {
+    fill: #111;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 20px;
+    font-weight: 800;
+    paint-order: stroke;
+    stroke: rgba(255, 255, 255, 0.92);
+    stroke-width: 3;
+}
+
+.etiquetas-reductores-overlay .red-label,
+.etiquetas-reductores-overlay .texto-loca,
+.etiquetas-reductores-overlay .texto-espreado {
+    paint-order: stroke;
+    pointer-events: none;
+    stroke: #fff;
+    stroke-linejoin: round;
+}
+
+.etiquetas-reductores-superior {
+    pointer-events: none;
+}
+
+.catarina-estatica-tapa {
+    pointer-events: none;
+    stroke: none;
+}
+
+.etiquetas-reductores-overlay .red-label,
+.etiquetas-reductores-overlay .texto-loca {
+    stroke-width: 6;
+}
+
+.etiquetas-reductores-overlay .texto-espreado {
+    stroke-width: 4;
+}
+
+.cadena-grupo path {
+    fill: none;
+    pointer-events: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.cadena-exacta-grupo path {
+    pointer-events: none;
+}
+
+.cadena-exacta-sombra {
+    fill: #1c2022;
+    opacity: 0.82;
+}
+
+.cadena-exacta-cuerpo {
+    fill: #657074;
+}
+
+.cadena-exacta-borde {
+    fill: none;
+    stroke: #22282a;
+    stroke-linejoin: round;
+    stroke-width: 2.4;
+}
+
+.cadena-exacta-eslabon-sombra,
+.cadena-exacta-eslabon-luz,
+.cadena-exacta-animada {
+    animation: moverCadena var(--duracion-cadena) linear infinite;
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.cadena-exacta-eslabon-sombra {
+    opacity: 0.46;
+    stroke: #252b2d;
+    stroke-dasharray: 15 17;
+    stroke-width: 10;
+}
+
+.cadena-exacta-eslabon-luz {
+    animation-name: moverCadenaBrillo;
+    opacity: 0.62;
+    stroke: #c9d0d2;
+    stroke-dasharray: 5 27;
+    stroke-width: 3;
+}
+
+.cadena-exacta-animada {
+    opacity: 0.32;
+    stroke: #2a3032;
+    stroke-dasharray: 4 28;
+    stroke-width: 3.5;
+}
+
+.cadena-sombra {
+    opacity: 0.9;
+    stroke: var(--cadena-rojo-oscuro);
+    stroke-width: 14;
+}
+
+.cadena-cuerpo {
+    stroke: var(--cadena-rojo);
+    stroke-width: 10;
+}
+
+.cadena-animada {
+    animation: moverCadena var(--duracion-cadena) linear infinite;
+    stroke: var(--cadena-rojo-oscuro);
+    stroke-dasharray: 18 10;
+    stroke-width: 8;
+}
+
+.cadena-brillo {
+    animation: moverCadenaBrillo var(--duracion-cadena) linear infinite;
+    opacity: 0.85;
+    stroke: var(--cadena-brillo);
+    stroke-dasharray: 5 23;
+    stroke-width: 3;
+}
+
+.catarina {
+    animation: girarCatarina var(--duracion-catarina) linear infinite;
+    transform-box: fill-box;
+    transform-origin: center;
+}
+
+.catarina-inversa {
+    animation-name: girarCatarinaInversa;
+}
+
+.catarina-diente,
+.catarina-cuerpo {
+    fill: #3d3d3d;
+    stroke: #202020;
+    stroke-width: 1.2;
+}
+
+.catarina-centro {
+    fill: #f2f2c4;
+    stroke: #252525;
+    stroke-width: 1.4;
+}
+
+.catarina-perno {
+    fill: #ece9a4;
+}
+
+.flecha-direccion {
+    fill: none;
+    filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.25));
+    stroke: var(--flecha-verde);
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 7;
+}
+
+.flecha-punta {
+    fill: var(--flecha-verde);
+}
+
+.marca-onda {
+    fill: rgba(95, 240, 58, 0.55);
+}
+
+.marca-onda-linea {
+    fill: none;
+    stroke: var(--diagrama-azul);
+    stroke-linecap: round;
+    stroke-width: 3;
+}
+
+.diagrama-lavadora.is-paused .cadena-animada,
+.diagrama-lavadora.is-paused .cadena-brillo,
+.diagrama-lavadora.is-paused .cadena-exacta-eslabon-sombra,
+.diagrama-lavadora.is-paused .cadena-exacta-eslabon-luz,
+.diagrama-lavadora.is-paused .cadena-exacta-animada,
+.diagrama-lavadora.is-paused .catarina {
+    animation-play-state: paused;
+}
+
+.diagrama-lavadora.is-resetting .cadena-animada,
+.diagrama-lavadora.is-resetting .cadena-brillo,
+.diagrama-lavadora.is-resetting .cadena-exacta-eslabon-sombra,
+.diagrama-lavadora.is-resetting .cadena-exacta-eslabon-luz,
+.diagrama-lavadora.is-resetting .cadena-exacta-animada,
+.diagrama-lavadora.is-resetting .catarina {
+    animation: none;
+}
+
+.monitor-fallas-overlay {
+    font-family: Arial, Helvetica, sans-serif;
+    pointer-events: none;
+}
+
+.monitor-reductor,
+.monitor-componente {
+    cursor: help;
+    pointer-events: visiblePainted;
+}
+
+.monitor-severity-green {
+    --monitor-color: #14b86a;
+    --monitor-rgb: 20, 184, 106;
+    --monitor-dark: #063f2b;
+}
+
+.monitor-severity-yellow {
+    --monitor-color: #f4c430;
+    --monitor-rgb: 244, 196, 48;
+    --monitor-dark: #4a3600;
+}
+
+.monitor-severity-orange {
+    --monitor-color: #ff7a1a;
+    --monitor-rgb: 255, 122, 26;
+    --monitor-dark: #4a1f00;
+}
+
+.monitor-severity-red {
+    --monitor-color: #ef233c;
+    --monitor-rgb: 239, 35, 60;
+    --monitor-dark: #4b0710;
+}
+
+.monitor-reductor-pulse,
+.monitor-reductor-halo,
+.monitor-reductor-core,
+.monitor-componente-glow,
+.monitor-componente-label-bg,
+.monitor-alert-icon {
+    vector-effect: non-scaling-stroke;
+}
+
+.monitor-reductor-pulse {
+    animation: monitorPulse 1.7s ease-in-out infinite;
+    fill: rgba(var(--monitor-rgb), 0.12);
+    opacity: 0.8;
+    stroke: rgba(var(--monitor-rgb), 0.8);
+    stroke-width: 2;
+}
+
+.monitor-reductor-halo {
+    fill: rgba(var(--monitor-rgb), 0.12);
+    filter: drop-shadow(0 0 7px rgba(var(--monitor-rgb), 0.6));
+    stroke: var(--monitor-color);
+    stroke-width: 2.6;
+}
+
+.monitor-reductor.has-alerts .monitor-reductor-halo {
+    animation: monitorBlink 1.4s ease-in-out infinite;
+}
+
+.monitor-reductor.is-healthy .monitor-reductor-halo {
+    fill: rgba(var(--monitor-rgb), 0.07);
+    opacity: 0.58;
+    stroke-width: 1.8;
+}
+
+.monitor-reductor-core {
+    fill: rgba(9, 18, 28, 0.88);
+    stroke: var(--monitor-color);
+    stroke-width: 2;
+}
+
+.monitor-reductor-count,
+.monitor-reductor-ok {
+    fill: none;
+    pointer-events: none;
+    stroke: #ffffff;
+}
+
+.monitor-reductor-count {
+    fill: #ffffff;
+    font-size: 14px;
+    font-weight: 800;
+    stroke: none;
+}
+
+.monitor-reductor-ok {
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 3;
+}
+
+.monitor-componente-line {
+    opacity: 0.64;
+    stroke: var(--monitor-color);
+    stroke-dasharray: 4 4;
+    stroke-width: 1.4;
+    vector-effect: non-scaling-stroke;
+}
+
+.monitor-componente-glow {
+    animation: monitorComponentGlow 1.35s ease-in-out infinite;
+    fill: rgba(var(--monitor-rgb), 0.22);
+    stroke: rgba(var(--monitor-rgb), 0.7);
+    stroke-width: 1.4;
+}
+
+.monitor-componente-label-bg {
+    fill: rgba(11, 18, 27, 0.92);
+    filter: drop-shadow(0 3px 8px rgba(0, 0, 0, 0.32));
+    stroke: rgba(var(--monitor-rgb), 0.82);
+    stroke-width: 1.2;
+}
+
+.monitor-alert-icon {
+    fill: var(--monitor-color);
+    stroke: rgba(255, 255, 255, 0.72);
+    stroke-linejoin: round;
+    stroke-width: 1;
+}
+
+.monitor-alert-bang {
+    fill: #111827;
+    font-size: 12px;
+    font-weight: 900;
+    pointer-events: none;
+}
+
+.monitor-componente-label {
+    fill: #f8fafc;
+    font-size: 11px;
+    font-weight: 800;
+    pointer-events: none;
+}
+
+.monitor-industrial-tooltip {
+    background: rgba(7, 13, 22, 0.95);
+    border: 1px solid rgba(148, 163, 184, 0.45);
+    border-left: 4px solid var(--monitor-tooltip-color, #38bdf8);
+    border-radius: 6px;
+    box-shadow: 0 16px 34px rgba(2, 6, 23, 0.34);
+    color: #e5edf7;
+    display: none;
+    font-size: 12px;
+    line-height: 1.35;
+    max-width: min(320px, calc(100vw - 28px));
+    padding: 10px 12px;
+    pointer-events: none;
+    position: fixed;
+    width: max-content;
+    z-index: 2000;
+}
+
+.monitor-industrial-tooltip.is-visible {
+    display: block;
+}
+
+.monitor-tooltip-title {
+    color: #ffffff;
+    font-size: 13px;
+    font-weight: 800;
+    margin-bottom: 8px;
+}
+
+.monitor-tooltip-grid {
+    display: grid;
+    gap: 5px;
+}
+
+.monitor-tooltip-row {
+    display: grid;
+    gap: 8px;
+    grid-template-columns: 92px minmax(0, 1fr);
+}
+
+.monitor-tooltip-label {
+    color: #93a4b8;
+    font-weight: 700;
+}
+
+.monitor-tooltip-value {
+    color: #f8fafc;
+    overflow-wrap: anywhere;
+}
+
+@keyframes moverCadena {
+    from {
+        stroke-dashoffset: 0;
+    }
+
+    to {
+        stroke-dashoffset: -56;
+    }
+}
+
+@keyframes moverCadenaBrillo {
+    from {
+        stroke-dashoffset: 0;
+    }
+
+    to {
+        stroke-dashoffset: -84;
+    }
+}
+
+@keyframes girarCatarina {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes girarCatarinaInversa {
+    from {
+        transform: rotate(360deg);
+    }
+
+    to {
+        transform: rotate(0deg);
+    }
+}
+
+@keyframes monitorBlink {
+    0%,
+    100% {
+        opacity: 0.86;
+        stroke-width: 2.4;
+    }
+
+    50% {
+        opacity: 1;
+        stroke-width: 4;
+    }
+}
+
+@keyframes monitorPulse {
+    0% {
+        opacity: 0.5;
+        stroke-width: 1.2;
+    }
+
+    55% {
+        opacity: 0.9;
+        stroke-width: 3.4;
+    }
+
+    100% {
+        opacity: 0.2;
+        stroke-width: 1.2;
+    }
+}
+
+@keyframes monitorComponentGlow {
+    0%,
+    100% {
+        opacity: 0.78;
+    }
+
+    50% {
+        opacity: 1;
+    }
+}
+
+@media (max-width: 768px) {
+    .diagrama-page-header,
+    .diagrama-toolbar {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .diagrama-page-title {
+        font-size: 1.18rem;
+    }
+
+    .diagrama-nav,
+    .diagrama-actions {
+        width: 100%;
+    }
+
+    .diagrama-nav-link {
+        flex: 1 1 auto;
+        justify-content: center;
+    }
+
+    .diagrama-speed {
+        flex: 1;
+        justify-content: center;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .cadena-animada,
+    .cadena-brillo,
+    .cadena-exacta-eslabon-sombra,
+    .cadena-exacta-eslabon-luz,
+    .cadena-exacta-animada,
+    .catarina,
+    .monitor-reductor-pulse,
+    .monitor-reductor.has-alerts .monitor-reductor-halo,
+    .monitor-componente-glow {
+        animation: none;
+    }
+}

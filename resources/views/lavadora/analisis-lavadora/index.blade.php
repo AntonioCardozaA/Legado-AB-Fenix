@@ -3,6 +3,8 @@
 @section('title', 'Análisis de Lavadoras')
 
 @section('content')
+<link rel="stylesheet" href="{{ asset('css/diagramas-lavadoras.css') }}">
+
 <style>
     /* VARIABLES CSS PARA CONSISTENCIA */
     :root {
@@ -1309,22 +1311,130 @@
 
     {{-- DIAGRAMA DE LAVADORA SEGÚN LÍNEA SELECCIONADA --}}
     @if(!$mostrarTodas && isset($lineaSeleccionada) && is_object($lineaSeleccionada))
-        @php
-            $diagramaFile = $diagramasPorLinea[$lineaSeleccionada->nombre] ?? 'diagranalav.png';
-        @endphp
         <div class="mb-6 p-4 bg-white rounded-lg shadow-sm border border-gray-200">
             <div class="flex items-center justify-between">
                 <h2 class="text-lg font-semibold text-gray-700">
                     <i class="fas fa-diagram-project text-blue-600 mr-2"></i>
                     Diagrama {{ $lineaSeleccionada->nombre }}
                 </h2>
-                <span class="text-sm text-gray-500">Diagrama de referencia</span>
             </div>
-            <div class="mt-4 flex justify-center">
-                <img src="{{ asset('images/Diagramas-Lavadoras/' . $diagramaFile) }}" 
-                    alt="Diagrama Lavadora {{ $lineaSeleccionada->nombre }}"
-                    class="max-w-full h-auto rounded-lg border border-gray-300 shadow-md"
-                    onerror="this.src='{{ asset('images/Diagramas-Lavadoras/diagramalav.png') }}'">
+            <div class="mt-4">
+                @php
+                    $monitorFuenteDiagrama = isset($analisisMonitorDiagrama)
+                        ? collect($analisisMonitorDiagrama)
+                        : collect();
+
+                    if ($monitorFuenteDiagrama->isEmpty()) {
+                        $monitorFuenteDiagrama = $analisisCollection->filter(function ($item) use ($lineaSeleccionada) {
+                            return isset($item->linea_id) && $item->linea_id == $lineaSeleccionada->id;
+                        });
+                    }
+
+                    $monitorNormalizarReductor = function ($valor) {
+                        $valor = trim((string) ($valor ?? ''));
+
+                        if ($valor === '') {
+                            return '';
+                        }
+
+                        $valorUpper = strtoupper($valor);
+
+                        if (str_contains($valorUpper, 'LOCA')) {
+                            return 'Reductor Loca';
+                        }
+
+                        if (str_contains($valorUpper, 'PRINCIPAL')) {
+                            return 'Reductor Principal';
+                        }
+
+                        if (preg_match('/(?:REDUCTOR|RED)\s*0*([0-9]+)/i', $valor, $matches)) {
+                            return 'Reductor ' . (int) $matches[1];
+                        }
+
+                        if (preg_match('/^0*([0-9]+)$/', $valor, $matches)) {
+                            return 'Reductor ' . (int) $matches[1];
+                        }
+
+                        return $valor;
+                    };
+
+                    $monitorEstadoMeta = function (?string $estado) {
+                        if (\App\Models\AnalisisLavadora::esEstadoDanado($estado)) {
+                            return ['severity' => 'red', 'nivel' => 'Critico'];
+                        }
+
+                        if ($estado === 'Desgaste severo' || \App\Models\AnalisisLavadora::esEstadoRequiereRevision($estado)) {
+                            return ['severity' => 'orange', 'nivel' => 'Atencion'];
+                        }
+
+                        if (\App\Models\AnalisisLavadora::esEstadoDesgaste($estado)) {
+                            return ['severity' => 'yellow', 'nivel' => 'Advertencia'];
+                        }
+
+                        return ['severity' => 'green', 'nivel' => 'Sin anomalias'];
+                    };
+
+                    $monitorUltimos = [];
+                    $componentesDiagrama = $componentesPorLineaArray[$lineaSeleccionada->nombre] ?? [];
+
+                    foreach ($monitorFuenteDiagrama as $item) {
+                        if (!$item || !$item->componente || empty($item->reductor)) {
+                            continue;
+                        }
+
+                        $reductorVista = $monitorNormalizarReductor($item->reductor);
+                        $codigoOriginal = $item->componente->codigo ?? '';
+                        $codigoBase = $codigoOriginal;
+
+                        foreach (array_keys($componentesDiagrama) as $codigoComponenteLinea) {
+                            if ($codigoOriginal === $codigoComponenteLinea || str_contains($codigoOriginal, $codigoComponenteLinea)) {
+                                $codigoBase = $codigoComponenteLinea;
+                                break;
+                            }
+                        }
+
+                        $nombreComponente = $componentesDiagrama[$codigoBase] ?? ($item->componente->nombre ?? $codigoBase);
+                        $estadoActual = $item->estado ?? \App\Models\AnalisisLavadora::ESTADO_BUENO;
+                        $metaEstado = $monitorEstadoMeta($estadoActual);
+                        $fechaTs = isset($item->fecha_analisis) && $item->fecha_analisis ? $item->fecha_analisis->getTimestamp() : 0;
+                        $itemId = $item->id ?? 0;
+                        $lado = $item->lado ?? '';
+                        $claveMonitor = $reductorVista . '|' . $codigoBase . '|' . $lado;
+
+                        if (isset($monitorUltimos[$claveMonitor])) {
+                            $actualTs = $monitorUltimos[$claveMonitor]['_fecha_ts'] ?? -1;
+                            $actualId = $monitorUltimos[$claveMonitor]['_id'] ?? -1;
+
+                            if ($fechaTs < $actualTs || ($fechaTs === $actualTs && $itemId <= $actualId)) {
+                                continue;
+                            }
+                        }
+
+                        $monitorUltimos[$claveMonitor] = [
+                            '_fecha_ts' => $fechaTs,
+                            '_id' => $itemId,
+                            'reductor' => $reductorVista,
+                            'componente' => $nombreComponente,
+                            'componente_codigo' => $codigoBase,
+                            'estado' => $estadoActual,
+                            'severity' => $metaEstado['severity'],
+                            'nivel' => $metaEstado['nivel'],
+                            'fecha' => isset($item->fecha_analisis) && $item->fecha_analisis ? $item->fecha_analisis->format('d/m/Y') : 'Sin fecha',
+                            'observaciones' => $item->actividad ?: 'Sin observaciones',
+                            'lado' => $lado,
+                        ];
+                    }
+
+                    $monitorAlertasDiagrama = array_values(array_map(function ($alerta) {
+                        unset($alerta['_fecha_ts'], $alerta['_id']);
+                        return $alerta;
+                    }, $monitorUltimos));
+                @endphp
+
+                @include('lavadora.analisis-lavadora.partials.diagrama-codigo', [
+                    'lineaSeleccionada' => $lineaSeleccionada,
+                    'monitorAlertas' => $monitorAlertasDiagrama,
+                ])
             </div>
         </div>
     @elseif($mostrarTodas)
@@ -3054,6 +3164,7 @@
     </div>
 </div>
 
+<script src="{{ asset('js/diagramas-lavadoras.js') }}"></script>
 <script>
 let currentImages = [];
 let currentAnalysisData = null;
