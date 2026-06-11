@@ -20,7 +20,9 @@
                     <label class="block text-sm font-medium text-gray-700 mb-1">Tipo de Equipo</label>
                     <select name="tipo" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
                         <option value="lavadoras" {{ request('tipo') == 'lavadoras' ? 'selected' : '' }}>Lavadoras</option>
+                        @if($canAccessPasteurizadora ?? true)
                         <option value="pasteurizadoras" {{ request('tipo') == 'pasteurizadoras' ? 'selected' : '' }}>Pasteurizadoras</option>
+                        @endif
                     </select>
                 </div>
 

@@ -55,7 +55,7 @@ Route::prefix('lavadoras/diagramas')->name('lavadoras.diagramas.')->group(functi
 | RUTAS PROTEGIDAS
 |--------------------------------------------------------------------------
 */
-Route::middleware(['auth', 'technician.access'])->group(function () {
+Route::middleware(['auth', 'pasteurizadora.access', 'technician.access'])->group(function () {
 
     /*
     |--------------------------------------------------------------------------
@@ -123,7 +123,7 @@ Route::prefix('pasteurizadora')->group(function () {
         ->group(function () {
             Route::get('/', 'index')->name('index');
 
-            Route::middleware(['role:admin|ingeniero_mantenimiento'])->group(function () {
+            Route::middleware(['role:admin|ingeniero_mantenimiento|gerente_mantenimiento|supervisor'])->group(function () {
                 Route::post('/reset-estadisticas', 'resetEstadisticas')->name('reset-estadisticas');
                 Route::get('/check-reset-status', 'checkResetStatus')->name('check-reset-status');
             });
@@ -426,7 +426,7 @@ Route::prefix('pasteurizadora')->group(function () {
     | LÍNEAS
     |--------------------------------------------------------------------------
     */
-    Route::middleware(['role:admin|ingeniero_mantenimiento'])->group(function () {
+    Route::middleware(['role:admin|ingeniero_mantenimiento|gerente_mantenimiento|supervisor'])->group(function () {
         Route::resource('lineas', LineaController::class);
 
         Route::patch('/lineas/{linea}/toggle', [LineaController::class, 'toggleActivo'])

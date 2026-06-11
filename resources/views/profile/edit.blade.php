@@ -18,6 +18,9 @@
                 <p class="text-xs uppercase tracking-[0.25em] text-blue-100">Usuario actual</p>
                 <p class="mt-2 text-lg font-semibold">{{ $user->name }}</p>
                 <p class="text-sm text-blue-50">{{ $user->email }}</p>
+                <p class="mt-2 inline-flex rounded-full bg-white/15 px-3 py-1 text-xs font-semibold text-white">
+                    {{ $user->role_label }}
+                </p>
             </div>
         </div>
     </section>

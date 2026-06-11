@@ -2,10 +2,10 @@
 
 namespace App\Models;
 
-use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Spatie\Permission\Exceptions\PermissionDoesNotExist;
 use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
@@ -29,6 +29,18 @@ class User extends Authenticatable
         'foto_perfil',
         'ultimo_acceso',
     ];
+
+    public const ROLE_ADMIN = 'admin';
+    public const ROLE_GERENTE_MANTENIMIENTO = 'gerente_mantenimiento';
+    public const ROLE_SUPERVISOR = 'supervisor';
+    public const ROLE_INGENIERO_MANTENIMIENTO = 'ingeniero_mantenimiento';
+    public const ROLE_TECNICO = 'tecnico';
+
+    public const MODULE_LAVADORA = 'lavadora';
+    public const MODULE_PASTEURIZADORA = 'pasteurizadora';
+
+    public const PERMISSION_ACCESS_LAVADORA = 'acceder modulo lavadora';
+    public const PERMISSION_ACCESS_PASTEURIZADORA = 'acceder modulo pasteurizadora';
 
     /**
      * The attributes that should be hidden for serialization.
@@ -78,6 +90,82 @@ public function getFormattedPhoneForSmsAttribute()
         $phone = '57' . $phone; // Código de Colombia
     }
     return $phone;
+}
+
+public static function roleLabels(): array
+{
+    return [
+        self::ROLE_ADMIN => 'Administrador',
+        self::ROLE_GERENTE_MANTENIMIENTO => 'Gerente de Mantenimiento',
+        self::ROLE_SUPERVISOR => 'Supervisor',
+        self::ROLE_INGENIERO_MANTENIMIENTO => 'Ingeniero de Mantenimiento',
+        self::ROLE_TECNICO => 'Tecnico',
+    ];
+}
+
+public static function modulePermissionMap(): array
+{
+    return [
+        self::MODULE_LAVADORA => self::PERMISSION_ACCESS_LAVADORA,
+        self::MODULE_PASTEURIZADORA => self::PERMISSION_ACCESS_PASTEURIZADORA,
+    ];
+}
+
+public static function elevatedMaintenanceRoles(): array
+{
+    return [
+        self::ROLE_ADMIN,
+        self::ROLE_GERENTE_MANTENIMIENTO,
+        self::ROLE_SUPERVISOR,
+        self::ROLE_INGENIERO_MANTENIMIENTO,
+    ];
+}
+
+public function getPrimaryRoleAttribute(): ?string
+{
+    return $this->getRoleNames()->first();
+}
+
+public function getRoleAttribute(): ?string
+{
+    return $this->primary_role;
+}
+
+public function getRoleLabelAttribute(): string
+{
+    $role = $this->primary_role;
+
+    return self::roleLabels()[$role] ?? ($role ? str($role)->replace('_', ' ')->title()->toString() : 'Sin rol asignado');
+}
+
+public function canAccessModule(string $module): bool
+{
+    $module = strtolower($module);
+
+    if ($this->hasRole(self::ROLE_ADMIN)) {
+        return true;
+    }
+
+    $permission = self::modulePermissionMap()[$module] ?? null;
+
+    if ($permission) {
+        try {
+            if ($this->hasPermissionTo($permission)) {
+                return true;
+            }
+        } catch (PermissionDoesNotExist) {
+            //
+        }
+    }
+
+    if ($module === self::MODULE_PASTEURIZADORA) {
+        return !$this->hasAnyRole([
+            self::ROLE_GERENTE_MANTENIMIENTO,
+            self::ROLE_SUPERVISOR,
+        ]);
+    }
+
+    return true;
 }
 
 }

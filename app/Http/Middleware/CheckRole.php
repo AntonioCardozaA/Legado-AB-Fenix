@@ -15,6 +15,12 @@ class CheckRole
             return redirect()->route('login');
         }
 
+        $roles = collect($roles)
+            ->flatMap(fn ($role) => explode('|', $role))
+            ->map(fn ($role) => trim($role))
+            ->filter()
+            ->all();
+
         foreach ($roles as $role) {
             if ($user->hasRole($role)) {
                 return $next($request);

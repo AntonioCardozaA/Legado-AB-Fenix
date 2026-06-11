@@ -19,7 +19,7 @@ class AdminUserSeeder extends Seeder
                 'telefono' => '0000000000',
                 'puesto' => 'Administrador del Sistema',
                 'activo' => true,
-                'rol' => 'admin',
+                'rol' => User::ROLE_ADMIN,
             ],
             [
                 'name' => 'Juan Pérez',
@@ -27,9 +27,9 @@ class AdminUserSeeder extends Seeder
                 'password' => 'password123',
                 'cedula' => '12345678',
                 'telefono' => '5551234567',
-                'puesto' => 'Ingeniero en Mantenimiento',
+                'puesto' => 'Gerente de Mantenimiento',
                 'activo' => true,
-                'rol' => 'ingeniero_mantenimiento',
+                'rol' => User::ROLE_GERENTE_MANTENIMIENTO,
             ],
             [
                 'name' => 'María García',
@@ -39,7 +39,7 @@ class AdminUserSeeder extends Seeder
                 'telefono' => '5557654321',
                 'puesto' => 'Supervisor de Mantenimiento',
                 'activo' => true,
-                'rol' => 'supervisor',
+                'rol' => User::ROLE_SUPERVISOR,
             ],
             [
                 'name' => 'Carlos López',
@@ -49,7 +49,7 @@ class AdminUserSeeder extends Seeder
                 'telefono' => '5559988776',
                 'puesto' => 'Técnico de Mantenimiento',
                 'activo' => true,
-                'rol' => 'tecnico',
+                'rol' => User::ROLE_TECNICO,
             ],
         ];
 

@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\User;
 use Illuminate\Database\Seeder;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
@@ -16,6 +17,8 @@ class RoleSeeder extends Seeder
 
         // Lista de permisos
         $permisos = [
+            User::PERMISSION_ACCESS_LAVADORA,
+            User::PERMISSION_ACCESS_PASTEURIZADORA,
             'ver analisis',
             'crear analisis',
             'editar analisis',
@@ -43,20 +46,22 @@ class RoleSeeder extends Seeder
             ]);
         }
 
+        $todosLosPermisos = Permission::all();
+        $permisosSinPasteurizadora = Permission::where('name', '!=', User::PERMISSION_ACCESS_PASTEURIZADORA)->get();
+
         // Roles y permisos
         $roles = [
-            'admin' => Permission::all(),
-            'ingeniero_mantenimiento' => [
+            User::ROLE_ADMIN => $todosLosPermisos,
+            User::ROLE_GERENTE_MANTENIMIENTO => $permisosSinPasteurizadora,
+            User::ROLE_SUPERVISOR => $permisosSinPasteurizadora,
+            User::ROLE_INGENIERO_MANTENIMIENTO => [
+                User::PERMISSION_ACCESS_LAVADORA,
                 'ver analisis', 'crear analisis', 'editar analisis', 'exportar analisis',
                 'ver paros', 'crear paros', 'editar paros', 'gestionar planes accion',
                 'ver reportes', 'generar reportes', 'exportar reportes',
             ],
-            'supervisor' => [
-                'ver analisis', 'crear analisis', 'exportar analisis',
-                'ver paros', 'gestionar planes accion',
-                'ver reportes', 'generar reportes',
-            ],
-            'tecnico' => [
+            User::ROLE_TECNICO => [
+                User::PERMISSION_ACCESS_LAVADORA,
                 'ver analisis', 'crear analisis', 'editar analisis',
             ],
         ];

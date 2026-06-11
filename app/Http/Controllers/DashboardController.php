@@ -8,6 +8,7 @@ use App\Models\Elongacion;
 use App\Models\PlanAccion;
 use App\Models\AnalisisTendenciaMensualLavadora;
 use App\Models\AnalisisPasteurizadora;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Collection;
@@ -35,7 +36,7 @@ class DashboardController extends Controller
     public function index()
     {
         if (auth()->user()?->hasRole('tecnico')
-            && !auth()->user()?->hasAnyRole(['admin', 'ingeniero_mantenimiento', 'supervisor'])) {
+            && !auth()->user()?->hasAnyRole(User::elevatedMaintenanceRoles())) {
             return redirect()->route('tecnico.dashboard');
         }
 
@@ -53,7 +54,10 @@ class DashboardController extends Controller
                 'estadisticas' => $this->getLavadoraStats(),
                 'activo' => true
             ],
-            [
+        ];
+
+        if (auth()->user()?->canAccessModule(User::MODULE_PASTEURIZADORA)) {
+            $modulos[] = [
                 'id' => 'pasteurizadora',
                 'nombre' => 'Pasteurizadoras',
                 'descripcion' => '',
@@ -64,8 +68,8 @@ class DashboardController extends Controller
                 'ruta' => route('dashboard.global.pasteurizadoras'),
                 'estadisticas' => $this->getPasteurizadoraStats(),
                 'activo' => true
-            ]
-        ];
+            ];
+        }
 
         return view('dashboard-modulos', compact('modulos'));
     }
@@ -140,8 +144,7 @@ class DashboardController extends Controller
      */
    public function pasteurizadoraGlobal()
 {
-    if (auth()->user()?->hasRole('tecnico')
-        && !auth()->user()?->hasAnyRole(['admin', 'ingeniero_mantenimiento', 'supervisor'])) {
+    if (!auth()->user()?->canAccessModule(User::MODULE_PASTEURIZADORA)) {
         return redirect()
             ->route('lavadora.dashboard')
             ->with('pasteurizadora_bloqueada', 'Estamos trabajando en ello, estará disponible muy pronto.');
@@ -256,8 +259,7 @@ class DashboardController extends Controller
      */
 public function pasteurizadoraOperativo(Request $request)
 {
-    if (auth()->user()?->hasRole('tecnico')
-        && !auth()->user()?->hasAnyRole(['admin', 'ingeniero_mantenimiento', 'supervisor'])) {
+    if (!auth()->user()?->canAccessModule(User::MODULE_PASTEURIZADORA)) {
         return redirect()
             ->route('lavadora.dashboard')
             ->with('pasteurizadora_bloqueada', 'Próximamente estamos trabajando en ello, estará disponible muy pronto.');

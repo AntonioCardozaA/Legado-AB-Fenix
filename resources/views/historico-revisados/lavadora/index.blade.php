@@ -921,7 +921,7 @@ $rutasImagenes = [
     </div>
 
     {{-- GESTIÓN DE PERIODICIDAD (Solo para administradores e ingenieros de mantenimiento) --}}
-    @canany(['admin', 'ingeniero_mantenimiento'])
+    @if(auth()->user()?->hasAnyRole(\App\Models\User::elevatedMaintenanceRoles()))
     <div class="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
         <h4 class="font-semibold text-gray-700 mb-3 flex items-center gap-2">
             <i class="fas fa-history text-blue-600"></i>
@@ -951,7 +951,7 @@ $rutasImagenes = [
             </button>
         </div>
     </div>
-    @endcanany
+    @endif
 </div>
 
 

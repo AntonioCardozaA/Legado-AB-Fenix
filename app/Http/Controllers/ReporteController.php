@@ -6,6 +6,7 @@ use App\Models\Linea;
 use App\Models\Componente;
 use App\Models\AnalisisLavadora;
 use App\Models\Paro;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Maatwebsite\Excel\Facades\Excel;
@@ -112,7 +113,9 @@ class ReporteController extends Controller
 
     public function index(Request $request)
     {
-        $tipoEquipo = $request->get('tipo','lavadoras');
+        $tipoEquipo = $this->normalizarTipoEquipo($request->get('tipo', 'lavadoras'));
+        $this->ensureCanAccessTipoEquipo($tipoEquipo);
+
         $fechaInicio = $request->get('fecha_inicio') 
             ? Carbon::parse($request->fecha_inicio) 
             : Carbon::now()->subMonth();
@@ -140,6 +143,8 @@ class ReporteController extends Controller
 
     public function pasteurizadora(Request $request)
     {
+        $this->ensureCanAccessTipoEquipo('pasteurizadoras');
+
         return redirect()->route('reportes.index', array_merge(
             $request->query(),
             ['tipo' => 'pasteurizadoras']
@@ -244,7 +249,9 @@ class ReporteController extends Controller
 
     public function show(Request $request)
     {
-        $tipoEquipo = $request->get('tipo', 'lavadoras');
+        $tipoEquipo = $this->normalizarTipoEquipo($request->get('tipo', 'lavadoras'));
+        $this->ensureCanAccessTipoEquipo($tipoEquipo);
+
         $fechaInicio = Carbon::parse($request->get('fecha_inicio', Carbon::now()->subMonth()));
         $fechaFin = Carbon::parse($request->get('fecha_fin', Carbon::now()));
 
@@ -266,10 +273,12 @@ class ReporteController extends Controller
 
     private function mostrarReporteLinea($lineaId, $tipoEquipo, $fechaInicio, $fechaFin)
     {
+        $linea = Linea::findOrFail($lineaId);
+        $this->ensureCanAccessLinea($linea);
+
         $cacheKey = "reporte_linea_{$lineaId}_{$fechaInicio->format('Ymd')}_{$fechaFin->format('Ymd')}";
         
-        $reporte = Cache::remember($cacheKey, 3600, function() use ($lineaId, $tipoEquipo, $fechaInicio, $fechaFin) {
-            $linea = Linea::findOrFail($lineaId);
+        $reporte = Cache::remember($cacheKey, 3600, function() use ($linea, $tipoEquipo, $fechaInicio, $fechaFin) {
             return $this->getReporteDetalladoLinea($linea, $fechaInicio, $fechaFin, $tipoEquipo);
         });
         
@@ -661,7 +670,32 @@ class ReporteController extends Controller
 
     private function getLineasPorTipo($tipo)
     {
-        return $tipo === 'lavadoras' ? $this->lavadoras : $this->pasteurizadoras;
+        return $this->normalizarTipoEquipo($tipo) === 'lavadoras' ? $this->lavadoras : $this->pasteurizadoras;
+    }
+
+    private function normalizarTipoEquipo(?string $tipo): string
+    {
+        return $tipo === 'pasteurizadoras' ? 'pasteurizadoras' : 'lavadoras';
+    }
+
+    private function ensureCanAccessTipoEquipo(string $tipoEquipo): void
+    {
+        if (
+            $this->normalizarTipoEquipo($tipoEquipo) === 'pasteurizadoras'
+            && !auth()->user()?->canAccessModule(User::MODULE_PASTEURIZADORA)
+        ) {
+            abort(403, 'No tienes permiso para acceder al modulo de Pasteurizadora.');
+        }
+    }
+
+    private function ensureCanAccessLinea(Linea $linea): void
+    {
+        if (
+            str_starts_with($linea->nombre, 'P-')
+            && !auth()->user()?->canAccessModule(User::MODULE_PASTEURIZADORA)
+        ) {
+            abort(403, 'No tienes permiso para acceder al modulo de Pasteurizadora.');
+        }
     }
 
     private function determinarEstadoGeneral($lineaId, $fechaInicio, $fechaFin)
@@ -703,7 +737,9 @@ class ReporteController extends Controller
         $formato = $request->get('export_format', 'pdf');
         $tipo = $request->get('export_tipo', 'completo');
         $lineaId = $request->get('lineaId');
-        $tipoEquipo = $request->get('tipo', 'lavadoras');
+        $tipoEquipo = $this->normalizarTipoEquipo($request->get('tipo', 'lavadoras'));
+        $this->ensureCanAccessTipoEquipo($tipoEquipo);
+
         $fechaInicio = Carbon::parse($request->get('fecha_inicio', Carbon::now()->subMonth()));
         $fechaFin = Carbon::parse($request->get('fecha_fin', Carbon::now()));
 
@@ -719,6 +755,7 @@ class ReporteController extends Controller
     if ($tipo === 'linea' && $lineaId) {
 
         $linea = Linea::findOrFail($lineaId);
+        $this->ensureCanAccessLinea($linea);
 
         $reporte = $this->getReporteDetalladoLinea(
             $linea,
@@ -760,6 +797,7 @@ class ReporteController extends Controller
     if ($tipo === 'linea' && $lineaId) {
 
         $linea = Linea::findOrFail($lineaId);
+        $this->ensureCanAccessLinea($linea);
 
         $reporte = $this->getReporteDetalladoLinea(
             $linea,

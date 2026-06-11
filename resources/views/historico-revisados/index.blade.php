@@ -12,7 +12,9 @@
     <form method="GET" class="flex flex-wrap gap-3 rounded bg-white p-4 shadow">
         <select name="tipo" class="rounded border-gray-300 text-sm">
             <option value="lavadora" @selected(($tipoSeleccionado ?? 'lavadora') === 'lavadora')>Lavadora</option>
+            @if($canAccessPasteurizadora ?? true)
             <option value="pasteurizadora" @selected(($tipoSeleccionado ?? '') === 'pasteurizadora')>Pasteurizadora</option>
+            @endif
         </select>
         <select name="linea_id" class="rounded border-gray-300 text-sm">
             @foreach(($lineas ?? collect()) as $linea)
