@@ -11,10 +11,18 @@ use App\Models\AnalisisPasteurizadora;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 use Carbon\Carbon;
 
 class DashboardController extends Controller
 {
+    private const LAVADORA_TREND_COMPONENT_STATES = [
+        'danado - requiere cambio',
+        'dano - requiere cambio',
+        'desgaste severo',
+        'desgaste moderado',
+    ];
+
     private const LAVADORA_NOMBRES = ['L-04', 'L-05', 'L-06', 'L-07', 'L-08', 'L-09', 'L-12', 'L-13'];
     private const LAVADORA_DAMAGE_STATES = ['Dañado - Requiere cambio', 'Desgaste severo', 'Desgaste moderado'];
     private const LAVADORA_SEVERE_STATES = ['Desgaste severo', 'Desgaste moderado'];
@@ -87,6 +95,91 @@ class DashboardController extends Controller
     }
 
     /**
+     * Resuelve el rango de fechas aplicado a los modulos de tendencia.
+     */
+    private function resolveLavadoraTrendDateRange(Request $request): array
+    {
+        $from = $this->parseLavadoraTrendDate($request->query('trend_desde'));
+        $to = $this->parseLavadoraTrendDate($request->query('trend_hasta'));
+
+        if ($from && $to && $from->gt($to)) {
+            [$from, $to] = [$to, $from];
+        }
+
+        return [
+            'from' => $from?->copy()->startOfDay(),
+            'to' => $to?->copy()->endOfDay(),
+            'from_input' => $from?->toDateString(),
+            'to_input' => $to?->toDateString(),
+        ];
+    }
+
+    /**
+     * Convierte una fecha del request a Carbon sin romper el dashboard.
+     */
+    private function parseLavadoraTrendDate(?string $value): ?Carbon
+    {
+        if (!$value) {
+            return null;
+        }
+
+        try {
+            return Carbon::parse($value);
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    /**
+     * Filtra el historico de analisis solo para los modulos de tendencia.
+     */
+    private function filterLavadoraTrendAnalisisByDateRange(Collection $analisisHistoricos, ?array $dateRange = null): Collection
+    {
+        if (!$this->hasLavadoraTrendDateRange($dateRange)) {
+            return $analisisHistoricos;
+        }
+
+        return $analisisHistoricos
+            ->filter(function (AnalisisLavadora $item) use ($dateRange) {
+                return $this->isLavadoraTrendDateInRange($item->fecha_analisis?->copy()->startOfDay(), $dateRange);
+            })
+            ->values();
+    }
+
+    /**
+     * Indica si existe al menos un limite de fecha para tendencia.
+     */
+    private function hasLavadoraTrendDateRange(?array $dateRange): bool
+    {
+        return $dateRange
+            && (($dateRange['from'] ?? null) instanceof Carbon || ($dateRange['to'] ?? null) instanceof Carbon);
+    }
+
+    /**
+     * Valida si una fecha cae dentro del rango seleccionado.
+     */
+    private function isLavadoraTrendDateInRange(?Carbon $fecha, ?array $dateRange): bool
+    {
+        if (!$fecha) {
+            return false;
+        }
+
+        if (!$this->hasLavadoraTrendDateRange($dateRange)) {
+            return true;
+        }
+
+        if (($dateRange['from'] ?? null) instanceof Carbon && $fecha->lt($dateRange['from'])) {
+            return false;
+        }
+
+        if (($dateRange['to'] ?? null) instanceof Carbon && $fecha->gt($dateRange['to'])) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
      * ===========================================================
      * DASHBOARDS GLOBALES (VISTAS PRINCIPALES)
      * ===========================================================
@@ -98,7 +191,7 @@ class DashboardController extends Controller
      * VISTA: dashboard_lavadora.blade.php
      * DESCRIPCIÓN: Dashboard global de lavadoras
      */
-    public function lavadoraGlobal()
+    public function lavadoraGlobal(Request $request)
 {
     $lineasLavadora = Linea::where('activo', true)
         ->whereIn('nombre', self::LAVADORA_NOMBRES)
@@ -107,6 +200,8 @@ class DashboardController extends Controller
 
     $analisisActuales = $this->getAnalisisActualesLavadoras($lineasLavadora);
     $analisisHistoricos = $this->getAnalisisHistoricosLavadoras($lineasLavadora);
+    $trendDateRange = $this->resolveLavadoraTrendDateRange($request);
+    $analisisHistoricosTendencia = $this->filterLavadoraTrendAnalisisByDateRange($analisisHistoricos, $trendDateRange);
 
     $resumenGeneral = $this->getResumenGeneral($lineasLavadora);
     $estadoLavadoras = $this->getEstadoLavadoras($lineasLavadora);
@@ -116,7 +211,8 @@ class DashboardController extends Controller
     $rankingDanos = $this->getRankingDanosPorLavadora($lineasLavadora, $analisisActuales);
     $evolucionElongaciones = $this->getEvolucionElongaciones($lineasLavadora);
     $historicoRevisiones = $this->getHistoricoRevisiones($lineasLavadora, $analisisHistoricos);
-    $analisis52124 = $this->getAnalisis52124($lineasLavadora, $analisisHistoricos);
+    $analisis52124 = $this->getAnalisis52124($lineasLavadora, $analisisHistoricosTendencia, $trendDateRange);
+    $analisis30147 = $this->getAnalisis30147($lineasLavadora, $analisisHistoricosTendencia, $trendDateRange);
 
     return view('dashboard_lavadora', compact(
         'lineasLavadora',
@@ -128,7 +224,9 @@ class DashboardController extends Controller
         'planesAccionDashboard',
         'evolucionElongaciones',
         'historicoRevisiones',
-        'analisis52124'
+        'analisis52124',
+        'analisis30147',
+        'trendDateRange'
     ));
 }
 
@@ -234,6 +332,7 @@ class DashboardController extends Controller
 
         // 9. Datos para el análisis 52-12-4 (últimos registros)
         $analisis52124 = $this->getAnalisis52124($lineasLavadora);
+        $analisis30147 = $this->getAnalisis30147($lineasLavadora);
 
         return view('lavadora.dashboard-lavadora', compact(
             'lineasLavadora',
@@ -244,7 +343,8 @@ class DashboardController extends Controller
             'componentesDanados',
             'evolucionElongaciones',
             'historicoRevisiones',
-            'analisis52124'
+            'analisis52124',
+            'analisis30147'
         ));
     }
 
@@ -1126,70 +1226,111 @@ public function pasteurizadoraOperativo(Request $request)
     /**
      * Obtiene los últimos registros del análisis 52-12-4.
      */
-    private function getAnalisis52124($lineasLavadora, ?Collection $analisisHistoricos = null): array
+    private function getAnalisis52124($lineasLavadora, ?Collection $analisisHistoricos = null, ?array $dateRange = null): array
     {
-        $analisisHistoricos = $analisisHistoricos ?: $this->getAnalisisHistoricosLavadoras($lineasLavadora);
-        $porLinea = $analisisHistoricos->groupBy('linea_id');
+        return $this->buildLavadoraDamageTrendAnalysis(
+            $lineasLavadora,
+            [
+                ['key' => 'semanas_52', 'label' => '52 semanas', 'type' => 'weeks', 'size' => 52],
+                ['key' => 'semanas_12', 'label' => '12 semanas', 'type' => 'weeks', 'size' => 12],
+                ['key' => 'semanas_4', 'label' => '4 semanas', 'type' => 'weeks', 'size' => 4],
+            ],
+            $analisisHistoricos,
+            $dateRange
+        );
+    }
+
+    /**
+     * Construye el anÃ¡lisis 30-14-7 con la misma fuente real del 52-12-4.
+     */
+    private function getAnalisis30147($lineasLavadora, ?Collection $analisisHistoricos = null, ?array $dateRange = null): array
+    {
+        return $this->buildLavadoraDamageTrendAnalysis(
+            $lineasLavadora,
+            [
+                ['key' => 'dias_30', 'label' => '30 dias', 'type' => 'days', 'size' => 30],
+                ['key' => 'dias_14', 'label' => '14 dias', 'type' => 'days', 'size' => 14],
+                ['key' => 'dias_7', 'label' => '7 dias', 'type' => 'days', 'size' => 7],
+            ],
+            $analisisHistoricos,
+            $dateRange
+        );
+    }
+
+    /**
+     * Consolida los eventos que alimentan los modulos de tendencia del dashboard.
+     */
+    private function buildLavadoraDamageTrendAnalysis($lineasLavadora, array $windows, ?Collection $analisisHistoricos = null, ?array $dateRange = null): array
+    {
+        if ($lineasLavadora->isEmpty()) {
+            return [
+                'default_linea_id' => null,
+                'lineas' => [],
+                'criterios' => $this->getLavadoraTrendCriteria(),
+            ];
+        }
+
+        $eventsByLine = $this->getLavadoraTrendEvents($lineasLavadora, $analisisHistoricos, $dateRange)
+            ->groupBy('linea_id');
 
         $seriesPorLinea = $lineasLavadora
-            ->map(function ($linea) use ($porLinea) {
-                $historialLinea = $porLinea->get($linea->id, collect())
-                    ->filter(fn ($item) => $item->fecha_analisis)
-                    ->sortBy(fn ($item) => $item->fecha_analisis->format('Y-m-d'))
+            ->map(function ($linea) use ($eventsByLine, $windows, $dateRange) {
+                $eventos = $eventsByLine
+                    ->get($linea->id, collect())
+                    ->sortBy(function (array $item) {
+                        return sprintf(
+                            '%s-%010d',
+                            $item['occurred_at']->format('YmdHis'),
+                            (int) ($item['id'] ?? 0)
+                        );
+                    })
                     ->values();
 
-                if ($historialLinea->isEmpty()) {
+                if ($eventos->isEmpty()) {
                     return [
                         'linea_id' => $linea->id,
                         'linea' => $linea->nombre,
-                        'labels' => [],
-                        'semanas_52' => [],
-                        'semanas_12' => [],
-                        'semanas_4' => [],
+                        'labels' => collect($windows)->pluck('label')->all(),
+                        'actual' => array_fill(0, count($windows), 0),
+                        'anterior' => array_fill(0, count($windows), 0),
+                        'ventanas' => [],
+                        'resumen' => [
+                            'estado' => 'Sin fallas',
+                            'estado_tone' => 'success',
+                            'ultima_falla' => null,
+                            'ultima_fuente' => null,
+                            'componente_actual' => 0,
+                            'elongacion_actual' => 0,
+                        ],
                         'sin_datos' => true,
                     ];
                 }
 
-                $danosLinea = $historialLinea
-                    ->filter(fn ($item) => in_array($item->estado, self::LAVADORA_DAMAGE_STATES, true))
+                $ventanas = collect($windows)
+                    ->map(fn (array $window) => $this->buildLavadoraTrendWindowSummary($eventos, $window, $dateRange))
                     ->values();
 
-                $cursor = $historialLinea->first()->fecha_analisis->copy()->startOfMonth();
-                $finHistorico = $historialLinea->last()->fecha_analisis->copy()->startOfMonth();
-                $finActual = now()->copy()->startOfMonth();
-                $fin = $finHistorico->gt($finActual) ? $finHistorico : $finActual;
-
-                $labels = [];
-                $serie52 = [];
-                $serie12 = [];
-                $serie4 = [];
-
-                while ($cursor->lte($fin)) {
-                    $cierre = $cursor->copy()->endOfMonth();
-                    $inicio52 = $cierre->copy()->subWeeks(52)->startOfDay();
-                    $inicio12 = $cierre->copy()->subWeeks(12)->startOfDay();
-                    $inicio4 = $cierre->copy()->subWeeks(4)->startOfDay();
-
-                    $labels[] = $cursor->format('m/Y');
-                    $serie52[] = $danosLinea->filter(fn ($item) => $item->fecha_analisis->between($inicio52, $cierre, true))->count();
-                    $serie12[] = $danosLinea->filter(fn ($item) => $item->fecha_analisis->between($inicio12, $cierre, true))->count();
-                    $serie4[] = $danosLinea->filter(fn ($item) => $item->fecha_analisis->between($inicio4, $cierre, true))->count();
-
-                    $cursor->addMonth();
-                }
+                $estado = $this->resolveLavadoraTrendStatus($ventanas);
+                $ultimoEvento = $eventos->last();
+                $ventanaPrincipal = $ventanas->first();
 
                 return [
                     'linea_id' => $linea->id,
                     'linea' => $linea->nombre,
-                    'labels' => $labels,
-                    'semanas_52' => $serie52,
-                    'semanas_12' => $serie12,
-                    'semanas_4' => $serie4,
-                    'ultimo_corte' => end($labels) ?: null,
+                    'labels' => $ventanas->pluck('label')->all(),
+                    'actual' => $ventanas->pluck('current')->all(),
+                    'anterior' => $ventanas->pluck('previous')->all(),
+                    'ventanas' => $ventanas->all(),
                     'resumen' => [
-                        'semanas_52' => end($serie52) ?: 0,
-                        'semanas_12' => end($serie12) ?: 0,
-                        'semanas_4' => end($serie4) ?: 0,
+                        'estado' => $estado['label'],
+                        'estado_tone' => $estado['tone'],
+                        'ventanas_alza' => $estado['up'],
+                        'ventanas_baja' => $estado['down'],
+                        'ventanas_estables' => $estado['stable'],
+                        'ultima_falla' => $ultimoEvento['fecha_humana'] ?? null,
+                        'ultima_fuente' => $ultimoEvento['type_label'] ?? null,
+                        'componente_actual' => $ventanaPrincipal['current_componentes'] ?? 0,
+                        'elongacion_actual' => $ventanaPrincipal['current_elongaciones'] ?? 0,
                     ],
                     'sin_datos' => false,
                 ];
@@ -1201,7 +1342,255 @@ public function pasteurizadoraOperativo(Request $request)
         return [
             'default_linea_id' => $defaultLineaItem['linea_id'] ?? $lineasLavadora->first()?->id,
             'lineas' => $seriesPorLinea->all(),
+            'criterios' => $this->getLavadoraTrendCriteria(),
         ];
+    }
+
+    /**
+     * Obtiene el flujo real de eventos que deben contarse como falla.
+     */
+    private function getLavadoraTrendEvents($lineasLavadora, ?Collection $analisisHistoricos = null, ?array $dateRange = null): Collection
+    {
+        if ($lineasLavadora->isEmpty()) {
+            return collect();
+        }
+
+        $analisisHistoricos = $analisisHistoricos ?: $this->getAnalisisHistoricosLavadoras($lineasLavadora);
+        $lineaIds = $lineasLavadora->pluck('id');
+        $lineaIdsByName = $lineasLavadora->pluck('id', 'nombre');
+        $lineaNamesById = $lineasLavadora->pluck('nombre', 'id');
+
+        $eventosComponente = $analisisHistoricos
+            ->filter(function ($item) use ($dateRange) {
+                return $item->fecha_analisis
+                    && $this->isLavadoraTrendDateInRange($item->fecha_analisis->copy()->startOfDay(), $dateRange)
+                    && $this->isLavadoraTrendDamageState($item->estado);
+            })
+            ->map(function (AnalisisLavadora $item) {
+                return [
+                    'id' => $item->id,
+                    'source' => 'componente',
+                    'type_label' => $item->estado,
+                    'linea_id' => $item->linea_id,
+                    'linea' => optional($item->linea)->nombre,
+                    'occurred_at' => $item->fecha_analisis->copy()->startOfDay(),
+                    'fecha_humana' => $item->fecha_analisis->format('d/m/Y'),
+                ];
+            });
+
+        $eventosElongacion = Elongacion::query()
+            ->where(function ($query) use ($lineaIds, $lineasLavadora) {
+                $query->whereIn('linea_id', $lineaIds)
+                    ->orWhereIn('linea', $lineasLavadora->pluck('nombre'));
+            })
+            ->where(function ($query) {
+                $query->where('bombas_porcentaje', '>', Elongacion::LIMITE_CAMBIO)
+                    ->orWhere('vapor_porcentaje', '>', Elongacion::LIMITE_CAMBIO);
+            })
+            ->when(($dateRange['from'] ?? null) instanceof Carbon, function ($query) use ($dateRange) {
+                $query->where('created_at', '>=', $dateRange['from']);
+            })
+            ->when(($dateRange['to'] ?? null) instanceof Carbon, function ($query) use ($dateRange) {
+                $query->where('created_at', '<=', $dateRange['to']);
+            })
+            ->orderBy('created_at')
+            ->orderBy('id')
+            ->get()
+            ->map(function (Elongacion $item) use ($lineaIdsByName, $lineaNamesById) {
+                $lineaId = $item->linea_id ?: $lineaIdsByName->get($item->linea);
+                $lineaNombre = $item->linea ?: $lineaNamesById->get($lineaId);
+                $fecha = $item->created_at?->copy()->startOfDay();
+
+                return [
+                    'id' => $item->id,
+                    'source' => 'elongacion',
+                    'type_label' => $this->getLavadoraTrendElongationLabel(),
+                    'linea_id' => $lineaId,
+                    'linea' => $lineaNombre,
+                    'occurred_at' => $fecha,
+                    'fecha_humana' => $fecha?->format('d/m/Y'),
+                ];
+            })
+            ->filter(fn (array $item) => $item['linea_id'] && $item['occurred_at']);
+
+        return $eventosComponente
+            ->concat($eventosElongacion)
+            ->sortBy(function (array $item) {
+                return sprintf(
+                    '%s-%s-%010d',
+                    $item['linea_id'],
+                    $item['occurred_at']->format('YmdHis'),
+                    (int) ($item['id'] ?? 0)
+                );
+            })
+            ->values();
+    }
+
+    /**
+     * Resume una ventana actual contra su periodo anterior equivalente.
+     */
+    private function buildLavadoraTrendWindowSummary(Collection $eventos, array $window, ?array $dateRange = null): array
+    {
+        $ranges = $this->resolveLavadoraTrendWindowRanges($window, $dateRange);
+        $currentEvents = $eventos
+            ->filter(fn (array $item) => $item['occurred_at']->between($ranges['current_start'], $ranges['current_end'], true))
+            ->values();
+        $previousEvents = $eventos
+            ->filter(fn (array $item) => $item['occurred_at']->between($ranges['previous_start'], $ranges['previous_end'], true))
+            ->values();
+
+        $current = $currentEvents->count();
+        $previous = $previousEvents->count();
+        $delta = $current - $previous;
+        $trend = $delta > 0 ? 'up' : ($delta < 0 ? 'down' : 'stable');
+
+        return [
+            'key' => $window['key'],
+            'label' => $window['label'],
+            'current' => $current,
+            'previous' => $previous,
+            'delta' => $delta,
+            'trend' => $trend,
+            'tone' => $this->resolveLavadoraTrendTone($trend, $current),
+            'current_range' => $this->formatLavadoraTrendRange($ranges['current_start'], $ranges['current_end']),
+            'previous_range' => $this->formatLavadoraTrendRange($ranges['previous_start'], $ranges['previous_end']),
+            'current_componentes' => $currentEvents->where('source', 'componente')->count(),
+            'current_elongaciones' => $currentEvents->where('source', 'elongacion')->count(),
+            'previous_componentes' => $previousEvents->where('source', 'componente')->count(),
+            'previous_elongaciones' => $previousEvents->where('source', 'elongacion')->count(),
+        ];
+    }
+
+    /**
+     * Resuelve las fechas de corte para una ventana de tendencia.
+     */
+    private function resolveLavadoraTrendWindowRanges(array $window, ?array $dateRange = null): array
+    {
+        $reference = (($dateRange['to'] ?? null) instanceof Carbon ? $dateRange['to']->copy() : now()->copy())->endOfDay();
+        $size = max((int) ($window['size'] ?? 1), 1);
+
+        switch ($window['type']) {
+            case 'days':
+                $currentStart = $reference->copy()->subDays($size - 1)->startOfDay();
+                $currentEnd = $reference->copy();
+                $previousStart = $currentStart->copy()->subDays($size);
+                $previousEnd = $currentEnd->copy()->subDays($size);
+                break;
+
+            case 'weeks':
+                $currentStart = $reference->copy()->subWeeks($size)->addDay()->startOfDay();
+                $currentEnd = $reference->copy();
+                $previousStart = $currentStart->copy()->subWeeks($size);
+                $previousEnd = $currentEnd->copy()->subWeeks($size);
+                break;
+
+            case 'quarters':
+                $currentStart = $reference->copy()->startOfQuarter()->subQuarters($size - 1)->startOfDay();
+                $currentEnd = $reference->copy();
+                $previousStart = $currentStart->copy()->subYear()->startOfDay();
+                $previousEnd = $currentEnd->copy()->subYear();
+                break;
+
+            case 'months':
+            default:
+                $currentStart = $reference->copy()->subMonthsNoOverflow($size)->addDay()->startOfDay();
+                $currentEnd = $reference->copy();
+                $previousStart = $currentStart->copy()->subMonthsNoOverflow($size);
+                $previousEnd = $currentEnd->copy()->subMonthsNoOverflow($size);
+                break;
+        }
+
+        return [
+            'current_start' => $currentStart,
+            'current_end' => $currentEnd,
+            'previous_start' => $previousStart,
+            'previous_end' => $previousEnd,
+        ];
+    }
+
+    /**
+     * Determina el estado general de la tendencia por linea.
+     */
+    private function resolveLavadoraTrendStatus(Collection $ventanas): array
+    {
+        if ($ventanas->isEmpty() || $ventanas->every(fn (array $item) => (int) $item['current'] === 0)) {
+            return [
+                'label' => 'Sin fallas',
+                'tone' => 'success',
+                'up' => 0,
+                'down' => 0,
+                'stable' => $ventanas->count(),
+            ];
+        }
+
+        $up = $ventanas->where('trend', 'up')->count();
+        $down = $ventanas->where('trend', 'down')->count();
+        $stable = $ventanas->where('trend', 'stable')->count();
+
+        if ($up > $down) {
+            return ['label' => 'Acelerando', 'tone' => 'danger', 'up' => $up, 'down' => $down, 'stable' => $stable];
+        }
+
+        if ($down > $up) {
+            return ['label' => 'En descenso', 'tone' => 'success', 'up' => $up, 'down' => $down, 'stable' => $stable];
+        }
+
+        if ($up === 0 && $down === 0) {
+            return ['label' => 'Estable', 'tone' => 'info', 'up' => $up, 'down' => $down, 'stable' => $stable];
+        }
+
+        return ['label' => 'Mixto', 'tone' => 'warning', 'up' => $up, 'down' => $down, 'stable' => $stable];
+    }
+
+    /**
+     * Define el tono visual del indicador de tendencia.
+     */
+    private function resolveLavadoraTrendTone(string $trend, int $current): string
+    {
+        return match ($trend) {
+            'up' => 'danger',
+            'down' => 'success',
+            default => $current > 0 ? 'warning' : 'info',
+        };
+    }
+
+    /**
+     * Criterios visibles para ambos modulos de tendencia.
+     */
+    private function getLavadoraTrendCriteria(): array
+    {
+        return [
+            'DaÃ±ado - Requiere cambio',
+            'Desgaste severo',
+            'Desgaste moderado',
+            $this->getLavadoraTrendElongationLabel(),
+        ];
+    }
+
+    /**
+     * Etiqueta visible para eventos de elongacion fuera de limite.
+     */
+    private function getLavadoraTrendElongationLabel(): string
+    {
+        return sprintf('Elongación fuera de límite (> %.2f%%)', Elongacion::LIMITE_CAMBIO);
+    }
+
+    /**
+     * Normaliza y valida los estados que representan una falla para tendencia.
+     */
+    private function isLavadoraTrendDamageState(?string $estado): bool
+    {
+        $normalizado = Str::of((string) $estado)->ascii()->lower()->squish()->value();
+
+        return in_array($normalizado, self::LAVADORA_TREND_COMPONENT_STATES, true);
+    }
+
+    /**
+     * Formatea un rango de fechas corto para UI.
+     */
+    private function formatLavadoraTrendRange(Carbon $start, Carbon $end): string
+    {
+        return $start->format('d/m/Y') . ' - ' . $end->format('d/m/Y');
     }
 
     /**

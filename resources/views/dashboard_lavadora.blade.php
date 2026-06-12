@@ -520,6 +520,13 @@
         filter: drop-shadow(0 1px 2px rgba(59, 130, 246, 0.15));
     }
 
+    .chart-card:has(#analisis52124Chart) > .chart-description,
+    .chart-card:has(#analisis30147Chart) > .chart-description,
+    .chart-card:has(#analisis52124Chart) > .chart-container + div:not(.chart-shell),
+    .chart-card:has(#analisis30147Chart) > .chart-container + div:not(.chart-shell) {
+        display: none;
+    }
+
     /* Secciones */
     .section-title {
         font-size: 24px;
@@ -1858,25 +1865,41 @@
             <div class="chart-container">
                 <canvas id="analisis52124Chart"></canvas>
             </div>
-            <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border-light); display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; text-align: center;">
-                <div style="display: flex; flex-direction: column; align-items: center; gap: 8px;">
-                    <div style="width: 24px; height: 24px; background: linear-gradient(135deg, rgba(59, 130, 246, 0.85), rgba(59, 130, 246, 1)); border-radius: 6px; box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);"></div>
-                    <span style="font-size: 12px; color: var(--text-secondary); font-weight: 600;">52 Semanas</span>
-                </div>
-                <div style="display: flex; flex-direction: column; align-items: center; gap: 8px;">
-                    <div style="width: 24px; height: 24px; background: linear-gradient(135deg, rgba(245, 158, 11, 0.85), rgba(245, 158, 11, 1)); border-radius: 6px; box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);"></div>
-                    <span style="font-size: 12px; color: var(--text-secondary); font-weight: 600;">12 Semanas</span>
-                </div>
-                <div style="display: flex; flex-direction: column; align-items: center; gap: 8px;">
-                    <div style="width: 24px; height: 24px; background: linear-gradient(135deg, rgba(16, 185, 129, 0.85), rgba(16, 185, 129, 1)); border-radius: 6px; box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);"></div>
-                    <span style="font-size: 12px; color: var(--text-secondary); font-weight: 600;">4 Semanas</span>
-                </div>
-            </div>
             <div class="chart-description">
                 <i class="fas fa-info-circle"></i>
                 Comparativa de tendencias en 3 períodos de tiempo
             </div>
         </div>
+    </div>
+
+    <div class="grid grid-cols-1 gap-8 mt-8">
+    <div class="chart-card">
+        <h3>
+            <i class="fas fa-chart-line"></i>
+            <span>Análisis 30-14-7 | Tendencia de Daños</span>
+        </h3>
+        <div class="chart-container">
+            <canvas id="analisis30147Chart"></canvas>
+        </div>
+        <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border-light); display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; text-align: center;">
+            <div style="display: flex; flex-direction: column; align-items: center; gap: 8px;">
+                <div style="width: 24px; height: 24px; background: linear-gradient(135deg, rgba(59, 130, 246, 0.85), rgba(59, 130, 246, 1)); border-radius: 6px; box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);"></div>
+                <span style="font-size: 12px; color: var(--text-secondary); font-weight: 600;">30 días</span>
+            </div>
+            <div style="display: flex; flex-direction: column; align-items: center; gap: 8px;">
+                <div style="width: 24px; height: 24px; background: linear-gradient(135deg, rgba(245, 158, 11, 0.85), rgba(245, 158, 11, 1)); border-radius: 6px; box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);"></div>
+                <span style="font-size: 12px; color: var(--text-secondary); font-weight: 600;">14 días</span>
+            </div>
+            <div style="display: flex; flex-direction: column; align-items: center; gap: 8px;">
+                <div style="width: 24px; height: 24px; background: linear-gradient(135deg, rgba(16, 185, 129, 0.85), rgba(16, 185, 129, 1)); border-radius: 6px; box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);"></div>
+                <span style="font-size: 12px; color: var(--text-secondary); font-weight: 600;">7 días</span>
+            </div>
+        </div>
+        <div class="chart-description">
+            <i class="fas fa-info-circle"></i>
+            Comparativa de tendencias en 3 períodos cortos de tiempo
+        </div>
+    </div>
     </div>
 </div>
 
@@ -2254,6 +2277,7 @@
         // ─────────────────────────────────────────────────────────────────
         // 4️⃣ GRÁFICA: ANÁLISIS 52-12-4 (BARRAS AGRUPADAS)
         // ─────────────────────────────────────────────────────────────────
+        if (false) {
         const analisis52124Ctx = document.getElementById('analisis52124Chart').getContext('2d');
         const analisis52124Data = @json($analisis52124);
 
@@ -2423,6 +2447,7 @@
                 }
             }
         });
+        }
     }
 
     function initLavadoraCarousels() {
@@ -2625,7 +2650,15 @@
         ranking: @json($rankingDanos),
         elongaciones: @json($evolucionElongaciones),
         historico: @json($historicoRevisiones),
-        tendencia: @json($analisis52124)
+        tendencia: @json($analisis52124),
+        tendencia30147: @json($analisis30147)
+    };
+
+    const trendFilter = {
+        action: @json(route('dashboard.global.lavadoras')),
+        from: @json($trendDateRange['from_input'] ?? ''),
+        to: @json($trendDateRange['to_input'] ?? ''),
+        hasRange: @json((bool) (($trendDateRange['from_input'] ?? null) || ($trendDateRange['to_input'] ?? null)))
     };
 
     const charts = {
@@ -2633,7 +2666,8 @@
         planes: null,
         elongaciones: null,
         historico: null,
-        tendencia: null
+        tendencia: null,
+        tendencia30147: null
     };
 
     const state = {
@@ -2642,7 +2676,8 @@
         rankingSort: 'puntaje',
         elongacionLineaId: data.elongaciones?.default_linea_id ?? data.lineas?.[0]?.id ?? null,
         historicoScope: 'Todas',
-        tendenciaLineaId: data.tendencia?.default_linea_id ?? data.lineas?.[0]?.id ?? null
+        tendenciaLineaId: data.tendencia?.default_linea_id ?? data.lineas?.[0]?.id ?? null,
+        tendencia30147LineaId: data.tendencia30147?.default_linea_id ?? data.lineas?.[0]?.id ?? null
     };
 
     let layoutReady = false;
@@ -2659,6 +2694,7 @@
         renderElongaciones();
         renderHistorico();
         renderTendencia();
+        renderTendencia30147();
     };
 
     function setupLayout() {
@@ -2668,6 +2704,7 @@
         setupElongacionesCard();
         setupHistoricoCard();
         setupTendenciaCard();
+        setupTendencia30147Card();
     }
 
     function setupFallasCard() {
@@ -2843,27 +2880,76 @@
     }
 
     function setupTendenciaCard() {
-        const card = cardFromCanvas('analisis52124Chart');
+        setupDamageTrendCard({
+            cardId: 'analisis52124Chart',
+            title: 'Analisis 52-12-4 | Tendencia de danos',
+            icon: 'fas fa-wave-square',
+            prefix: 'analisis52124',
+            actionsId: 'tendenciaActions',
+            selectId: 'analisis52124LineaSelect',
+            stateKey: 'tendenciaLineaId',
+            renderFn: renderTendencia
+        });
+    }
+
+    function setupTendencia30147Card() {
+        setupDamageTrendCard({
+            cardId: 'analisis30147Chart',
+            title: 'Analisis 30-14-7 | Tendencia de danos',
+            icon: 'fas fa-chart-line',
+            prefix: 'analisis30147',
+            actionsId: 'tendencia30147Actions',
+            selectId: 'analisis30147LineaSelect',
+            stateKey: 'tendencia30147LineaId',
+            renderFn: renderTendencia30147
+        });
+    }
+
+    function setupDamageTrendCard(config) {
+        const card = cardFromCanvas(config.cardId);
         if (!card) return;
 
+        card.querySelectorAll('.chart-description').forEach((node) => node.remove());
+        Array.from(card.children)
+            .filter((node) => node.tagName === 'DIV' && !node.classList.contains('chart-container') && !node.classList.contains('chart-shell') && node.id !== config.actionsId)
+            .forEach((node) => node.remove());
+
         card.classList.add('dashboard-panel');
-        updateCardTitle(card, 'Analisis 52-12-4 | Tendencia de danos', 'fas fa-wave-square');
-        ensureAfterHeading(card, 'tendenciaCopy', `<p id="tendenciaCopy" class="panel-copy"></p>`);
-        ensureAfterElement('tendenciaCopy', 'tendenciaActions', `
-            <div id="tendenciaActions" class="panel-actions" style="margin-bottom: 18px; justify-content: flex-start;">
-                <select id="analisis52124LineaSelect" class="panel-select">${lineaOptions(state.tendenciaLineaId)}</select>
+        updateCardTitle(card, config.title, config.icon);
+        ensureAfterHeading(card, config.actionsId, `
+            <div id="${config.actionsId}" class="panel-actions" style="margin-bottom: 18px; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap;">
+                <select id="${config.selectId}" class="panel-select">${lineaOptions(state[config.stateKey])}</select>
+                ${trendFilterMarkup(config)}
             </div>
         `);
-        ensureChartShell('analisis52124Chart', 'analisis52124', { tall: true });
+        ensureChartShell(config.cardId, config.prefix, { tall: true });
 
-        const select = document.getElementById('analisis52124LineaSelect');
+        const select = document.getElementById(config.selectId);
         if (select && select.dataset.bound !== 'true') {
             select.dataset.bound = 'true';
             select.addEventListener('change', function () {
-                state.tendenciaLineaId = Number(this.value);
-                renderTendencia();
+                state[config.stateKey] = Number(this.value);
+                config.renderFn();
             });
         }
+    }
+
+    function trendFilterMarkup(config) {
+        const clearAction = trendFilter.hasRange
+            ? `<a href="${escapeHtml(trendFilter.action)}" class="panel-link"><i class="fas fa-rotate-left"></i> Limpiar</a>`
+            : '';
+
+        return `
+            <form method="GET" action="${escapeHtml(trendFilter.action)}" class="panel-actions" style="margin: 0; justify-content: flex-start; gap: 10px; flex-wrap: wrap;">
+                <input type="date" name="trend_desde" value="${escapeHtml(trendFilter.from)}" class="panel-select" aria-label="Fecha inicial de ${escapeHtml(config.title)}">
+                <input type="date" name="trend_hasta" value="${escapeHtml(trendFilter.to)}" class="panel-select" aria-label="Fecha final de ${escapeHtml(config.title)}">
+                <button type="submit" class="panel-link">
+                    <i class="fas fa-filter"></i>
+                    Aplicar
+                </button>
+                ${clearAction}
+            </form>
+        `;
     }
 
     function renderFallas() {
@@ -3425,7 +3511,7 @@
         });
     }
 
-    function renderTendencia() {
+    function renderTendenciaLegacy() {
         const stats = document.getElementById('analisis52124Stats');
         const description = cardFromCanvas('analisis52124Chart')?.querySelector('.chart-description');
         const select = document.getElementById('analisis52124LineaSelect');
@@ -3492,6 +3578,237 @@
                 }
             }
         });
+    }
+
+    function renderTendencia() {
+        renderDamageTrendCard({
+            dataKey: 'tendencia',
+            chartKey: 'tendencia',
+            cardId: 'analisis52124Chart',
+            prefix: 'analisis52124',
+            selectId: 'analisis52124LineaSelect',
+            statsId: 'analisis52124Stats',
+            detailsId: 'analisis52124Breakdown',
+            criteriaId: 'analisis52124Criteria',
+            stateKey: 'tendenciaLineaId',
+            emptyTitle: 'Sin tendencia disponible',
+            emptyMessage: 'Aun no existe historial suficiente para calcular las ventanas 52-12-4.',
+            emptyIcon: 'fa-wave-square'
+        });
+    }
+
+    function renderTendencia30147() {
+        renderDamageTrendCard({
+            dataKey: 'tendencia30147',
+            chartKey: 'tendencia30147',
+            cardId: 'analisis30147Chart',
+            prefix: 'analisis30147',
+            selectId: 'analisis30147LineaSelect',
+            statsId: 'analisis30147Stats',
+            detailsId: 'analisis30147Breakdown',
+            criteriaId: 'analisis30147Criteria',
+            stateKey: 'tendencia30147LineaId',
+            emptyTitle: 'Sin tendencia disponible',
+            emptyMessage: 'Aun no existe historial suficiente para calcular las ventanas 30-14-7.',
+            emptyIcon: 'fa-chart-line'
+        });
+    }
+
+    function renderDamageTrendCard(config) {
+        const dataset = data[config.dataKey] || {};
+        const rows = Array.isArray(dataset.lineas) ? dataset.lineas : [];
+        const stats = document.getElementById(config.statsId);
+        const breakdown = document.getElementById(config.detailsId);
+        const criteria = document.getElementById(config.criteriaId);
+        const description = cardFromCanvas(config.cardId)?.querySelector('.chart-description');
+        const select = document.getElementById(config.selectId);
+        const item = rows.find((row) => Number(row.linea_id) === Number(state[config.stateKey])) || rows[0];
+
+        if (select) select.value = String(item?.linea_id ?? state[config.stateKey] ?? '');
+        renderTrendCriteria(criteria, dataset.criterios || []);
+
+        if (!item || item.sin_datos || !Array.isArray(item.labels) || !item.labels.length) {
+            if (stats) {
+                stats.innerHTML = miniStats([
+                    ['Periodo actual', 0, 'Sin datos disponibles', 'info'],
+                    ['Periodo anterior', 0, 'Sin comparativo', 'warning'],
+                    ['Componentes', 0, 'Sin registros', 'danger'],
+                    ['Elongaciones', 0, 'Fuera de limite > 1.46%', 'success']
+                ]);
+            }
+            if (breakdown) breakdown.innerHTML = infoBox('No existen registros reales suficientes para construir la tendencia de esta lavadora.');
+            if (description) description.innerHTML = '<i class="fas fa-info-circle"></i> La tendencia se mostrara automaticamente cuando existan analisis registrados.';
+            destroy(charts[config.chartKey]);
+            setChartState(config.prefix, true, config.emptyTitle, config.emptyMessage, config.emptyIcon);
+            return;
+        }
+
+        const ventanas = Array.isArray(item.ventanas) ? item.ventanas : [];
+        const principal = ventanas[0] || {};
+        const resumen = item.resumen || {};
+
+        if (stats) {
+            stats.innerHTML = miniStats([
+                [normalizeTrendLabel(principal.label || 'Periodo actual'), Number(principal.current || 0), principal.current_range || 'Sin rango', toneToMiniStat(principal.tone || 'info')],
+                ['Periodo anterior', Number(principal.previous || 0), principal.previous_range || 'Sin rango', Number(principal.previous || 0) > 0 ? 'warning' : 'info'],
+                ['Componentes', Number(principal.current_componentes || 0), 'Fallas detectadas en analisis registrados', Number(principal.current_componentes || 0) > 0 ? 'danger' : 'success'],
+                ['Elongaciones', Number(principal.current_elongaciones || 0), 'Registros mayores a 1.46%', Number(principal.current_elongaciones || 0) > 0 ? 'warning' : 'success']
+            ]);
+        }
+
+        if (breakdown) {
+            breakdown.innerHTML = ventanas.length
+                ? ventanas.map((window) => `
+                    <div class="breakdown-item">
+                        <div class="breakdown-item-top">
+                            <div>
+                                <div class="breakdown-title">${escapeHtml(normalizeTrendLabel(window.label || 'Periodo'))}</div>
+                                <div class="breakdown-meta">Actual: ${Number(window.current || 0)} (componentes ${Number(window.current_componentes || 0)}, elongaciones ${Number(window.current_elongaciones || 0)}) · Anterior: ${Number(window.previous || 0)} (componentes ${Number(window.previous_componentes || 0)}, elongaciones ${Number(window.previous_elongaciones || 0)})</div>
+                            </div>
+                            <span class="severity-pill ${trendPillClass(window.trend, Number(window.current || 0))}">${escapeHtml(trendDeltaLabel(Number(window.delta || 0), window.trend || 'stable'))}</span>
+                        </div>
+                        <div class="breakdown-meta">Rango actual: ${escapeHtml(window.current_range || '-')} · Rango anterior: ${escapeHtml(window.previous_range || '-')}</div>
+                    </div>
+                `).join('')
+                : infoBox('No hay ventanas comparables disponibles para esta lavadora.');
+        }
+
+        if (description) {
+            description.innerHTML = `<i class="fas fa-info-circle"></i> ${escapeHtml(item.linea || 'Sin linea')} · ${escapeHtml(resumen.estado || 'Sin fallas')} · Ultima falla ${escapeHtml(resumen.ultima_falla || 'Sin registro')} · Fuente ${escapeHtml(formatTrendCriteriaLabel(resumen.ultima_fuente || 'Sin registro'))}`;
+        }
+
+        const borderColors = ['#2563eb', '#f59e0b', '#10b981'];
+        const currentColors = ['rgba(37, 99, 235, 0.82)', 'rgba(245, 158, 11, 0.82)', 'rgba(16, 185, 129, 0.82)'];
+        const previousColors = ['rgba(37, 99, 235, 0.22)', 'rgba(245, 158, 11, 0.22)', 'rgba(16, 185, 129, 0.22)'];
+
+        destroy(charts[config.chartKey]);
+        setChartState(config.prefix, false);
+        charts[config.chartKey] = new Chart(document.getElementById(config.cardId).getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: (item.labels || []).map((label) => normalizeTrendLabel(label)),
+                datasets: [
+                    {
+                        label: 'Periodo actual',
+                        data: (item.actual || []).map((value) => Number(value || 0)),
+                        borderColor: borderColors,
+                        backgroundColor: currentColors,
+                        borderWidth: 2,
+                        borderRadius: 8,
+                        borderSkipped: false
+                    },
+                    {
+                        label: 'Periodo anterior',
+                        data: (item.anterior || []).map((value) => Number(value || 0)),
+                        borderColor: borderColors,
+                        backgroundColor: previousColors,
+                        borderWidth: 2,
+                        borderRadius: 8,
+                        borderSkipped: false
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        labels: { usePointStyle: true, padding: 18, color: '#334155', font: { size: 11, weight: 700 } }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(15, 23, 42, 0.96)',
+                        titleColor: '#fff',
+                        bodyColor: '#e2e8f0',
+                        callbacks: {
+                            title: (context) => normalizeTrendLabel(context[0]?.label || ''),
+                            label: (context) => `${context.dataset.label}: ${Number(context.raw || 0)} fallas`,
+                            afterBody: (contexts) => {
+                                const window = ventanas[contexts[0]?.dataIndex ?? -1];
+                                if (!window) return [];
+
+                                return [
+                                    `Actual: ${window.current_range || '-'}`,
+                                    `Anterior: ${window.previous_range || '-'}`,
+                                    `Componentes actuales: ${Number(window.current_componentes || 0)}`,
+                                    `Elongaciones actuales: ${Number(window.current_elongaciones || 0)}`
+                                ];
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: { grid: { display: false }, ticks: { color: '#64748b' } },
+                    y: { beginAtZero: true, grid: { color: 'rgba(148, 163, 184, 0.16)' }, ticks: { precision: 0, color: '#64748b' } }
+                }
+            }
+        });
+    }
+
+    function renderTrendCriteria(node, criteria) {
+        if (!node) return;
+
+        node.innerHTML = (criteria || [])
+            .map((label) => `<span class="severity-pill ${trendCriteriaPillClass(label)}">${escapeHtml(formatTrendCriteriaLabel(label))}</span>`)
+            .join('');
+    }
+
+    function formatTrendCriteriaLabel(label) {
+        const raw = String(label || '');
+        const lower = raw.toLowerCase();
+
+        if (lower.includes('requiere cambio')) return 'Dañado - Requiere cambio';
+        if (lower.includes('desgaste sever')) return 'Desgaste severo';
+        if (lower.includes('desgaste moder')) return 'Desgaste moderado';
+        if (lower.includes('elong')) return 'Elongación fuera de límite (> 1.46%)';
+
+        return raw;
+    }
+
+    function trendCriteriaPillClass(label) {
+        const normalized = formatTrendCriteriaLabel(label).toLowerCase();
+
+        if (normalized.includes('requiere cambio')) return 'critico';
+        if (normalized.includes('desgaste')) return 'severo';
+        if (normalized.includes('elong')) return 'revision';
+
+        return 'estable';
+    }
+
+    function normalizeTrendLabel(label) {
+        const raw = String(label || '');
+
+        return raw.replace(/dias/gi, 'días');
+    }
+
+    function toneToMiniStat(tone) {
+        switch (tone) {
+            case 'danger':
+                return 'danger';
+            case 'warning':
+                return 'warning';
+            case 'success':
+                return 'success';
+            default:
+                return 'info';
+        }
+    }
+
+    function trendPillClass(trendName, currentValue) {
+        if (trendName === 'up') return 'critico';
+        if (trendName === 'down') return 'estable';
+
+        return Number(currentValue || 0) > 0 ? 'severo' : 'revision';
+    }
+
+    function trendDeltaLabel(delta, trendName) {
+        const signed = `${delta > 0 ? '+' : ''}${delta}`;
+
+        if (trendName === 'up') return `Alza ${signed}`;
+        if (trendName === 'down') return `Baja ${signed}`;
+
+        return delta === 0 ? 'Estable' : signed;
     }
 
     function ensureChartShell(canvasId, prefix, options = {}) {
