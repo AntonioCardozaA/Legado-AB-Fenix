@@ -7,6 +7,7 @@ use App\Models\AnalisisLavadora;
 use App\Models\Componente;
 use App\Models\HistorialRestablecimiento;
 use App\Models\HistoricoRevisados;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
@@ -126,7 +127,15 @@ class HistoricoRevisadosController extends Controller
         })->values();
 
         // Tipo seleccionado (por defecto lavadora)
-        $tipoSeleccionado = $request->input('tipo', 'lavadora');
+        $tipoSeleccionado = $request->input('tipo', 'lavadora') === 'pasteurizadora'
+            ? 'pasteurizadora'
+            : 'lavadora';
+
+        if ($tipoSeleccionado === 'pasteurizadora' && !auth()->user()?->canAccessModule(User::MODULE_PASTEURIZADORA)) {
+            return redirect()
+                ->route('dashboard')
+                ->with('pasteurizadora_bloqueada', 'No tienes permiso para acceder al modulo de Pasteurizadora.');
+        }
 
         // Línea seleccionada
         $lineaSeleccionadaId = $request->input('linea_id');
@@ -138,6 +147,16 @@ class HistoricoRevisadosController extends Controller
             $lineaSeleccionada = $lineasLavadora->first();
         } elseif ($tipoSeleccionado == 'pasteurizadora' && $lineasPasteurizadora->isNotEmpty()) {
             $lineaSeleccionada = $lineasPasteurizadora->first();
+        }
+
+        if (
+            $lineaSeleccionada
+            && str_starts_with($lineaSeleccionada->nombre, 'P-')
+            && !auth()->user()?->canAccessModule(User::MODULE_PASTEURIZADORA)
+        ) {
+            return redirect()
+                ->route('dashboard')
+                ->with('pasteurizadora_bloqueada', 'No tienes permiso para acceder al modulo de Pasteurizadora.');
         }
 
         // Obtener estadísticas según el tipo
@@ -334,7 +353,7 @@ class HistoricoRevisadosController extends Controller
     {
         try {
             // Verificar permisos (ajusta según tu sistema)
-            if (!auth()->user()->hasRole(['admin', 'ingeniero_mantenimiento'])) {
+            if (!auth()->user()->hasAnyRole(User::elevatedMaintenanceRoles())) {
                 return response()->json([
                     'success' => false,
                     'message' => 'No tienes permisos para realizar esta acción'

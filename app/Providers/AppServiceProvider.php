@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Models\User;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Pagination\Paginator;
 
@@ -21,6 +22,8 @@ class AppServiceProvider extends ServiceProvider
             $user = auth()->user();
             if ($user) {
                 $view->with('userRoles', $user->getRoleNames());
+                $view->with('userRoleLabel', $user->role_label);
+                $view->with('canAccessPasteurizadora', $user->canAccessModule(User::MODULE_PASTEURIZADORA));
             }
         });
     }

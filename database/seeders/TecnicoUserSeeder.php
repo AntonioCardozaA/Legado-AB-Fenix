@@ -50,7 +50,7 @@ class TecnicoUserSeeder extends Seeder
                 ]
             );
 
-            $user->syncRoles(['tecnico']);
+            $user->syncRoles([User::ROLE_TECNICO]);
         }
     }
 }

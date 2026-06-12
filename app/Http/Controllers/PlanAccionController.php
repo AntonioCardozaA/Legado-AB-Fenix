@@ -6,6 +6,7 @@ use App\Models\PlanAccion;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 use App\Models\Linea;
+use App\Models\User;
 use App\Services\NotificationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Validation\Rule;
@@ -25,6 +26,8 @@ class PlanAccionController extends Controller
     public function planAccion(Request $request)
     {
         $tipo = $this->normalizarTipo($request->get('tipo', 'lavadora'));
+        $this->ensureCanAccessTipo($tipo);
+
         $lineaId = $request->get('linea_id');
         $lineasTipo = $this->obtenerLineasPorTipo($tipo);
         $query = $this->crearQueryPlanesPorTipo($tipo);
@@ -51,15 +54,18 @@ class PlanAccionController extends Controller
    
     public function dashboard()
     {
+        $lineaIdsPermitidas = $this->obtenerLineaIdsPermitidas();
         $estadisticas = $this->obtenerEstadisticas();
         $alertas = $this->obtenerAlertasGlobales();
         
         $actividadesPorLinea = PlanAccion::with('linea')
             ->select('linea_id', \DB::raw('count(*) as total'))
+            ->whereIn('linea_id', $lineaIdsPermitidas)
             ->groupBy('linea_id')
             ->get();
         
         $actividadesProximas = PlanAccion::with('linea')
+            ->whereIn('linea_id', $lineaIdsPermitidas)
             ->where(function ($query) {
                 $now = Carbon::now();
                 $query->whereBetween('fecha_pcm1', [$now, $now->copy()->addDays(7)])
@@ -83,6 +89,7 @@ class PlanAccionController extends Controller
     public function porLavadora($lavadora)
     {
         $linea = Linea::findOrFail($lavadora);
+        $this->ensureCanAccessTipo($this->tipoDesdeLinea($linea));
         
         $planes = PlanAccion::where('linea_id', $lavadora)
             ->with('linea')
@@ -112,10 +119,13 @@ class PlanAccionController extends Controller
         $tipo = $this->normalizarTipo($request->get('tipo', 'lavadora'));
         
         $plan = PlanAccion::with('linea')->findOrFail($id);
+        $this->ensureCanAccessPlan($plan);
 
         if (!$request->filled('tipo') && $plan->linea) {
             $tipo = $this->tipoDesdeLinea($plan->linea);
         }
+
+        $this->ensureCanAccessTipo($tipo);
 
         $lineas = $this->obtenerLineasPorTipo($tipo, true);
         $tiposMaquinaSeleccionados = is_array($plan->tipo_maquina)
@@ -140,7 +150,10 @@ class PlanAccionController extends Controller
     {
         $id = $request->input('id');
         $tipo = $this->normalizarTipo($request->get('tipo', 'lavadora'));
+        $this->ensureCanAccessTipo($tipo);
+
         $plan = PlanAccion::findOrFail($id);
+        $this->ensureCanAccessPlan($plan);
 
         $validated = $request->validate([
             'linea_id' => ['required', 'exists:lineas,id', Rule::in($this->obtenerLineaIdsPorTipo($tipo))],
@@ -168,7 +181,10 @@ class PlanAccionController extends Controller
     {
         $id = $request->input('id');
         $tipo = $this->normalizarTipo($request->get('tipo', 'lavadora'));
+        $this->ensureCanAccessTipo($tipo);
+
         $plan = PlanAccion::findOrFail($id);
+        $this->ensureCanAccessPlan($plan);
         $lineaId = $plan->linea_id;
         $plan->delete();
 
@@ -185,6 +201,9 @@ class PlanAccionController extends Controller
     public function notificar($id)
     {
         try {
+            $plan = PlanAccion::with('linea')->findOrFail($id);
+            $this->ensureCanAccessPlan($plan);
+
             $resultados = $this->notificationService->enviarNotificacionesManuales($id);
             
             return response()->json([
@@ -204,6 +223,8 @@ class PlanAccionController extends Controller
     public function notificacionesPendientes(Request $request): JsonResponse
     {
         $tipo = $this->normalizarTipo($request->get('tipo', 'lavadora'));
+        $this->ensureCanAccessTipo($tipo);
+
         $alertas = $this->obtenerAlertasGlobales($tipo);
 
         return response()->json([
@@ -240,6 +261,8 @@ class PlanAccionController extends Controller
     public function create(Request $request)
     {
         $tipo = $this->normalizarTipo($request->get('tipo', 'lavadora'));
+        $this->ensureCanAccessTipo($tipo);
+
         $lineaSeleccionada = $request->get('linea_id');
         $lineas = $this->obtenerLineasPorTipo($tipo, true);
         $linea = $lineaSeleccionada ? $lineas->firstWhere('id', (int) $lineaSeleccionada) : null;
@@ -258,6 +281,7 @@ class PlanAccionController extends Controller
     public function store(Request $request)
     {
         $tipo = $this->normalizarTipo($request->get('tipo', 'lavadora'));
+        $this->ensureCanAccessTipo($tipo);
 
         $validated = $request->validate([
             'linea_id' => ['required', 'exists:lineas,id', Rule::in($this->obtenerLineaIdsPorTipo($tipo))],
@@ -297,6 +321,8 @@ class PlanAccionController extends Controller
     public function show($id)
     {
         $plan = PlanAccion::with(['linea'])->findOrFail($id);
+        $this->ensureCanAccessPlan($plan);
+
         return response()->json($plan);
     }
 
@@ -316,7 +342,10 @@ class PlanAccionController extends Controller
     public function update(Request $request, $id)
     {
         $tipo = $this->normalizarTipo($request->get('tipo', 'lavadora'));
+        $this->ensureCanAccessTipo($tipo);
+
         $plan = PlanAccion::findOrFail($id);
+        $this->ensureCanAccessPlan($plan);
 
         $validated = $request->validate([
             'linea_id' => ['required', 'exists:lineas,id', Rule::in($this->obtenerLineaIdsPorTipo($tipo))],
@@ -343,7 +372,10 @@ class PlanAccionController extends Controller
     public function destroy(Request $request, $id)
     {
         $tipo = $this->normalizarTipo($request->get('tipo', 'lavadora'));
+        $this->ensureCanAccessTipo($tipo);
+
         $plan = PlanAccion::findOrFail($id);
+        $this->ensureCanAccessPlan($plan);
         $lineaId = $plan->linea_id;
         $plan->delete();
 
@@ -361,6 +393,7 @@ class PlanAccionController extends Controller
     {
         try {
             $plan = PlanAccion::with('linea')->findOrFail($id);
+            $this->ensureCanAccessPlan($plan);
             
             $fechasProximas = false;
             $pcmConFechas = [];
@@ -536,7 +569,9 @@ class PlanAccionController extends Controller
 
       public function checklist($id)
     {
-        $plan = PlanAccion::findOrFail($id);
+        $plan = PlanAccion::with('linea')->findOrFail($id);
+        $this->ensureCanAccessPlan($plan);
+
         $plan->completado = !$plan->completado;
         $plan->save();
 
@@ -551,6 +586,34 @@ class PlanAccionController extends Controller
     private function normalizarTipo(?string $tipo): string
     {
         return $tipo === 'pasteurizadora' ? 'pasteurizadora' : 'lavadora';
+    }
+
+    private function ensureCanAccessTipo(string $tipo): void
+    {
+        if (
+            $this->normalizarTipo($tipo) === User::MODULE_PASTEURIZADORA
+            && !auth()->user()?->canAccessModule(User::MODULE_PASTEURIZADORA)
+        ) {
+            abort(403, 'No tienes permiso para acceder al modulo de Pasteurizadora.');
+        }
+    }
+
+    private function ensureCanAccessPlan(PlanAccion $plan): void
+    {
+        $tipo = $plan->tipo_equipo ?: ($plan->linea ? $this->tipoDesdeLinea($plan->linea) : 'lavadora');
+
+        $this->ensureCanAccessTipo($tipo);
+    }
+
+    private function obtenerLineaIdsPermitidas(): array
+    {
+        $lineaIds = $this->obtenerLineaIdsPorTipo('lavadora');
+
+        if (auth()->user()?->canAccessModule(User::MODULE_PASTEURIZADORA)) {
+            $lineaIds = array_merge($lineaIds, $this->obtenerLineaIdsPorTipo('pasteurizadora'));
+        }
+
+        return array_values(array_unique($lineaIds));
     }
 
     private function obtenerVistaPorTipo(string $tipo, string $pantalla): string

@@ -1,0 +1,84 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Models\Linea;
+use App\Models\PlanAccion;
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Spatie\Permission\Models\Role;
+use Tests\TestCase;
+
+class RoleAccessTest extends TestCase
+{
+    use RefreshDatabase;
+
+    public function test_maintenance_manager_does_not_see_or_open_pasteurizadora_module(): void
+    {
+        $user = $this->userWithRole(User::ROLE_GERENTE_MANTENIMIENTO);
+
+        $this->actingAs($user)
+            ->get(route('dashboard'))
+            ->assertOk()
+            ->assertDontSee('Pasteurizadoras')
+            ->assertDontSee('Pasteurizadora');
+
+        $this->actingAs($user)
+            ->get(route('pasteurizadora.dashboard'))
+            ->assertRedirect(route('dashboard'));
+    }
+
+    public function test_supervisor_keeps_admin_level_access_outside_pasteurizadora(): void
+    {
+        $user = $this->userWithRole(User::ROLE_SUPERVISOR);
+
+        $this->actingAs($user)
+            ->get(route('lineas.index'))
+            ->assertOk();
+    }
+
+    public function test_restricted_roles_cannot_use_indirect_pasteurizadora_urls(): void
+    {
+        $user = $this->userWithRole(User::ROLE_SUPERVISOR);
+        $linea = Linea::create([
+            'nombre' => 'P-03',
+            'descripcion' => 'Pasteurizadora de prueba',
+            'activo' => true,
+        ]);
+        $plan = PlanAccion::create([
+            'linea_id' => $linea->id,
+            'actividad' => 'Actividad de pasteurizadora',
+            'tipo_equipo' => 'pasteurizadora',
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('reportes.index', ['tipo' => 'pasteurizadoras']))
+            ->assertRedirect(route('dashboard'));
+
+        $this->actingAs($user)
+            ->get(route('plan-accion.show', $plan))
+            ->assertForbidden();
+    }
+
+    public function test_admin_keeps_pasteurizadora_access(): void
+    {
+        $user = $this->userWithRole(User::ROLE_ADMIN);
+
+        $this->actingAs($user)
+            ->get(route('pasteurizadora.dashboard'))
+            ->assertOk();
+    }
+
+    private function userWithRole(string $role): User
+    {
+        Role::firstOrCreate([
+            'name' => $role,
+            'guard_name' => 'web',
+        ]);
+
+        $user = User::factory()->create();
+        $user->assignRole($role);
+
+        return $user;
+    }
+}

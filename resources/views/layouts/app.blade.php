@@ -165,7 +165,8 @@
             </a>
 
             @auth
-                @if(auth()->user()->role === 'tecnico')
+                @if($canAccessPasteurizadora ?? false)
+                @if(auth()->user()->hasRole(\App\Models\User::ROLE_TECNICO) && !auth()->user()->hasAnyRole(\App\Models\User::elevatedMaintenanceRoles()))
                     <button type="button"
                             @click="
                                 if (!isDesktop) sidebarOpen = false;
@@ -190,6 +191,7 @@
                         <i class="fas fa-thermometer-half w-5 mr-3 text-gray-500"></i>
                         Pasteurizadora
                     </a>
+                @endif
                 @endif
             @else
                 <a href="{{ route('pasteurizadora.dashboard') }}"
@@ -329,7 +331,7 @@
                                     class="inline-flex items-center gap-2 sm:gap-3 rounded-full bg-gray-100 px-2 sm:px-3 py-2 hover:bg-gray-200 transition">
                                 <div class="hidden sm:block text-right leading-tight">
                                     <p class="text-sm font-semibold text-gray-700">{{ auth()->user()->name }}</p>
-                                    <p class="text-xs text-gray-500">Perfil de usuario</p>
+                                    <p class="text-xs text-gray-500">{{ $userRoleLabel ?? 'Perfil de usuario' }}</p>
                                 </div>
                                 <span class="flex h-10 w-10 items-center justify-center rounded-full bg-blue-600 text-white shadow-sm">
                                     <i class="fas fa-user text-sm"></i>
@@ -446,8 +448,8 @@ setInterval(function() {
 <script>
     Swal.fire({
         icon: 'info',
-        title: 'Próximamente',
         text: '{{ session('pasteurizadora_bloqueada') }}',
+        title: 'Acceso restringido',
         confirmButtonText: 'Entendido',
         confirmButtonColor: '#1e40af'
     });

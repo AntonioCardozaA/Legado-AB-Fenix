@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\User;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -21,7 +22,7 @@ class EnsureTechnicianAccess
             return $next($request);
         }
 
-        if ($user->hasAnyRole(['admin', 'ingeniero_mantenimiento', 'supervisor'])) {
+        if ($user->hasAnyRole(User::elevatedMaintenanceRoles())) {
             return $next($request);
         }
 
