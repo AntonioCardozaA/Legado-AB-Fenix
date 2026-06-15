@@ -22,8 +22,8 @@ class AdminUserSeeder extends Seeder
                 'rol' => User::ROLE_ADMIN,
             ],
             [
-                'name' => 'Juan Pérez',
-                'email' => 'jperez@legadoabfenix.com',
+                'name' => 'Daniel Castañeda',
+                'email' => 'castañeda@legadoabfenix.com',
                 'password' => 'password123',
                 'cedula' => '12345678',
                 'telefono' => '5551234567',
@@ -32,8 +32,8 @@ class AdminUserSeeder extends Seeder
                 'rol' => User::ROLE_GERENTE_MANTENIMIENTO,
             ],
             [
-                'name' => 'María García',
-                'email' => 'mgarcia@legadoabfenix.com',
+                'name' => 'Juan Alberto Júarez',
+                'email' => 'jajuarez@legadoabfenix.com',
                 'password' => 'password123',
                 'cedula' => '87654321',
                 'telefono' => '5557654321',
@@ -54,18 +54,26 @@ class AdminUserSeeder extends Seeder
         ];
 
         foreach ($usuarios as $u) {
-            // Crea o actualiza usuario según email
-            $user = User::updateOrCreate(
-                ['email' => $u['email']],
-                [
-                    'name' => $u['name'],
-                    'password' => Hash::make($u['password']),
-                    'cedula' => $u['cedula'],
-                    'telefono' => $u['telefono'],
-                    'puesto' => $u['puesto'],
-                    'activo' => $u['activo'],
-                ]
-            );
+            // Crea o actualiza usuario segun cedula o email.
+            $user = User::where('cedula', $u['cedula'])
+                ->orWhere('email', $u['email'])
+                ->first();
+
+            if (!$user) {
+                $user = new User();
+            }
+
+            $user->fill([
+                'name' => $u['name'],
+                'email' => $u['email'],
+                'password' => Hash::make($u['password']),
+                'cedula' => $u['cedula'],
+                'telefono' => $u['telefono'],
+                'puesto' => $u['puesto'],
+                'activo' => $u['activo'],
+            ]);
+
+            $user->save();
 
             // Asignar rol sin duplicar
             $user->syncRoles([$u['rol']]);

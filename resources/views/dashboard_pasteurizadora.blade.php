@@ -1043,21 +1043,6 @@
                             </div>
                         </div>
                     </div>
-
-                    <div class="text-xs text-gray-500 font-semibold mb-1 flex justify-between">
-                        <span>Progreso de revisión</span>
-                        <span>{{ $porcentaje }}%</span>
-                    </div>
-                    <div class="progress-track">
-                        <div class="progress-fill" style="width: {{ $porcentaje }}%"></div>
-                    </div>
-
-                    @if($estado['ultimo_analisis'] ?? null)
-                        <div class="text-xs text-gray-500 mt-3">
-                            <i class="far fa-calendar-alt mr-1"></i>
-                            Último análisis: {{ $estado['ultimo_analisis']['fecha'] }}
-                        </div>
-                    @endif
                 </div>
                 <div class="lavadora-card-footer">
                     <button onclick='showPasteurizadoraDetail(@json($pasteurizadora))'

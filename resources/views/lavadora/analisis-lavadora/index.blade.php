@@ -1315,7 +1315,7 @@
             <div class="flex items-center justify-between">
                 <h2 class="text-lg font-semibold text-gray-700">
                     <i class="fas fa-diagram-project text-blue-600 mr-2"></i>
-                    Diagrama {{ $lineaSeleccionada->nombre }}
+                     {{ $lineaSeleccionada->nombre }}
                 </h2>
             </div>
             <div class="mt-4">

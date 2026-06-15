@@ -959,7 +959,7 @@
                 
                 <button type="submit" class="btn-apply">
                     <i class="fas fa-search"></i>
-                    Aplicar filtros
+                    Buscar
                 </button>
                 
                 <a href="{{ route('pasteurizadora.analisis-pasteurizadora.index', ['linea_id' => 'todas']) }}" class="btn-clear">
@@ -1007,9 +1007,8 @@
                     <div>
                         <h2 class="text-lg font-semibold text-gray-700">
                             <i class="fas fa-diagram-project text-blue-600 mr-2"></i>
-                            <span>Diagrama {{ $lineaSeleccionada->nombre }}</span>
+                            <span>{{ $lineaSeleccionada->nombre }}</span>
                         </h2>
-                        <p class="text-sm text-gray-500 mt-1">Diagrama de referencia</p>
                     </div>
 
                     <div class="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-wide text-gray-500">

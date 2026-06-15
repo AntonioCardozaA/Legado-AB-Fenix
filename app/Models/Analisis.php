@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\UppercasesActividad;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Builder;
@@ -27,7 +28,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  */
 class Analisis extends Model
 {
-    use HasFactory;
+    use HasFactory, UppercasesActividad;
 
     protected $table = 'analisis';
     

@@ -329,10 +329,17 @@
         @php
             $hasCriticos = $modulo['estadisticas']['alertas_criticas'] > 0;
             $tieneImagen = isset($modulo['imagen_personalizada']) && $modulo['imagen_personalizada'] && !empty($modulo['icono_imagen']);
+            $bloqueado = $modulo['bloqueado'] ?? false;
+            $mensajeBloqueo = $modulo['mensaje_bloqueo'] ?? 'Estamos trabajando en ello, estara disponible muy pronto.';
             // La ruta está definida en el controlador dentro de cada módulo
             $rutaModulo = $modulo['ruta'] ?? route('dashboard');
         @endphp
-                <div class="modulo-card" onclick="window.location.href='{{ $rutaModulo }}'">
+                <div class="modulo-card"
+                     @if($bloqueado)
+                         data-coming-soon-message="{{ $mensajeBloqueo }}"
+                     @else
+                         onclick="window.location.href='{{ $rutaModulo }}'"
+                     @endif>
                     <div class="modulo-header">
                         <div class="modulo-icon {{ $modulo['color'] }} {{ $tieneImagen ? 'has-image' : '' }}">
                             @if($tieneImagen)
@@ -390,7 +397,7 @@
                     </div>
                     
                     <div class="modulo-footer">
-                        <button class="btn-acceder">
+                        <button type="button" class="btn-acceder">
                             Acceder al Módulo
                             <i class="fas fa-arrow-right"></i>
                         </button>
@@ -435,6 +442,17 @@
                 card.style.opacity = '1';
                 card.style.transform = 'translateY(0)';
             }, index * 100);
+        });
+
+        document.querySelectorAll('[data-coming-soon-message]').forEach(card => {
+            card.addEventListener('click', function() {
+                Swal.fire({
+                    icon: 'info',
+                    text: this.dataset.comingSoonMessage,
+                    confirmButtonText: 'Entendido',
+                    confirmButtonColor: '#1e40af'
+                });
+            });
         });
 
         

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\UppercasesActividad;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Carbon\Carbon;
@@ -23,7 +24,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class PlanAccion extends Model
 {
-    use HasFactory;
+    use HasFactory, UppercasesActividad;
 
     protected $table = 'plan_accion';
 

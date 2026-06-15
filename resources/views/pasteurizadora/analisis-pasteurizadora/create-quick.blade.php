@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Agregar Análisis Rápido - Pasteurizadora')
+@section('title', 'Agregar Análisis - Pasteurizadora')
 
 @section('content')
 <div class="max-w-2xl mx-auto px-4 py-8">
@@ -13,7 +13,7 @@
                     <i class="fas fa-arrow-left text-xl"></i>
                 </a>
                 <h1 class="text-2xl font-bold text-gray-800">
-                    Agregar Análisis Rápido
+                    Agregar Análisis
                 </h1>
             </div>
 

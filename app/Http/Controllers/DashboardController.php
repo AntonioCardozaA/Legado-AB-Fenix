@@ -43,10 +43,14 @@ class DashboardController extends Controller
      */
     public function index()
     {
-        if (auth()->user()?->hasRole('tecnico')
-            && !auth()->user()?->hasAnyRole(User::elevatedMaintenanceRoles())) {
+        $user = auth()->user();
+
+        if ($user?->hasRole('tecnico')
+            && !$user?->hasAnyRole(User::elevatedMaintenanceRoles())) {
             return redirect()->route('tecnico.dashboard');
         }
+
+        $pasteurizadoraComingSoon = $user?->shouldShowPasteurizadoraComingSoon() ?? false;
 
         // Configuración de módulos disponibles (escalable para futuro)
         $modulos = [
@@ -64,7 +68,7 @@ class DashboardController extends Controller
             ],
         ];
 
-        if (auth()->user()?->canAccessModule(User::MODULE_PASTEURIZADORA)) {
+        if ($user?->shouldSeePasteurizadoraShortcut()) {
             $modulos[] = [
                 'id' => 'pasteurizadora',
                 'nombre' => 'Pasteurizadoras',
@@ -75,7 +79,9 @@ class DashboardController extends Controller
                 'color' => 'orange',
                 'ruta' => route('dashboard.global.pasteurizadoras'),
                 'estadisticas' => $this->getPasteurizadoraStats(),
-                'activo' => true
+                'activo' => true,
+                'bloqueado' => $pasteurizadoraComingSoon,
+                'mensaje_bloqueo' => 'Estamos trabajando en ello, estara disponible muy pronto.',
             ];
         }
 

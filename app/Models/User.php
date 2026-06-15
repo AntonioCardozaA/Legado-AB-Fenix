@@ -168,4 +168,23 @@ public function canAccessModule(string $module): bool
     return true;
 }
 
+public function shouldShowPasteurizadoraComingSoon(): bool
+{
+    $isTechnicianOnly = $this->hasRole(self::ROLE_TECNICO)
+        && !$this->hasAnyRole(self::elevatedMaintenanceRoles());
+
+    $isRestrictedMaintenanceRole = $this->hasAnyRole([
+        self::ROLE_GERENTE_MANTENIMIENTO,
+        self::ROLE_SUPERVISOR,
+    ]) && !$this->canAccessModule(self::MODULE_PASTEURIZADORA);
+
+    return $isTechnicianOnly || $isRestrictedMaintenanceRole;
+}
+
+public function shouldSeePasteurizadoraShortcut(): bool
+{
+    return $this->canAccessModule(self::MODULE_PASTEURIZADORA)
+        || $this->shouldShowPasteurizadoraComingSoon();
+}
+
 }

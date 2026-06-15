@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\UppercasesActividad;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -11,7 +12,7 @@ use Carbon\Carbon;
 
 class AnalisisPasteurizadora extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, SoftDeletes, UppercasesActividad;
 
     protected $table = 'analisis_pasteurizadora';
 

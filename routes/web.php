@@ -11,6 +11,7 @@ use App\Http\Controllers\ReporteController;
 use App\Http\Controllers\LineaController;
 use App\Http\Controllers\ApiController;
 use App\Http\Controllers\AnalisisTendenciaMensualLavadoraController;
+use App\Http\Controllers\AnalisisTendenciaMensualPasteurizadoraController;
 use App\Http\Controllers\HistoricoRevisadosController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\NotificationSettingsController;
@@ -186,7 +187,9 @@ Route::prefix('pasteurizadora')->group(function () {
             Route::get('/', 'index')->name('index');
             Route::get('/create', 'create')->name('create');
             Route::post('/', 'store')->name('store');
-            Route::get('/{analisis}', 'show')->name('show');
+            Route::get('/{analisis}', 'show')
+                ->whereNumber('analisis')
+                ->name('show');
         });
 
     /*
@@ -263,14 +266,14 @@ Route::prefix('pasteurizadora')->group(function () {
     */
     Route::prefix('analisis-tendencia-mensual/pasteurizadora')
         ->name('analisis-tendencia-mensual.pasteurizadora.')
-        ->controller(AnalisisPasteurizadoraController::class)
+        ->controller(AnalisisTendenciaMensualPasteurizadoraController::class)
         ->group(function () {
-            Route::get('/', 'analisis52124')->name('index');
-            Route::get('/estadisticas', 'getEstadisticasTendencia52124')->name('estadisticas');
-            Route::post('/update', 'updateAnalisis52124')->name('update');
-            Route::get('/{analisis}/json', 'showAnalisis52124Json')
+            Route::get('/', 'index')->name('index');
+            Route::get('/create', 'create')->name('create');
+            Route::post('/', 'store')->name('store');
+            Route::get('/{analisis}', 'show')
                 ->whereNumber('analisis')
-                ->name('show-json');
+                ->name('show');
         });
 
     /*

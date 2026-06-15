@@ -86,6 +86,11 @@
         .logo-text span {
             color: #f59e0b;
         }
+
+        textarea[name="actividad"],
+        input[name="actividad"] {
+            text-transform: uppercase;
+        }
     </style>
 </head>
 
@@ -165,8 +170,13 @@
             </a>
 
             @auth
-                @if($canAccessPasteurizadora ?? false)
-                @if(auth()->user()->hasRole(\App\Models\User::ROLE_TECNICO) && !auth()->user()->hasAnyRole(\App\Models\User::elevatedMaintenanceRoles()))
+                @php
+                    $mostrarPasteurizadora = $canSeePasteurizadora ?? ($canAccessPasteurizadora ?? false);
+                    $pasteurizadoraEnConstruccion = $pasteurizadoraComingSoon ?? false;
+                @endphp
+
+                @if($mostrarPasteurizadora)
+                @if($pasteurizadoraEnConstruccion)
                     <button type="button"
                             @click="
                                 if (!isDesktop) sidebarOpen = false;
@@ -438,6 +448,83 @@ setInterval(function() {
         }
     });
 }, 30000);
+
+(function() {
+    const actividadSelector = 'textarea[name="actividad"], input[name="actividad"]';
+
+    function esCampoActividad(element) {
+        return (element instanceof HTMLTextAreaElement || element instanceof HTMLInputElement)
+            && element.matches(actividadSelector);
+    }
+
+    function convertirActividadAMayusculas(field) {
+        if (!esCampoActividad(field) || field.dataset.actividadComposing === 'true') {
+            return;
+        }
+
+        const value = field.value;
+        const upperValue = value.toLocaleUpperCase('es-MX');
+
+        if (value === upperValue) {
+            return;
+        }
+
+        const selectionStart = field.selectionStart;
+        const selectionEnd = field.selectionEnd;
+
+        field.value = upperValue;
+
+        if (
+            document.activeElement === field
+            && typeof field.setSelectionRange === 'function'
+            && typeof selectionStart === 'number'
+            && typeof selectionEnd === 'number'
+        ) {
+            field.setSelectionRange(selectionStart, selectionEnd);
+        }
+    }
+
+    function prepararCampoActividad(field) {
+        if (!esCampoActividad(field)) {
+            return;
+        }
+
+        field.setAttribute('autocapitalize', 'characters');
+        convertirActividadAMayusculas(field);
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll(actividadSelector).forEach(prepararCampoActividad);
+    });
+
+    document.addEventListener('compositionstart', function(event) {
+        if (esCampoActividad(event.target)) {
+            event.target.dataset.actividadComposing = 'true';
+        }
+    }, true);
+
+    document.addEventListener('compositionend', function(event) {
+        if (esCampoActividad(event.target)) {
+            event.target.dataset.actividadComposing = 'false';
+            convertirActividadAMayusculas(event.target);
+        }
+    }, true);
+
+    document.addEventListener('input', function(event) {
+        convertirActividadAMayusculas(event.target);
+    }, true);
+
+    document.addEventListener('submit', function(event) {
+        if (!(event.target instanceof HTMLFormElement)) {
+            return;
+        }
+
+        event.target.querySelectorAll(actividadSelector).forEach(function(field) {
+            field.dataset.actividadComposing = 'false';
+            convertirActividadAMayusculas(field);
+        });
+    }, true);
+})();
 </script>
 
 @hasSection('scripts')

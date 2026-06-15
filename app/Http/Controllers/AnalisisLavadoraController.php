@@ -581,7 +581,7 @@ $componente = Componente::firstOrCreate(
                 . "📍 Reductor: {$request->reductor}\n"
                 . "📅 Fecha: {$request->fecha_analisis}\n"
                 . "🧾 Orden: {$request->numero_orden}\n"
-                . "📝 Actividad: {$request->actividad}\n";
+                . "📝 Actividad: {$analisis->actividad}\n";
 
             // Número en formato internacional (México: 521...)
             $numero = "5214981239090"; // numero

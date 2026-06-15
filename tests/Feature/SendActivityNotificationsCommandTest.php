@@ -53,7 +53,7 @@ class SendActivityNotificationsCommandTest extends TestCase
         ])
             ->expectsOutputToContain('Fecha de referencia: 2026-06-10 09:00:00')
             ->expectsOutputToContain('Modo simulacion activo')
-            ->expectsOutputToContain('Cambiar componente danado')
+            ->expectsOutputToContain('CAMBIAR COMPONENTE DANADO')
             ->assertSuccessful();
 
         $this->assertSame(0, $user->notifications()->count());

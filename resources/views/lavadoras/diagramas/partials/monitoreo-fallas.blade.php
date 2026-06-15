@@ -78,7 +78,7 @@
     $severityLabel = [
         'green' => 'Sin anomalias',
         'yellow' => 'Advertencia',
-        'orange' => 'Atencion',
+        'orange' => 'Atencion Inmediata',
         'red' => 'Critico',
     ];
 
