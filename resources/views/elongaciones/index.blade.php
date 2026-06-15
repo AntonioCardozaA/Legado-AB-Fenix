@@ -90,7 +90,6 @@
                 <p class="text-sm text-gray-600">Registros visibles</p>
                 <p class="text-2xl font-bold text-gray-800">{{ $elongaciones->total() }}</p>
                 @if(!request()->query())
-                    <p class="text-xs text-green-600 mt-2">Mostrando solo el último registro por línea</p>
                 @endif
             </div>
 

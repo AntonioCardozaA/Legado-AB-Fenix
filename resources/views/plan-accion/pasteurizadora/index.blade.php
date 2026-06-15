@@ -249,11 +249,11 @@
     }
 
     .col-actividad {
-        width: 380px;
+        width: 320px;
     }
 
     .actividad-cell {
-        width: 380px;
+        width: 320px;
         word-wrap: break-word;
         white-space: normal;
     }
@@ -262,6 +262,34 @@
         font-weight: 600;
         color: #1e293b;
         margin-bottom: 8px;
+    }
+
+    .col-area {
+        width: 130px;
+    }
+
+    .area-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        padding: 6px 10px;
+        border-radius: 9999px;
+        font-size: 12px;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
+    .area-badge.mecanica {
+        background: #e0f2fe;
+        color: #075985;
+        border: 1px solid #bae6fd;
+    }
+
+    .area-badge.hidraulica {
+        background: #dcfce7;
+        color: #166534;
+        border: 1px solid #bbf7d0;
     }
 
     .fecha-cell span {
@@ -544,6 +572,12 @@
                                             <span class="text-xs block">
                                                 {{ Str::limit($alerta['actividad'] ?? 'Sin actividad', 40) }}
                                             </span>
+                                            @if(!empty($alerta['area_pasteurizadora_label']))
+                                                <span class="mt-1 inline-flex items-center gap-1 rounded-full bg-white/80 px-2 py-0.5 text-xs font-semibold text-blue-700">
+                                                    <i class="fas fa-tools"></i>
+                                                    {{ $alerta['area_pasteurizadora_label'] }}
+                                                </span>
+                                            @endif
                                         </div>
                                         <div class="text-right ml-2">
                                             @if($alerta['es_manana'] ?? false)
@@ -681,6 +715,7 @@
                             <tr>
                                 <th style="width: 50px;">#</th>
                                 <th class="col-actividad">Actividad</th>
+                                <th class="text-center col-area">Parte</th>
                                 <th class="text-center" style="width: 100px;">PCM 1</th>
                                 <th class="text-center" style="width: 100px;">PCM 2</th>
                                 <th class="text-center" style="width: 100px;">PCM 3</th>
@@ -701,6 +736,20 @@
                                                 </span>
                                             @endif
                                         </div>
+                                    </td>
+                                    <td class="text-center">
+                                        @if($plan->area_pasteurizadora)
+                                            @php
+                                                $areaClase = $plan->area_pasteurizadora === 'central_hidraulica' ? 'hidraulica' : 'mecanica';
+                                                $areaIcono = $plan->area_pasteurizadora === 'central_hidraulica' ? 'fa-droplet' : 'fa-cog';
+                                            @endphp
+                                            <span class="area-badge {{ $areaClase }}">
+                                                <i class="fas {{ $areaIcono }}"></i>
+                                                {{ $plan->area_pasteurizadora_label }}
+                                            </span>
+                                        @else
+                                            <span class="text-gray-400">-</span>
+                                        @endif
                                     </td>
                                     @foreach(['pcm1', 'pcm2', 'pcm3', 'pcm4'] as $pcm)
                                         @php
@@ -764,7 +813,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="7" class="text-center py-12">
+                                    <td colspan="8" class="text-center py-12">
                                         <div class="flex flex-col items-center">
                                             <p class="text-gray-500 mb-4">No hay actividades para esta línea</p>
                                             <a href="{{ route('plan-accion.create', ['tipo' => 'pasteurizadora', 'linea_id' => $linea->id]) }}"
@@ -927,6 +976,12 @@ document.addEventListener('DOMContentLoaded', function() {
             fetch(`/plan-accion/${id}`)
                 .then(response => response.json())
                 .then(data => {
+                    const areaLabels = {
+                        mecanica: 'Mecanica',
+                        central_hidraulica: 'Hidraulica'
+                    };
+                    const areaLabel = areaLabels[data.area_pasteurizadora] || 'No especificada';
+
                     let html = `
                         <div class="space-y-4">
                             <div class="bg-gray-50 p-4 rounded-xl">
@@ -938,6 +993,10 @@ document.addEventListener('DOMContentLoaded', function() {
                             <div class="bg-gray-50 p-4 rounded-xl">
                                 <label class="text-xs text-gray-500 uppercase font-semibold">Actividad</label>
                                 <p class="font-medium text-gray-900 mt-1">${data.actividad || 'No especificada'}</p>
+                            </div>
+                            <div class="bg-gray-50 p-4 rounded-xl">
+                                <label class="text-xs text-gray-500 uppercase font-semibold">Parte de Pasteurizadora</label>
+                                <p class="font-medium text-gray-900 mt-1">${areaLabel}</p>
                             </div>
                     `;
 

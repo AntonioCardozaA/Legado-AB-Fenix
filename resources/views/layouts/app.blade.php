@@ -310,6 +310,12 @@
                                             </div>
                                             <div class="flex-1 min-w-0">
                                                 <p class="text-sm text-gray-900 mb-1">{!! $notification->data['mensaje'] ?? $notification->data['message'] ?? 'Nueva notificación' !!}</p>
+                                                @if(!empty($notification->data['area_pasteurizadora_label']))
+                                                    <span class="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-700">
+                                                        <i class="fas fa-tools"></i>
+                                                        Parte: {{ $notification->data['area_pasteurizadora_label'] }}
+                                                    </span>
+                                                @endif
                                                 <p class="text-xs text-gray-500">{{ $notification->created_at->diffForHumans() }}</p>
                                             </div>
                                         </div>

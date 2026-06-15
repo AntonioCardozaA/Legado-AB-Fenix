@@ -64,6 +64,27 @@
                                     <p class="mt-1 text-sm text-red-500">{{ $message }}</p>
                                 @enderror
                             </div>
+
+                            <div class="group">
+                                <label for="area_pasteurizadora" class="block text-sm font-medium text-gray-700 mb-2">
+                                    <i class="fas fa-tools mr-2 text-blue-500"></i>
+                                    Parte de Pasteurizadora
+                                    <span class="text-red-500 ml-1">*</span>
+                                </label>
+                                <select name="area_pasteurizadora" id="area_pasteurizadora"
+                                        class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all @error('area_pasteurizadora') border-red-500 @enderror"
+                                        required>
+                                    <option value="">Seleccione una opcion</option>
+                                    @foreach(($areasPasteurizadora ?? \App\Models\PlanAccion::areasPasteurizadoraOpciones()) as $areaValue => $areaLabel)
+                                        <option value="{{ $areaValue }}" {{ old('area_pasteurizadora', $plan->area_pasteurizadora) === $areaValue ? 'selected' : '' }}>
+                                            {{ $areaLabel }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                                @error('area_pasteurizadora')
+                                    <p class="mt-1 text-sm text-red-500">{{ $message }}</p>
+                                @enderror
+                            </div>
                         </div>
 
                         <div class="mb-6 group">

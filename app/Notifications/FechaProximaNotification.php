@@ -35,13 +35,20 @@ class FechaProximaNotification extends Notification implements ShouldQueue
     {
         $fecha = $this->getFechaPcm();
         $estado = $this->getEstadoNotificacion();
+        $areaPasteurizadora = $this->getAreaPasteurizadoraLabel();
 
-        return (new MailMessage)
+        $message = (new MailMessage)
             ->subject($estado['asunto'])
             ->greeting('Hola ' . $notifiable->name . ',')
             ->line($estado['mensaje'])
             ->line('**Actividad:** ' . $this->plan->actividad)
-            ->line('**Linea:** ' . $this->resolveLineaNombre())
+            ->line('**Linea:** ' . $this->resolveLineaNombre());
+
+        if ($areaPasteurizadora) {
+            $message->line('**Parte de Pasteurizadora:** ' . $areaPasteurizadora);
+        }
+
+        return $message
             ->line('**PCM:** ' . strtoupper($this->pcm))
             ->line('**Fecha limite:** ' . $fecha->format('d/m/Y'))
             ->line('**Dias restantes:** ' . max($this->diasRestantes, 0))
@@ -58,10 +65,14 @@ class FechaProximaNotification extends Notification implements ShouldQueue
         $fecha = $this->getFechaPcm();
         $estado = $this->getEstadoNotificacion();
         $lineaNombre = $this->resolveLineaNombre();
+        $areaPasteurizadora = $this->getAreaPasteurizadoraLabel();
+        $contextoLinea = $areaPasteurizadora
+            ? sprintf('%s - Parte: %s', $lineaNombre, $areaPasteurizadora)
+            : $lineaNombre;
         $message = sprintf(
             'PLANES DE ACCION POR VENCER: El plan "%s" de la %s vence el %s.',
             $this->plan->actividad,
-            $lineaNombre,
+            $contextoLinea,
             $fecha->format('d/m/Y')
         );
 
@@ -71,6 +82,8 @@ class FechaProximaNotification extends Notification implements ShouldQueue
             'actividad' => $this->plan->actividad,
             'linea' => $lineaNombre,
             'linea_id' => $this->plan->linea_id,
+            'area_pasteurizadora' => $this->plan->area_pasteurizadora,
+            'area_pasteurizadora_label' => $areaPasteurizadora,
             'pcm' => strtoupper($this->pcm),
             'fecha_limite' => $fecha->format('Y-m-d'),
             'dias_restantes' => max($this->diasRestantes, 0),
@@ -150,6 +163,15 @@ class FechaProximaNotification extends Notification implements ShouldQueue
     protected function resolveLineaNombre(): string
     {
         return $this->plan->linea?->nombre ?? 'Linea sin asignar';
+    }
+
+    protected function getAreaPasteurizadoraLabel(): ?string
+    {
+        if ($this->plan->tipo_equipo !== 'pasteurizadora' || !$this->plan->area_pasteurizadora) {
+            return null;
+        }
+
+        return $this->plan->area_pasteurizadora_label;
     }
 
     protected function resolveUrl(): string
