@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Linea;
 use App\Models\AnalisisLavadora;
+use App\Models\AnalisisPasteurizadora;
 use App\Models\Componente;
 use App\Models\HistorialRestablecimiento;
 use App\Models\HistoricoRevisados;
@@ -311,7 +312,9 @@ class HistoricoRevisadosController extends Controller
         $estadisticas = [];
 
         // Obtener todos los registros de esta línea
-        $registros = HistoricoRevisados::where('linea_id', $linea->id)->get();
+        $registros = HistoricoRevisados::forArea(AnalisisPasteurizadora::AREA_MECANICA)
+            ->where('linea_id', $linea->id)
+            ->get();
 
         foreach ($registros as $registro) {
             $estadisticas[$registro->componente] = [
