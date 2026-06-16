@@ -14,6 +14,7 @@ class HistoricoRevisados extends Model
     protected $table = 'historico_revisados';
 
     protected $fillable = [
+        'area',
         'linea_id',
         'componente',
         'componente_nombre',
@@ -27,6 +28,7 @@ class HistoricoRevisados extends Model
     ];
 
     protected $casts = [
+        'area' => 'string',
         'ultima_revision' => 'date',
         'proximo_vencimiento' => 'datetime',
         'created_at' => 'datetime',
@@ -60,6 +62,20 @@ class HistoricoRevisados extends Model
     public function scopeTipoPasteurizadora($query, $tipo)
     {
         return $query->where('tipo_pasteurizadora', $tipo);
+    }
+
+    public function scopeForArea($query, ?string $area = null)
+    {
+        $area = AnalisisPasteurizadora::normalizarArea($area);
+
+        if ($area === AnalisisPasteurizadora::AREA_MECANICA) {
+            return $query->where(function ($subQuery) {
+                $subQuery->where('area', AnalisisPasteurizadora::AREA_MECANICA)
+                    ->orWhereNull('area');
+            });
+        }
+
+        return $query->where('area', $area);
     }
 
     public function scopeConVencimiento($query)
@@ -121,8 +137,9 @@ class HistoricoRevisados extends Model
     /**
      * Actualizar el conteo basándose en análisis de pasteurizadora
      */
-    public static function actualizarDesdePasteurizadora($linea, $componente)
+    public static function actualizarDesdePasteurizadora($linea, $componente, ?string $area = null)
     {
+        $area = AnalisisPasteurizadora::normalizarArea($area);
         $componentesConfig = AnalisisPasteurizadora::getComponentesPorLinea($linea->nombre);
 
         if (!isset($componentesConfig[$componente])) {
@@ -134,7 +151,8 @@ class HistoricoRevisados extends Model
             : ($componentesConfig[$componente]['cantidad'] ?? 0);
 
         // Buscar todos los análisis de este componente
-        $analisis = AnalisisPasteurizadora::where('linea_id', $linea->id)
+        $analisis = AnalisisPasteurizadora::queryForArea($area)
+            ->where('linea_id', $linea->id)
             ->where('componente', $componente)
             ->get();
 
@@ -161,6 +179,7 @@ class HistoricoRevisados extends Model
             [
                 'linea_id' => $linea->id,
                 'componente' => $componente,
+                'area' => $area,
             ],
             [
                 'componente_nombre' => $componentesConfig[$componente]['nombre'],
@@ -179,15 +198,16 @@ class HistoricoRevisados extends Model
     /**
      * Actualizar todos los componentes de una línea
      */
-    public static function actualizarTodosComponentesLinea($lineaId)
+    public static function actualizarTodosComponentesLinea($lineaId, ?string $area = null)
     {
+        $area = AnalisisPasteurizadora::normalizarArea($area);
         $linea = Linea::find($lineaId);
         if (!$linea) return null;
 
         $componentes = AnalisisPasteurizadora::getComponentesPorLinea($linea->nombre);
 
         foreach (array_keys($componentes) as $componente) {
-            self::actualizarDesdePasteurizadora($linea, $componente);
+            self::actualizarDesdePasteurizadora($linea, $componente, $area);
         }
 
         return true;
@@ -196,9 +216,9 @@ class HistoricoRevisados extends Model
     /**
      * Obtener resumen de una línea
      */
-    public static function obtenerResumenLinea($lineaId)
+    public static function obtenerResumenLinea($lineaId, ?string $area = null)
     {
-        $registros = self::where('linea_id', $lineaId)->get();
+        $registros = self::forArea($area)->where('linea_id', $lineaId)->get();
 
         return [
             'total_componentes' => $registros->count(),

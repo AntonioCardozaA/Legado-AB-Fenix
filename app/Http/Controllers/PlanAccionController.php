@@ -131,6 +131,7 @@ class PlanAccionController extends Controller
         $tiposMaquinaSeleccionados = is_array($plan->tipo_maquina)
             ? $plan->tipo_maquina
             : ($plan->tipo_maquina ? json_decode($plan->tipo_maquina, true) : []);
+        $areasPasteurizadora = PlanAccion::areasPasteurizadoraOpciones();
 
         $lavadoras = $lineas;
 
@@ -139,6 +140,7 @@ class PlanAccionController extends Controller
             'lineas',
             'lavadoras',
             'tiposMaquinaSeleccionados',
+            'areasPasteurizadora',
             'tipo'
         ));
     }
@@ -155,16 +157,10 @@ class PlanAccionController extends Controller
         $plan = PlanAccion::findOrFail($id);
         $this->ensureCanAccessPlan($plan);
 
-        $validated = $request->validate([
-            'linea_id' => ['required', 'exists:lineas,id', Rule::in($this->obtenerLineaIdsPorTipo($tipo))],
-            'actividad' => 'required|string|max:1000',
-            'fecha_pcm1' => 'nullable|date',
-            'fecha_pcm2' => 'nullable|date',
-            'fecha_pcm3' => 'nullable|date',
-            'fecha_pcm4' => 'nullable|date',
-        ]);
-
-        $validated['tipo_equipo'] = $tipo;
+        $validated = $this->prepararDatosValidados(
+            $request->validate($this->reglasValidacion($tipo)),
+            $tipo
+        );
         $plan->update($validated);
 
         return redirect()->route('plan-accion.index', [
@@ -266,12 +262,14 @@ class PlanAccionController extends Controller
         $lineaSeleccionada = $request->get('linea_id');
         $lineas = $this->obtenerLineasPorTipo($tipo, true);
         $linea = $lineaSeleccionada ? $lineas->firstWhere('id', (int) $lineaSeleccionada) : null;
+        $areasPasteurizadora = PlanAccion::areasPasteurizadoraOpciones();
 
         return view($this->obtenerVistaPorTipo($tipo, 'create'), compact(
             'lineas',
             'tipo',
             'lineaSeleccionada',
-            'linea'
+            'linea',
+            'areasPasteurizadora'
         ));
     }
 
@@ -283,19 +281,13 @@ class PlanAccionController extends Controller
         $tipo = $this->normalizarTipo($request->get('tipo', 'lavadora'));
         $this->ensureCanAccessTipo($tipo);
 
-        $validated = $request->validate([
-            'linea_id' => ['required', 'exists:lineas,id', Rule::in($this->obtenerLineaIdsPorTipo($tipo))],
-            'actividad' => 'required|string|max:1000',
-            'fecha_pcm1' => 'nullable|date',
-            'fecha_pcm2' => 'nullable|date',
-            'fecha_pcm3' => 'nullable|date',
-            'fecha_pcm4' => 'nullable|date',
+        $validated = $request->validate(array_merge($this->reglasValidacion($tipo), [
             'observaciones' => 'nullable|string',
             'tipo_maquina' => 'nullable|array',
             'notificar_ahora' => 'nullable|boolean'
-        ]);
+        ]));
 
-        $validated['tipo_equipo'] = $tipo;
+        $validated = $this->prepararDatosValidados($validated, $tipo);
 
         if (isset($validated['tipo_maquina'])) {
             $validated['tipo_maquina'] = json_encode($validated['tipo_maquina']);
@@ -347,16 +339,10 @@ class PlanAccionController extends Controller
         $plan = PlanAccion::findOrFail($id);
         $this->ensureCanAccessPlan($plan);
 
-        $validated = $request->validate([
-            'linea_id' => ['required', 'exists:lineas,id', Rule::in($this->obtenerLineaIdsPorTipo($tipo))],
-            'actividad' => 'required|string|max:1000',
-            'fecha_pcm1' => 'nullable|date',
-            'fecha_pcm2' => 'nullable|date',
-            'fecha_pcm3' => 'nullable|date',
-            'fecha_pcm4' => 'nullable|date',
-        ]);
-
-        $validated['tipo_equipo'] = $tipo;
+        $validated = $this->prepararDatosValidados(
+            $request->validate($this->reglasValidacion($tipo)),
+            $tipo
+        );
         $plan->update($validated);
 
         return redirect()->route('plan-accion.index', [
@@ -512,6 +498,8 @@ class PlanAccionController extends Controller
                         'id' => $plan->id,
                         'linea' => optional($plan->linea)->nombre ?? 'Sin línea',
                         'actividad' => $plan->actividad,
+                        'area_pasteurizadora' => $plan->area_pasteurizadora,
+                        'area_pasteurizadora_label' => $this->resolveAreaPasteurizadoraLabel($plan),
                         'pcm' => strtoupper($pcm),
                         'fecha' => $fechaPcm->format('d/m/Y'),
                         'dias_restantes' => $diasRestantes,
@@ -586,6 +574,54 @@ class PlanAccionController extends Controller
     private function normalizarTipo(?string $tipo): string
     {
         return $tipo === 'pasteurizadora' ? 'pasteurizadora' : 'lavadora';
+    }
+
+    private function reglasValidacion(string $tipo): array
+    {
+        $tipo = $this->normalizarTipo($tipo);
+
+        $reglas = [
+            'linea_id' => ['required', 'exists:lineas,id', Rule::in($this->obtenerLineaIdsPorTipo($tipo))],
+            'actividad' => 'required|string|max:1000',
+            'fecha_pcm1' => 'nullable|date',
+            'fecha_pcm2' => 'nullable|date',
+            'fecha_pcm3' => 'nullable|date',
+            'fecha_pcm4' => 'nullable|date',
+        ];
+
+        if ($tipo === 'pasteurizadora') {
+            $reglas['area_pasteurizadora'] = [
+                'required',
+                Rule::in(array_keys(PlanAccion::areasPasteurizadoraOpciones())),
+            ];
+        }
+
+        return $reglas;
+    }
+
+    private function prepararDatosValidados(array $validated, string $tipo): array
+    {
+        $tipo = $this->normalizarTipo($tipo);
+        $validated['tipo_equipo'] = $tipo;
+
+        if ($tipo === 'pasteurizadora') {
+            $validated['area_pasteurizadora'] = PlanAccion::normalizarAreaPasteurizadora(
+                $validated['area_pasteurizadora'] ?? null
+            );
+        } else {
+            unset($validated['area_pasteurizadora']);
+        }
+
+        return $validated;
+    }
+
+    private function resolveAreaPasteurizadoraLabel(PlanAccion $plan): ?string
+    {
+        if ($plan->tipo_equipo !== 'pasteurizadora' || !$plan->area_pasteurizadora) {
+            return null;
+        }
+
+        return $plan->area_pasteurizadora_label;
     }
 
     private function ensureCanAccessTipo(string $tipo): void

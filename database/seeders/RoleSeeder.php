@@ -19,6 +19,8 @@ class RoleSeeder extends Seeder
         $permisos = [
             User::PERMISSION_ACCESS_LAVADORA,
             User::PERMISSION_ACCESS_PASTEURIZADORA,
+            User::PERMISSION_ACCESS_PASTEURIZADORA_MECANICA,
+            User::PERMISSION_ACCESS_PASTEURIZADORA_CENTRAL_HIDRAULICA,
             'ver analisis',
             'crear analisis',
             'editar analisis',
@@ -47,7 +49,12 @@ class RoleSeeder extends Seeder
         }
 
         $todosLosPermisos = Permission::all();
-        $permisosSinPasteurizadora = Permission::where('name', '!=', User::PERMISSION_ACCESS_PASTEURIZADORA)->get();
+        $permisosPasteurizadora = [
+            User::PERMISSION_ACCESS_PASTEURIZADORA,
+            User::PERMISSION_ACCESS_PASTEURIZADORA_MECANICA,
+            User::PERMISSION_ACCESS_PASTEURIZADORA_CENTRAL_HIDRAULICA,
+        ];
+        $permisosSinPasteurizadora = Permission::whereNotIn('name', $permisosPasteurizadora)->get();
 
         // Roles y permisos
         $roles = [
@@ -56,12 +63,16 @@ class RoleSeeder extends Seeder
             User::ROLE_SUPERVISOR => $permisosSinPasteurizadora,
             User::ROLE_INGENIERO_MANTENIMIENTO => [
                 User::PERMISSION_ACCESS_LAVADORA,
+                User::PERMISSION_ACCESS_PASTEURIZADORA_MECANICA,
+                User::PERMISSION_ACCESS_PASTEURIZADORA_CENTRAL_HIDRAULICA,
                 'ver analisis', 'crear analisis', 'editar analisis', 'exportar analisis',
                 'ver paros', 'crear paros', 'editar paros', 'gestionar planes accion',
                 'ver reportes', 'generar reportes', 'exportar reportes',
             ],
             User::ROLE_TECNICO => [
                 User::PERMISSION_ACCESS_LAVADORA,
+                User::PERMISSION_ACCESS_PASTEURIZADORA_MECANICA,
+                User::PERMISSION_ACCESS_PASTEURIZADORA_CENTRAL_HIDRAULICA,
                 'ver analisis', 'crear analisis', 'editar analisis',
             ],
         ];

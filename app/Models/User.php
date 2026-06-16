@@ -41,6 +41,8 @@ class User extends Authenticatable
 
     public const PERMISSION_ACCESS_LAVADORA = 'acceder modulo lavadora';
     public const PERMISSION_ACCESS_PASTEURIZADORA = 'acceder modulo pasteurizadora';
+    public const PERMISSION_ACCESS_PASTEURIZADORA_MECANICA = 'acceder pasteurizadora mecanica';
+    public const PERMISSION_ACCESS_PASTEURIZADORA_CENTRAL_HIDRAULICA = 'acceder pasteurizadora central hidraulica';
 
     /**
      * The attributes that should be hidden for serialization.
@@ -111,6 +113,14 @@ public static function modulePermissionMap(): array
     ];
 }
 
+public static function pasteurizadoraAreaPermissionMap(): array
+{
+    return [
+        \App\Models\AnalisisPasteurizadora::AREA_MECANICA => self::PERMISSION_ACCESS_PASTEURIZADORA_MECANICA,
+        \App\Models\AnalisisPasteurizadora::AREA_CENTRAL_HIDRAULICA => self::PERMISSION_ACCESS_PASTEURIZADORA_CENTRAL_HIDRAULICA,
+    ];
+}
+
 public static function elevatedMaintenanceRoles(): array
 {
     return [
@@ -166,6 +176,30 @@ public function canAccessModule(string $module): bool
     }
 
     return true;
+}
+
+public function canAccessPasteurizadoraArea(string $area): bool
+{
+    if (!$this->canAccessModule(self::MODULE_PASTEURIZADORA)) {
+        return false;
+    }
+
+    if ($this->hasRole(self::ROLE_ADMIN)) {
+        return true;
+    }
+
+    $area = \App\Models\AnalisisPasteurizadora::normalizarArea($area);
+    $permission = self::pasteurizadoraAreaPermissionMap()[$area] ?? null;
+
+    if (!$permission) {
+        return false;
+    }
+
+    try {
+        return $this->hasPermissionTo($permission);
+    } catch (PermissionDoesNotExist) {
+        return true;
+    }
 }
 
 public function shouldShowPasteurizadoraComingSoon(): bool

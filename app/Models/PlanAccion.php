@@ -19,6 +19,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property Carbon|null $fecha_pcm4
  * @property string|null $estado
  * @property string|null $tipo_equipo
+ * @property string|null $area_pasteurizadora
  * @property bool $completado
  * @property array<int, string>|null $tipo_maquina
  */
@@ -32,6 +33,7 @@ class PlanAccion extends Model
         'linea_id',
         'actividad',
         'tipo_equipo',
+        'area_pasteurizadora',
         'fecha_pcm1',
         'fecha_pcm2',
         'fecha_pcm3',
@@ -45,6 +47,7 @@ class PlanAccion extends Model
     ];
 
     protected $casts = [
+        'area_pasteurizadora' => 'string',
         'fecha_pcm1' => 'date',
         'fecha_pcm2' => 'date',
         'fecha_pcm3' => 'date',
@@ -92,6 +95,28 @@ class PlanAccion extends Model
                 'color' => $iconos[$tipo]['color'] ?? 'gray'
             ];
         });
+    }
+
+    public static function areasPasteurizadoraOpciones(): array
+    {
+        return [
+            AnalisisPasteurizadora::AREA_MECANICA => 'Mecanica',
+            AnalisisPasteurizadora::AREA_CENTRAL_HIDRAULICA => 'Hidraulica',
+        ];
+    }
+
+    public static function normalizarAreaPasteurizadora(?string $area): string
+    {
+        return AnalisisPasteurizadora::normalizarArea($area);
+    }
+
+    public function getAreaPasteurizadoraLabelAttribute(): ?string
+    {
+        if (!$this->area_pasteurizadora) {
+            return null;
+        }
+
+        return self::areasPasteurizadoraOpciones()[$this->area_pasteurizadora] ?? $this->area_pasteurizadora;
     }
 
     public function getFechasProgramadasAttribute()

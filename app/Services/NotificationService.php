@@ -28,6 +28,8 @@ class NotificationService
      *         actividad: string|null,
      *         linea: string,
      *         linea_id: int|null,
+     *         area_pasteurizadora: string|null,
+     *         area_pasteurizadora_label: string|null,
      *         pcm: string,
      *         fecha_limite: string,
      *         dias_restantes: int,
@@ -115,6 +117,8 @@ class NotificationService
      *     actividad: string|null,
      *     linea: string,
      *     linea_id: int|null,
+     *     area_pasteurizadora: string|null,
+     *     area_pasteurizadora_label: string|null,
      *     pcm_key: string,
      *     pcm: string,
      *     due_date: CarbonImmutable,
@@ -148,6 +152,8 @@ class NotificationService
                         'actividad' => $plan->actividad,
                         'linea' => $plan->linea?->nombre ?? 'Linea sin asignar',
                         'linea_id' => $plan->linea_id !== null ? (int) $plan->linea_id : null,
+                        'area_pasteurizadora' => $plan->area_pasteurizadora,
+                        'area_pasteurizadora_label' => $this->resolveAreaPasteurizadoraLabel($plan),
                         'pcm_key' => $pcmKey,
                         'pcm' => strtoupper($pcmKey),
                         'due_date' => $dueDate,
@@ -287,6 +293,8 @@ class NotificationService
      *     actividad: string|null,
      *     linea: string,
      *     linea_id: int|null,
+     *     area_pasteurizadora: string|null,
+     *     area_pasteurizadora_label: string|null,
      *     pcm: string,
      *     fecha_limite: string,
      *     dias_restantes: int,
@@ -301,6 +309,8 @@ class NotificationService
                 'actividad' => $alert['actividad'],
                 'linea' => $alert['linea'],
                 'linea_id' => $alert['linea_id'],
+                'area_pasteurizadora' => $alert['area_pasteurizadora'] ?? null,
+                'area_pasteurizadora_label' => $alert['area_pasteurizadora_label'] ?? null,
                 'pcm' => $alert['pcm'],
                 'fecha_limite' => $alert['due_date']->toDateString(),
                 'dias_restantes' => $alert['days_remaining'],
@@ -353,6 +363,15 @@ class NotificationService
             'finalizada',
             'done',
         ], true);
+    }
+
+    private function resolveAreaPasteurizadoraLabel(PlanAccion $plan): ?string
+    {
+        if ($plan->tipo_equipo !== 'pasteurizadora' || !$plan->area_pasteurizadora) {
+            return null;
+        }
+
+        return $plan->area_pasteurizadora_label;
     }
 
     private function timezone(): string

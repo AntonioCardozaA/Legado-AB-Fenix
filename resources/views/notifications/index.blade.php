@@ -57,6 +57,14 @@
                             <p class="text-sm text-gray-700 leading-relaxed">
                                 {{ $notification->data['message'] ?? $notification->data['mensaje'] ?? 'Nueva notificacion.' }}
                             </p>
+                            @if(!empty($notification->data['area_pasteurizadora_label']))
+                                <div class="mt-3">
+                                    <span class="inline-flex items-center gap-2 rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
+                                        <i class="fas fa-tools"></i>
+                                        Parte de Pasteurizadora: {{ $notification->data['area_pasteurizadora_label'] }}
+                                    </span>
+                                </div>
+                            @endif
                         </div>
 
                         <div class="flex items-center gap-2">

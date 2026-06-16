@@ -931,7 +931,7 @@
         <form method="GET" action="{{ $analisisRoute('index') }}" id="filterForm">
             <div class="lineas-grid">
                 <!-- Todas -->
-                <a href="{{ $analisisRoute('index', ['linea_id' => 'todas']) }}"
+                <a href="{{ $analisisRoute('index', ['linea_id' => 'todas']) }}" 
                    class="linea-item {{ $mostrarTodas ? 'active' : '' }}">
                     <i class="fas fa-globe"></i>
                     Todas

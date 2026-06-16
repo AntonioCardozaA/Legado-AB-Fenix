@@ -5,6 +5,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\AnalisisController;
 use App\Http\Controllers\AnalisisLavadoraController;
 use App\Http\Controllers\AnalisisPasteurizadoraController;
+use App\Http\Controllers\AnalisisPasteurizadoraCentralHidraulicaController;
 use App\Http\Controllers\ElongacionController;
 use App\Http\Controllers\PlanAccionController;
 use App\Http\Controllers\ReporteController;
@@ -251,6 +252,59 @@ Route::prefix('pasteurizadora')->group(function () {
 
                 Route::post('/crear-lineas', 'crearLineasPasteurizadora')
                     ->name('crear-lineas');
+
+                Route::delete('/{analisispasteurizadora}/foto/{fotoIndex}', 'deleteFoto')
+                    ->whereNumber('analisispasteurizadora')
+                    ->whereNumber('fotoIndex')
+                    ->name('delete-foto');
+            });
+
+        Route::prefix('central-hidraulica')
+            ->name('central-hidraulica.')
+            ->controller(AnalisisPasteurizadoraCentralHidraulicaController::class)
+            ->group(function () {
+                Route::get('/', 'index')->name('index');
+                Route::get('/seleccionar-linea', 'selectLinea')->name('select-linea');
+
+                Route::get('/crear/{linea}', 'createWithLinea')
+                    ->whereNumber('linea')
+                    ->name('create');
+
+                Route::get('/crear', 'create')->name('create-legacy');
+                Route::get('/crear-rapido', 'createQuick')->name('create-quick');
+
+                Route::post('/', 'store')->name('store');
+                Route::post('/store-quick', 'storeQuick')->name('store-quick');
+
+                Route::get('/historial', 'historial')->name('historial');
+                Route::get('/historico-revisados', 'historicoRevisados')->name('historico-revisados');
+
+                Route::get('/export/excel', 'exportExcel')->name('export.excel');
+                Route::get('/export/pdf', 'exportPdf')->name('export.pdf');
+                Route::post('/export-process', 'exportProcess')->name('export-process');
+
+                Route::get('/ajax/componentes', 'getComponentesPorLineaAjax')->name('ajax.componentes');
+                Route::post('/ajax/remaining-components', 'getRemainingComponentsAjax')->name('ajax.remaining-components');
+                Route::post('/ajax/revision-context', 'getRevisionContextAjax')->name('ajax.revision-context');
+                Route::post('/ajax/piezas-disponibles', 'getPiezasDisponiblesAjax')->name('ajax.piezas-disponibles');
+                Route::get('/ajax/actividades', 'getActividadesPorModulo')->name('ajax.actividades');
+                Route::get('/ajax/estadisticas', 'getEstadisticasComponentesAjax')->name('ajax.estadisticas');
+
+                Route::get('/{analisispasteurizadora}', 'show')
+                    ->whereNumber('analisispasteurizadora')
+                    ->name('show');
+
+                Route::get('/{analisispasteurizadora}/editar', 'edit')
+                    ->whereNumber('analisispasteurizadora')
+                    ->name('edit');
+
+                Route::put('/{analisispasteurizadora}', 'update')
+                    ->whereNumber('analisispasteurizadora')
+                    ->name('update');
+
+                Route::delete('/{analisispasteurizadora}', 'destroy')
+                    ->whereNumber('analisispasteurizadora')
+                    ->name('destroy');
 
                 Route::delete('/{analisispasteurizadora}/foto/{fotoIndex}', 'deleteFoto')
                     ->whereNumber('analisispasteurizadora')

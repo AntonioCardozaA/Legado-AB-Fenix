@@ -31,6 +31,44 @@ class PasswordUpdateTest extends TestCase
         $this->assertTrue(Hash::check('new-password', $user->refresh()->password));
     }
 
+    public function test_user_can_authenticate_with_new_password_after_logging_out(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this
+            ->actingAs($user)
+            ->from('/profile')
+            ->put('/password', [
+                'current_password' => 'password',
+                'password' => 'new-password',
+                'password_confirmation' => 'new-password',
+            ]);
+
+        $response
+            ->assertSessionHasNoErrors()
+            ->assertRedirect('/profile');
+
+        $this->post('/logout');
+        $this->assertGuest();
+
+        $response = $this->post('/login', [
+            'email' => $user->email,
+            'password' => 'new-password',
+        ]);
+
+        $response->assertRedirect(route('dashboard', absolute: false));
+        $this->assertAuthenticatedAs($user);
+
+        $this->post('/logout');
+
+        $this->post('/login', [
+            'email' => $user->email,
+            'password' => 'password',
+        ]);
+
+        $this->assertGuest();
+    }
+
     public function test_correct_password_must_be_provided_to_update_password(): void
     {
         $user = User::factory()->create();

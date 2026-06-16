@@ -88,4 +88,44 @@ class NotificationServiceTest extends TestCase
         $this->assertSame('L-04', $notification->data['linea']);
         $this->assertSame('PCM1', $notification->data['pcm']);
     }
+
+    public function test_pasteurizadora_action_plan_notifications_include_area(): void
+    {
+        $linea = Linea::create([
+            'nombre' => 'P-03',
+            'descripcion' => 'Pasteurizadora de prueba',
+            'tipo' => 'pasteurizadora',
+            'activo' => true,
+        ]);
+
+        $targetUser = User::factory()->create();
+
+        UserNotificationSetting::create([
+            'user_id' => $targetUser->id,
+            'days_before_notification' => 3,
+        ]);
+
+        PlanAccion::create([
+            'linea_id' => $linea->id,
+            'actividad' => 'Revisar valvulas',
+            'tipo_equipo' => 'pasteurizadora',
+            'area_pasteurizadora' => 'central_hidraulica',
+            'fecha_pcm1' => '2026-06-12',
+            'completado' => false,
+        ]);
+
+        $service = app(NotificationService::class);
+        $referenceTime = CarbonImmutable::parse('2026-06-10 09:00:00', 'America/Mexico_City');
+
+        $result = $service->verificarYNotificarActividadesProximas($referenceTime);
+
+        $this->assertSame('central_hidraulica', $result['alerts'][0]['area_pasteurizadora']);
+        $this->assertSame('Hidraulica', $result['alerts'][0]['area_pasteurizadora_label']);
+
+        $notification = $targetUser->notifications()->firstOrFail();
+
+        $this->assertSame('central_hidraulica', $notification->data['area_pasteurizadora']);
+        $this->assertSame('Hidraulica', $notification->data['area_pasteurizadora_label']);
+        $this->assertStringContainsString('Parte: Hidraulica', $notification->data['message']);
+    }
 }

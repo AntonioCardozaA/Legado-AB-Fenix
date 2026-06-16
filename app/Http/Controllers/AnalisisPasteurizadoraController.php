@@ -16,9 +16,72 @@ class AnalisisPasteurizadoraController extends Controller
     private const EVIDENCIAS_PASTEURIZADORA_DIR = 'analisis-pasteurizadora';
     private const PASTEURIZADORAS_PERMITIDAS = ['P-03', 'P-04', 'P-05', 'P-06', 'P-07', 'P-08', 'P-09', 'P-10', 'P-11', 'P-12', 'P-13', 'P-14'];
 
+    protected string $areaAnalisis = AnalisisPasteurizadora::AREA_MECANICA;
+    protected string $areaLabel = 'Mecánica';
+    protected string $routeNamePrefix = 'pasteurizadora.analisis-pasteurizadora';
+    protected string $baseUrl = '/pasteurizadora/analisis-pasteurizadora';
+    protected string $viewPathPrefix = 'pasteurizadora.analisis-pasteurizadora';
+    protected string $historicoViewPath = 'historico-revisados.pasteurizadora.index';
+    protected string $dashboardRouteName = 'pasteurizadora.dashboard';
+    protected string $tituloAnalisis = 'Análisis de Pasteurizadoras';
+    protected string $tituloHistorial = 'Historial de Análisis - Pasteurizadora';
+    protected string $tituloHistoricoRevisados = 'Histórico de Revisados - Pasteurizadora';
+    protected string $evidenciasDir = self::EVIDENCIAS_PASTEURIZADORA_DIR;
+
     public function __construct()
     {
         $this->middleware('auth');
+        $this->middleware(function ($request, $next) {
+            if (!$request->user()?->canAccessPasteurizadoraArea($this->currentArea())) {
+                abort(403, 'No tienes permiso para acceder a esta seccion de Pasteurizadora.');
+            }
+
+            return $next($request);
+        });
+    }
+
+    protected function currentArea(): string
+    {
+        return AnalisisPasteurizadora::normalizarArea($this->areaAnalisis);
+    }
+
+    protected function analisisQuery()
+    {
+        return AnalisisPasteurizadora::queryForArea($this->currentArea());
+    }
+
+    protected function routeName(string $name): string
+    {
+        return $this->routeNamePrefix . '.' . $name;
+    }
+
+    protected function viewName(string $name): string
+    {
+        return $this->viewPathPrefix . '.' . $name;
+    }
+
+    protected function sharedViewData(array $data = []): array
+    {
+        return array_merge($data, [
+            'analisisArea' => $this->currentArea(),
+            'analisisAreaLabel' => $this->areaLabel,
+            'analisisRoutePrefix' => $this->routeNamePrefix,
+            'analisisBaseUrl' => $this->baseUrl,
+            'analisisDashboardRoute' => $this->dashboardRouteName,
+            'analisisTitulo' => $this->tituloAnalisis,
+            'historialTitulo' => $this->tituloHistorial,
+            'historicoRevisadosTitulo' => $this->tituloHistoricoRevisados,
+        ]);
+    }
+
+    protected function renderView(string $name, array $data = [])
+    {
+        return view($this->viewName($name), $this->sharedViewData($data));
+    }
+
+    protected function renderExternalView(string $view, array $data = [])
+    {
+        return view($view, $this->sharedViewData($data));
     }
 
     private function getRevisionesAgrupadasHistorico($lineas): array
@@ -28,7 +91,7 @@ class AnalisisPasteurizadoraController extends Controller
         }
 
         // Usar el método optimizado del modelo
-        return AnalisisPasteurizadora::getComponentesRevisadosAgrupadosParaHistorico($lineas->pluck('id')->all());
+        return AnalisisPasteurizadora::getComponentesRevisadosAgrupadosParaHistorico($lineas->pluck('id')->all(), $this->currentArea());
     }
 
     private function buildHistoricoLinea(Linea $linea, array $revisionesAgrupadas, &$componentesModulos, array &$estadisticas): array
@@ -219,7 +282,8 @@ class AnalisisPasteurizadoraController extends Controller
         $lineaId = $request->get('linea_id', 'todas');
         $lineaSeleccionada = $lineaId !== 'todas' ? Linea::find($lineaId) : null;
 
-        $query = AnalisisPasteurizadora::with(['linea', 'usuario'])
+        $query = $this->analisisQuery()
+            ->with(['linea', 'usuario'])
             ->where('resuelto_por_cambio', false);
 
         if ($lineaId !== 'todas' && $lineaId) {
@@ -278,7 +342,7 @@ class AnalisisPasteurizadoraController extends Controller
 
         $seguimientoPasteurizadora = $this->buildSeguimientoPasteurizadora($lineasFiltradas);
 
-        return view('pasteurizadora.analisis-pasteurizadora.index', compact(
+        return $this->renderView('index', compact(
             'analisis', 'lineasFiltradas', 'totalAnalisis', 'totalDanados', 'totalCambiados',
             'totalRequiereRevision', 'lineaSeleccionada', 'mostrarTodas', 'seguimientoPasteurizadora'
         ));
@@ -286,20 +350,20 @@ class AnalisisPasteurizadoraController extends Controller
 
         public function dashboard()
 {
-    $analisis = AnalisisPasteurizadora::with('linea')->latest()->take(10)->get();
+    $analisis = $this->analisisQuery()->with('linea')->latest()->take(10)->get();
 
-    $total = AnalisisPasteurizadora::count();
-    $danados = AnalisisPasteurizadora::whereIn('estado', AnalisisPasteurizadora::estadosDanado())->count();
-    $cambiados = AnalisisPasteurizadora::where('estado', AnalisisPasteurizadora::ESTADO_CAMBIADO)->count();
-    $requiereRevision = AnalisisPasteurizadora::where('estado', AnalisisPasteurizadora::ESTADO_REQUIERE_REVISION)->count();
+    $total = $this->analisisQuery()->count();
+    $danados = $this->analisisQuery()->whereIn('estado', AnalisisPasteurizadora::estadosDanado())->count();
+    $cambiados = $this->analisisQuery()->where('estado', AnalisisPasteurizadora::ESTADO_CAMBIADO)->count();
+    $requiereRevision = $this->analisisQuery()->where('estado', AnalisisPasteurizadora::ESTADO_REQUIERE_REVISION)->count();
 
-    return view('pasteurizadora.dashboard', compact(
+    return view('pasteurizadora.dashboard', $this->sharedViewData(compact(
         'analisis',
         'total',
         'danados',
         'cambiados',
         'requiereRevision'
-    ));
+    )));
 }
     // ============================================================
     // CREATE
@@ -310,19 +374,19 @@ class AnalisisPasteurizadoraController extends Controller
         $lineaId = $request->get('linea_id');
 
         if (!$lineaId) {
-            return redirect()->route('pasteurizadora.analisis-pasteurizadora.select-linea')
+            return redirect()->route($this->routeName('select-linea'))
                 ->with('error', 'Debe seleccionar una línea primero');
         }
 
         $linea = Linea::findOrFail($lineaId);
-        return view('pasteurizadora.analisis-pasteurizadora.create', $this->buildCreateViewData($linea, $request));
+        return $this->renderView('create', $this->buildCreateViewData($linea, $request));
     }
 
     public function createQuick(Request $request)
     {
         $linea = Linea::findOrFail($request->linea_id);
 
-        return view('pasteurizadora.analisis-pasteurizadora.create-quick', $this->buildCreateViewData($linea, $request, true));
+        return $this->renderView('create-quick', $this->buildCreateViewData($linea, $request, true));
     }
 
     // ============================================================
@@ -363,6 +427,7 @@ class AnalisisPasteurizadoraController extends Controller
 
         // Crear el registro
         $analisis = AnalisisPasteurizadora::create([
+            'area' => $this->currentArea(),
             'linea_id' => $validated['linea_id'],
             'modulo' => $validated['modulo'],
             'nivel' => $validated['nivel'],
@@ -392,7 +457,8 @@ class AnalisisPasteurizadoraController extends Controller
             $validated['modulo'],
             $validated['componente'],
             $validated['nivel'],
-            $validated['lado']
+            $validated['lado'],
+            $this->currentArea()
         );
 
         $mensaje = $siguienteRevision
@@ -401,7 +467,7 @@ class AnalisisPasteurizadoraController extends Controller
 
         // Redirigir al índice con mensaje de éxito
         return redirect()
-            ->route('pasteurizadora.analisis-pasteurizadora.index', ['linea_id' => $validated['linea_id']])
+            ->route($this->routeName('index'), ['linea_id' => $validated['linea_id']])
             ->with('success', $mensaje);
     }
 
@@ -414,7 +480,7 @@ class AnalisisPasteurizadoraController extends Controller
 
     private function guardarEvidenciaPasteurizadora($foto): string
     {
-        $directorioRelativo = self::EVIDENCIAS_PASTEURIZADORA_DIR;
+        $directorioRelativo = $this->evidenciasDir;
         $directorioPublico = public_path('storage/' . $directorioRelativo);
 
         if (!is_dir($directorioPublico)) {
@@ -444,12 +510,13 @@ class AnalisisPasteurizadoraController extends Controller
 
     private function marcarRegistrosAnterioresComoResueltos($nuevoAnalisis)
     {
-        $registrosAnteriores = AnalisisPasteurizadora::where('linea_id', $nuevoAnalisis->linea_id)
+        $registrosAnteriores = $this->analisisQuery()
+            ->where('linea_id', $nuevoAnalisis->linea_id)
             ->where('modulo', $nuevoAnalisis->modulo)
             ->where('componente', $nuevoAnalisis->componente)
             ->whereIn('estado', AnalisisPasteurizadora::estadosDanado())
             ->where('resuelto_por_cambio', false)
-            ->where('id', '!=', $nuevoAnalisis->id)
+            ->when($nuevoAnalisis->id ?? null, fn ($query) => $query->where('id', '!=', $nuevoAnalisis->id))
             ->get();
 
         foreach ($registrosAnteriores as $registro) {
@@ -468,20 +535,20 @@ class AnalisisPasteurizadoraController extends Controller
 
     public function show($id)
     {
-        $analisis = AnalisisPasteurizadora::with(['linea', 'usuario'])->findOrFail($id);
-        return view('pasteurizadora.analisis-pasteurizadora.show', compact('analisis'));
+        $analisis = $this->analisisQuery()->with(['linea', 'usuario'])->findOrFail($id);
+        return $this->renderView('show', compact('analisis'));
     }
 
     public function edit($id)
     {
-        $analisis = AnalisisPasteurizadora::with('usuario')->findOrFail($id);
+        $analisis = $this->analisisQuery()->with('usuario')->findOrFail($id);
         $lineas = Linea::all();
-        return view('pasteurizadora.analisis-pasteurizadora.edit', compact('analisis', 'lineas'));
+        return $this->renderView('edit', compact('analisis', 'lineas'));
     }
 
     public function update(Request $request, $id)
     {
-        $analisis = AnalisisPasteurizadora::findOrFail($id);
+        $analisis = $this->analisisQuery()->findOrFail($id);
 
         $validated = $request->validate([
             'modulo' => 'nullable|integer|min:1',
@@ -574,13 +641,13 @@ class AnalisisPasteurizadoraController extends Controller
         $analisis->update($validated);
 
         return redirect()
-            ->route('pasteurizadora.analisis-pasteurizadora.index', ['linea_id' => $analisis->linea_id])
+            ->route($this->routeName('index'), ['linea_id' => $analisis->linea_id])
             ->with('success', 'Análisis actualizado correctamente.');
     }
 
     public function destroy($id)
     {
-        $analisis = AnalisisPasteurizadora::findOrFail($id);
+        $analisis = $this->analisisQuery()->findOrFail($id);
 
         if ($analisis->evidencia_fotos) {
             foreach ($analisis->evidencia_fotos as $foto) {
@@ -590,7 +657,7 @@ class AnalisisPasteurizadoraController extends Controller
 
         $analisis->delete();
 
-        return redirect()->route('pasteurizadora.analisis-pasteurizadora.index')
+        return redirect()->route($this->routeName('index'))
             ->with('success', 'Registro eliminado correctamente');
     }
 
@@ -608,12 +675,14 @@ class AnalisisPasteurizadoraController extends Controller
 
     $lineas = \App\Models\Linea::whereIn('nombre', $nombres)->get()->keyBy('nombre');
 
-    return view('pasteurizadora.analisis-pasteurizadora.select-linea', compact('lineas'));
+    return $this->renderView('select-linea', compact('lineas'));
 }
 
     public function historial(Request $request)
     {
-        $query = AnalisisPasteurizadora::with(['linea', 'usuario'])->orderBy('fecha_analisis', 'desc');
+        $query = $this->analisisQuery()
+            ->with(['linea', 'usuario'])
+            ->orderBy('fecha_analisis', 'desc');
 
         if ($request->filled('linea_id')) {
             $query->where('linea_id', $request->linea_id);
@@ -660,7 +729,7 @@ class AnalisisPasteurizadoraController extends Controller
         $pasteurizadorasPermitidas = ['P-03', 'P-04', 'P-05', 'P-06', 'P-07', 'P-08', 'P-09', 'P-10', 'P-11', 'P-12', 'P-13', 'P-14'];
         $lineas = Linea::whereIn('nombre', $pasteurizadorasPermitidas)->orderBy('nombre')->get();
 
-        return view('pasteurizadora.analisis-pasteurizadora.historial', compact('analisis', 'lineas'));
+        return $this->renderView('historial', compact('analisis', 'lineas'));
     }
 
     // ============================================================
@@ -742,7 +811,7 @@ class AnalisisPasteurizadoraController extends Controller
             ];
         }
 
-        return view('historico-revisados.pasteurizadora.index', compact(
+        return $this->renderExternalView($this->historicoViewPath, compact(
             'lineas',
             'lineasPasteurizadora',
             'lineaSeleccionada',
@@ -813,14 +882,14 @@ class AnalisisPasteurizadoraController extends Controller
             ], 400);
         }
 
-        $componentesPendientes = AnalisisPasteurizadora::getCantidadComponentesPendientes($lineaId, $modulo, $componente, $lado, $nivel);
-        $cantidadComponentesRevisados = AnalisisPasteurizadora::getCantidadComponentesRevisados($lineaId, $modulo, $componente, $lado, $nivel);
+        $componentesPendientes = AnalisisPasteurizadora::getCantidadComponentesPendientes($lineaId, $modulo, $componente, $lado, $nivel, null, $this->currentArea());
+        $cantidadComponentesRevisados = AnalisisPasteurizadora::getCantidadComponentesRevisados($lineaId, $modulo, $componente, $lado, $nivel, null, $this->currentArea());
 
         // Obtener los componentes ya revisados especÃ­ficos de este lado y nivel
-        $componentesYaRevisados = AnalisisPasteurizadora::getComponentesYaRevisados($lineaId, $modulo, $componente, $lado, $nivel);
+        $componentesYaRevisados = AnalisisPasteurizadora::getComponentesYaRevisados($lineaId, $modulo, $componente, $lado, $nivel, null, $this->currentArea());
 
         // Obtener lados pendientes
-        $ladosPendientes = AnalisisPasteurizadora::getLadosPendientes($lineaId, $modulo, $componente, $nivel);
+        $ladosPendientes = AnalisisPasteurizadora::getLadosPendientes($lineaId, $modulo, $componente, $nivel, $this->currentArea());
 
         return response()->json([
             'success' => true,
@@ -893,7 +962,9 @@ class AnalisisPasteurizadoraController extends Controller
             $request->modulo,
             $resolved['key'],
             $request->lado,
-            $request->nivel
+            $request->nivel,
+            null,
+            $this->currentArea()
         );
 
         return response()->json([
@@ -906,7 +977,7 @@ class AnalisisPasteurizadoraController extends Controller
 
     public function getActividadesPorModulo(Request $request)
     {
-        $query = AnalisisPasteurizadora::query()
+        $query = $this->analisisQuery()
             ->when($request->filled('linea_id'), fn ($query) => $query->where('linea_id', $request->linea_id))
             ->when($request->filled('modulo'), fn ($query) => $query->where('modulo', $request->modulo))
             ->when($request->filled('componente'), fn ($query) => $query->where('componente', $request->componente))
@@ -922,7 +993,7 @@ class AnalisisPasteurizadoraController extends Controller
 
     public function getEstadisticasComponentesAjax(Request $request)
     {
-        $query = AnalisisPasteurizadora::query()
+        $query = $this->analisisQuery()
             ->when($request->filled('linea_id'), fn ($query) => $query->where('linea_id', $request->linea_id))
             ->when($request->filled('modulo'), fn ($query) => $query->where('modulo', $request->modulo))
             ->when($request->filled('componente'), fn ($query) => $query->where('componente', $request->componente))
@@ -945,7 +1016,7 @@ class AnalisisPasteurizadoraController extends Controller
 
     public function deleteFoto($id, $fotoIndex)
     {
-        $analisis = AnalisisPasteurizadora::findOrFail($id);
+        $analisis = $this->analisisQuery()->findOrFail($id);
 
         if (isset($analisis->evidencia_fotos[$fotoIndex])) {
             $this->eliminarEvidenciaPasteurizadora($analisis->evidencia_fotos[$fotoIndex]);
@@ -1159,7 +1230,7 @@ class AnalisisPasteurizadoraController extends Controller
         $linea = Linea::findOrFail($linea);
         $request = request();
 
-        return view('pasteurizadora.analisis-pasteurizadora.create', $this->buildCreateViewData($linea, $request));
+        return $this->renderView('create', $this->buildCreateViewData($linea, $request));
     }
 
     private function getLineasPasteurizadora()
@@ -1183,7 +1254,8 @@ class AnalisisPasteurizadoraController extends Controller
     {
         $lineaIds = $this->getLineasPasteurizadora()->pluck('id');
 
-        return AnalisisPasteurizadora::with(['linea', 'usuario'])
+        return $this->analisisQuery()
+            ->with(['linea', 'usuario'])
             ->whereIn('linea_id', $lineaIds)
             ->when($request->filled('linea_id') && $request->linea_id !== 'todas', fn ($query) => $query->where('linea_id', $request->linea_id))
             ->when($request->filled('modulo'), fn ($query) => $query->where('modulo', $request->modulo))
@@ -1246,7 +1318,8 @@ class AnalisisPasteurizadoraController extends Controller
             return [];
         }
 
-        $registrosPorLinea = AnalisisPasteurizadora::with('usuario')
+        $registrosPorLinea = $this->analisisQuery()
+            ->with('usuario')
             ->whereIn('linea_id', $lineaIds)
             ->where('resuelto_por_cambio', false)
             ->orderBy('fecha_analisis')
@@ -1365,8 +1438,8 @@ class AnalisisPasteurizadoraController extends Controller
         $ladosPendientes = [];
 
         if ($modulo && $componenteKey && $componentConfig) {
-            $estadoRevision = AnalisisPasteurizadora::getEstadoRevision($linea->id, $modulo, $componenteKey);
-            $siguienteRevision = AnalisisPasteurizadora::getSiguienteRevisionContexto($linea->id, $modulo, $componenteKey, $nivel, $lado);
+            $estadoRevision = AnalisisPasteurizadora::getEstadoRevision($linea->id, $modulo, $componenteKey, null, $this->currentArea());
+            $siguienteRevision = AnalisisPasteurizadora::getSiguienteRevisionContexto($linea->id, $modulo, $componenteKey, $nivel, $lado, $this->currentArea());
             $effectiveNivel = $effectiveNivel ?: ($siguienteRevision['nivel'] ?? null);
             $effectiveLado = $effectiveLado ?: ($siguienteRevision['lado'] ?? null);
 
@@ -1375,9 +1448,12 @@ class AnalisisPasteurizadoraController extends Controller
                 $modulo,
                 $componenteKey,
                 $effectiveLado,
-                $effectiveNivel
+                $effectiveNivel,
+                null,
+                $this->currentArea()
             );
-            $registrosYaRealizados = AnalisisPasteurizadora::with('usuario')
+            $registrosYaRealizados = $this->analisisQuery()
+                ->with('usuario')
                 ->where('linea_id', $linea->id)
                 ->where('modulo', $modulo)
                 ->where('componente', $componenteKey)
@@ -1391,17 +1467,21 @@ class AnalisisPasteurizadoraController extends Controller
                 $modulo,
                 $componenteKey,
                 $effectiveLado,
-                $effectiveNivel
+                $effectiveNivel,
+                null,
+                $this->currentArea()
             );
             $cantidadComponentesRevisados = AnalisisPasteurizadora::getCantidadComponentesRevisados(
                 $linea->id,
                 $modulo,
                 $componenteKey,
                 $effectiveLado,
-                $effectiveNivel
+                $effectiveNivel,
+                null,
+                $this->currentArea()
             );
             $ladosPendientes = $effectiveNivel
-                ? AnalisisPasteurizadora::getLadosPendientes($linea->id, $modulo, $componenteKey, $effectiveNivel)
+                ? AnalisisPasteurizadora::getLadosPendientes($linea->id, $modulo, $componenteKey, $effectiveNivel, $this->currentArea())
                 : [];
         }
 
@@ -1473,7 +1553,8 @@ class AnalisisPasteurizadoraController extends Controller
             $componente,
             $contexto['lado'] ?? null,
             $contexto['nivel'] ?? null,
-            $analisisActual?->id
+            $analisisActual?->id,
+            $this->currentArea()
         );
 
         if (empty($componentesPendientes)) {
