@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Reportes de Lavadoras')
+@section('title', 'Centro de Reportes')
 
 @section('content')
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -13,16 +13,28 @@
 
     <!-- FILTROS -->
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
-        <form action="{{ route('reportes.show') }}" method="GET" class="space-y-4">
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <form action="{{ route('reportes.index') }}" method="GET" class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
 
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Tipo de Equipo</label>
                     <select name="tipo" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
                         <option value="lavadoras" {{ request('tipo') == 'lavadoras' ? 'selected' : '' }}>Lavadoras</option>
-                        @if($canSeePasteurizadora ?? ($canAccessPasteurizadora ?? true))
+                        @if($canAccessPasteurizadora ?? false)
                         <option value="pasteurizadoras" {{ request('tipo') == 'pasteurizadoras' ? 'selected' : '' }}>Pasteurizadoras</option>
                         @endif
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Maquina / Linea</label>
+                    <select name="linea_id" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        <option value="">Todas las maquinas</option>
+                        @foreach(($lineasFiltro ?? $lineas) as $lineaFiltro)
+                            <option value="{{ $lineaFiltro->id }}" {{ (string) request('linea_id', $lineaId ?? '') === (string) $lineaFiltro->id ? 'selected' : '' }}>
+                                {{ $lineaFiltro->nombre }}
+                            </option>
+                        @endforeach
                     </select>
                 </div>
 
@@ -40,10 +52,18 @@
                         class="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
                 </div>
 
-                <div class="flex items-end">
+                <div class="flex items-end gap-2">
                     <button type="submit"
-                        class="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
-                        <i class="fas fa-search mr-2"></i>Generar Reporte General
+                        class="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                        <i class="fas fa-filter mr-2"></i>Aplicar filtros
+                    </button>
+                    <button type="submit"
+                        name="export_format"
+                        value="pdf"
+                        formaction="{{ route('reportes.export-pdf') }}"
+                        formmethod="GET"
+                        class="flex-1 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors">
+                        <i class="fas fa-file-pdf mr-2"></i>Generar PDF
                     </button>
                 </div>
 
@@ -58,18 +78,24 @@
             @php
                 $reporteLinea = $reporteGeneral[$linea->id] ?? [];
                 $estado = $reporteLinea['estado_general'] ?? ['texto' => 'SIN DATOS', 'color' => 'gray'];
+                $esPasteurizadora = $tipoEquipo == 'pasteurizadoras';
                 
                 // Datos de elongación - Usar datos del reporte en lugar de consulta adicional
                 $promedioBombas = $reporteLinea['promedio_bombas'] ?? 0;
                 $promedioVapor = $reporteLinea['promedio_vapor'] ?? 0;
                 $maxElongacion = $reporteLinea['elongacion_max'] ?? 0;
+                $modulosConfigurados = $reporteLinea['modulos_configurados'] ?? 0;
+                $modulosConAnalisis = $reporteLinea['modulos_con_analisis'] ?? 0;
+                $avanceHistorico = $reporteLinea['avance_historico_porcentaje'] ?? 0;
+                $nivelesCount = $reporteLinea['niveles_count'] ?? 0;
+                $ladosCount = $reporteLinea['lados_count'] ?? 0;
                 
                 // Datos de análisis 52-12-4 - Usar datos del reporte
                 $totalDaños4 = $reporteLinea['total_danos_4'] ?? 0;
                 $analisisTendenciaCount = $reporteLinea['analisis_tendencia_count'] ?? 0;
                 
                 // Icono según el tipo
-                $icono = $tipoEquipo == 'lavadoras' ? 'fa-soap' : 'fa-flask';
+                $icono = $esPasteurizadora ? 'fa-industry' : 'fa-soap';
                 $colorIcono = $tipoEquipo == 'lavadoras' ? 'text-blue-600' : 'text-green-600';
                 $bgIcono = $tipoEquipo == 'lavadoras' ? 'bg-blue-100' : 'bg-green-100';
                 $textoTipo = $tipoEquipo == 'lavadoras' ? 'Línea de Lavado' : 'Línea de Pasteurización';
@@ -132,17 +158,31 @@
                             <p class="text-xs text-amber-700">pendientes de ejecución</p>
                         </div>
 
-                        <!-- 3. ELONGACIÓN LAVADORA -->
-                        <div class="bg-emerald-50 rounded-lg p-3 border border-emerald-100">
-                            <div class="flex items-center gap-2 mb-1">
-                                <i class="fas fa-ruler text-emerald-600 text-sm"></i>
-                                <span class="text-xs font-semibold text-emerald-800 uppercase tracking-wider">ELONGACIÓN</span>
+                        @if($esPasteurizadora)
+                            <!-- 3. MODULOS PASTEURIZADORA -->
+                            <div class="bg-emerald-50 rounded-lg p-3 border border-emerald-100">
+                                <div class="flex items-center gap-2 mb-1">
+                                    <i class="fas fa-layer-group text-emerald-600 text-sm"></i>
+                                    <span class="text-xs font-semibold text-emerald-800 uppercase tracking-wider">MODULOS</span>
+                                </div>
+                                <p class="text-lg font-bold text-emerald-900">
+                                    {{ $modulosConAnalisis }}/{{ $modulosConfigurados }}
+                                </p>
+                                <p class="text-xs text-emerald-700">Avance: {{ number_format($avanceHistorico, 1) }}%</p>
                             </div>
-                            <p class="text-lg font-bold {{ $elongacionColor }}">
-                                {{ number_format($maxElongacion, 2) }}%
-                            </p>
-                            <p class="text-xs text-emerald-700">Bombas: {{ number_format($promedioBombas, 2) }}%</p>
-                        </div>
+                        @else
+                            <!-- 3. ELONGACION LAVADORA -->
+                            <div class="bg-emerald-50 rounded-lg p-3 border border-emerald-100">
+                                <div class="flex items-center gap-2 mb-1">
+                                    <i class="fas fa-ruler text-emerald-600 text-sm"></i>
+                                    <span class="text-xs font-semibold text-emerald-800 uppercase tracking-wider">ELONGACION</span>
+                                </div>
+                                <p class="text-lg font-bold {{ $elongacionColor }}">
+                                    {{ number_format($maxElongacion, 2) }}%
+                                </p>
+                                <p class="text-xs text-emerald-700">Bombas: {{ number_format($promedioBombas, 2) }}%</p>
+                            </div>
+                        @endif
 
                         <!-- 4. ANÁLISIS 52-12-4 -->
                         <div class="bg-purple-50 rounded-lg p-3 border border-purple-100">
@@ -154,27 +194,41 @@
                             <p class="text-xs text-purple-700">Daños 4s: {{ number_format($totalDaños4, 2) }}</p>
                         </div>
 
-                        <!-- 5. HISTÓRICO DE REVISADOS -->
+                        <!-- 5. HISTORICO DE REVISADOS -->
                         <div class="bg-gray-50 rounded-lg p-3 border border-gray-200">
                             <div class="flex items-center gap-2 mb-1">
                                 <i class="fas fa-history text-gray-600 text-sm"></i>
-                                <span class="text-xs font-semibold text-gray-800 uppercase tracking-wider">HISTÓRICO</span>
+                                <span class="text-xs font-semibold text-gray-800 uppercase tracking-wider">HISTORICO</span>
                             </div>
-                            <p class="text-lg font-bold text-gray-900">{{ $reporteLinea['historicos'] ?? 0 }}</p>
-                            @if(!empty($reporteLinea['ultima_revision']))
-                                <p class="text-xs text-gray-500 truncate">Últ: {{ $reporteLinea['ultima_revision'] }}</p>
+                            @if($esPasteurizadora)
+                                <p class="text-lg font-bold text-gray-900">{{ number_format($avanceHistorico, 1) }}%</p>
+                                <p class="text-xs text-gray-500 truncate">Ult: {{ $reporteLinea['ultima_revision'] ?? 'Sin datos' }}</p>
+                            @else
+                                <p class="text-lg font-bold text-gray-900">{{ $reporteLinea['historicos'] ?? 0 }}</p>
+                                @if(!empty($reporteLinea['ultima_revision']))
+                                    <p class="text-xs text-gray-500 truncate">Ult: {{ $reporteLinea['ultima_revision'] }}</p>
+                                @endif
                             @endif
                         </div>
 
-                        <!-- 6. REDUCTORES (si existen) -->
-                        @if(($reporteLinea['reductores_count'] ?? 0) > 0)
-                        <div class="bg-indigo-50 rounded-lg p-3 border border-indigo-200">
-                            <div class="flex items-center gap-2">
-                                <i class="fas fa-compress-alt text-indigo-600 text-sm"></i>
-                                <span class="text-xs font-semibold text-indigo-800">REDUCTORES</span>
-                                <span class="ml-auto text-sm font-bold text-indigo-900">{{ $reporteLinea['reductores_count'] }}</span>
+                        @if($esPasteurizadora)
+                            <!-- 6. NIVELES Y LADOS -->
+                            <div class="bg-indigo-50 rounded-lg p-3 border border-indigo-200">
+                                <div class="flex items-center gap-2">
+                                    <i class="fas fa-sitemap text-indigo-600 text-sm"></i>
+                                    <span class="text-xs font-semibold text-indigo-800">NIVELES / LADOS</span>
+                                    <span class="ml-auto text-sm font-bold text-indigo-900">{{ $nivelesCount }}/{{ $ladosCount }}</span>
+                                </div>
                             </div>
-                        </div>
+                        @elseif(($reporteLinea['reductores_count'] ?? 0) > 0)
+                            <!-- 6. REDUCTORES -->
+                            <div class="bg-indigo-50 rounded-lg p-3 border border-indigo-200">
+                                <div class="flex items-center gap-2">
+                                    <i class="fas fa-compress-alt text-indigo-600 text-sm"></i>
+                                    <span class="text-xs font-semibold text-indigo-800">REDUCTORES</span>
+                                    <span class="ml-auto text-sm font-bold text-indigo-900">{{ $reporteLinea['reductores_count'] }}</span>
+                                </div>
+                            </div>
                         @endif
                     </div>
 
@@ -191,11 +245,12 @@
                                     Ver Detalle Completo
                         </a>
 
-                        <form action="{{ route('reportes.export-pdf') }}" method="GET" class="flex-1">
+                        <form action="{{ $esPasteurizadora ? route('pasteurizadora.analisis-pasteurizadora.export.pdf') : route('reportes.export-pdf') }}" method="GET" class="flex-1">
                             
                             <input type="hidden" name="export_format" value="pdf">
                             <input type="hidden" name="export_tipo" value="linea">
                             <input type="hidden" name="lineaId" value="{{ $linea->id }}">
+                            <input type="hidden" name="linea_id" value="{{ $linea->id }}">
                             <input type="hidden" name="tipo" value="{{ $tipoEquipo }}">
                             <input type="hidden" name="fecha_inicio" value="{{ $fechaInicio->format('Y-m-d') }}">
                             <input type="hidden" name="fecha_fin" value="{{ $fechaFin->format('Y-m-d') }}">
@@ -206,10 +261,11 @@
                             </button>
                         </form>
 
-                        <form action="{{ route('reportes.export-excel') }}" method="GET" class="flex-1">
+                        <form action="{{ $esPasteurizadora ? route('pasteurizadora.analisis-pasteurizadora.export.excel') : route('reportes.export-excel') }}" method="GET" class="flex-1">
                             <input type="hidden" name="export_format" value="excel">
                             <input type="hidden" name="export_tipo" value="linea">
                             <input type="hidden" name="lineaId" value="{{ $linea->id }}">
+                            <input type="hidden" name="linea_id" value="{{ $linea->id }}">
                             <input type="hidden" name="tipo" value="{{ $tipoEquipo }}">
                             <input type="hidden" name="fecha_inicio" value="{{ $fechaInicio->format('Y-m-d') }}">
                             <input type="hidden" name="fecha_fin" value="{{ $fechaFin->format('Y-m-d') }}">
@@ -409,7 +465,7 @@
             </button>
         </form>
         
-        <form action="{{ route('reportes.export-excel') }}" method="GET">
+        <form action="{{ $tipoEquipo == 'pasteurizadoras' ? route('pasteurizadora.analisis-pasteurizadora.export.excel') : route('reportes.export-excel') }}" method="GET">
             <input type="hidden" name="export_format" value="excel">
             <input type="hidden" name="export_tipo" value="completo">
             <input type="hidden" name="tipo" value="{{ $tipoEquipo }}">
