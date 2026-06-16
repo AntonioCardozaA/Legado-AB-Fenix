@@ -177,9 +177,7 @@ class ElongacionReminderService
         $timezone = $this->timezone();
         $now = ($referenceTime ?? CarbonImmutable::now($timezone))->setTimezone($timezone);
         $today = $now->startOfDay();
-        $pendingAlerts = $this->getPendingAlerts($today)
-            ->filter(static fn (array $alert): bool => $alert['alert_starts_at']->equalTo($today))
-            ->values();
+        $pendingAlerts = $this->getPendingAlerts($today);
         $recipients = $this->notificationRecipientService->getInternalRecipients();
 
         $results = [

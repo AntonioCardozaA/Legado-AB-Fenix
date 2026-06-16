@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\CadenaCiclo;
 use App\Models\Elongacion;
 use App\Models\Linea;
+use App\Services\ElongacionStatusNotificationService;
 use App\Services\WhatsAppService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -15,6 +16,11 @@ class ElongacionController extends Controller
 {
     const LIMITE_COMPRA = 1.3;
     const LIMITE_CAMBIO = 1.46;
+
+    public function __construct(
+        private readonly ElongacionStatusNotificationService $elongacionStatusNotificationService
+    ) {
+    }
 
     public function index(Request $request)
     {
@@ -182,6 +188,8 @@ class ElongacionController extends Controller
             });
 
             $mensaje = 'Registro guardado exitosamente';
+
+            $this->elongacionStatusNotificationService->notifyForRecord($elongacion);
 
             if ($request->boolean('nueva_cadena')) {
                 $mensaje = 'Nueva cadena registrada y medicion guardada exitosamente';

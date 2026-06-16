@@ -37,9 +37,9 @@
 
     .modulos-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
-        gap: 32px;
-        max-width: 1200px;
+        grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+        gap: 36px;
+        max-width: 1320px;
         margin: 0 auto;
         width: 100%;
     }
@@ -57,6 +57,41 @@
     .modulo-card:hover {
         transform: translateY(-8px);
         box-shadow: 0 25px 35px -12px rgba(0, 0, 0, 0.25);
+    }
+
+    .modulo-card.modulo-card-machine .modulo-header {
+        padding: 0 0 28px;
+    }
+
+    .modulo-card.modulo-card-machine {
+        --machine-cover-scale: 1.28;
+        --machine-cover-hover-scale: 1.34;
+        --machine-cover-position: center 47%;
+    }
+
+    .modulo-card.modulo-card-machine.modulo-card-lavadora {
+        --machine-cover-scale: 1.22;
+        --machine-cover-hover-scale: 1.28;
+        --machine-cover-position: center 44%;
+    }
+
+    .modulo-card.modulo-card-machine.modulo-card-pasteurizadora {
+        --machine-cover-scale: 1.24;
+        --machine-cover-hover-scale: 1.30;
+        --machine-cover-position: center 46%;
+    }
+
+    .modulo-card.modulo-card-machine .modulo-header h2,
+    .modulo-card.modulo-card-machine .modulo-header p {
+        padding: 0 32px;
+    }
+
+    .modulo-card.modulo-card-machine .modulo-header h2 {
+        margin-top: 8px;
+    }
+
+    .modulo-card.modulo-card-machine .modulo-footer {
+        padding: 24px 28px 28px;
     }
 
     .modulo-card.disabled {
@@ -94,8 +129,17 @@
         background: transparent !important;
         box-shadow: none !important;
         padding: 0;
-        width: 200px;    /* Ancho fijo */
-        height: 200px;   /* Alto fijo */
+        width: 200px;
+        height: 200px;
+    }
+
+    .modulo-card.modulo-card-machine .modulo-icon.has-image {
+        width: 100%;
+        min-width: 100%;
+        height: clamp(175px, 20vw, 220px);
+        border-radius: 0;
+        overflow: hidden;
+        margin: 0 0 24px;
     }
 
     .modulo-icon img {
@@ -104,9 +148,24 @@
         object-fit: contain;
         transition: all 0.3s ease;
     }
+
+    .modulo-card.modulo-card-machine .modulo-icon.has-image img {
+        width: 100%;
+        height: 100%;
+        border-radius: 0;
+        display: block;
+        object-fit: cover;
+        object-position: var(--machine-cover-position);
+        transform: scale(var(--machine-cover-scale));
+        transform-origin: center;
+    }
     
     .modulo-card:hover .modulo-icon.has-image img {
         transform: scale(1.1);
+    }
+
+    .modulo-card.modulo-card-machine:hover .modulo-icon.has-image img {
+        transform: scale(var(--machine-cover-hover-scale));
     }
 
     .modulo-icon:not(.has-image) {
@@ -314,6 +373,21 @@
             height: 80px;
             font-size: 36px;
         }
+
+        .modulo-card.modulo-card-machine .modulo-header {
+            padding: 0 0 24px;
+        }
+
+        .modulo-card.modulo-card-machine .modulo-header h2,
+        .modulo-card.modulo-card-machine .modulo-header p {
+            padding: 0 22px;
+        }
+
+        .modulo-card.modulo-card-machine .modulo-icon.has-image {
+            width: 100%;
+            min-width: 100%;
+            height: 155px;
+        }
     }
 </style>
 
@@ -322,7 +396,8 @@
         <h1>
             Hola {{ Auth::user()->name }}, Bienvenido.
         </h1>
-    
+    </div>
+
     <div class="modulos-grid">
   @foreach($modulos as $modulo)
     @if($modulo['activo'])
@@ -334,7 +409,7 @@
             // La ruta está definida en el controlador dentro de cada módulo
             $rutaModulo = $modulo['ruta'] ?? route('dashboard');
         @endphp
-                <div class="modulo-card"
+                <div class="modulo-card {{ in_array($modulo['id'] ?? '', ['lavadora', 'pasteurizadora'], true) ? 'modulo-card-machine modulo-card-' . ($modulo['id'] ?? '') : '' }}"
                      @if($bloqueado)
                          data-coming-soon-message="{{ $mensajeBloqueo }}"
                      @else
@@ -404,7 +479,7 @@
                     </div>
                 </div>
             @else
-                <div class="modulo-card disabled">
+                <div class="modulo-card disabled {{ in_array($modulo['id'] ?? '', ['lavadora', 'pasteurizadora'], true) ? 'modulo-card-machine modulo-card-' . ($modulo['id'] ?? '') : '' }}">
                     <div class="modulo-header">
                         <div class="modulo-icon {{ $modulo['color'] }}" style="opacity: 0.5;">
                             <i class="fas {{ $modulo['icono'] }}"></i>

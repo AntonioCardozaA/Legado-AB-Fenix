@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\CadenaCiclo;
 use App\Models\Elongacion;
 use App\Models\Linea;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -109,6 +110,64 @@ class ElongacionCycleTest extends TestCase
         $this->assertSame($cicloActivo->id, $elongacion->cadena_ciclo_id);
         $this->assertSame('Proveedor continuidad', $elongacion->proveedor);
         $this->assertSame(300, $elongacion->hodometro_ciclo);
+    }
+
+    public function test_store_creates_internal_notification_when_elongacion_reaches_purchase_limit(): void
+    {
+        $user = User::factory()->create();
+        $linea = $this->crearLinea('L-04');
+
+        $this->crearCiclo('L-04', 1, 'Proveedor compra', [
+            'linea_id' => $linea->id,
+        ]);
+
+        $payload = $this->payloadBase('L-04');
+
+        for ($i = 1; $i <= 10; $i++) {
+            $payload["bombas_{$i}"] = 175.3;
+            $payload["vapor_{$i}"] = 175.3;
+        }
+
+        $response = $this->post(route('elongaciones.store'), $payload);
+
+        $response->assertRedirect(route('elongaciones.index', ['linea' => 'L-04']));
+
+        $notification = $user->fresh()->notifications()->firstOrFail();
+
+        $this->assertSame('elongacion_purchase_alert', $notification->data['type']);
+        $this->assertStringContainsString(
+            'CONSIDERAR COMPRA DE CADENA PARA SU PROXIMO CAMBIO',
+            $notification->data['message']
+        );
+    }
+
+    public function test_store_creates_internal_notification_when_elongacion_exceeds_change_limit(): void
+    {
+        $user = User::factory()->create();
+        $linea = $this->crearLinea('L-04');
+
+        $this->crearCiclo('L-04', 1, 'Proveedor cambio', [
+            'linea_id' => $linea->id,
+        ]);
+
+        $payload = $this->payloadBase('L-04');
+
+        for ($i = 1; $i <= 10; $i++) {
+            $payload["bombas_{$i}"] = 175.6;
+            $payload["vapor_{$i}"] = 175.6;
+        }
+
+        $response = $this->post(route('elongaciones.store'), $payload);
+
+        $response->assertRedirect(route('elongaciones.index', ['linea' => 'L-04']));
+
+        $notification = $user->fresh()->notifications()->firstOrFail();
+
+        $this->assertSame('elongacion_change_alert', $notification->data['type']);
+        $this->assertStringContainsString(
+            'LA CADENA HA SOBREPASADO LOS LIMITES DE ELONGACION',
+            $notification->data['message']
+        );
     }
 
     private function crearLinea(string $nombre): Linea

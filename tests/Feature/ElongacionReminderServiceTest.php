@@ -178,7 +178,7 @@ class ElongacionReminderServiceTest extends TestCase
         Http::assertNothingSent();
     }
 
-    public function test_it_creates_a_single_internal_notification_on_the_alert_start_date(): void
+    public function test_it_creates_internal_notifications_throughout_the_alert_window_without_duplicates_on_the_same_day(): void
     {
         $user = User::factory()->create();
 
@@ -186,20 +186,23 @@ class ElongacionReminderServiceTest extends TestCase
         $this->crearElongacion('L-04', '2026-03-30 18:00:00');
 
         $service = app(ElongacionReminderService::class);
-        $referenceTime = CarbonImmutable::parse('2026-05-27 09:00:00', 'America/Mexico_City');
+        $referenceTime = CarbonImmutable::parse('2026-05-28 09:00:00', 'America/Mexico_City');
 
         $firstRun = $service->sendInternalNotifications($referenceTime);
         $secondRun = $service->sendInternalNotifications($referenceTime->addHour());
+        $thirdRun = $service->sendInternalNotifications($referenceTime->addDay());
 
         $this->assertSame(1, $firstRun['sent']);
         $this->assertSame(1, $firstRun['pending_lines']);
         $this->assertSame(0, $secondRun['sent']);
         $this->assertSame(1, $secondRun['skipped']);
+        $this->assertSame(1, $thirdRun['sent']);
+        $this->assertSame(1, $thirdRun['pending_lines']);
 
         $user->refresh();
 
-        $this->assertSame(1, $user->notifications()->count());
-        $this->assertSame(1, $user->unreadNotifications()->count());
+        $this->assertSame(2, $user->notifications()->count());
+        $this->assertSame(2, $user->unreadNotifications()->count());
 
         $notification = $user->notifications()->firstOrFail();
 
