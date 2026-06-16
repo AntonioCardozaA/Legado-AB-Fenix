@@ -59,39 +59,110 @@
         box-shadow: 0 25px 35px -12px rgba(0, 0, 0, 0.25);
     }
 
-    .modulo-card.modulo-card-machine .modulo-header {
-        padding: 0 0 28px;
-    }
-
     .modulo-card.modulo-card-machine {
-        --machine-cover-scale: 1.28;
-        --machine-cover-hover-scale: 1.34;
+        --machine-cover-scale: 1.04;
+        --machine-cover-hover-scale: 1.08;
         --machine-cover-position: center 47%;
+        --machine-tint: rgba(59, 130, 246, 0.16);
+        --machine-title-accent-start: #2563eb;
+        --machine-title-accent-end: #38bdf8;
+        --machine-title-glow: rgba(37, 99, 235, 0.32);
+        background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+        border: 1px solid rgba(148, 163, 184, 0.18);
+        box-shadow: 0 26px 50px -30px rgba(15, 23, 42, 0.38), 0 16px 30px -24px rgba(59, 130, 246, 0.2);
     }
 
     .modulo-card.modulo-card-machine.modulo-card-lavadora {
-        --machine-cover-scale: 1.22;
-        --machine-cover-hover-scale: 1.28;
+        --machine-cover-scale: 1.02;
+        --machine-cover-hover-scale: 1.06;
         --machine-cover-position: center 44%;
+        --machine-tint: rgba(59, 130, 246, 0.18);
     }
 
     .modulo-card.modulo-card-machine.modulo-card-pasteurizadora {
-        --machine-cover-scale: 1.24;
-        --machine-cover-hover-scale: 1.30;
+        --machine-cover-scale: 1.03;
+        --machine-cover-hover-scale: 1.07;
         --machine-cover-position: center 46%;
+        --machine-tint: rgba(249, 115, 22, 0.18);
+        --machine-title-accent-start: #ea580c;
+        --machine-title-accent-end: #f59e0b;
+        --machine-title-glow: rgba(234, 88, 12, 0.32);
     }
 
-    .modulo-card.modulo-card-machine .modulo-header h2,
-    .modulo-card.modulo-card-machine .modulo-header p {
-        padding: 0 32px;
+    .modulo-card.modulo-card-machine::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        border: 1px solid rgba(255, 255, 255, 0.55);
+        pointer-events: none;
+        z-index: 0;
     }
 
-    .modulo-card.modulo-card-machine .modulo-header h2 {
-        margin-top: 8px;
+    .modulo-card.modulo-card-machine .modulo-header {
+        padding: 0 0 26px;
+    }
+
+    .modulo-card.modulo-card-machine .modulo-copy {
+        position: relative;
+        z-index: 4;
+        width: calc(100% - 42px);
+        margin: -38px auto 0;
+        padding: 18px 22px 16px;
+        background: rgba(255, 255, 255, 0.88);
+        border: 1px solid rgba(255, 255, 255, 0.92);
+        border-radius: 24px;
+        box-shadow: 0 22px 42px -32px rgba(15, 23, 42, 0.48);
+        backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
+    }
+
+    .modulo-copy p:empty {
+        display: none;
+    }
+
+    .modulo-card.modulo-card-machine .modulo-copy h2,
+    .modulo-card.modulo-card-machine .modulo-copy p {
+        padding: 0;
+    }
+
+    .modulo-card.modulo-card-machine .modulo-copy h2 {
+        margin: 0 auto 6px;
+        font-size: 1.9rem;
+        letter-spacing: -0.03em;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        padding-bottom: 12px;
+        background: linear-gradient(135deg, #0f172a 0%, #334155 58%, var(--machine-title-accent-end) 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        text-shadow: none;
+    }
+
+    .modulo-card.modulo-card-machine .modulo-copy h2::after {
+        content: '';
+        position: absolute;
+        left: 50%;
+        bottom: 0;
+        width: 78px;
+        height: 4px;
+        border-radius: 999px;
+        transform: translateX(-50%);
+        background: linear-gradient(90deg, var(--machine-title-accent-start) 0%, var(--machine-title-accent-end) 100%);
+        box-shadow: 0 10px 18px -10px var(--machine-title-glow);
+    }
+
+    .modulo-card.modulo-card-machine .modulo-copy p {
+        margin: 0;
+        color: #60708a;
     }
 
     .modulo-card.modulo-card-machine .modulo-footer {
         padding: 24px 28px 28px;
+        background: linear-gradient(180deg, #f8fbff 0%, #ffffff 100%);
     }
 
     .modulo-card.disabled {
@@ -136,10 +207,34 @@
     .modulo-card.modulo-card-machine .modulo-icon.has-image {
         width: 100%;
         min-width: 100%;
-        height: clamp(175px, 20vw, 220px);
-        border-radius: 0;
+        height: clamp(220px, 24vw, 265px);
+        border-radius: 32px 32px 24px 24px;
         overflow: hidden;
-        margin: 0 0 24px;
+        margin: 0;
+        position: relative;
+        isolation: isolate;
+        box-shadow: inset 0 -24px 40px -36px rgba(15, 23, 42, 0.65);
+    }
+
+    .modulo-card.modulo-card-machine .modulo-icon.has-image::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background:
+            linear-gradient(180deg, rgba(255, 255, 255, 0.06) 0%, rgba(15, 23, 42, 0.03) 48%, rgba(15, 23, 42, 0.16) 100%),
+            radial-gradient(circle at top right, var(--machine-tint) 0%, transparent 58%);
+        z-index: 2;
+        pointer-events: none;
+    }
+
+    .modulo-card.modulo-card-machine .modulo-icon.has-image::after {
+        content: '';
+        position: absolute;
+        inset: auto 0 0 0;
+        height: 42%;
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.52) 56%, rgba(255, 255, 255, 0.96) 100%);
+        z-index: 3;
+        pointer-events: none;
     }
 
     .modulo-icon img {
@@ -158,6 +253,8 @@
         object-position: var(--machine-cover-position);
         transform: scale(var(--machine-cover-scale));
         transform-origin: center;
+        position: relative;
+        z-index: 1;
     }
     
     .modulo-card:hover .modulo-icon.has-image img {
@@ -166,6 +263,24 @@
 
     .modulo-card.modulo-card-machine:hover .modulo-icon.has-image img {
         transform: scale(var(--machine-cover-hover-scale));
+    }
+
+    .modulo-card.modulo-card-machine .modulo-stats {
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.75) 0%, #f8fbff 100%);
+        padding: 24px 24px 22px;
+        border-top: 1px solid rgba(226, 232, 240, 0.85);
+        border-bottom: 1px solid rgba(226, 232, 240, 0.9);
+    }
+
+    .modulo-card.modulo-card-machine .btn-acceder {
+        background: linear-gradient(135deg, #1e293b 0%, #31466b 100%);
+        box-shadow: 0 16px 24px -20px rgba(15, 23, 42, 0.78);
+        padding: 12px 28px;
+    }
+
+    .modulo-card.modulo-card-machine:hover .btn-acceder {
+        background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+        transform: translateY(-2px);
     }
 
     .modulo-icon:not(.has-image) {
@@ -378,15 +493,25 @@
             padding: 0 0 24px;
         }
 
-        .modulo-card.modulo-card-machine .modulo-header h2,
-        .modulo-card.modulo-card-machine .modulo-header p {
-            padding: 0 22px;
+        .modulo-card.modulo-card-machine .modulo-copy {
+            width: calc(100% - 28px);
+            margin-top: -30px;
+            padding: 16px 18px 14px;
+        }
+
+        .modulo-card.modulo-card-machine .modulo-copy h2 {
+            font-size: 1.6rem;
+            padding-bottom: 10px;
+        }
+
+        .modulo-card.modulo-card-machine .modulo-copy h2::after {
+            width: 64px;
         }
 
         .modulo-card.modulo-card-machine .modulo-icon.has-image {
             width: 100%;
             min-width: 100%;
-            height: 155px;
+            height: 190px;
         }
     }
 </style>
@@ -423,8 +548,10 @@
                                 <i class="fas {{ $modulo['icono'] }}"></i>
                             @endif
                         </div>
-                        <h2>{{ $modulo['nombre'] }}</h2>
-                        <p>{{ $modulo['descripcion'] }}</p>
+                        <div class="modulo-copy">
+                            <h2>{{ $modulo['nombre'] }}</h2>
+                            <p>{{ $modulo['descripcion'] }}</p>
+                        </div>
                     </div>
                     
                     <div class="modulo-stats">
@@ -484,8 +611,10 @@
                         <div class="modulo-icon {{ $modulo['color'] }}" style="opacity: 0.5;">
                             <i class="fas {{ $modulo['icono'] }}"></i>
                         </div>
-                        <h2>{{ $modulo['nombre'] }}</h2>
-                        <p>{{ $modulo['descripcion'] }}</p>
+                        <div class="modulo-copy">
+                            <h2>{{ $modulo['nombre'] }}</h2>
+                            <p>{{ $modulo['descripcion'] }}</p>
+                        </div>
                     </div>
                     
                     <div class="modulo-footer">
