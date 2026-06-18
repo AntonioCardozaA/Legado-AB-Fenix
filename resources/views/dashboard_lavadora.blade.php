@@ -1125,9 +1125,68 @@
         outline: none;
     }
 
+    .trend-filter-form {
+        align-items: flex-end;
+    }
+
+    .trend-date-field {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        min-width: 148px;
+    }
+
+    .trend-date-field span {
+        font-size: 11px;
+        font-weight: 700;
+        color: var(--text-secondary);
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+    }
+
+    .panel-button,
+    .panel-date-input {
+        border: 1px solid var(--border-light);
+        background: white;
+        border-radius: 10px;
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--text-primary);
+        transition: var(--transition);
+        box-shadow: var(--shadow-sm);
+    }
+
+    .panel-date-input {
+        min-width: 148px;
+        padding: 10px 12px;
+        outline: none;
+    }
+
+    .panel-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 10px 14px;
+        cursor: pointer;
+    }
+
+    .panel-button:hover {
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-md);
+        background: #f8fafc;
+    }
+
     .panel-select:focus {
         border-color: var(--primary-blue);
         box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.18);
+    }
+
+    .panel-button:focus,
+    .panel-date-input:focus {
+        border-color: var(--primary-blue);
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.18);
+        outline: none;
     }
 
     .filter-chip-group {
@@ -1529,9 +1588,15 @@
 
         .panel-link,
         .panel-select,
-        .filter-chip {
+        .filter-chip,
+        .panel-date-input,
+        .panel-button {
             width: 100%;
             justify-content: center;
+        }
+
+        .trend-date-field {
+            width: 100%;
         }
 
         .ranking-asset {
@@ -2644,21 +2709,16 @@
 <script>
 (() => {
     const data = {
+        dashboardUrl: @json(route('dashboard.global.lavadoras')),
         lineas: @json($lineaOptions),
         fallas: @json($fallasPorLinea),
         planes: @json($planesAccionDashboard),
         ranking: @json($rankingDanos),
         elongaciones: @json($evolucionElongaciones),
         historico: @json($historicoRevisiones),
+        trendFilters: @json($trendFilters ?? []),
         tendencia: @json($analisis52124),
         tendencia30147: @json($analisis30147)
-    };
-
-    const trendFilter = {
-        action: @json(route('dashboard.global.lavadoras')),
-        from: @json($trendDateRange['from_input'] ?? ''),
-        to: @json($trendDateRange['to_input'] ?? ''),
-        hasRange: @json((bool) (($trendDateRange['from_input'] ?? null) || ($trendDateRange['to_input'] ?? null)))
     };
 
     const charts = {
@@ -2853,7 +2913,7 @@
                     </div>
                 </div>
                 <div class="subpanel-title" style="margin-top: 18px;">Ultimas revisiones registradas</div>
-                <p class="subpanel-copy">Se muestran los registros recientes disponibles segun el alcance seleccionado.</p>
+                <p class="subpanel-copy">Se muestran las ultimas 5 revisiones registradas segun el alcance seleccionado.</p>
             `);
         }
 
@@ -2887,6 +2947,14 @@
             prefix: 'analisis52124',
             actionsId: 'tendenciaActions',
             selectId: 'analisis52124LineaSelect',
+            filterFromName: data.trendFilters?.tendencia?.from_param ?? 'trend_52124_desde',
+            filterToName: data.trendFilters?.tendencia?.to_param ?? 'trend_52124_hasta',
+            filterFromValue: data.trendFilters?.tendencia?.from_input ?? '',
+            filterToValue: data.trendFilters?.tendencia?.to_input ?? '',
+            preserveInputs: [
+                { name: data.trendFilters?.tendencia30147?.from_param ?? 'trend_30147_desde', value: data.trendFilters?.tendencia30147?.from_input ?? '' },
+                { name: data.trendFilters?.tendencia30147?.to_param ?? 'trend_30147_hasta', value: data.trendFilters?.tendencia30147?.to_input ?? '' }
+            ],
             stateKey: 'tendenciaLineaId',
             renderFn: renderTendencia
         });
@@ -2900,6 +2968,14 @@
             prefix: 'analisis30147',
             actionsId: 'tendencia30147Actions',
             selectId: 'analisis30147LineaSelect',
+            filterFromName: data.trendFilters?.tendencia30147?.from_param ?? 'trend_30147_desde',
+            filterToName: data.trendFilters?.tendencia30147?.to_param ?? 'trend_30147_hasta',
+            filterFromValue: data.trendFilters?.tendencia30147?.from_input ?? '',
+            filterToValue: data.trendFilters?.tendencia30147?.to_input ?? '',
+            preserveInputs: [
+                { name: data.trendFilters?.tendencia?.from_param ?? 'trend_52124_desde', value: data.trendFilters?.tendencia?.from_input ?? '' },
+                { name: data.trendFilters?.tendencia?.to_param ?? 'trend_52124_hasta', value: data.trendFilters?.tendencia?.to_input ?? '' }
+            ],
             stateKey: 'tendencia30147LineaId',
             renderFn: renderTendencia30147
         });
@@ -2909,6 +2985,10 @@
         const card = cardFromCanvas(config.cardId);
         if (!card) return;
 
+        const preserveInputs = (config.preserveInputs || [])
+            .map((input) => `<input type="hidden" name="${escapeHtml(input.name)}" value="${escapeHtml(input.value || '')}">`)
+            .join('');
+
         card.querySelectorAll('.chart-description').forEach((node) => node.remove());
         Array.from(card.children)
             .filter((node) => node.tagName === 'DIV' && !node.classList.contains('chart-container') && !node.classList.contains('chart-shell') && node.id !== config.actionsId)
@@ -2917,10 +2997,22 @@
         card.classList.add('dashboard-panel');
         updateCardTitle(card, config.title, config.icon);
         ensureAfterHeading(card, config.actionsId, `
-            <div id="${config.actionsId}" class="panel-actions" style="margin-bottom: 18px; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap;">
+            <form id="${config.actionsId}" class="panel-actions trend-filter-form" method="GET" action="${escapeHtml(data.dashboardUrl || '')}" style="margin-bottom: 18px; justify-content: flex-start;">
                 <select id="${config.selectId}" class="panel-select">${lineaOptions(state[config.stateKey])}</select>
-                ${trendFilterMarkup(config)}
-            </div>
+                <label class="trend-date-field">
+                    <span>Desde</span>
+                    <input type="date" name="${escapeHtml(config.filterFromName)}" value="${escapeHtml(config.filterFromValue || '')}" class="panel-date-input">
+                </label>
+                <label class="trend-date-field">
+                    <span>Hasta</span>
+                    <input type="date" name="${escapeHtml(config.filterToName)}" value="${escapeHtml(config.filterToValue || '')}" class="panel-date-input">
+                </label>
+                ${preserveInputs}
+                <button type="submit" class="panel-button">
+                    <i class="fas fa-filter"></i>
+                    Aplicar
+                </button>
+            </form>
         `);
         ensureChartShell(config.cardId, config.prefix, { tall: true });
 
@@ -2932,24 +3024,6 @@
                 config.renderFn();
             });
         }
-    }
-
-    function trendFilterMarkup(config) {
-        const clearAction = trendFilter.hasRange
-            ? `<a href="${escapeHtml(trendFilter.action)}" class="panel-link"><i class="fas fa-rotate-left"></i> Limpiar</a>`
-            : '';
-
-        return `
-            <form method="GET" action="${escapeHtml(trendFilter.action)}" class="panel-actions" style="margin: 0; justify-content: flex-start; gap: 10px; flex-wrap: wrap;">
-                <input type="date" name="trend_desde" value="${escapeHtml(trendFilter.from)}" class="panel-select" aria-label="Fecha inicial de ${escapeHtml(config.title)}">
-                <input type="date" name="trend_hasta" value="${escapeHtml(trendFilter.to)}" class="panel-select" aria-label="Fecha final de ${escapeHtml(config.title)}">
-                <button type="submit" class="panel-link">
-                    <i class="fas fa-filter"></i>
-                    Aplicar
-                </button>
-                ${clearAction}
-            </form>
-        `;
     }
 
     function renderFallas() {
@@ -3431,7 +3505,14 @@
         const labels = Array.isArray(data.historico?.labels) ? data.historico.labels : [];
         const series = data.historico?.series || {};
         const values = Array.isArray(series[state.historicoScope]) ? series[state.historicoScope] : (Array.isArray(series.Todas) ? series.Todas : []);
-        const registros = Array.isArray(data.historico?.registros) ? data.historico.registros.filter((item) => state.historicoScope === 'Todas' || item.linea === state.historicoScope) : [];
+        const registrosPorAlcance = data.historico?.registros_por_alcance || {};
+        const registros = Array.isArray(registrosPorAlcance[state.historicoScope])
+            ? registrosPorAlcance[state.historicoScope]
+            : (Array.isArray(data.historico?.registros)
+                ? data.historico.registros
+                    .filter((item) => state.historicoScope === 'Todas' || item.linea === state.historicoScope)
+                    .slice(0, 5)
+                : []);
         const total = values.reduce((sum, value) => sum + Number(value || 0), 0);
         const peak = values.length ? Math.max(...values.map((value) => Number(value || 0))) : 0;
         const average = values.length ? total / values.length : 0;
@@ -3581,7 +3662,7 @@
     }
 
     function renderTendencia() {
-        renderDamageTrendCard({
+        renderDamageTrendCardCompact({
             dataKey: 'tendencia',
             chartKey: 'tendencia',
             cardId: 'analisis52124Chart',
@@ -3598,7 +3679,7 @@
     }
 
     function renderTendencia30147() {
-        renderDamageTrendCard({
+        renderDamageTrendCardCompact({
             dataKey: 'tendencia30147',
             chartKey: 'tendencia30147',
             cardId: 'analisis30147Chart',
@@ -3617,43 +3698,15 @@
     function renderDamageTrendCard(config) {
         const dataset = data[config.dataKey] || {};
         const rows = Array.isArray(dataset.lineas) ? dataset.lineas : [];
-        const stats = document.getElementById(config.statsId);
-        const breakdown = document.getElementById(config.detailsId);
-        const criteria = document.getElementById(config.criteriaId);
-        const description = cardFromCanvas(config.cardId)?.querySelector('.chart-description');
         const select = document.getElementById(config.selectId);
         const item = rows.find((row) => Number(row.linea_id) === Number(state[config.stateKey])) || rows[0];
 
         if (select) select.value = String(item?.linea_id ?? state[config.stateKey] ?? '');
-        renderTrendCriteria(criteria, dataset.criterios || []);
 
-        if (!item || item.sin_datos || !Array.isArray(item.labels) || !item.labels.length) {
-            if (stats) {
-                stats.innerHTML = miniStats([
-                    ['Periodo actual', 0, 'Sin datos disponibles', 'info'],
-                    ['Periodo anterior', 0, 'Sin comparativo', 'warning'],
-                    ['Componentes', 0, 'Sin registros', 'danger'],
-                    ['Elongaciones', 0, 'Fuera de limite > 1.46%', 'success']
-                ]);
-            }
-            if (breakdown) breakdown.innerHTML = infoBox('No existen registros reales suficientes para construir la tendencia de esta lavadora.');
-            if (description) description.innerHTML = '<i class="fas fa-info-circle"></i> La tendencia se mostrara automaticamente cuando existan analisis registrados.';
+        if (!item || item.sin_datos || !Array.isArray(item.labels) || !item.labels.length || !Array.isArray(item.series) || !item.series.length) {
             destroy(charts[config.chartKey]);
             setChartState(config.prefix, true, config.emptyTitle, config.emptyMessage, config.emptyIcon);
             return;
-        }
-
-        const ventanas = Array.isArray(item.ventanas) ? item.ventanas : [];
-        const principal = ventanas[0] || {};
-        const resumen = item.resumen || {};
-
-        if (stats) {
-            stats.innerHTML = miniStats([
-                [normalizeTrendLabel(principal.label || 'Periodo actual'), Number(principal.current || 0), principal.current_range || 'Sin rango', toneToMiniStat(principal.tone || 'info')],
-                ['Periodo anterior', Number(principal.previous || 0), principal.previous_range || 'Sin rango', Number(principal.previous || 0) > 0 ? 'warning' : 'info'],
-                ['Componentes', Number(principal.current_componentes || 0), 'Fallas detectadas en analisis registrados', Number(principal.current_componentes || 0) > 0 ? 'danger' : 'success'],
-                ['Elongaciones', Number(principal.current_elongaciones || 0), 'Registros mayores a 1.46%', Number(principal.current_elongaciones || 0) > 0 ? 'warning' : 'success']
-            ]);
         }
 
         if (breakdown) {
@@ -3741,6 +3794,87 @@
                 scales: {
                     x: { grid: { display: false }, ticks: { color: '#64748b' } },
                     y: { beginAtZero: true, grid: { color: 'rgba(148, 163, 184, 0.16)' }, ticks: { precision: 0, color: '#64748b' } }
+                }
+            }
+        });
+    }
+
+    function renderDamageTrendCardCompact(config) {
+        const dataset = data[config.dataKey] || {};
+        const rows = Array.isArray(dataset.lineas) ? dataset.lineas : [];
+        const select = document.getElementById(config.selectId);
+        const item = rows.find((row) => Number(row.linea_id) === Number(state[config.stateKey])) || rows[0];
+
+        if (select) select.value = String(item?.linea_id ?? state[config.stateKey] ?? '');
+
+        if (!item || item.sin_datos || !Array.isArray(item.labels) || !item.labels.length || !Array.isArray(item.series) || !item.series.length) {
+            destroy(charts[config.chartKey]);
+            setChartState(config.prefix, true, config.emptyTitle, config.emptyMessage, config.emptyIcon);
+            return;
+        }
+
+        const palette = ['#22c55e', '#ef4444', '#f08a36'];
+        const fills = ['rgba(34, 197, 94, 0.86)', 'rgba(239, 68, 68, 0.86)', 'rgba(240, 138, 54, 0.86)'];
+        const datasets = item.series.map((serie, index) => ({
+            label: normalizeTrendLabel(serie.label || `Serie ${index + 1}`),
+            data: Array.isArray(serie.data) ? serie.data.map((value) => Number(value || 0)) : [],
+            borderColor: palette[index % palette.length],
+            backgroundColor: fills[index % fills.length],
+            borderWidth: 1,
+            borderRadius: 8,
+            borderSkipped: false,
+            maxBarThickness: 42
+        }));
+
+        destroy(charts[config.chartKey]);
+        setChartState(config.prefix, false);
+        charts[config.chartKey] = new Chart(document.getElementById(config.cardId).getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: (item.labels || []).map((label) => normalizeTrendLabel(label)),
+                datasets
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        labels: {
+                            usePointStyle: true,
+                            pointStyle: 'circle',
+                            padding: 18,
+                            color: '#334155',
+                            font: { size: 11, weight: 700 }
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(15, 23, 42, 0.96)',
+                        titleColor: '#fff',
+                        bodyColor: '#e2e8f0',
+                        callbacks: {
+                            title: (context) => normalizeTrendLabel(context[0]?.label || ''),
+                            label: (context) => `${context.dataset.label}: ${Number(context.raw || 0)} danos`
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: { display: false },
+                        ticks: { color: '#64748b', maxRotation: 45, minRotation: 45 }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: 'rgba(148, 163, 184, 0.16)' },
+                        title: {
+                            display: true,
+                            text: 'Total de danos',
+                            color: '#64748b',
+                            font: { size: 12, weight: 700 }
+                        },
+                        ticks: { precision: 0, color: '#64748b' }
+                    }
                 }
             }
         });

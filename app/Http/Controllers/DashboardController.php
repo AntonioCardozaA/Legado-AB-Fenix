@@ -107,10 +107,11 @@ class DashboardController extends Controller
     /**
      * Resuelve el rango de fechas aplicado a los modulos de tendencia.
      */
-    private function resolveLavadoraTrendDateRange(Request $request): array
+    private function resolveLavadoraTrendDateRange(Request $request, string $fromKey, string $toKey): array
     {
-        $from = $this->parseLavadoraTrendDate($request->query('trend_desde'));
-        $to = $this->parseLavadoraTrendDate($request->query('trend_hasta'));
+        $defaultRange = $this->getLavadoraTrendDefaultDateRange();
+        $from = $this->parseLavadoraTrendDate($request->query($fromKey)) ?: $defaultRange['from']->copy();
+        $to = $this->parseLavadoraTrendDate($request->query($toKey)) ?: $defaultRange['to']->copy();
 
         if ($from && $to && $from->gt($to)) {
             [$from, $to] = [$to, $from];
@@ -121,6 +122,17 @@ class DashboardController extends Controller
             'to' => $to?->copy()->endOfDay(),
             'from_input' => $from?->toDateString(),
             'to_input' => $to?->toDateString(),
+        ];
+    }
+
+    /**
+     * Rango por defecto para las tarjetas de tendencia.
+     */
+    private function getLavadoraTrendDefaultDateRange(): array
+    {
+        return [
+            'from' => now()->copy()->startOfMonth()->subMonth()->startOfDay(),
+            'to' => now()->copy()->endOfDay(),
         ];
     }
 
@@ -202,43 +214,58 @@ class DashboardController extends Controller
      * DESCRIPCIÓN: Dashboard global de lavadoras
      */
     public function lavadoraGlobal(Request $request)
-{
-    $lineasLavadora = Linea::where('activo', true)
-        ->whereIn('nombre', self::LAVADORA_NOMBRES)
-        ->orderBy('nombre')
-        ->get();
+    {
+        $lineasLavadora = Linea::where('activo', true)
+            ->whereIn('nombre', self::LAVADORA_NOMBRES)
+            ->orderBy('nombre')
+            ->get();
 
-    $analisisActuales = $this->getAnalisisActualesLavadoras($lineasLavadora);
-    $analisisHistoricos = $this->getAnalisisHistoricosLavadoras($lineasLavadora);
-    $trendDateRange = $this->resolveLavadoraTrendDateRange($request);
-    $analisisHistoricosTendencia = $this->filterLavadoraTrendAnalisisByDateRange($analisisHistoricos, $trendDateRange);
+        $trend52124Range = $this->resolveLavadoraTrendDateRange($request, 'trend_52124_desde', 'trend_52124_hasta');
+        $trend30147Range = $this->resolveLavadoraTrendDateRange($request, 'trend_30147_desde', 'trend_30147_hasta');
 
-    $resumenGeneral = $this->getResumenGeneral($lineasLavadora);
-    $estadoLavadoras = $this->getEstadoLavadoras($lineasLavadora);
-    $fallasPorLinea = $this->getFallasPorLinea($lineasLavadora, $analisisActuales);
-    $planesAccionDashboard = $this->getPlanesAccionDashboard($lineasLavadora);
-    $componentesDanados = [];
-    $rankingDanos = $this->getRankingDanosPorLavadora($lineasLavadora, $analisisActuales);
-    $evolucionElongaciones = $this->getEvolucionElongaciones($lineasLavadora);
-    $historicoRevisiones = $this->getHistoricoRevisiones($lineasLavadora, $analisisHistoricos);
-    $analisis52124 = $this->getAnalisis52124($lineasLavadora, $analisisHistoricosTendencia, $trendDateRange);
-    $analisis30147 = $this->getAnalisis30147($lineasLavadora, $analisisHistoricosTendencia, $trendDateRange);
+        $analisisActuales = $this->getAnalisisActualesLavadoras($lineasLavadora);
+        $analisisHistoricos = $this->getAnalisisHistoricosLavadoras($lineasLavadora);
 
-    return view('dashboard_lavadora', compact(
-        'lineasLavadora',
-        'resumenGeneral',
-        'estadoLavadoras',
-        'rankingDanos',
-        'fallasPorLinea',
-        'componentesDanados',
-        'planesAccionDashboard',
-        'evolucionElongaciones',
-        'historicoRevisiones',
-        'analisis52124',
-        'analisis30147',
-        'trendDateRange'
-    ));
-}
+        $resumenGeneral = $this->getResumenGeneral($lineasLavadora);
+        $estadoLavadoras = $this->getEstadoLavadoras($lineasLavadora);
+        $fallasPorLinea = $this->getFallasPorLinea($lineasLavadora, $analisisActuales);
+        $planesAccionDashboard = $this->getPlanesAccionDashboard($lineasLavadora);
+        $componentesDanados = [];
+        $rankingDanos = $this->getRankingDanosPorLavadora($lineasLavadora, $analisisActuales);
+        $evolucionElongaciones = $this->getEvolucionElongaciones($lineasLavadora);
+        $historicoRevisiones = $this->getHistoricoRevisiones($lineasLavadora, $analisisHistoricos);
+        $analisis52124 = $this->getAnalisis52124($lineasLavadora, $analisisHistoricos, $trend52124Range);
+        $analisis30147 = $this->getAnalisis30147($lineasLavadora, $analisisHistoricos, $trend30147Range);
+        $trendFilters = [
+            'tendencia' => [
+                'from_input' => $trend52124Range['from_input'],
+                'to_input' => $trend52124Range['to_input'],
+                'from_param' => 'trend_52124_desde',
+                'to_param' => 'trend_52124_hasta',
+            ],
+            'tendencia30147' => [
+                'from_input' => $trend30147Range['from_input'],
+                'to_input' => $trend30147Range['to_input'],
+                'from_param' => 'trend_30147_desde',
+                'to_param' => 'trend_30147_hasta',
+            ],
+        ];
+
+        return view('dashboard_lavadora', compact(
+            'lineasLavadora',
+            'resumenGeneral',
+            'estadoLavadoras',
+            'rankingDanos',
+            'fallasPorLinea',
+            'componentesDanados',
+            'planesAccionDashboard',
+            'evolucionElongaciones',
+            'historicoRevisiones',
+            'analisis52124',
+            'analisis30147',
+            'trendFilters'
+        ));
+    }
 
     /**
      * RUTA: GET /dashboard/global/pasteurizadoras
@@ -1165,14 +1192,35 @@ public function pasteurizadoraOperativo(Request $request)
     private function getHistoricoRevisiones($lineasLavadora, ?Collection $analisisHistoricos = null): array
     {
         $analisisHistoricos = $analisisHistoricos ?: $this->getAnalisisHistoricosLavadoras($lineasLavadora);
+        $analisisOrdenados = $analisisHistoricos
+            ->sortByDesc(fn ($item) => $item->fecha_analisis?->format('Y-m-d') . '-' . str_pad((string) $item->id, 10, '0', STR_PAD_LEFT))
+            ->values();
         $meses = collect(range(11, 0))
             ->map(fn ($offset) => now()->copy()->startOfMonth()->subMonths($offset))
             ->values();
+        $formatearRegistro = function ($item): array {
+            $meta = $this->getLavadoraSeverityMeta($item->estado);
+
+            return [
+                'id' => $item->id,
+                'linea_id' => $item->linea_id,
+                'linea' => optional($item->linea)->nombre ?? 'Sin linea',
+                'componente' => optional($item->componente)->nombre ?? 'Componente desconocido',
+                'reductor' => $item->reductor,
+                'lado' => $item->lado,
+                'estado' => $item->estado,
+                'estado_color' => $meta['color'],
+                'fecha' => $item->fecha_analisis?->format('Y-m-d'),
+                'fecha_humana' => $item->fecha_analisis?->format('d/m/Y'),
+                'actividad' => $item->actividad,
+                'usuario' => optional($item->usuario)->name,
+            ];
+        };
 
         $series = [
             'Todas' => $meses
-                ->map(function (Carbon $mes) use ($analisisHistoricos) {
-                    return $analisisHistoricos->filter(function ($item) use ($mes) {
+                ->map(function (Carbon $mes) use ($analisisOrdenados) {
+                    return $analisisOrdenados->filter(function ($item) use ($mes) {
                         return $item->fecha_analisis
                             && $item->fecha_analisis->isSameMonth($mes)
                             && $item->fecha_analisis->year === $mes->year;
@@ -1183,8 +1231,8 @@ public function pasteurizadoraOperativo(Request $request)
 
         foreach ($lineasLavadora as $linea) {
             $series[$linea->nombre] = $meses
-                ->map(function (Carbon $mes) use ($analisisHistoricos, $linea) {
-                    return $analisisHistoricos->filter(function ($item) use ($mes, $linea) {
+                ->map(function (Carbon $mes) use ($analisisOrdenados, $linea) {
+                    return $analisisOrdenados->filter(function ($item) use ($mes, $linea) {
                         return $item->linea_id === $linea->id
                             && $item->fecha_analisis
                             && $item->fecha_analisis->isSameMonth($mes)
@@ -1194,27 +1242,24 @@ public function pasteurizadoraOperativo(Request $request)
                 ->all();
         }
 
-        $registros = $analisisHistoricos
-            ->sortByDesc(fn ($item) => $item->fecha_analisis?->format('Y-m-d') . '-' . str_pad((string) $item->id, 10, '0', STR_PAD_LEFT))
-            ->take(24)
-            ->map(function ($item) {
-                $meta = $this->getLavadoraSeverityMeta($item->estado);
+        $registrosPorAlcance = [
+            'Todas' => $analisisOrdenados
+                ->take(5)
+                ->map($formatearRegistro)
+                ->values()
+                ->all(),
+        ];
 
-                return [
-                    'id' => $item->id,
-                    'linea_id' => $item->linea_id,
-                    'linea' => optional($item->linea)->nombre ?? 'Sin linea',
-                    'componente' => optional($item->componente)->nombre ?? 'Componente desconocido',
-                    'reductor' => $item->reductor,
-                    'lado' => $item->lado,
-                    'estado' => $item->estado,
-                    'estado_color' => $meta['color'],
-                    'fecha' => $item->fecha_analisis?->format('Y-m-d'),
-                    'fecha_humana' => $item->fecha_analisis?->format('d/m/Y'),
-                    'actividad' => $item->actividad,
-                    'usuario' => optional($item->usuario)->name,
-                ];
-            })
+        foreach ($lineasLavadora as $linea) {
+            $registrosPorAlcance[$linea->nombre] = $analisisOrdenados
+                ->where('linea_id', $linea->id)
+                ->take(5)
+                ->map($formatearRegistro)
+                ->values()
+                ->all();
+        }
+
+        $registros = collect($registrosPorAlcance['Todas'] ?? [])
             ->values()
             ->all();
 
@@ -1222,11 +1267,12 @@ public function pasteurizadoraOperativo(Request $request)
             'labels' => $meses->map(fn (Carbon $mes) => $mes->format('m/Y'))->all(),
             'series' => $series,
             'registros' => $registros,
+            'registros_por_alcance' => $registrosPorAlcance,
             'resumen' => [
-                'total' => $analisisHistoricos->count(),
-                'ultimos_30_dias' => $analisisHistoricos->filter(fn ($item) => $item->fecha_analisis && $item->fecha_analisis->gte(now()->copy()->subDays(30)))->count(),
-                'componentes_unicos' => $analisisHistoricos->map(fn ($item) => optional($item->componente)->nombre)->filter()->unique()->count(),
-                'ultima_revision' => optional($analisisHistoricos->first()?->fecha_analisis)->format('d/m/Y'),
+                'total' => $analisisOrdenados->count(),
+                'ultimos_30_dias' => $analisisOrdenados->filter(fn ($item) => $item->fecha_analisis && $item->fecha_analisis->gte(now()->copy()->subDays(30)))->count(),
+                'componentes_unicos' => $analisisOrdenados->map(fn ($item) => optional($item->componente)->nombre)->filter()->unique()->count(),
+                'ultima_revision' => optional($analisisOrdenados->first()?->fecha_analisis)->format('d/m/Y'),
             ],
         ];
     }
@@ -1278,11 +1324,19 @@ public function pasteurizadoraOperativo(Request $request)
             ];
         }
 
-        $eventsByLine = $this->getLavadoraTrendEvents($lineasLavadora, $analisisHistoricos, $dateRange)
-            ->groupBy('linea_id');
+        $sourceRange = $dateRange ? $this->resolveLavadoraTrendSourceRange($dateRange, $windows) : null;
+        $trendAnalisisHistoricos = $analisisHistoricos
+            ? $this->filterLavadoraTrendAnalisisByDateRange($analisisHistoricos, $sourceRange)
+            : null;
+
+        $allEvents = $this->getLavadoraTrendEvents($lineasLavadora, $trendAnalisisHistoricos, $sourceRange)
+            ->values();
+        $eventsByLine = $allEvents->groupBy('linea_id');
+        $timeline = $this->buildLavadoraTrendTimelineCuts($allEvents, $dateRange);
+        $timelineLabels = $timeline->pluck('label')->all();
 
         $seriesPorLinea = $lineasLavadora
-            ->map(function ($linea) use ($eventsByLine, $windows, $dateRange) {
+            ->map(function ($linea) use ($eventsByLine, $windows, $timeline, $timelineLabels) {
                 $eventos = $eventsByLine
                     ->get($linea->id, collect())
                     ->sortBy(function (array $item) {
@@ -1295,53 +1349,63 @@ public function pasteurizadoraOperativo(Request $request)
                     ->values();
 
                 if ($eventos->isEmpty()) {
+                    $emptySeries = collect($windows)
+                        ->map(function (array $window) use ($timelineLabels) {
+                            return [
+                                'key' => $window['key'],
+                                'label' => $window['label'],
+                                'data' => array_fill(0, count($timelineLabels), 0),
+                            ];
+                        });
+
                     return [
                         'linea_id' => $linea->id,
                         'linea' => $linea->nombre,
-                        'labels' => collect($windows)->pluck('label')->all(),
-                        'actual' => array_fill(0, count($windows), 0),
-                        'anterior' => array_fill(0, count($windows), 0),
-                        'ventanas' => [],
+                        'labels' => $timelineLabels,
+                        'series' => $emptySeries->all(),
                         'resumen' => [
-                            'estado' => 'Sin fallas',
-                            'estado_tone' => 'success',
+                            'ultimo_corte' => $timelineLabels ? end($timelineLabels) : null,
                             'ultima_falla' => null,
                             'ultima_fuente' => null,
-                            'componente_actual' => 0,
-                            'elongacion_actual' => 0,
+                            'total_fallas' => 0,
                         ],
                         'sin_datos' => true,
-                    ];
+                    ] + $emptySeries->mapWithKeys(fn (array $serie) => [$serie['key'] => $serie['data']])->all();
                 }
 
-                $ventanas = collect($windows)
-                    ->map(fn (array $window) => $this->buildLavadoraTrendWindowSummary($eventos, $window, $dateRange))
+                $series = collect($windows)
+                    ->map(function (array $window) use ($eventos, $timeline) {
+                        return [
+                            'key' => $window['key'],
+                            'label' => $window['label'],
+                            'data' => $timeline
+                                ->map(fn (array $cut) => $this->countLavadoraTrendEventsForWindowAtCut($eventos, $window, $cut['cut_at']))
+                                ->all(),
+                        ];
+                    })
                     ->values();
 
-                $estado = $this->resolveLavadoraTrendStatus($ventanas);
                 $ultimoEvento = $eventos->last();
-                $ventanaPrincipal = $ventanas->first();
+                $ultimoCorte = $timelineLabels ? end($timelineLabels) : null;
+                $resumenSeries = $series
+                    ->mapWithKeys(function (array $serie) {
+                        return [$serie['key'] => (int) collect($serie['data'])->last()];
+                    })
+                    ->all();
 
                 return [
                     'linea_id' => $linea->id,
                     'linea' => $linea->nombre,
-                    'labels' => $ventanas->pluck('label')->all(),
-                    'actual' => $ventanas->pluck('current')->all(),
-                    'anterior' => $ventanas->pluck('previous')->all(),
-                    'ventanas' => $ventanas->all(),
+                    'labels' => $timelineLabels,
+                    'series' => $series->all(),
                     'resumen' => [
-                        'estado' => $estado['label'],
-                        'estado_tone' => $estado['tone'],
-                        'ventanas_alza' => $estado['up'],
-                        'ventanas_baja' => $estado['down'],
-                        'ventanas_estables' => $estado['stable'],
+                        'ultimo_corte' => $ultimoCorte,
                         'ultima_falla' => $ultimoEvento['fecha_humana'] ?? null,
                         'ultima_fuente' => $ultimoEvento['type_label'] ?? null,
-                        'componente_actual' => $ventanaPrincipal['current_componentes'] ?? 0,
-                        'elongacion_actual' => $ventanaPrincipal['current_elongaciones'] ?? 0,
-                    ],
+                        'total_fallas' => $eventos->count(),
+                    ] + $resumenSeries,
                     'sin_datos' => false,
-                ];
+                ] + $series->mapWithKeys(fn (array $serie) => [$serie['key'] => $serie['data']])->all();
             })
             ->values();
 
@@ -1352,6 +1416,141 @@ public function pasteurizadoraOperativo(Request $request)
             'lineas' => $seriesPorLinea->all(),
             'criterios' => $this->getLavadoraTrendCriteria(),
         ];
+    }
+
+    /**
+     * Amplia el rango visible para calcular correctamente las ventanas historicas.
+     */
+    private function resolveLavadoraTrendSourceRange(array $displayRange, array $windows): array
+    {
+        $from = ($displayRange['from'] ?? null) instanceof Carbon ? $displayRange['from']->copy() : null;
+        $to = ($displayRange['to'] ?? null) instanceof Carbon ? $displayRange['to']->copy() : null;
+
+        if (!$from && !$to) {
+            return $displayRange;
+        }
+
+        $reference = ($from ?: $to)->copy()->endOfDay();
+        $sourceStart = collect($windows)
+            ->map(function (array $window) use ($reference) {
+                return $this->resolveLavadoraTrendCurrentRange($window, $reference->copy())['current_start'];
+            })
+            ->filter(fn ($date) => $date instanceof Carbon)
+            ->sortBy(fn (Carbon $date) => $date->getTimestamp())
+            ->first();
+
+        return [
+            'from' => $sourceStart ? $sourceStart->copy()->startOfDay() : $from,
+            'to' => $to?->copy()->endOfDay(),
+        ];
+    }
+
+    /**
+     * Genera los cortes mensuales para dibujar la tendencia por fecha.
+     */
+    private function buildLavadoraTrendTimelineCuts(Collection $eventos, ?array $dateRange = null): Collection
+    {
+        $eventosOrdenados = $eventos
+            ->sortBy(fn (array $item) => $item['occurred_at']->getTimestamp())
+            ->values();
+
+        $firstEvent = $eventosOrdenados->first()['occurred_at'] ?? null;
+        $lastEvent = $eventosOrdenados->last()['occurred_at'] ?? null;
+        $start = ($dateRange['from'] ?? null) instanceof Carbon ? $dateRange['from']->copy() : ($firstEvent ? $firstEvent->copy() : null);
+        $end = ($dateRange['to'] ?? null) instanceof Carbon ? $dateRange['to']->copy() : ($lastEvent ? $lastEvent->copy() : null);
+
+        if (!$start || !$end || $start->gt($end)) {
+            return collect();
+        }
+
+        $cursor = $start->copy()->startOfMonth();
+        $lastMonth = $end->copy()->startOfMonth();
+        $cuts = collect();
+
+        while ($cursor->lte($lastMonth)) {
+            $cutAt = $cursor->copy()->endOfMonth()->endOfDay();
+
+            if ($cursor->isSameMonth($end)) {
+                $cutAt = $end->copy()->endOfDay();
+            }
+
+            $cuts->push([
+                'label' => $this->formatLavadoraTrendTimelineLabel($cursor),
+                'cut_at' => $cutAt,
+            ]);
+
+            $cursor->addMonthNoOverflow();
+        }
+
+        return $cuts;
+    }
+
+    /**
+     * Cuenta los eventos contenidos en una ventana usando un corte puntual.
+     */
+    private function countLavadoraTrendEventsForWindowAtCut(Collection $eventos, array $window, Carbon $cutAt): int
+    {
+        $range = $this->resolveLavadoraTrendCurrentRange($window, $cutAt);
+
+        return $eventos
+            ->filter(fn (array $item) => $item['occurred_at']->between($range['current_start'], $range['current_end'], true))
+            ->count();
+    }
+
+    /**
+     * Resuelve el rango actual de una ventana a partir de una fecha de corte.
+     */
+    private function resolveLavadoraTrendCurrentRange(array $window, Carbon $reference): array
+    {
+        $cutAt = $reference->copy()->endOfDay();
+        $size = max((int) ($window['size'] ?? 1), 1);
+
+        switch ($window['type']) {
+            case 'days':
+                $currentStart = $cutAt->copy()->subDays($size - 1)->startOfDay();
+                break;
+
+            case 'weeks':
+                $currentStart = $cutAt->copy()->subWeeks($size)->addDay()->startOfDay();
+                break;
+
+            case 'quarters':
+                $currentStart = $cutAt->copy()->startOfQuarter()->subQuarters($size - 1)->startOfDay();
+                break;
+
+            case 'months':
+            default:
+                $currentStart = $cutAt->copy()->subMonthsNoOverflow($size)->addDay()->startOfDay();
+                break;
+        }
+
+        return [
+            'current_start' => $currentStart,
+            'current_end' => $cutAt,
+        ];
+    }
+
+    /**
+     * Formatea la etiqueta mensual visible en la grafica.
+     */
+    private function formatLavadoraTrendTimelineLabel(Carbon $month): string
+    {
+        $months = [
+            1 => 'Ene',
+            2 => 'Feb',
+            3 => 'Mar',
+            4 => 'Abr',
+            5 => 'May',
+            6 => 'Jun',
+            7 => 'Jul',
+            8 => 'Ago',
+            9 => 'Sep',
+            10 => 'Oct',
+            11 => 'Nov',
+            12 => 'Dic',
+        ];
+
+        return ($months[(int) $month->format('n')] ?? $month->format('m')) . ' ' . $month->format('Y');
     }
 
     /**
