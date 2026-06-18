@@ -32,9 +32,11 @@
 
     .dashboard-container {
         width: 100%;
-        margin: 0;
-        padding: 16px 20px;
+        max-width: 1680px;
+        margin: 0 auto;
+        padding: clamp(14px, 2vw, 20px);
         background: #f8fafc;
+        box-sizing: border-box;
     }
 
     /* Animación de parpadeo para alertas críticas */
@@ -110,11 +112,10 @@
     /* Grid de tarjetas de lavadoras */
     .lavadoras-grid {
         display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        gap: 14px;
-        margin-bottom: 16px;
-        overflow-x: auto;
-        padding-bottom: 8px;
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 295px), 1fr));
+        gap: 12px;
+        margin-bottom: 12px;
+        align-items: stretch;
     }
 
     .lavadora-card {
@@ -124,7 +125,11 @@
         box-shadow: var(--shadow-sm);
         background: white;
         border: 1px solid var(--medium-gray);
-        min-width: 280px;
+        min-width: 0;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
     }
 
     .lavadora-card:hover {
@@ -162,7 +167,9 @@
         border-bottom: 1px solid rgba(0,0,0,0.05);
         display: flex;
         justify-content: space-between;
-        align-items: center;
+        align-items: flex-start;
+        gap: 10px;
+        flex-wrap: wrap;
     }
 
     .lavadora-nombre {
@@ -172,6 +179,8 @@
         display: flex;
         align-items: center;
         gap: 6px;
+        flex: 1 1 180px;
+        min-width: 0;
     }
 
     .status-icon {
@@ -192,6 +201,8 @@
         font-weight: 600;
         font-size: 10px;
         text-transform: uppercase;
+        white-space: normal;
+        text-align: center;
     }
 
     .status-tag.bueno { background: var(--success-light); color: #065f46; }
@@ -201,6 +212,9 @@
 
     .lavadora-card-body {
         padding: 10px 12px;
+        display: flex;
+        flex-direction: column;
+        flex: 1 1 auto;
     }
 
     .lavadora-mensaje {
@@ -236,7 +250,7 @@
 
     .carousel-slide-content {
         display: flex;
-        align-items: center;
+        align-items: flex-start;
         gap: 10px;
     }
 
@@ -267,6 +281,7 @@
 
     .carousel-slide-info {
         flex: 1;
+        min-width: 0;
     }
 
     .carousel-slide-title {
@@ -343,19 +358,20 @@
     }
 
     .lavadora-metricas {
-        display: flex;
-        justify-content: space-between;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
         margin-bottom: 10px;
         font-size: 11px;
         background: linear-gradient(135deg, rgba(59, 130, 246, 0.05), rgba(139, 92, 246, 0.05));
         padding: 8px;
         border-radius: 10px;
         border: 1px solid rgba(59, 130, 246, 0.1);
+        gap: 8px;
     }
 
     .metric-item {
         text-align: center;
-        flex: 1;
+        min-width: 0;
     }
 
     .metric-label {
@@ -377,7 +393,8 @@
         background: transparent;
         border-top: 1px solid rgba(148, 163, 184, 0.18);
         display: flex;
-        justify-content: flex-end;
+        justify-content: stretch;
+        margin-top: auto;
     }
 
     .lavadora-card-action {
@@ -393,6 +410,8 @@
         font-weight: 600;
         box-shadow: var(--shadow-sm);
         transition: var(--transition);
+        width: 100%;
+        justify-content: center;
     }
 
     .lavadora-card-action:hover {
@@ -413,14 +432,19 @@
     .chart-card {
         background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
         border-radius: 16px;
-        padding: 20px;
-        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+        padding: 18px;
+        box-shadow: 0 4px 14px rgba(15, 23, 42, 0.08);
         border: 1px solid rgba(59, 130, 246, 0.1);
-        margin-bottom: 20px;
+        margin-bottom: 0;
         transition: var(--transition);
         position: relative;
         overflow: hidden;
         animation: slideInUp 0.6s ease-out;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        align-self: stretch;
+        height: 100%;
     }
 
     @keyframes slideInUp {
@@ -441,7 +465,7 @@
         top: 0;
         left: 0;
         right: 0;
-        height: 5px;
+        height: 4px;
         background: linear-gradient(90deg, #3b82f6 0%, #8b5cf6 25%, #10b981 50%, #f59e0b 75%, #3b82f6 100%);
         background-size: 400% 100%;
         animation: gradientShift 8s ease infinite;
@@ -453,23 +477,34 @@
     }
 
     .chart-card:hover {
-        box-shadow: 0 16px 48px rgba(0, 0, 0, 0.15), 0 4px 12px rgba(59, 130, 246, 0.15);
-        transform: translateY(-6px);
+        box-shadow: 0 12px 30px rgba(15, 23, 42, 0.12), 0 4px 10px rgba(59, 130, 246, 0.12);
+        transform: translateY(-3px);
         border-color: rgba(59, 130, 246, 0.2);
     }
 
     /* Títulos de Gráficas */
     .chart-card h3 {
-        font-size: 16px;
+        font-size: 15px;
         font-weight: 800;
         color: var(--text-primary);
-        margin-bottom: 16px;
+        margin-bottom: 14px;
         display: flex;
-        align-items: center;
+        align-items: flex-start;
         gap: 10px;
         letter-spacing: -0.3px;
-        padding-bottom: 12px;
+        padding-bottom: 10px;
         border-bottom: 1px solid rgba(59, 130, 246, 0.08);
+        flex-wrap: wrap;
+    }
+
+    .chart-card h3 span {
+        flex: 1 1 220px;
+        min-width: 0;
+        line-height: 1.35;
+    }
+
+    .chart-card > * {
+        min-width: 0;
     }
 
     .chart-card h3 i {
@@ -486,21 +521,21 @@
 
     /* Contenedor de gráfica */
     .chart-container {
-        height: 280px;
+        height: 248px;
         position: relative;
-        padding: 12px 0;
+        padding: 8px 0;
         display: flex;
         align-items: center;
         justify-content: center;
         background: linear-gradient(135deg, rgba(59, 130, 246, 0.02) 0%, rgba(139, 92, 246, 0.02) 100%);
         border-radius: 12px;
-        margin: 4px 0;
+        margin: 2px 0;
     }
 
     /* Descripción informativa bajo gráfica */
     .chart-description {
-        margin-top: 12px;
-        padding: 10px 12px;
+        margin-top: 10px;
+        padding: 9px 12px;
         background: linear-gradient(135deg, rgba(59, 130, 246, 0.06) 0%, rgba(139, 92, 246, 0.06) 100%);
         border-radius: 10px;
         text-align: center;
@@ -527,12 +562,56 @@
         display: none;
     }
 
+    .dashboard-analytics-layout {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+        align-items: start;
+        margin-top: 6px;
+    }
+
+    .dashboard-analytics-column {
+        display: contents;
+    }
+
+    .dashboard-analytics-layout > .chart-card,
+    .dashboard-analytics-column .chart-card,
+    .dashboard-analytics-full .chart-card {
+        margin-bottom: 0;
+    }
+
+    .fallas-card { order: 1; }
+    .planes-card { order: 2; }
+    .historico-card { order: 3; }
+    .elongaciones-card { order: 4; }
+    .ranking-card { order: 5; }
+    .trend-card-primary { order: 6; }
+
+    .dashboard-analytics-full {
+        margin-top: 10px;
+    }
+
+    .dashboard-panels-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr));
+        gap: 12px;
+        margin-bottom: 12px;
+        align-items: stretch;
+    }
+
+    .dashboard-panels-full {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 12px;
+        margin-top: 12px;
+    }
+
     /* Secciones */
     .section-title {
         font-size: 24px;
         font-weight: 800;
         color: var(--text-primary);
-        margin: 40px 0 28px 0;
+        margin: 28px 0 16px 0;
         display: flex;
         align-items: center;
         gap: 14px;
@@ -762,6 +841,194 @@
         font-size: 14px;
     }
 
+    .ranking-card .ranking-list {
+        gap: 8px;
+        flex: 1 1 auto;
+    }
+
+    .ranking-card .ranking-item {
+        padding: 10px 14px;
+        border-radius: 12px;
+    }
+
+    .ranking-card .ranking-position {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        font-size: 13px;
+    }
+
+    .ranking-card .ranking-position::after {
+        border-radius: 10px;
+    }
+
+    .ranking-card .ranking-position.top-1::before {
+        font-size: 16px;
+        top: -6px;
+    }
+
+    .ranking-card .ranking-asset {
+        margin-left: 10px;
+        gap: 10px;
+    }
+
+    .ranking-card .ranking-info {
+        margin-left: 0;
+        gap: 2px;
+    }
+
+    .ranking-card .ranking-linea {
+        font-size: 12px;
+    }
+
+    .ranking-card .ranking-puntaje {
+        font-size: 10px;
+        gap: 4px;
+    }
+
+    .ranking-card .ranking-puntaje i {
+        font-size: 11px;
+    }
+
+    .ranking-card .ranking-meta {
+        margin-top: 3px;
+        font-size: 9px;
+        line-height: 1.3;
+    }
+
+    .ranking-card .ranking-badge,
+    .ranking-card .severity-pill,
+    .historico-card .severity-pill {
+        padding: 4px 8px;
+        font-size: 9px;
+        gap: 4px;
+    }
+
+    .ranking-card .ranking-badge i {
+        font-size: 10px;
+    }
+
+    .ranking-card .ranking-footer,
+    .historico-card .table-footer {
+        margin-top: 12px;
+        padding: 10px 14px;
+        font-size: 11px;
+    }
+
+    .ranking-card .ranking-footer i,
+    .historico-card .table-footer i {
+        font-size: 12px;
+    }
+
+    .fallas-card .chart-shell .chart-container,
+    .planes-card .chart-shell .chart-container {
+        min-height: 220px;
+    }
+
+    .historico-card .chart-shell.compact .chart-container {
+        height: 188px;
+    }
+
+    .elongaciones-card .chart-container.tall,
+    .trend-card .chart-container.tall {
+        height: 264px;
+    }
+
+    .elongaciones-card,
+    .trend-card-side {
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+    }
+
+    .elongaciones-card .chart-shell,
+    .trend-card-side .chart-shell {
+        flex: 1;
+        display: flex;
+    }
+
+    .elongaciones-card .chart-shell .chart-container,
+    .trend-card-side .chart-shell .chart-container {
+        flex: 1;
+        min-height: 300px;
+    }
+
+    .elongaciones-card .chart-container.tall,
+    .trend-card-side .chart-container.tall {
+        height: 300px;
+    }
+
+    .trend-card .trend-filter-form {
+        gap: 8px;
+        align-items: flex-end;
+    }
+
+    .trend-card .trend-date-field {
+        min-width: 124px;
+        flex: 1 1 124px;
+    }
+
+    .trend-card .panel-select {
+        min-width: 128px;
+    }
+
+    .trend-card-side .trend-filter-form {
+        display: grid;
+        grid-template-columns: minmax(120px, 0.85fr) repeat(2, minmax(120px, 1fr)) auto;
+        gap: 8px;
+        align-items: end;
+    }
+
+    .trend-card-side .panel-button {
+        white-space: nowrap;
+    }
+
+    .historico-card .subpanel-title {
+        margin-top: 14px !important;
+        font-size: 12px;
+    }
+
+    .historico-card .subpanel-copy {
+        font-size: 11px;
+        margin-bottom: 10px;
+    }
+
+    .historico-card table th {
+        padding: 12px 14px;
+        font-size: 10px;
+    }
+
+    .historico-card table th i {
+        font-size: 11px;
+        margin-right: 6px;
+    }
+
+    .historico-card table td {
+        padding: 10px 14px;
+        font-size: 11px;
+        line-height: 1.3;
+    }
+
+    .historico-card table td i {
+        margin-right: 6px;
+        font-size: 11px;
+    }
+
+    .historico-card table td .text-xs {
+        font-size: 10px;
+        margin-top: 2px;
+    }
+
+    .historico-card .overflow-x-auto {
+        overflow-x: auto;
+        overflow-y: hidden;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .historico-card table {
+        min-width: 760px;
+    }
+
     /* ═══════════════════════════════════════════════════════════════ */
     /* ▓▓▓ TABLA - ESTILO ADMINISTRATIVO PROFESIONAL ▓▓▓ */
     /* ═══════════════════════════════════════════════════════════════ */
@@ -861,25 +1128,6 @@
     }
 
     /* Grid de gráficas - Espaciado mejorado */
-    .grid.gap-8 {
-        gap: 32px;
-        display: grid;
-    }
-
-    .grid.grid-cols-1 {
-        grid-template-columns: 1fr;
-    }
-
-    .grid.md\:grid-cols-2 {
-        grid-template-columns: 1fr;
-    }
-
-    @media (min-width: 768px) {
-        .grid.md\:grid-cols-2 {
-            grid-template-columns: repeat(2, 1fr);
-        }
-    }
-
     /* Modal para detalles de alerta */
     .modal {
         display: none;
@@ -1001,6 +1249,28 @@
         }
     }
 
+    @media (max-width: 1024px) {
+        .dashboard-analytics-layout {
+            grid-template-columns: 1fr;
+        }
+
+        .dashboard-panels-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .dashboard-analytics-full {
+            margin-top: 10px;
+        }
+
+        .trend-card-side .trend-filter-form {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .historico-card table {
+            min-width: 700px;
+        }
+    }
+
     @media (max-width: 768px) {
         .dashboard-container {
             padding: 16px;
@@ -1022,17 +1292,65 @@
             grid-template-columns: 1fr;
         }
         .chart-card {
-            padding: 20px;
+            padding: 16px;
         }
         .chart-container {
-            height: 280px;
+            height: 228px;
         }
-        .grid.gap-8 {
-            gap: 20px;
+        .dashboard-analytics-layout,
+        .dashboard-analytics-column {
+            gap: 10px;
+        }
+        .dashboard-panels-grid,
+        .dashboard-panels-full {
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .chart-container.tall {
+            height: 242px;
+        }
+        .chart-shell.compact .chart-container,
+        .historico-card .chart-shell.compact .chart-container {
+            height: 176px;
+        }
+        .historico-card .panel-actions,
+        .trend-card-side .panel-actions {
+            width: 100%;
+            justify-content: stretch;
+        }
+        .historico-card .panel-select {
+            width: 100%;
+            min-width: 0;
+        }
+        .trend-card-side .trend-filter-form {
+            grid-template-columns: 1fr;
+        }
+        .trend-card-side .panel-select,
+        .trend-card-side .panel-date-input,
+        .trend-card-side .panel-button,
+        .trend-card-side .trend-date-field {
+            width: 100%;
+            min-width: 0;
+        }
+        .historico-card table {
+            min-width: 640px;
+        }
+        .historico-card table th,
+        .historico-card table td {
+            padding-left: 12px;
+            padding-right: 12px;
+        }
+        .elongaciones-card,
+        .trend-card-side {
+            min-height: 0;
+        }
+        .elongaciones-card .chart-container.tall,
+        .trend-card-side .chart-container.tall {
+            height: 250px;
         }
         .section-title {
             font-size: 20px;
-            margin: 28px 0 20px 0;
+            margin: 22px 0 14px 0;
             gap: 10px;
             padding-left: 14px;
         }
@@ -1042,11 +1360,14 @@
         .stats-grid {
             grid-template-columns: 1fr;
         }
+        .lavadora-metricas {
+            grid-template-columns: 1fr;
+        }
         .chart-card h3 {
-            font-size: 16px;
+            font-size: 15px;
         }
         .chart-container {
-            height: 250px;
+            height: 210px;
         }
         .ranking-position {
             width: 42px;
@@ -1059,6 +1380,12 @@
         .ranking-badge {
             padding: 4px 10px;
             font-size: 10px;
+        }
+        .chart-container.tall {
+            height: 224px;
+        }
+        .historico-card table {
+            min-width: 580px;
         }
     }
 
@@ -1076,17 +1403,17 @@
 
     .panel-copy {
         margin-top: 0;
-        margin-bottom: 14px;
+        margin-bottom: 10px;
         font-size: 12px;
         color: var(--text-secondary);
-        line-height: 1.5;
-        max-width: 760px;
+        line-height: 1.45;
+        max-width: none;
     }
 
     .panel-actions {
         display: flex;
         align-items: center;
-        gap: 10px;
+        gap: 8px;
         flex-wrap: wrap;
         justify-content: flex-end;
     }
@@ -1215,8 +1542,8 @@
     .mini-stats-grid {
         display: grid;
         grid-template-columns: repeat(4, minmax(0, 1fr));
-        gap: 12px;
-        margin-bottom: 18px;
+        gap: 10px;
+        margin-bottom: 14px;
     }
 
     .mini-stats-grid.compact {
@@ -1227,9 +1554,9 @@
         background: white;
         border: 1px solid var(--border-light);
         border-radius: 14px;
-        padding: 14px;
+        padding: 12px;
         box-shadow: var(--shadow-sm);
-        min-height: 88px;
+        min-height: 76px;
     }
 
     .mini-stat.danger { border-top: 4px solid var(--danger-red); }
@@ -1299,24 +1626,24 @@
 
     .chart-shell {
         position: relative;
-        margin: 16px 0 14px;
+        margin: 8px 0;
         border-radius: 14px;
         overflow: hidden;
     }
 
     .chart-shell .chart-container {
         margin: 0;
-        padding: 14px 12px;
+        padding: 12px 10px;
         border: 1px solid rgba(148, 163, 184, 0.14);
         box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75);
     }
 
     .chart-shell.compact .chart-container {
-        height: 236px;
+        height: 212px;
     }
 
     .chart-container.tall {
-        height: 312px;
+        height: 276px;
     }
 
     .card-loader {
@@ -1369,8 +1696,8 @@
         justify-content: center;
         flex-direction: column;
         gap: 10px;
-        min-height: 260px;
-        padding: 28px 24px;
+        min-height: 220px;
+        padding: 24px 20px;
         border-radius: 12px;
         border: 1px dashed var(--border-light);
         background: white;
@@ -1603,6 +1930,16 @@
             margin-left: 10px;
             gap: 10px;
         }
+
+        .ranking-item {
+            flex-wrap: wrap;
+            align-items: flex-start;
+        }
+
+        .ranking-badge {
+            width: 100%;
+            justify-content: center;
+        }
     }
 </style>
 
@@ -1803,9 +2140,9 @@
             ->values();
     @endphp
 
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+    <div class="dashboard-panels-grid">
         {{-- Gráfica 1: Fallas por Línea --}}
-        <div class="chart-card">
+        <div class="chart-card fallas-card">
             <h3>
                 <i class="fas fa-chart-bar"></i>
                 <span>Fallas por Línea</span>
@@ -1820,7 +2157,7 @@
         </div>
 
         {{-- Gráfica 2: Componentes Más Dañados --}}
-        <div class="chart-card">
+        <div class="chart-card planes-card">
             <h3>
                 <i class="fas fa-chart-pie"></i>
                 <span>Componentes Más Dañados</span>
@@ -1835,9 +2172,9 @@
         </div>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+    <div class="dashboard-panels-grid">
         {{-- Ranking: Lavadoras con Mayor Daño --}}
-        <div class="chart-card">
+        <div class="chart-card ranking-card">
             <h3>
                 <i class="fas fa-trophy"></i>
                 <span>Ranking de Daño</span>
@@ -1871,7 +2208,7 @@
         </div>
 
         {{-- Gráfica 3: Evolución de Elongaciones --}}
-        <div class="chart-card">
+        <div class="chart-card elongaciones-card">
             <h3>
                 <i class="fas fa-chart-line"></i>
                 <span>Evolución de Elongaciones</span>
@@ -1886,9 +2223,9 @@
         </div>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+    <div class="dashboard-panels-grid">
         {{-- Tabla: Histórico de Revisiones --}}
-        <div class="chart-card">
+        <div class="chart-card historico-card">
             <h3>
                 <i class="fas fa-history"></i>
                 <span>Histórico de Revisiones</span>
@@ -1921,50 +2258,50 @@
             </div>
         </div>
 
-        {{-- Gráfica 4: Análisis 52-12-4 --}}
-        <div class="chart-card">
+        {{-- Gráfica 4: Análisis 30-14-7 --}}
+        <div class="chart-card trend-card trend-card-side">
             <h3>
                 <i class="fas fa-chart-line"></i>
-                <span>Análisis 52-12-4 | Tendencia de Daños</span>
+                <span>Análisis 30-14-7 | Tendencia de Daños</span>
             </h3>
             <div class="chart-container">
-                <canvas id="analisis52124Chart"></canvas>
+                <canvas id="analisis30147Chart"></canvas>
             </div>
             <div class="chart-description">
                 <i class="fas fa-info-circle"></i>
-                Comparativa de tendencias en 3 períodos de tiempo
+                Comparativa de tendencias en 3 períodos cortos de tiempo
             </div>
         </div>
     </div>
 
-    <div class="grid grid-cols-1 gap-8 mt-8">
-    <div class="chart-card">
+    <div class="dashboard-panels-full">
+        <div class="chart-card trend-card trend-card-primary">
         <h3>
             <i class="fas fa-chart-line"></i>
-            <span>Análisis 30-14-7 | Tendencia de Daños</span>
+            <span>Análisis 52-12-4 | Tendencia de Daños</span>
         </h3>
         <div class="chart-container">
-            <canvas id="analisis30147Chart"></canvas>
+            <canvas id="analisis52124Chart"></canvas>
         </div>
         <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border-light); display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; text-align: center;">
             <div style="display: flex; flex-direction: column; align-items: center; gap: 8px;">
                 <div style="width: 24px; height: 24px; background: linear-gradient(135deg, rgba(59, 130, 246, 0.85), rgba(59, 130, 246, 1)); border-radius: 6px; box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);"></div>
-                <span style="font-size: 12px; color: var(--text-secondary); font-weight: 600;">30 días</span>
+                <span style="font-size: 12px; color: var(--text-secondary); font-weight: 600;">52 semanas</span>
             </div>
             <div style="display: flex; flex-direction: column; align-items: center; gap: 8px;">
                 <div style="width: 24px; height: 24px; background: linear-gradient(135deg, rgba(245, 158, 11, 0.85), rgba(245, 158, 11, 1)); border-radius: 6px; box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);"></div>
-                <span style="font-size: 12px; color: var(--text-secondary); font-weight: 600;">14 días</span>
+                <span style="font-size: 12px; color: var(--text-secondary); font-weight: 600;">12 semanas</span>
             </div>
             <div style="display: flex; flex-direction: column; align-items: center; gap: 8px;">
                 <div style="width: 24px; height: 24px; background: linear-gradient(135deg, rgba(16, 185, 129, 0.85), rgba(16, 185, 129, 1)); border-radius: 6px; box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);"></div>
-                <span style="font-size: 12px; color: var(--text-secondary); font-weight: 600;">7 días</span>
+                <span style="font-size: 12px; color: var(--text-secondary); font-weight: 600;">4 semanas</span>
             </div>
         </div>
         <div class="chart-description">
             <i class="fas fa-info-circle"></i>
-            Comparativa de tendencias en 3 períodos cortos de tiempo
+            Comparativa de tendencias en 3 períodos de tiempo
         </div>
-    </div>
+        </div>
     </div>
 </div>
 
