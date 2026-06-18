@@ -51,7 +51,8 @@ public function index(Request $request)
 
     if ($request->filled('componente_id')) {
         $query->whereHas('componente', function ($q) use ($request) {
-            $q->where('codigo', 'like', '%_' . $request->componente_id);
+            $q->where('codigo', $request->componente_id)
+                ->orWhere('codigo', 'like', '%_' . $request->componente_id);
         });
     }
 
@@ -98,7 +99,8 @@ public function index(Request $request)
     
     if ($request->filled('componente_id')) {
         $queryEstadisticas->whereHas('componente', function ($q) use ($request) {
-            $q->where('codigo', 'like', '%_' . $request->componente_id);
+            $q->where('codigo', $request->componente_id)
+                ->orWhere('codigo', 'like', '%_' . $request->componente_id);
         });
     }
     
@@ -967,7 +969,8 @@ public function update(Request $request, $id)
             ->where('linea_id', $request->linea_id)
             ->where('reductor', $request->reductor)
             ->whereHas('componente', function ($q) use ($request) {
-                $q->where('codigo', 'like', '%_' . $request->componente_id);
+                $q->where('codigo', $request->componente_id)
+                    ->orWhere('codigo', 'like', '%_' . $request->componente_id);
             })
             ->orderByDesc('fecha_analisis')
             ->orderByDesc('created_at');

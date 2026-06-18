@@ -12,10 +12,6 @@
                 <p class="text-gray-600">Mediciones y análisis de elongación de cadenas</p>
             </div>
             <div class="flex space-x-3">
-                <button onclick="exportarExcel()" 
-                        class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
-                    <i class="fas fa-file-excel mr-2"></i> Excel
-                </button>
                 <button onclick="imprimirReporte()" 
                         class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
                     <i class="fas fa-print mr-2"></i> Imprimir
@@ -25,6 +21,38 @@
     </div>
 
     <!-- Gráfico de Elongación -->
+    <div class="card p-6 mb-6">
+        <form method="GET" action="{{ route('reportes.elongacion') }}" class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Linea</label>
+                <select name="linea_id" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                    <option value="">Todas las lineas</option>
+                    @foreach($lineas as $linea)
+                        <option value="{{ $linea->id }}" {{ (string) request('linea_id', $lineaId ?? '') === (string) $linea->id ? 'selected' : '' }}>
+                            {{ $linea->nombre }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Fecha inicio</label>
+                <input type="date" name="fecha_inicio" value="{{ request('fecha_inicio', $fechaInicio->format('Y-m-d')) }}" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Fecha fin</label>
+                <input type="date" name="fecha_fin" value="{{ request('fecha_fin', $fechaFin->format('Y-m-d')) }}" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+            </div>
+            <div class="flex gap-2">
+                <button type="submit" class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
+                    <i class="fas fa-filter mr-2"></i>Aplicar filtros
+                </button>
+                <a href="{{ route('reportes.elongacion') }}" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition">
+                    <i class="fas fa-times"></i>
+                </a>
+            </div>
+        </form>
+    </div>
+
     <div class="card p-6 mb-6">
         <h2 class="text-lg font-semibold text-gray-800 mb-4">Tendencia de Elongación</h2>
         <canvas id="elongacionChart" height="150"></canvas>
@@ -46,9 +74,9 @@
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-200">
-                    @foreach($datos as $item)
+                    @forelse($datos as $item)
                     @php
-                        $porcentaje = (($item['elongacion'] - 173) / 173) * 100;
+                        $porcentaje = $item['porcentaje'] ?? (($item['elongacion'] - 173) / 173) * 100;
                     @endphp
                     <tr>
                         <td class="px-6 py-4 font-medium">{{ $item['linea'] }}</td>
@@ -70,13 +98,19 @@
                             </span>
                         </td>
                         <td class="px-6 py-4">
-                            <a href="{{ route('analisis.porLinea', ['linea' => str_replace('L-', '', $item['linea'])]) }}" 
+                            <a href="{{ route('elongaciones.index', ['linea' => $item['linea']]) }}" 
                                class="text-blue-600 hover:text-blue-800">
                                 <i class="fas fa-history"></i> Historial
                             </a>
                         </td>
                     </tr>
-                    @endforeach
+                    @empty
+                    <tr>
+                        <td colspan="7" class="px-6 py-10 text-center text-gray-500">
+                            No hay mediciones de elongacion para los filtros seleccionados.
+                        </td>
+                    </tr>
+                    @endforelse
                 </tbody>
             </table>
         </div>
@@ -89,7 +123,7 @@
             <div class="space-y-2">
                 <div class="flex justify-between">
                     <span>Líneas analizadas:</span>
-                    <span class="font-medium">{{ count($datos) }}/14</span>
+                    <span class="font-medium">{{ count($datos) }}/{{ $lineas->count() }}</span>
                 </div>
                 <div class="flex justify-between">
                     <span>Promedio elongación:</span>
@@ -100,7 +134,7 @@
                 <div class="flex justify-between">
                     <span>Líneas en estado crítico:</span>
                     <span class="font-medium text-red-600">
-                        {{ collect($datos)->where('estado.text', 'CRÍTICO')->count() }}
+                        {{ collect($datos)->where('estado.text', 'CRITICO')->count() }}
                     </span>
                 </div>
             </div>
@@ -109,17 +143,17 @@
         <div class="card p-6 md:col-span-2">
             <h3 class="font-semibold text-gray-800 mb-3">Recomendaciones</h3>
             <div class="space-y-3">
-                @foreach(collect($datos)->where('estado.text', 'CRÍTICO') as $critica)
+                @foreach(collect($datos)->where('estado.text', 'CRITICO') as $critica)
                 <div class="p-3 bg-red-50 border border-red-200 rounded-lg">
                     <div class="font-medium text-red-800">{{ $critica['linea'] }} requiere atención inmediata</div>
                     <div class="text-sm text-red-600 mt-1">
                         Elongación: {{ number_format($critica['elongacion'], 2) }} mm 
-                        ({{ number_format((($critica['elongacion'] - 173) / 173) * 100, 2) }}%)
+                        ({{ number_format($critica['porcentaje'] ?? 0, 2) }}%)
                     </div>
                 </div>
                 @endforeach
                 
-                @if(collect($datos)->where('estado.text', 'CRÍTICO')->isEmpty())
+                @if(collect($datos)->where('estado.text', 'CRITICO')->isEmpty())
                 <div class="text-center py-4 text-gray-500">
                     <i class="fas fa-check-circle text-green-400 text-xl mb-2"></i>
                     <p>Todas las líneas están dentro de los parámetros aceptables</p>
@@ -140,11 +174,11 @@ const elongacionChart = new Chart(ctx, {
     data: {
         labels: {!! json_encode(collect($datos)->pluck('linea')) !!},
         datasets: [{
-            label: 'Elongación (mm)',
-            data: {!! json_encode(collect($datos)->pluck('elongacion')) !!},
+            label: 'Elongacion (%)',
+            data: {!! json_encode(collect($datos)->pluck('porcentaje')) !!},
             backgroundColor: {!! json_encode(collect($datos)->map(function($item) {
-                if ($item['estado']['text'] == 'CRÍTICO') return '#ef4444';
-                if ($item['estado']['text'] == 'ATENCIÓN') return '#f59e0b';
+                if ($item['estado']['text'] == 'CRITICO') return '#ef4444';
+                if ($item['estado']['text'] == 'ATENCION') return '#f59e0b';
                 return '#10b981';
             })) !!},
             borderWidth: 1
@@ -155,10 +189,10 @@ const elongacionChart = new Chart(ctx, {
         scales: {
             y: {
                 beginAtZero: false,
-                min: 173,
+                min: 0,
                 title: {
                     display: true,
-                    text: 'Elongación (mm)'
+                    text: 'Elongacion (%)'
                 }
             }
         },
@@ -170,14 +204,14 @@ const elongacionChart = new Chart(ctx, {
                 annotations: {
                     line1: {
                         type: 'line',
-                        yMin: 178.19,
-                        yMax: 178.19,
+                        yMin: 1.46,
+                        yMax: 1.46,
                         borderColor: '#ef4444',
                         borderWidth: 2,
                         borderDash: [5, 5],
                         label: {
                             display: true,
-                            content: 'Límite 3%',
+                            content: 'Limite cambio 1.46%',
                             position: 'end'
                         }
                     }
@@ -186,11 +220,6 @@ const elongacionChart = new Chart(ctx, {
         }
     }
 });
-
-function exportarExcel() {
-    // Implementar exportación a Excel
-    window.location.href = "{{ route('analisis.exportar.excel') }}?tipo=elongacion";
-}
 
 function imprimirReporte() {
     window.print();

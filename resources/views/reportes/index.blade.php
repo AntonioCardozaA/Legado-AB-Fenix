@@ -1,20 +1,19 @@
 @extends('layouts.app')
 
-@section('title', 'Centro de Reportes')
+@section('title', 'Reportes de Máquinas')
 
 @section('content')
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
     <!-- ENCABEZADO -->
     <div class="mb-8">
-        <h1 class="text-3xl font-bold text-gray-900">Centro de Reportes</h1>
-        <p class="mt-2 text-gray-600">Visualiza y exporta reportes detallados de tus equipos</p>
+        <h1 class="text-3xl font-bold text-gray-900">Reportes de Máquinas</h1>
     </div>
 
     <!-- FILTROS -->
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
         <form action="{{ route('reportes.index') }}" method="GET" class="space-y-4">
-            <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-6 gap-4">
 
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Tipo de Equipo</label>
@@ -52,7 +51,7 @@
                         class="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
                 </div>
 
-                <div class="flex items-end gap-2">
+                <div class="flex flex-col sm:flex-row items-stretch sm:items-end gap-2 md:col-span-2">
                     <button type="submit"
                         class="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
                         <i class="fas fa-filter mr-2"></i>Aplicar filtros
@@ -93,6 +92,28 @@
                 // Datos de análisis 52-12-4 - Usar datos del reporte
                 $totalDaños4 = $reporteLinea['total_danos_4'] ?? 0;
                 $analisisTendenciaCount = $reporteLinea['analisis_tendencia_count'] ?? 0;
+                $analisis52124 = $reporteLinea['analisis_52124'] ?? [];
+                $analisis30147 = $reporteLinea['analisis_30147'] ?? [];
+                $ventanas52124 = collect($analisis52124['ventanas'] ?? []);
+                $ventanas30147 = collect($analisis30147['ventanas'] ?? []);
+                $ventanaCorta52124 = $ventanas52124->last();
+                $ventanaCorta30147 = $ventanas30147->last();
+                $deltaTendencia = function ($ventana) {
+                    $delta = (int) ($ventana['delta'] ?? 0);
+
+                    if ($delta === 0) {
+                        return 'sin cambio';
+                    }
+
+                    return ($delta > 0 ? '+' : '') . $delta . ' vs anterior';
+                };
+                $planesPendientes = $reporteLinea['planes_pendientes'] ?? ($reporteLinea['acciones_pendientes'] ?? 0);
+                $celdasCompletadas = $reporteLinea['celdas_completadas'] ?? null;
+                $celdasTotales = $reporteLinea['celdas_totales'] ?? null;
+                $historicoRevisados = $reporteLinea['historico_revisados'] ?? ($reporteLinea['historicos'] ?? 0);
+                $historicoTotal = $reporteLinea['historico_total'] ?? null;
+                $historicoPorcentaje = $reporteLinea['historico_porcentaje'] ?? 0;
+                $ultimaRevisionHistorico = $reporteLinea['ultima_revision_historico'] ?? ($reporteLinea['ultima_revision'] ?? null);
                 
                 // Icono según el tipo
                 $icono = $esPasteurizadora ? 'fa-industry' : 'fa-soap';
@@ -154,8 +175,8 @@
                                 <i class="fas fa-clipboard-list text-amber-600 text-sm"></i>
                                 <span class="text-xs font-semibold text-amber-800 uppercase tracking-wider">PLAN ACCIÓN</span>
                             </div>
-                            <p class="text-lg font-bold text-amber-900">{{ $reporteLinea['componentes_criticos'] ?? 0 }}</p>
-                            <p class="text-xs text-amber-700">pendientes de ejecución</p>
+                            <p class="text-lg font-bold text-amber-900">{{ $planesPendientes }}</p>
+                            <p class="text-xs text-amber-700">planes pendientes</p>
                         </div>
 
                         @if($esPasteurizadora)
@@ -190,11 +211,21 @@
                                 <i class="fas fa-flask text-purple-600 text-sm"></i>
                                 <span class="text-xs font-semibold text-purple-800 uppercase tracking-wider">52-12-4</span>
                             </div>
-                            <p class="text-lg font-bold text-purple-900">{{ $analisisTendenciaCount }}</p>
+                            <p class="text-lg font-bold text-purple-900">{{ $ventanaCorta52124['current'] ?? $analisisTendenciaCount }}</p>
                             <p class="text-xs text-purple-700">Daños 4s: {{ number_format($totalDaños4, 2) }}</p>
                         </div>
 
-                        <!-- 5. HISTORICO DE REVISADOS -->
+                        <!-- 5. ANALISIS 30-14-7 -->
+                        <div class="bg-cyan-50 rounded-lg p-3 border border-cyan-100">
+                            <div class="flex items-center gap-2 mb-1">
+                                <i class="fas fa-chart-line text-cyan-600 text-sm"></i>
+                                <span class="text-xs font-semibold text-cyan-800 uppercase tracking-wider">30-14-7</span>
+                            </div>
+                            <p class="text-lg font-bold text-cyan-900">{{ $ventanaCorta30147['current'] ?? 0 }}</p>
+                            <p class="text-xs text-cyan-700">{{ $ventanaCorta30147['label'] ?? '7 dias' }}: {{ $deltaTendencia($ventanaCorta30147) }}</p>
+                        </div>
+
+                        <!-- 6. HISTORICO DE REVISADOS -->
                         <div class="bg-gray-50 rounded-lg p-3 border border-gray-200">
                             <div class="flex items-center gap-2 mb-1">
                                 <i class="fas fa-history text-gray-600 text-sm"></i>
@@ -202,11 +233,19 @@
                             </div>
                             @if($esPasteurizadora)
                                 <p class="text-lg font-bold text-gray-900">{{ number_format($avanceHistorico, 1) }}%</p>
-                                <p class="text-xs text-gray-500 truncate">Ult: {{ $reporteLinea['ultima_revision'] ?? 'Sin datos' }}</p>
+                                <p class="text-xs text-gray-500 truncate">
+                                    @if(!is_null($celdasCompletadas) && !is_null($celdasTotales))
+                                        {{ $celdasCompletadas }}/{{ $celdasTotales }} celdas
+                                    @else
+                                        Ult: {{ $reporteLinea['ultima_revision'] ?? 'Sin datos' }}
+                                    @endif
+                                </p>
                             @else
-                                <p class="text-lg font-bold text-gray-900">{{ $reporteLinea['historicos'] ?? 0 }}</p>
-                                @if(!empty($reporteLinea['ultima_revision']))
-                                    <p class="text-xs text-gray-500 truncate">Ult: {{ $reporteLinea['ultima_revision'] }}</p>
+                                <p class="text-lg font-bold text-gray-900">{{ number_format($historicoPorcentaje, 1) }}%</p>
+                                @if(!is_null($historicoTotal))
+                                    <p class="text-xs text-gray-500 truncate">{{ $historicoRevisados }}/{{ $historicoTotal }} revisados</p>
+                                @elseif(!empty($ultimaRevisionHistorico))
+                                    <p class="text-xs text-gray-500 truncate">Ult: {{ $ultimaRevisionHistorico }}</p>
                                 @endif
                             @endif
                         </div>
@@ -261,20 +300,6 @@
                             </button>
                         </form>
 
-                        <form action="{{ $esPasteurizadora ? route('pasteurizadora.analisis-pasteurizadora.export.excel') : route('reportes.export-excel') }}" method="GET" class="flex-1">
-                            <input type="hidden" name="export_format" value="excel">
-                            <input type="hidden" name="export_tipo" value="linea">
-                            <input type="hidden" name="lineaId" value="{{ $linea->id }}">
-                            <input type="hidden" name="linea_id" value="{{ $linea->id }}">
-                            <input type="hidden" name="tipo" value="{{ $tipoEquipo }}">
-                            <input type="hidden" name="fecha_inicio" value="{{ $fechaInicio->format('Y-m-d') }}">
-                            <input type="hidden" name="fecha_fin" value="{{ $fechaFin->format('Y-m-d') }}">
-                            <button type="submit" 
-                                    class="w-full text-center bg-orange-50 text-orange-700 px-4 py-2 rounded-lg hover:bg-orange-100 transition-colors text-sm font-medium">
-                                <i class="fas fa-file-excel mr-2"></i>
-                                Exportar Excel
-                            </button>
-                        </form>
                     </div>
 
                 </div>
@@ -290,7 +315,7 @@
     </div>
 
     <!-- SECCIÓN DE ANÁLISIS DETALLADOS POR LÍNEA -->
-    @if(isset($reporteDetallado) && isset($reporteDetallado['lineas']) && count($reporteDetallado['lineas']) > 0)
+    @if(false && isset($reporteDetallado) && isset($reporteDetallado['lineas']) && count($reporteDetallado['lineas']) > 0)
     <div class="mt-8">
         <h2 class="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
             <i class="fas fa-clipboard-list text-blue-600"></i>
@@ -451,6 +476,8 @@
     </div>
     @endif
 
+
+
     <!-- BOTÓN PARA EXPORTAR REPORTE GENERAL -->
     @if(count($lineas) > 0)
     <div class="mt-8 flex justify-end space-x-3">
@@ -462,17 +489,6 @@
             <input type="hidden" name="fecha_fin" value="{{ $fechaFin->format('Y-m-d') }}">
             <button type="submit" class="bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 transition-colors">
                 <i class="fas fa-file-pdf mr-2"></i>Exportar Reporte General PDF
-            </button>
-        </form>
-        
-        <form action="{{ $tipoEquipo == 'pasteurizadoras' ? route('pasteurizadora.analisis-pasteurizadora.export.excel') : route('reportes.export-excel') }}" method="GET">
-            <input type="hidden" name="export_format" value="excel">
-            <input type="hidden" name="export_tipo" value="completo">
-            <input type="hidden" name="tipo" value="{{ $tipoEquipo }}">
-            <input type="hidden" name="fecha_inicio" value="{{ $fechaInicio->format('Y-m-d') }}">
-            <input type="hidden" name="fecha_fin" value="{{ $fechaFin->format('Y-m-d') }}">
-            <button type="submit" class="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition-colors">
-                <i class="fas fa-file-excel mr-2"></i>Exportar Reporte General Excel
             </button>
         </form>
     </div>

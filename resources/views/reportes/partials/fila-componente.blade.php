@@ -39,7 +39,13 @@
     </td>
 
     <td>
-        <a href="{{ route('analisis-lavadora.index', ['componente_id' => $item['componente_id'] ?? '']) }}"
+        @php
+            $detalleParams = array_filter([
+                'linea_id' => $item['linea_id'] ?? null,
+                'componente' => $item['componente'] ?? null,
+            ]);
+        @endphp
+        <a href="{{ route('analisis-lavadora.index', $detalleParams) }}"
            class="text-blue-600 hover:text-blue-800 text-sm">
             <i class="fas fa-eye"></i>
         </a>

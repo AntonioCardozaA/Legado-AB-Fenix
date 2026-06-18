@@ -14,6 +14,42 @@
     
     // Usar los datos que ya vienen del controlador
     $analisisTendencia = $reporte['analisis_tendencia'] ?? collect([]);
+    $analisis52124Reporte = $reporte['analisis_52124'] ?? [];
+    $analisis30147Reporte = $reporte['analisis_30147'] ?? [];
+    $ventanas52124Reporte = collect($analisis52124Reporte['ventanas'] ?? []);
+    $ventanas30147Reporte = collect($analisis30147Reporte['ventanas'] ?? []);
+    $trendToneClass = function ($tone) {
+        return match ($tone) {
+            'danger' => 'text-red-700 bg-red-50 border-red-200',
+            'success' => 'text-green-700 bg-green-50 border-green-200',
+            'warning' => 'text-amber-700 bg-amber-50 border-amber-200',
+            default => 'text-blue-700 bg-blue-50 border-blue-200',
+        };
+    };
+
+    $lavadoraIconosDisponibles = [
+        'RV200_SIN_FIN',
+        'SERVO_GRANDE',
+        'SERVO_CHICO',
+        'GUI_INF_TANQUE',
+        'GUI_INT_TANQUE',
+        'GUI_SUP_TANQUE',
+        'BUJE_ESPIGA',
+        'CATARINAS',
+        'RV200',
+    ];
+
+    $lavadoraComponentIcon = function ($codigo) use ($lavadoraIconosDisponibles) {
+        $codigo = strtoupper(trim((string) $codigo));
+
+        foreach ($lavadoraIconosDisponibles as $codigoBase) {
+            if ($codigo === $codigoBase || str_ends_with($codigo, '_' . $codigoBase)) {
+                return asset('images/componentes-lavadora/' . $codigoBase . '.png');
+            }
+        }
+
+        return asset('images/icono-maquina.png');
+    };
     
     $totalDaños52 = $analisisTendencia->sum('total_danos_52_semanas');
     $totalDaños12 = $analisisTendencia->sum('total_danos_12_semanas');
@@ -31,29 +67,32 @@
 
 <style>
     :root {
-        --primary-blue: #3b82f6;
+        --primary-blue: #2563eb;
         --success-green: #10b981;
         --warning-yellow: #f59e0b;
         --danger-red: #ef4444;
-        --dark: #0f172a;
-        --dark-light: #1e293b;
-        --border: #e2e8f0;
+        --dark: #111827;
+        --dark-light: #374151;
+        --border: #e5e7eb;
         --background: #f8fafc;
+        --surface: #ffffff;
+        --soft-blue: #eff6ff;
+        --soft-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
     }
 
     /* Stats Cards */
     .stats-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-        gap: 20px;
-        margin-bottom: 30px;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 16px;
+        margin-bottom: 24px;
     }
 
     .stat-card {
-        background: white;
-        border-radius: 20px;
-        padding: 24px;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        background: var(--surface);
+        border-radius: 12px;
+        padding: 18px;
+        box-shadow: var(--soft-shadow);
         border: 1px solid var(--border);
         position: relative;
         overflow: hidden;
@@ -61,8 +100,7 @@
     }
 
     .stat-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 10px 15px -3px rgba(15, 23, 42, 0.08);
     }
 
     .stat-card::after {
@@ -72,7 +110,7 @@
         right: 0;
         width: 100px;
         height: 100px;
-        background: linear-gradient(135deg, transparent, rgba(37, 99, 235, 0.05));
+        background: rgba(37, 99, 235, 0.04);
         border-radius: 50%;
     }
 
@@ -93,10 +131,10 @@
         font-size: 24px;
     }
 
-    .stat-icon.total { background: #e2e8f0; color: #475569; }
-    .stat-icon.analisis { background: #dbeafe; color: #2563eb; }
-    .stat-icon.elongacion { background: #fee2e2; color: #dc2626; }
-    .stat-icon.criticos { background: #fef3c7; color: #d97706; }
+    .stat-icon.total { background: #dbeafe; color: #2563eb; }
+    .stat-icon.analisis { background: #fffbeb; color: #d97706; }
+    .stat-icon.elongacion { background: #d1fae5; color: #059669; }
+    .stat-icon.criticos { background: #f3e8ff; color: #7c3aed; }
 
     .stat-label {
         font-size: 14px;
@@ -115,21 +153,22 @@
 
     /* Secciones de módulos */
     .modulo-section {
-        background: white;
-        border-radius: 20px;
+        background: var(--surface);
+        border-radius: 12px;
         overflow: hidden;
-        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+        box-shadow: var(--soft-shadow);
         border: 1px solid var(--border);
-        margin-bottom: 30px;
+        margin-bottom: 24px;
     }
 
     .modulo-header {
-        background: linear-gradient(135deg, var(--dark), var(--dark-light));
-        color: white;
+        background: linear-gradient(to right, #f9fafb, #ffffff);
+        color: #111827;
         padding: 20px 24px;
         display: flex;
         align-items: center;
         justify-content: space-between;
+        border-bottom: 1px solid var(--border);
     }
 
     .modulo-header-left {
@@ -141,14 +180,14 @@
     .modulo-icon {
         width: 48px;
         height: 48px;
-        background: rgba(59, 130, 246, 0.2);
-        border-radius: 12px;
+        background: #dbeafe;
+        border-radius: 8px;
         display: flex;
         align-items: center;
         justify-content: center;
         font-size: 24px;
-        color: var(--primary-blue);
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: #2563eb;
+        border: 1px solid #bfdbfe;
     }
 
     .modulo-titulo {
@@ -158,16 +197,17 @@
 
     .modulo-subtitulo {
         font-size: 13px;
-        color: #94a3b8;
+        color: #6b7280;
     }
 
     .modulo-badge {
-        background: rgba(255, 255, 255, 0.1);
+        background: #eff6ff;
+        color: #1d4ed8;
         padding: 8px 16px;
         border-radius: 40px;
         font-size: 14px;
         font-weight: 600;
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        border: 1px solid #bfdbfe;
     }
 
     .modulo-body {
@@ -177,13 +217,13 @@
     /* Grid de componentes */
     .componentes-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
         gap: 16px;
     }
 
     .componente-card {
         background: #f8fafc;
-        border-radius: 16px;
+        border-radius: 8px;
         padding: 16px;
         border: 1px solid var(--border);
         transition: all 0.3s ease;
@@ -191,7 +231,7 @@
 
     .componente-card:hover {
         transform: translateY(-2px);
-        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 10px 15px -3px rgba(15, 23, 42, 0.06);
         border-color: var(--primary-blue);
     }
 
@@ -206,7 +246,7 @@
         width: 40px;
         height: 40px;
         background: white;
-        border-radius: 10px;
+        border-radius: 8px;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -296,7 +336,8 @@
     }
 
     .industrial-table th {
-        background: #f8fafc;
+        background: #f9fafb;
+        border: 1px solid #e5e7eb;
         padding: 16px;
         font-weight: 600;
         font-size: 12px;
@@ -320,7 +361,7 @@
     /* Gráfica de elongación */
     .elongacion-chart-container {
         background: #f8fafc;
-        border-radius: 16px;
+        border-radius: 8px;
         padding: 20px;
     }
 
@@ -390,7 +431,7 @@
 
     .reductor-card {
         background: #f8fafc;
-        border-radius: 12px;
+        border-radius: 8px;
         padding: 12px;
         border: 1px solid var(--border);
     }
@@ -431,7 +472,7 @@
         </div>
         <div class="stat-value">{{ $resumen['total_analisis'] ?? 0 }}</div>
         <div class="text-sm text-gray-500 mt-2">
-            Componentes: {{ $resumen['componentes_revisados'] ?? 0 }}/{{ count($reporte['componentes_definidos'] ?? []) }}
+            Componentes: {{ $resumen['componentes_revisados'] ?? 0 }}/{{ $resumen['total_componentes'] ?? count($componentes) }}
         </div>
     </div>
 
@@ -514,10 +555,10 @@
                 <div class="componente-card">
                     <div class="componente-header">
                         <div class="componente-icono">
-                            <img src="{{ asset('images/componentes-lavadora/' . $componente['codigo'] . '.png') }}" 
+                            <img src="{{ $lavadoraComponentIcon($componente['codigo'] ?? null) }}" 
                                  alt="{{ $componente['nombre'] }}"
                                  class="w-8 h-8 object-contain"
-                                 onerror="this.src='{{ asset('images/componentes-lavadora/default.png') }}'">
+                                 onerror="this.src='{{ asset('images/icono-maquina.png') }}'">
                         </div>
                         <div class="flex-1">
                             <div class="componente-nombre">{{ $componente['nombre'] }}</div>
@@ -739,7 +780,7 @@
 @endif
 
 {{-- SECCIÓN 3: ANÁLISIS 52-12-4 (Módulo 4) --}}
-@if($analisisTendencia->count() > 0)
+@if($analisisTendencia->count() > 0 || $ventanas52124Reporte->isNotEmpty())
 <div class="modulo-section">
     <div class="modulo-header">
         <div class="modulo-header-left">
@@ -757,6 +798,26 @@
         </div>
     </div>
     <div class="modulo-body">
+        @if($ventanas52124Reporte->isNotEmpty())
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                @foreach($ventanas52124Reporte as $ventana)
+                    <div class="p-4 rounded-lg border {{ $trendToneClass($ventana['tone'] ?? 'info') }}">
+                        <div class="text-xs font-bold uppercase tracking-wide mb-1">{{ $ventana['label'] }}</div>
+                        <div class="text-3xl font-bold">{{ $ventana['current'] ?? 0 }}</div>
+                        <div class="text-xs mt-1">
+                            Anterior: {{ $ventana['previous'] ?? 0 }}
+                            <span class="font-semibold ml-2">{{ (($ventana['delta'] ?? 0) > 0 ? '+' : '') . ($ventana['delta'] ?? 0) }}</span>
+                        </div>
+                        <div class="text-[11px] mt-2 opacity-80">{{ $ventana['current_range'] ?? 'Sin rango' }}</div>
+                        <div class="text-[11px] mt-1 opacity-80">
+                            Componentes: {{ $ventana['current_componentes'] ?? 0 }} | Elongacion: {{ $ventana['current_elongaciones'] ?? 0 }}
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+        @endif
+
+        @if($analisisTendencia->count() > 0)
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             <div class="bg-white p-4 rounded-lg border border-gray-200 text-center">
                 <div class="text-sm text-gray-500 mb-1">52 SEMANAS</div>
@@ -774,6 +835,7 @@
                 <div class="text-xs text-gray-500">Total daños</div>
             </div>
         </div>
+        @endif
         
         <table class="industrial-table">
             <thead>
@@ -840,6 +902,69 @@
 @endif
 
 {{-- SECCIÓN 4: HISTÓRICO DE REVISIONES (Módulo 5) --}}
+@if($ventanas30147Reporte->isNotEmpty())
+<div class="modulo-section">
+    <div class="modulo-header">
+        <div class="modulo-header-left">
+            <div class="modulo-icon">
+                <i class="fas fa-chart-line"></i>
+            </div>
+            <div>
+                <div class="modulo-titulo">ANALISIS 30-14-7</div>
+                <div class="modulo-subtitulo">Fallas recientes contra periodo anterior</div>
+            </div>
+        </div>
+        <div class="modulo-badge">
+            <i class="fas fa-bolt mr-2"></i>
+            {{ $analisis30147Reporte['resumen']['estado']['label'] ?? 'Sin fallas' }}
+        </div>
+    </div>
+    <div class="modulo-body">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            @foreach($ventanas30147Reporte as $ventana)
+                <div class="p-4 rounded-lg border {{ $trendToneClass($ventana['tone'] ?? 'info') }}">
+                    <div class="text-xs font-bold uppercase tracking-wide mb-1">{{ $ventana['label'] }}</div>
+                    <div class="text-3xl font-bold">{{ $ventana['current'] ?? 0 }}</div>
+                    <div class="text-xs mt-1">
+                        Anterior: {{ $ventana['previous'] ?? 0 }}
+                        <span class="font-semibold ml-2">{{ (($ventana['delta'] ?? 0) > 0 ? '+' : '') . ($ventana['delta'] ?? 0) }}</span>
+                    </div>
+                    <div class="text-[11px] mt-2 opacity-80">{{ $ventana['current_range'] ?? 'Sin rango' }}</div>
+                    <div class="text-[11px] mt-1 opacity-80">
+                        Componentes: {{ $ventana['current_componentes'] ?? 0 }} | Elongacion: {{ $ventana['current_elongaciones'] ?? 0 }}
+                    </div>
+                </div>
+            @endforeach
+        </div>
+
+        <table class="industrial-table">
+            <thead>
+                <tr>
+                    <th>Ventana</th>
+                    <th>Periodo actual</th>
+                    <th>Actual</th>
+                    <th>Anterior</th>
+                    <th>Diferencia</th>
+                    <th>Origen</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach($ventanas30147Reporte as $ventana)
+                    <tr>
+                        <td class="font-medium">{{ $ventana['label'] }}</td>
+                        <td>{{ $ventana['current_range'] ?? '-' }}</td>
+                        <td>{{ $ventana['current'] ?? 0 }}</td>
+                        <td>{{ $ventana['previous'] ?? 0 }}</td>
+                        <td>{{ (($ventana['delta'] ?? 0) > 0 ? '+' : '') . ($ventana['delta'] ?? 0) }}</td>
+                        <td>Comp: {{ $ventana['current_componentes'] ?? 0 }} / Elong: {{ $ventana['current_elongaciones'] ?? 0 }}</td>
+                    </tr>
+                @endforeach
+            </tbody>
+        </table>
+    </div>
+</div>
+@endif
+
 @if($analisis->count() > 0)
 <div class="modulo-section">
     <div class="modulo-header">
@@ -885,9 +1010,9 @@
                         <td>{{ \Carbon\Carbon::parse($item->fecha_analisis)->format('d/m/Y') }}</td>
                         <td>
                             <div class="flex items-center gap-2">
-                                <img src="{{ asset('images/componentes-lavadora/' . ($item->componente->codigo ?? 'default') . '.png') }}" 
+                                <img src="{{ $lavadoraComponentIcon($item->componente->codigo ?? null) }}" 
                                      class="w-6 h-6 object-contain"
-                                     onerror="this.src='{{ asset('images/componentes-lavadora/default.png') }}'">
+                                     onerror="this.src='{{ asset('images/icono-maquina.png') }}'">
                                 <span>{{ $item->componente->nombre ?? 'N/A' }}</span>
                             </div>
                         </td>
@@ -918,7 +1043,7 @@
 @endif
 
 {{-- SECCIÓN 5: REDUCTORES (Parte del Módulo 1) --}}
-@if(count($reductores) > 0)
+@if(false && count($reductores) > 0)
 <div class="modulo-section">
     <div class="modulo-header">
         <div class="modulo-header-left">

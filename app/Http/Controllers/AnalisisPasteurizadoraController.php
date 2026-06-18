@@ -833,9 +833,25 @@ class AnalisisPasteurizadoraController extends Controller
     public function exportPdf(Request $request)
     {
         $analisis = $this->getAnalisisPasteurizadoraParaExportar($request);
-        $filename = 'analisis_pasteurizadora_' . now()->format('Ymd_His') . '.pdf';
+        $linea = $request->filled('linea_id') && $request->linea_id !== 'todas'
+            ? Linea::find($request->linea_id)
+            : null;
+        $fechaInicio = $request->filled('fecha_inicio') ? $request->fecha_inicio : null;
+        $fechaFin = $request->filled('fecha_fin') ? $request->fecha_fin : null;
+        $tituloDocumento = $linea
+            ? 'Reporte de Pasteurizadora ' . $linea->nombre
+            : 'Reporte General de Pasteurizadoras';
+        $filename = $linea
+            ? 'reporte_pasteurizadora_' . $linea->nombre . '_' . now()->format('Ymd_His') . '.pdf'
+            : 'reporte_pasteurizadoras_' . now()->format('Ymd_His') . '.pdf';
 
-        return Pdf::loadHTML($this->renderAnalisisPasteurizadoraPdf($analisis))
+        return Pdf::loadView('pasteurizadora.pdf.analisis', $this->sharedViewData(compact(
+            'analisis',
+            'linea',
+            'fechaInicio',
+            'fechaFin',
+            'tituloDocumento'
+        )))
             ->setPaper('a4', 'landscape')
             ->download($filename);
     }

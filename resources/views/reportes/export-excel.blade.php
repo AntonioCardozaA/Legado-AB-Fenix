@@ -14,10 +14,6 @@
             </p>
         </div>
 
-        <a href="{{ route('analisis.exportar.excel', request()->query()) }}"
-           class="btn btn-success btn-lg shadow">
-            <i class="fas fa-file-excel me-2"></i> Exportar Excel
-        </a>
     </div>
 
     {{-- FILTROS --}}

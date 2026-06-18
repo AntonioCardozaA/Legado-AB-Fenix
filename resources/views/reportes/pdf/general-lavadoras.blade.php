@@ -3,6 +3,15 @@
     $esPasteurizadora = ($tipoEquipo ?? 'lavadoras') === 'pasteurizadoras';
     $tipoTitulo = $esPasteurizadora ? 'Pasteurizadoras' : 'Lavadoras';
     $tipoSingular = $esPasteurizadora ? 'Pasteurizadora' : 'Lavadora';
+    $esReporteLinea = ($modoReporte ?? null) === 'linea' || $lineasReporte->count() === 1;
+    $lineaUnica = $esReporteLinea ? ($lineasReporte->first()['linea'] ?? null) : null;
+    $nombreLineaUnica = optional($lineaUnica)->nombre;
+    $tituloDocumento = $esReporteLinea && $nombreLineaUnica
+        ? 'Reporte de ' . $tipoSingular . ' ' . $nombreLineaUnica
+        : 'Reporte General de ' . $tipoTitulo;
+    $subtituloDocumento = $esReporteLinea
+        ? 'Detalle completo por linea'
+        : 'Reporte general de mantenimiento';
     $platformName = 'Legado AB Fenix';
 
     $logoCandidates = [
@@ -328,9 +337,9 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Reporte general {{ $tipoTitulo }}</title>
+    <title>{{ $tituloDocumento }}</title>
     <style>
-        @page { margin: 22px 24px 28px 24px; }
+        @page { margin: 54px 24px 46px 24px; }
         * { box-sizing: border-box; }
         body {
             font-family: DejaVu Sans, Arial, sans-serif;
@@ -344,6 +353,43 @@
             padding: 18px;
             margin-bottom: 18px;
         }
+        .page-header,
+        .page-footer {
+            position: fixed;
+            left: 0;
+            right: 0;
+            color: #4b5563;
+        }
+        .page-header {
+            top: -38px;
+            border-bottom: 1px solid #d1d5db;
+            padding-bottom: 8px;
+        }
+        .page-footer {
+            bottom: -30px;
+            border-top: 1px solid #d1d5db;
+            padding-top: 7px;
+            font-size: 8.5px;
+        }
+        .page-header table,
+        .page-footer table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .page-logo {
+            width: 28px;
+            max-height: 24px;
+            object-fit: contain;
+            vertical-align: middle;
+            margin-right: 6px;
+        }
+        .page-brand {
+            font-size: 10px;
+            font-weight: bold;
+            color: #111827;
+            text-transform: uppercase;
+        }
+        .page-number:after { content: counter(page); }
         .brand-row {
             width: 100%;
             border-collapse: collapse;
@@ -529,6 +575,35 @@
     </style>
 </head>
 <body>
+    <div class="page-header">
+        <table>
+            <tr>
+                <td>
+                    @if($platformLogo)
+                        <img src="{{ $platformLogo }}" class="page-logo" alt="{{ $platformName }}">
+                    @endif
+                    <span class="page-brand">{{ $platformName }}</span>
+                </td>
+                <td style="text-align: right;">
+                    {{ $tituloDocumento }} | {{ $fechaInicio->format('d/m/Y') }} - {{ $fechaFin->format('d/m/Y') }}
+                </td>
+            </tr>
+        </table>
+    </div>
+    <div class="page-footer">
+        <table>
+            <tr>
+                <td>
+                    @if($platformLogo)
+                        <img src="{{ $platformLogo }}" class="page-logo" alt="{{ $platformName }}">
+                    @endif
+                    {{ $platformName }} | Documento generado automaticamente
+                </td>
+                <td style="text-align: right;">Pagina <span class="page-number"></span></td>
+            </tr>
+        </table>
+    </div>
+
     <div class="cover">
         <table class="brand-row">
             <tr>
@@ -539,7 +614,7 @@
                 </td>
                 <td>
                     <div class="brand-name">{{ $platformName }}</div>
-                    <div class="doc-kicker">Reporte general de mantenimiento</div>
+                    <div class="doc-kicker">{{ $subtituloDocumento }}</div>
                 </td>
                 <td style="text-align: right;">
                     <div class="doc-kicker">Generado</div>
@@ -548,7 +623,7 @@
             </tr>
         </table>
 
-        <h1>Reporte General de {{ $tipoTitulo }}</h1>
+        <h1>{{ $tituloDocumento }}</h1>
         <div class="muted">
             Periodo: {{ $fechaInicio->format('d/m/Y') }} - {{ $fechaFin->format('d/m/Y') }}
         </div>
@@ -558,8 +633,10 @@
         <table class="summary-table">
             <tr>
                 <td>
-                    <span class="summary-label">Maquinas / lineas</span>
-                    <span class="summary-value">{{ $lineasReporte->count() }}</span>
+                    <span class="summary-label">{{ $esReporteLinea ? 'Maquina / linea' : 'Maquinas / lineas' }}</span>
+                    <span class="summary-value" style="{{ $esReporteLinea ? 'font-size: 16px;' : '' }}">
+                        {{ $esReporteLinea ? ($nombreLineaUnica ?? 'Sin linea') : $lineasReporte->count() }}
+                    </span>
                 </td>
                 <td>
                     <span class="summary-label">Analisis registrados</span>
@@ -570,14 +647,16 @@
                     <span class="summary-value">{{ $lineasReporte->sum(fn ($linea) => data_get($linea, 'resumen.componentes_criticos', 0)) }}</span>
                 </td>
                 <td>
-                    <span class="summary-label">Evidencias fotograficas</span>
-                    <span class="summary-value">{{ $lineasReporte->sum(fn ($linea) => $lineEvidenceCount($linea)) }}</span>
+                    <span class="summary-label">{{ $esReporteLinea ? 'Tipo de reporte' : 'Lineas con analisis' }}</span>
+                    <span class="summary-value" style="{{ $esReporteLinea ? 'font-size: 13px;' : '' }}">
+                        {{ $esReporteLinea ? 'Linea' : $lineasReporte->filter(fn ($linea) => $getLineAnalisis($linea)->isNotEmpty())->count() }}
+                    </span>
                 </td>
             </tr>
         </table>
 
         <div class="section" style="margin-top: 16px;">
-            <h2>Resumen por linea</h2>
+            <h2>{{ $esReporteLinea ? 'Resumen de la linea' : 'Resumen por linea' }}</h2>
             <table class="data-table">
                 <thead>
                     <tr>
@@ -586,7 +665,6 @@
                         <th>Analisis</th>
                         <th>Componentes revisados</th>
                         <th>Criticos</th>
-                        <th>Evidencias</th>
                         <th>Estado general</th>
                     </tr>
                 </thead>
@@ -603,12 +681,11 @@
                             <td>{{ $getLineAnalisis($lineaReporte)->count() }}</td>
                             <td>{{ data_get($resumen, 'componentes_revisados', 0) }} / {{ $totalComponentesResumen($resumen) }}</td>
                             <td>{{ data_get($resumen, 'componentes_criticos', 0) }}</td>
-                            <td>{{ $lineEvidenceCount($lineaReporte) }}</td>
                             <td><span class="badge {{ $stateClass($estadoGeneral) }}">{{ $estadoGeneral }}</span></td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7">No hay datos para el periodo seleccionado.</td>
+                            <td colspan="6">No hay datos para el periodo seleccionado.</td>
                         </tr>
                     @endforelse
                 </tbody>
@@ -622,8 +699,8 @@
             $nombreLinea = optional($linea)->nombre ?? 'Sin linea';
             $resumen = $lineaReporte['resumen'] ?? [];
             $analisisPlanos = $getLineAnalisis($lineaReporte);
-            $totalEvidenciasLinea = $analisisPlanos->sum(fn ($registro) => count($getImages($registro)));
             $estadoGeneral = data_get($resumen, 'estado_general.texto', data_get($lineaReporte, 'estado_general.texto', 'Sin datos'));
+            $ultimoAnalisisLinea = $analisisPlanos->sortByDesc(fn ($registro) => data_get($registro, 'fecha_analisis'))->first();
             $componentNameMap = collect($lineaReporte['componentes'] ?? [])
                 ->mapWithKeys(fn ($component) => [data_get($component, 'codigo') => data_get($component, 'nombre')]);
             $componentStatsLavadora = $esPasteurizadora
@@ -636,7 +713,7 @@
             <div class="meta">
                 Periodo {{ $fechaInicio->format('d/m/Y') }} - {{ $fechaFin->format('d/m/Y') }}
                 | Estado: {{ $estadoGeneral }}
-                | Evidencias: {{ $totalEvidenciasLinea }}
+                | Ultimo analisis: {{ $formatDate(data_get($ultimoAnalisisLinea, 'fecha_analisis')) }}
             </div>
         </div>
 
@@ -657,8 +734,8 @@
                         <span class="summary-value">{{ data_get($resumen, 'componentes_criticos', data_get($resumen, 'acciones_pendientes', 0)) }}</span>
                     </td>
                     <td>
-                        <span class="summary-label">Evidencias</span>
-                        <span class="summary-value">{{ $totalEvidenciasLinea }}</span>
+                        <span class="summary-label">Ultimo analisis</span>
+                        <span class="summary-value" style="font-size: 12px;">{{ $formatDate(data_get($ultimoAnalisisLinea, 'fecha_analisis')) }}</span>
                     </td>
                 </tr>
                 <tr>

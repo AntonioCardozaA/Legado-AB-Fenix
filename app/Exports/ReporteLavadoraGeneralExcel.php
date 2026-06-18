@@ -1,164 +1,162 @@
 <?php
-// app/Exports/ReporteLavadoraGeneralExcel.php
 
 namespace App\Exports;
 
 use App\Models\AnalisisLavadora;
-use App\Models\Paro;
+use App\Models\Elongacion;
 use App\Models\Linea;
+use App\Models\Paro;
+use Carbon\Carbon;
 use Maatwebsite\Excel\Concerns\FromArray;
-use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Concerns\WithColumnWidths;
+use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Concerns\WithTitle;
 use Maatwebsite\Excel\Events\AfterSheet;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
-use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Style\Border;
-use Carbon\Carbon;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Worksheet\Drawing;
+use PhpOffice\PhpSpreadsheet\Worksheet\PageSetup;
 
 class ReporteLavadoraGeneralExcel implements FromArray, WithEvents, WithColumnWidths, WithTitle
 {
-    protected $fechaInicio;
-    protected $fechaFin;
+    protected Carbon $fechaInicio;
+    protected Carbon $fechaFin;
     protected $lineaId;
     protected $analisis;
+    protected $elongaciones;
     protected $paros;
     protected $lineas;
-    
-    // Líneas de lavadora
-    protected $lavadoras = ['L-04', 'L-05', 'L-06', 'L-07', 'L-08', 'L-09', 'L-12', 'L-13'];
+    protected string $platformName = 'Legado AB Fenix';
+
+    protected array $lavadoras = ['L-04', 'L-05', 'L-06', 'L-07', 'L-08', 'L-09', 'L-12', 'L-13'];
 
     public function __construct($fechaInicio = null, $fechaFin = null, $lineaId = null)
     {
-        $this->fechaInicio = $fechaInicio ? Carbon::parse($fechaInicio) : Carbon::now()->subMonth();
-        $this->fechaFin = $fechaFin ? Carbon::parse($fechaFin) : Carbon::now();
+        $this->fechaInicio = $fechaInicio ? Carbon::parse($fechaInicio)->startOfDay() : Carbon::now()->subMonth()->startOfDay();
+        $this->fechaFin = $fechaFin ? Carbon::parse($fechaFin)->endOfDay() : Carbon::now()->endOfDay();
         $this->lineaId = $lineaId;
 
-        // Si hay línea específica, solo esa
-        if ($lineaId) {
-            $this->lineas = Linea::where('id', $lineaId)->get();
-        } else {
-            $this->lineas = Linea::whereIn('nombre', $this->lavadoras)->get();
-        }
+        $this->lineas = Linea::whereIn('nombre', $this->lavadoras)
+            ->when($this->lineaId, fn ($query) => $query->where('id', $this->lineaId))
+            ->orderBy('nombre')
+            ->get(['id', 'nombre']);
 
-        // Cargar análisis
-        $this->analisis = AnalisisLavadora::with(['linea', 'componente'])
-            ->whereHas('linea', function($query) {
-                $query->whereIn('nombre', $this->lavadoras);
-                if ($this->lineaId) {
-                    $query->where('id', $this->lineaId);
-                }
-            })
+        $lineaIds = $this->lineas->pluck('id');
+        $lineaNombres = $this->lineas->pluck('nombre');
+
+        $this->analisis = AnalisisLavadora::with(['linea:id,nombre', 'componente:id,nombre,codigo'])
+            ->whereIn('linea_id', $lineaIds)
             ->whereBetween('fecha_analisis', [$this->fechaInicio, $this->fechaFin])
-            ->orderBy('fecha_analisis', 'desc')
+            ->orderByDesc('fecha_analisis')
+            ->orderByDesc('created_at')
             ->get();
 
-        // Cargar paros
-        $this->paros = Paro::with(['linea', 'planesAccion'])
-            ->whereHas('linea', function($query) {
-                $query->whereIn('nombre', $this->lavadoras);
-                if ($this->lineaId) {
-                    $query->where('id', $this->lineaId);
-                }
-            })
-            ->whereBetween('fecha_inicio', [$this->fechaInicio, $this->fechaFin])
-            ->orderBy('fecha_inicio', 'desc')
+        $this->elongaciones = Elongacion::whereIn('linea', $lineaNombres)
+            ->whereBetween('created_at', [$this->fechaInicio, $this->fechaFin])
+            ->orderByDesc('created_at')
+            ->get();
+
+        $this->paros = Paro::with(['linea:id,nombre', 'supervisor:id,name', 'planesAccion'])
+            ->whereIn('linea_id', $lineaIds)
+            ->whereDate('fecha_inicio', '<=', $this->fechaFin)
+            ->whereDate('fecha_fin', '>=', $this->fechaInicio)
+            ->orderByDesc('fecha_inicio')
             ->get();
     }
 
     public function title(): string
     {
-        return $this->lineaId ? 'Lavadora Específica' : 'Lavadoras General';
+        return $this->lineaId ? 'Lavadora' : 'Lavadoras';
     }
 
     public function array(): array
     {
         $rows = [];
+        $titulo = $this->lineaId && $this->lineas->first()
+            ? 'REPORTE DE LAVADORA - ' . $this->lineas->first()->nombre
+            : 'REPORTE GENERAL DE LAVADORAS';
 
-        // ===== TITULO PRINCIPAL =====
-        $titulo = $this->lineaId 
-            ? "REPORTE DE LAVADORA - {$this->lineas->first()->nombre}"
-            : "REPORTE GENERAL DE LAVADORAS";
-        
+        $rows[] = [$this->platformName];
         $rows[] = [$titulo];
-        $rows[] = ["Período: " . $this->fechaInicio->format('d/m/Y') . " - " . $this->fechaFin->format('d/m/Y')];
-        $rows[] = ["Fecha de generación: " . Carbon::now()->format('d/m/Y H:i:s')];
-        $rows[] = []; // Espacio
+        $rows[] = ['Periodo: ' . $this->fechaInicio->format('d/m/Y') . ' - ' . $this->fechaFin->format('d/m/Y')];
+        $rows[] = ['Generado: ' . Carbon::now()->format('d/m/Y H:i:s')];
+        $rows[] = [];
 
-        // ===== RESUMEN POR LÍNEA =====
-        $rows[] = ["RESUMEN POR LÍNEA"];
-        $rows[] = []; // Espacio
-
-        // Encabezados resumen
-        $rows[] = ['LÍNEA', 'TOTAL ANÁLISIS', 'TOTAL PAROS', 'HORAS PARO', 'COMPONENTES CRÍTICOS', 'ESTADO GENERAL'];
+        $rows[] = ['RESUMEN POR LINEA'];
+        $rows[] = ['LINEA', 'ANALISIS', 'PAROS', 'HORAS PARO', 'CRITICOS', 'REVISION', 'DESGASTE', 'ESTADO ACTUAL'];
 
         foreach ($this->lineas as $linea) {
             $analisisLinea = $this->analisis->where('linea_id', $linea->id);
             $parosLinea = $this->paros->where('linea_id', $linea->id);
-            
-            $componentesCriticos = $analisisLinea->where('estado', 'MALO')->groupBy('componente_id')->count();
-            $horasParo = $parosLinea->sum('duracion_horas');
-            
-            $ultimoAnalisis = $analisisLinea->first();
-            $estadoGeneral = $this->determinarEstadoGeneral($ultimoAnalisis, $componentesCriticos);
-            
+
             $rows[] = [
                 $linea->nombre,
                 $analisisLinea->count(),
                 $parosLinea->count(),
-                number_format($horasParo, 1) . ' h',
-                $componentesCriticos,
-                $estadoGeneral
+                $parosLinea->sum(fn ($paro) => $this->calcularHorasParo($paro)),
+                $analisisLinea->filter(fn ($item) => AnalisisLavadora::esEstadoDanado($item->estado))->count(),
+                $analisisLinea->filter(fn ($item) => AnalisisLavadora::esEstadoRequiereRevision($item->estado))->count(),
+                $analisisLinea->filter(fn ($item) => AnalisisLavadora::esEstadoDesgaste($item->estado))->count(),
+                $this->estadoGeneralLinea($analisisLinea),
             ];
         }
 
-        $rows[] = []; // Espacio
-        $rows[] = []; // Espacio
-
-        // ===== ANÁLISIS DE ELONGACIÓN =====
-        $rows[] = ["ANÁLISIS DE ELONGACIÓN"];
-        $rows[] = []; // Espacio
-
-        // Encabezados elongación
-        $rows[] = ['LÍNEA', 'FECHA', 'COMPONENTE', 'ELONGACIÓN (mm)', 'HORÓMETRO', 'ESTADO', 'OBSERVACIONES'];
+        $rows[] = [];
+        $rows[] = ['ANALISIS DE COMPONENTES'];
+        $rows[] = ['FECHA', 'LINEA', 'COMPONENTE', 'CODIGO', 'REDUCTOR', 'ESTADO', 'ORDEN', 'ACTIVIDAD'];
 
         foreach ($this->analisis as $analisis) {
-            $estado = $this->determinarEstadoElongacion($analisis->elongacion_promedio);
-            
             $rows[] = [
-                $analisis->linea->nombre ?? 'N/A',
-                $analisis->fecha_analisis ? $analisis->fecha_analisis->format('d/m/Y') : 'N/A',
-                $analisis->componente->nombre ?? 'N/A',
-                number_format($analisis->elongacion_promedio, 2),
-                number_format($analisis->horometro),
-                $estado,
-                $analisis->observaciones ?? ''
+                $analisis->fecha_analisis?->format('d/m/Y') ?? 'N/A',
+                $analisis->linea?->nombre ?? 'N/A',
+                $analisis->componente?->nombre ?? 'N/A',
+                $analisis->componente?->codigo ?? 'N/A',
+                $analisis->reductor ?: 'N/A',
+                $analisis->estado ?: 'N/A',
+                $analisis->numero_orden ?: 'N/A',
+                $analisis->actividad ?: '',
             ];
         }
 
-        $rows[] = []; // Espacio
-        $rows[] = []; // Espacio
+        $rows[] = [];
+        $rows[] = ['ELONGACIONES'];
+        $rows[] = ['FECHA', 'LINEA', 'BOMBAS %', 'VAPOR %', 'HODOMETRO', 'ESTADO', 'PROVEEDOR', ''];
 
-        // ===== PAROS DE MANTENIMIENTO =====
-        $rows[] = ["PAROS DE MANTENIMIENTO"];
-        $rows[] = []; // Espacio
+        foreach ($this->elongaciones as $elongacion) {
+            $porcentajeMaximo = max((float) $elongacion->bombas_porcentaje, (float) $elongacion->vapor_porcentaje);
 
-        // Encabezados paros
-        $rows[] = ['LÍNEA', 'FECHA INICIO', 'FECHA FIN', 'TIPO', 'DURACIÓN (h)', 'MOTIVO', 'ESTADO PLAN', 'ACCIONES'];
+            $rows[] = [
+                $elongacion->created_at?->format('d/m/Y') ?? 'N/A',
+                $elongacion->linea,
+                $elongacion->bombas_porcentaje ?? 0,
+                $elongacion->vapor_porcentaje ?? 0,
+                $elongacion->hodometro ?? 'N/A',
+                $this->estadoElongacion($porcentajeMaximo),
+                $elongacion->proveedor_actual ?? '',
+                '',
+            ];
+        }
+
+        $rows[] = [];
+        $rows[] = ['PAROS DE MANTENIMIENTO'];
+        $rows[] = ['LINEA', 'INICIO', 'FIN', 'TIPO', 'HORAS', 'SUPERVISOR', 'PLANES', 'ACCIONES'];
 
         foreach ($this->paros as $paro) {
-            $estadoPlan = $paro->planesAccion->where('estado', 'COMPLETADA')->count() > 0 ? 'COMPLETADO' : 'EN PROCESO';
-            $acciones = $paro->planesAccion->pluck('descripcion')->implode('; ');
-            
+            $acciones = $paro->planesAccion
+                ->pluck('actividad')
+                ->filter()
+                ->implode('; ');
+
             $rows[] = [
-                $paro->linea->nombre ?? 'N/A',
-                $paro->fecha_inicio ? $paro->fecha_inicio->format('d/m/Y H:i') : 'N/A',
-                $paro->fecha_fin ? $paro->fecha_fin->format('d/m/Y H:i') : 'N/A',
-                $paro->tipo,
-                number_format($paro->duracion_horas, 1),
-                $paro->motivo,
-                $estadoPlan,
-                $acciones
+                $paro->linea?->nombre ?? 'N/A',
+                $paro->fecha_inicio?->format('d/m/Y') ?? 'N/A',
+                $paro->fecha_fin?->format('d/m/Y') ?? 'N/A',
+                $paro->tipo ?: 'N/A',
+                $this->calcularHorasParo($paro),
+                $paro->supervisor?->name ?? 'N/A',
+                $paro->planesAccion->count(),
+                $acciones,
             ];
         }
 
@@ -168,14 +166,14 @@ class ReporteLavadoraGeneralExcel implements FromArray, WithEvents, WithColumnWi
     public function columnWidths(): array
     {
         return [
-            'A' => 20,  // Línea
-            'B' => 15,  // Fecha
-            'C' => 25,  // Componente / Tipo
-            'D' => 15,  // Valor
-            'E' => 15,  // Horómetro / Duración
-            'F' => 20,  // Estado
-            'G' => 30,  // Observaciones / Motivo
-            'H' => 40,  // Acciones
+            'A' => 18,
+            'B' => 18,
+            'C' => 24,
+            'D' => 18,
+            'E' => 18,
+            'F' => 24,
+            'G' => 22,
+            'H' => 46,
         ];
     }
 
@@ -184,155 +182,134 @@ class ReporteLavadoraGeneralExcel implements FromArray, WithEvents, WithColumnWi
         return [
             AfterSheet::class => function (AfterSheet $event) {
                 $sheet = $event->sheet->getDelegate();
-                
-                // ===== ESTILOS GENERALES =====
-                $sheet->getDefaultRowDimension()->setRowHeight(20);
-                $sheet->getStyle('A1:H1000')->getAlignment()->setWrapText(true);
-                
-                // ===== TÍTULO PRINCIPAL =====
-                $sheet->mergeCells('A1:H1');
-                $sheet->getStyle('A1')->applyFromArray([
-                    'font' => ['bold' => true, 'size' => 18, 'color' => ['rgb' => 'FFFFFF']],
-                    'fill' => [
-                        'fillType' => Fill::FILL_SOLID,
-                        'startColor' => ['rgb' => '1E3A8A'] // Azul oscuro
-                    ],
-                    'alignment' => [
-                        'horizontal' => Alignment::HORIZONTAL_CENTER,
-                        'vertical' => Alignment::VERTICAL_CENTER
-                    ],
-                ]);
-                $sheet->getRowDimension(1)->setRowHeight(30);
+                $highestRow = $sheet->getHighestRow();
 
-                // ===== PERÍODO Y FECHA =====
+                $sheet->mergeCells('A1:H1');
                 $sheet->mergeCells('A2:H2');
                 $sheet->mergeCells('A3:H3');
-                $sheet->getStyle('A2:A3')->applyFromArray([
-                    'font' => ['size' => 11],
+                $sheet->mergeCells('A4:H4');
+                $sheet->getRowDimension(1)->setRowHeight(34);
+                $sheet->getRowDimension(2)->setRowHeight(24);
+                $sheet->getStyle('A1')->applyFromArray([
+                    'font' => ['bold' => true, 'size' => 14, 'color' => ['rgb' => 'FFFFFF']],
+                    'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '0F172A']],
                     'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
                 ]);
+                $sheet->getStyle('A2')->applyFromArray([
+                    'font' => ['bold' => true, 'size' => 18, 'color' => ['rgb' => 'FFFFFF']],
+                    'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '1D4ED8']],
+                    'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
+                ]);
+                $sheet->getStyle('A3:A4')->applyFromArray([
+                    'font' => ['bold' => true, 'color' => ['rgb' => '475569']],
+                    'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
+                ]);
+                $sheet->getStyle('A1:H' . $highestRow)->getAlignment()->setWrapText(true);
+                $sheet->getStyle('A1:H' . $highestRow)->getAlignment()->setVertical(Alignment::VERTICAL_CENTER);
+                $sheet->freezePane('A7');
+                $sheet->setAutoFilter('A7:H7');
+                $sheet->getPageSetup()
+                    ->setOrientation(PageSetup::ORIENTATION_LANDSCAPE)
+                    ->setFitToWidth(1)
+                    ->setFitToHeight(0);
+                $sheet->getHeaderFooter()->setOddHeader('&L' . $this->platformName . '&RReporte de Lavadoras');
+                $sheet->getHeaderFooter()->setOddFooter('&L' . $this->platformName . '&CDocumento generado automaticamente&RPagina &P de &N');
 
-                // ===== TÍTULOS DE SECCIÓN =====
-                $this->aplicarTituloSeccion($sheet, 'A5', 'RESUMEN POR LÍNEA', 'FFC000');
-                
-                $filaElongacion = 5 + $this->lineas->count() + 4;
-                $this->aplicarTituloSeccion($sheet, 'A' . $filaElongacion, 'ANÁLISIS DE ELONGACIÓN', '4CAF50');
-                
-                $filaParos = $filaElongacion + $this->analisis->count() + 4;
-                $this->aplicarTituloSeccion($sheet, 'A' . $filaParos, 'PAROS DE MANTENIMIENTO', 'F44336');
+                if ($logoPath = $this->logoPath()) {
+                    $drawing = new Drawing();
+                    $drawing->setName($this->platformName);
+                    $drawing->setDescription('Logo ' . $this->platformName);
+                    $drawing->setPath($logoPath);
+                    $drawing->setHeight(28);
+                    $drawing->setCoordinates('A1');
+                    $drawing->setOffsetX(8);
+                    $drawing->setOffsetY(4);
+                    $drawing->setWorksheet($sheet);
+                }
 
-                // ===== ENCABEZADOS DE TABLAS =====
-                $this->aplicarEncabezados($sheet, 'A7:H7', '1E3A8A'); // Resumen
-                
-                $filaEncabezadosElongacion = $filaElongacion + 2;
-                $this->aplicarEncabezados($sheet, 'A' . $filaEncabezadosElongacion . ':G' . $filaEncabezadosElongacion, '4CAF50');
-                
-                $filaEncabezadosParos = $filaParos + 2;
-                $this->aplicarEncabezados($sheet, 'A' . $filaEncabezadosParos . ':H' . $filaEncabezadosParos, 'F44336');
+                for ($row = 1; $row <= $highestRow; $row++) {
+                    $value = (string) $sheet->getCell('A' . $row)->getValue();
 
-                // ===== COLORES POR ESTADO =====
-                $this->aplicarColoresEstados($sheet);
-                
-                // ===== BORDES =====
-                $this->aplicarBordes($sheet);
+                    if (in_array($value, ['RESUMEN POR LINEA', 'ANALISIS DE COMPONENTES', 'ELONGACIONES', 'PAROS DE MANTENIMIENTO'], true)) {
+                        $sheet->mergeCells("A{$row}:H{$row}");
+                        $sheet->getStyle("A{$row}:H{$row}")->applyFromArray([
+                            'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+                            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '2563EB']],
+                        ]);
+
+                        $headerRow = $row + 1;
+                        $sheet->getStyle("A{$headerRow}:H{$headerRow}")->applyFromArray([
+                            'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+                            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '0F172A']],
+                            'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
+                        ]);
+                    }
+                }
+
+                $sheet->getStyle('A1:H' . $highestRow)->applyFromArray([
+                    'borders' => [
+                        'allBorders' => [
+                            'borderStyle' => Border::BORDER_THIN,
+                            'color' => ['rgb' => 'E5E7EB'],
+                        ],
+                    ],
+                ]);
             },
         ];
     }
 
-    private function aplicarTituloSeccion($sheet, $celda, $texto, $color)
+    private function estadoGeneralLinea($analisisLinea): string
     {
-        $sheet->setCellValue($celda, $texto);
-        $sheet->mergeCells($celda . ':H' . substr($celda, 1));
-        $sheet->getStyle($celda)->applyFromArray([
-            'font' => ['bold' => true, 'size' => 14, 'color' => ['rgb' => 'FFFFFF']],
-            'fill' => [
-                'fillType' => Fill::FILL_SOLID,
-                'startColor' => ['rgb' => $color]
-            ],
-            'alignment' => ['horizontal' => Alignment::HORIZONTAL_LEFT],
-        ]);
+        if ($analisisLinea->filter(fn ($item) => AnalisisLavadora::esEstadoDanado($item->estado))->isNotEmpty()) {
+            return 'CRITICO';
+        }
+
+        if ($analisisLinea->filter(fn ($item) => AnalisisLavadora::esEstadoDesgaste($item->estado))->isNotEmpty()) {
+            return 'SEVERO / MODERADO';
+        }
+
+        if ($analisisLinea->filter(fn ($item) => AnalisisLavadora::esEstadoRequiereRevision($item->estado))->isNotEmpty()) {
+            return 'REQUIERE REVISION';
+        }
+
+        return $analisisLinea->isEmpty() ? 'SIN DATOS' : 'ESTABLE';
     }
 
-    private function aplicarEncabezados($sheet, $rango, $color)
+    private function estadoElongacion(float $porcentaje): string
     {
-        $sheet->getStyle($rango)->applyFromArray([
-            'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
-            'fill' => [
-                'fillType' => Fill::FILL_SOLID,
-                'startColor' => ['rgb' => $color]
-            ],
-            'alignment' => [
-                'horizontal' => Alignment::HORIZONTAL_CENTER,
-                'vertical' => Alignment::VERTICAL_CENTER
-            ],
-            'borders' => [
-                'allBorders' => [
-                    'borderStyle' => Border::BORDER_THIN,
-                    'color' => ['rgb' => '000000']
-                ]
-            ],
-        ]);
+        if ($porcentaje >= Elongacion::LIMITE_CAMBIO) {
+            return 'CRITICO';
+        }
+
+        if ($porcentaje >= Elongacion::LIMITE_COMPRAR) {
+            return 'ATENCION';
+        }
+
+        return 'NORMAL';
     }
 
-    private function aplicarColoresEstados($sheet)
+    private function calcularHorasParo(Paro $paro): int
     {
-        $highestRow = $sheet->getHighestRow();
-        
-        for ($row = 8; $row <= $highestRow; $row++) {
-            $estado = $sheet->getCell('F' . $row)->getValue();
-            
-            $colorFondo = match($estado) {
-                'CRÍTICO' => 'FFCDD2', // Rojo claro
-                'ATENCIÓN' => 'FFF9C4', // Amarillo claro
-                'NORMAL' => 'C8E6C9',   // Verde claro
-                'COMPLETADO' => 'C8E6C9', // Verde claro
-                default => null
-            };
-            
-            if ($colorFondo) {
-                $sheet->getStyle('F' . $row)->applyFromArray([
-                    'fill' => [
-                        'fillType' => Fill::FILL_SOLID,
-                        'startColor' => ['rgb' => $colorFondo]
-                    ],
-                    'font' => ['bold' => true]
-                ]);
+        if (!$paro->fecha_inicio || !$paro->fecha_fin) {
+            return 0;
+        }
+
+        return (Carbon::parse($paro->fecha_inicio)->startOfDay()
+            ->diffInDays(Carbon::parse($paro->fecha_fin)->startOfDay()) + 1) * 24;
+    }
+
+    private function logoPath(): ?string
+    {
+        foreach ([
+            public_path('images/logo.png'),
+            public_path('images/logoo.png'),
+            public_path('images/icono-maquina.png'),
+        ] as $path) {
+            if (is_file($path)) {
+                return $path;
             }
         }
-    }
 
-    private function aplicarBordes($sheet)
-    {
-        $highestRow = $sheet->getHighestRow();
-        $highestColumn = $sheet->getHighestColumn();
-        
-        $sheet->getStyle('A7:' . $highestColumn . $highestRow)->applyFromArray([
-            'borders' => [
-                'allBorders' => [
-                    'borderStyle' => Border::BORDER_THIN,
-                    'color' => ['rgb' => 'DDDDDD']
-                ]
-            ],
-        ]);
-    }
-
-    private function determinarEstadoElongacion($elongacion)
-    {
-        if ($elongacion > 178.19) return 'CRÍTICO';
-        if ($elongacion > 176) return 'ATENCIÓN';
-        return 'NORMAL';
-    }
-
-    private function determinarEstadoGeneral($ultimoAnalisis, $componentesCriticos)
-    {
-        if (!$ultimoAnalisis) return 'SIN DATOS';
-        
-        if ($ultimoAnalisis->elongacion_promedio > 178.19 || $componentesCriticos > 2) {
-            return 'CRÍTICO';
-        } elseif ($ultimoAnalisis->elongacion_promedio > 176 || $componentesCriticos > 0) {
-            return 'ATENCIÓN';
-        }
-        
-        return 'NORMAL';
+        return null;
     }
 }

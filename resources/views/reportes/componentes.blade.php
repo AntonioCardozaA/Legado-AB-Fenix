@@ -433,26 +433,6 @@
         justify-content: flex-end;
     }
     
-    .btn-excel {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        padding: 10px 20px;
-        background: #059669;
-        color: white;
-        border: none;
-        border-radius: 8px;
-        cursor: pointer;
-        font-weight: 500;
-        transition: all 0.2s ease;
-    }
-    
-    .btn-excel:hover {
-        background: #047857;
-        transform: translateY(-1px);
-        box-shadow: 0 4px 6px -1px rgba(5, 150, 105, 0.2);
-    }
-    
     .btn-print {
         display: inline-flex;
         align-items: center;
@@ -524,10 +504,6 @@
         </div>
 
         <div class="action-buttons">
-            <button onclick="exportarExcel()" class="btn-excel">
-                <i class="fas fa-file-excel"></i>
-                Exportar Excel
-            </button>
             <button onclick="window.print()" class="btn-print">
                 <i class="fas fa-print"></i>
                 Imprimir
@@ -894,20 +870,6 @@ function hideLoading() {
     document.getElementById('loadingOverlay').classList.add('hidden');
 }
 
-// Exportar a Excel
-function exportarExcel() {
-    showLoading();
-    
-    // Construir URL con filtros actuales
-    const params = new URLSearchParams(window.location.search);
-    params.set('export_format', 'excel');
-    params.set('export_tipo', 'componentes');
-    window.location.href = "{{ route('reportes.export-excel') }}?" + params.toString();
-    
-    // Ocultar loading después de un tiempo
-    setTimeout(hideLoading, 3000);
-}
-
 // Gráfico de estado de componentes
 @if(isset($estados) && !empty($estados))
 const estadoCtx = document.getElementById('estadoComponentesChart').getContext('2d');
@@ -973,14 +935,14 @@ window.addEventListener('load', function() {
 // Imprimir
 window.onbeforeprint = function() {
     // Ocultar elementos no deseados en impresión
-    document.querySelectorAll('.btn-excel, .btn-print, .filter-link, .btn-clear').forEach(el => {
+    document.querySelectorAll('.btn-print, .filter-link, .btn-clear').forEach(el => {
         el.style.display = 'none';
     });
 };
 
 window.onafterprint = function() {
     // Restaurar elementos
-    document.querySelectorAll('.btn-excel, .btn-print, .filter-link, .btn-clear').forEach(el => {
+    document.querySelectorAll('.btn-print, .filter-link, .btn-clear').forEach(el => {
         el.style.display = '';
     });
 };
