@@ -1,6 +1,12 @@
 @extends('layouts.app')
 
-@section('title', 'Reporte Detallado de Lavadoras - ' . ($lineaId ? $reporte['linea']->nombre : 'General'))
+@php
+    $esPasteurizadora = ($tipoEquipo ?? 'lavadoras') === 'pasteurizadoras';
+    $nombreEquipoPlural = $esPasteurizadora ? 'Pasteurizadoras' : 'Lavadoras';
+    $iconoEquipo = $esPasteurizadora ? 'fa-industry' : 'fa-washing-machine';
+@endphp
+
+@section('title', 'Reporte Detallado de ' . $nombreEquipoPlural . ' - ' . ($lineaId ? $reporte['linea']->nombre : 'General'))
 
 @section('content')
 
@@ -197,7 +203,7 @@ Volver a Reportes
 <div class="header-title">
 
 <div class="title-icon">
-<i class="fas fa-washing-machine"></i>
+<i class="fas {{ $iconoEquipo }}"></i>
 </div>
 
 <div>
@@ -206,7 +212,7 @@ Volver a Reportes
 @if($lineaId)
 Reporte Detallado - {{ $reporte['linea']->nombre }}
 @else
-Reporte General de Lavadoras
+Reporte General de {{ $nombreEquipoPlural }}
 @endif
 </h1>
 
@@ -222,14 +228,14 @@ Período: {{ $fechaInicio->format('d/m/Y') }} - {{ $fechaFin->format('d/m/Y') }}
 
 @if($lineaId)
 
-@include('reportes.partials.reporte-linea-lavadora',['reporte'=>$reporte])
+@include($esPasteurizadora ? 'reportes.partials.reporte-linea-pasteurizadora' : 'reportes.partials.reporte-linea-lavadora',['reporte'=>$reporte])
 
 @else
 
 @foreach($reporte['lineas'] as $reporteLinea)
 
 <div class="mb-8">
-@include('reportes.partials.reporte-linea-lavadora',['reporte'=>$reporteLinea])
+@include($esPasteurizadora ? 'reportes.partials.reporte-linea-pasteurizadora' : 'reportes.partials.reporte-linea-lavadora',['reporte'=>$reporteLinea])
 </div>
 
 @endforeach
