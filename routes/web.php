@@ -186,6 +186,8 @@ Route::prefix('pasteurizadora')->group(function () {
         ->controller(AnalisisTendenciaMensualLavadoraController::class)
         ->group(function () {
             Route::get('/', 'index')->name('index');
+            Route::get('/52-12-4', 'index52124')->name('analisis-52-12-4');
+            Route::get('/30-14-7', 'index30147')->name('analisis-30-14-7');
             Route::get('/create', 'create')->name('create');
             Route::post('/', 'store')->name('store');
             Route::get('/{analisis}', 'show')
@@ -323,6 +325,8 @@ Route::prefix('pasteurizadora')->group(function () {
         ->controller(AnalisisTendenciaMensualPasteurizadoraController::class)
         ->group(function () {
             Route::get('/', 'index')->name('index');
+            Route::get('/52-12-4', 'index52124')->name('analisis-52-12-4');
+            Route::get('/30-14-7', 'index30147')->name('analisis-30-14-7');
             Route::get('/create', 'create')->name('create');
             Route::post('/', 'store')->name('store');
             Route::get('/{analisis}', 'show')

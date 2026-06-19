@@ -6,9 +6,9 @@ use App\Models\AnalisisLavadora;
 use App\Models\Linea;
 use App\Models\Elongacion;
 use App\Models\PlanAccion;
-use App\Models\AnalisisTendenciaMensualLavadora;
 use App\Models\AnalisisPasteurizadora;
 use App\Models\User;
+use App\Services\TendenciaDanosService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Collection;
@@ -234,8 +234,19 @@ class DashboardController extends Controller
         $rankingDanos = $this->getRankingDanosPorLavadora($lineasLavadora, $analisisActuales);
         $evolucionElongaciones = $this->getEvolucionElongaciones($lineasLavadora);
         $historicoRevisiones = $this->getHistoricoRevisiones($lineasLavadora, $analisisHistoricos);
-        $analisis52124 = $this->getAnalisis52124($lineasLavadora, $analisisHistoricos, $trend52124Range);
-        $analisis30147 = $this->getAnalisis30147($lineasLavadora, $analisisHistoricos, $trend30147Range);
+        $tendenciaDanos = app(TendenciaDanosService::class);
+        $analisis52124 = $tendenciaDanos->construirDashboard(
+            $lineasLavadora,
+            TendenciaDanosService::TIPO_LAVADORAS,
+            $tendenciaDanos->ventanas52124(),
+            $trend52124Range
+        );
+        $analisis30147 = $tendenciaDanos->construirDashboard(
+            $lineasLavadora,
+            TendenciaDanosService::TIPO_LAVADORAS,
+            $tendenciaDanos->ventanas30147(),
+            $trend30147Range
+        );
         $trendFilters = [
             'tendencia' => [
                 'from_input' => $trend52124Range['from_input'],
@@ -273,7 +284,7 @@ class DashboardController extends Controller
      * VISTA: dashboard_pasteurizadora.blade.php
      * DESCRIPCIÓN: Dashboard global de pasteurizadoras
      */
-   public function pasteurizadoraGlobal()
+   public function pasteurizadoraGlobal(Request $request)
 {
     if (!auth()->user()?->canAccessModule(User::MODULE_PASTEURIZADORA)) {
         return redirect()
@@ -284,6 +295,9 @@ class DashboardController extends Controller
     $pasteurizadoras = Linea::whereIn('nombre', [
         'P-03','P-04','P-05','P-06','P-07','P-08','P-09','P-10','P-11','P-12','P-13','P-14'
     ])->get();
+
+    $trend52124Range = $this->resolveLavadoraTrendDateRange($request, 'trend_52124_desde', 'trend_52124_hasta');
+    $trend30147Range = $this->resolveLavadoraTrendDateRange($request, 'trend_30147_desde', 'trend_30147_hasta');
 
     $analisis = AnalisisPasteurizadora::with('linea')
         ->where('resuelto_por_cambio', false)
@@ -310,7 +324,33 @@ class DashboardController extends Controller
     $fallasPorLineaPasteurizadora = $this->getFallasPorLineaPasteurizadora($pasteurizadoras, $analisisHistorico);
     $componentesDanadosPasteurizadora = $this->getComponentesDanadosPasteurizadora($analisisHistorico);
     $historicoRevisionesPasteurizadora = $this->getHistoricoRevisionesPasteurizadora($analisisHistorico);
-    $analisis52124Pasteurizadora = $this->getAnalisis52124Pasteurizadora($pasteurizadoras);
+    $tendenciaDanos = app(TendenciaDanosService::class);
+    $analisis52124Pasteurizadora = $tendenciaDanos->construirDashboard(
+        $pasteurizadoras,
+        TendenciaDanosService::TIPO_PASTEURIZADORAS,
+        $tendenciaDanos->ventanas52124(),
+        $trend52124Range
+    );
+    $analisis30147Pasteurizadora = $tendenciaDanos->construirDashboard(
+        $pasteurizadoras,
+        TendenciaDanosService::TIPO_PASTEURIZADORAS,
+        $tendenciaDanos->ventanas30147(),
+        $trend30147Range
+    );
+    $trendFilters = [
+        'tendencia' => [
+            'from_input' => $trend52124Range['from_input'],
+            'to_input' => $trend52124Range['to_input'],
+            'from_param' => 'trend_52124_desde',
+            'to_param' => 'trend_52124_hasta',
+        ],
+        'tendencia30147' => [
+            'from_input' => $trend30147Range['from_input'],
+            'to_input' => $trend30147Range['to_input'],
+            'from_param' => 'trend_30147_desde',
+            'to_param' => 'trend_30147_hasta',
+        ],
+    ];
     $ultimosAnalisisPasteurizadora = $analisisHistorico->sortByDesc('fecha_analisis')->take(8)->values();
 
     return view('dashboard_pasteurizadora', compact(
@@ -320,6 +360,8 @@ class DashboardController extends Controller
         'componentesDanadosPasteurizadora',
         'historicoRevisionesPasteurizadora',
         'analisis52124Pasteurizadora',
+        'analisis30147Pasteurizadora',
+        'trendFilters',
         'planesPendientesPasteurizadora',
         'ultimosAnalisisPasteurizadora'
     ));
@@ -367,8 +409,17 @@ class DashboardController extends Controller
         $historicoRevisiones = $this->getHistoricoRevisiones($lineasLavadora);
 
         // 9. Datos para el análisis 52-12-4 (últimos registros)
-        $analisis52124 = $this->getAnalisis52124($lineasLavadora);
-        $analisis30147 = $this->getAnalisis30147($lineasLavadora);
+        $tendenciaDanos = app(TendenciaDanosService::class);
+        $analisis52124 = $tendenciaDanos->construirDashboard(
+            $lineasLavadora,
+            TendenciaDanosService::TIPO_LAVADORAS,
+            $tendenciaDanos->ventanas52124()
+        );
+        $analisis30147 = $tendenciaDanos->construirDashboard(
+            $lineasLavadora,
+            TendenciaDanosService::TIPO_LAVADORAS,
+            $tendenciaDanos->ventanas30147()
+        );
 
         return view('lavadora.dashboard-lavadora', compact(
             'lineasLavadora',
@@ -461,14 +512,18 @@ public function pasteurizadoraOperativo(Request $request)
     {
         $lineas = Linea::where('activo', true)
             ->whereIn('nombre', ['L-04', 'L-05', 'L-06', 'L-07', 'L-08', 'L-09', 'L-12', 'L-13'])
-            ->pluck('id');
+            ->orderBy('nombre')
+            ->get();
 
-        $datos = AnalisisTendenciaMensualLavadora::whereIn('linea_id', $lineas)
-            ->with('linea')
-            ->orderBy('anio')
-            ->orderBy('mes')
-            ->get()
-            ->groupBy('linea.nombre');
+        $tendenciaDanos = app(TendenciaDanosService::class);
+        $datos = $lineas->mapWithKeys(function (Linea $linea) use ($tendenciaDanos) {
+            return [
+                $linea->nombre => $tendenciaDanos
+                    ->construirFilasMensuales($linea, TendenciaDanosService::TIPO_LAVADORAS)
+                    ->sortBy(fn ($item) => sprintf('%04d%02d', $item->anio, $item->mes))
+                    ->values(),
+            ];
+        });
 
         $resultado = [];
         foreach ($datos as $lineaNombre => $registros) {
@@ -2018,17 +2073,13 @@ public function pasteurizadoraOperativo(Request $request)
      */
     private function getAnalisis52124Pasteurizadora($pasteurizadoras)
     {
-        return AnalisisPasteurizadora::whereIn('linea_id', $pasteurizadoras->pluck('id'))
-            ->with('linea')
-            ->where(function ($query) {
-                $query->whereNotNull('valor_actual_52')
-                    ->orWhereNotNull('valor_actual_12')
-                    ->orWhereNotNull('valor_actual_4');
-            })
-            ->orderBy('fecha_analisis', 'desc')
-            ->orderBy('created_at', 'desc')
-            ->limit(12)
-            ->get();
+        $tendenciaDanos = app(TendenciaDanosService::class);
+
+        return $tendenciaDanos->construirDashboard(
+            $pasteurizadoras,
+            TendenciaDanosService::TIPO_PASTEURIZADORAS,
+            $tendenciaDanos->ventanas52124()
+        );
     }
 
     /**

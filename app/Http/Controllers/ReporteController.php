@@ -15,9 +15,8 @@ use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\ReporteLavadoraGeneralExcel;
 use Carbon\Carbon;
 use App\Models\Elongacion;
-use App\Models\AnalisisTendenciaMensualLavadora;
-use App\Models\AnalisisTendenciaMensualPasteurizadora;
 use App\Models\HistorialRestablecimiento;
+use App\Services\TendenciaDanosService;
 use Illuminate\Support\Facades\DB;
 
 class ReporteController extends Controller
@@ -726,14 +725,15 @@ class ReporteController extends Controller
             ->groupBy('linea');
 
         // 3. Análisis de tendencia (UNA consulta)
-        $tendencias = AnalisisTendenciaMensualLavadora::whereIn('linea_id', $lineaIds)
-            ->where(function($query) use ($fechaInicio, $fechaFin) {
-                $query->whereYear('created_at', $fechaInicio->year)
-                      ->orWhereYear('created_at', $fechaFin->year);
-            })
-            ->select('linea_id', 'total_danos_4_semanas')
-            ->get()
-            ->groupBy('linea_id');
+        $tendenciaService = app(TendenciaDanosService::class);
+        $filasTendenciaPorLinea = $lineas->mapWithKeys(fn (Linea $linea) => [
+            $linea->id => $tendenciaService->construirFilasMensuales(
+                $linea,
+                TendenciaDanosService::TIPO_LAVADORAS,
+                12,
+                $fechaFin
+            ),
+        ]);
 
         // 4. Historial de revisiones (UNA consulta)
         $historicos = HistorialRestablecimiento::whereIn('linea_id', $lineaIds)
@@ -766,31 +766,32 @@ class ReporteController extends Controller
             ->get(['linea_id'])
             ->groupBy('linea_id');
 
-        $analisis52124Reporte = $this->calcularAnalisisTendenciaReporte(
+        $analisis52124Reporte = $tendenciaService->calcularPorLineas(
             $lineas,
-            'lavadoras',
+            TendenciaDanosService::TIPO_LAVADORAS,
             $fechaFin,
-            $this->ventanasAnalisis52124Reporte()
+            $tendenciaService->ventanas52124()
         );
-        $analisis30147Reporte = $this->calcularAnalisisTendenciaReporte(
+        $analisis30147Reporte = $tendenciaService->calcularPorLineas(
             $lineas,
-            'lavadoras',
+            TendenciaDanosService::TIPO_LAVADORAS,
             $fechaFin,
-            $this->ventanasAnalisis30147Reporte()
+            $tendenciaService->ventanas30147()
         );
 
         // Construir reporte para cada línea - VERSIÓN CORREGIDA (ELIMINADAS LAS LÍNEAS SUELTAS)
         foreach ($lineas as $linea) {
             $elongacionesLinea = $elongaciones->get($linea->nombre, collect([]));
-            $tendenciasLinea = $tendencias->get($linea->id, collect([]));
+            $tendenciasLinea = $filasTendenciaPorLinea->get($linea->id, collect());
             $historicosLinea = $historicos->get($linea->id, collect([]));
             $ultimaRevision = $ultimasRevisiones->get($linea->id);
             $historicoRevisados = $this->calcularHistoricoRevisadosLavadora($linea);
             $registrosLinea = $estadoActual->get($linea->id, collect([]));
             $planesLinea = $planesPendientes->get($linea->id, collect([]));
             $parosLinea = $parosPorLinea->get($linea->id, collect([]));
-            $analisis52124Linea = $analisis52124Reporte[$linea->id] ?? $this->resumenTendenciaVacio($this->ventanasAnalisis52124Reporte());
-            $analisis30147Linea = $analisis30147Reporte[$linea->id] ?? $this->resumenTendenciaVacio($this->ventanasAnalisis30147Reporte());
+            $analisis52124Linea = $analisis52124Reporte[$linea->id] ?? $tendenciaService->resumenVacio($tendenciaService->ventanas52124());
+            $analisis30147Linea = $analisis30147Reporte[$linea->id] ?? $tendenciaService->resumenVacio($tendenciaService->ventanas30147());
+            $ultimaTendencia = $tendenciasLinea->first();
             $ultimoAnalisis = $registrosLinea
                 ->sortByDesc(fn ($registro) => (string) ($registro->fecha_analisis ?? $registro->created_at ?? ''))
                 ->first();
@@ -824,7 +825,7 @@ class ReporteController extends Controller
                 'promedio_bombas' => $promedioBombas,
                 'promedio_vapor' => $promedioVapor,
                 'analisis_tendencia_count' => $tendenciasLinea->count(),
-                'total_danos_4' => $tendenciasLinea->sum('total_danos_4_semanas'),
+                'total_danos_4' => $ultimaTendencia->total_danos_4_semanas ?? 0,
                 'analisis_52124' => $analisis52124Linea,
                 'analisis_30147' => $analisis30147Linea,
                 'historicos' => $historicoRevisados['revisado_general'],
@@ -1154,26 +1155,25 @@ class ReporteController extends Controller
             ->orderByDesc('created_at')
             ->get();
 
-        $analisisTendencia = AnalisisTendenciaMensualLavadora::where('linea_id', $linea->id)
-            ->where(function($query) use ($fechaInicio, $fechaFin) {
-                $query->where('anio', $fechaInicio->year)
-                      ->orWhere('anio', $fechaFin->year);
-            })
-            ->orderByDesc('anio')
-            ->orderByDesc('mes')
-            ->get();
-        $analisis52124Reporte = $this->calcularAnalisisTendenciaReporte(
-            collect([$linea]),
-            'lavadoras',
+        $tendenciaService = app(TendenciaDanosService::class);
+        $analisisTendencia = $tendenciaService->construirFilasMensuales(
+            $linea,
+            TendenciaDanosService::TIPO_LAVADORAS,
+            12,
+            $fechaFin
+        );
+        $analisis52124Reporte = $tendenciaService->calcularParaLinea(
+            $linea,
+            TendenciaDanosService::TIPO_LAVADORAS,
             $fechaFin,
-            $this->ventanasAnalisis52124Reporte()
-        )[$linea->id] ?? $this->resumenTendenciaVacio($this->ventanasAnalisis52124Reporte());
-        $analisis30147Reporte = $this->calcularAnalisisTendenciaReporte(
-            collect([$linea]),
-            'lavadoras',
+            $tendenciaService->ventanas52124()
+        );
+        $analisis30147Reporte = $tendenciaService->calcularParaLinea(
+            $linea,
+            TendenciaDanosService::TIPO_LAVADORAS,
             $fechaFin,
-            $this->ventanasAnalisis30147Reporte()
-        )[$linea->id] ?? $this->resumenTendenciaVacio($this->ventanasAnalisis30147Reporte());
+            $tendenciaService->ventanas30147()
+        );
 
         $componentes = $this->procesarComponentesLavadora($analisis, $linea);
         $reductores = $this->procesarReductoresLavadora($analisis, $elongaciones);
@@ -1212,25 +1212,6 @@ class ReporteController extends Controller
             'componentes_definidos' => $this->getComponentesDefinidos($tipoEquipo),
         ];
 
-        $analisis = AnalisisLavadora::where('linea_id', $linea->id)
-            ->whereBetween('fecha_analisis', [$fechaInicio, $fechaFin])
-            ->with('componente:id,nombre,codigo')
-            ->orderBy('fecha_analisis', 'desc')
-            ->get()
-            ->map(function($a){
-                return [
-                    'id' => $a->id,
-                    'fecha_analisis' => $a->fecha_analisis,
-                    'estado' => $a->estado,
-                    'reductor' => $a->reductor,
-                    'actividad' => $a->actividad,
-                    'componente' => $a->componente ? [
-                        'nombre' => $a->componente->nombre,
-                        'codigo' => $a->componente->codigo
-                    ] : null
-                ];
-            });
-
         // 2. Obtener estadísticas en una sola consulta
         $estadisticas = DB::table('analisis_componentes')
             ->where('linea_id', $linea->id)
@@ -1252,15 +1233,7 @@ class ReporteController extends Controller
             ->get();
 
         // 4. Análisis de tendencia (optimizado)
-        $analisisTendencia = AnalisisTendenciaMensualLavadora::where('linea_id', $linea->id)
-            ->where(function($query) use ($fechaInicio, $fechaFin) {
-                $query->where('anio', $fechaInicio->year)
-                      ->orWhere('anio', $fechaFin->year);
-            })
-            ->orderBy('anio', 'desc')
-            ->orderBy('mes', 'desc')
-            ->select(['anio', 'mes', 'total_danos_52_semanas', 'total_danos_12_semanas', 'total_danos_4_semanas'])
-            ->get();
+        $analisisTendencia = collect();
 
         // 5. Procesar componentes
         $componentes = $this->procesarComponentesLavadora($analisis, $linea);
@@ -1398,13 +1371,15 @@ class ReporteController extends Controller
             ])
             ->groupBy('linea_id');
 
-        $tendencias = AnalisisTendenciaMensualPasteurizadora::whereIn('linea_id', $lineaIds)
-            ->where(function ($query) use ($fechaInicio, $fechaFin) {
-                $query->where('anio', $fechaInicio->year)
-                    ->orWhere('anio', $fechaFin->year);
-            })
-            ->get(['linea_id', 'total_danos_4_semanas'])
-            ->groupBy('linea_id');
+        $tendenciaService = app(TendenciaDanosService::class);
+        $filasTendenciaPorLinea = $lineas->mapWithKeys(fn (Linea $linea) => [
+            $linea->id => $tendenciaService->construirFilasMensuales(
+                $linea,
+                TendenciaDanosService::TIPO_PASTEURIZADORAS,
+                12,
+                $fechaFin
+            ),
+        ]);
 
         $ultimasRevisiones = AnalisisPasteurizadora::queryForArea(AnalisisPasteurizadora::AREA_MECANICA)
             ->whereIn('linea_id', $lineaIds)
@@ -1427,32 +1402,33 @@ class ReporteController extends Controller
             ->groupBy('linea_id');
 
         $seguimientoActual = $this->calcularSeguimientoActualPasteurizadora($lineas);
-        $analisis52124Reporte = $this->calcularAnalisisTendenciaReporte(
+        $analisis52124Reporte = $tendenciaService->calcularPorLineas(
             $lineas,
-            'pasteurizadoras',
+            TendenciaDanosService::TIPO_PASTEURIZADORAS,
             $fechaFin,
-            $this->ventanasAnalisis52124Reporte()
+            $tendenciaService->ventanas52124()
         );
-        $analisis30147Reporte = $this->calcularAnalisisTendenciaReporte(
+        $analisis30147Reporte = $tendenciaService->calcularPorLineas(
             $lineas,
-            'pasteurizadoras',
+            TendenciaDanosService::TIPO_PASTEURIZADORAS,
             $fechaFin,
-            $this->ventanasAnalisis30147Reporte()
+            $tendenciaService->ventanas30147()
         );
 
         $reporteGeneral = [];
 
         foreach ($lineas as $linea) {
             $registrosLinea = $registros->get($linea->id, collect());
-            $tendenciasLinea = $tendencias->get($linea->id, collect());
+            $tendenciasLinea = $filasTendenciaPorLinea->get($linea->id, collect());
             $componentesDefinidos = AnalisisPasteurizadora::getComponentesPorLinea($linea->nombre);
             $avance = $this->calcularAvanceModulosPasteurizadora($linea, $registrosLinea);
             $ultimaRevision = $ultimasRevisiones->get($linea->id);
             $planesLinea = $planesPendientes->get($linea->id, collect());
             $parosLinea = $parosPorLinea->get($linea->id, collect());
             $seguimientoLinea = $seguimientoActual[$linea->id]['resumen'] ?? [];
-            $analisis52124Linea = $analisis52124Reporte[$linea->id] ?? $this->resumenTendenciaVacio($this->ventanasAnalisis52124Reporte());
-            $analisis30147Linea = $analisis30147Reporte[$linea->id] ?? $this->resumenTendenciaVacio($this->ventanasAnalisis30147Reporte());
+            $analisis52124Linea = $analisis52124Reporte[$linea->id] ?? $tendenciaService->resumenVacio($tendenciaService->ventanas52124());
+            $analisis30147Linea = $analisis30147Reporte[$linea->id] ?? $tendenciaService->resumenVacio($tendenciaService->ventanas30147());
+            $ultimaTendencia = $tendenciasLinea->first();
 
             $reporteGeneral[$linea->id] = [
                 'total_analisis' => $registrosLinea->count(),
@@ -1475,7 +1451,7 @@ class ReporteController extends Controller
                 'evidencias_count' => $registrosLinea->sum(fn ($registro) => $this->contarEvidenciasReporte($registro->evidencia_fotos ?? null)),
                 'piezas_revisadas' => $registrosLinea->sum(fn ($registro) => (int) ($registro->cantidad_componentes_revisados ?? 0)),
                 'analisis_tendencia_count' => $tendenciasLinea->count(),
-                'total_danos_4' => $tendenciasLinea->sum('total_danos_4_semanas'),
+                'total_danos_4' => $ultimaTendencia->total_danos_4_semanas ?? 0,
                 'analisis_52124' => $analisis52124Linea,
                 'analisis_30147' => $analisis30147Linea,
                 'historicos' => $registrosLinea->count(),
@@ -1521,26 +1497,25 @@ class ReporteController extends Controller
             ->orderByDesc('created_at')
             ->get();
 
-        $analisisTendencia = AnalisisTendenciaMensualPasteurizadora::where('linea_id', $linea->id)
-            ->where(function ($query) use ($fechaInicio, $fechaFin) {
-                $query->where('anio', $fechaInicio->year)
-                    ->orWhere('anio', $fechaFin->year);
-            })
-            ->orderByDesc('anio')
-            ->orderByDesc('mes')
-            ->get();
-        $analisis52124Reporte = $this->calcularAnalisisTendenciaReporte(
-            collect([$linea]),
-            'pasteurizadoras',
+        $tendenciaService = app(TendenciaDanosService::class);
+        $analisisTendencia = $tendenciaService->construirFilasMensuales(
+            $linea,
+            TendenciaDanosService::TIPO_PASTEURIZADORAS,
+            12,
+            $fechaFin
+        );
+        $analisis52124Reporte = $tendenciaService->calcularParaLinea(
+            $linea,
+            TendenciaDanosService::TIPO_PASTEURIZADORAS,
             $fechaFin,
-            $this->ventanasAnalisis52124Reporte()
-        )[$linea->id] ?? $this->resumenTendenciaVacio($this->ventanasAnalisis52124Reporte());
-        $analisis30147Reporte = $this->calcularAnalisisTendenciaReporte(
-            collect([$linea]),
-            'pasteurizadoras',
+            $tendenciaService->ventanas52124()
+        );
+        $analisis30147Reporte = $tendenciaService->calcularParaLinea(
+            $linea,
+            TendenciaDanosService::TIPO_PASTEURIZADORAS,
             $fechaFin,
-            $this->ventanasAnalisis30147Reporte()
-        )[$linea->id] ?? $this->resumenTendenciaVacio($this->ventanasAnalisis30147Reporte());
+            $tendenciaService->ventanas30147()
+        );
 
         $componentes = $this->procesarComponentesPasteurizadora($linea, $analisis);
         $avance = $this->calcularAvanceModulosPasteurizadora($linea, $analisis);
@@ -1922,291 +1897,6 @@ class ReporteController extends Controller
     private function getLineasPorTipo($tipo)
     {
         return $this->normalizarTipoEquipo($tipo) === 'lavadoras' ? $this->lavadoras : $this->pasteurizadoras;
-    }
-
-    private function ventanasAnalisis52124Reporte(): array
-    {
-        return [
-            ['key' => 'semanas_52', 'label' => '52 semanas', 'type' => 'weeks', 'size' => 52],
-            ['key' => 'semanas_12', 'label' => '12 semanas', 'type' => 'weeks', 'size' => 12],
-            ['key' => 'semanas_4', 'label' => '4 semanas', 'type' => 'weeks', 'size' => 4],
-        ];
-    }
-
-    private function ventanasAnalisis30147Reporte(): array
-    {
-        return [
-            ['key' => 'dias_30', 'label' => '30 dias', 'type' => 'days', 'size' => 30],
-            ['key' => 'dias_14', 'label' => '14 dias', 'type' => 'days', 'size' => 14],
-            ['key' => 'dias_7', 'label' => '7 dias', 'type' => 'days', 'size' => 7],
-        ];
-    }
-
-    private function calcularAnalisisTendenciaReporte($lineas, string $tipoEquipo, Carbon $fechaFin, array $ventanas): array
-    {
-        $lineas = collect($lineas)->values();
-
-        if ($lineas->isEmpty()) {
-            return [];
-        }
-
-        $referencia = $fechaFin->copy()->endOfDay();
-        $rangos = collect($ventanas)
-            ->map(fn (array $ventana) => $this->resolverRangosVentanaTendenciaReporte($ventana, $referencia));
-        $inicioFuente = $rangos
-            ->map(fn (array $rango) => $rango['previous_start'])
-            ->sortBy(fn (Carbon $fecha) => $fecha->getTimestamp())
-            ->first() ?? $referencia->copy()->startOfDay();
-        $eventos = $this->obtenerEventosTendenciaReporte($lineas, $tipoEquipo, $inicioFuente, $referencia)
-            ->groupBy('linea_id');
-
-        return $lineas
-            ->mapWithKeys(function (Linea $linea) use ($eventos, $ventanas, $referencia) {
-                return [
-                    $linea->id => $this->resumirTendenciaLineaReporte(
-                        $eventos->get($linea->id, collect()),
-                        $ventanas,
-                        $referencia
-                    ),
-                ];
-            })
-            ->all();
-    }
-
-    private function obtenerEventosTendenciaReporte($lineas, string $tipoEquipo, Carbon $fechaInicio, Carbon $fechaFin)
-    {
-        $lineas = collect($lineas);
-        $lineaIds = $lineas->pluck('id');
-        $lineaIdsPorNombre = $lineas->pluck('id', 'nombre');
-        $lineaNombresPorId = $lineas->pluck('nombre', 'id');
-
-        if ($this->normalizarTipoEquipo($tipoEquipo) === 'pasteurizadoras') {
-            return AnalisisPasteurizadora::queryForArea(AnalisisPasteurizadora::AREA_MECANICA)
-                ->whereIn('linea_id', $lineaIds)
-                ->whereBetween('fecha_analisis', [$fechaInicio, $fechaFin])
-                ->orderBy('fecha_analisis')
-                ->get(['id', 'linea_id', 'estado', 'fecha_analisis', 'created_at'])
-                ->filter(fn ($item) => AnalisisPasteurizadora::esEstadoDanado($item->estado) || AnalisisPasteurizadora::esEstadoDesgaste($item->estado))
-                ->map(function ($item) use ($lineaNombresPorId) {
-                    $fecha = Carbon::parse($item->fecha_analisis ?? $item->created_at)->startOfDay();
-
-                    return [
-                        'id' => $item->id,
-                        'source' => 'componente',
-                        'type_label' => $item->estado,
-                        'linea_id' => $item->linea_id,
-                        'linea' => $lineaNombresPorId->get($item->linea_id),
-                        'occurred_at' => $fecha,
-                        'fecha_humana' => $fecha->format('d/m/Y'),
-                    ];
-                })
-                ->values();
-        }
-
-        $eventosAnalisis = AnalisisLavadora::query()
-            ->whereIn('linea_id', $lineaIds)
-            ->whereBetween('fecha_analisis', [$fechaInicio, $fechaFin])
-            ->orderBy('fecha_analisis')
-            ->get(['id', 'linea_id', 'estado', 'fecha_analisis', 'created_at'])
-            ->filter(fn ($item) => $this->esEstadoDanadoReporte($item->estado) || $this->esEstadoDesgasteReporte($item->estado))
-            ->map(function ($item) use ($lineaNombresPorId) {
-                $fecha = Carbon::parse($item->fecha_analisis ?? $item->created_at)->startOfDay();
-
-                return [
-                    'id' => $item->id,
-                    'source' => 'componente',
-                    'type_label' => $item->estado,
-                    'linea_id' => $item->linea_id,
-                    'linea' => $lineaNombresPorId->get($item->linea_id),
-                    'occurred_at' => $fecha,
-                    'fecha_humana' => $fecha->format('d/m/Y'),
-                ];
-            });
-
-        $eventosElongacion = Elongacion::query()
-            ->where(function ($query) use ($lineaIds, $lineas) {
-                $query->whereIn('linea_id', $lineaIds)
-                    ->orWhereIn('linea', $lineas->pluck('nombre'));
-            })
-            ->whereBetween('created_at', [$fechaInicio, $fechaFin])
-            ->where(function ($query) {
-                $query->where('bombas_porcentaje', '>', Elongacion::LIMITE_CAMBIO)
-                    ->orWhere('vapor_porcentaje', '>', Elongacion::LIMITE_CAMBIO);
-            })
-            ->orderBy('created_at')
-            ->get(['id', 'linea_id', 'linea', 'bombas_porcentaje', 'vapor_porcentaje', 'created_at'])
-            ->map(function (Elongacion $item) use ($lineaIdsPorNombre, $lineaNombresPorId) {
-                $lineaId = $item->linea_id ?: $lineaIdsPorNombre->get($item->linea);
-                $lineaNombre = $item->linea ?: $lineaNombresPorId->get($lineaId);
-                $fecha = $item->created_at?->copy()->startOfDay();
-
-                return [
-                    'id' => $item->id,
-                    'source' => 'elongacion',
-                    'type_label' => sprintf('Elongacion fuera de limite (> %.2f%%)', Elongacion::LIMITE_CAMBIO),
-                    'linea_id' => $lineaId,
-                    'linea' => $lineaNombre,
-                    'occurred_at' => $fecha,
-                    'fecha_humana' => $fecha?->format('d/m/Y'),
-                ];
-            })
-            ->filter(fn (array $item) => $item['linea_id'] && $item['occurred_at']);
-
-        return $eventosAnalisis
-            ->concat($eventosElongacion)
-            ->sortBy(fn (array $item) => sprintf('%s-%s-%010d', $item['linea_id'], $item['occurred_at']->format('YmdHis'), (int) $item['id']))
-            ->values();
-    }
-
-    private function resumirTendenciaLineaReporte($eventos, array $ventanas, Carbon $referencia): array
-    {
-        $eventos = collect($eventos)->sortBy(fn (array $item) => $item['occurred_at']->getTimestamp())->values();
-        $ventanasResumen = collect($ventanas)
-            ->map(function (array $ventana) use ($eventos, $referencia) {
-                $rangos = $this->resolverRangosVentanaTendenciaReporte($ventana, $referencia);
-                $actuales = $eventos
-                    ->filter(fn (array $item) => $item['occurred_at']->between($rangos['current_start'], $rangos['current_end'], true))
-                    ->values();
-                $anteriores = $eventos
-                    ->filter(fn (array $item) => $item['occurred_at']->between($rangos['previous_start'], $rangos['previous_end'], true))
-                    ->values();
-                $actual = $actuales->count();
-                $anterior = $anteriores->count();
-                $delta = $actual - $anterior;
-                $trend = $delta > 0 ? 'up' : ($delta < 0 ? 'down' : 'stable');
-
-                return [
-                    'key' => $ventana['key'],
-                    'label' => $ventana['label'],
-                    'current' => $actual,
-                    'previous' => $anterior,
-                    'delta' => $delta,
-                    'trend' => $trend,
-                    'tone' => $this->tonoTendenciaReporte($trend, $actual),
-                    'current_range' => $this->formatearRangoTendenciaReporte($rangos['current_start'], $rangos['current_end']),
-                    'previous_range' => $this->formatearRangoTendenciaReporte($rangos['previous_start'], $rangos['previous_end']),
-                    'current_componentes' => $actuales->where('source', 'componente')->count(),
-                    'current_elongaciones' => $actuales->where('source', 'elongacion')->count(),
-                    'previous_componentes' => $anteriores->where('source', 'componente')->count(),
-                    'previous_elongaciones' => $anteriores->where('source', 'elongacion')->count(),
-                ];
-            })
-            ->values();
-        $ultimaFalla = $eventos->last();
-
-        return [
-            'ventanas' => $ventanasResumen->all(),
-            'resumen' => [
-                'principal_actual' => (int) ($ventanasResumen->first()['current'] ?? 0),
-                'principal_label' => $ventanasResumen->first()['label'] ?? null,
-                'corto_actual' => (int) ($ventanasResumen->last()['current'] ?? 0),
-                'corto_label' => $ventanasResumen->last()['label'] ?? null,
-                'total_actual' => $ventanasResumen->sum('current'),
-                'total_anterior' => $ventanasResumen->sum('previous'),
-                'ultima_falla' => $ultimaFalla['fecha_humana'] ?? null,
-                'ultima_fuente' => $ultimaFalla['type_label'] ?? null,
-                'estado' => $this->estadoTendenciaReporte($ventanasResumen),
-            ],
-        ];
-    }
-
-    private function resolverRangosVentanaTendenciaReporte(array $ventana, Carbon $referencia): array
-    {
-        $finActual = $referencia->copy()->endOfDay();
-        $size = max((int) ($ventana['size'] ?? 1), 1);
-
-        if (($ventana['type'] ?? 'days') === 'weeks') {
-            $inicioActual = $finActual->copy()->subWeeks($size)->addDay()->startOfDay();
-            $inicioAnterior = $inicioActual->copy()->subWeeks($size);
-            $finAnterior = $finActual->copy()->subWeeks($size);
-        } else {
-            $inicioActual = $finActual->copy()->subDays($size - 1)->startOfDay();
-            $inicioAnterior = $inicioActual->copy()->subDays($size);
-            $finAnterior = $finActual->copy()->subDays($size);
-        }
-
-        return [
-            'current_start' => $inicioActual,
-            'current_end' => $finActual,
-            'previous_start' => $inicioAnterior,
-            'previous_end' => $finAnterior,
-        ];
-    }
-
-    private function resumenTendenciaVacio(array $ventanas): array
-    {
-        $ventanasResumen = collect($ventanas)
-            ->map(fn (array $ventana) => [
-                'key' => $ventana['key'],
-                'label' => $ventana['label'],
-                'current' => 0,
-                'previous' => 0,
-                'delta' => 0,
-                'trend' => 'stable',
-                'tone' => 'info',
-                'current_range' => null,
-                'previous_range' => null,
-                'current_componentes' => 0,
-                'current_elongaciones' => 0,
-                'previous_componentes' => 0,
-                'previous_elongaciones' => 0,
-            ])
-            ->values();
-
-        return [
-            'ventanas' => $ventanasResumen->all(),
-            'resumen' => [
-                'principal_actual' => 0,
-                'principal_label' => $ventanasResumen->first()['label'] ?? null,
-                'corto_actual' => 0,
-                'corto_label' => $ventanasResumen->last()['label'] ?? null,
-                'total_actual' => 0,
-                'total_anterior' => 0,
-                'ultima_falla' => null,
-                'ultima_fuente' => null,
-                'estado' => ['label' => 'Sin fallas', 'tone' => 'success'],
-            ],
-        ];
-    }
-
-    private function estadoTendenciaReporte($ventanas): array
-    {
-        $ventanas = collect($ventanas);
-
-        if ($ventanas->isEmpty() || $ventanas->every(fn (array $item) => (int) $item['current'] === 0)) {
-            return ['label' => 'Sin fallas', 'tone' => 'success'];
-        }
-
-        $up = $ventanas->where('trend', 'up')->count();
-        $down = $ventanas->where('trend', 'down')->count();
-
-        if ($up > $down) {
-            return ['label' => 'Acelerando', 'tone' => 'danger'];
-        }
-
-        if ($down > $up) {
-            return ['label' => 'En descenso', 'tone' => 'success'];
-        }
-
-        if ($up === 0 && $down === 0) {
-            return ['label' => 'Estable', 'tone' => 'info'];
-        }
-
-        return ['label' => 'Mixto', 'tone' => 'warning'];
-    }
-
-    private function tonoTendenciaReporte(string $trend, int $actual): string
-    {
-        return match ($trend) {
-            'up' => 'danger',
-            'down' => 'success',
-            default => $actual > 0 ? 'warning' : 'info',
-        };
-    }
-
-    private function formatearRangoTendenciaReporte(Carbon $inicio, Carbon $fin): string
-    {
-        return $inicio->format('d/m/Y') . ' - ' . $fin->format('d/m/Y');
     }
 
     private function tipoEquipoDeLinea(Linea $linea): ?string

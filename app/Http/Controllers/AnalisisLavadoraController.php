@@ -982,17 +982,9 @@ public function update(Request $request, $id)
     }
 public function analisis52124 (Request $request)
 {
-    $analisis = AnalisisLavadora::with(['linea', 'componente'])
-        ->where('linea_id', 1) // L-04
-        ->where('reductor', 'Reductor 1')
-        ->whereHas('componente', function ($q) {
-            $q->where('codigo', 'like', '%SERVO_CHICO%');
-        })
-        ->orderByDesc('fecha_analisis')
-        ->orderByDesc('created_at')
-        ->get();
-
-    return view('analisis-52-12-4.index', compact('analisis'));
+    return redirect()
+        ->route('analisis-tendencia-mensual.lavadora.index', $request->only('linea_id'))
+        ->with('info', 'El analisis 52-12-4 se calcula automaticamente desde los analisis registrados.');
 }
 public function historicoRevisados(Request $request)
 {

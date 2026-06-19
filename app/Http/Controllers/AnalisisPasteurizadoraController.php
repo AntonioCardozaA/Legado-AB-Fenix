@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\AnalisisPasteurizadora;
 use App\Models\Linea;
 use App\Exports\AnalisisPasteurizadoraExport;
+use App\Services\TendenciaDanosService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -536,7 +537,26 @@ class AnalisisPasteurizadoraController extends Controller
     public function show($id)
     {
         $analisis = $this->analisisQuery()->with(['linea', 'usuario'])->findOrFail($id);
-        return $this->renderView('show', compact('analisis'));
+        $tendenciaDanos = app(TendenciaDanosService::class);
+        $fechaReferencia = $analisis->fecha_analisis?->copy() ?? now();
+        $tendencia52124 = $analisis->linea
+            ? $tendenciaDanos->calcularParaLinea(
+                $analisis->linea,
+                TendenciaDanosService::TIPO_PASTEURIZADORAS,
+                $fechaReferencia,
+                $tendenciaDanos->ventanas52124()
+            )
+            : $tendenciaDanos->resumenVacio($tendenciaDanos->ventanas52124());
+        $tendencia30147 = $analisis->linea
+            ? $tendenciaDanos->calcularParaLinea(
+                $analisis->linea,
+                TendenciaDanosService::TIPO_PASTEURIZADORAS,
+                $fechaReferencia,
+                $tendenciaDanos->ventanas30147()
+            )
+            : $tendenciaDanos->resumenVacio($tendenciaDanos->ventanas30147());
+
+        return $this->renderView('show', compact('analisis', 'tendencia52124', 'tendencia30147'));
     }
 
     public function edit($id)
@@ -844,13 +864,37 @@ class AnalisisPasteurizadoraController extends Controller
         $filename = $linea
             ? 'reporte_pasteurizadora_' . $linea->nombre . '_' . now()->format('Ymd_His') . '.pdf'
             : 'reporte_pasteurizadoras_' . now()->format('Ymd_His') . '.pdf';
+        $tendenciaDanos = app(TendenciaDanosService::class);
+        $tendenciasAnalisis = $analisis->mapWithKeys(function (AnalisisPasteurizadora $item) use ($tendenciaDanos) {
+            return [
+                $item->id => [
+                    '52124' => $item->linea
+                        ? $tendenciaDanos->calcularParaLinea(
+                            $item->linea,
+                            TendenciaDanosService::TIPO_PASTEURIZADORAS,
+                            $item->fecha_analisis?->copy() ?? now(),
+                            $tendenciaDanos->ventanas52124()
+                        )
+                        : $tendenciaDanos->resumenVacio($tendenciaDanos->ventanas52124()),
+                    '30147' => $item->linea
+                        ? $tendenciaDanos->calcularParaLinea(
+                            $item->linea,
+                            TendenciaDanosService::TIPO_PASTEURIZADORAS,
+                            $item->fecha_analisis?->copy() ?? now(),
+                            $tendenciaDanos->ventanas30147()
+                        )
+                        : $tendenciaDanos->resumenVacio($tendenciaDanos->ventanas30147()),
+                ],
+            ];
+        });
 
         return Pdf::loadView('pasteurizadora.pdf.analisis', $this->sharedViewData(compact(
             'analisis',
             'linea',
             'fechaInicio',
             'fechaFin',
-            'tituloDocumento'
+            'tituloDocumento',
+            'tendenciasAnalisis'
         )))
             ->setPaper('a4', 'landscape')
             ->download($filename);
@@ -1048,17 +1092,7 @@ class AnalisisPasteurizadoraController extends Controller
     }
     public function analisis52124(Request $request)
     {
-        $lineas = $this->getLineasPasteurizadora();
-        $lineaIds = $lineas->pluck('id');
-
-        $analisis = AnalisisPasteurizadora::with('linea')
-            ->whereIn('linea_id', $lineaIds)
-            ->latest('fecha_analisis')
-            ->latest('created_at')
-            ->limit(100)
-            ->get();
-
-        return view('analisis-tendencia-mensual.pasteurizadora.index', compact('lineas', 'analisis'));
+        return redirect()->route('analisis-tendencia-mensual.pasteurizadora.index', $request->only('linea_id'));
     }
     public function getEstadisticasTendencia52124(Request $request)
     {
@@ -1069,71 +1103,82 @@ class AnalisisPasteurizadoraController extends Controller
         ]);
 
         $periodo = $validated['periodo'] ?? '52';
-        $columna = "valor_actual_{$periodo}";
-        $lineaIds = $this->getLineasPasteurizadora()->pluck('id');
+        $lineas = $this->getLineasPasteurizadora();
+        $linea = !empty($validated['linea_id'])
+            ? $lineas->firstWhere('id', (int) $validated['linea_id'])
+            : $lineas->first();
 
-        $registros = AnalisisPasteurizadora::with('linea')
-            ->whereIn('linea_id', $lineaIds)
-            ->when(!empty($validated['linea_id']), fn ($query) => $query->where('linea_id', $validated['linea_id']))
-            ->when(!empty($validated['componente']), fn ($query) => $query->where('componente', $validated['componente']))
-            ->whereNotNull($columna)
-            ->orderBy('fecha_analisis')
-            ->orderBy('created_at')
-            ->get();
+        if (!$linea) {
+            return response()->json([
+                'labels' => [],
+                'valores' => [],
+                'promedio' => null,
+                'tendencia' => null,
+                'mejor_valor' => null,
+                'mejor_fecha' => null,
+            ]);
+        }
 
-        $valores = $registros->pluck($columna)->map(fn ($valor) => round((float) $valor, 2))->values();
+        $tendenciaDanos = app(TendenciaDanosService::class);
+        $rows = $tendenciaDanos
+            ->construirFilasMensuales($linea, TendenciaDanosService::TIPO_PASTEURIZADORAS)
+            ->sortBy(fn ($item) => sprintf('%04d%02d', $item->anio, $item->mes))
+            ->values();
+        $campo = match ($periodo) {
+            '12' => 'total_danos_12_semanas',
+            '4' => 'total_danos_4_semanas',
+            default => 'total_danos_52_semanas',
+        };
+
+        $valores = $rows->pluck($campo)->map(fn ($valor) => round((float) $valor, 2))->values();
         $ultimo = $valores->last();
         $anterior = $valores->count() > 1 ? $valores[$valores->count() - 2] : null;
         $variacion = $ultimo !== null && $anterior !== null ? round($ultimo - $anterior, 2) : null;
-        $mejorRegistro = $registros->sortByDesc($columna)->first();
+        $mejorRegistro = $rows->sortByDesc($campo)->first();
 
         return response()->json([
-            'labels' => $registros->map(fn ($item) => $item->fecha_analisis?->format('d/m/Y') ?? 'Sin fecha')->values(),
+            'labels' => $rows->map(fn ($item) => $item->periodo)->values(),
             'valores' => $valores,
             'promedio' => $valores->isNotEmpty() ? number_format($valores->avg(), 2) : null,
             'tendencia' => $this->formatearTendencia52124($variacion),
-            'mejor_valor' => $mejorRegistro ? number_format((float) $mejorRegistro->{$columna}, 2) : null,
-            'mejor_fecha' => $mejorRegistro?->fecha_analisis?->format('d/m/Y'),
+            'mejor_valor' => $mejorRegistro ? number_format((float) $mejorRegistro->{$campo}, 2) : null,
+            'mejor_fecha' => $mejorRegistro?->periodo,
         ]);
     }
 
     public function showAnalisis52124Json($id)
     {
         $analisis = AnalisisPasteurizadora::with('linea')->findOrFail($id);
+        $tendenciaDanos = app(TendenciaDanosService::class);
+        $resumen = $analisis->linea
+            ? $tendenciaDanos->calcularParaLinea(
+                $analisis->linea,
+                TendenciaDanosService::TIPO_PASTEURIZADORAS,
+                $analisis->fecha_analisis?->copy() ?? now(),
+                $tendenciaDanos->ventanas52124()
+            )
+            : $tendenciaDanos->resumenVacio($tendenciaDanos->ventanas52124());
+        $ventanas = collect($resumen['ventanas'] ?? [])->keyBy('key');
 
         return response()->json([
             'id' => $analisis->id,
-            'valor_actual_52' => $analisis->valor_actual_52,
-            'valor_actual_12' => $analisis->valor_actual_12,
-            'valor_actual_4' => $analisis->valor_actual_4,
+            'valor_actual_52' => $ventanas->get('semanas_52')['current'] ?? 0,
+            'valor_actual_12' => $ventanas->get('semanas_12')['current'] ?? 0,
+            'valor_actual_4' => $ventanas->get('semanas_4')['current'] ?? 0,
+            'ventanas' => $resumen['ventanas'] ?? [],
         ]);
     }
 
     public function updateAnalisis52124(Request $request)
     {
-        $validated = $request->validate([
-            'id' => 'required|exists:analisis_pasteurizadora,id',
-            'valor_52' => 'nullable|numeric',
-            'valor_12' => 'nullable|numeric',
-            'valor_4' => 'nullable|numeric',
-        ]);
-
-        $analisis = AnalisisPasteurizadora::findOrFail($validated['id']);
-
-        $analisis->update([
-            'valor_anterior_52' => $analisis->valor_actual_52,
-            'valor_actual_52' => $validated['valor_52'] ?? null,
-            'valor_anterior_12' => $analisis->valor_actual_12,
-            'valor_actual_12' => $validated['valor_12'] ?? null,
-            'valor_anterior_4' => $analisis->valor_actual_4,
-            'valor_actual_4' => $validated['valor_4'] ?? null,
-        ]);
-
         if ($request->expectsJson()) {
-            return response()->json(['success' => true]);
+            return response()->json([
+                'success' => true,
+                'message' => 'La tendencia se calcula automaticamente; no se guardaron valores manuales.',
+            ]);
         }
 
-        return back()->with('success', 'Datos actualizados correctamente');
+        return back()->with('info', 'La tendencia se calcula automaticamente; no se guardaron valores manuales.');
     }
 
     public function crearLineasPasteurizadora(Request $request)
@@ -1209,31 +1254,15 @@ class AnalisisPasteurizadoraController extends Controller
 
     public function apiGetAnalisis52124(Request $request)
     {
-        $lineaIds = $this->getLineasPasteurizadora()->pluck('id');
+        $lineas = $this->getLineasPasteurizadora();
+        $tendenciaDanos = app(TendenciaDanosService::class);
+        $data = $tendenciaDanos->construirDashboard(
+            $lineas,
+            TendenciaDanosService::TIPO_PASTEURIZADORAS,
+            $tendenciaDanos->ventanas52124()
+        );
 
-        $analisis = AnalisisPasteurizadora::with('linea')
-            ->whereIn('linea_id', $lineaIds)
-            ->where(function ($query) {
-                $query->whereNotNull('valor_actual_52')
-                    ->orWhereNotNull('valor_actual_12')
-                    ->orWhereNotNull('valor_actual_4');
-            })
-            ->latest('fecha_analisis')
-            ->latest('created_at')
-            ->limit((int) $request->get('limit', 25))
-            ->get()
-            ->map(fn ($item) => [
-                'id' => $item->id,
-                'linea' => $item->linea->nombre ?? null,
-                'fecha' => $item->fecha_analisis?->format('Y-m-d'),
-                'modulo' => $item->modulo,
-                'componente' => $item->componente,
-                'valor_actual_52' => $item->valor_actual_52,
-                'valor_actual_12' => $item->valor_actual_12,
-                'valor_actual_4' => $item->valor_actual_4,
-            ]);
-
-        return response()->json(['success' => true, 'data' => $analisis]);
+        return response()->json(['success' => true, 'data' => $data]);
     }
 
     public function updatePlanAccion(Request $request)

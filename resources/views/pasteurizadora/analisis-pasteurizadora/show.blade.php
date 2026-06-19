@@ -342,7 +342,7 @@
         @endif
 
         {{-- Análisis 52-12-4 (si tiene datos) --}}
-        @if($analisis->valor_actual_52 || $analisis->valor_actual_12 || $analisis->valor_actual_4)
+        @if(false)
         <div class="border-t border-gray-200">
             <div class="bg-gray-50 px-6 py-4">
                 <div class="flex items-center gap-2">
@@ -351,45 +351,45 @@
                 </div>
             </div>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4 p-6">
-                @if($analisis->valor_actual_52)
+                @if(false)
                 <div class="bg-blue-50 rounded-lg p-4 text-center">
                     <div class="text-xs text-gray-500 mb-1">52 semanas</div>
-                    <div class="text-2xl font-bold text-blue-700">{{ $analisis->valor_actual_52 }}</div>
-                    @if($analisis->valor_anterior_52)
+                    <div class="text-2xl font-bold text-blue-700">0</div>
+                    @if(false)
                     <div class="text-xs mt-1">
-                        <span class="{{ $analisis->valor_actual_52 >= $analisis->valor_anterior_52 ? 'text-green-600' : 'text-red-600' }}">
-                            <i class="fas fa-{{ $analisis->valor_actual_52 >= $analisis->valor_anterior_52 ? 'arrow-up' : 'arrow-down' }}"></i>
-                            {{ number_format(abs((($analisis->valor_actual_52 - $analisis->valor_anterior_52) / $analisis->valor_anterior_52) * 100), 1) }}%
+                        <span class="text-yellow-600">
+                            <i class="fas fa-minus"></i>
+                            0%
                         </span>
                         vs anterior
                     </div>
                     @endif
                 </div>
                 @endif
-                @if($analisis->valor_actual_12)
+                @if(false)
                 <div class="bg-yellow-50 rounded-lg p-4 text-center">
                     <div class="text-xs text-gray-500 mb-1">12 semanas</div>
-                    <div class="text-2xl font-bold text-yellow-700">{{ $analisis->valor_actual_12 }}</div>
-                    @if($analisis->valor_anterior_12)
+                    <div class="text-2xl font-bold text-yellow-700">0</div>
+                    @if(false)
                     <div class="text-xs mt-1">
-                        <span class="{{ $analisis->valor_actual_12 >= $analisis->valor_anterior_12 ? 'text-green-600' : 'text-red-600' }}">
-                            <i class="fas fa-{{ $analisis->valor_actual_12 >= $analisis->valor_anterior_12 ? 'arrow-up' : 'arrow-down' }}"></i>
-                            {{ number_format(abs((($analisis->valor_actual_12 - $analisis->valor_anterior_12) / $analisis->valor_anterior_12) * 100), 1) }}%
+                        <span class="text-yellow-600">
+                            <i class="fas fa-minus"></i>
+                            0%
                         </span>
                         vs anterior
                     </div>
                     @endif
                 </div>
                 @endif
-                @if($analisis->valor_actual_4)
+                @if(false)
                 <div class="bg-green-50 rounded-lg p-4 text-center">
                     <div class="text-xs text-gray-500 mb-1">4 semanas</div>
-                    <div class="text-2xl font-bold text-green-700">{{ $analisis->valor_actual_4 }}</div>
-                    @if($analisis->valor_anterior_4)
+                    <div class="text-2xl font-bold text-green-700">0</div>
+                    @if(false)
                     <div class="text-xs mt-1">
-                        <span class="{{ $analisis->valor_actual_4 >= $analisis->valor_anterior_4 ? 'text-green-600' : 'text-red-600' }}">
-                            <i class="fas fa-{{ $analisis->valor_actual_4 >= $analisis->valor_anterior_4 ? 'arrow-up' : 'arrow-down' }}"></i>
-                            {{ number_format(abs((($analisis->valor_actual_4 - $analisis->valor_anterior_4) / $analisis->valor_anterior_4) * 100), 1) }}%
+                        <span class="text-yellow-600">
+                            <i class="fas fa-minus"></i>
+                            0%
                         </span>
                         vs anterior
                     </div>
@@ -399,6 +399,47 @@
             </div>
         </div>
         @endif
+
+        @php
+            $bloquesTendencia = [
+                'Analisis de Tendencia (52-12-4 semanas)' => collect($tendencia52124['ventanas'] ?? []),
+                'Analisis de Tendencia (30-14-7 dias)' => collect($tendencia30147['ventanas'] ?? []),
+            ];
+        @endphp
+        @foreach($bloquesTendencia as $tituloTendencia => $ventanasTendencia)
+            @if($ventanasTendencia->isNotEmpty())
+                <div class="border-t border-gray-200">
+                    <div class="bg-gray-50 px-6 py-4">
+                        <div class="flex items-center gap-2">
+                            <i class="fas fa-chart-line text-blue-600"></i>
+                            <h3 class="font-semibold text-gray-800">{{ $tituloTendencia }}</h3>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 p-6">
+                        @foreach($ventanasTendencia as $ventana)
+                            @php
+                                $delta = (int) ($ventana['delta'] ?? 0);
+                                $trend = $ventana['trend'] ?? 'stable';
+                                $toneClass = $trend === 'up' ? 'text-red-600' : ($trend === 'down' ? 'text-green-600' : 'text-yellow-600');
+                                $icon = $trend === 'up' ? 'fa-arrow-up' : ($trend === 'down' ? 'fa-arrow-down' : 'fa-minus');
+                            @endphp
+                            <div class="bg-blue-50 rounded-lg p-4 text-center">
+                                <div class="text-xs text-gray-500 mb-1">{{ $ventana['label'] }}</div>
+                                <div class="text-2xl font-bold text-blue-700">{{ $ventana['current'] ?? 0 }}</div>
+                                <div class="text-xs mt-1">
+                                    <span class="{{ $toneClass }}">
+                                        <i class="fas {{ $icon }}"></i>
+                                        {{ $delta > 0 ? '+' : '' }}{{ $delta }}
+                                    </span>
+                                    vs periodo anterior
+                                </div>
+                                <div class="text-[11px] text-gray-500 mt-2">{{ $ventana['current_range'] ?? '-' }}</div>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+            @endif
+        @endforeach
 
         {{-- Planes PCM --}}
         @php

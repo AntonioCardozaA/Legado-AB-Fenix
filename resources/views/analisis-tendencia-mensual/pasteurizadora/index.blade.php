@@ -1,7 +1,17 @@
 {{-- resources/views/analisis-tendencia-mensual-pasteurizadora/index.blade.php --}}
+@php
+    $analisisTipo = $analisisTipo ?? '52124';
+    $lineaSeleccionada = $lineaSeleccionada ?? null;
+    $isAnalisis30147 = $analisisTipo === '30147';
+    $rutaAnalisisActiva = $isAnalisis30147
+        ? 'analisis-tendencia-mensual.pasteurizadora.analisis-30-14-7'
+        : 'analisis-tendencia-mensual.pasteurizadora.analisis-52-12-4';
+    $parametrosLinea = $lineaSeleccionada ? ['linea_id' => $lineaSeleccionada] : [];
+    $tituloAnalisis = $isAnalisis30147 ? 'Analisis 30-14-7' : 'Analisis 52-12-4';
+@endphp
 @extends('layouts.app')
 
-@section('title', 'Análisis 52-12-4')
+@section('title', $analisisTipo === '30147' ? 'Analisis 30-14-7' : 'Analisis 52-12-4')
 
 @section('content')
 <style>
@@ -491,7 +501,7 @@
 
 <div class="max-w-7xl mx-auto px-4 py-8">
     {{-- Header Industrial --}}
-    <div class="flex justify-between items-center mb-6">
+    <div class="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4 mb-6">
         <div>
             <a href="{{ route('pasteurizadora.dashboard') }}" 
                class="inline-flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 
@@ -504,13 +514,19 @@
             </a>
             <h1 class="text-2xl font-bold text-gray-800 flex items-center gap-2">
                 <i class="fas fa-chart-bar text-blue-600"></i>
-                Analisis 52-12-4
+                {{ $tituloAnalisis }}
             </h1>
         </div>
-            <a href="{{ route('analisis-tendencia-mensual.pasteurizadora.create', $lineaSeleccionada ? ['linea_id' => $lineaSeleccionada] : []) }}" 
-               class="btn-industrial">
-                <i class="fas fa-plus-circle"></i>
-                <span>NUEVO ANÁLISIS</span>
+        <div class="flex flex-wrap gap-3">
+            <a href="{{ route('analisis-tendencia-mensual.pasteurizadora.analisis-52-12-4', $parametrosLinea) }}" 
+               class="inline-flex items-center gap-2 px-5 py-3 rounded-full font-semibold transition-all duration-300 {{ !$isAnalisis30147 ? 'bg-blue-600 text-white shadow-lg' : 'bg-white text-gray-700 border border-gray-200 hover:border-blue-300 hover:text-blue-700' }}">
+                <i class="fas fa-chart-line"></i>
+                <span>52-12-4</span>
+            </a>
+            <a href="{{ route('analisis-tendencia-mensual.pasteurizadora.analisis-30-14-7', $parametrosLinea) }}" 
+               class="inline-flex items-center gap-2 px-5 py-3 rounded-full font-semibold transition-all duration-300 {{ $isAnalisis30147 ? 'bg-cyan-600 text-white shadow-lg' : 'bg-white text-gray-700 border border-gray-200 hover:border-cyan-300 hover:text-cyan-700' }}">
+                <i class="fas fa-chart-bar"></i>
+                <span>30-14-7</span>
             </a>
         </div>
     </div>
@@ -524,7 +540,7 @@
         
         <div class="machine-grid">
             @foreach($lineas as $linea)
-                <a href="{{ route('analisis-tendencia-mensual.pasteurizadora.index', ['linea_id' => $linea->id]) }}" 
+                <a href="{{ route($rutaAnalisisActiva, ['linea_id' => $linea->id]) }}" 
                    class="machine-pill {{ $lineaSeleccionada == $linea->id ? 'machine-pill-active' : 'machine-pill-inactive' }}">
                     <i class="fas fa-industry"></i>
                     {{ $linea->nombre }}
@@ -536,6 +552,12 @@
     {{-- Tabla de Tendencias --}}
     @if($lineaSeleccionada)
         @if($analisis->isNotEmpty())
+            @php
+                $analisisOrdenados = $analisis->sortByDesc(function($item) {
+                    return $item->anio . '-' . str_pad($item->mes, 2, '0', STR_PAD_LEFT);
+                });
+            @endphp
+            @if(!$isAnalisis30147)
             <div class="industrial-table-container">
                 <table class="industrial-table">
                     <thead>
@@ -666,10 +688,87 @@
             </div>
 
             {{-- Gráfica Industrial de Barras --}}
+            @endif
+            @if($isAnalisis30147)
+            <div class="industrial-table-container">
+                <table class="industrial-table">
+                    <thead>
+                        <tr>
+                            <th rowspan="2" class="border-r border-gray-600">PERIODO</th>
+                            <th colspan="3" class="group-header border-r border-gray-600">30 DIAS</th>
+                            <th colspan="3" class="group-header border-r border-gray-600">14 DIAS</th>
+                            <th colspan="3" class="group-header">7 DIAS</th>
+                        </tr>
+                        <tr>
+                            <th class="bg-gray-300">TOTAL</th>
+                            <th class="bg-gray-500">VS MES ANT</th>
+                            <th class="bg-gray-500">TENDENCIA</th>
+                            <th class="bg-gray-500">TOTAL</th>
+                            <th class="bg-gray-500">VS MES ANT</th>
+                            <th class="bg-gray-500">TENDENCIA</th>
+                            <th class="bg-gray-500">TOTAL</th>
+                            <th class="bg-gray-500">VS MES ANT</th>
+                            <th class="bg-gray-500">TENDENCIA</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($analisisOrdenados as $item)
+                            @php
+                                $variacion30 = $item->variacion_30_dias;
+                                $variacion14 = $item->variacion_14_dias;
+                                $variacion7 = $item->variacion_7_dias;
+                            @endphp
+                            <tr>
+                                <td class="period-cell">
+                                    <div class="period-main">
+                                        {{ $item->mesNombre }} {{ $item->anio }}
+                                        @if($loop->first)
+                                            <span class="current-badge">ACTUAL</span>
+                                        @endif
+                                    </div>
+                                </td>
+
+                                @foreach([
+                                    ['valor' => $item->total_danos_30_dias, 'variacion' => $variacion30],
+                                    ['valor' => $item->total_danos_14_dias, 'variacion' => $variacion14],
+                                    ['valor' => $item->total_danos_7_dias, 'variacion' => $variacion7],
+                                ] as $metrica)
+                                    <td class="value-industrial">{{ number_format($metrica['valor'], 2) }}</td>
+                                    <td class="comparison-industrial">
+                                        @if($metrica['variacion'])
+                                            <span style="color: {{ $metrica['variacion']['diferencia'] > 0 ? 'var(--danger)' : ($metrica['variacion']['diferencia'] < 0 ? 'var(--success)' : 'var(--warning)') }}">
+                                                {{ $metrica['variacion']['diferencia'] > 0 ? '+' : '' }}{{ number_format($metrica['variacion']['diferencia'], 2) }}
+                                            </span>
+                                        @else
+                                            <span class="text-gray-400">-</span>
+                                        @endif
+                                    </td>
+                                    <td>
+                                        @if($metrica['variacion'])
+                                            @php
+                                                $clase = $metrica['variacion']['tendencia'] == 'up' ? 'trend-up-industrial' : ($metrica['variacion']['tendencia'] == 'down' ? 'trend-down-industrial' : 'trend-stable-industrial');
+                                                $icono = $metrica['variacion']['tendencia'] == 'up' ? 'fa-arrow-up' : ($metrica['variacion']['tendencia'] == 'down' ? 'fa-arrow-down' : 'fa-minus');
+                                            @endphp
+                                            <span class="trend-industrial {{ $clase }}">
+                                                <i class="fas {{ $icono }}"></i>
+                                                {{ $metrica['variacion']['porcentaje'] > 0 ? '+' : '' }}{{ number_format($metrica['variacion']['porcentaje'], 2) }}%
+                                            </span>
+                                        @else
+                                            <span class="text-gray-400">-</span>
+                                        @endif
+                                    </td>
+                                @endforeach
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+            @endif
+
             <div class="industrial-chart">
                 <div class="chart-header">
                     <i class="fas fa-chart-bar"></i>
-                    <h3>EVOLUCIÓN DE DAÑOS - {{ $lineas->find($lineaSeleccionada)?->nombre }}</h3>
+                    <h3>{{ strtoupper($tituloAnalisis) }} - {{ $lineas->find($lineaSeleccionada)?->nombre }}</h3>
                     <div class="chart-view-selector">
                         <button class="view-btn active" onclick="changeChartType('bar')">Barras</button>
                         <button class="view-btn" onclick="changeChartType('line')">Línea</button>
@@ -688,10 +787,10 @@
                 </div>
                 <h3>SIN DATOS DISPONIBLES</h3>
                 <p>No se encontraron análisis para {{ $lineas->find($lineaSeleccionada)?->nombre }}</p>
-                <a href="{{ route('analisis-tendencia-mensual.pasteurizadora.create', ['linea_id' => $lineaSeleccionada]) }}" 
+                <a href="{{ route($rutaAnalisisActiva, ['linea_id' => $lineaSeleccionada]) }}" 
                    class="btn-industrial">
-                    <i class="fas fa-plus-circle"></i>
-                    INICIAR PRIMER ANÁLISIS
+                    <i class="fas fa-sync-alt"></i>
+                    VER TENDENCIA AUTOMATICA
                 </a>
             </div>
         @endif
@@ -726,6 +825,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const data52 = datosOrdenados.map(item => parseFloat(item.total_danos_52_semanas) || 0);
     const data12 = datosOrdenados.map(item => parseFloat(item.total_danos_12_semanas) || 0);
     const data4 = datosOrdenados.map(item => parseFloat(item.total_danos_4_semanas) || 0);
+    const data30 = datosOrdenados.map(item => parseFloat(item.total_danos_30_dias) || 0);
+    const data14 = datosOrdenados.map(item => parseFloat(item.total_danos_14_dias) || 0);
+    const data7 = datosOrdenados.map(item => parseFloat(item.total_danos_7_dias) || 0);
     
     const ctx = document.getElementById('trendChart').getContext('2d');
     
@@ -740,6 +842,7 @@ document.addEventListener('DOMContentLoaded', function() {
             data: {
                 labels: labels,
                 datasets: [
+                    @if(!$isAnalisis30147)
                     {
                         label: '52 Semanas',
                         data: data52,
@@ -790,7 +893,60 @@ document.addEventListener('DOMContentLoaded', function() {
                         pointHoverRadius: 6,
                         tension: 0.3,
                         fill: type === 'line' ? true : false
+                    },
+                    @else
+                    {
+                        label: '30 Dias',
+                        data: data30,
+                        backgroundColor: 'rgba(14, 165, 233, 0.62)',
+                        borderColor: '#0284c7',
+                        borderWidth: type === 'bar' ? 0 : 3,
+                        borderRadius: type === 'bar' ? 8 : 0,
+                        barPercentage: 0.7,
+                        categoryPercentage: 0.8,
+                        pointBackgroundColor: '#0284c7',
+                        pointBorderColor: 'white',
+                        pointBorderWidth: 2,
+                        pointRadius: type === 'bar' ? 0 : 4,
+                        pointHoverRadius: 6,
+                        tension: 0.3,
+                        fill: type === 'line' ? true : false
+                    },
+                    {
+                        label: '14 Dias',
+                        data: data14,
+                        backgroundColor: 'rgba(99, 102, 241, 0.62)',
+                        borderColor: '#4f46e5',
+                        borderWidth: type === 'bar' ? 0 : 3,
+                        borderRadius: type === 'bar' ? 8 : 0,
+                        barPercentage: 0.7,
+                        categoryPercentage: 0.8,
+                        pointBackgroundColor: '#4f46e5',
+                        pointBorderColor: 'white',
+                        pointBorderWidth: 2,
+                        pointRadius: type === 'bar' ? 0 : 4,
+                        pointHoverRadius: 6,
+                        tension: 0.3,
+                        fill: type === 'line' ? true : false
+                    },
+                    {
+                        label: '7 Dias',
+                        data: data7,
+                        backgroundColor: 'rgba(236, 72, 153, 0.62)',
+                        borderColor: '#db2777',
+                        borderWidth: type === 'bar' ? 0 : 3,
+                        borderRadius: type === 'bar' ? 8 : 0,
+                        barPercentage: 0.7,
+                        categoryPercentage: 0.8,
+                        pointBackgroundColor: '#db2777',
+                        pointBorderColor: 'white',
+                        pointBorderWidth: 2,
+                        pointRadius: type === 'bar' ? 0 : 4,
+                        pointHoverRadius: 6,
+                        tension: 0.3,
+                        fill: type === 'line' ? true : false
                     }
+                    @endif
                 ]
             },
             options: {

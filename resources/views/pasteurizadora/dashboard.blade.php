@@ -226,10 +226,10 @@
                         </div>
                         
                         <h3 class="text-xl font-bold text-gray-800 mb-3 group-hover" style="group-hover:color: rgb(31, 35, 72); transition: color 0.3s;">
-                            ANÁLISIS 52 - 12 - 4
+                            ANÁLISIS 52 - 12 - 4 / 30 - 14 - 7
                         </h3>
                         <p class="text-gray-500 text-sm leading-relaxed">
-                            Visualización de análisis de índice de daños
+                            Visualizacion automatica de tendencia de danos
                         </p>
                         <div class="mt-6 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity" style="color: rgb(31, 35, 72);">
                             <span class="text-sm font-medium">Acceder</span>

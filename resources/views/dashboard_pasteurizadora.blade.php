@@ -8,7 +8,8 @@
     $fallasPorLineaPasteurizadora = collect($fallasPorLineaPasteurizadora ?? []);
     $componentesDanadosPasteurizadora = collect($componentesDanadosPasteurizadora ?? []);
     $historicoRevisionesPasteurizadora = collect($historicoRevisionesPasteurizadora ?? []);
-    $analisis52124Pasteurizadora = collect($analisis52124Pasteurizadora ?? []);
+    $analisis52124Pasteurizadora = $analisis52124Pasteurizadora ?? ['lineas' => [], 'criterios' => []];
+    $analisis30147Pasteurizadora = $analisis30147Pasteurizadora ?? ['lineas' => [], 'criterios' => []];
     $planesPendientesPasteurizadora = collect($planesPendientesPasteurizadora ?? []);
     $ultimosAnalisisPasteurizadora = collect($ultimosAnalisisPasteurizadora ?? []);
     $totalPasteurizadoras = max((int) ($resumenPasteurizadora['total_pasteurizadoras'] ?? $pasteurizadoras->count()), 1);
@@ -1230,7 +1231,20 @@
             </div>
             <div class="chart-description">
                 <i class="fas fa-info-circle"></i>
-                Registros reales conectados con la vista de tendencia mensual
+                Tendencia automatica calculada desde danos registrados en los analisis de pasteurizadora
+            </div>
+        </div>
+        <div class="chart-card">
+            <h3>
+                <i class="fas fa-bolt"></i>
+                <span>Análisis 30-14-7</span>
+            </h3>
+            <div class="chart-container">
+                <canvas id="analisis30147PasteurizadoraChart"></canvas>
+            </div>
+            <div class="chart-description">
+                <i class="fas fa-info-circle"></i>
+                Seguimiento de fallas recientes calculado automaticamente desde los analisis registrados
             </div>
         </div>
     </div>
@@ -1250,11 +1264,12 @@
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-    let fallasPasteurizadoraChart, componentesPasteurizadoraChart, analisis52124PasteurizadoraChart;
+    let fallasPasteurizadoraChart, componentesPasteurizadoraChart, analisis52124PasteurizadoraChart, analisis30147PasteurizadoraChart;
     const pasteurizadorasData = @json($pasteurizadoras->values());
     const fallasPorLineaPasteurizadora = @json($fallasPorLineaPasteurizadora->values());
     const componentesDanadosPasteurizadora = @json($componentesDanadosPasteurizadora->values());
-    const analisis52124Pasteurizadora = @json($analisis52124Pasteurizadora->values());
+    const analisis52124Pasteurizadora = @json($analisis52124Pasteurizadora);
+    const analisis30147Pasteurizadora = @json($analisis30147Pasteurizadora);
 
     document.addEventListener('DOMContentLoaded', function() {
         initCharts();
@@ -1392,40 +1407,45 @@
             }
         });
 
-        const analisis52124Ctx = document.getElementById('analisis52124PasteurizadoraChart').getContext('2d');
-        analisis52124PasteurizadoraChart = new Chart(analisis52124Ctx, {
+        analisis52124PasteurizadoraChart = buildPasteurizadoraTrendChart(
+            'analisis52124PasteurizadoraChart',
+            analisis52124Pasteurizadora
+        );
+        analisis30147PasteurizadoraChart = buildPasteurizadoraTrendChart(
+            'analisis30147PasteurizadoraChart',
+            analisis30147Pasteurizadora
+        );
+    }
+
+    function buildPasteurizadoraTrendChart(canvasId, dataset) {
+        const canvas = document.getElementById(canvasId);
+        const rows = Array.isArray(dataset?.lineas) ? dataset.lineas : [];
+        const labels = rows.map(item => item.linea || 'N/A');
+        const sourceSeries = rows[0]?.series || [];
+        const colors = [
+            ['rgba(59, 130, 246, 0.9)', '#1e40af'],
+            ['rgba(245, 158, 11, 0.9)', '#b45309'],
+            ['rgba(16, 185, 129, 0.9)', '#047857'],
+        ];
+        const chartSeries = sourceSeries.map((serie, index) => ({
+            label: String(serie.label || `Serie ${index + 1}`).replace(/dias/gi, 'dias'),
+            data: rows.map(item => {
+                const match = (item.series || []).find(row => row.key === serie.key);
+                const values = Array.isArray(match?.data) ? match.data : [];
+                return Number(values[values.length - 1] || 0);
+            }),
+            backgroundColor: colors[index % colors.length][0],
+            borderColor: colors[index % colors.length][1],
+            borderWidth: 2,
+            borderRadius: 10,
+            borderSkipped: false,
+        }));
+
+        return new Chart(canvas.getContext('2d'), {
             type: 'bar',
             data: {
-                labels: analisis52124Pasteurizadora.map(item => item.linea?.nombre || 'N/A'),
-                datasets: [
-                    {
-                        label: '52 Semanas',
-                        data: analisis52124Pasteurizadora.map(item => parseFloat(item.valor_actual_52) || 0),
-                        backgroundColor: 'rgba(59, 130, 246, 0.9)',
-                        borderColor: '#1e40af',
-                        borderWidth: 2,
-                        borderRadius: 10,
-                        borderSkipped: false
-                    },
-                    {
-                        label: '12 Semanas',
-                        data: analisis52124Pasteurizadora.map(item => parseFloat(item.valor_actual_12) || 0),
-                        backgroundColor: 'rgba(245, 158, 11, 0.9)',
-                        borderColor: '#b45309',
-                        borderWidth: 2,
-                        borderRadius: 10,
-                        borderSkipped: false
-                    },
-                    {
-                        label: '4 Semanas',
-                        data: analisis52124Pasteurizadora.map(item => parseFloat(item.valor_actual_4) || 0),
-                        backgroundColor: 'rgba(16, 185, 129, 0.9)',
-                        borderColor: '#047857',
-                        borderWidth: 2,
-                        borderRadius: 10,
-                        borderSkipped: false
-                    }
-                ]
+                labels,
+                datasets: chartSeries,
             },
             options: {
                 responsive: true,
@@ -1434,7 +1454,7 @@
                     y: {
                         beginAtZero: true,
                         grid: { color: 'rgba(0, 0, 0, 0.05)', drawBorder: false, drawTicks: false },
-                        ticks: { font: { size: 12, weight: 600 }, color: '#64748b', padding: 8 }
+                        ticks: { font: { size: 12, weight: 600 }, color: '#64748b', padding: 8, precision: 0 }
                     },
                     x: {
                         grid: { display: false, drawBorder: false },
@@ -1448,7 +1468,10 @@
                         bodyColor: '#e0e7ff',
                         borderColor: '#10b981',
                         borderWidth: 2,
-                        padding: 14
+                        padding: 14,
+                        callbacks: {
+                            label: context => `${context.dataset.label}: ${context.raw} danos`
+                        }
                     },
                     legend: {
                         position: 'top',

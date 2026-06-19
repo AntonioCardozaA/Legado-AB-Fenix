@@ -895,29 +895,85 @@
             </div>
         @endif
 
-        @if($esPasteurizadora && collect($lineaReporte['analisis_tendencia'] ?? [])->isNotEmpty())
+        @php
+            $tendenciaRows = collect($lineaReporte['analisis_tendencia'] ?? []);
+            $ventanas52124Pdf = collect(data_get($lineaReporte, 'analisis_52124.ventanas', []));
+            $ventanas30147Pdf = collect(data_get($lineaReporte, 'analisis_30147.ventanas', []));
+        @endphp
+
+        @if($tendenciaRows->isNotEmpty() || $ventanas52124Pdf->isNotEmpty() || $ventanas30147Pdf->isNotEmpty())
             <div class="section">
-                <h2>Seguimiento 52-12-4</h2>
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th>Periodo</th>
-                            <th>Total 52 semanas</th>
-                            <th>Total 12 semanas</th>
-                            <th>Total 4 semanas</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach(collect($lineaReporte['analisis_tendencia'])->take(8) as $tendencia)
+                <h2>Seguimiento automatico de tendencia</h2>
+
+                @if($ventanas52124Pdf->isNotEmpty() || $ventanas30147Pdf->isNotEmpty())
+                    <table class="data-table">
+                        <thead>
                             <tr>
-                                <td>{{ data_get($tendencia, 'mes') }}/{{ data_get($tendencia, 'anio') }}</td>
+                                <th>Analisis</th>
+                                <th>Ventana</th>
+                                <th>Periodo actual</th>
+                                <th>Actual</th>
+                                <th>Anterior</th>
+                                <th>Diferencia</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($ventanas52124Pdf as $ventana)
+                                <tr>
+                                    <td>52-12-4</td>
+                                    <td>{{ data_get($ventana, 'label') }}</td>
+                                    <td>{{ data_get($ventana, 'current_range', '-') }}</td>
+                                    <td>{{ $formatValue(data_get($ventana, 'current')) }}</td>
+                                    <td>{{ $formatValue(data_get($ventana, 'previous')) }}</td>
+                                    <td>{{ (($delta = (int) data_get($ventana, 'delta', 0)) > 0 ? '+' : '') . $delta }}</td>
+                                </tr>
+                            @endforeach
+                            @foreach($ventanas30147Pdf as $ventana)
+                                <tr>
+                                    <td>30-14-7</td>
+                                    <td>{{ data_get($ventana, 'label') }}</td>
+                                    <td>{{ data_get($ventana, 'current_range', '-') }}</td>
+                                    <td>{{ $formatValue(data_get($ventana, 'current')) }}</td>
+                                    <td>{{ $formatValue(data_get($ventana, 'previous')) }}</td>
+                                    <td>{{ (($delta = (int) data_get($ventana, 'delta', 0)) > 0 ? '+' : '') . $delta }}</td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                @endif
+
+                @if($tendenciaRows->isNotEmpty())
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Periodo</th>
+                                <th>52 semanas</th>
+                                <th>12 semanas</th>
+                                <th>4 semanas</th>
+                                <th>30 dias</th>
+                                <th>14 dias</th>
+                                <th>7 dias</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($tendenciaRows->take(8) as $tendencia)
+                                @php
+                                    $periodoTendencia = data_get($tendencia, 'periodo')
+                                        ?: trim(data_get($tendencia, 'mes') . '/' . data_get($tendencia, 'anio'), '/');
+                                @endphp
+                            <tr>
+                                <td>{{ $periodoTendencia }}</td>
                                 <td>{{ $formatValue(data_get($tendencia, 'total_danos_52_semanas')) }}</td>
                                 <td>{{ $formatValue(data_get($tendencia, 'total_danos_12_semanas')) }}</td>
                                 <td>{{ $formatValue(data_get($tendencia, 'total_danos_4_semanas')) }}</td>
+                                <td>{{ $formatValue(data_get($tendencia, 'total_danos_30_dias')) }}</td>
+                                <td>{{ $formatValue(data_get($tendencia, 'total_danos_14_dias')) }}</td>
+                                <td>{{ $formatValue(data_get($tendencia, 'total_danos_7_dias')) }}</td>
                             </tr>
-                        @endforeach
-                    </tbody>
-                </table>
+                            @endforeach
+                        </tbody>
+                    </table>
+                @endif
             </div>
         @endif
 
@@ -971,14 +1027,6 @@
                                 <tr>
                                     <td class="label">Observaciones</td>
                                     <td colspan="3">{{ $formatValue(data_get($registro, 'observaciones')) }}</td>
-                                </tr>
-                                <tr>
-                                    <td class="label">52-12-4</td>
-                                    <td colspan="3">
-                                        52: {{ $formatValue(data_get($registro, 'valor_anterior_52')) }} -> {{ $formatValue(data_get($registro, 'valor_actual_52')) }}
-                                        | 12: {{ $formatValue(data_get($registro, 'valor_anterior_12')) }} -> {{ $formatValue(data_get($registro, 'valor_actual_12')) }}
-                                        | 4: {{ $formatValue(data_get($registro, 'valor_anterior_4')) }} -> {{ $formatValue(data_get($registro, 'valor_actual_4')) }}
-                                    </td>
                                 </tr>
                                 <tr>
                                     <td class="label">Planes PCM</td>

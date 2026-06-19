@@ -448,12 +448,29 @@
                                 <td class="label">Observaciones</td>
                                 <td colspan="3">{{ $formatValue($item->observaciones) }}</td>
                             </tr>
+                            @php
+                                $tendenciaPdf = $tendenciasAnalisis[$item->id] ?? [];
+                                $ventanas52124Pdf = collect(data_get($tendenciaPdf, '52124.ventanas', []));
+                                $ventanas30147Pdf = collect(data_get($tendenciaPdf, '30147.ventanas', []));
+                            @endphp
                             <tr>
                                 <td class="label">52-12-4</td>
                                 <td colspan="3">
-                                    52: {{ $formatValue($item->valor_anterior_52) }} -> {{ $formatValue($item->valor_actual_52) }}
-                                    | 12: {{ $formatValue($item->valor_anterior_12) }} -> {{ $formatValue($item->valor_actual_12) }}
-                                    | 4: {{ $formatValue($item->valor_anterior_4) }} -> {{ $formatValue($item->valor_actual_4) }}
+                                    @forelse($ventanas52124Pdf as $ventana)
+                                        {{ $ventana['label'] }}: {{ $ventana['current'] ?? 0 }} (ant. {{ $ventana['previous'] ?? 0 }})@if(!$loop->last) | @endif
+                                    @empty
+                                        Sin datos
+                                    @endforelse
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="label">30-14-7</td>
+                                <td colspan="3">
+                                    @forelse($ventanas30147Pdf as $ventana)
+                                        {{ $ventana['label'] }}: {{ $ventana['current'] ?? 0 }} (ant. {{ $ventana['previous'] ?? 0 }})@if(!$loop->last) | @endif
+                                    @empty
+                                        Sin datos
+                                    @endforelse
                                 </td>
                             </tr>
                             <tr>

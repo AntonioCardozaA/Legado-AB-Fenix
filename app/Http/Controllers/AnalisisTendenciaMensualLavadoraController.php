@@ -1,211 +1,146 @@
 <?php
-// app/Http/Controllers/AnalisisTendenciaMensualLavadoraController.php
 
 namespace App\Http\Controllers;
 
-use App\Models\AnalisisTendenciaMensualLavadora;
 use App\Models\Linea;
+use App\Services\TendenciaDanosService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Carbon\Carbon;
 
 class AnalisisTendenciaMensualLavadoraController extends Controller
 {
-    /**
-     * Mostrar vista principal con la tabla de tendencias mes a mes
-     */
-    public function index(Request $request)
-    {
-        $lineas = Linea::whereIn('nombre', ['L-04', 'L-05', 'L-06', 'L-07', 'L-08', 'L-09', 'L-12', 'L-13'])
-            ->orderBy('nombre')
-            ->get();
+    private const LAVADORAS = ['L-04', 'L-05', 'L-06', 'L-07', 'L-08', 'L-09', 'L-12', 'L-13'];
 
+    public function index(Request $request, TendenciaDanosService $tendenciaDanos)
+    {
+        return $this->index52124($request, $tendenciaDanos);
+    }
+
+    public function index52124(Request $request, TendenciaDanosService $tendenciaDanos)
+    {
+        return $this->renderIndex(
+            $request,
+            $tendenciaDanos,
+            'analisis-tendencia-mensual.lavadora.index'
+        );
+    }
+
+    public function index30147(Request $request, TendenciaDanosService $tendenciaDanos)
+    {
+        return $this->renderIndex(
+            $request,
+            $tendenciaDanos,
+            'analisis-tendencia-mensual.lavadora.index-30-14-7'
+        );
+    }
+
+    private function renderIndex(Request $request, TendenciaDanosService $tendenciaDanos, string $view)
+    {
+        $lineas = $this->getLineasLavadora();
         $lineaSeleccionada = $request->get('linea_id', $lineas->first()?->id);
-        
-        // Obtener todos los meses con datos para esta línea
         $analisis = collect();
         $meses = [];
-        
+
         if ($lineaSeleccionada) {
-            $analisis = AnalisisTendenciaMensualLavadora::where('linea_id', $lineaSeleccionada)
-                ->orderBy('anio', 'desc')
-                ->orderBy('mes', 'desc')
-                ->get();
-            
-            // Generar array de meses para la tabla
-            foreach ($analisis as $item) {
-                $meses[$item->anio][$item->mes] = $item;
+            $linea = $lineas->firstWhere('id', (int) $lineaSeleccionada);
+
+            if ($linea) {
+                $analisis = $tendenciaDanos->construirFilasMensuales(
+                    $linea,
+                    TendenciaDanosService::TIPO_LAVADORAS
+                );
+
+                foreach ($analisis as $item) {
+                    $meses[$item->anio][$item->mes] = $item;
+                }
             }
         }
 
-        return view('analisis-tendencia-mensual.lavadora.index', compact(
-            'lineas', 
+        return view($view, compact(
+            'lineas',
             'lineaSeleccionada',
             'analisis',
             'meses'
         ));
     }
 
-    /**
-     * Mostrar formulario para crear nuevo análisis mensual
-     */
     public function create(Request $request)
     {
-        $lineas = Linea::whereIn('nombre', ['L-04', 'L-05', 'L-06', 'L-07', 'L-08', 'L-09', 'L-12', 'L-13'])
-            ->orderBy('nombre')
-            ->get();
-
-        $lineaSeleccionada = $request->get('linea_id');
-        
-        // Mes actual por defecto
-        $anioActual = now()->year;
-        $mesActual = now()->month;
-        
-        // Verificar si ya existe registro para este mes
-        $existeRegistro = false;
-        if ($lineaSeleccionada) {
-            $existeRegistro = AnalisisTendenciaMensualLavadora::where('linea_id', $lineaSeleccionada)
-                ->where('anio', $anioActual)
-                ->where('mes', $mesActual)
-                ->exists();
-        }
-
-        return view('analisis-tendencia-mensual.lavadora.create', compact(
-            'lineas', 
-            'lineaSeleccionada',
-            'anioActual',
-            'mesActual',
-            'existeRegistro'
-        ));
+        return redirect()
+            ->route('analisis-tendencia-mensual.lavadora.index', $request->only('linea_id'))
+            ->with('info', 'La tendencia 52-12-4 y 30-14-7 se calcula automaticamente desde los analisis registrados.');
     }
 
-    /**
-     * Guardar nuevo análisis mensual
-     */
     public function store(Request $request)
+    {
+        return redirect()
+            ->route('analisis-tendencia-mensual.lavadora.index', $request->only('linea_id'))
+            ->with('info', 'Ya no es necesario capturar totales manuales; la tendencia se actualiza automaticamente.');
+    }
+
+    public function show($analisis, Request $request)
+    {
+        return redirect()
+            ->route('analisis-tendencia-mensual.lavadora.index', $request->only('linea_id'))
+            ->with('info', 'El detalle historico ahora se consulta desde la vista automatica de tendencias.');
+    }
+
+    public function getTendenciaApi(Request $request, TendenciaDanosService $tendenciaDanos)
     {
         $request->validate([
             'linea_id' => 'required|exists:lineas,id',
-            'anio' => 'required|integer|min:2020|max:2030',
-            'mes' => 'required|integer|min:1|max:12',
-            'total_danos_52_semanas' => 'required|numeric|min:0', // Cambiado a numeric
-            'total_danos_12_semanas' => 'required|numeric|min:0', // Cambiado a numeric
-            'total_danos_4_semanas' => 'required|numeric|min:0',  // Cambiado a numeric
-            'observaciones' => 'nullable|string'
         ]);
 
-        // Verificar que no exista un registro para el mismo mes
-        $existe = AnalisisTendenciaMensualLavadora::where('linea_id', $request->linea_id)
-            ->where('anio', $request->anio)
-            ->where('mes', $request->mes)
-            ->exists();
+        $linea = $this->getLineasLavadora()->firstWhere('id', (int) $request->linea_id);
 
-        if ($existe) {
-            return back()
-                ->withInput()
-                ->with('error', 'Ya existe un análisis para este mes y línea');
+        if (!$linea) {
+            return response()->json(['success' => false, 'message' => 'Lavadora invalida.'], 422);
         }
 
-        DB::beginTransaction();
-        try {
-            // Calcular fechas de corte
-            $fechaReferencia = Carbon::create($request->anio, $request->mes, 1)->endOfMonth();
-            
-            $tendencia = AnalisisTendenciaMensualLavadora::create([
-                'linea_id' => $request->linea_id,
-                'anio' => $request->anio,
-                'mes' => $request->mes,
-                'total_danos_52_semanas' => $request->total_danos_52_semanas,
-                'total_danos_12_semanas' => $request->total_danos_12_semanas,
-                'total_danos_4_semanas' => $request->total_danos_4_semanas,
-                'fecha_corte_52' => $fechaReferencia->copy()->subWeeks(52),
-                'fecha_corte_12' => $fechaReferencia->copy()->subWeeks(12),
-                'fecha_corte_4' => $fechaReferencia->copy()->subWeeks(4),
-                'observaciones' => $request->observaciones
+        $datos = $tendenciaDanos
+            ->construirFilasMensuales($linea, TendenciaDanosService::TIPO_LAVADORAS)
+            ->sortBy(fn ($item) => sprintf('%04d%02d', $item->anio, $item->mes))
+            ->values()
+            ->map(fn ($item) => [
+                'periodo' => $item->periodo,
+                'anio' => $item->anio,
+                'mes' => $item->mes,
+                'semanas_52' => $item->total_danos_52_semanas,
+                'semanas_12' => $item->total_danos_12_semanas,
+                'semanas_4' => $item->total_danos_4_semanas,
+                'dias_30' => $item->total_danos_30_dias,
+                'dias_14' => $item->total_danos_14_dias,
+                'dias_7' => $item->total_danos_7_dias,
+                'variacion_52' => $this->formatearVariacion($item->variacion_52_semanas),
+                'variacion_12' => $this->formatearVariacion($item->variacion_12_semanas),
+                'variacion_4' => $this->formatearVariacion($item->variacion_4_semanas),
+                'variacion_30' => $this->formatearVariacion($item->variacion_30_dias),
+                'variacion_14' => $this->formatearVariacion($item->variacion_14_dias),
+                'variacion_7' => $this->formatearVariacion($item->variacion_7_dias),
             ]);
-
-            DB::commit();
-
-            return redirect()
-                ->route('analisis-tendencia-mensual.lavadora.index', ['linea_id' => $request->linea_id])
-                ->with('success', 'Análisis mensual guardado correctamente');
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return back()
-                ->withInput()
-                ->with('error', 'Error al guardar: ' . $e->getMessage());
-        }
-    }
-
-    /**
-     * Mostrar detalle de un análisis y su comparación con meses anteriores
-     */
-    public function show(AnalisisTendenciaMensualLavadora $analisis)
-    {
-        $analisis->load('linea');
-        
-        // Obtener últimos 12 meses para la gráfica
-        $historial = AnalisisTendenciaMensualLavadora::where('linea_id', $analisis->linea_id)
-            ->where(function($query) use ($analisis) {
-                $query->where('anio', '<', $analisis->anio)
-                    ->orWhere(function($q) use ($analisis) {
-                        $q->where('anio', $analisis->anio)
-                          ->where('mes', '<=', $analisis->mes);
-                    });
-            })
-            ->orderBy('anio', 'desc')
-            ->orderBy('mes', 'desc')
-            ->limit(12)
-            ->get()
-            ->reverse(); // Para orden cronológico
-
-        return view('analisis-tendencia-mensual.lavadora.show', compact('analisis', 'historial'));
-    }
-
-    /**
-     * API para obtener datos de tendencia (para gráficas)
-     */
-    public function getTendenciaApi(Request $request)
-    {
-        $request->validate([
-            'linea_id' => 'required|exists:lineas,id'
-        ]);
-
-        $datos = AnalisisTendenciaMensualLavadora::where('linea_id', $request->linea_id)
-            ->orderBy('anio')
-            ->orderBy('mes')
-            ->get()
-            ->map(function($item) {
-                $variacion52 = $item->variacion_52_semanas;
-                $variacion12 = $item->variacion_12_semanas;
-                $variacion4 = $item->variacion_4_semanas;
-                
-                return [
-                    'periodo' => $item->periodo,
-                    'anio' => $item->anio,
-                    'mes' => $item->mes,
-                    'semanas_52' => $item->total_danos_52_semanas,
-                    'semanas_12' => $item->total_danos_12_semanas,
-                    'semanas_4' => $item->total_danos_4_semanas,
-                    'variacion_52' => $variacion52 ? [
-                        'valor' => $variacion52['porcentaje'],
-                        'tendencia' => $variacion52['tendencia']
-                    ] : null,
-                    'variacion_12' => $variacion12 ? [
-                        'valor' => $variacion12['porcentaje'],
-                        'tendencia' => $variacion12['tendencia']
-                    ] : null,
-                    'variacion_4' => $variacion4 ? [
-                        'valor' => $variacion4['porcentaje'],
-                        'tendencia' => $variacion4['tendencia']
-                    ] : null
-                ];
-            });
 
         return response()->json([
             'success' => true,
-            'data' => $datos
+            'data' => $datos,
         ]);
+    }
+
+    private function getLineasLavadora()
+    {
+        return Linea::whereIn('nombre', self::LAVADORAS)
+            ->orderBy('nombre')
+            ->get();
+    }
+
+    private function formatearVariacion(?array $variacion): ?array
+    {
+        if (!$variacion) {
+            return null;
+        }
+
+        return [
+            'valor' => $variacion['porcentaje'],
+            'diferencia' => $variacion['diferencia'],
+            'tendencia' => $variacion['tendencia'],
+        ];
     }
 }

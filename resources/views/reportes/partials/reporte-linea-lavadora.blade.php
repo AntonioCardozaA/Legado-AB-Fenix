@@ -511,7 +511,7 @@
             </div>
             <span class="stat-label">Análisis 52-12-4</span>
         </div>
-        <div class="stat-value">{{ $analisisTendencia->count() }}</div>
+        <div class="stat-value">{{ $ventanas52124Reporte->last()['current'] ?? 0 }}</div>
         <div class="text-sm text-gray-500 mt-2">
             Daños: {{ number_format($totalDaños4, 2) }} (4 sem)
         </div>
@@ -794,7 +794,7 @@
         </div>
         <div class="modulo-badge">
             <i class="fas fa-chart-bar mr-2"></i>
-            {{ $analisisTendencia->count() }} períodos
+            {{ $analisis52124Reporte['resumen']['estado']['label'] ?? ($analisisTendencia->count() . ' periodos') }}
         </div>
     </div>
     <div class="modulo-body">
@@ -810,7 +810,7 @@
                         </div>
                         <div class="text-[11px] mt-2 opacity-80">{{ $ventana['current_range'] ?? 'Sin rango' }}</div>
                         <div class="text-[11px] mt-1 opacity-80">
-                            Componentes: {{ $ventana['current_componentes'] ?? 0 }} | Elongacion: {{ $ventana['current_elongaciones'] ?? 0 }}
+                            Analisis registrados: {{ $ventana['current_componentes'] ?? 0 }}
                         </div>
                     </div>
                 @endforeach
@@ -931,7 +931,7 @@
                     </div>
                     <div class="text-[11px] mt-2 opacity-80">{{ $ventana['current_range'] ?? 'Sin rango' }}</div>
                     <div class="text-[11px] mt-1 opacity-80">
-                        Componentes: {{ $ventana['current_componentes'] ?? 0 }} | Elongacion: {{ $ventana['current_elongaciones'] ?? 0 }}
+                        Analisis registrados: {{ $ventana['current_componentes'] ?? 0 }}
                     </div>
                 </div>
             @endforeach
@@ -956,7 +956,7 @@
                         <td>{{ $ventana['current'] ?? 0 }}</td>
                         <td>{{ $ventana['previous'] ?? 0 }}</td>
                         <td>{{ (($ventana['delta'] ?? 0) > 0 ? '+' : '') . ($ventana['delta'] ?? 0) }}</td>
-                        <td>Comp: {{ $ventana['current_componentes'] ?? 0 }} / Elong: {{ $ventana['current_elongaciones'] ?? 0 }}</td>
+                        <td>Analisis: {{ $ventana['current_componentes'] ?? 0 }}</td>
                     </tr>
                 @endforeach
             </tbody>
