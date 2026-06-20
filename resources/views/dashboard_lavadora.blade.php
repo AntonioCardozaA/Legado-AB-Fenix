@@ -523,6 +523,8 @@
     .chart-container {
         height: 248px;
         position: relative;
+        width: 100%;
+        min-width: 0;
         padding: 8px 0;
         display: flex;
         align-items: center;
@@ -530,6 +532,16 @@
         background: linear-gradient(135deg, rgba(59, 130, 246, 0.02) 0%, rgba(139, 92, 246, 0.02) 100%);
         border-radius: 12px;
         margin: 2px 0;
+        box-sizing: border-box;
+    }
+
+    .chart-container canvas {
+        display: block;
+        width: 100% !important;
+        height: 100% !important;
+        max-width: 100%;
+        min-width: 0;
+        min-height: 0;
     }
 
     /* Descripción informativa bajo gráfica */
@@ -945,17 +957,27 @@
     .trend-card-side .chart-shell {
         flex: 1;
         display: flex;
+        width: 100%;
+        min-width: 0;
     }
 
     .elongaciones-card .chart-shell .chart-container,
     .trend-card-side .chart-shell .chart-container {
         flex: 1;
         min-height: 300px;
+        width: 100%;
+        min-width: 0;
     }
 
     .elongaciones-card .chart-container.tall,
     .trend-card-side .chart-container.tall {
         height: 300px;
+    }
+
+    .elongaciones-card .chart-shell .chart-container,
+    .elongaciones-card .chart-container.tall {
+        min-height: clamp(280px, 34vw, 340px);
+        height: clamp(280px, 34vw, 340px);
     }
 
     .trend-card .trend-filter-form {
@@ -1314,11 +1336,13 @@
             height: 176px;
         }
         .historico-card .panel-actions,
-        .trend-card-side .panel-actions {
+        .trend-card-side .panel-actions,
+        .elongaciones-card .panel-actions {
             width: 100%;
             justify-content: stretch;
         }
-        .historico-card .panel-select {
+        .historico-card .panel-select,
+        .elongaciones-card .panel-select {
             width: 100%;
             min-width: 0;
         }
@@ -1344,8 +1368,14 @@
         .trend-card-side {
             min-height: 0;
         }
-        .elongaciones-card .chart-container.tall,
+        .elongaciones-card .chart-shell .chart-container,
+        .elongaciones-card .chart-container.tall {
+            min-height: 280px;
+            height: 280px;
+        }
+        .trend-card-side .chart-shell .chart-container,
         .trend-card-side .chart-container.tall {
+            min-height: 250px;
             height: 250px;
         }
         .section-title {
@@ -1383,6 +1413,11 @@
         }
         .chart-container.tall {
             height: 224px;
+        }
+        .elongaciones-card .chart-shell .chart-container,
+        .elongaciones-card .chart-container.tall {
+            min-height: 264px;
+            height: 264px;
         }
         .historico-card table {
             min-width: 580px;
@@ -3078,11 +3113,18 @@
     };
 
     let layoutReady = false;
+    let responsiveChartResizeBound = false;
+    let resizeChartsTimer = null;
 
     window.initCharts = initCharts = function () {
         if (!layoutReady) {
             setupLayout();
             layoutReady = true;
+        }
+
+        if (!responsiveChartResizeBound) {
+            bindResponsiveChartResize();
+            responsiveChartResizeBound = true;
         }
 
         renderFallas();
@@ -3801,6 +3843,12 @@
             description.innerHTML = `<i class="fas fa-info-circle"></i> ${escapeHtml(item.linea)} · ${Number(item.mediciones || 0)} mediciones desde ${escapeHtml(item.desde || '-')} hasta ${escapeHtml(item.hasta || '-')}`;
         }
 
+        const compactViewport = window.innerWidth <= 480;
+        const narrowViewport = window.innerWidth <= 768;
+        const pointRadius = compactViewport ? 2 : (narrowViewport ? 3 : 4);
+        const pointHoverRadius = compactViewport ? 4 : 6;
+        const maxTicksLimit = compactViewport ? 4 : (narrowViewport ? 6 : 8);
+
         destroy(charts.elongaciones);
         setChartState('elongaciones', false);
         charts.elongaciones = new Chart(document.getElementById('elongacionesChart').getContext('2d'), {
@@ -3808,8 +3856,8 @@
             data: {
                 labels: item.labels,
                 datasets: [
-                    { label: 'Bombas', data: (item.bombas || []).map((value) => Number(value || 0)), borderColor: '#2563eb', backgroundColor: 'rgba(37, 99, 235, 0.12)', borderWidth: 3, pointRadius: 4, tension: 0.35, fill: true },
-                    { label: 'Vapor', data: (item.vapor || []).map((value) => Number(value || 0)), borderColor: '#ef4444', backgroundColor: 'rgba(239, 68, 68, 0.08)', borderWidth: 3, pointRadius: 4, tension: 0.35, fill: true },
+                    { label: 'Bombas', data: (item.bombas || []).map((value) => Number(value || 0)), borderColor: '#2563eb', backgroundColor: 'rgba(37, 99, 235, 0.12)', borderWidth: compactViewport ? 2 : 3, pointRadius, pointHoverRadius, tension: 0.35, fill: true },
+                    { label: 'Vapor', data: (item.vapor || []).map((value) => Number(value || 0)), borderColor: '#ef4444', backgroundColor: 'rgba(239, 68, 68, 0.08)', borderWidth: compactViewport ? 2 : 3, pointRadius, pointHoverRadius, tension: 0.35, fill: true },
                     { label: 'Umbral compra', data: new Array(item.labels.length).fill(Number(item.threshold_compra || 0)), borderColor: '#f97316', borderWidth: 2, pointRadius: 0, borderDash: [8, 4] },
                     { label: 'Umbral cambio', data: new Array(item.labels.length).fill(Number(item.threshold_cambio || 0)), borderColor: '#ef4444', borderWidth: 2, pointRadius: 0, borderDash: [8, 4] }
                 ]
@@ -3817,7 +3865,16 @@
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                resizeDelay: 120,
                 interaction: { mode: 'index', intersect: false },
+                layout: {
+                    padding: {
+                        top: 8,
+                        right: compactViewport ? 6 : 12,
+                        bottom: compactViewport ? 6 : 10,
+                        left: 0
+                    }
+                },
                 plugins: {
                     legend: { display: false },
                     tooltip: {
@@ -3828,8 +3885,26 @@
                     }
                 },
                 scales: {
-                    x: { grid: { display: false }, ticks: { color: '#64748b', maxRotation: 45, minRotation: 45 } },
-                    y: { beginAtZero: true, grid: { color: 'rgba(148, 163, 184, 0.16)' }, ticks: { color: '#64748b', callback: (value) => `${value}%` } }
+                    x: {
+                        grid: { display: false },
+                        ticks: {
+                            color: '#64748b',
+                            autoSkip: true,
+                            maxTicksLimit,
+                            maxRotation: narrowViewport ? 0 : 45,
+                            minRotation: narrowViewport ? 0 : 45
+                        }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        grace: '8%',
+                        grid: { color: 'rgba(148, 163, 184, 0.16)' },
+                        ticks: {
+                            color: '#64748b',
+                            padding: 8,
+                            callback: (value) => `${value}%`
+                        }
+                    }
                 }
             }
         });
@@ -4379,6 +4454,31 @@
 
     function lineaOptions(selectedId) {
         return (data.lineas || []).map((linea) => `<option value="${linea.id}" ${Number(linea.id) === Number(selectedId) ? 'selected' : ''}>${escapeHtml(linea.nombre)}</option>`).join('');
+    }
+
+    function bindResponsiveChartResize() {
+        const resizeCharts = () => {
+            window.clearTimeout(resizeChartsTimer);
+            resizeChartsTimer = window.setTimeout(() => {
+                if (charts.elongaciones) {
+                    renderElongaciones();
+                }
+
+                Object.entries(charts).forEach(([key, chart]) => {
+                    if (!chart || key === 'elongaciones' || !chart.canvas || !chart.canvas.isConnected) return;
+
+                    try {
+                        chart.resize();
+                        chart.update('none');
+                    } catch (error) {
+                        // Ignora instancias que hayan sido destruidas por estados sin datos.
+                    }
+                });
+            }, 140);
+        };
+
+        window.addEventListener('resize', resizeCharts, { passive: true });
+        window.addEventListener('orientationchange', resizeCharts);
     }
 
     function destroy(instance) {
