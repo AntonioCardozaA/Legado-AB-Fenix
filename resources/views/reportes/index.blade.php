@@ -116,10 +116,9 @@
                 $ultimaRevisionHistorico = $reporteLinea['ultima_revision_historico'] ?? ($reporteLinea['ultima_revision'] ?? null);
                 
                 // Icono según el tipo
-                $icono = $esPasteurizadora ? 'fa-industry' : 'fa-soap';
-                $colorIcono = $tipoEquipo == 'lavadoras' ? 'text-blue-600' : 'text-green-600';
-                $bgIcono = $tipoEquipo == 'lavadoras' ? 'bg-blue-100' : 'bg-green-100';
-                $textoTipo = $tipoEquipo == 'lavadoras' ? 'Línea de Lavado' : 'Línea de Pasteurización';
+                $iconoMaquina = $esPasteurizadora ? 'images/icono_pas.png' : 'images/icono-maquina.png';
+                $bgIcono = $tipoEquipo == 'lavadoras' ? 'bg-blue-50' : 'bg-green-50';
+                $textoTipo = $tipoEquipo == 'lavadoras' ? 'Lavadora' : 'Pasteurizadora';
                 
                 // Determinar color de elongación
                 $elongacionColor = 'text-emerald-900';
@@ -139,8 +138,10 @@
                 <div class="px-6 py-4 bg-gradient-to-r from-gray-50 to-white border-b border-gray-200">
                     <div class="flex items-center justify-between">
                         <div class="flex items-center space-x-3">
-                            <div class="p-2 {{ $bgIcono }} rounded-lg">
-                                <i class="fas {{ $icono }} {{ $colorIcono }} text-xl"></i>
+                            <div class="w-12 h-12 p-1.5 {{ $bgIcono }} rounded-lg flex items-center justify-center">
+                                <img src="{{ asset($iconoMaquina) }}"
+                                     alt="Icono de {{ $textoTipo }}"
+                                     class="w-full h-full object-contain">
                             </div>
                             <div>
                                 <h3 class="text-lg font-semibold text-gray-900">{{ $linea->nombre }}</h3>

@@ -19,8 +19,11 @@
     $lecturasJson = $ultimasLecturasPorLinea->mapWithKeys(function ($lectura) {
         return [
             $lectura->linea => [
+                'cadena_ciclo_id' => $lectura->cadena_ciclo_id,
                 'hodometro' => $lectura->hodometro,
                 'hodometro_ciclo' => $lectura->hodometro_ciclo,
+                'bombas_promedio' => $lectura->bombas_promedio,
+                'vapor_promedio' => $lectura->vapor_promedio,
                 'fecha' => $lectura->created_at?->format('d/m/Y H:i'),
                 'ciclo' => $lectura->cadenaCiclo?->codigo,
                 'proveedor' => $lectura->proveedor_actual,
@@ -276,6 +279,10 @@
                             <span class="font-bold text-yellow-600">Compra: 1.3%</span>
                             <span class="font-bold text-red-600">Cambio: 1.46%</span>
                         </div>
+                        <div class="mt-4 space-y-1 text-center">
+                            <p class="text-sm font-medium text-blue-900">Aumento vs paso base: <span id="bombas_incremento_base_display">0.00 mm</span></p>
+                            <p class="text-xs text-gray-600"><span id="bombas_variacion_revision_label">Comparativo:</span> <span id="bombas_variacion_revision_display" class="font-medium text-slate-600">Sin referencia</span></p>
+                        </div>
                     </div>
 
                     <div class="border border-green-200 rounded-xl p-6 bg-green-50/30">
@@ -291,6 +298,10 @@
                             <span>0%</span>
                             <span class="font-bold text-yellow-600">Compra: 1.3%</span>
                             <span class="font-bold text-red-600">Cambio: 1.46%</span>
+                        </div>
+                        <div class="mt-4 space-y-1 text-center">
+                            <p class="text-sm font-medium text-green-900">Aumento vs paso base: <span id="vapor_incremento_base_display">0.00 mm</span></p>
+                            <p class="text-xs text-gray-600"><span id="vapor_variacion_revision_label">Comparativo:</span> <span id="vapor_variacion_revision_display" class="font-medium text-slate-600">Sin referencia</span></p>
                         </div>
                     </div>
                 </div>
@@ -484,6 +495,84 @@ document.addEventListener('DOMContentLoaded', function () {
         return ((promedio - pasoInicial) / pasoInicial) * 100;
     }
 
+    function calcularIncrementoMm(promedio) {
+        const pasoInicial = getPasoInicialActual();
+        if (promedio <= 0 || pasoInicial <= 0) return 0;
+        return Math.max(promedio - pasoInicial, 0);
+    }
+
+    function formatearMm(valor) {
+        return `${Number(valor || 0).toFixed(2)} mm`;
+    }
+
+    function formatearMmConSigno(valor) {
+        const numero = Number(valor || 0);
+        const prefijo = numero > 0 ? '+' : '';
+
+        return `${prefijo}${numero.toFixed(2)} mm`;
+    }
+
+    function obtenerVariacionVsRevision(lado, promedioActual) {
+        if (promedioActual <= 0) {
+            return {
+                label: 'Comparativo:',
+                texto: 'Sin captura actual',
+                className: 'font-medium text-slate-600',
+            };
+        }
+
+        if (nuevaCadena.checked) {
+            return {
+                label: 'Comparativo:',
+                texto: 'Primera revision del nuevo ciclo',
+                className: 'font-medium text-slate-600',
+            };
+        }
+
+        const linea = getLineaSeleccionada();
+        const lectura = ultimasLecturas[linea] || null;
+        const ciclo = ciclosActivos[linea] || null;
+        const promedioAnteriorRaw = lectura ? lectura[`${lado}_promedio`] : null;
+        const promedioAnterior = promedioAnteriorRaw === null || promedioAnteriorRaw === undefined || promedioAnteriorRaw === ''
+            ? null
+            : Number(promedioAnteriorRaw);
+        const mismoCiclo = !ciclo || !lectura || !lectura.cadena_ciclo_id || Number(ciclo.id) === Number(lectura.cadena_ciclo_id);
+
+        if (!lectura || !Number.isFinite(promedioAnterior) || !mismoCiclo) {
+            return {
+                label: 'Comparativo:',
+                texto: 'Primera revision del ciclo',
+                className: 'font-medium text-slate-600',
+            };
+        }
+
+        const delta = promedioActual - promedioAnterior;
+        let className = 'font-medium text-slate-700';
+
+        if (delta > 0) {
+            className = 'font-medium text-red-600';
+        } else if (delta < 0) {
+            className = 'font-medium text-emerald-600';
+        }
+
+        return {
+            label: 'Variacion vs ultima revision:',
+            texto: formatearMmConSigno(delta),
+            className,
+        };
+    }
+
+    function actualizarComparativoRevision(lado, promedioActual) {
+        const label = document.getElementById(`${lado}_variacion_revision_label`);
+        const display = document.getElementById(`${lado}_variacion_revision_display`);
+        if (!label || !display) return;
+
+        const comparativo = obtenerVariacionVsRevision(lado, promedioActual);
+        label.textContent = comparativo.label;
+        display.textContent = comparativo.texto;
+        display.className = comparativo.className;
+    }
+
     function determinarEstado(porcentaje) {
         if (porcentaje <= 0) return { texto: 'Sin datos', color: 'gray' };
         if (porcentaje < LIMITE_COMPRA) return { texto: 'Normal', color: 'green' };
@@ -533,11 +622,17 @@ document.addEventListener('DOMContentLoaded', function () {
         const vaporPromedio = calcularPromedio(vaporFields);
         const bombasPorcentaje = calcularPorcentaje(bombasPromedio);
         const vaporPorcentaje = calcularPorcentaje(vaporPromedio);
+        const bombasIncrementoBase = calcularIncrementoMm(bombasPromedio);
+        const vaporIncrementoBase = calcularIncrementoMm(vaporPromedio);
 
         document.getElementById('bombas_promedio_display').textContent = bombasPromedio.toFixed(2);
         document.getElementById('vapor_promedio_display').textContent = vaporPromedio.toFixed(2);
         document.getElementById('bombas_porcentaje_display').textContent = `${bombasPorcentaje.toFixed(2)}%`;
         document.getElementById('vapor_porcentaje_display').textContent = `${vaporPorcentaje.toFixed(2)}%`;
+        document.getElementById('bombas_incremento_base_display').textContent = formatearMm(bombasIncrementoBase);
+        document.getElementById('vapor_incremento_base_display').textContent = formatearMm(vaporIncrementoBase);
+        actualizarComparativoRevision('bombas', bombasPromedio);
+        actualizarComparativoRevision('vapor', vaporPromedio);
 
         const bombasEstado = determinarEstado(bombasPorcentaje);
         const vaporEstado = determinarEstado(vaporPorcentaje);
@@ -608,7 +703,10 @@ document.addEventListener('DOMContentLoaded', function () {
         if (field) field.addEventListener('input', actualizarCalculos);
     });
 
-    nuevaCadena.addEventListener('change', actualizarPanelNuevaCadena);
+    nuevaCadena.addEventListener('change', function () {
+        actualizarPanelNuevaCadena();
+        actualizarCalculos();
+    });
 
     if (hodometro) {
         hodometro.addEventListener('input', function () {

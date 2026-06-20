@@ -148,6 +148,12 @@
                                 $vaporBarraWidth = $vaporCambio ? 100 : min(($registro->vapor_porcentaje / $limiteCambio) * 100, 100);
                                 $estadoTexto = $bombasCambio || $vaporCambio ? 'CAMBIO' : (($bombasCompra || $vaporCompra) ? 'COMPRA' : 'NORMAL');
                                 $estadoColor = $bombasCambio || $vaporCambio ? 'red' : (($bombasCompra || $vaporCompra) ? 'yellow' : 'green');
+                                $bombasVariacion = $registro->bombas_variacion_revision_mm;
+                                $vaporVariacion = $registro->vapor_variacion_revision_mm;
+                                $bombasVariacionTexto = $bombasVariacion === null ? '1ra revisión' : (($bombasVariacion > 0 ? '+' : '') . number_format($bombasVariacion, 2) . ' mm');
+                                $vaporVariacionTexto = $vaporVariacion === null ? '1ra revisión' : (($vaporVariacion > 0 ? '+' : '') . number_format($vaporVariacion, 2) . ' mm');
+                                $bombasVariacionColor = $bombasVariacion === null ? 'text-gray-400' : ($bombasVariacion > 0 ? 'text-red-500' : ($bombasVariacion < 0 ? 'text-emerald-600' : 'text-slate-500'));
+                                $vaporVariacionColor = $vaporVariacion === null ? 'text-gray-400' : ($vaporVariacion > 0 ? 'text-red-500' : ($vaporVariacion < 0 ? 'text-emerald-600' : 'text-slate-500'));
                             @endphp
                             <tr class="hover:bg-gray-50 transition">
                                 <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{{ $registro->created_at->format('d/m/Y H:i') }}</td>
@@ -175,6 +181,8 @@
                                         <div class="w-full bg-gray-200 rounded-full h-1.5">
                                             <div class="h-1.5 rounded-full {{ $bombasCambio ? 'bg-red-500' : ($bombasCompra ? 'bg-yellow-500' : 'bg-green-500') }}" style="width: {{ $bombasBarraWidth }}%"></div>
                                         </div>
+                                        <div class="text-[11px] text-gray-500 leading-tight">Base: +{{ number_format($registro->bombas_incremento_base_mm, 2) }} mm</div>
+                                        <div class="text-[11px] leading-tight {{ $bombasVariacionColor }}">Rev.: {{ $bombasVariacionTexto }}</div>
                                     </div>
                                 </td>
                                 <td class="px-4 py-3">
@@ -185,6 +193,8 @@
                                         <div class="w-full bg-gray-200 rounded-full h-1.5">
                                             <div class="h-1.5 rounded-full {{ $vaporCambio ? 'bg-red-500' : ($vaporCompra ? 'bg-yellow-500' : 'bg-green-500') }}" style="width: {{ $vaporBarraWidth }}%"></div>
                                         </div>
+                                        <div class="text-[11px] text-gray-500 leading-tight">Base: +{{ number_format($registro->vapor_incremento_base_mm, 2) }} mm</div>
+                                        <div class="text-[11px] leading-tight {{ $vaporVariacionColor }}">Rev.: {{ $vaporVariacionTexto }}</div>
                                     </div>
                                 </td>
                                 <td class="px-4 py-3 whitespace-nowrap">

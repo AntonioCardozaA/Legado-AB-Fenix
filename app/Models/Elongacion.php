@@ -12,6 +12,13 @@ class Elongacion extends Model
 
     protected $table = 'elongaciones';
 
+    protected $appends = [
+        'bombas_incremento_base_mm',
+        'vapor_incremento_base_mm',
+        'bombas_variacion_revision_mm',
+        'vapor_variacion_revision_mm',
+    ];
+
     protected $fillable = [
         'linea_id',
         'linea',
@@ -103,6 +110,10 @@ class Elongacion extends Model
         'L-13' => 140,
     ];
 
+    protected ?self $revisionAnteriorCache = null;
+
+    protected bool $revisionAnteriorResuelta = false;
+
     public function cadenaCiclo()
     {
         return $this->belongsTo(CadenaCiclo::class, 'cadena_ciclo_id');
@@ -188,6 +199,28 @@ class Elongacion extends Model
         return round(max($porcentaje, 0), 2);
     }
 
+    public static function calcularIncrementoMm($promedio, $pasoInicial = null)
+    {
+        if ($promedio <= 0 || $pasoInicial === null || $pasoInicial <= 0) {
+            return 0;
+        }
+
+        return round(max(((float) $promedio - (float) $pasoInicial), 0), 2);
+    }
+
+    public static function calcularVariacionMm($valorActual, $valorAnterior)
+    {
+        if ($valorActual === null || $valorAnterior === null) {
+            return null;
+        }
+
+        if (!is_numeric($valorActual) || !is_numeric($valorAnterior)) {
+            return null;
+        }
+
+        return round((float) $valorActual - (float) $valorAnterior, 2);
+    }
+
     public function getEstadoBombasAttribute()
     {
         return $this->getEstadoDetallado($this->bombas_porcentaje);
@@ -260,6 +293,34 @@ class Elongacion extends Model
         return HodometroHoras::formatear($this->hodometro_ciclo);
     }
 
+    public function getBombasIncrementoBaseMmAttribute(): float
+    {
+        return self::calcularIncrementoMm($this->bombas_promedio, $this->paso_inicial);
+    }
+
+    public function getVaporIncrementoBaseMmAttribute(): float
+    {
+        return self::calcularIncrementoMm($this->vapor_promedio, $this->paso_inicial);
+    }
+
+    public function getBombasVariacionRevisionMmAttribute(): ?float
+    {
+        $revisionAnterior = $this->resolverRevisionAnterior();
+
+        return $revisionAnterior
+            ? self::calcularVariacionMm($this->bombas_promedio, $revisionAnterior->bombas_promedio)
+            : null;
+    }
+
+    public function getVaporVariacionRevisionMmAttribute(): ?float
+    {
+        $revisionAnterior = $this->resolverRevisionAnterior();
+
+        return $revisionAnterior
+            ? self::calcularVariacionMm($this->vapor_promedio, $revisionAnterior->vapor_promedio)
+            : null;
+    }
+
     private function getEstadoDetallado($porcentaje)
     {
         if ($porcentaje < self::LIMITE_COMPRAR) {
@@ -271,5 +332,47 @@ class Elongacion extends Model
         }
 
         return 'cambio';
+    }
+
+    private function resolverRevisionAnterior(): ?self
+    {
+        if ($this->revisionAnteriorResuelta) {
+            return $this->revisionAnteriorCache;
+        }
+
+        if (!$this->exists) {
+            $this->revisionAnteriorResuelta = true;
+
+            return null;
+        }
+
+        $query = static::query()
+            ->whereKeyNot($this->getKey())
+            ->when(
+                $this->cadena_ciclo_id,
+                fn ($builder) => $builder->where('cadena_ciclo_id', $this->cadena_ciclo_id),
+                fn ($builder) => $builder->where('linea', $this->linea)
+            );
+
+        if ($this->created_at) {
+            $query->where(function ($builder) {
+                $builder->where('created_at', '<', $this->created_at)
+                    ->orWhere(function ($sameTimestamp) {
+                        $sameTimestamp->where('created_at', $this->created_at)
+                            ->where('id', '<', $this->getKey());
+                    });
+            });
+        } else {
+            $query->where('id', '<', $this->getKey());
+        }
+
+        $this->revisionAnteriorCache = $query
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->first();
+
+        $this->revisionAnteriorResuelta = true;
+
+        return $this->revisionAnteriorCache;
     }
 }

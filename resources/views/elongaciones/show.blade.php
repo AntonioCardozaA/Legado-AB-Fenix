@@ -11,6 +11,8 @@
     $bombasCompra = $elongacion->bombas_porcentaje >= $limiteCompra && $elongacion->bombas_porcentaje < $limiteCambio;
     $vaporCompra = $elongacion->vapor_porcentaje >= $limiteCompra && $elongacion->vapor_porcentaje < $limiteCambio;
     $pasoInicial = $elongacion->paso_inicial ?? 173;
+    $bombasVariacion = $elongacion->bombas_variacion_revision_mm;
+    $vaporVariacion = $elongacion->vapor_variacion_revision_mm;
 @endphp
 
 <div class="max-w-7xl mx-auto py-8 px-4">
@@ -106,7 +108,7 @@
                                 </div>
                             @endfor
                         </div>
-                        <div class="grid grid-cols-3 gap-4 text-sm">
+                        <div class="grid grid-cols-2 xl:grid-cols-5 gap-4 text-sm">
                             <div>
                                 <p class="text-gray-500">Promedio</p>
                                 <p class="font-semibold text-gray-800">{{ number_format($elongacion->bombas_promedio, 2) }} mm</p>
@@ -114,6 +116,16 @@
                             <div>
                                 <p class="text-gray-500">Paso base</p>
                                 <p class="font-semibold text-gray-800">{{ number_format($pasoInicial, 2) }} mm</p>
+                            </div>
+                            <div>
+                                <p class="text-gray-500">Aumento base</p>
+                                <p class="font-semibold text-gray-800">+{{ number_format($elongacion->bombas_incremento_base_mm, 2) }} mm</p>
+                            </div>
+                            <div>
+                                <p class="text-gray-500">Vs rev. anterior</p>
+                                <p class="font-semibold {{ $bombasVariacion === null ? 'text-slate-500' : ($bombasVariacion > 0 ? 'text-red-600' : ($bombasVariacion < 0 ? 'text-emerald-600' : 'text-slate-700')) }}">
+                                    {{ $bombasVariacion === null ? 'Primera del ciclo' : (($bombasVariacion > 0 ? '+' : '') . number_format($bombasVariacion, 2) . ' mm') }}
+                                </p>
                             </div>
                             <div>
                                 <p class="text-gray-500">Estado</p>
@@ -143,7 +155,7 @@
                                 </div>
                             @endfor
                         </div>
-                        <div class="grid grid-cols-3 gap-4 text-sm">
+                        <div class="grid grid-cols-2 xl:grid-cols-5 gap-4 text-sm">
                             <div>
                                 <p class="text-gray-500">Promedio</p>
                                 <p class="font-semibold text-gray-800">{{ number_format($elongacion->vapor_promedio, 2) }} mm</p>
@@ -151,6 +163,16 @@
                             <div>
                                 <p class="text-gray-500">Paso base</p>
                                 <p class="font-semibold text-gray-800">{{ number_format($pasoInicial, 2) }} mm</p>
+                            </div>
+                            <div>
+                                <p class="text-gray-500">Aumento base</p>
+                                <p class="font-semibold text-gray-800">+{{ number_format($elongacion->vapor_incremento_base_mm, 2) }} mm</p>
+                            </div>
+                            <div>
+                                <p class="text-gray-500">Vs rev. anterior</p>
+                                <p class="font-semibold {{ $vaporVariacion === null ? 'text-slate-500' : ($vaporVariacion > 0 ? 'text-red-600' : ($vaporVariacion < 0 ? 'text-emerald-600' : 'text-slate-700')) }}">
+                                    {{ $vaporVariacion === null ? 'Primera del ciclo' : (($vaporVariacion > 0 ? '+' : '') . number_format($vaporVariacion, 2) . ' mm') }}
+                                </p>
                             </div>
                             <div>
                                 <p class="text-gray-500">Estado</p>
