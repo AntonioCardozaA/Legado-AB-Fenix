@@ -127,6 +127,7 @@ Route::prefix('pasteurizadora')->group(function () {
         ->group(function () {
             Route::get('/', 'index')->name('index');
             Route::post('/', 'store')->name('store');
+            Route::get('/{user}/editar', 'edit')->name('edit');
             Route::put('/{user}', 'update')->name('update');
         });
 

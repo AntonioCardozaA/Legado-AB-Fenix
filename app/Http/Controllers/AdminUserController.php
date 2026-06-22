@@ -15,10 +15,31 @@ use Spatie\Permission\Models\Role;
 
 class AdminUserController extends Controller
 {
-    public function index(): View
+    public function index(Request $request): View
     {
+        $filters = $this->filtersFromRequest($request);
         $users = User::query()
             ->with('roles')
+            ->when($filters['search'] !== '', function ($query) use ($filters) {
+                $search = $filters['search'];
+
+                $query->where(function ($innerQuery) use ($search) {
+                    $innerQuery
+                        ->where('name', 'like', "%{$search}%")
+                        ->orWhere('email', 'like', "%{$search}%")
+                        ->orWhere('cedula', 'like', "%{$search}%")
+                        ->orWhere('telefono', 'like', "%{$search}%")
+                        ->orWhere('puesto', 'like', "%{$search}%");
+                });
+            })
+            ->when($filters['role'] !== '', function ($query) use ($filters) {
+                $query->whereHas('roles', function ($roleQuery) use ($filters) {
+                    $roleQuery->where('name', $filters['role']);
+                });
+            })
+            ->when($filters['status'] !== '', function ($query) use ($filters) {
+                $query->where('activo', $filters['status'] === 'active');
+            })
             ->orderByDesc('activo')
             ->orderBy('name')
             ->get();
@@ -26,12 +47,18 @@ class AdminUserController extends Controller
         return view('admin.users.index', [
             'users' => $users,
             'roleOptions' => $this->roleOptions(),
-            'stats' => [
-                'total' => $users->count(),
-                'activos' => $users->where('activo', true)->count(),
-                'tecnicos' => $users->filter(fn (User $user) => $user->hasRole(User::ROLE_TECNICO))->count(),
-                'administradores' => $users->filter(fn (User $user) => $user->hasRole(User::ROLE_ADMIN))->count(),
-            ],
+            'stats' => $this->stats(),
+            'filters' => $filters,
+        ]);
+    }
+
+    public function edit(Request $request, User $user): View
+    {
+        return view('admin.users.edit', [
+            'managedUser' => $user->load('roles'),
+            'roleOptions' => $this->roleOptions(),
+            'stats' => $this->stats(),
+            'filters' => $this->filtersFromRequest($request),
         ]);
     }
 
@@ -46,7 +73,7 @@ class AdminUserController extends Controller
         $this->syncRole($user, $data['role']);
 
         return redirect()
-            ->route('admin.users.index')
+            ->route('admin.users.edit', ['user' => $user])
             ->with('success', 'Usuario creado correctamente.');
     }
 
@@ -68,7 +95,9 @@ class AdminUserController extends Controller
         $this->syncRole($user, $data['role']);
 
         return redirect()
-            ->route('admin.users.index')
+            ->route('admin.users.edit', array_merge([
+                'user' => $user,
+            ], array_filter($this->filtersFromRequest($request), fn ($value) => $value !== '')))
             ->with('success', 'Usuario actualizado correctamente.');
     }
 
@@ -137,6 +166,29 @@ class AdminUserController extends Controller
                 ];
             })
             ->all();
+    }
+
+    private function stats(): array
+    {
+        return [
+            'total' => User::count(),
+            'activos' => User::where('activo', true)->count(),
+            'tecnicos' => User::whereHas('roles', function ($query) {
+                $query->where('name', User::ROLE_TECNICO);
+            })->count(),
+            'administradores' => User::whereHas('roles', function ($query) {
+                $query->where('name', User::ROLE_ADMIN);
+            })->count(),
+        ];
+    }
+
+    private function filtersFromRequest(Request $request): array
+    {
+        return [
+            'search' => trim((string) $request->query('search', '')),
+            'role' => trim((string) $request->query('role', '')),
+            'status' => trim((string) $request->query('status', '')),
+        ];
     }
 
     private function availableRoleNames(): Collection
