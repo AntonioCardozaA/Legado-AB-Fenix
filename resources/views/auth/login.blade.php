@@ -172,12 +172,6 @@
                                 </span>
                             </label>
 
-                            @if (Route::has('password.request'))
-                                <a href="{{ route('password.request') }}"
-                                   class="text-sm font-semibold text-yellow-300 hover:text-yellow-200 transition">
-                                    ¿Olvidaste tu contraseña?
-                                </a>
-                            @endif
                         </div>
 
                         {{-- Botón --}}
