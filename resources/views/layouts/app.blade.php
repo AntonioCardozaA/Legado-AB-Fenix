@@ -213,13 +213,39 @@
                 </a>
             @endauth
 
-            <a href="{{ route('reportes.index') }}"
-               @click="if (!isDesktop) sidebarOpen = false"
-               aria-label="Reportes"
-               class="nav-link flex items-center px-4 py-3 rounded-lg {{ request()->routeIs('reportes.*') ? 'nav-active' : '' }}">
-                <i class="fas fa-chart-bar w-5 mr-3 text-gray-500"></i>
-                Reportes
-            </a>
+            @php
+                $usuarioActual = auth()->user();
+                $bloquearReportesTecnico = $usuarioActual
+                    && $usuarioActual->hasRole(\App\Models\User::ROLE_TECNICO)
+                    && !$usuarioActual->hasAnyRole(\App\Models\User::elevatedMaintenanceRoles());
+            @endphp
+
+            @if($bloquearReportesTecnico)
+                <button type="button"
+                        @click="
+                            if (!isDesktop) sidebarOpen = false;
+                            Swal.fire({
+                                icon: 'info',
+                                text: 'No cuentas con los permisos necesarios para visualizar los reportes.',
+                                title: 'Acceso restringido',
+                                confirmButtonText: 'Entendido',
+                                confirmButtonColor: '#1e40af'
+                            });
+                        "
+                        aria-label="Reportes"
+                        class="nav-link flex items-center w-full text-left px-4 py-3 rounded-lg">
+                    <i class="fas fa-chart-bar w-5 mr-3 text-gray-500"></i>
+                    Reportes
+                </button>
+            @else
+                <a href="{{ route('reportes.index') }}"
+                   @click="if (!isDesktop) sidebarOpen = false"
+                   aria-label="Reportes"
+                   class="nav-link flex items-center px-4 py-3 rounded-lg {{ request()->routeIs('reportes.*') ? 'nav-active' : '' }}">
+                    <i class="fas fa-chart-bar w-5 mr-3 text-gray-500"></i>
+                    Reportes
+                </a>
+            @endif
 
             @auth
                 @if(auth()->user()->hasRole('admin'))
@@ -549,11 +575,11 @@ setInterval(function() {
     @yield('scripts')
 @endif
 
-@if(session('pasteurizadora_bloqueada'))
+@if(session('pasteurizadora_bloqueada') || session('acceso_restringido'))
 <script>
     Swal.fire({
         icon: 'info',
-        text: '{{ session('pasteurizadora_bloqueada') }}',
+        text: @json(session('pasteurizadora_bloqueada') ?? session('acceso_restringido')),
         title: 'Acceso restringido',
         confirmButtonText: 'Entendido',
         confirmButtonColor: '#1e40af'

@@ -10,6 +10,8 @@ use Symfony\Component\HttpFoundation\Response;
 
 class EnsureTechnicianAccess
 {
+    private const REPORTES_RESTRINGIDOS_MESSAGE = 'No cuentas con los permisos necesarios para visualizar los reportes.';
+
     public function handle(Request $request, Closure $next): Response
     {
         $user = $request->user();
@@ -27,6 +29,10 @@ class EnsureTechnicianAccess
         }
 
         $routeName = $request->route()?->getName();
+
+        if ($routeName && Str::startsWith($routeName, 'reportes.')) {
+            return $this->denyReportesAccess($request);
+        }
 
         $allowedExactRoutes = [
             'dashboard',
@@ -78,5 +84,18 @@ class EnsureTechnicianAccess
         }
 
         abort(403, 'Los técnicos solo pueden acceder a Lavadora, Pasteurizadora, Histórico Revisados y Plan de Acción.');
+    }
+
+    private function denyReportesAccess(Request $request): Response
+    {
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => self::REPORTES_RESTRINGIDOS_MESSAGE,
+            ], 403);
+        }
+
+        return redirect()
+            ->route('tecnico.dashboard')
+            ->with('acceso_restringido', self::REPORTES_RESTRINGIDOS_MESSAGE);
     }
 }

@@ -69,6 +69,23 @@ class RoleAccessTest extends TestCase
             ->assertOk();
     }
 
+    public function test_technician_cannot_open_reportes_from_menu_or_direct_url(): void
+    {
+        $user = $this->userWithRole(User::ROLE_TECNICO);
+        $message = 'No cuentas con los permisos necesarios para visualizar los reportes.';
+
+        $this->actingAs($user)
+            ->get(route('tecnico.dashboard'))
+            ->assertOk()
+            ->assertSee($message, false)
+            ->assertDontSee('href="' . route('reportes.index') . '"', false);
+
+        $this->actingAs($user)
+            ->get(route('reportes.index'))
+            ->assertRedirect(route('tecnico.dashboard'))
+            ->assertSessionHas('acceso_restringido', $message);
+    }
+
     private function userWithRole(string $role): User
     {
         Role::firstOrCreate([
