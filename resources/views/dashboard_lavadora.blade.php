@@ -3321,7 +3321,7 @@
     function setupTendenciaCard() {
         setupDamageTrendCard({
             cardId: 'analisis52124Chart',
-            title: 'Analisis 52-12-4 | Tendencia de danos',
+            title: 'Analisis 52-12-4 | Tendencia de daños',
             icon: 'fas fa-wave-square',
             prefix: 'analisis52124',
             actionsId: 'tendenciaActions',
@@ -3342,7 +3342,7 @@
     function setupTendencia30147Card() {
         setupDamageTrendCard({
             cardId: 'analisis30147Chart',
-            title: 'Analisis 30-14-7 | Tendencia de danos',
+            title: 'Analisis 30-14-7 | Tendencia de daños',
             icon: 'fas fa-chart-line',
             prefix: 'analisis30147',
             actionsId: 'tendencia30147Actions',
@@ -3691,12 +3691,12 @@
         const rows = (Array.isArray(data.fallas) ? data.fallas : [])
             .map((item) => ({
                 linea: item.linea,
-                total_danos: Number(item.criticas || 0) + Number(item.severas_moderadas || 0),
+                total_daños: Number(item.criticas || 0) + Number(item.severas_moderadas || 0),
                 criticas: Number(item.criticas || 0),
                 severas_moderadas: Number(item.severas_moderadas || 0),
             }));
 
-        rows.sort((a, b) => Number(b.total_danos || 0) - Number(a.total_danos || 0) || Number(b.criticas || 0) - Number(a.criticas || 0) || Number(b.severas_moderadas || 0) - Number(a.severas_moderadas || 0));
+        rows.sort((a, b) => Number(b.total_daños || 0) - Number(a.total_daños || 0) || Number(b.criticas || 0) - Number(a.criticas || 0) || Number(b.severas_moderadas || 0) - Number(a.severas_moderadas || 0));
 
         hideLoader('rankingLoader');
 
@@ -3765,7 +3765,7 @@
 
         const rows = (Array.isArray(data.fallas) ? data.fallas : []).map((item) => ({
             linea: item.linea,
-            total_danos: Number(item.criticas || 0) + Number(item.severas_moderadas || 0),
+            total_daños: Number(item.criticas || 0) + Number(item.severas_moderadas || 0),
             criticas: Number(item.criticas || 0),
             severos: Number(item.severas_moderadas || 0),
             moderados: 0,
@@ -4267,7 +4267,7 @@
                         bodyColor: '#e2e8f0',
                         callbacks: {
                             title: (context) => normalizeTrendLabel(context[0]?.label || ''),
-                            label: (context) => `${context.dataset.label}: ${Number(context.raw || 0)} danos`
+                            label: (context) => `${context.dataset.label}: ${Number(context.raw || 0)} daños`
                         }
                     }
                 },
@@ -4281,7 +4281,7 @@
                         grid: { color: 'rgba(148, 163, 184, 0.16)' },
                         title: {
                             display: true,
-                            text: 'Total de danos',
+                            text: 'Total de daños',
                             color: '#64748b',
                             font: { size: 12, weight: 700 }
                         },

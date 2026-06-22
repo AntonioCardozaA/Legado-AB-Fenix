@@ -1231,7 +1231,7 @@
             </div>
             <div class="chart-description">
                 <i class="fas fa-info-circle"></i>
-                Tendencia automatica calculada desde danos registrados en los analisis de pasteurizadora
+                Tendencia automatica calculada desde daños registrados en los analisis de pasteurizadora
             </div>
         </div>
         <div class="chart-card">
@@ -1470,7 +1470,7 @@
                         borderWidth: 2,
                         padding: 14,
                         callbacks: {
-                            label: context => `${context.dataset.label}: ${context.raw} danos`
+                            label: context => `${context.dataset.label}: ${context.raw} daños`
                         }
                     },
                     legend: {
