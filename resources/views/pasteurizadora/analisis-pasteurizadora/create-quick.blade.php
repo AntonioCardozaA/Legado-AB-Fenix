@@ -7,8 +7,43 @@
     $analisisRoutePrefix = $analisisRoutePrefix ?? 'pasteurizadora.analisis-pasteurizadora';
     $analisisRoute = fn ($name, $params = []) => route($analisisRoutePrefix . '.' . $name, $params);
 @endphp
-<div class="max-w-2xl mx-auto px-4 py-8">
-    <div class="bg-white rounded-2xl shadow-lg p-8">
+<style>
+    .pasteur-form-shell {
+        --primary-blue: #2563eb;
+        --border: #e5e7eb;
+        --soft-shadow: 0 1px 2px rgba(15, 23, 42, .05);
+    }
+
+    .pasteur-form-card {
+        background: #ffffff;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        box-shadow: var(--soft-shadow);
+        padding: 24px;
+    }
+
+    .pasteur-context {
+        background: linear-gradient(to right, #f9fafb, #ffffff);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 16px;
+    }
+
+    .pasteur-context img {
+        background: #eff6ff;
+        border: 1px solid #bfdbfe;
+        border-radius: 8px;
+        padding: 8px;
+    }
+
+    .pasteur-form-shell label i,
+    .pasteur-form-shell p i {
+        color: var(--primary-blue);
+    }
+</style>
+
+<div class="pasteur-form-shell max-w-4xl mx-auto px-4 py-8">
+    <div class="pasteur-form-card">
         {{-- Encabezado --}}
         <div class="mb-8">
             <div class="flex items-center gap-3 mb-4">
@@ -21,7 +56,7 @@
                 </h1>
             </div>
 
-            <div class="bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl p-4 border border-gray-200">
+            <div class="pasteur-context">
                 <div class="flex flex-col md:flex-row items-center gap-6">
                     <div class="flex-shrink-0">
                         <div class="w-20 h-20 mx-auto md:mx-0">
@@ -285,8 +320,12 @@
                 <input type="text"
                        name="numero_orden"
                        value="{{ old('numero_orden') }}"
-                       maxlength="8"
-                       placeholder="Ej: OT-2024-001"
+                       maxlength="50"
+                       inputmode="numeric"
+                       pattern="[0-9]*"
+                       autocomplete="off"
+                       placeholder="Ej: 35221456"
+                       oninput="this.value = this.value.replace(/[^0-9]/g, '')"
                        class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500 shadow-sm
                        @error('numero_orden') border-red-500 @enderror">
                 @error('numero_orden')

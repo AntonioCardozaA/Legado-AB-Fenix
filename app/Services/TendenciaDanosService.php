@@ -18,6 +18,10 @@ class TendenciaDanosService
     private const DAMAGE_STATES = [
         'danado - requiere cambio',
         'dano - requiere cambio',
+        'danado - cambiado',
+        'dano - cambiado',
+        'danado',
+        'dano',
         'desgaste severo',
         'desgaste moderado',
     ];
@@ -44,6 +48,7 @@ class TendenciaDanosService
     {
         return [
             'Danado - Requiere cambio',
+            'Danado - Cambiado',
             'Desgaste severo',
             'Desgaste moderado',
         ];
@@ -266,6 +271,9 @@ class TendenciaDanosService
                         'linea_id' => $item->linea_id,
                         'linea' => $item->linea?->nombre ?? $lineaNombres->get($item->linea_id),
                         'componente' => $item->componente,
+                        'modulo' => $item->modulo,
+                        'nivel' => $item->nivel,
+                        'lado' => $this->normalizarLado($item->lado),
                         'occurred_at' => $fecha,
                         'fecha_humana' => $fecha->format('d/m/Y'),
                     ];
@@ -292,6 +300,8 @@ class TendenciaDanosService
                     'linea_id' => $item->linea_id,
                     'linea' => $item->linea?->nombre ?? $lineaNombres->get($item->linea_id),
                     'componente' => $item->componente?->nombre ?? $item->componente?->codigo,
+                    'reductor' => $item->reductor,
+                    'lado' => $this->normalizarLado($item->lado),
                     'occurred_at' => $fecha,
                     'fecha_humana' => $fecha->format('d/m/Y'),
                 ];
@@ -314,6 +324,10 @@ class TendenciaDanosService
                 'previous_range' => null,
                 'current_componentes' => 0,
                 'previous_componentes' => 0,
+                'current_lados' => [],
+                'previous_lados' => [],
+                'current_eventos' => [],
+                'previous_eventos' => [],
             ])
             ->values();
 
@@ -362,6 +376,10 @@ class TendenciaDanosService
                     'previous_range' => $this->formatearRango($rangos['previous_start'], $rangos['previous_end']),
                     'current_componentes' => $actuales->where('source', 'componente')->count(),
                     'previous_componentes' => $anteriores->where('source', 'componente')->count(),
+                    'current_lados' => $this->contarEventosPorLado($actuales),
+                    'previous_lados' => $this->contarEventosPorLado($anteriores),
+                    'current_eventos' => $this->formatearEventosVentana($actuales),
+                    'previous_eventos' => $this->formatearEventosVentana($anteriores),
                 ];
             })
             ->values();
@@ -547,9 +565,83 @@ class TendenciaDanosService
 
     private function esEstadoDano(?string $estado): bool
     {
-        $normalizado = Str::of((string) $estado)->ascii()->lower()->squish()->value();
+        $normalizado = $this->normalizarEstadoDano($estado);
 
         return in_array($normalizado, self::DAMAGE_STATES, true);
+    }
+
+    private function normalizarEstadoDano(?string $estado): string
+    {
+        $estado = trim((string) $estado);
+
+        $estado = strtr($estado, [
+            'DaÃ±ado' => 'Danado',
+            'DaÃƒÂ±ado' => 'Danado',
+            'DaÃƒÆ’Ã‚Â±ado' => 'Danado',
+            'Dañado' => 'Danado',
+            'Daño' => 'Dano',
+            'daño' => 'dano',
+        ]);
+
+        return Str::of($estado)->ascii()->lower()->squish()->value();
+    }
+
+    private function normalizarLado(?string $lado): ?string
+    {
+        $normalizado = Str::of((string) $lado)->ascii()->upper()->squish()->value();
+
+        if ($normalizado === '') {
+            return null;
+        }
+
+        if (str_contains($normalizado, 'VAPOR')) {
+            return 'VAPOR';
+        }
+
+        if (str_contains($normalizado, 'PASILLO')) {
+            return 'PASILLO';
+        }
+
+        return null;
+    }
+
+    private function contarEventosPorLado(Collection $eventos): array
+    {
+        $lados = $eventos
+            ->pluck('lado')
+            ->filter()
+            ->values();
+
+        if ($lados->isEmpty()) {
+            return [];
+        }
+
+        $conteo = [
+            'VAPOR' => $lados->filter(fn (string $lado) => $lado === 'VAPOR')->count(),
+            'PASILLO' => $lados->filter(fn (string $lado) => $lado === 'PASILLO')->count(),
+        ];
+
+        return array_sum($conteo) > 0 ? $conteo : [];
+    }
+
+    private function formatearEventosVentana(Collection $eventos): array
+    {
+        return $eventos
+            ->sortByDesc(fn (array $item) => $item['occurred_at']->getTimestamp())
+            ->map(fn (array $item) => [
+                'id' => $item['id'] ?? null,
+                'fecha' => $item['fecha_humana'] ?? null,
+                'linea_id' => $item['linea_id'] ?? null,
+                'linea' => $item['linea'] ?? null,
+                'componente' => $item['componente'] ?? null,
+                'reductor' => $item['reductor'] ?? null,
+                'modulo' => $item['modulo'] ?? null,
+                'nivel' => $item['nivel'] ?? null,
+                'lado' => $item['lado'] ?? null,
+                'estado' => $item['type_label'] ?? null,
+            ])
+            ->values()
+            ->all();
     }
 
     private function normalizarTipo(string $tipoEquipo): string

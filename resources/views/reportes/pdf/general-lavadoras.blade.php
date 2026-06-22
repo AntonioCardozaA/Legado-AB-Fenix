@@ -915,10 +915,12 @@
                                 <th>Actual</th>
                                 <th>Anterior</th>
                                 <th>Diferencia</th>
+                                <th>Lados</th>
                             </tr>
                         </thead>
                         <tbody>
                             @foreach($ventanas52124Pdf as $ventana)
+                                @php $ladosVentanaPdf = data_get($ventana, 'current_lados', []); @endphp
                                 <tr>
                                     <td>52-12-4</td>
                                     <td>{{ data_get($ventana, 'label') }}</td>
@@ -926,9 +928,17 @@
                                     <td>{{ $formatValue(data_get($ventana, 'current')) }}</td>
                                     <td>{{ $formatValue(data_get($ventana, 'previous')) }}</td>
                                     <td>{{ (($delta = (int) data_get($ventana, 'delta', 0)) > 0 ? '+' : '') . $delta }}</td>
+                                    <td>
+                                        @if(!empty($ladosVentanaPdf))
+                                            V: {{ data_get($ladosVentanaPdf, 'VAPOR', 0) }} / P: {{ data_get($ladosVentanaPdf, 'PASILLO', 0) }}
+                                        @else
+                                            -
+                                        @endif
+                                    </td>
                                 </tr>
                             @endforeach
                             @foreach($ventanas30147Pdf as $ventana)
+                                @php $ladosVentanaPdf = data_get($ventana, 'current_lados', []); @endphp
                                 <tr>
                                     <td>30-14-7</td>
                                     <td>{{ data_get($ventana, 'label') }}</td>
@@ -936,6 +946,13 @@
                                     <td>{{ $formatValue(data_get($ventana, 'current')) }}</td>
                                     <td>{{ $formatValue(data_get($ventana, 'previous')) }}</td>
                                     <td>{{ (($delta = (int) data_get($ventana, 'delta', 0)) > 0 ? '+' : '') . $delta }}</td>
+                                    <td>
+                                        @if(!empty($ladosVentanaPdf))
+                                            V: {{ data_get($ladosVentanaPdf, 'VAPOR', 0) }} / P: {{ data_get($ladosVentanaPdf, 'PASILLO', 0) }}
+                                        @else
+                                            -
+                                        @endif
+                                    </td>
                                 </tr>
                             @endforeach
                         </tbody>

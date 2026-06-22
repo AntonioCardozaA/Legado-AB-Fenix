@@ -284,25 +284,25 @@ public function index(Request $request)
         $reductoresPorLinea = [
             'L-04' => ['Reductor 1', 'Reductor 9', 'Reductor 10', 'Reductor 11', 'Reductor 12', 
                       'Reductor 13', 'Reductor 14', 'Reductor 15', 'Reductor 16', 'Reductor 17', 
-                      'Reductor 18', 'Reductor 19', 'Reductor Loca'],
+                      'Reductor 18', 'Reductor 19', 'Reductor Loca', 'Reductor Principal'],
             'L-05' => ['Reductor 1', 'Reductor 2', 'Reductor 3', 'Reductor 4', 'Reductor 5', 
                       'Reductor 6', 'Reductor 7', 'Reductor 8', 'Reductor 9', 'Reductor 10', 
                       'Reductor 11', 'Reductor 12', 'Reductor Principal', 'Reductor Loca'],
             'L-06' => ['Reductor 1', 'Reductor 9', 'Reductor 10', 'Reductor 11', 'Reductor 12', 
                       'Reductor 13', 'Reductor 14', 'Reductor 15', 'Reductor 16', 'Reductor 17', 
-                      'Reductor 18', 'Reductor 19', 'Reductor 20', 'Reductor 21', 'Reductor 22'],
+                      'Reductor 18', 'Reductor 19', 'Reductor 20', 'Reductor 21', 'Reductor 22', 'Reductor Principal'],
             'L-07' => ['Reductor 1', 'Reductor 9', 'Reductor 10', 'Reductor 11', 'Reductor 12', 
                       'Reductor 13', 'Reductor 14', 'Reductor 15', 'Reductor 16', 'Reductor 17', 
-                      'Reductor 18', 'Reductor 19', 'Reductor 20', 'Reductor 21', 'Reductor 22'],
+                      'Reductor 18', 'Reductor 19', 'Reductor 20', 'Reductor 21', 'Reductor 22', 'Reductor Principal'],
             'L-08' => ['Reductor 1', 'Reductor 9', 'Reductor 10', 'Reductor 11', 'Reductor 12', 
                       'Reductor 13', 'Reductor 14', 'Reductor 15', 'Reductor 16', 'Reductor 17', 
                       'Reductor 18', 'Reductor 19', 'Reductor Loca'],
             'L-09' => ['Reductor 1', 'Reductor 9', 'Reductor 10', 'Reductor 11', 'Reductor 12', 
                       'Reductor 13', 'Reductor 14', 'Reductor 15', 'Reductor 16', 'Reductor 17', 
-                      'Reductor 18', 'Reductor 19', 'Reductor Loca'],
+                      'Reductor 18', 'Reductor 19', 'Reductor Loca', 'Reductor Principal'],
             'L-12' => ['Reductor 1', 'Reductor 2', 'Reductor 3', 'Reductor 4', 'Reductor 5', 
                       'Reductor 6', 'Reductor 7', 'Reductor 8', 'Reductor 9', 'Reductor 10', 
-                      'Reductor 11', 'Reductor 12', 'Reductor Loca'],
+                      'Reductor 11', 'Reductor 12', 'Reductor Loca', 'Reductor Principal'],
             'L-13' => ['Reductor 1', 'Reductor 2', 'Reductor 3', 'Reductor 4', 'Reductor 5', 
                       'Reductor 6', 'Reductor 7', 'Reductor 8', 'Reductor 9', 'Reductor 10', 
                       'Reductor 11', 'Reductor 12', 'Reductor Loca', 'Reductor Principal']
@@ -335,13 +335,7 @@ public function index(Request $request)
         $componentesDisponibles = $componentesPorLinea[$linea->nombre] ?? [];
 
         // Obtener reductores únicos para esta línea
-        $reductores = Componente::where('linea', $linea->nombre)
-            ->where('activo', true)
-            ->whereNotNull('reductor')
-            ->select('reductor')
-            ->distinct()
-            ->orderBy('reductor')
-            ->pluck('reductor');
+        $reductores = $this->getReductoresDisponiblesPorLinea($linea);
 
         return view('lavadora/analisis-lavadora.create', compact(
             'linea',
@@ -659,6 +653,25 @@ $componente = Componente::firstOrCreate(
         return $nombres[$codigo] ?? $codigo;
     }
 
+    private function getReductoresDisponiblesPorLinea(Linea $linea)
+    {
+        $reductoresBase = collect($this->getReductoresPorLinea($linea->nombre));
+
+        $reductoresDb = Componente::where('linea', $linea->nombre)
+            ->where('activo', true)
+            ->whereNotNull('reductor')
+            ->select('reductor')
+            ->distinct()
+            ->orderBy('reductor')
+            ->pluck('reductor');
+
+        return $reductoresBase
+            ->merge($reductoresDb)
+            ->filter()
+            ->unique()
+            ->values();
+    }
+
 /**
  * EDITAR ANÁLISIS
  */
@@ -845,13 +858,7 @@ public function update(Request $request, $id)
 
         $linea = Linea::findOrFail($request->linea_id);
 
-        $reductores = Componente::where('linea', $linea->nombre)
-            ->where('activo', true)
-            ->whereNotNull('reductor')
-            ->select('reductor')
-            ->distinct()
-            ->orderBy('reductor')
-            ->pluck('reductor');
+        $reductores = $this->getReductoresDisponiblesPorLinea($linea);
 
         return response()->json($reductores);
     }
@@ -1154,25 +1161,25 @@ public function getEstadisticasProgreso(Request $request)
     $reductoresPorLineaArray = [
         'L-04' => ['Reductor 1', 'Reductor 9', 'Reductor 10', 'Reductor 11', 'Reductor 12', 
                   'Reductor 13', 'Reductor 14', 'Reductor 15', 'Reductor 16', 'Reductor 17', 
-                  'Reductor 18', 'Reductor 19', 'Reductor Loca'],
+                  'Reductor 18', 'Reductor 19', 'Reductor Loca', 'Reductor Principal'],
         'L-05' => ['Reductor 1', 'Reductor 2', 'Reductor 3', 'Reductor 4', 'Reductor 5', 
                   'Reductor 6', 'Reductor 7', 'Reductor 8', 'Reductor 9', 'Reductor 10', 
                   'Reductor 11', 'Reductor 12', 'Reductor Principal', 'Reductor Loca'],
         'L-06' => ['Reductor 1', 'Reductor 9', 'Reductor 10', 'Reductor 11', 'Reductor 12', 
                   'Reductor 13', 'Reductor 14', 'Reductor 15', 'Reductor 16', 'Reductor 17', 
-                  'Reductor 18', 'Reductor 19', 'Reductor 20', 'Reductor 21', 'Reductor 22'],
+                  'Reductor 18', 'Reductor 19', 'Reductor 20', 'Reductor 21', 'Reductor 22', 'Reductor Principal'],
         'L-07' => ['Reductor 1', 'Reductor 9', 'Reductor 10', 'Reductor 11', 'Reductor 12', 
                   'Reductor 13', 'Reductor 14', 'Reductor 15', 'Reductor 16', 'Reductor 17', 
-                  'Reductor 18', 'Reductor 19', 'Reductor 20', 'Reductor 21', 'Reductor 22'],
+                  'Reductor 18', 'Reductor 19', 'Reductor 20', 'Reductor 21', 'Reductor 22', 'Reductor Principal'],
         'L-08' => ['Reductor 1', 'Reductor 9', 'Reductor 10', 'Reductor 11', 'Reductor 12', 
                   'Reductor 13', 'Reductor 14', 'Reductor 15', 'Reductor 16', 'Reductor 17', 
                   'Reductor 18', 'Reductor 19', 'Reductor Loca'],
         'L-09' => ['Reductor 1', 'Reductor 9', 'Reductor 10', 'Reductor 11', 'Reductor 12', 
                   'Reductor 13', 'Reductor 14', 'Reductor 15', 'Reductor 16', 'Reductor 17', 
-                  'Reductor 18', 'Reductor 19', 'Reductor Loca'],
+                  'Reductor 18', 'Reductor 19', 'Reductor Loca', 'Reductor Principal'],
         'L-12' => ['Reductor 1', 'Reductor 2', 'Reductor 3', 'Reductor 4', 'Reductor 5', 
                   'Reductor 6', 'Reductor 7', 'Reductor 8', 'Reductor 9', 'Reductor 10', 
-                  'Reductor 11', 'Reductor 12', 'Reductor Loca'],
+                  'Reductor 11', 'Reductor 12', 'Reductor Loca', 'Reductor Principal'],
         'L-13' => ['Reductor 1', 'Reductor 2', 'Reductor 3', 'Reductor 4', 'Reductor 5', 
                   'Reductor 6', 'Reductor 7', 'Reductor 8', 'Reductor 9', 'Reductor 10', 
                   'Reductor 11', 'Reductor 12', 'Reductor Loca', 'Reductor Principal']

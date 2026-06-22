@@ -7,10 +7,50 @@
     $analisisRoutePrefix = $analisisRoutePrefix ?? 'pasteurizadora.analisis-pasteurizadora';
     $analisisRoute = fn ($name, $params = []) => route($analisisRoutePrefix . '.' . $name, $params);
 @endphp
-<div class="max-w-7xl mx-auto px-4">
+<style>
+    .pasteur-select {
+        --primary-blue: #2563eb;
+        --border: #e5e7eb;
+        --soft-shadow: 0 1px 2px rgba(15, 23, 42, .05);
+    }
+
+    .pasteur-select-header {
+        background: #ffffff;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        box-shadow: var(--soft-shadow);
+        padding: 20px 24px;
+    }
+
+    .pasteur-select-card {
+        background: #ffffff;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        box-shadow: var(--soft-shadow);
+        padding: 18px;
+        transition: border-color .2s ease, box-shadow .2s ease, transform .2s ease;
+    }
+
+    .pasteur-select-card:hover {
+        border-color: var(--primary-blue);
+        box-shadow: 0 10px 15px -3px rgba(15, 23, 42, .08);
+        transform: translateY(-2px);
+    }
+
+    .pasteur-select-icon {
+        background: #eff6ff;
+        border: 1px solid #bfdbfe;
+        border-radius: 8px;
+        height: 58px;
+        padding: 8px;
+        width: 58px;
+    }
+</style>
+
+<div class="pasteur-select max-w-7xl mx-auto px-4">
 
     {{-- Encabezado con boton de volver --}}
-    <div class="mb-10 flex items-center justify-between">
+    <div class="pasteur-select-header mb-8 flex items-center justify-between">
         <div class="flex items-center gap-4">
             <a href="{{ $analisisRoute('index') }}"
                class="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900
@@ -55,11 +95,9 @@
             @if($linea)
                 <a href="{{ $analisisRoute('create', $linea->id) }}"
                    class="group">
-                    <div class="bg-white rounded-xl border border-gray-100 p-6
-                                shadow-sm hover:shadow-xl transition-all duration-300
-                                hover:-translate-y-1">
+                    <div class="pasteur-select-card">
                         <div class="flex flex-col items-center text-center">
-                            <div class="w-32 h-32 mb-4 flex items-center justify-center">
+                            <div class="pasteur-select-icon mb-4 flex items-center justify-center">
                                 <img src="{{ asset('images/icono_pas.png') }}"
                                      alt="Icono de Pasteurizadora"
                                      class="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300">

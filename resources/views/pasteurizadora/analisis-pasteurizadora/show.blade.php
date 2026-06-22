@@ -10,28 +10,44 @@
 <style>
     .detail-card {
         background: white;
-        border-radius: 16px;
+        border-radius: 12px;
         overflow: hidden;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 1px 2px rgba(15, 23, 42, .05);
         margin-bottom: 24px;
-        border: 1px solid #e2e8f0;
+        border: 1px solid #e5e7eb;
     }
     .detail-header {
-        background: linear-gradient(135deg, #1e293b, #0f172a);
-        color: white;
+        background: linear-gradient(to right, #f9fafb, #ffffff);
+        border-bottom: 1px solid #e5e7eb;
+        color: #111827;
         padding: 20px 24px;
+    }
+    .detail-header img {
+        background: #eff6ff;
+        border: 1px solid #bfdbfe;
+        border-radius: 8px;
+        filter: none !important;
+        height: 42px;
+        padding: 6px;
+        width: 42px;
+    }
+    .detail-header .text-blue-200 {
+        color: #64748b;
+    }
+    .detail-header a {
+        color: #ffffff;
     }
     .info-grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-        gap: 20px;
+        gap: 16px;
         padding: 24px;
     }
     .info-item {
         background: #f8fafc;
-        border-radius: 12px;
+        border-radius: 8px;
         padding: 16px;
-        border: 1px solid #e2e8f0;
+        border: 1px solid #e5e7eb;
     }
     .info-label {
         font-size: 11px;
@@ -54,16 +70,16 @@
     }
     .gallery-item {
         position: relative;
-        border-radius: 12px;
+        border-radius: 8px;
         overflow: hidden;
-        border: 2px solid #e2e8f0;
+        border: 1px solid #e5e7eb;
         transition: all 0.3s ease;
         cursor: pointer;
     }
     .gallery-item:hover {
-        transform: translateY(-4px);
-        border-color: #3b82f6;
-        box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.2);
+        transform: translateY(-2px);
+        border-color: #2563eb;
+        box-shadow: 0 10px 15px -3px rgba(15, 23, 42, .08);
     }
     .gallery-img {
         width: 100%;
@@ -91,9 +107,20 @@
         font-weight: 600;
         font-size: 14px;
     }
+    .pasteur-detail-action {
+        align-items: center;
+        border-radius: 8px;
+        display: inline-flex;
+        font-size: 13px;
+        font-weight: 600;
+        gap: 8px;
+        min-height: 42px;
+        padding: 10px 14px;
+        text-decoration: none;
+    }
 </style>
 
-<div class="max-w-5xl mx-auto px-4 py-8">
+<div class="pasteur-detail max-w-5xl mx-auto px-4 py-8">
     {{-- Header con navegación --}}
     <div class="mb-6">
         <div class="flex items-center gap-3 mb-4">
@@ -125,13 +152,13 @@
                     </div>
                     <p class="text-blue-200">Orden #{{ $analisis->numero_orden }}</p>
                 </div>
-                <div class="flex gap-2">
+            <div class="flex gap-2">
                     <a href="{{ $analisisRoute('edit', $analisis->id) }}"
-                       class="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition flex items-center gap-2">
+                       class="pasteur-detail-action bg-blue-600 hover:bg-blue-700 text-white transition">
                         <i class="fas fa-edit"></i> Editar
                     </a>
                     <button onclick="confirmDelete()"
-                            class="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg transition flex items-center gap-2">
+                            class="pasteur-detail-action bg-red-600 hover:bg-red-700 text-white transition">
                         <i class="fas fa-trash"></i> Eliminar
                     </button>
                 </div>

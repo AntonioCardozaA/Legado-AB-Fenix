@@ -131,7 +131,7 @@ class LavadorasSeeder extends Seeder
             'Reductor 11', 'Reductor 12', 'Reductor 13', 
             'Reductor 14', 'Reductor 15', 'Reductor 16', 
             'Reductor 17', 'Reductor 18', 'Reductor 19', 
-            'Reductor Loca'
+            'Reductor Loca', 'Reductor Principal'
         ];
 
         foreach ($reductoresLinea4 as $reductor) {
@@ -306,7 +306,8 @@ class LavadorasSeeder extends Seeder
             'Reductor 11', 'Reductor 12', 'Reductor 13', 
             'Reductor 14', 'Reductor 15', 'Reductor 16', 
             'Reductor 17', 'Reductor 18', 'Reductor 19', 
-            'Reductor 20', 'Reductor 21', 'Reductor 22'
+            'Reductor 20', 'Reductor 21', 'Reductor 22',
+            'Reductor Principal'
         ];
 
         foreach ($reductoresLinea6 as $reductor) {
@@ -399,7 +400,8 @@ class LavadorasSeeder extends Seeder
             'Reductor 11', 'Reductor 12', 'Reductor 13', 
             'Reductor 14', 'Reductor 15', 'Reductor 16', 
             'Reductor 17', 'Reductor 18', 'Reductor 19', 
-            'Reductor 20', 'Reductor 21', 'Reductor 22'
+            'Reductor 20', 'Reductor 21', 'Reductor 22',
+            'Reductor Principal'
         ];
 
         foreach ($reductoresLinea7 as $reductor) {
@@ -585,7 +587,7 @@ class LavadorasSeeder extends Seeder
             'Reductor 11', 'Reductor 12', 'Reductor 13', 
             'Reductor 14', 'Reductor 15', 'Reductor 16', 
             'Reductor 17', 'Reductor 18', 'Reductor 19', 
-            'Reductor Loca'
+            'Reductor Loca', 'Reductor Principal'
         ];
 
         foreach ($reductoresLinea9 as $reductor) {
@@ -678,7 +680,7 @@ class LavadorasSeeder extends Seeder
             'Reductor 4', 'Reductor 5', 'Reductor 6', 
             'Reductor 7', 'Reductor 8', 'Reductor 9', 
             'Reductor 10', 'Reductor 11', 'Reductor 12', 
-            'Reductor Loca'
+            'Reductor Loca', 'Reductor Principal'
         ];
 
         foreach ($reductoresLinea12 as $reductor) {

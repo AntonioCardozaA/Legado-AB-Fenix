@@ -11,7 +11,7 @@
 <style>
     /* VARIABLES CSS PARA CONSISTENCIA */
     :root {
-        --primary-blue: #3b82f6;
+        --primary-blue: #2563eb;
         --success-green: #10b981;
         --warning-yellow: #f59e0b;
         --danger-red: #ef4444;
@@ -19,6 +19,7 @@
         --light-gray: #f9fafb;
         --medium-gray: #e5e7eb;
         --dark-gray: #6b7280;
+        --soft-shadow: 0 1px 2px rgba(15, 23, 42, .05);
     }
     
     .sticky-top { position: sticky; top: 0; z-index: 30; }
@@ -676,15 +677,16 @@
         background: white;
         border-radius: 12px;
         overflow: hidden;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        margin-bottom: 30px;
-        border: 1px solid #e2e8f0;
+        box-shadow: var(--soft-shadow);
+        margin-bottom: 24px;
+        border: 1px solid #e5e7eb;
     }
 
     .pasteurizadora-card-header {
-        background: linear-gradient(135deg, #1e293b, #0f172a);
-        color: white;
-        padding: 15px 20px;
+        background: linear-gradient(to right, #f9fafb, #ffffff);
+        border-bottom: 1px solid #e5e7eb;
+        color: #111827;
+        padding: 20px 24px;
         display: flex;
         align-items: center;
         gap: 15px;
@@ -697,10 +699,13 @@
     }
 
     .pasteurizadora-card-header .badge {
-        background: rgba(255, 255, 255, 0.2);
-        padding: 4px 12px;
-        border-radius: 20px;
+        background: #eff6ff;
+        border: 1px solid #bfdbfe;
+        color: #1d4ed8;
+        padding: 6px 12px;
+        border-radius: 999px;
         font-size: 12px;
+        font-weight: 700;
     }
 
     .pasteurizadora-card .table-wrapper {
@@ -741,6 +746,32 @@
     
     .custom-scrollbar::-webkit-scrollbar-thumb:hover {
         background: #94a3b8;
+    }
+
+    .pasteur-index-shell {
+        max-width: 1280px;
+    }
+
+    .pasteur-index-shell > .flex:first-child {
+        background: #ffffff;
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        box-shadow: var(--soft-shadow);
+        padding: 20px 24px;
+    }
+
+    .pasteur-index-shell .filters-section,
+    .pasteur-index-shell .table-wrapper {
+        border-radius: 12px;
+        border-color: #e5e7eb;
+        box-shadow: var(--soft-shadow);
+    }
+
+    .pasteur-index-shell .pasteurizadora-card-header img {
+        background: #eff6ff;
+        border: 1px solid #bfdbfe;
+        border-radius: 8px;
+        padding: 6px;
     }
 
     /* Grid de imagenes mejorado para el modal monocromatico */
@@ -837,7 +868,7 @@
     }
 </style>
 
-<div class="max-w-full mx-auto px-4 py-6">
+<div class="pasteur-index-shell max-w-full mx-auto px-4 py-6">
     {{-- HEADER --}}
     <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
         <div>

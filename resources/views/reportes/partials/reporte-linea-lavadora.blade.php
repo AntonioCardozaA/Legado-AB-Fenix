@@ -2,14 +2,18 @@
     $resumen = $reporte['resumen'] ?? [];
     $componentes = $reporte['componentes'] ?? [];
     $reductores = $reporte['reductores'] ?? [];
-    $analisis = $reporte['analisis'] ?? collect([]);
+    $analisis = collect($reporte['analisis'] ?? []);
+    $analisisHistorico = collect($reporte['analisis_historico'] ?? $analisis);
     $paros = $reporte['paros'] ?? collect([]);
     
     // Usar los datos que ya vienen del controlador
     $elongaciones = $reporte['elongaciones'] ?? collect([]);
-    
-    $promedioBombas = $elongaciones->avg('bombas_porcentaje') ?: 0;
-    $promedioVapor = $elongaciones->avg('vapor_porcentaje') ?: 0;
+
+    $limiteCompraElongacion = \App\Models\Elongacion::LIMITE_COMPRAR;
+    $limiteCambioElongacion = \App\Models\Elongacion::LIMITE_CAMBIO;
+    $ultimaElongacion = $elongaciones->sortByDesc('created_at')->first();
+    $promedioBombas = $ultimaElongacion ? (float) ($ultimaElongacion->bombas_porcentaje ?? 0) : 0;
+    $promedioVapor = $ultimaElongacion ? (float) ($ultimaElongacion->vapor_porcentaje ?? 0) : 0;
     $maxElongacion = max($promedioBombas, $promedioVapor);
     
     // Usar los datos que ya vienen del controlador
@@ -18,6 +22,17 @@
     $analisis30147Reporte = $reporte['analisis_30147'] ?? [];
     $ventanas52124Reporte = collect($analisis52124Reporte['ventanas'] ?? []);
     $ventanas30147Reporte = collect($analisis30147Reporte['ventanas'] ?? []);
+    $ventanaPrincipal52124 = $ventanas52124Reporte->first();
+    $ventanaPrincipal30147 = $ventanas30147Reporte->first();
+    $etiquetaVentanaResumen = function ($ventana) {
+        $label = (string) ($ventana['label'] ?? '');
+
+        return trim(str_replace(
+            [' semanas', ' semana', ' dias', ' dia'],
+            ['s', 's', 'd', 'd'],
+            $label
+        ));
+    };
     $trendToneClass = function ($tone) {
         return match ($tone) {
             'danger' => 'text-red-700 bg-red-50 border-red-200',
@@ -112,6 +127,39 @@
         height: 100px;
         background: rgba(37, 99, 235, 0.04);
         border-radius: 50%;
+    }
+
+    .stat-window-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 6px;
+        margin-top: 10px;
+        position: relative;
+        z-index: 1;
+    }
+
+    .stat-window-pill {
+        background: rgba(255, 255, 255, .78);
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        padding: 6px 4px;
+        text-align: center;
+    }
+
+    .stat-window-label {
+        color: #64748b;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: .04em;
+        text-transform: uppercase;
+    }
+
+    .stat-window-value {
+        color: #111827;
+        font-size: 15px;
+        font-weight: 800;
+        line-height: 1.1;
+        margin-top: 2px;
     }
 
     .stat-header {
@@ -374,6 +422,27 @@
         position: relative;
     }
 
+    .elongacion-row {
+        display: grid;
+        grid-template-columns: 64px minmax(0, 1fr) 64px;
+        align-items: center;
+        gap: 8px;
+        min-height: 34px;
+    }
+
+    .elongacion-lado-label {
+        font-size: 12px;
+        color: #475569;
+        font-weight: 600;
+    }
+
+    .elongacion-value {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 12px;
+        font-weight: 700;
+        text-align: right;
+    }
+
     .elongacion-progreso {
         height: 100%;
         background: linear-gradient(90deg, #10b981, #059669);
@@ -496,7 +565,7 @@
             </div>
             <span class="stat-label">Elongación Máx</span>
         </div>
-        <div class="stat-value {{ $maxElongacion >= 2.4 ? 'text-red-600' : ($maxElongacion >= 2.0 ? 'text-yellow-600' : 'text-green-600') }}">
+        <div class="stat-value {{ $maxElongacion >= $limiteCambioElongacion ? 'text-red-600' : ($maxElongacion >= $limiteCompraElongacion ? 'text-yellow-600' : 'text-green-600') }}">
             {{ number_format($maxElongacion, 2) }}%
         </div>
         <div class="text-sm text-gray-500 mt-2">
@@ -511,10 +580,43 @@
             </div>
             <span class="stat-label">Análisis 52-12-4</span>
         </div>
-        <div class="stat-value">{{ $ventanas52124Reporte->last()['current'] ?? 0 }}</div>
+        <div class="stat-value">{{ $ventanaPrincipal52124['current'] ?? 0 }}</div>
         <div class="text-sm text-gray-500 mt-2">
-            Daños: {{ number_format($totalDaños4, 2) }} (4 sem)
+            Daños en {{ $ventanaPrincipal52124['label'] ?? '52 semanas' }}
         </div>
+        @if($ventanas52124Reporte->isNotEmpty())
+            <div class="stat-window-grid">
+                @foreach($ventanas52124Reporte as $ventana)
+                    <div class="stat-window-pill">
+                        <div class="stat-window-label">{{ $etiquetaVentanaResumen($ventana) }}</div>
+                        <div class="stat-window-value">{{ $ventana['current'] ?? 0 }}</div>
+                    </div>
+                @endforeach
+            </div>
+        @endif
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-header">
+            <div class="stat-icon criticos">
+                <i class="fas fa-bolt"></i>
+            </div>
+            <span class="stat-label">Análisis 30-14-7</span>
+        </div>
+        <div class="stat-value">{{ $ventanaPrincipal30147['current'] ?? 0 }}</div>
+        <div class="text-sm text-gray-500 mt-2">
+            Daños en {{ $ventanaPrincipal30147['label'] ?? '30 dias' }}
+        </div>
+        @if($ventanas30147Reporte->isNotEmpty())
+            <div class="stat-window-grid">
+                @foreach($ventanas30147Reporte as $ventana)
+                    <div class="stat-window-pill">
+                        <div class="stat-window-label">{{ $etiquetaVentanaResumen($ventana) }}</div>
+                        <div class="stat-window-value">{{ $ventana['current'] ?? 0 }}</div>
+                    </div>
+                @endforeach
+            </div>
+        @endif
     </div>
 </div>
 
@@ -527,7 +629,7 @@
             </div>
             <div>
                 <div class="modulo-titulo">ANÁLISIS DE COMPONENTES</div>
-                <div class="modulo-subtitulo">{{ $reporte['linea']->nombre }} · Últimos análisis</div>
+                <div class="modulo-subtitulo">{{ $reporte['linea']->nombre }} · Historial por componente</div>
             </div>
         </div>
         <div class="modulo-badge">
@@ -567,8 +669,8 @@
                     </div>
                     
                     <div class="componente-stats">
-                        <span>Análisis: {{ $componente['total_analisis'] }}</span>
-                        <span>Prom: {{ number_format($componente['promedio_elongacion'] ?? 0, 2) }} mm</span>
+                        <span>Historial: {{ $componente['total_analisis'] }}</span>
+                        <span>Periodo: {{ $componente['total_analisis_periodo'] ?? 0 }}</span>
                     </div>
                     
                     @if($componente['ultimo_analisis'])
@@ -589,7 +691,17 @@
                             </div>
                             <div class="text-xs text-gray-500 mt-1">
                                 {{ \Carbon\Carbon::parse($componente['ultimo_analisis']->fecha_analisis)->format('d/m/Y') }}
+                                @if(!empty($componente['ultimo_reductor']))
+                                    · {{ $componente['ultimo_reductor'] }}
+                                @endif
+                                @if(!empty($componente['ultimo_lado']))
+                                    · {{ $componente['ultimo_lado'] }}
+                                @endif
                             </div>
+                        </div>
+                    @else
+                        <div class="mt-2 p-2 bg-white rounded-lg border border-gray-100 text-xs text-gray-500">
+                            Sin datos historicos para esta linea.
                         </div>
                     @endif
                     
@@ -629,7 +741,7 @@
             </div>
             <div>
                 <div class="modulo-titulo">ELONGACIÓN DE CADENA</div>
-                <div class="modulo-subtitulo">Registro histórico · Límite 2.4%</div>
+                <div class="modulo-subtitulo">Registro histórico · Límite {{ number_format($limiteCambioElongacion, 2) }}%</div>
             </div>
         </div>
         <div class="modulo-badge">
@@ -648,20 +760,24 @@
                 
                 @php
                     $ultimosRegistros = $elongaciones->sortByDesc('created_at')->take(5);
-                    $maxValor = max(2.5, $ultimosRegistros->max('bombas_porcentaje') ?? 0, 
+                    $maxValor = max($limiteCambioElongacion, $ultimosRegistros->max('bombas_porcentaje') ?? 0,
                                                $ultimosRegistros->max('vapor_porcentaje') ?? 0);
+                    $marcaCompra = min(100, ($limiteCompraElongacion / $maxValor) * 100);
+                    $marcaCambio = min(100, ($limiteCambioElongacion / $maxValor) * 100);
                 @endphp
                 
                 @foreach($ultimosRegistros as $registro)
                     @php
-                        $porcentajeBombas = ($registro->bombas_porcentaje / $maxValor) * 100;
-                        $porcentajeVapor = ($registro->vapor_porcentaje / $maxValor) * 100;
+                        $bombasPorcentaje = (float) ($registro->bombas_porcentaje ?? 0);
+                        $vaporPorcentaje = (float) ($registro->vapor_porcentaje ?? 0);
+                        $porcentajeBombas = min(100, max(0, ($bombasPorcentaje / $maxValor) * 100));
+                        $porcentajeVapor = min(100, max(0, ($vaporPorcentaje / $maxValor) * 100));
                         $fecha = $registro->created_at->format('d/m');
                         
-                        $claseBombas = $registro->bombas_porcentaje >= 2.4 ? 'critico' : 
-                                      ($registro->bombas_porcentaje >= 2.0 ? 'alerta' : '');
-                        $claseVapor = $registro->vapor_porcentaje >= 2.4 ? 'critico' : 
-                                     ($registro->vapor_porcentaje >= 2.0 ? 'alerta' : '');
+                        $claseBombas = $bombasPorcentaje >= $limiteCambioElongacion ? 'critico' :
+                                      ($bombasPorcentaje >= $limiteCompraElongacion ? 'alerta' : '');
+                        $claseVapor = $vaporPorcentaje >= $limiteCambioElongacion ? 'critico' :
+                                     ($vaporPorcentaje >= $limiteCompraElongacion ? 'alerta' : '');
                     @endphp
                     
                     <div class="mb-4">
@@ -671,30 +787,28 @@
                         </div>
                         
                         {{-- Barra Bombas --}}
-                        <div class="flex items-center gap-2 mb-1">
-                            <span class="text-xs w-16">Bombas:</span>
-                            <div class="flex-1 elongacion-barra">
+                        <div class="elongacion-row mb-1">
+                            <span class="elongacion-lado-label">Bombas</span>
+                            <div class="elongacion-barra">
                                 <div class="elongacion-progreso {{ $claseBombas }}" style="width: {{ $porcentajeBombas }}%"></div>
-                                @if($registro->bombas_porcentaje >= 2.0)
-                                    <div class="elongacion-marca" style="left: {{ (2.0/$maxValor)*100 }}%"></div>
-                                @endif
-                                @if($registro->bombas_porcentaje >= 2.4)
-                                    <div class="elongacion-marca" style="left: {{ (2.4/$maxValor)*100 }}%"></div>
-                                @endif
+                                <div class="elongacion-marca" style="left: {{ $marcaCompra }}%"></div>
+                                <div class="elongacion-marca" style="left: {{ $marcaCambio }}%"></div>
                             </div>
-                            <span class="text-xs font-mono w-16 text-right {{ $registro->bombas_porcentaje >= 2.4 ? 'text-red-600' : ($registro->bombas_porcentaje >= 2.0 ? 'text-yellow-600' : 'text-green-600') }}">
-                                {{ number_format($registro->bombas_porcentaje, 2) }}%
+                            <span class="elongacion-value {{ $bombasPorcentaje >= $limiteCambioElongacion ? 'text-red-600' : ($bombasPorcentaje >= $limiteCompraElongacion ? 'text-yellow-600' : 'text-green-600') }}">
+                                {{ number_format($bombasPorcentaje, 2) }}%
                             </span>
                         </div>
                         
                         {{-- Barra Vapor --}}
-                        <div class="flex items-center gap-2">
-                            <span class="text-xs w-16">Vapor:</span>
-                            <div class="flex-1 elongacion-barra">
+                        <div class="elongacion-row">
+                            <span class="elongacion-lado-label">Vapor</span>
+                            <div class="elongacion-barra">
                                 <div class="elongacion-progreso {{ $claseVapor }}" style="width: {{ $porcentajeVapor }}%"></div>
+                                <div class="elongacion-marca" style="left: {{ $marcaCompra }}%"></div>
+                                <div class="elongacion-marca" style="left: {{ $marcaCambio }}%"></div>
                             </div>
-                            <span class="text-xs font-mono w-16 text-right {{ $registro->vapor_porcentaje >= 2.4 ? 'text-red-600' : ($registro->vapor_porcentaje >= 2.0 ? 'text-yellow-600' : 'text-green-600') }}">
-                                {{ number_format($registro->vapor_porcentaje, 2) }}%
+                            <span class="elongacion-value {{ $vaporPorcentaje >= $limiteCambioElongacion ? 'text-red-600' : ($vaporPorcentaje >= $limiteCompraElongacion ? 'text-yellow-600' : 'text-green-600') }}">
+                                {{ number_format($vaporPorcentaje, 2) }}%
                             </span>
                         </div>
                     </div>
@@ -703,15 +817,15 @@
                 <div class="leyenda">
                     <div class="leyenda-item">
                         <div class="leyenda-color bueno"></div>
-                        <span class="text-xs">Normal (&lt;2.0%)</span>
+                        <span class="text-xs">Normal (&lt;{{ number_format($limiteCompraElongacion, 2) }}%)</span>
                     </div>
                     <div class="leyenda-item">
                         <div class="leyenda-color alerta"></div>
-                        <span class="text-xs">Alerta (2.0-2.4%)</span>
+                        <span class="text-xs">Alerta ({{ number_format($limiteCompraElongacion, 2) }}-{{ number_format($limiteCambioElongacion, 2) }}%)</span>
                     </div>
                     <div class="leyenda-item">
                         <div class="leyenda-color critico"></div>
-                        <span class="text-xs">Crítico (≥2.4%)</span>
+                        <span class="text-xs">Crítico (≥{{ number_format($limiteCambioElongacion, 2) }}%)</span>
                     </div>
                 </div>
             </div>
@@ -737,17 +851,19 @@
                         <tbody>
                             @foreach($elongaciones->sortByDesc('created_at')->take(5) as $registro)
                                 @php
-                                    $estado = $registro->requiere_cambio ? 'critico' : 
-                                             ($registro->bombas_porcentaje >= 2.0 || $registro->vapor_porcentaje >= 2.0 ? 'alerta' : 'normal');
+                                    $bombasPorcentajeTabla = (float) ($registro->bombas_porcentaje ?? 0);
+                                    $vaporPorcentajeTabla = (float) ($registro->vapor_porcentaje ?? 0);
+                                    $estado = max($bombasPorcentajeTabla, $vaporPorcentajeTabla) >= $limiteCambioElongacion ? 'critico' :
+                                             (max($bombasPorcentajeTabla, $vaporPorcentajeTabla) >= $limiteCompraElongacion ? 'alerta' : 'normal');
                                 @endphp
                                 <tr>
                                     <td>{{ $registro->created_at->format('d/m/Y') }}</td>
                                     <td>{{ $registro->hodometro_formateado ?? '-' }}</td>
-                                    <td class="{{ $registro->bombas_porcentaje >= 2.4 ? 'text-red-600' : ($registro->bombas_porcentaje >= 2.0 ? 'text-yellow-600' : 'text-green-600') }}">
-                                        {{ number_format($registro->bombas_porcentaje, 2) }}%
+                                    <td class="{{ $bombasPorcentajeTabla >= $limiteCambioElongacion ? 'text-red-600' : ($bombasPorcentajeTabla >= $limiteCompraElongacion ? 'text-yellow-600' : 'text-green-600') }}">
+                                        {{ number_format($bombasPorcentajeTabla, 2) }}%
                                     </td>
-                                    <td class="{{ $registro->vapor_porcentaje >= 2.4 ? 'text-red-600' : ($registro->vapor_porcentaje >= 2.0 ? 'text-yellow-600' : 'text-green-600') }}">
-                                        {{ number_format($registro->vapor_porcentaje, 2) }}%
+                                    <td class="{{ $vaporPorcentajeTabla >= $limiteCambioElongacion ? 'text-red-600' : ($vaporPorcentajeTabla >= $limiteCompraElongacion ? 'text-yellow-600' : 'text-green-600') }}">
+                                        {{ number_format($vaporPorcentajeTabla, 2) }}%
                                     </td>
                                     <td>
                                         <span class="estado-badge estado-{{ $estado }}">
@@ -801,6 +917,7 @@
         @if($ventanas52124Reporte->isNotEmpty())
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                 @foreach($ventanas52124Reporte as $ventana)
+                    @php $ladosVentana = $ventana['current_lados'] ?? []; @endphp
                     <div class="p-4 rounded-lg border {{ $trendToneClass($ventana['tone'] ?? 'info') }}">
                         <div class="text-xs font-bold uppercase tracking-wide mb-1">{{ $ventana['label'] }}</div>
                         <div class="text-3xl font-bold">{{ $ventana['current'] ?? 0 }}</div>
@@ -812,8 +929,47 @@
                         <div class="text-[11px] mt-1 opacity-80">
                             Analisis registrados: {{ $ventana['current_componentes'] ?? 0 }}
                         </div>
+                        @if(!empty($ladosVentana))
+                            <div class="text-[11px] mt-1 opacity-80">
+                                Vapor: {{ $ladosVentana['VAPOR'] ?? 0 }} · Pasillo: {{ $ladosVentana['PASILLO'] ?? 0 }}
+                            </div>
+                        @endif
                     </div>
                 @endforeach
+            </div>
+        @endif
+
+        @php
+            $ventanaHistorial52124 = $ventanas52124Reporte->first() ?? [];
+            $eventosHistorial52124 = collect($ventanaHistorial52124['current_eventos'] ?? []);
+        @endphp
+        @if($eventosHistorial52124->isNotEmpty())
+            <div class="mb-6 overflow-x-auto">
+                <div class="text-sm font-semibold text-gray-700 mb-2">
+                    Daños detectados en {{ $ventanaHistorial52124['label'] ?? 'el periodo' }}
+                </div>
+                <table class="industrial-table">
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Componente</th>
+                            <th>Reductor</th>
+                            <th>Lado</th>
+                            <th>Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($eventosHistorial52124 as $evento)
+                            <tr>
+                                <td>{{ $evento['fecha'] ?? '-' }}</td>
+                                <td>{{ $evento['componente'] ?? '-' }}</td>
+                                <td>{{ $evento['reductor'] ?? '-' }}</td>
+                                <td>{{ $evento['lado'] ?? '-' }}</td>
+                                <td>{{ $evento['estado'] ?? '-' }}</td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
             </div>
         @endif
 
@@ -922,6 +1078,7 @@
     <div class="modulo-body">
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             @foreach($ventanas30147Reporte as $ventana)
+                @php $ladosVentana = $ventana['current_lados'] ?? []; @endphp
                 <div class="p-4 rounded-lg border {{ $trendToneClass($ventana['tone'] ?? 'info') }}">
                     <div class="text-xs font-bold uppercase tracking-wide mb-1">{{ $ventana['label'] }}</div>
                     <div class="text-3xl font-bold">{{ $ventana['current'] ?? 0 }}</div>
@@ -933,9 +1090,48 @@
                     <div class="text-[11px] mt-1 opacity-80">
                         Analisis registrados: {{ $ventana['current_componentes'] ?? 0 }}
                     </div>
+                    @if(!empty($ladosVentana))
+                        <div class="text-[11px] mt-1 opacity-80">
+                            Vapor: {{ $ladosVentana['VAPOR'] ?? 0 }} · Pasillo: {{ $ladosVentana['PASILLO'] ?? 0 }}
+                        </div>
+                    @endif
                 </div>
             @endforeach
         </div>
+
+        @php
+            $ventanaHistorial30147 = $ventanas30147Reporte->first() ?? [];
+            $eventosHistorial30147 = collect($ventanaHistorial30147['current_eventos'] ?? []);
+        @endphp
+        @if($eventosHistorial30147->isNotEmpty())
+            <div class="mb-6 overflow-x-auto">
+                <div class="text-sm font-semibold text-gray-700 mb-2">
+                    Daños detectados en {{ $ventanaHistorial30147['label'] ?? 'el periodo' }}
+                </div>
+                <table class="industrial-table">
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Componente</th>
+                            <th>Reductor</th>
+                            <th>Lado</th>
+                            <th>Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($eventosHistorial30147 as $evento)
+                            <tr>
+                                <td>{{ $evento['fecha'] ?? '-' }}</td>
+                                <td>{{ $evento['componente'] ?? '-' }}</td>
+                                <td>{{ $evento['reductor'] ?? '-' }}</td>
+                                <td>{{ $evento['lado'] ?? '-' }}</td>
+                                <td>{{ $evento['estado'] ?? '-' }}</td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        @endif
 
         <table class="industrial-table">
             <thead>
@@ -946,10 +1142,12 @@
                     <th>Anterior</th>
                     <th>Diferencia</th>
                     <th>Origen</th>
+                    <th>Lados</th>
                 </tr>
             </thead>
             <tbody>
                 @foreach($ventanas30147Reporte as $ventana)
+                    @php $ladosVentana = $ventana['current_lados'] ?? []; @endphp
                     <tr>
                         <td class="font-medium">{{ $ventana['label'] }}</td>
                         <td>{{ $ventana['current_range'] ?? '-' }}</td>
@@ -957,6 +1155,13 @@
                         <td>{{ $ventana['previous'] ?? 0 }}</td>
                         <td>{{ (($ventana['delta'] ?? 0) > 0 ? '+' : '') . ($ventana['delta'] ?? 0) }}</td>
                         <td>Analisis: {{ $ventana['current_componentes'] ?? 0 }}</td>
+                        <td>
+                            @if(!empty($ladosVentana))
+                                V: {{ $ladosVentana['VAPOR'] ?? 0 }} / P: {{ $ladosVentana['PASILLO'] ?? 0 }}
+                            @else
+                                -
+                            @endif
+                        </td>
                     </tr>
                 @endforeach
             </tbody>
@@ -965,7 +1170,7 @@
 </div>
 @endif
 
-@if($analisis->count() > 0)
+@if($analisisHistorico->count() > 0)
 <div class="modulo-section">
     <div class="modulo-header">
         <div class="modulo-header-left">
@@ -979,7 +1184,7 @@
         </div>
         <div class="modulo-badge">
             <i class="fas fa-clipboard-list mr-2"></i>
-            {{ $analisis->count() }} revisiones
+            {{ $analisisHistorico->count() }} revisiones
         </div>
     </div>
     <div class="modulo-body">
@@ -989,13 +1194,14 @@
                     <th>Fecha</th>
                     <th>Componente</th>
                     <th>Reductor</th>
+                    <th>Lado</th>
                     <th>Estado</th>
                     <th>Orden</th>
                     <th>Actividad</th>
                 </tr>
             </thead>
             <tbody>
-                @foreach($analisis->sortByDesc('fecha_analisis')->take(10) as $item)
+                @foreach($analisisHistorico->sortByDesc('fecha_analisis')->take(10) as $item)
                     @php
                         $estadoColor = match($item->estado) {
                             'Dañado - Requiere cambio' => 'danado',
@@ -1017,6 +1223,7 @@
                             </div>
                         </td>
                         <td>{{ $item->reductor }}</td>
+                        <td>{{ $item->lado ?: '-' }}</td>
                         <td>
                             <span class="estado-badge estado-{{ $estadoColor }}">
                                 {{ $item->estado }}
@@ -1064,8 +1271,8 @@
                     $ultimaElongacion = $reductor['ultima_elongacion'] ?? 0;
                     $ultimaFecha = $reductor['ultima_fecha'] ?? null;
                     
-                    $estadoElongacion = $ultimaElongacion >= 2.4 ? 'critico' : 
-                                       ($ultimaElongacion >= 2.0 ? 'alerta' : 'normal');
+                    $estadoElongacion = $ultimaElongacion >= $limiteCambioElongacion ? 'critico' :
+                                       ($ultimaElongacion >= $limiteCompraElongacion ? 'alerta' : 'normal');
                 @endphp
                 
                 <div class="reductor-card">

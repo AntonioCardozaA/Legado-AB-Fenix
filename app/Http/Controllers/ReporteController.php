@@ -102,13 +102,13 @@ class ReporteController extends Controller
 
     // Reductores por línea
     protected $reductoresPorLinea = [
-        'L-04' => ['Reductor 1','Reductor 9','Reductor 10','Reductor 11','Reductor 12','Reductor 13','Reductor 14','Reductor 15','Reductor 16','Reductor 17','Reductor 18','Reductor 19','Reductor Loca'],
+        'L-04' => ['Reductor 1','Reductor 9','Reductor 10','Reductor 11','Reductor 12','Reductor 13','Reductor 14','Reductor 15','Reductor 16','Reductor 17','Reductor 18','Reductor 19','Reductor Loca','Reductor Principal'],
         'L-05' => ['Reductor 1','Reductor 2','Reductor 3','Reductor 4','Reductor 5','Reductor 6','Reductor 7','Reductor 8','Reductor 9','Reductor 10','Reductor 11','Reductor 12','Reductor Principal','Reductor Loca'],
-        'L-06' => ['Reductor 1','Reductor 9','Reductor 10','Reductor 11','Reductor 12','Reductor 13','Reductor 14','Reductor 15','Reductor 16','Reductor 17','Reductor 18','Reductor 19','Reductor 20','Reductor 21','Reductor 22'],
-        'L-07' => ['Reductor 1','Reductor 9','Reductor 10','Reductor 11','Reductor 12','Reductor 13','Reductor 14','Reductor 15','Reductor 16','Reductor 17','Reductor 18','Reductor 19','Reductor 20','Reductor 21','Reductor 22'],
+        'L-06' => ['Reductor 1','Reductor 9','Reductor 10','Reductor 11','Reductor 12','Reductor 13','Reductor 14','Reductor 15','Reductor 16','Reductor 17','Reductor 18','Reductor 19','Reductor 20','Reductor 21','Reductor 22','Reductor Principal'],
+        'L-07' => ['Reductor 1','Reductor 9','Reductor 10','Reductor 11','Reductor 12','Reductor 13','Reductor 14','Reductor 15','Reductor 16','Reductor 17','Reductor 18','Reductor 19','Reductor 20','Reductor 21','Reductor 22','Reductor Principal'],
         'L-08' => ['Reductor 1','Reductor 9','Reductor 10','Reductor 11','Reductor 12','Reductor 13','Reductor 14','Reductor 15','Reductor 16','Reductor 17','Reductor 18','Reductor 19','Reductor Loca'],
-        'L-09' => ['Reductor 1','Reductor 9','Reductor 10','Reductor 11','Reductor 12','Reductor 13','Reductor 14','Reductor 15','Reductor 16','Reductor 17','Reductor 18','Reductor 19','Reductor Loca'],
-        'L-12' => ['Reductor 1','Reductor 2','Reductor 3','Reductor 4','Reductor 5','Reductor 6','Reductor 7','Reductor 8','Reductor 9','Reductor 10','Reductor 11','Reductor 12','Reductor Loca'],
+        'L-09' => ['Reductor 1','Reductor 9','Reductor 10','Reductor 11','Reductor 12','Reductor 13','Reductor 14','Reductor 15','Reductor 16','Reductor 17','Reductor 18','Reductor 19','Reductor Loca','Reductor Principal'],
+        'L-12' => ['Reductor 1','Reductor 2','Reductor 3','Reductor 4','Reductor 5','Reductor 6','Reductor 7','Reductor 8','Reductor 9','Reductor 10','Reductor 11','Reductor 12','Reductor Loca','Reductor Principal'],
         'L-13' => ['Reductor 1','Reductor 2','Reductor 3','Reductor 4','Reductor 5','Reductor 6','Reductor 7','Reductor 8','Reductor 9','Reductor 10','Reductor 11','Reductor 12','Reductor Loca','Reductor Principal']
     ];
 
@@ -606,13 +606,13 @@ class ReporteController extends Controller
     {
         $componentesLinea = $this->componentesPorLinea[$linea->nombre] ?? [];
         $cantidadesPorLinea = [
-            'L-04' => 13,
+            'L-04' => 14,
             'L-05' => 14,
-            'L-06' => 15,
-            'L-07' => 15,
+            'L-06' => 16,
+            'L-07' => 16,
             'L-08' => 15,
-            'L-09' => 13,
-            'L-12' => 13,
+            'L-09' => 14,
+            'L-12' => 14,
             'L-13' => 14,
         ];
         $periodicidad = [
@@ -1021,25 +1021,25 @@ class ReporteController extends Controller
     $reductoresPorLineaArray = [
         'L-04' => ['Reductor 1', 'Reductor 9', 'Reductor 10', 'Reductor 11', 'Reductor 12', 
                   'Reductor 13', 'Reductor 14', 'Reductor 15', 'Reductor 16', 'Reductor 17', 
-                  'Reductor 18', 'Reductor 19', 'Reductor Loca'],
+                  'Reductor 18', 'Reductor 19', 'Reductor Loca', 'Reductor Principal'],
         'L-05' => ['Reductor 1', 'Reductor 2', 'Reductor 3', 'Reductor 4', 'Reductor 5', 
                   'Reductor 6', 'Reductor 7', 'Reductor 8', 'Reductor 9', 'Reductor 10', 
                   'Reductor 11', 'Reductor 12', 'Reductor Principal', 'Reductor Loca'],
         'L-06' => ['Reductor 1', 'Reductor 9', 'Reductor 10', 'Reductor 11', 'Reductor 12', 
                   'Reductor 13', 'Reductor 14', 'Reductor 15', 'Reductor 16', 'Reductor 17', 
-                  'Reductor 18', 'Reductor 19', 'Reductor 20', 'Reductor 21', 'Reductor 22'],
+                  'Reductor 18', 'Reductor 19', 'Reductor 20', 'Reductor 21', 'Reductor 22', 'Reductor Principal'],
         'L-07' => ['Reductor 1', 'Reductor 9', 'Reductor 10', 'Reductor 11', 'Reductor 12', 
                   'Reductor 13', 'Reductor 14', 'Reductor 15', 'Reductor 16', 'Reductor 17', 
-                  'Reductor 18', 'Reductor 19', 'Reductor 20', 'Reductor 21', 'Reductor 22'],
+                  'Reductor 18', 'Reductor 19', 'Reductor 20', 'Reductor 21', 'Reductor 22', 'Reductor Principal'],
         'L-08' => ['Reductor 1', 'Reductor 9', 'Reductor 10', 'Reductor 11', 'Reductor 12', 
                   'Reductor 13', 'Reductor 14', 'Reductor 15', 'Reductor 16', 'Reductor 17', 
                   'Reductor 18', 'Reductor 19', 'Reductor Loca'],
         'L-09' => ['Reductor 1', 'Reductor 9', 'Reductor 10', 'Reductor 11', 'Reductor 12', 
                   'Reductor 13', 'Reductor 14', 'Reductor 15', 'Reductor 16', 'Reductor 17', 
-                  'Reductor 18', 'Reductor 19', 'Reductor Loca'],
+                  'Reductor 18', 'Reductor 19', 'Reductor Loca', 'Reductor Principal'],
         'L-12' => ['Reductor 1', 'Reductor 2', 'Reductor 3', 'Reductor 4', 'Reductor 5', 
                   'Reductor 6', 'Reductor 7', 'Reductor 8', 'Reductor 9', 'Reductor 10', 
-                  'Reductor 11', 'Reductor 12', 'Reductor Loca'],
+                  'Reductor 11', 'Reductor 12', 'Reductor Loca', 'Reductor Principal'],
         'L-13' => ['Reductor 1', 'Reductor 2', 'Reductor 3', 'Reductor 4', 'Reductor 5', 
                   'Reductor 6', 'Reductor 7', 'Reductor 8', 'Reductor 9', 'Reductor 10', 
                   'Reductor 11', 'Reductor 12', 'Reductor Loca', 'Reductor Principal']
@@ -1150,6 +1150,13 @@ class ReporteController extends Controller
             ->orderByDesc('created_at')
             ->get();
 
+        $analisisHistorico = AnalisisLavadora::where('linea_id', $linea->id)
+            ->with(['componente:id,nombre,codigo'])
+            ->orderByDesc('fecha_analisis')
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->get();
+
         $elongaciones = Elongacion::where('linea', $linea->nombre)
             ->whereBetween('created_at', [$fechaInicio, $fechaFin])
             ->orderByDesc('created_at')
@@ -1175,7 +1182,7 @@ class ReporteController extends Controller
             $tendenciaService->ventanas30147()
         );
 
-        $componentes = $this->procesarComponentesLavadora($analisis, $linea);
+        $componentes = $this->procesarComponentesLavadora($analisisHistorico, $linea, $analisis);
         $reductores = $this->procesarReductoresLavadora($analisis, $elongaciones);
         $analisisAgrupados = $this->agruparAnalisisLavadora($analisis, $linea);
         $componentesRevisados = $analisis
@@ -1200,6 +1207,7 @@ class ReporteController extends Controller
                 'estado_general' => $this->determinarEstadoGeneralDesdeRegistros($analisis),
             ],
             'analisis' => $analisis,
+            'analisis_historico' => $analisisHistorico,
             'elongaciones' => $elongaciones,
             'analisis_tendencia' => $analisisTendencia,
             'analisis_52124' => $analisis52124Reporte,
@@ -1497,6 +1505,14 @@ class ReporteController extends Controller
             ->orderByDesc('created_at')
             ->get();
 
+        $analisisHistorico = AnalisisPasteurizadora::query()
+            ->with(['usuario:id,name', 'linea:id,nombre'])
+            ->where('linea_id', $linea->id)
+            ->orderByDesc('fecha_analisis')
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->get();
+
         $tendenciaService = app(TendenciaDanosService::class);
         $analisisTendencia = $tendenciaService->construirFilasMensuales(
             $linea,
@@ -1517,7 +1533,7 @@ class ReporteController extends Controller
             $tendenciaService->ventanas30147()
         );
 
-        $componentes = $this->procesarComponentesPasteurizadora($linea, $analisis);
+        $componentes = $this->procesarComponentesPasteurizadora($linea, $analisisHistorico, $analisis);
         $avance = $this->calcularAvanceModulosPasteurizadora($linea, $analisis);
         $componentesDefinidos = AnalisisPasteurizadora::getComponentesPorLinea($linea->nombre);
         $criticos = $analisis
@@ -1548,6 +1564,7 @@ class ReporteController extends Controller
                 'estado_general' => $this->determinarEstadoGeneralPasteurizadora($analisis),
             ],
             'analisis' => $analisis,
+            'analisis_historico' => $analisisHistorico,
             'analisis_tendencia' => $analisisTendencia,
             'analisis_52124' => $analisis52124Reporte,
             'analisis_30147' => $analisis30147Reporte,
@@ -1556,16 +1573,20 @@ class ReporteController extends Controller
         ];
     }
 
-    private function procesarComponentesPasteurizadora($linea, $analisis)
+    private function procesarComponentesPasteurizadora($linea, $analisisHistorico, $analisisPeriodo = null)
     {
         $componentesLinea = AnalisisPasteurizadora::getComponentesPorLinea($linea->nombre);
         $totalModulos = AnalisisPasteurizadora::getModulosPorLinea($linea->nombre);
         $resultado = collect();
+        $analisisHistorico = collect($analisisHistorico);
+        $analisisPeriodo = collect($analisisPeriodo ?? $analisisHistorico);
 
         foreach ($componentesLinea as $codigo => $config) {
-            $analisisComponente = $analisis
+            $analisisComponente = $analisisHistorico
                 ->where('componente', $codigo)
-                ->sortByDesc('fecha_analisis')
+                ->values();
+            $analisisComponentePeriodo = $analisisPeriodo
+                ->where('componente', $codigo)
                 ->values();
             $ultimoAnalisis = $analisisComponente->first();
             $modulosAplicables = AnalisisPasteurizadora::esBrazoTorsion($codigo)
@@ -1576,7 +1597,8 @@ class ReporteController extends Controller
                 * max(1, $modulosAplicables)
                 * max(1, count(AnalisisPasteurizadora::NIVELES))
                 * max(1, count(AnalisisPasteurizadora::LADOS));
-            $revisadas = $analisisComponente->sum(fn ($registro) => (int) ($registro->cantidad_componentes_revisados ?? 0));
+            $revisadasPeriodo = $analisisComponentePeriodo->sum(fn ($registro) => (int) ($registro->cantidad_componentes_revisados ?? 0));
+            $revisadasHistorico = $analisisComponente->sum(fn ($registro) => (int) ($registro->cantidad_componentes_revisados ?? 0));
 
             $resultado->push([
                 'codigo' => $codigo,
@@ -1584,11 +1606,16 @@ class ReporteController extends Controller
                 'cantidad' => $cantidadPorSeleccion,
                 'modulos_aplicables' => $modulosAplicables,
                 'total_configurado' => $totalConfigurado,
-                'cantidad_revisada' => $revisadas,
-                'porcentaje' => $totalConfigurado > 0 ? min(100, round(($revisadas / $totalConfigurado) * 100, 1)) : 0,
+                'cantidad_revisada' => $revisadasPeriodo,
+                'cantidad_revisada_historico' => $revisadasHistorico,
+                'porcentaje' => $totalConfigurado > 0 ? min(100, round(($revisadasPeriodo / $totalConfigurado) * 100, 1)) : 0,
                 'total_analisis' => $analisisComponente->count(),
+                'total_analisis_periodo' => $analisisComponentePeriodo->count(),
                 'ultimo_analisis' => $ultimoAnalisis,
                 'ultimo_estado' => $ultimoAnalisis?->estado,
+                'ultimo_modulo' => $ultimoAnalisis?->modulo,
+                'ultimo_nivel' => $ultimoAnalisis?->nivel,
+                'ultimo_lado' => $ultimoAnalisis?->lado,
             ]);
         }
 
@@ -1815,32 +1842,33 @@ class ReporteController extends Controller
         return ['texto' => 'ESTABLE', 'color' => 'green'];
     }
 
-    private function procesarComponentesLavadora($analisis, $linea)
+    private function procesarComponentesLavadora($analisisHistorico, $linea, $analisisPeriodo = null)
     {
         $componentesLinea = $this->componentesPorLinea[$linea->nombre] ?? [];
         $resultado = [];
+        $analisisHistorico = collect($analisisHistorico);
+        $analisisPeriodo = collect($analisisPeriodo ?? $analisisHistorico);
         
         foreach ($componentesLinea as $codigo => $nombre) {
-            // CORRECCIÓN: Verificar si $analisis es una colección y si el item tiene la estructura correcta
-            $analisisComponente = collect($analisis)->filter(function($item) use ($codigo) {
-                return $item->componente
-                    && (
-                        $item->componente->codigo === $codigo
-                        || str_ends_with((string) $item->componente->codigo, '_' . $codigo)
-                    );
+            $analisisComponente = $analisisHistorico->filter(function ($item) use ($codigo, $linea) {
+                return $this->normalizarCodigoComponenteLavadora($item->componente?->codigo, $linea) === $codigo;
+            });
+            $analisisComponentePeriodo = $analisisPeriodo->filter(function ($item) use ($codigo, $linea) {
+                return $this->normalizarCodigoComponenteLavadora($item->componente?->codigo, $linea) === $codigo;
             });
             
             $ultimoAnalisis = $analisisComponente->first();
-            $totalAnalisis = $analisisComponente->count();
-            $promedioElongacion = 0;
             
             $resultado[] = [
                 'codigo' => $codigo,
                 'nombre' => $nombre,
-                'total_analisis' => $totalAnalisis,
-                'promedio_elongacion' => $promedioElongacion,
+                'componente_id' => $ultimoAnalisis?->componente_id,
+                'total_analisis' => $analisisComponente->count(),
+                'total_analisis_periodo' => $analisisComponentePeriodo->count(),
                 'ultimo_analisis' => $ultimoAnalisis,
-                'ultimo_estado' => $ultimoAnalisis?->estado
+                'ultimo_estado' => $ultimoAnalisis?->estado,
+                'ultimo_reductor' => $ultimoAnalisis?->reductor,
+                'ultimo_lado' => $ultimoAnalisis?->lado,
             ];
         }
         
