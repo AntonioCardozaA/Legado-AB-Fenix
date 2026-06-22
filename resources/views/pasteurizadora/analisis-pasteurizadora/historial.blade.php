@@ -75,9 +75,53 @@
         background: linear-gradient(135deg, rgba(0,0,0,0.7), rgba(0,0,0,0.5));
         backdrop-filter: blur(4px);
     }
+
+    .pasteur-history {
+        --primary-blue: #2563eb;
+        --border: #e5e7eb;
+        --soft-shadow: 0 1px 2px rgba(15, 23, 42, .05);
+    }
+
+    .pasteur-history > .mb-10 {
+        background: #ffffff;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        box-shadow: var(--soft-shadow);
+        margin-bottom: 24px;
+        padding: 20px 24px;
+    }
+
+    .pasteur-history > .mb-10 .bg-gradient-to-r.from-blue-600 {
+        background: #eff6ff !important;
+        border: 1px solid #bfdbfe;
+        box-shadow: none;
+        color: var(--primary-blue);
+    }
+
+    .pasteur-history > .mb-10 .bg-gradient-to-r.from-blue-600 i {
+        color: var(--primary-blue);
+    }
+
+    .pasteur-history h1 {
+        background: none !important;
+        color: #0f172a;
+        font-size: clamp(24px, 2.4vw, 30px);
+    }
+
+    .pasteur-history .history-card > .bg-white,
+    .pasteur-history .relative.pl-16 > .bg-white {
+        border-color: var(--border);
+        border-radius: 12px;
+        box-shadow: var(--soft-shadow);
+    }
+
+    .pasteur-history .history-card:hover {
+        box-shadow: none;
+        transform: translateY(-1px);
+    }
 </style>
 
-<div class="max-w-6xl mx-auto px-4 sm:px-6 py-8">
+<div class="pasteur-history max-w-6xl mx-auto px-4 sm:px-6 py-8">
     {{-- Header mejorado con gradiente y efectos --}}
     <div class="mb-10 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div class="flex items-center gap-4">

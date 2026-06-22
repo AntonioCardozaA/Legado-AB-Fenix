@@ -82,7 +82,6 @@
                 // Datos de elongación - Usar datos del reporte en lugar de consulta adicional
                 $promedioBombas = $reporteLinea['promedio_bombas'] ?? 0;
                 $promedioVapor = $reporteLinea['promedio_vapor'] ?? 0;
-                $maxElongacion = $reporteLinea['elongacion_max'] ?? 0;
                 $modulosConfigurados = $reporteLinea['modulos_configurados'] ?? 0;
                 $modulosConAnalisis = $reporteLinea['modulos_con_analisis'] ?? 0;
                 $avanceHistorico = $reporteLinea['avance_historico_porcentaje'] ?? 0;
@@ -90,22 +89,21 @@
                 $ladosCount = $reporteLinea['lados_count'] ?? 0;
                 
                 // Datos de análisis 52-12-4 - Usar datos del reporte
-                $totalDaños4 = $reporteLinea['total_danos_4'] ?? 0;
                 $analisisTendenciaCount = $reporteLinea['analisis_tendencia_count'] ?? 0;
                 $analisis52124 = $reporteLinea['analisis_52124'] ?? [];
                 $analisis30147 = $reporteLinea['analisis_30147'] ?? [];
                 $ventanas52124 = collect($analisis52124['ventanas'] ?? []);
                 $ventanas30147 = collect($analisis30147['ventanas'] ?? []);
-                $ventanaCorta52124 = $ventanas52124->last();
-                $ventanaCorta30147 = $ventanas30147->last();
-                $deltaTendencia = function ($ventana) {
-                    $delta = (int) ($ventana['delta'] ?? 0);
+                $ventanaPrincipal52124 = $ventanas52124->first();
+                $ventanaPrincipal30147 = $ventanas30147->first();
+                $etiquetaVentanaResumen = function ($ventana) {
+                    $label = (string) ($ventana['label'] ?? '');
 
-                    if ($delta === 0) {
-                        return 'sin cambio';
-                    }
-
-                    return ($delta > 0 ? '+' : '') . $delta . ' vs anterior';
+                    return trim(str_replace(
+                        [' semanas', ' semana', ' dias', ' dia'],
+                        ['s', 's', 'd', 'd'],
+                        $label
+                    ));
                 };
                 $planesPendientes = $reporteLinea['planes_pendientes'] ?? ($reporteLinea['acciones_pendientes'] ?? 0);
                 $celdasCompletadas = $reporteLinea['celdas_completadas'] ?? null;
@@ -119,14 +117,6 @@
                 $iconoMaquina = $esPasteurizadora ? 'images/icono_pas.png' : 'images/icono-maquina.png';
                 $bgIcono = $tipoEquipo == 'lavadoras' ? 'bg-blue-50' : 'bg-green-50';
                 $textoTipo = $tipoEquipo == 'lavadoras' ? 'Lavadora' : 'Pasteurizadora';
-                
-                // Determinar color de elongación
-                $elongacionColor = 'text-emerald-900';
-                if ($maxElongacion >= 2.4) {
-                    $elongacionColor = 'text-red-600';
-                } elseif ($maxElongacion >= 2.0) {
-                    $elongacionColor = 'text-yellow-600';
-                }
                 
                 // Determinar color de estado
                 $estadoColor = $estado['color'] ?? 'gray';
@@ -199,10 +189,16 @@
                                     <i class="fas fa-ruler text-emerald-600 text-sm"></i>
                                     <span class="text-xs font-semibold text-emerald-800 uppercase tracking-wider">ELONGACION</span>
                                 </div>
-                                <p class="text-lg font-bold {{ $elongacionColor }}">
-                                    {{ number_format($maxElongacion, 2) }}%
-                                </p>
-                                <p class="text-xs text-emerald-700">Bombas: {{ number_format($promedioBombas, 2) }}%</p>
+                                <div class="mt-3 grid grid-cols-2 gap-3">
+                                    <div class="rounded-md border border-emerald-100 bg-white bg-opacity-80 px-3 py-2 text-center">
+                                        <div class="text-[11px] font-semibold uppercase tracking-wide text-emerald-700">Bombas</div>
+                                        <div class="text-sm font-bold text-emerald-900">{{ number_format($promedioBombas, 2) }}%</div>
+                                    </div>
+                                    <div class="rounded-md border border-emerald-100 bg-white bg-opacity-80 px-3 py-2 text-center">
+                                        <div class="text-[11px] font-semibold uppercase tracking-wide text-emerald-700">Vapor</div>
+                                        <div class="text-sm font-bold text-emerald-900">{{ number_format($promedioVapor, 2) }}%</div>
+                                    </div>
+                                </div>
                             </div>
                         @endif
 
@@ -212,8 +208,18 @@
                                 <i class="fas fa-flask text-purple-600 text-sm"></i>
                                 <span class="text-xs font-semibold text-purple-800 uppercase tracking-wider">52-12-4</span>
                             </div>
-                            <p class="text-lg font-bold text-purple-900">{{ $ventanaCorta52124['current'] ?? $analisisTendenciaCount }}</p>
-                            <p class="text-xs text-purple-700">Daños 4s: {{ number_format($totalDaños4, 2) }}</p>
+                            <p class="text-lg font-bold text-purple-900">{{ $ventanaPrincipal52124['current'] ?? $analisisTendenciaCount }}</p>
+                            <p class="text-[11px] text-purple-700">Daños en {{ $ventanaPrincipal52124['label'] ?? 'historial' }}</p>
+                            @if($ventanas52124->isNotEmpty())
+                                <div class="mt-2 grid grid-cols-3 gap-1">
+                                    @foreach($ventanas52124 as $ventana)
+                                        <div class="rounded-md border border-purple-100 bg-white bg-opacity-80 px-1 py-1 text-center">
+                                            <div class="text-[9px] font-semibold uppercase tracking-wide text-purple-700">{{ $etiquetaVentanaResumen($ventana) }}</div>
+                                            <div class="text-xs font-bold text-purple-900">{{ $ventana['current'] ?? 0 }}</div>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            @endif
                         </div>
 
                         <!-- 5. ANALISIS 30-14-7 -->
@@ -222,8 +228,18 @@
                                 <i class="fas fa-chart-line text-cyan-600 text-sm"></i>
                                 <span class="text-xs font-semibold text-cyan-800 uppercase tracking-wider">30-14-7</span>
                             </div>
-                            <p class="text-lg font-bold text-cyan-900">{{ $ventanaCorta30147['current'] ?? 0 }}</p>
-                            <p class="text-xs text-cyan-700">{{ $ventanaCorta30147['label'] ?? '7 dias' }}: {{ $deltaTendencia($ventanaCorta30147) }}</p>
+                            <p class="text-lg font-bold text-cyan-900">{{ $ventanaPrincipal30147['current'] ?? 0 }}</p>
+                            <p class="text-[11px] text-cyan-700">Daños en {{ $ventanaPrincipal30147['label'] ?? 'historial' }}</p>
+                            @if($ventanas30147->isNotEmpty())
+                                <div class="mt-2 grid grid-cols-3 gap-1">
+                                    @foreach($ventanas30147 as $ventana)
+                                        <div class="rounded-md border border-cyan-100 bg-white bg-opacity-80 px-1 py-1 text-center">
+                                            <div class="text-[9px] font-semibold uppercase tracking-wide text-cyan-700">{{ $etiquetaVentanaResumen($ventana) }}</div>
+                                            <div class="text-xs font-bold text-cyan-900">{{ $ventana['current'] ?? 0 }}</div>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            @endif
                         </div>
 
                         <!-- 6. HISTORICO DE REVISADOS -->

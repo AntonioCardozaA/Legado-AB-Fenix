@@ -403,12 +403,15 @@ class AnalisisPasteurizadoraController extends Controller
             'componente' => 'required|string',
             'lado' => 'required|in:VAPOR,PASILLO',
             'fecha_analisis' => 'required|date',
-            'numero_orden' => 'nullable|string|max:50',
+            'numero_orden' => ['nullable', 'regex:/^\d+$/', 'max:50'],
             'estado' => 'required|in:' . implode(',', AnalisisPasteurizadora::ESTADOS),
             'actividad' => 'required|string',
             'evidencia_fotos' => 'nullable|array',
             'evidencia_fotos.*' => 'nullable|image|max:5120',
             'componentes_revisados' => 'nullable',
+        ], [
+            'numero_orden.regex' => 'El numero de orden solo puede contener numeros.',
+            'numero_orden.max' => 'El numero de orden no puede tener mas de 50 digitos.',
         ]);
 
         // Obtener la linea y validar la seleccion de componentes
@@ -575,7 +578,7 @@ class AnalisisPasteurizadoraController extends Controller
             'componente' => 'nullable|string',
             'nivel' => 'nullable|in:SUPERIOR,INFERIOR',
             'fecha_analisis' => 'nullable|date',
-            'numero_orden' => 'nullable|string|max:50',
+            'numero_orden' => ['nullable', 'regex:/^\d+$/', 'max:50'],
             'actividad' => 'nullable|string',
             'estado' => 'nullable|string|in:' . implode(',', AnalisisPasteurizadora::ESTADOS),
             'lado' => 'nullable|in:VAPOR,PASILLO',
@@ -585,6 +588,9 @@ class AnalisisPasteurizadoraController extends Controller
             'evidencia_fotos.*' => 'nullable|image|max:5120',
             'eliminar_fotos' => 'nullable|array',
             'eliminar_fotos.*' => 'integer|min:0',
+        ], [
+            'numero_orden.regex' => 'El numero de orden solo puede contener numeros.',
+            'numero_orden.max' => 'El numero de orden no puede tener mas de 50 digitos.',
         ]);
 
         unset($validated['eliminar_fotos'], $validated['responsable']);

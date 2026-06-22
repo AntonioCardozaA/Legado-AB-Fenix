@@ -95,13 +95,13 @@ class HistoricoRevisadosController extends Controller
      * Configuración de cantidades totales POR LÍNEA (según lo especificado)
      */
     private $cantidadesPorLinea = [
-        'L-04' => 13,
+        'L-04' => 14,
         'L-05' => 14,
-        'L-06' => 15,
-        'L-07' => 15,
+        'L-06' => 16,
+        'L-07' => 16,
         'L-08' => 15, // Línea 8 no se mencionó, se deja con 15 como valor por defecto
-        'L-09' => 13,
-        'L-12' => 13,
+        'L-09' => 14,
+        'L-12' => 14,
         'L-13' => 14,
     ];
 

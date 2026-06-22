@@ -37,7 +37,41 @@
         ?? (str_contains((string) $analisis->estado, 'Requiere cambio') ? '❌ Dañado - Requiere cambio' : $analisis->estado);
 @endphp
 
-<div class="max-w-4xl mx-auto py-10 px-4">
+<style>
+    .pasteur-form-shell {
+        --primary-blue: #2563eb;
+        --border: #e5e7eb;
+        --soft-shadow: 0 1px 2px rgba(15, 23, 42, .05);
+    }
+
+    .pasteur-form-card {
+        background: #ffffff;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        box-shadow: var(--soft-shadow);
+        padding: 24px;
+    }
+
+    .pasteur-context {
+        background: linear-gradient(to right, #f9fafb, #ffffff);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 16px;
+    }
+
+    .pasteur-context img {
+        background: #eff6ff;
+        border: 1px solid #bfdbfe;
+        border-radius: 8px;
+        padding: 8px;
+    }
+
+    .pasteur-form-shell label i {
+        color: var(--primary-blue);
+    }
+</style>
+
+<div class="pasteur-form-shell max-w-4xl mx-auto py-10 px-4">
     <div class="mb-8">
         <div class="flex items-start gap-3 mb-4">
             <a href="{{ $backUrl }}" class="mt-1 text-gray-400 hover:text-blue-600 transition" aria-label="Volver">
@@ -72,7 +106,7 @@
             </div>
         @endif
 
-        <div class="bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl p-4 border border-gray-200">
+        <div class="pasteur-context">
             <div class="grid grid-cols-1 gap-4 text-sm sm:grid-cols-2 lg:grid-cols-5 lg:items-center">
                 <div class="flex justify-center sm:justify-start">
                     <div class="h-20 w-20 rounded-xl bg-white border border-gray-200 p-3 shadow-sm">
@@ -116,7 +150,7 @@
         </div>
     </div>
 
-    <div class="bg-white rounded-2xl shadow-lg p-5 sm:p-8">
+    <div class="pasteur-form-card">
         <form method="POST"
               action="{{ $analisisRoute('update', $analisis->id) }}"
               enctype="multipart/form-data"
@@ -192,9 +226,14 @@
                            name="numero_orden"
                            id="numero_orden"
                            value="{{ old('numero_orden', $analisis->numero_orden) }}"
-                           maxlength="20"
+                           maxlength="50"
+                           inputmode="numeric"
+                           pattern="[0-9]*"
+                           autocomplete="off"
                            placeholder="Ej: 35221456"
+                           oninput="this.value = this.value.replace(/[^0-9]/g, '')"
                            class="w-full rounded-lg border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 @error('numero_orden') border-red-500 @enderror">
+                    <p class="text-xs text-gray-500 mt-1">Opcional. Solo numeros, sin letras ni guiones.</p>
                     @error('numero_orden')<p class="text-red-500 text-sm mt-1">{{ $message }}</p>@enderror
                 </div>
 

@@ -2,6 +2,7 @@
     $linea = $reporte['linea'];
     $resumen = $reporte['resumen'] ?? [];
     $analisis = collect($reporte['analisis'] ?? []);
+    $analisisHistorico = collect($reporte['analisis_historico'] ?? $analisis);
     $componentes = collect($reporte['componentes'] ?? []);
     $modulos = collect($reporte['modulos'] ?? []);
     $analisisTendencia = collect($reporte['analisis_tendencia'] ?? []);
@@ -9,6 +10,17 @@
     $analisis30147Reporte = $reporte['analisis_30147'] ?? [];
     $ventanas52124Reporte = collect($analisis52124Reporte['ventanas'] ?? []);
     $ventanas30147Reporte = collect($analisis30147Reporte['ventanas'] ?? []);
+    $ventanaPrincipal52124 = $ventanas52124Reporte->first();
+    $ventanaPrincipal30147 = $ventanas30147Reporte->first();
+    $etiquetaVentanaResumen = function ($ventana) {
+        $label = (string) ($ventana['label'] ?? '');
+
+        return trim(str_replace(
+            [' semanas', ' semana', ' dias', ' dia'],
+            ['s', 's', 'd', 'd'],
+            $label
+        ));
+    };
 
     $pasteurIconosDisponibles = [
         'VIGAS_MOVIMIENTO',
@@ -89,10 +101,10 @@
 
     $trendToneClass = function ($tone) {
         return match ($tone) {
-            'danger' => 'trend-danger',
-            'success' => 'trend-success',
-            'warning' => 'trend-warning',
-            default => 'trend-info',
+            'danger' => 'text-red-700 bg-red-50 border-red-200',
+            'success' => 'text-green-700 bg-green-50 border-green-200',
+            'warning' => 'text-amber-700 bg-amber-50 border-amber-200',
+            default => 'text-blue-700 bg-blue-50 border-blue-200',
         };
     };
 
@@ -104,6 +116,42 @@
             default => 'estado-cambiado',
         };
     };
+
+    $trendDeltaClass = function ($variacion) {
+        $diferencia = data_get($variacion, 'diferencia');
+
+        if ($diferencia > 0) {
+            return 'text-red-600';
+        }
+
+        if ($diferencia < 0) {
+            return 'text-green-600';
+        }
+
+        return '';
+    };
+
+    $formatTrendDelta = function ($variacion) {
+        $diferencia = data_get($variacion, 'diferencia');
+
+        if ($diferencia === null) {
+            return '-';
+        }
+
+        return ($diferencia > 0 ? '+' : '') . number_format($diferencia, 2);
+    };
+
+    $evidenceList = function ($item) {
+        $imagenes = $item->evidencia_fotos ?? [];
+
+        if (is_string($imagenes)) {
+            $imagenes = json_decode($imagenes, true) ?? [];
+        }
+
+        return collect(is_array($imagenes) ? $imagenes : [])->filter()->values();
+    };
+
+    $evidenceUrl = fn ($foto) => \Illuminate\Support\Facades\Storage::url($foto);
 
     $monthlyTrendRows = $analisisTendencia
         ->sortByDesc(fn ($item) => sprintf('%04d%02d', (int) $item->anio, (int) $item->mes))
@@ -157,6 +205,39 @@
         width: 100px;
     }
 
+    .pasteur-report-detail .stat-window-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 6px;
+        margin-top: 10px;
+        position: relative;
+        z-index: 1;
+    }
+
+    .pasteur-report-detail .stat-window-pill {
+        background: rgba(255, 255, 255, .78);
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        padding: 6px 4px;
+        text-align: center;
+    }
+
+    .pasteur-report-detail .stat-window-label {
+        color: #64748b;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: .04em;
+        text-transform: uppercase;
+    }
+
+    .pasteur-report-detail .stat-window-value {
+        color: #111827;
+        font-size: 15px;
+        font-weight: 800;
+        line-height: 1.1;
+        margin-top: 2px;
+    }
+
     .pasteur-report-detail .stat-header {
         align-items: center;
         display: flex;
@@ -179,7 +260,7 @@
     .pasteur-report-detail .stat-icon.analisis { background: #fffbeb; color: #d97706; }
     .pasteur-report-detail .stat-icon.elongacion { background: #d1fae5; color: #059669; }
     .pasteur-report-detail .stat-icon.criticos { background: #f3e8ff; color: #7c3aed; }
-    .pasteur-report-detail .stat-icon.fallas { background: #fee2e2; color: #dc2626; }
+    .pasteur-report-detail .stat-icon.fallas { background: #f3e8ff; color: #7c3aed; }
 
     .pasteur-report-detail .stat-label {
         color: #64748b;
@@ -370,6 +451,31 @@
         height: 100%;
     }
 
+    .pasteur-report-detail .detail-mini-grid {
+        display: grid;
+        gap: 8px;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        margin-top: 12px;
+    }
+
+    .pasteur-report-detail .detail-mini {
+        background: #ffffff;
+        border: 1px solid #f1f5f9;
+        border-radius: 8px;
+        color: #64748b;
+        font-size: 12px;
+        padding: 8px;
+    }
+
+    .pasteur-report-detail .detail-mini strong {
+        color: #111827;
+        display: block;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 14px;
+        line-height: 1.2;
+        margin-top: 2px;
+    }
+
     .pasteur-report-detail .estado-badge {
         align-items: center;
         border-radius: 40px;
@@ -488,11 +594,6 @@
         margin-top: 6px;
     }
 
-    .pasteur-report-detail .trend-info { background: #eff6ff; border-color: #bfdbfe; color: #1d4ed8; }
-    .pasteur-report-detail .trend-success { background: #ecfdf5; border-color: #bbf7d0; color: #047857; }
-    .pasteur-report-detail .trend-warning { background: #fffbeb; border-color: #fde68a; color: #b45309; }
-    .pasteur-report-detail .trend-danger { background: #fef2f2; border-color: #fecaca; color: #b91c1c; }
-
     .pasteur-report-detail .empty-state {
         align-items: center;
         color: #64748b;
@@ -508,6 +609,36 @@
         grid-column: 1 / -1;
     }
 
+    .pasteur-report-detail .evidence-list {
+        align-items: center;
+        display: flex;
+        gap: 6px;
+    }
+
+    .pasteur-report-detail .evidence-thumb {
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        display: block;
+        height: 34px;
+        object-fit: cover;
+        width: 34px;
+    }
+
+    .pasteur-report-detail .evidence-more {
+        align-items: center;
+        background: #eff6ff;
+        border: 1px solid #bfdbfe;
+        border-radius: 999px;
+        color: #1d4ed8;
+        display: inline-flex;
+        font-size: 11px;
+        font-weight: 700;
+        height: 28px;
+        justify-content: center;
+        min-width: 28px;
+        padding: 0 7px;
+    }
+
     @media (max-width: 768px) {
         .pasteur-report-detail .modulo-header {
             align-items: flex-start;
@@ -517,7 +648,8 @@
 
         .pasteur-report-detail .stats-grid,
         .pasteur-report-detail .componentes-grid,
-        .pasteur-report-detail .metric-grid {
+        .pasteur-report-detail .metric-grid,
+        .pasteur-report-detail .detail-mini-grid {
             grid-template-columns: 1fr;
         }
 
@@ -577,23 +709,43 @@
                 </div>
                 <span class="stat-label">Analisis 52-12-4</span>
             </div>
-            <div class="stat-value">{{ ($ventanas52124Reporte->last()['current'] ?? null) ?? $analisisTendencia->count() }}</div>
+            <div class="stat-value">{{ $ventanaPrincipal52124['current'] ?? 0 }}</div>
             <div class="text-sm text-gray-500 mt-2">
-                Danos: {{ number_format($totalDanos4, 2) }} (4 sem)
+                Danos en {{ $ventanaPrincipal52124['label'] ?? '52 semanas' }}
             </div>
+            @if($ventanas52124Reporte->isNotEmpty())
+                <div class="stat-window-grid">
+                    @foreach($ventanas52124Reporte as $ventana)
+                        <div class="stat-window-pill">
+                            <div class="stat-window-label">{{ $etiquetaVentanaResumen($ventana) }}</div>
+                            <div class="stat-window-value">{{ $ventana['current'] ?? 0 }}</div>
+                        </div>
+                    @endforeach
+                </div>
+            @endif
         </div>
 
         <div class="stat-card">
             <div class="stat-header">
-                <div class="stat-icon fallas">
+                <div class="stat-icon criticos">
                     <i class="fas fa-bolt"></i>
                 </div>
                 <span class="stat-label">Analisis 30-14-7</span>
             </div>
-            <div class="stat-value">{{ $ventanas30147Reporte->last()['current'] ?? 0 }}</div>
+            <div class="stat-value">{{ $ventanaPrincipal30147['current'] ?? 0 }}</div>
             <div class="text-sm text-gray-500 mt-2">
-                {{ $analisis30147Reporte['resumen']['estado']['label'] ?? 'Fallas recientes' }}
+                Danos en {{ $ventanaPrincipal30147['label'] ?? '30 dias' }}
             </div>
+            @if($ventanas30147Reporte->isNotEmpty())
+                <div class="stat-window-grid">
+                    @foreach($ventanas30147Reporte as $ventana)
+                        <div class="stat-window-pill">
+                            <div class="stat-window-label">{{ $etiquetaVentanaResumen($ventana) }}</div>
+                            <div class="stat-window-value">{{ $ventana['current'] ?? 0 }}</div>
+                        </div>
+                    @endforeach
+                </div>
+            @endif
         </div>
     </div>
 
@@ -605,7 +757,7 @@
                 </div>
                 <div>
                     <div class="modulo-titulo">ANALISIS DE COMPONENTES</div>
-                    <div class="modulo-subtitulo">{{ $linea->nombre }} - componentes mecanicos de pasteurizadora</div>
+                    <div class="modulo-subtitulo">{{ $linea->nombre }} - historial por componente mecanico</div>
                 </div>
             </div>
             <div class="modulo-badge">
@@ -637,8 +789,8 @@
                         </div>
 
                         <div class="componente-stats">
-                            <span>Analisis: {{ $componente['total_analisis'] }}</span>
-                            <span>Revisadas: {{ $componente['cantidad_revisada'] }}/{{ $componente['total_configurado'] }}</span>
+                            <span>Historial: {{ $componente['total_analisis'] }}</span>
+                            <span>Periodo: {{ $componente['total_analisis_periodo'] ?? 0 }}</span>
                         </div>
 
                         <div class="progress-track">
@@ -646,7 +798,26 @@
                         </div>
 
                         <div class="text-xs text-gray-500 mt-2">
-                            {{ number_format($porcentajeCompletado, 1) }}% revisado - Base {{ $componente['cantidad'] }} - Modulos {{ $componente['modulos_aplicables'] }}
+                            {{ number_format($porcentajeCompletado, 1) }}% del periodo
+                        </div>
+
+                        <div class="detail-mini-grid">
+                            <div class="detail-mini">
+                                Revisadas
+                                <strong>{{ $componente['cantidad_revisada'] }}/{{ $componente['total_configurado'] }}</strong>
+                            </div>
+                            <div class="detail-mini">
+                                Historico
+                                <strong>{{ $componente['cantidad_revisada_historico'] ?? 0 }}</strong>
+                            </div>
+                            <div class="detail-mini">
+                                Base
+                                <strong>{{ $componente['cantidad'] }}</strong>
+                            </div>
+                            <div class="detail-mini">
+                                Modulos
+                                <strong>{{ $componente['modulos_aplicables'] }}</strong>
+                            </div>
                         </div>
 
                         <div class="mt-3 p-2 bg-white rounded-lg border border-gray-100">
@@ -668,6 +839,12 @@
                             @if($componente['ultimo_analisis'] ?? null)
                                 <div class="text-xs text-gray-500 mt-1">
                                     {{ $formatDate($componente['ultimo_analisis']->fecha_analisis) }}
+                                    @if(!empty($componente['ultimo_modulo']))
+                                        - Modulo {{ $componente['ultimo_modulo'] }}
+                                    @endif
+                                    @if(!empty($componente['ultimo_nivel']) || !empty($componente['ultimo_lado']))
+                                        - {{ $componente['ultimo_nivel'] ?? '-' }} / {{ $componente['ultimo_lado'] ?? '-' }}
+                                    @endif
                                 </div>
                             @endif
                         </div>
@@ -685,6 +862,16 @@
                     </div>
                 @endforelse
             </div>
+
+            @if($componentes->count() > 0)
+                <div class="text-center mt-4">
+                    <a href="{{ route('pasteurizadora.analisis-pasteurizadora.index', ['linea_id' => $linea->id]) }}"
+                       class="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition">
+                        <i class="fas fa-chart-pie"></i>
+                        Ver todos los analisis
+                    </a>
+                </div>
+            @endif
         </div>
     </div>
 
@@ -786,39 +973,81 @@
 
             <div class="modulo-body">
                 @if($ventanas52124Reporte->isNotEmpty())
-                    <div class="metric-grid">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                         @foreach($ventanas52124Reporte as $ventana)
-                            <div class="trend-card {{ $trendToneClass($ventana['tone'] ?? 'info') }}">
-                                <div class="trend-label">{{ $ventana['label'] }}</div>
-                                <div class="trend-value">{{ $ventana['current'] ?? 0 }}</div>
+                            @php $ladosVentana = $ventana['current_lados'] ?? []; @endphp
+                            <div class="p-4 rounded-lg border {{ $trendToneClass($ventana['tone'] ?? 'info') }}">
+                                <div class="text-xs font-bold uppercase tracking-wide mb-1">{{ $ventana['label'] }}</div>
+                                <div class="text-3xl font-bold">{{ $ventana['current'] ?? 0 }}</div>
                                 <div class="text-xs mt-1">
                                     Anterior: {{ $ventana['previous'] ?? 0 }}
                                     <span class="font-semibold ml-2">{{ (($ventana['delta'] ?? 0) > 0 ? '+' : '') . ($ventana['delta'] ?? 0) }}</span>
                                 </div>
                                 <div class="text-[11px] mt-2 opacity-80">{{ $ventana['current_range'] ?? 'Sin rango' }}</div>
                                 <div class="text-[11px] mt-1 opacity-80">
-                                    Componentes: {{ $ventana['current_componentes'] ?? 0 }}
+                                    Analisis registrados: {{ $ventana['current_componentes'] ?? 0 }}
                                 </div>
+                                @if(!empty($ladosVentana))
+                                    <div class="text-[11px] mt-1 opacity-80">
+                                        Vapor: {{ $ladosVentana['VAPOR'] ?? 0 }} - Pasillo: {{ $ladosVentana['PASILLO'] ?? 0 }}
+                                    </div>
+                                @endif
                             </div>
                         @endforeach
                     </div>
                 @endif
 
+                @php
+                    $ventanaHistorial52124 = $ventanas52124Reporte->first() ?? [];
+                    $eventosHistorial52124 = collect($ventanaHistorial52124['current_eventos'] ?? []);
+                @endphp
+                @if($eventosHistorial52124->isNotEmpty())
+                    <div class="mb-6 overflow-x-auto">
+                        <div class="text-sm font-semibold text-gray-700 mb-2">
+                            Danos detectados en {{ $ventanaHistorial52124['label'] ?? 'el periodo' }}
+                        </div>
+                        <table class="industrial-table">
+                            <thead>
+                                <tr>
+                                    <th>Fecha</th>
+                                    <th>Componente</th>
+                                    <th>Modulo</th>
+                                    <th>Nivel</th>
+                                    <th>Lado</th>
+                                    <th>Estado</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($eventosHistorial52124 as $evento)
+                                    <tr>
+                                        <td>{{ $evento['fecha'] ?? '-' }}</td>
+                                        <td>{{ $evento['componente'] ?? '-' }}</td>
+                                        <td>{{ $evento['modulo'] ?? '-' }}</td>
+                                        <td>{{ $evento['nivel'] ?? '-' }}</td>
+                                        <td>{{ $evento['lado'] ?? '-' }}</td>
+                                        <td>{{ $evento['estado'] ?? '-' }}</td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @endif
+
                 @if($analisisTendencia->count() > 0)
-                    <div class="metric-grid">
-                        <div class="metric-card">
-                            <div class="metric-label">52 Semanas</div>
-                            <div class="metric-value">{{ number_format($totalDanos52, 2) }}</div>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                        <div class="bg-white p-4 rounded-lg border border-gray-200 text-center">
+                            <div class="text-sm text-gray-500 mb-1">52 Semanas</div>
+                            <div class="text-2xl font-bold text-gray-800">{{ number_format($totalDanos52, 2) }}</div>
                             <div class="text-xs text-gray-500">Total danos</div>
                         </div>
-                        <div class="metric-card">
-                            <div class="metric-label">12 Semanas</div>
-                            <div class="metric-value">{{ number_format($totalDanos12, 2) }}</div>
+                        <div class="bg-white p-4 rounded-lg border border-gray-200 text-center">
+                            <div class="text-sm text-gray-500 mb-1">12 Semanas</div>
+                            <div class="text-2xl font-bold text-gray-800">{{ number_format($totalDanos12, 2) }}</div>
                             <div class="text-xs text-gray-500">Total danos</div>
                         </div>
-                        <div class="metric-card">
-                            <div class="metric-label">4 Semanas</div>
-                            <div class="metric-value">{{ number_format($totalDanos4, 2) }}</div>
+                        <div class="bg-white p-4 rounded-lg border border-gray-200 text-center">
+                            <div class="text-sm text-gray-500 mb-1">4 Semanas</div>
+                            <div class="text-2xl font-bold text-gray-800">{{ number_format($totalDanos4, 2) }}</div>
                             <div class="text-xs text-gray-500">Total danos</div>
                         </div>
                     </div>
@@ -829,19 +1058,28 @@
                                 <tr>
                                     <th>Periodo</th>
                                     <th>52 Semanas</th>
+                                    <th>Vs Mes Ant</th>
                                     <th>12 Semanas</th>
+                                    <th>Vs Mes Ant</th>
                                     <th>4 Semanas</th>
-                                    <th>Observaciones</th>
+                                    <th>Vs Mes Ant</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 @foreach($monthlyTrendRows as $item)
+                                    @php
+                                        $variacion52 = $item->variacion_52_semanas ?? null;
+                                        $variacion12 = $item->variacion_12_semanas ?? null;
+                                        $variacion4 = $item->variacion_4_semanas ?? null;
+                                    @endphp
                                     <tr>
                                         <td class="font-medium">{{ $item->periodo }}</td>
                                         <td>{{ number_format($item->total_danos_52_semanas, 2) }}</td>
+                                        <td class="{{ $trendDeltaClass($variacion52) }}">{{ $formatTrendDelta($variacion52) }}</td>
                                         <td>{{ number_format($item->total_danos_12_semanas, 2) }}</td>
+                                        <td class="{{ $trendDeltaClass($variacion12) }}">{{ $formatTrendDelta($variacion12) }}</td>
                                         <td>{{ number_format($item->total_danos_4_semanas, 2) }}</td>
-                                        <td>{{ $item->observaciones ?: '-' }}</td>
+                                        <td class="{{ $trendDeltaClass($variacion4) }}">{{ $formatTrendDelta($variacion4) }}</td>
                                     </tr>
                                 @endforeach
                             </tbody>
@@ -879,22 +1117,64 @@
             </div>
 
             <div class="modulo-body">
-                <div class="metric-grid">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                     @foreach($ventanas30147Reporte as $ventana)
-                        <div class="trend-card {{ $trendToneClass($ventana['tone'] ?? 'info') }}">
-                            <div class="trend-label">{{ $ventana['label'] }}</div>
-                            <div class="trend-value">{{ $ventana['current'] ?? 0 }}</div>
+                        @php $ladosVentana = $ventana['current_lados'] ?? []; @endphp
+                        <div class="p-4 rounded-lg border {{ $trendToneClass($ventana['tone'] ?? 'info') }}">
+                            <div class="text-xs font-bold uppercase tracking-wide mb-1">{{ $ventana['label'] }}</div>
+                            <div class="text-3xl font-bold">{{ $ventana['current'] ?? 0 }}</div>
                             <div class="text-xs mt-1">
                                 Anterior: {{ $ventana['previous'] ?? 0 }}
                                 <span class="font-semibold ml-2">{{ (($ventana['delta'] ?? 0) > 0 ? '+' : '') . ($ventana['delta'] ?? 0) }}</span>
                             </div>
                             <div class="text-[11px] mt-2 opacity-80">{{ $ventana['current_range'] ?? 'Sin rango' }}</div>
                             <div class="text-[11px] mt-1 opacity-80">
-                                Componentes: {{ $ventana['current_componentes'] ?? 0 }}
+                                Analisis registrados: {{ $ventana['current_componentes'] ?? 0 }}
                             </div>
+                            @if(!empty($ladosVentana))
+                                <div class="text-[11px] mt-1 opacity-80">
+                                    Vapor: {{ $ladosVentana['VAPOR'] ?? 0 }} - Pasillo: {{ $ladosVentana['PASILLO'] ?? 0 }}
+                                </div>
+                            @endif
                         </div>
                     @endforeach
                 </div>
+
+                @php
+                    $ventanaHistorial30147 = $ventanas30147Reporte->first() ?? [];
+                    $eventosHistorial30147 = collect($ventanaHistorial30147['current_eventos'] ?? []);
+                @endphp
+                @if($eventosHistorial30147->isNotEmpty())
+                    <div class="mb-6 overflow-x-auto">
+                        <div class="text-sm font-semibold text-gray-700 mb-2">
+                            Danos detectados en {{ $ventanaHistorial30147['label'] ?? 'el periodo' }}
+                        </div>
+                        <table class="industrial-table">
+                            <thead>
+                                <tr>
+                                    <th>Fecha</th>
+                                    <th>Componente</th>
+                                    <th>Modulo</th>
+                                    <th>Nivel</th>
+                                    <th>Lado</th>
+                                    <th>Estado</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($eventosHistorial30147 as $evento)
+                                    <tr>
+                                        <td>{{ $evento['fecha'] ?? '-' }}</td>
+                                        <td>{{ $evento['componente'] ?? '-' }}</td>
+                                        <td>{{ $evento['modulo'] ?? '-' }}</td>
+                                        <td>{{ $evento['nivel'] ?? '-' }}</td>
+                                        <td>{{ $evento['lado'] ?? '-' }}</td>
+                                        <td>{{ $evento['estado'] ?? '-' }}</td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @endif
 
                 <div class="overflow-x-auto">
                     <table class="industrial-table">
@@ -906,10 +1186,12 @@
                                 <th>Anterior</th>
                                 <th>Diferencia</th>
                                 <th>Origen</th>
+                                <th>Lados</th>
                             </tr>
                         </thead>
                         <tbody>
                             @foreach($ventanas30147Reporte as $ventana)
+                                @php $ladosVentana = $ventana['current_lados'] ?? []; @endphp
                                 <tr>
                                     <td class="font-medium">{{ $ventana['label'] }}</td>
                                     <td>{{ $ventana['current_range'] ?? '-' }}</td>
@@ -920,7 +1202,14 @@
                                             {{ (($ventana['delta'] ?? 0) > 0 ? '+' : '') . ($ventana['delta'] ?? 0) }}
                                         </span>
                                     </td>
-                                    <td>Componentes: {{ $ventana['current_componentes'] ?? 0 }}</td>
+                                    <td>Analisis: {{ $ventana['current_componentes'] ?? 0 }}</td>
+                                    <td>
+                                        @if(!empty($ladosVentana))
+                                            V: {{ $ladosVentana['VAPOR'] ?? 0 }} / P: {{ $ladosVentana['PASILLO'] ?? 0 }}
+                                        @else
+                                            -
+                                        @endif
+                                    </td>
                                 </tr>
                             @endforeach
                         </tbody>
@@ -943,7 +1232,7 @@
             </div>
             <div class="modulo-badge">
                 <i class="fas fa-clipboard-list"></i>
-                {{ $analisis->count() }} revisiones
+                {{ $analisisHistorico->count() }} revisiones
             </div>
         </div>
 
@@ -959,12 +1248,16 @@
                             <th>Estado</th>
                             <th>Orden</th>
                             <th>Actividad</th>
+                            <th>Evidencias</th>
                             <th></th>
                         </tr>
                     </thead>
                     <tbody>
-                        @forelse($analisis->take(12) as $item)
-                            @php $estadoActual = $item->estado; @endphp
+                        @forelse($analisisHistorico->take(12) as $item)
+                            @php
+                                $estadoActual = $item->estado;
+                                $evidencias = $evidenceList($item);
+                            @endphp
                             <tr>
                                 <td>{{ $formatDate($item->fecha_analisis) }}</td>
                                 <td>Modulo {{ $item->modulo }}</td>
@@ -990,15 +1283,36 @@
                                     <p class="truncate">{{ \Illuminate\Support\Str::limit($item->actividad, 90) ?: '-' }}</p>
                                 </td>
                                 <td>
+                                    @if($evidencias->isNotEmpty())
+                                        <div class="evidence-list">
+                                            @foreach($evidencias->take(3) as $foto)
+                                                <a href="{{ $evidenceUrl($foto) }}" target="_blank" rel="noopener" title="Ver evidencia">
+                                                    <img
+                                                        src="{{ $evidenceUrl($foto) }}"
+                                                        class="evidence-thumb"
+                                                        alt="Evidencia de {{ $item->componente_nombre }}"
+                                                        onerror="this.style.display='none'">
+                                                </a>
+                                            @endforeach
+                                            @if($evidencias->count() > 3)
+                                                <span class="evidence-more">+{{ $evidencias->count() - 3 }}</span>
+                                            @endif
+                                        </div>
+                                    @else
+                                        <span class="text-xs text-gray-400">Sin evidencia</span>
+                                    @endif
+                                </td>
+                                <td>
                                     <a href="{{ route('pasteurizadora.analisis-pasteurizadora.show', ['analisispasteurizadora' => $item->id]) }}"
-                                       class="text-blue-700 font-bold">
+                                       class="inline-flex items-center gap-1 text-xs text-blue-700 font-bold hover:text-blue-900">
+                                        <i class="fas fa-eye"></i>
                                         Ver
                                     </a>
                                 </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="8">
+                                <td colspan="9">
                                     <div class="empty-state">
                                         <i class="fas fa-info-circle text-3xl"></i>
                                         <p>No hay analisis registrados en este periodo.</p>
