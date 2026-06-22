@@ -17,6 +17,7 @@ use App\Http\Controllers\HistoricoRevisadosController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\NotificationSettingsController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\AdminUserController;
 
 /*
 |--------------------------------------------------------------------------
@@ -113,6 +114,21 @@ Route::prefix('pasteurizadora')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+
+    /*
+    |--------------------------------------------------------------------------
+    | ADMINISTRACION DE USUARIOS
+    |--------------------------------------------------------------------------
+    */
+    Route::middleware(['role:admin'])
+        ->prefix('admin/usuarios')
+        ->name('admin.users.')
+        ->controller(AdminUserController::class)
+        ->group(function () {
+            Route::get('/', 'index')->name('index');
+            Route::post('/', 'store')->name('store');
+            Route::put('/{user}', 'update')->name('update');
+        });
 
     /*
     |--------------------------------------------------------------------------

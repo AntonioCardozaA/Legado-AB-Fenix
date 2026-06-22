@@ -35,6 +35,14 @@ class TecnicoUserSeeder extends Seeder
                 'telefono' => '5550000003',
                 'puesto' => 'Tecnico Operativo Pasteurizadora',
             ],
+            [
+                'name' => 'Jorge Trejo Ramirez',
+                'email' => 'jorgetr@legadoabfenix.com',
+                'password' => 'jtr2026',
+                'cedula' => '90000003',
+                'telefono' => '5550000003',
+                'puesto' => 'Tecnico PCM',
+            ],
         ];
 
         foreach ($tecnicos as $tecnico) {

@@ -191,7 +191,7 @@
             <div>
                 <label class="block text-sm font-semibold text-gray-700 mb-2">
                     <i class="fas fa-sticky-note text-blue-600 mr-1"></i>
-                    Actividad*
+                    Actividad/Observaciones *
                 </label>
                 <textarea name="actividad" 
                           rows="4"

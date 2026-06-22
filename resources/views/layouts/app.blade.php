@@ -220,6 +220,18 @@
                 <i class="fas fa-chart-bar w-5 mr-3 text-gray-500"></i>
                 Reportes
             </a>
+
+            @auth
+                @if(auth()->user()->hasRole('admin'))
+                    <a href="{{ route('admin.users.index') }}"
+                       @click="if (!isDesktop) sidebarOpen = false"
+                       aria-label="Gestion de usuarios"
+                       class="nav-link flex items-center px-4 py-3 rounded-lg {{ request()->routeIs('admin.users.*') ? 'nav-active' : '' }}">
+                        <i class="fas fa-user-shield w-5 mr-3 text-gray-500"></i>
+                        Gestion de usuarios
+                    </a>
+                @endif
+            @endauth
         </nav>
 
         <!-- Footer del sidebar -->
