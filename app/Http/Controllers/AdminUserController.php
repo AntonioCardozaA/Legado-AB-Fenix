@@ -174,7 +174,7 @@ class AdminUserController extends Controller
             'total' => User::count(),
             'activos' => User::where('activo', true)->count(),
             'tecnicos' => User::whereHas('roles', function ($query) {
-                $query->where('name', User::ROLE_TECNICO);
+                $query->whereIn('name', User::technicianEquivalentRoles());
             })->count(),
             'administradores' => User::whereHas('roles', function ($query) {
                 $query->where('name', User::ROLE_ADMIN);

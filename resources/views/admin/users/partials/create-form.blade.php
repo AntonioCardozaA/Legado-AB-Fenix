@@ -45,7 +45,7 @@
     </div>
 
     <div>
-        <label for="password" class="mb-1 block text-sm font-medium text-gray-700">Contrasena</label>
+        <label for="password" class="mb-1 block text-sm font-medium text-gray-700">Contraseña</label>
         <div class="relative">
             <input
                 id="password"
@@ -60,7 +60,7 @@
                 type="button"
                 @click="showPassword = !showPassword"
                 class="absolute inset-y-0 right-3 inline-flex items-center text-slate-500 transition hover:text-slate-700"
-                x-bind:aria-label="showPassword ? 'Ocultar contrasena' : 'Mostrar contrasena'"
+                x-bind:aria-label="showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'"
             >
                 <i class="fas" x-bind:class="showPassword ? 'fa-eye-slash' : 'fa-eye'"></i>
             </button>
@@ -69,7 +69,7 @@
     </div>
 
     <div>
-        <label for="password_confirmation" class="mb-1 block text-sm font-medium text-gray-700">Confirmar contrasena</label>
+        <label for="password_confirmation" class="mb-1 block text-sm font-medium text-gray-700">Confirmar contraseña</label>
         <div class="relative">
             <input
                 id="password_confirmation"
@@ -83,7 +83,7 @@
                 type="button"
                 @click="showPasswordConfirmation = !showPasswordConfirmation"
                 class="absolute inset-y-0 right-3 inline-flex items-center text-slate-500 transition hover:text-slate-700"
-                x-bind:aria-label="showPasswordConfirmation ? 'Ocultar confirmacion de contrasena' : 'Mostrar confirmacion de contrasena'"
+                x-bind:aria-label="showPasswordConfirmation ? 'Ocultar confirmacion de contraseña' : 'Mostrar confirmacion de contraseña'"
             >
                 <i class="fas" x-bind:class="showPasswordConfirmation ? 'fa-eye-slash' : 'fa-eye'"></i>
             </button>
@@ -101,7 +101,7 @@
         Usuario activo
     </label>
 
-    <button type="submit" class="w-full rounded bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700">
+    <button type="submit" class="create-action w-full">
         Crear usuario
     </button>
 </form>

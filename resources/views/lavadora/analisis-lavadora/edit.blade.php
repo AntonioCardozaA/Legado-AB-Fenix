@@ -3,6 +3,9 @@
 @section('title', "Editar Análisis de Componente")
 
 @section('content')
+@php
+    $puedeEditarFechaAnalisis = $puedeEditarFechaAnalisis ?? false;
+@endphp
 <div class="max-w-4xl mx-auto py-10 px-4">
     {{-- Header --}}
     <div class="mb-8">
@@ -121,10 +124,39 @@
             {{-- Campos ocultos para mantener los valores --}}
             <input type="hidden" name="componente_id" value="{{ $analisisComponente->componente_id }}">
             <input type="hidden" name="reductor" value="{{ $analisisComponente->reductor }}">
-            <input type="hidden" name="fecha_analisis" value="{{ $analisisComponente->fecha_analisis }}">
             <input type="hidden" name="redirect_to" value="{{ request()->input('redirect_to') ?? url()->previous() }}">
+            @unless($puedeEditarFechaAnalisis)
+                <input type="hidden" name="fecha_analisis" value="{{ optional($analisisComponente->fecha_analisis)->format('Y-m-d') }}">
+            @endunless
 
-            {{-- Solo NÃºmero de Orden --}}
+            {{-- Fecha de Analisis --}}
+            <div class="mb-6">
+                <label for="fecha_analisis" class="block text-sm font-medium text-gray-700 mb-1">
+                    <i class="far fa-calendar-alt text-blue-600 mr-1"></i>
+                    Fecha de Analisis *
+                </label>
+                @if($puedeEditarFechaAnalisis)
+                    <input type="date"
+                           id="fecha_analisis"
+                           name="fecha_analisis"
+                           value="{{ old('fecha_analisis', optional($analisisComponente->fecha_analisis)->format('Y-m-d')) }}"
+                           required
+                           class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500 shadow-sm
+                           @error('fecha_analisis') border-red-500 @enderror">
+                @else
+                    <input type="date"
+                           id="fecha_analisis"
+                           value="{{ optional($analisisComponente->fecha_analisis)->format('Y-m-d') }}"
+                           readonly
+                           disabled
+                           class="w-full rounded-lg border-gray-300 bg-gray-100 text-gray-600 shadow-sm cursor-not-allowed">
+                @endif
+                @error('fecha_analisis')
+                    <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+                @enderror
+            </div>
+
+            {{-- Solo Numero de Orden --}}
             <div class="mb-6">
                 <label for="numero_orden" class="block text-sm font-medium text-gray-700 mb-1">
                     <i class="fas fa-hashtag text-blue-600 mr-1"></i>
@@ -279,6 +311,39 @@
                     <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
                 @enderror
             </div>
+
+            @php
+                $cambiosFecha = $analisisComponente->cambiosFecha->sortByDesc('fecha_cambio');
+            @endphp
+
+            @if($cambiosFecha->isNotEmpty())
+            <div class="mb-6 rounded-lg border border-amber-200 bg-amber-50 p-4">
+                <h3 class="mb-3 text-sm font-semibold text-amber-900">
+                    <i class="fas fa-history mr-1"></i>
+                    Historial de cambios de fecha
+                </h3>
+                <div class="space-y-2">
+                    @foreach($cambiosFecha as $cambioFecha)
+                        <div class="rounded-md border border-amber-100 bg-white px-3 py-2 text-sm text-gray-700">
+                            <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                                <span class="font-semibold text-gray-900">
+                                    {{ $cambioFecha->usuario->name ?? 'Usuario no disponible' }}
+                                </span>
+                                <span class="text-xs text-gray-500">
+                                    {{ optional($cambioFecha->fecha_cambio)->format('d/m/Y H:i') }}
+                                </span>
+                            </div>
+                            <p class="mt-1">
+                                Cambio de
+                                <span class="font-semibold">{{ optional($cambioFecha->fecha_anterior)->format('d/m/Y') }}</span>
+                                a
+                                <span class="font-semibold">{{ optional($cambioFecha->fecha_nueva)->format('d/m/Y') }}</span>
+                            </p>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+            @endif
 
             {{-- Botones --}}
             <div class="flex gap-4 pt-6 border-t border-gray-200">

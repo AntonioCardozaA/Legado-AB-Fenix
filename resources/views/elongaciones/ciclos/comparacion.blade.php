@@ -25,11 +25,11 @@
                     @endforeach
                 </select>
             </div>
-            <div class="flex gap-2">
+            <div class="flex flex-col gap-2 sm:flex-row">
                 <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
                     <i class="fas fa-filter mr-1"></i> Consultar
                 </button>
-                <a href="{{ route('elongaciones.create', ['linea' => $lineaSeleccionada]) }}" class="px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition">
+                <a href="{{ route('elongaciones.create', ['linea' => $lineaSeleccionada]) }}" class="create-action">
                     <i class="fas fa-plus-circle mr-1"></i> Nuevo registro
                 </a>
             </div>

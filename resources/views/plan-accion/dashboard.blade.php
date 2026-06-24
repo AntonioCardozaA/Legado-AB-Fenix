@@ -52,6 +52,16 @@
                     <div class="rounded border border-gray-200 p-3">
                         <div class="font-semibold text-gray-900">{{ optional($plan->linea)->nombre ?? 'Sin linea' }}</div>
                         <div class="mt-1 text-sm text-gray-700">{{ $plan->actividad }}</div>
+                        <div class="mt-2 space-y-1 text-xs text-gray-500">
+                            <div><span class="font-semibold text-gray-700">Responsable:</span> {{ $plan->responsable?->name ?? 'Sin responsable' }}</div>
+                            <div>
+                                <span class="font-semibold text-gray-700">Registrado por:</span>
+                                {{ $plan->registradoPor?->name ?? 'Sin dato historico' }}
+                                @if($plan->created_at)
+                                    <span class="text-gray-400">|</span> {{ $plan->created_at->format('d/m/Y H:i') }}
+                                @endif
+                            </div>
+                        </div>
                     </div>
                 @empty
                     <div class="text-sm text-gray-500">No hay actividades proximas.</div>

@@ -35,6 +35,7 @@ class User extends Authenticatable
     public const ROLE_SUPERVISOR = 'supervisor';
     public const ROLE_INGENIERO_MANTENIMIENTO = 'ingeniero_mantenimiento';
     public const ROLE_TECNICO = 'tecnico';
+    public const ROLE_PROGRAMADOR_DE_MANTENIMIENTO = 'programador_de_mantenimiento';
 
     public const MODULE_LAVADORA = 'lavadora';
     public const MODULE_PASTEURIZADORA = 'pasteurizadora';
@@ -43,6 +44,7 @@ class User extends Authenticatable
     public const PERMISSION_ACCESS_PASTEURIZADORA = 'acceder modulo pasteurizadora';
     public const PERMISSION_ACCESS_PASTEURIZADORA_MECANICA = 'acceder pasteurizadora mecanica';
     public const PERMISSION_ACCESS_PASTEURIZADORA_CENTRAL_HIDRAULICA = 'acceder pasteurizadora central hidraulica';
+    public const PERMISSION_EDIT_ANALYSIS_DATE = 'editar fecha analisis';
 
     /**
      * The attributes that should be hidden for serialization.
@@ -102,6 +104,7 @@ public static function roleLabels(): array
         self::ROLE_SUPERVISOR => 'Supervisor',
         self::ROLE_INGENIERO_MANTENIMIENTO => 'Ingeniero de Mantenimiento',
         self::ROLE_TECNICO => 'Tecnico',
+        self::ROLE_PROGRAMADOR_DE_MANTENIMIENTO => 'Programador de Mantenimiento',
     ];
 }
 
@@ -131,6 +134,35 @@ public static function elevatedMaintenanceRoles(): array
     ];
 }
 
+public static function technicianEquivalentRoles(): array
+{
+    return [
+        self::ROLE_TECNICO,
+        self::ROLE_PROGRAMADOR_DE_MANTENIMIENTO,
+    ];
+}
+
+public static function analysisDateEditorRoles(): array
+{
+    return [
+        self::ROLE_ADMIN,
+        self::ROLE_SUPERVISOR,
+        self::ROLE_TECNICO,
+        self::ROLE_PROGRAMADOR_DE_MANTENIMIENTO,
+    ];
+}
+
+public function canEditAnalysisDate(): bool
+{
+    return $this->hasAnyRole(self::analysisDateEditorRoles());
+}
+
+public function usesTechnicianAccessProfile(): bool
+{
+    return $this->hasAnyRole(self::technicianEquivalentRoles())
+        && !$this->hasAnyRole(self::elevatedMaintenanceRoles());
+}
+
 public function getPrimaryRoleAttribute(): ?string
 {
     return $this->getRoleNames()->first();
@@ -154,6 +186,10 @@ public function canAccessModule(string $module): bool
 
     if ($this->hasRole(self::ROLE_ADMIN)) {
         return true;
+    }
+
+    if ($this->usesTechnicianAccessProfile()) {
+        return $module === self::MODULE_LAVADORA;
     }
 
     $permission = self::modulePermissionMap()[$module] ?? null;
@@ -204,8 +240,7 @@ public function canAccessPasteurizadoraArea(string $area): bool
 
 public function shouldShowPasteurizadoraComingSoon(): bool
 {
-    $isTechnicianOnly = $this->hasRole(self::ROLE_TECNICO)
-        && !$this->hasAnyRole(self::elevatedMaintenanceRoles());
+    $isTechnicianOnly = $this->usesTechnicianAccessProfile();
 
     $isRestrictedMaintenanceRole = $this->hasAnyRole([
         self::ROLE_GERENTE_MANTENIMIENTO,

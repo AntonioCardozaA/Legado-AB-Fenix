@@ -187,14 +187,14 @@
             </div>
 
             {{-- Botones --}}
-            <div class="flex justify-end gap-3 border-t pt-6">
+            <div class="create-actions create-actions--end border-t pt-6">
                 <a href="{{ route('analisis-tendencia-mensual.lavadora.index') }}" 
-                   class="px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition flex items-center gap-2">
+                   class="create-action create-action--secondary">
                     <i class="fas fa-times"></i>
                     Cancelar
                 </a>
                 <button type="submit" 
-                        class="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:from-blue-700 hover:to-purple-700 transition flex items-center gap-2 shadow-lg shadow-blue-500/30">
+                        class="create-action">
                     <i class="fas fa-save"></i>
                     Guardar Análisis Mensual
                 </button>

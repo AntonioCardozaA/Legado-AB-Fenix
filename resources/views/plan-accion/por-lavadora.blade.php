@@ -39,7 +39,26 @@
                 <tbody class="divide-y divide-gray-100">
                     @forelse($planes as $plan)
                         <tr>
-                            <td class="px-4 py-3">{{ $plan->actividad }}</td>
+                            <td class="px-4 py-3">
+                                <div class="font-medium text-gray-900">{{ $plan->actividad }}</div>
+                                <div class="mt-2 space-y-1 text-xs text-gray-500">
+                                    <div><span class="font-semibold text-gray-700">Responsable:</span> {{ $plan->responsable?->name ?? 'Sin responsable' }}</div>
+                                    <div>
+                                        <span class="font-semibold text-gray-700">Registrado por:</span>
+                                        {{ $plan->registradoPor?->name ?? 'Sin dato historico' }}
+                                        @if($plan->created_at)
+                                            <span class="text-gray-400">|</span> {{ $plan->created_at->format('d/m/Y H:i') }}
+                                        @endif
+                                    </div>
+                                    <div>
+                                        <span class="font-semibold text-gray-700">Ejecutado por:</span>
+                                        {{ $plan->ejecutadoPor?->name ?? ($plan->completado ? 'Sin dato historico' : 'Pendiente') }}
+                                        @if($plan->fecha_ejecucion)
+                                            <span class="text-gray-400">|</span> {{ $plan->fecha_ejecucion->format('d/m/Y H:i') }}
+                                        @endif
+                                    </div>
+                                </div>
+                            </td>
                             <td class="px-4 py-3">{{ optional($plan->fecha_pcm1)->format('d/m/Y') ?? 'N/A' }}</td>
                             <td class="px-4 py-3">{{ optional($plan->fecha_pcm2)->format('d/m/Y') ?? 'N/A' }}</td>
                             <td class="px-4 py-3">{{ optional($plan->fecha_pcm3)->format('d/m/Y') ?? 'N/A' }}</td>

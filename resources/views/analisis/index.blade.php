@@ -9,8 +9,8 @@
             <h1 class="text-2xl font-bold text-gray-900">Analisis</h1>
             <p class="text-sm text-gray-500">Vista general de analisis registrados.</p>
         </div>
-        <div class="flex flex-wrap gap-2">
-            <a href="{{ route('analisis.nuevo') }}" class="rounded bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700">Nuevo</a>
+        <div class="create-actions">
+            <a href="{{ route('analisis.nuevo') }}" class="create-action">Nuevo</a>
             <a href="{{ route('analisis.estadisticas') }}" class="rounded border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">Estadisticas</a>
         </div>
     </div>

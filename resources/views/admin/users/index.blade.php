@@ -17,7 +17,7 @@
             </p>
         </div>
 
-        <a href="#crear-usuario" class="rounded bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700">
+        <a href="#crear-usuario" class="create-action">
             Nuevo usuario
         </a>
     </div>

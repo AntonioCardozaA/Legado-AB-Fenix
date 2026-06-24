@@ -22,10 +22,6 @@
                 {{ auth()->user()->name }}
             </p>
             
-            {{-- Subtítulo - opcional, si quieres mantenerlo --}}
-            <p class="text-base sm:text-lg md:text-xl text-gray-200 mt-4 sm:mt-6 drop-shadow px-2">
-                Técnico especializado en Lavadora y Pasteurizadora
-            </p>
         </div>
     </div>
 </div>

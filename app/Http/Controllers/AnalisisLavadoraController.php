@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\AnalisisLavadora;
 use App\Models\Linea;
 use App\Models\Componente;
+use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
@@ -50,10 +52,7 @@ public function index(Request $request)
     }
 
     if ($request->filled('componente_id')) {
-        $query->whereHas('componente', function ($q) use ($request) {
-            $q->where('codigo', $request->componente_id)
-                ->orWhere('codigo', 'like', '%_' . $request->componente_id);
-        });
+        $this->aplicarFiltroComponenteCodigo($query, $request->componente_id);
     }
 
     if ($request->filled('reductor')) {
@@ -98,10 +97,7 @@ public function index(Request $request)
     }
     
     if ($request->filled('componente_id')) {
-        $queryEstadisticas->whereHas('componente', function ($q) use ($request) {
-            $q->where('codigo', $request->componente_id)
-                ->orWhere('codigo', 'like', '%_' . $request->componente_id);
-        });
+        $this->aplicarFiltroComponenteCodigo($queryEstadisticas, $request->componente_id);
     }
     
     if ($request->filled('reductor')) {
@@ -181,7 +177,80 @@ public function index(Request $request)
 }
 
     /**
-     * Obtener componentes organizados por línea para la tabla.
+     * Aplica el filtro por codigo base aunque el componente tenga prefijos o sufijos.
+     */
+    private function aplicarFiltroComponenteCodigo($query, ?string $codigoBase): void
+    {
+        $codigoBase = strtoupper(trim((string) $codigoBase));
+
+        if ($codigoBase === '') {
+            return;
+        }
+
+        $componenteIds = $this->resolverComponenteIdsPorCodigoBase($codigoBase);
+
+        if ($componenteIds->isNotEmpty()) {
+            $query->whereIn('componente_id', $componenteIds->all());
+
+            return;
+        }
+
+        $query->whereHas('componente', function ($q) use ($codigoBase) {
+            $q->where('codigo', $codigoBase)
+                ->orWhere('codigo', 'like', '%_' . $codigoBase);
+        });
+    }
+
+    private function resolverComponenteIdsPorCodigoBase(string $codigoBase)
+    {
+        return Componente::query()
+            ->select('id', 'codigo')
+            ->get()
+            ->filter(function (Componente $componente) use ($codigoBase) {
+                return $this->normalizarCodigoComponenteLavadora($componente->codigo) === $codigoBase;
+            })
+            ->pluck('id')
+            ->values();
+    }
+
+    private function normalizarCodigoComponenteLavadora(?string $codigo): string
+    {
+        $codigo = strtoupper(trim((string) $codigo));
+
+        if ($codigo === '') {
+            return '';
+        }
+
+        foreach ($this->getCodigosBaseComponentesOrdenados() as $codigoBase) {
+            if ($this->codigoContieneTokenComponente($codigo, $codigoBase)) {
+                return $codigoBase;
+            }
+        }
+
+        return $codigo;
+    }
+
+    private function getCodigosBaseComponentesOrdenados(): array
+    {
+        $codigos = array_keys($this->getTodosComponentes());
+
+        usort($codigos, function (string $a, string $b) {
+            return strlen($b) <=> strlen($a);
+        });
+
+        return $codigos;
+    }
+
+    private function codigoContieneTokenComponente(string $codigo, string $codigoBase): bool
+    {
+        return $codigo === $codigoBase
+            || str_starts_with($codigo, $codigoBase . '_')
+            || str_ends_with($codigo, '_' . $codigoBase)
+            || str_contains($codigo, '_' . $codigoBase . '_');
+    }
+
+    /**
+     * Obtener componentes organizados por linea para la tabla.
      */
     private function getComponentesPorLinea(): array
     {
@@ -677,7 +746,7 @@ $componente = Componente::firstOrCreate(
  */
 public function edit($id)
 {
-    $analisisComponente = AnalisisLavadora::with(['linea', 'componente', 'usuario'])
+    $analisisComponente = AnalisisLavadora::with(['linea', 'componente', 'usuario', 'cambiosFecha.usuario'])
         ->findOrFail($id);
 
     $componentes = Componente::where('linea', $analisisComponente->linea->nombre)
@@ -685,9 +754,12 @@ public function edit($id)
         ->orderBy('nombre')
         ->get();
 
+    $puedeEditarFechaAnalisis = $this->puedeEditarFechaAnalisis(auth()->user());
+
     return view('lavadora/analisis-lavadora.edit', compact(
         'analisisComponente',
-        'componentes'
+        'componentes',
+        'puedeEditarFechaAnalisis'
     ));
 }
 
@@ -695,9 +767,10 @@ public function edit($id)
 public function update(Request $request, $id)
 {
     $analisis = AnalisisLavadora::findOrFail($id);
+    $fechaAnterior = $analisis->fecha_analisis?->toDateString();
 
     $validator = Validator::make($request->all(), [
-        'fecha_analisis'    => 'required|date',
+        'fecha_analisis'    => ['required', 'date', 'date_format:Y-m-d'],
         'numero_orden'      => 'required|string|max:20',
         'estado'            => 'required|string|in:' . implode(',', AnalisisLavadora::ESTADOS),
         'actividad'         => 'required|string',
@@ -705,10 +778,22 @@ public function update(Request $request, $id)
         'evidencia_fotos.*' => $this->evidenciaFotoRules(),
         'eliminar_fotos'    => 'nullable|array',
         'eliminar_fotos.*'  => 'integer',
+    ], [
+        'fecha_analisis.required' => 'La fecha del analisis es obligatoria.',
+        'fecha_analisis.date' => 'La fecha del analisis no es valida.',
+        'fecha_analisis.date_format' => 'La fecha del analisis debe tener el formato AAAA-MM-DD.',
     ]);
 
     if ($validator->fails()) {
         return back()->withErrors($validator)->withInput();
+    }
+
+    $fechaNueva = Carbon::createFromFormat('Y-m-d', $request->input('fecha_analisis'))->toDateString();
+    $fechaFueModificada = $fechaAnterior !== $fechaNueva;
+    $puedeEditarFechaAnalisis = $this->puedeEditarFechaAnalisis($request->user());
+
+    if ($fechaFueModificada && !$puedeEditarFechaAnalisis) {
+        abort(403, 'No tienes permiso para modificar la fecha del analisis.');
     }
 
     /* =========================================
@@ -750,15 +835,26 @@ public function update(Request $request, $id)
     /* =====================================================
      | ACTUALIZAR REGISTRO
      ===================================================== */
-    $analisis->update([
-        'componente_id'   => $analisis->componente_id, // Mantener el mismo
-        'reductor'        => $analisis->reductor, // Mantener el mismo
-        'fecha_analisis'  => $request->fecha_analisis,
-        'numero_orden'    => $request->numero_orden,
-        'estado'          => $request->estado,
-        'actividad'       => $request->actividad,
-        'evidencia_fotos' => $fotosExistentes,
-    ]);
+    DB::transaction(function () use ($analisis, $request, $fotosExistentes, $fechaAnterior, $fechaNueva, $fechaFueModificada) {
+        $analisis->update([
+            'componente_id'   => $analisis->componente_id, // Mantener el mismo
+            'reductor'        => $analisis->reductor, // Mantener el mismo
+            'fecha_analisis'  => $fechaNueva,
+            'numero_orden'    => $request->numero_orden,
+            'estado'          => $request->estado,
+            'actividad'       => $request->actividad,
+            'evidencia_fotos' => $fotosExistentes,
+        ]);
+
+        if ($fechaFueModificada) {
+            $analisis->cambiosFecha()->create([
+                'usuario_id' => $request->user()?->id,
+                'fecha_anterior' => $fechaAnterior,
+                'fecha_nueva' => $fechaNueva,
+                'fecha_cambio' => now(),
+            ]);
+        }
+    });
 
     /* =====================================================
      | REDIRECCIÓN - CORREGIDA
@@ -769,12 +865,17 @@ public function update(Request $request, $id)
         ->with('success', 'Análisis actualizado correctamente.');
 }
 
+private function puedeEditarFechaAnalisis(?User $user): bool
+{
+    return $user?->canEditAnalysisDate() ?? false;
+}
+
     /**
      * VER
      */
     public function show(AnalisisLavadora $analisislavadora)
     {
-        $analisislavadora->load(['linea', 'componente', 'usuario']);
+        $analisislavadora->load(['linea', 'componente', 'usuario', 'cambiosFecha.usuario']);
         return view('lavadora/analisis-lavadora.show', compact('analisislavadora'));
     }
     
@@ -974,12 +1075,11 @@ public function update(Request $request, $id)
         // Construir la consulta
         $query = AnalisisLavadora::with(['linea', 'componente'])
             ->where('linea_id', $request->linea_id)
-            ->where('reductor', $request->reductor)
-            ->whereHas('componente', function ($q) use ($request) {
-                $q->where('codigo', $request->componente_id)
-                    ->orWhere('codigo', 'like', '%_' . $request->componente_id);
-            })
-            ->orderByDesc('fecha_analisis')
+            ->where('reductor', $request->reductor);
+
+        $this->aplicarFiltroComponenteCodigo($query, $request->componente_id);
+
+        $query->orderByDesc('fecha_analisis')
             ->orderByDesc('created_at');
 
         // Paginar los resultados (10 por página)

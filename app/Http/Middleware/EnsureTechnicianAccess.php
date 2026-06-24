@@ -20,11 +20,7 @@ class EnsureTechnicianAccess
             return $next($request);
         }
 
-        if (!$user->hasRole('tecnico')) {
-            return $next($request);
-        }
-
-        if ($user->hasAnyRole(User::elevatedMaintenanceRoles())) {
+        if (!$user->usesTechnicianAccessProfile()) {
             return $next($request);
         }
 
@@ -39,14 +35,10 @@ class EnsureTechnicianAccess
             'tecnico.dashboard',
 
             'dashboard.global.lavadoras',
-            'dashboard.global.pasteurizadoras',
             'dashboard.operativo.lavadora',
-            'dashboard.operativo.pasteurizadora',
 
             'dashboard_lavadora',
-            'dashboard_pasteurizadora',
             'lavadora.dashboard',
-            'pasteurizadora.dashboard',
 
             'profile.edit',
             'profile.update',
@@ -62,9 +54,6 @@ class EnsureTechnicianAccess
         $allowedPrefixes = [
             // Lavadora
             'analisis-lavadora.',
-
-            // Pasteurizadora
-            'pasteurizadora.analisis-pasteurizadora.',
 
             // Histórico revisados
             'historico-revisados.',
@@ -83,7 +72,7 @@ class EnsureTechnicianAccess
             }
         }
 
-        abort(403, 'Los técnicos solo pueden acceder a Lavadora, Pasteurizadora, Histórico Revisados y Plan de Acción.');
+        abort(403, 'Este rol solo puede acceder a Lavadora, Historico Revisados y Plan de Accion.');
     }
 
     private function denyReportesAccess(Request $request): Response

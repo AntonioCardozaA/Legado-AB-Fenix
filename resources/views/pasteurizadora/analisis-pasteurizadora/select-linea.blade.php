@@ -50,12 +50,10 @@
 <div class="pasteur-select max-w-7xl mx-auto px-4">
 
     {{-- Encabezado con boton de volver --}}
-    <div class="pasteur-select-header mb-8 flex items-center justify-between">
-        <div class="flex items-center gap-4">
+    <div class="pasteur-select-header mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-center">
             <a href="{{ $analisisRoute('index') }}"
-               class="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900
-                      bg-gray-100 hover:bg-gray-200 rounded-lg transition-all duration-300
-                      group">
+               class="responsive-action responsive-action--secondary group">
                 <svg class="w-5 h-5 group-hover:-translate-x-1 transition-transform"
                      fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -114,11 +112,7 @@
                                 @endif
                             </p>
 
-                            <span class="inline-flex items-center gap-1 px-4 py-1.5
-                                         rounded-full text-sm font-medium
-                                         bg-blue-50 text-blue-700
-                                         group-hover:bg-blue-600 group-hover:text-white
-                                         transition-colors">
+                            <span class="create-action create-action--compact">
                                 Seleccionar
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -151,9 +145,7 @@
             </p>
 
             <a href="{{ url('/') }}"
-               class="inline-flex items-center gap-2 mt-6 px-6 py-3 bg-blue-600 hover:bg-blue-700
-                      text-white font-medium rounded-lg transition-all duration-300
-                      hover:-translate-y-1 hover:shadow-lg">
+               class="responsive-action mt-6">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                           d="M10 19l-7-7m0 0l7-7m-7 7h18"/>

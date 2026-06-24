@@ -339,12 +339,12 @@
                     </div>
                 </div>
 
-                <div class="flex flex-col md:flex-row justify-between items-center gap-4 pt-6 border-t border-gray-200">
-                    <div class="flex items-center gap-3">
-                        <a href="{{ route('elongaciones.index') }}" class="px-5 py-2.5 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition flex items-center gap-2"><i class="fas fa-arrow-left"></i> Cancelar</a>
-                        <button type="button" id="btnLimpiar" class="px-5 py-2.5 rounded-lg bg-gray-50 text-gray-600 hover:bg-gray-100 transition flex items-center gap-2 border border-gray-200"><i class="fas fa-broom"></i> Limpiar</button>
+                <div class="flex flex-col md:flex-row justify-between items-stretch gap-4 pt-6 border-t border-gray-200">
+                    <div class="create-actions">
+                        <a href="{{ route('elongaciones.index') }}" class="create-action create-action--secondary"><i class="fas fa-arrow-left"></i> Cancelar</a>
+                        <button type="button" id="btnLimpiar" class="create-action create-action--secondary"><i class="fas fa-broom"></i> Limpiar</button>
                     </div>
-                    <button type="submit" class="px-8 py-2.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition flex items-center gap-2 font-medium shadow-md"><i class="fas fa-save"></i> Guardar registro</button>
+                    <button type="submit" class="create-action"><i class="fas fa-save"></i> Guardar registro</button>
                 </div>
             </div>
         </form>

@@ -56,6 +56,8 @@
         display: flex;
         flex-wrap: wrap;
         gap: 12px;
+        max-width: 100%;
+        min-width: 0;
     }
 
     .linea-btn {
@@ -74,6 +76,13 @@
         transition: all 0.2s ease;
         cursor: pointer;
         text-decoration: none;
+        min-height: 44px;
+        min-width: 0;
+        max-width: 100%;
+        line-height: 1.2;
+        white-space: normal;
+        overflow-wrap: anywhere;
+        touch-action: manipulation;
     }
 
     .linea-btn i {
@@ -374,6 +383,14 @@
         transition: all 0.2s ease;
         border: none;
         text-decoration: none;
+        min-height: 44px;
+        min-width: 0;
+        max-width: 100%;
+        line-height: 1.2;
+        text-align: center;
+        white-space: normal;
+        overflow-wrap: anywhere;
+        touch-action: manipulation;
     }
 
     .btn-primary {
@@ -455,8 +472,8 @@
     }
 
     .modal-close {
-        width: 40px;
-        height: 40px;
+        width: 44px;
+        height: 44px;
         border-radius: 50%;
         background: white;
         border: 1px solid #e2e8f0;
@@ -870,6 +887,8 @@
         margin-top: 24px;
         justify-content: flex-end;
         flex-wrap: wrap;
+        max-width: 100%;
+        min-width: 0;
     }
 
     .empty-state {
@@ -918,6 +937,18 @@
             max-height: calc(100vh - 110px);
         }
 
+        .lineas-grid,
+        .acciones,
+        .modulo-summary-footer {
+            align-items: stretch;
+            flex-direction: column;
+        }
+
+        .linea-btn,
+        .btn {
+            width: 100%;
+        }
+
         .grafica-pie-panel {
             padding: 14px;
         }
@@ -928,7 +959,7 @@
     <div class="flex justify-between items-center mb-6">
         <div>
             <a href="{{ route($analisisDashboardRoute) }}"
-               class="inline-flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 rounded-lg transition-all duration-300 mb-4">
+               class="responsive-action responsive-action--secondary mb-4">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
                 </svg>

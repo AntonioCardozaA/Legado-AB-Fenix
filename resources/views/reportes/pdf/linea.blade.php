@@ -1,3 +1,13 @@
+@php
+    $reporte = isset($reporte['lineas']) ? $reporte : ['lineas' => [$reporte]];
+    $tipoEquipo = $tipoEquipo ?? data_get($reporte, 'lineas.0.tipo_equipo', 'lavadoras');
+    $modoReporte = $modoReporte ?? 'linea';
+    $fechaInicio = $fechaInicio ?? data_get($reporte, 'lineas.0.fecha_inicio');
+    $fechaFin = $fechaFin ?? data_get($reporte, 'lineas.0.fecha_fin');
+@endphp
+@include('reportes.pdf.general-corporativo')
+@php return; @endphp
+
 <!DOCTYPE html>
 <html>
 <head>

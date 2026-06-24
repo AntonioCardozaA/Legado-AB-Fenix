@@ -136,7 +136,7 @@
         </div>
 
         <a href="{{ $analisisRoute('index') }}"
-           class="group inline-flex items-center px-5 py-2.5 bg-gradient-to-r from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 text-gray-700 rounded-xl transition-all duration-300 shadow-sm hover:shadow-md border border-gray-200">
+           class="responsive-action responsive-action--secondary group">
             <svg class="w-5 h-5 mr-2 group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
             </svg>
@@ -581,7 +581,7 @@
                                         @if($totalImagenes > 4)
                                             <div class="mt-4 text-center">
                                                 <button onclick="openAllImages(@json($imagenes), '{{ $item->numero_orden }}')"
-                                                        class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-100 text-indigo-700 rounded-lg hover:bg-indigo-200 transition text-sm font-medium">
+                                                        class="responsive-action responsive-action--compact responsive-action--secondary">
                                                     <i class="fas fa-images"></i>
                                                     Ver todas las imágenes ({{ $totalImagenes }})
                                                 </button>
@@ -598,10 +598,9 @@
                                 @endif
 
                                 {{-- Acciones --}}
-                                <div class="mt-4 flex justify-end gap-2">
+                                <div class="responsive-actions responsive-actions--end mt-4">
                                     <a href="{{ $analisisRoute('edit', $item->id) }}"
-                                    class="inline-flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-300 shadow-md hover:shadow-lg text-sm font-medium"
-                                    style="background: linear-gradient(to right, rgb(31, 35, 72), rgb(47, 53, 102)); color: white;">
+                                    class="responsive-action responsive-action--compact">
                                         <i class="fas fa-edit"></i>
                                         Editar Registro
                                     </a>
@@ -626,7 +625,7 @@
             <h3 class="text-xl font-bold text-gray-800 mb-2">No hay registros disponibles</h3>
             <p class="text-gray-500 mb-6">Comienza realizando un nuevo análisis para ver el historial.</p>
             <a href="{{ $analisisRoute('index') }}"
-               class="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all duration-300 shadow-lg hover:shadow-xl font-medium">
+               class="create-action">
                 <i class="fas fa-plus-circle"></i>
                 Nuevo Análisis
             </a>
@@ -645,7 +644,7 @@
 
         {{-- Navegación izquierda --}}
         <button id="prevImageBtn" onclick="navigateImage(-1)"
-                class="absolute left-4 top-1/2 transform -translate-y-1/2 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center backdrop-blur-sm border border-white/30 transition-all opacity-0 group-hover:opacity-100 disabled:opacity-30 disabled:cursor-not-allowed hidden">
+                class="absolute left-4 top-1/2 hidden h-12 w-12 -translate-y-1/2 transform items-center justify-center rounded-full border border-white/30 bg-white/10 text-white backdrop-blur-sm transition-all hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-30 flex">
             <i class="fas fa-chevron-left text-xl"></i>
         </button>
 
@@ -661,7 +660,7 @@
 
         {{-- Navegación derecha --}}
         <button id="nextImageBtn" onclick="navigateImage(1)"
-                class="absolute right-4 top-1/2 transform -translate-y-1/2 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center backdrop-blur-sm border border-white/30 transition-all opacity-0 group-hover:opacity-100 disabled:opacity-30 disabled:cursor-not-allowed hidden">
+                class="absolute right-4 top-1/2 hidden h-12 w-12 -translate-y-1/2 transform items-center justify-center rounded-full border border-white/30 bg-white/10 text-white backdrop-blur-sm transition-all hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-30 flex">
             <i class="fas fa-chevron-right text-xl"></i>
         </button>
 
@@ -687,7 +686,7 @@
                     </div>
                 </div>
                 <button onclick="closeGalleryModal()"
-                        class="w-10 h-10 rounded-xl bg-white/20 hover:bg-white/30 transition-all flex items-center justify-center group">
+                        class="w-11 h-11 rounded-xl bg-white/20 hover:bg-white/30 transition-all flex items-center justify-center group">
                     <i class="fas fa-times text-xl group-hover:rotate-90 transition-transform"></i>
                 </button>
             </div>

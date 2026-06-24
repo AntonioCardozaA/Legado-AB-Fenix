@@ -261,4 +261,9 @@ class AnalisisLavadora extends Model
     {
         return $this->hasMany(HistorialRestablecimiento::class, 'analisis_id');
     }
+
+    public function cambiosFecha(): HasMany
+    {
+        return $this->hasMany(AnalisisLavadoraFechaCambio::class, 'analisis_lavadora_id');
+    }
 }

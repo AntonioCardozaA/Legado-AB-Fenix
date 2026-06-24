@@ -12,11 +12,14 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int $id
  * @property int|null $linea_id
  * @property int|null $responsable_id
+ * @property int|null $registrado_por_id
+ * @property int|null $ejecutado_por_id
  * @property string|null $actividad
  * @property Carbon|null $fecha_pcm1
  * @property Carbon|null $fecha_pcm2
  * @property Carbon|null $fecha_pcm3
  * @property Carbon|null $fecha_pcm4
+ * @property Carbon|null $fecha_ejecucion
  * @property string|null $estado
  * @property string|null $tipo_equipo
  * @property string|null $area_pasteurizadora
@@ -43,6 +46,9 @@ class PlanAccion extends Model
         'notificacion_enviada',
         'fecha_recordatorio',
         'responsable_id',
+        'registrado_por_id',
+        'ejecutado_por_id',
+        'fecha_ejecucion',
         'tipo_maquina' // Agregar este campo
     ];
 
@@ -53,6 +59,7 @@ class PlanAccion extends Model
         'fecha_pcm3' => 'date',
         'fecha_pcm4' => 'date',
         'fecha_recordatorio' => 'date',
+        'fecha_ejecucion' => 'datetime',
         'tipo_maquina' => 'array', // Laravel convertirá automáticamente JSON a array
         'completado' => 'boolean',
     ];
@@ -65,6 +72,16 @@ class PlanAccion extends Model
     public function responsable(): BelongsTo
     {
         return $this->belongsTo(User::class, 'responsable_id');
+    }
+
+    public function registradoPor(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'registrado_por_id');
+    }
+
+    public function ejecutadoPor(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'ejecutado_por_id');
     }
 
     // Método helper para verificar si tiene un tipo específico

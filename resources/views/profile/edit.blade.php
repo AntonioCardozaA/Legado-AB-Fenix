@@ -10,7 +10,7 @@
                 <p class="text-sm font-semibold uppercase tracking-[0.3em] text-blue-100">Cuenta autenticada</p>
                 <h1 class="mt-3 text-3xl font-bold">Perfil de usuario</h1>
                 <p class="mt-3 max-w-2xl text-sm leading-7 text-blue-50">
-                    Administra tus datos, actualiza tu contrasena y cierra sesion desde un solo lugar dentro del flujo autenticado del sistema.
+                    Administra tus datos, actualiza tu contraseña y cierra sesion desde un solo lugar dentro del flujo autenticado del sistema.
                 </p>
             </div>
 

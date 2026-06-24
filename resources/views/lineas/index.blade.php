@@ -4,12 +4,12 @@
 
 @section('content')
 <div class="space-y-6">
-    <div class="flex items-center justify-between">
+    <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
             <h1 class="text-2xl font-bold text-gray-900">Lineas</h1>
             <p class="text-sm text-gray-500">Administracion de lineas del sistema.</p>
         </div>
-        <a href="{{ route('lineas.create') }}" class="rounded bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700">Nueva linea</a>
+        <a href="{{ route('lineas.create') }}" class="create-action">Nueva linea</a>
     </div>
 
     @if(session('success'))

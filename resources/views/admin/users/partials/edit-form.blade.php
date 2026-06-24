@@ -80,13 +80,13 @@
         </div>
 
         <div>
-            <label class="mb-1 block text-sm font-medium text-gray-700" for="password_{{ $managedUser->id }}">Nueva contrasena</label>
+            <label class="mb-1 block text-sm font-medium text-gray-700" for="password_{{ $managedUser->id }}">Nueva contraseña</label>
             <input id="password_{{ $managedUser->id }}" type="password" name="password" class="w-full rounded border-gray-300 text-sm" autocomplete="new-password">
             <p class="mt-1 text-xs text-gray-500">Deja en blanco si no deseas cambiarla.</p>
         </div>
 
         <div>
-            <label class="mb-1 block text-sm font-medium text-gray-700" for="password_confirmation_{{ $managedUser->id }}">Confirmar contrasena</label>
+            <label class="mb-1 block text-sm font-medium text-gray-700" for="password_confirmation_{{ $managedUser->id }}">Confirmar contraseña</label>
             <input id="password_confirmation_{{ $managedUser->id }}" type="password" name="password_confirmation" class="w-full rounded border-gray-300 text-sm" autocomplete="new-password">
         </div>
     </div>

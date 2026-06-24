@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Models\User;
+use App\Services\AdminRecordNotificationService;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Pagination\Paginator;
 
@@ -16,6 +17,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Paginator::useTailwind();
+        app(AdminRecordNotificationService::class)->registerModelEvents();
         
         // Compartir datos comunes con todas las vistas
         view()->composer('*', function ($view) {

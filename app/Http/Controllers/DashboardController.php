@@ -45,8 +45,7 @@ class DashboardController extends Controller
     {
         $user = auth()->user();
 
-        if ($user?->hasRole('tecnico')
-            && !$user?->hasAnyRole(User::elevatedMaintenanceRoles())) {
+        if ($user?->usesTechnicianAccessProfile()) {
             return redirect()->route('tecnico.dashboard');
         }
 
