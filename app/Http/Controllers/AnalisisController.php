@@ -11,6 +11,7 @@ use App\Models\NumeroR;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use App\Exports\AnalisisLavadoraExcel;
+use App\Services\AnalysisDeletionLogger;
 use Maatwebsite\Excel\Facades\Excel;
 
 class AnalisisController extends Controller
@@ -251,9 +252,20 @@ public function index(Request $request)
     /**
      * ELIMINAR ANÁLISIS
      */
-    public function destroy($id)
+    public function destroy(Request $request, $id)
     {
-        $analisis = Analisis::findOrFail($id);
+        abort_unless($request->user()?->canDeleteAnalysis(), 403, 'No tienes permiso para eliminar analisis.');
+
+        $analisis = Analisis::with(['linea', 'componente', 'categoria', 'numeroR'])->findOrFail($id);
+
+        app(AnalysisDeletionLogger::class)->log($request->user(), $analisis, 'analisis', 'Analisis general', [
+            'componente' => $analisis->componente?->nombre,
+            'categoria' => $analisis->categoria?->nombre,
+            'numero_r' => $analisis->numeroR?->codigo,
+            'reductor' => $analisis->reductor,
+            'numero_orden' => $analisis->numero_orden,
+            'fecha_analisis' => $analisis->fecha_analisis?->toDateString(),
+        ]);
         
         // Eliminar fotos almacenadas
         if (!empty($analisis->fotos) && is_array($analisis->fotos)) {

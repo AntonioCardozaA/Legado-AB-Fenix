@@ -125,6 +125,23 @@
         background: linear-gradient(135deg, var(--primary-dark), var(--primary));
     }
 
+    .analysis-switcher {
+        max-width: 100%;
+        min-width: 0;
+    }
+
+    .analysis-switcher a {
+        justify-content: center;
+        min-height: 48px;
+        min-width: 0;
+        max-width: 100%;
+        line-height: 1.2;
+        text-align: center;
+        white-space: normal;
+        overflow-wrap: anywhere;
+        touch-action: manipulation;
+    }
+
     /* Filtros Industriales */
     .industrial-filters {
         background: white;
@@ -164,6 +181,8 @@
         display: flex;
         flex-wrap: wrap;
         gap: 12px;
+        max-width: 100%;
+        min-width: 0;
     }
 
     .machine-pill {
@@ -175,8 +194,17 @@
         transition: all 0.2s;
         display: inline-flex;
         align-items: center;
+        justify-content: center;
         gap: 8px;
         border: 1px solid transparent;
+        min-height: 44px;
+        min-width: 0;
+        max-width: 100%;
+        line-height: 1.2;
+        text-align: center;
+        white-space: normal;
+        overflow-wrap: anywhere;
+        touch-action: manipulation;
     }
 
     .machine-pill-active {
@@ -541,6 +569,7 @@
             justify-content: center;
             padding: 12px 10px;
             border-radius: 14px;
+            width: 100%;
         }
 
         .industrial-filters,
@@ -747,8 +776,7 @@
     <div class="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4 mb-6">
         <div>
             <a href="{{ route('lavadora.dashboard') }}" 
-               class="inline-flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 
-                      bg-gray-100 hover:bg-gray-200 rounded-lg transition-all duration-300 mb-4">
+               class="responsive-action responsive-action--secondary mb-4">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
                           d="M10 19l-7-7m0 0l7-7m-7 7h18"/>

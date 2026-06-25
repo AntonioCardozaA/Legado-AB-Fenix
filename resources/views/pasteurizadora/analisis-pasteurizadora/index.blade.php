@@ -7,6 +7,7 @@
     $analisisRoutePrefix = $analisisRoutePrefix ?? 'pasteurizadora.analisis-pasteurizadora';
     $analisisRoute = fn ($name, $params = []) => route($analisisRoutePrefix . '.' . $name, $params);
     $analisisBaseUrl = $analisisBaseUrl ?? '/pasteurizadora/analisis-pasteurizadora';
+    $canDeleteAnalysis = $canDeleteAnalysis ?? (auth()->user()?->canDeleteAnalysis() ?? false);
 @endphp
 <style>
     /* VARIABLES CSS PARA CONSISTENCIA */
@@ -1542,6 +1543,7 @@
                                                             })
                                                             ->values(),
                                                         'edit_url' => $analisisRoute('edit', $registro->id),
+                                                        'delete_url' => $canDeleteAnalysis ? $analisisRoute('destroy', $registro->id) : null,
                                                         'historial_url' => $analisisRoute('historial', ['linea_id' => $linea->id, 'modulo' => $moduloNumero, 'componente' => $codigo])
                                                     ]) }})"
                                                 @endif>
@@ -1633,6 +1635,15 @@
                                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                                                                     </svg>
                                                                     {{ count($registro->evidencia_fotos) }}
+                                                                </button>
+                                                            @endif
+                                                            @if($canDeleteAnalysis)
+                                                                <button type="button"
+                                                                        title="Eliminar analisis"
+                                                                        aria-label="Eliminar analisis #{{ $registro->id }}"
+                                                                        onclick="event.stopPropagation(); confirmDeleteAnalysisFromUrl(@js($analisisRoute('destroy', $registro->id)))"
+                                                                        class="inline-flex h-9 w-9 items-center justify-center rounded bg-red-600 text-white transition hover:bg-red-700">
+                                                                    <i class="fas fa-trash text-xs"></i>
                                                                 </button>
                                                             @endif
                                                             @if($procesoCompletado)
@@ -1891,6 +1902,16 @@
                     <span id="detail-historial-text">Ver Historial</span>
                 </a>
 
+                @if($canDeleteAnalysis)
+                    <button id="detail-delete-btn"
+                            type="button"
+                            onclick="confirmDeleteAnalysis()"
+                            class="responsive-action responsive-action--danger">
+                        <i class="fas fa-trash"></i>
+                        Eliminar
+                    </button>
+                @endif
+
                 <button onclick="closeAnalysisDetailModal()" 
                         class="responsive-action responsive-action--secondary">
                     <i class="fas fa-times"></i>
@@ -1900,6 +1921,13 @@
         </div>
     </div>
 </div>
+
+@if($canDeleteAnalysis)
+    <form id="delete-analysis-form" method="POST" class="hidden">
+        @csrf
+        @method('DELETE')
+    </form>
+@endif
 
 {{-- MODAL DE ESTADÍSTICAS --}}
 <div id="estadoModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50 p-4" onclick="if(event.target === this) closeEstadoModal()">
@@ -2176,6 +2204,37 @@ function openAnalysisDetail(data) {
     modal.classList.remove('hidden');
     modal.classList.add('flex');
     document.body.style.overflow = 'hidden';
+}
+
+function confirmDeleteAnalysis() {
+    if (!currentAnalysisData || !currentAnalysisData.delete_url) {
+        return;
+    }
+
+    Swal.fire({
+        icon: 'warning',
+        title: 'Eliminar analisis',
+        text: 'Esta accion es irreversible y eliminara el registro seleccionado.',
+        showCancelButton: true,
+        confirmButtonText: 'Eliminar',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#dc2626',
+        cancelButtonColor: '#6b7280',
+    }).then(function(result) {
+        if (result.isConfirmed) {
+            const form = document.getElementById('delete-analysis-form');
+            form.action = currentAnalysisData.delete_url;
+            form.submit();
+        }
+    });
+}
+
+function confirmDeleteAnalysisFromUrl(deleteUrl) {
+    currentAnalysisData = Object.assign({}, currentAnalysisData || {}, {
+        delete_url: deleteUrl,
+    });
+
+    confirmDeleteAnalysis();
 }
 
 function renderComponentesRevisados(data) {

@@ -365,7 +365,7 @@
         </form>
         
         {{-- Formulario de eliminación separado --}}
-        @can('delete', $analisisComponente)
+        @if($canDeleteAnalysis ?? false)
         <div class="mt-6 pt-6 border-t border-gray-200">
             <div class="bg-red-50 border border-red-200 rounded-lg p-4">
                 <h3 class="font-semibold text-red-800 mb-2">
@@ -383,7 +383,7 @@
                 </button>
             </div>
         </div>
-        @endcan
+        @endif
     </div>
 </div>
 

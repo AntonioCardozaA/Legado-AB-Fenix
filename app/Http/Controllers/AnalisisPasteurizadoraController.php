@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\AnalisisPasteurizadora;
 use App\Models\Linea;
 use App\Exports\AnalisisPasteurizadoraExport;
+use App\Services\AnalysisDeletionLogger;
 use App\Services\TendenciaDanosService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -671,9 +672,23 @@ class AnalisisPasteurizadoraController extends Controller
             ->with('success', 'Análisis actualizado correctamente.');
     }
 
-    public function destroy($id)
+    public function destroy(Request $request, $id)
     {
+        abort_unless($request->user()?->canDeleteAnalysis(), 403, 'No tienes permiso para eliminar analisis.');
+
         $analisis = $this->analisisQuery()->findOrFail($id);
+        $analisis->loadMissing('linea');
+
+        app(AnalysisDeletionLogger::class)->log($request->user(), $analisis, 'pasteurizadora', 'Pasteurizadora - ' . $this->areaLabel, [
+            'area' => $this->currentArea(),
+            'modulo' => $analisis->modulo,
+            'nivel' => $analisis->nivel,
+            'lado' => $analisis->lado,
+            'componente' => $analisis->componente_nombre,
+            'estado' => $analisis->estado,
+            'numero_orden' => $analisis->numero_orden,
+            'fecha_analisis' => $analisis->fecha_analisis?->toDateString(),
+        ]);
 
         if ($analisis->evidencia_fotos) {
             foreach ($analisis->evidencia_fotos as $foto) {

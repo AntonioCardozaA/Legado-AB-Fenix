@@ -66,6 +66,14 @@
                         <i class="fas fa-edit"></i>
                         Editar
                     </a>
+                    @if($canDeleteAnalysis ?? false)
+                        <button type="button"
+                                id="delete-analysis-button"
+                                class="inline-flex items-center justify-center gap-2 rounded-lg bg-red-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-red-700">
+                            <i class="fas fa-trash"></i>
+                            Eliminar
+                        </button>
+                    @endif
                     <a href="{{ route('analisis-lavadora.index', ['linea_id' => $analisislavadora->linea_id]) }}"
                        class="inline-flex items-center justify-center gap-2 rounded-lg border border-white/40 bg-white/10 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-white/20">
                         <i class="fas fa-arrow-left"></i>
@@ -231,6 +239,13 @@
     </section>
 </div>
 
+@if($canDeleteAnalysis ?? false)
+    <form id="delete-analysis-form" action="{{ route('analisis-lavadora.destroy', ['analisislavadora' => $analisislavadora->id]) }}" method="POST" class="hidden">
+        @csrf
+        @method('DELETE')
+    </form>
+@endif
+
 <div id="photoPreviewModal" class="fixed inset-0 z-[80] hidden items-center justify-center bg-black/75 p-4">
     <div class="w-full max-w-5xl overflow-hidden rounded-2xl bg-white shadow-2xl">
         <div class="flex items-center justify-between border-b border-gray-200 px-5 py-4">
@@ -302,6 +317,30 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
     });
+
+    @if($canDeleteAnalysis ?? false)
+        const deleteAnalysisButton = document.getElementById('delete-analysis-button');
+        const deleteAnalysisForm = document.getElementById('delete-analysis-form');
+
+        if (deleteAnalysisButton && deleteAnalysisForm) {
+            deleteAnalysisButton.addEventListener('click', function() {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Eliminar analisis',
+                    text: 'Esta accion es irreversible y eliminara el registro seleccionado.',
+                    showCancelButton: true,
+                    confirmButtonText: 'Eliminar',
+                    cancelButtonText: 'Cancelar',
+                    confirmButtonColor: '#dc2626',
+                    cancelButtonColor: '#6b7280',
+                }).then(function(result) {
+                    if (result.isConfirmed) {
+                        deleteAnalysisForm.submit();
+                    }
+                });
+            });
+        }
+    @endif
 });
 </script>
 @endsection

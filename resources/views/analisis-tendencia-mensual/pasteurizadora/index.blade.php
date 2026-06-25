@@ -587,6 +587,7 @@
             justify-content: center;
             padding: 12px 10px;
             border-radius: 14px;
+            width: 100%;
         }
 
         .industrial-filters,

@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 use App\Exports\AnalisisComponentesExport;
 use App\Exports\AnalisisLavadoraExport;
+use App\Services\AnalysisDeletionLogger;
 use Maatwebsite\Excel\Facades\Excel;
 use Barryvdh\DomPDF\Facade\Pdf;
 use App\Services\WhatsAppService;
@@ -882,9 +883,23 @@ private function puedeEditarFechaAnalisis(?User $user): bool
     /**
      * ELIMINAR
      */
-    public function destroy(AnalisisLavadora $analisisComponente)
+    public function destroy(Request $request, AnalisisLavadora $analisislavadora)
     {
-        $fotos = $analisisComponente->evidencia_fotos;
+        abort_unless($request->user()?->canDeleteAnalysis(), 403, 'No tienes permiso para eliminar analisis.');
+
+        $analisislavadora->loadMissing(['linea', 'componente']);
+
+        app(AnalysisDeletionLogger::class)->log($request->user(), $analisislavadora, 'lavadora', 'Analisis Lavadora', [
+            'componente' => $analisislavadora->componente?->nombre,
+            'componente_codigo' => $analisislavadora->componente?->codigo,
+            'reductor' => $analisislavadora->reductor,
+            'lado' => $analisislavadora->lado,
+            'estado' => $analisislavadora->estado,
+            'numero_orden' => $analisislavadora->numero_orden,
+            'fecha_analisis' => $analisislavadora->fecha_analisis?->toDateString(),
+        ]);
+
+        $fotos = $analisislavadora->evidencia_fotos;
         if (!is_array($fotos)) {
             $fotos = json_decode($fotos ?? '[]', true) ?? [];
         }
@@ -898,7 +913,7 @@ private function puedeEditarFechaAnalisis(?User $user): bool
             }
         }
 
-        $analisisComponente->delete();
+        $analisislavadora->delete();
 
         return back()->with('success', 'Análisis eliminado.');
     }

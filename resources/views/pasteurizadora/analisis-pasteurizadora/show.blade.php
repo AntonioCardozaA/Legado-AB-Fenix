@@ -156,10 +156,12 @@
                        class="responsive-action responsive-action--compact">
                         <i class="fas fa-edit"></i> Editar
                     </a>
-                    <button onclick="confirmDelete()"
-                            class="responsive-action responsive-action--compact responsive-action--danger">
-                        <i class="fas fa-trash"></i> Eliminar
-                    </button>
+                    @if($canDeleteAnalysis ?? false)
+                        <button onclick="confirmDelete()"
+                                class="responsive-action responsive-action--compact responsive-action--danger">
+                            <i class="fas fa-trash"></i> Eliminar
+                        </button>
+                    @endif
                 </div>
             </div>
         </div>
@@ -552,10 +554,12 @@
     </div>
 </div>
 
-<form id="deleteForm" action="{{ $analisisRoute('destroy', $analisis->id) }}" method="POST" style="display: none;">
-    @csrf
-    @method('DELETE')
-</form>
+@if($canDeleteAnalysis ?? false)
+    <form id="deleteForm" action="{{ $analisisRoute('destroy', $analisis->id) }}" method="POST" style="display: none;">
+        @csrf
+        @method('DELETE')
+    </form>
+@endif
 
 <script>
     let imagenes = @json($analisis->evidencia_fotos ?? []);
@@ -620,9 +624,20 @@
     }
 
     function confirmDelete() {
-        if (confirm('¿Está seguro de eliminar este análisis? Esta acción no se puede deshacer.')) {
-            document.getElementById('deleteForm').submit();
-        }
+        Swal.fire({
+            icon: 'warning',
+            title: 'Eliminar analisis',
+            text: 'Esta accion es irreversible y eliminara el registro seleccionado.',
+            showCancelButton: true,
+            confirmButtonText: 'Eliminar',
+            cancelButtonText: 'Cancelar',
+            confirmButtonColor: '#dc2626',
+            cancelButtonColor: '#6b7280',
+        }).then(function(result) {
+            if (result.isConfirmed) {
+                document.getElementById('deleteForm').submit();
+            }
+        });
     }
 
     document.addEventListener('keydown', function(e) {

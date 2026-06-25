@@ -24,7 +24,7 @@ class RoleSeeder extends Seeder
             'ver analisis',
             'crear analisis',
             'editar analisis',
-            'eliminar analisis',
+            User::PERMISSION_DELETE_ANALYSIS,
             'exportar analisis',
             'ver paros',
             'crear paros',
@@ -58,8 +58,11 @@ class RoleSeeder extends Seeder
         $permisosFechaAnalisis = [
             User::PERMISSION_EDIT_ANALYSIS_DATE,
         ];
-        $permisosSinPasteurizadora = Permission::whereNotIn('name', array_merge($permisosPasteurizadora, $permisosFechaAnalisis))->get();
-        $permisosSupervisor = Permission::whereNotIn('name', $permisosPasteurizadora)->get();
+        $permisosEspecialesUsuario = [
+            User::PERMISSION_DELETE_ANALYSIS,
+        ];
+        $permisosSinPasteurizadora = Permission::whereNotIn('name', array_merge($permisosPasteurizadora, $permisosFechaAnalisis, $permisosEspecialesUsuario))->get();
+        $permisosSupervisor = Permission::whereNotIn('name', array_merge($permisosPasteurizadora, $permisosEspecialesUsuario))->get();
         $permisosTecnico = [
             User::PERMISSION_ACCESS_LAVADORA,
             'ver analisis', 'crear analisis', 'editar analisis',
@@ -80,7 +83,7 @@ class RoleSeeder extends Seeder
                 'ver reportes', 'generar reportes', 'exportar reportes',
             ],
             User::ROLE_TECNICO => $permisosTecnico,
-            User::ROLE_PROGRAMADOR_DE_MANTENIMIENTO => $permisosTecnico,
+            User::ROLE_PROGRAMADOR_DE_MANTENIMIENTO => $permisosSupervisor,
         ];
 
         foreach ($roles as $rol => $perms) {

@@ -152,6 +152,11 @@
                                         <span class="rounded-full px-3 py-1 text-xs font-semibold {{ $managedUser->activo ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600' }}">
                                             {{ $managedUser->activo ? 'Activo' : 'Inactivo' }}
                                         </span>
+                                        @if($managedUser->hasDirectAnalysisDeletionPermission())
+                                            <span class="rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-700">
+                                                Eliminar Analisis
+                                            </span>
+                                        @endif
                                         @if($managedUser->id === auth()->id())
                                             <span class="rounded-full bg-yellow-100 px-3 py-1 text-xs font-semibold text-yellow-700">
                                                 Tu usuario

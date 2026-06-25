@@ -5,6 +5,10 @@
 @section('content')
 <link rel="stylesheet" href="{{ asset('css/diagramas-lavadoras.css') }}">
 
+@php
+    $canDeleteAnalysis = $canDeleteAnalysis ?? (auth()->user()?->canDeleteAnalysis() ?? false);
+@endphp
+
 <style>
     /* VARIABLES CSS PARA CONSISTENCIA */
     :root {
@@ -2106,6 +2110,7 @@
                                                         'is_new' => $isNew,
                                                         'total_historial' => $totalHistorial,
                                                         'edit_url' => route('analisis-lavadora.edit', ['analisislavadora' => $registro->id]),
+                                                        'delete_url' => $canDeleteAnalysis ? route('analisis-lavadora.destroy', ['analisislavadora' => $registro->id]) : null,
                                                         'historial_url' => route('analisis-lavadora.historial', [
                                                             'linea_id' => $registro->linea_id,
                                                             'componente_id' => $c->id,
@@ -2184,6 +2189,15 @@
                                                                         class="inline-flex items-center justify-center gap-1 px-3 py-1.5 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition text-xs font-medium">
                                                                         <i class="fas fa-images mr-1"></i>
                                                                         {{ count($imagenes) }} img
+                                                                    </button>
+                                                                @endif
+                                                                @if($canDeleteAnalysis)
+                                                                    <button type="button"
+                                                                            title="Eliminar analisis"
+                                                                            aria-label="Eliminar analisis #{{ $registro->id }}"
+                                                                            onclick="event.stopPropagation(); confirmDeleteAnalysisFromUrl(@js(route('analisis-lavadora.destroy', ['analisislavadora' => $registro->id])))"
+                                                                            class="inline-flex h-9 w-9 items-center justify-center rounded bg-red-600 text-white transition hover:bg-red-700">
+                                                                        <i class="fas fa-trash text-xs"></i>
                                                                     </button>
                                                                 @endif
                                                                 <a href="{{ route('analisis-lavadora.create-quick', [
@@ -2647,6 +2661,9 @@
                                                     'edit_url' => route('analisis-lavadora.edit', [
                                                         'analisislavadora' => $registro->id
                                                     ]),
+                                                    'delete_url' => $canDeleteAnalysis ? route('analisis-lavadora.destroy', [
+                                                        'analisislavadora' => $registro->id
+                                                    ]) : null,
                                                     'historial_url' => route('analisis-lavadora.historial', [
                                                         'linea_id' => $registro->linea_id,
                                                         'componente_id' => $c->id,
@@ -2728,6 +2745,15 @@
                                                                     class="inline-flex items-center justify-center gap-1 px-3 py-1.5 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition text-xs font-medium">
                                                                     <i class="fas fa-images mr-1"></i>
                                                                     {{ count($imagenes) }} img
+                                                                </button>
+                                                            @endif
+                                                            @if($canDeleteAnalysis)
+                                                                <button type="button"
+                                                                        title="Eliminar analisis"
+                                                                        aria-label="Eliminar analisis #{{ $registro->id }}"
+                                                                        onclick="event.stopPropagation(); confirmDeleteAnalysisFromUrl(@js(route('analisis-lavadora.destroy', ['analisislavadora' => $registro->id])))"
+                                                                        class="inline-flex h-9 w-9 items-center justify-center rounded bg-red-600 text-white transition hover:bg-red-700">
+                                                                    <i class="fas fa-trash text-xs"></i>
                                                                 </button>
                                                             @endif
                                                             <a href="{{ route('analisis-lavadora.create-quick', [
@@ -3151,6 +3177,16 @@
                     <span id="detail-historial-text">Ver Historial</span>
                 </a>
 
+                @if($canDeleteAnalysis)
+                    <button id="detail-delete-btn"
+                            type="button"
+                            onclick="confirmDeleteAnalysis()"
+                            class="w-full sm:w-auto justify-center px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all shadow-md hover:shadow-lg flex items-center gap-2 font-medium border border-red-700">
+                        <i class="fas fa-trash"></i>
+                        Eliminar
+                    </button>
+                @endif
+
                 <button onclick="closeAnalysisDetailModal()" 
                         class="w-full sm:w-auto justify-center px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-all shadow-md hover:shadow-lg flex items-center gap-2 font-medium border border-gray-300">
                     <i class="fas fa-times"></i>
@@ -3160,6 +3196,13 @@
                     </div>
                 </div>
             </div>
+
+@if($canDeleteAnalysis)
+    <form id="delete-analysis-form" method="POST" class="hidden">
+        @csrf
+        @method('DELETE')
+    </form>
+@endif
 
 {{-- MODAL DE IMÁGENES MONOCROMÁTICO --}}
 <div id="allImagesModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden items-center justify-center z-50 p-4 transition-all duration-300"
@@ -3633,6 +3676,37 @@ function openAnalysisDetail(analysisData) {
     document.getElementById('analysisDetailModal').classList.remove('hidden');
     document.body.style.overflow = 'hidden';
     hideLoading();
+}
+
+function confirmDeleteAnalysis() {
+    if (!currentAnalysisData || !currentAnalysisData.delete_url) {
+        return;
+    }
+
+    Swal.fire({
+        icon: 'warning',
+        title: 'Eliminar analisis',
+        text: 'Esta accion es irreversible y eliminara el registro seleccionado.',
+        showCancelButton: true,
+        confirmButtonText: 'Eliminar',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#dc2626',
+        cancelButtonColor: '#6b7280',
+    }).then(function(result) {
+        if (result.isConfirmed) {
+            const form = document.getElementById('delete-analysis-form');
+            form.action = currentAnalysisData.delete_url;
+            form.submit();
+        }
+    });
+}
+
+function confirmDeleteAnalysisFromUrl(deleteUrl) {
+    currentAnalysisData = Object.assign({}, currentAnalysisData || {}, {
+        delete_url: deleteUrl,
+    });
+
+    confirmDeleteAnalysis();
 }
 
 function normalizeEvidenceImages(imagenes) {

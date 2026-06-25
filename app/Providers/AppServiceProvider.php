@@ -31,6 +31,7 @@ class AppServiceProvider extends ServiceProvider
                 $view->with('canAccessPasteurizadora', $canAccessPasteurizadora);
                 $view->with('canSeePasteurizadora', $canAccessPasteurizadora || $pasteurizadoraComingSoon);
                 $view->with('pasteurizadoraComingSoon', $pasteurizadoraComingSoon);
+                $view->with('canDeleteAnalysis', $user->canDeleteAnalysis());
             }
         });
     }

@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Models\User;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\AnalisisController;
 use App\Http\Controllers\AnalisisLavadoraController;
@@ -142,7 +143,7 @@ Route::prefix('pasteurizadora')->group(function () {
         ->group(function () {
             Route::get('/', 'index')->name('index');
 
-            Route::middleware(['role:admin|ingeniero_mantenimiento|gerente_mantenimiento|supervisor'])->group(function () {
+            Route::middleware(['role:' . implode('|', User::elevatedMaintenanceRoles())])->group(function () {
                 Route::post('/reset-estadisticas', 'resetEstadisticas')->name('reset-estadisticas');
                 Route::get('/check-reset-status', 'checkResetStatus')->name('check-reset-status');
             });
@@ -504,7 +505,7 @@ Route::prefix('pasteurizadora')->group(function () {
     | LÍNEAS
     |--------------------------------------------------------------------------
     */
-    Route::middleware(['role:admin|ingeniero_mantenimiento|gerente_mantenimiento|supervisor'])->group(function () {
+    Route::middleware(['role:' . implode('|', User::elevatedMaintenanceRoles())])->group(function () {
         Route::resource('lineas', LineaController::class);
 
         Route::patch('/lineas/{linea}/toggle', [LineaController::class, 'toggleActivo'])

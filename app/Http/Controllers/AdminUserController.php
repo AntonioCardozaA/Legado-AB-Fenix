@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\View\View;
+use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 
 class AdminUserController extends Controller
@@ -19,7 +20,7 @@ class AdminUserController extends Controller
     {
         $filters = $this->filtersFromRequest($request);
         $users = User::query()
-            ->with('roles')
+            ->with(['roles', 'permissions'])
             ->when($filters['search'] !== '', function ($query) use ($filters) {
                 $search = $filters['search'];
 
@@ -55,7 +56,7 @@ class AdminUserController extends Controller
     public function edit(Request $request, User $user): View
     {
         return view('admin.users.edit', [
-            'managedUser' => $user->load('roles'),
+            'managedUser' => $user->load(['roles', 'permissions']),
             'roleOptions' => $this->roleOptions(),
             'stats' => $this->stats(),
             'filters' => $this->filtersFromRequest($request),
@@ -71,6 +72,7 @@ class AdminUserController extends Controller
         $user->save();
 
         $this->syncRole($user, $data['role']);
+        $this->syncSpecialPermissions($user, $data);
 
         return redirect()
             ->route('admin.users.edit', ['user' => $user])
@@ -93,6 +95,7 @@ class AdminUserController extends Controller
         $user->save();
 
         $this->syncRole($user, $data['role']);
+        $this->syncSpecialPermissions($user, $data);
 
         return redirect()
             ->route('admin.users.edit', array_merge([
@@ -128,6 +131,7 @@ class AdminUserController extends Controller
             'puesto' => ['nullable', 'string', 'max:255'],
             'role' => ['required', 'string', Rule::in($roleNames)],
             'activo' => ['required', 'boolean'],
+            'can_delete_analysis' => ['nullable', 'boolean'],
             'password' => [
                 $user ? 'nullable' : 'required',
                 'confirmed',
@@ -136,6 +140,7 @@ class AdminUserController extends Controller
         ]);
 
         $data['activo'] = $request->boolean('activo');
+        $data['can_delete_analysis'] = $request->boolean('can_delete_analysis');
 
         return $data;
     }
@@ -213,6 +218,27 @@ class AdminUserController extends Controller
         ]);
 
         $user->syncRoles([$roleName]);
+    }
+
+    private function syncSpecialPermissions(User $user, array $data): void
+    {
+        $permission = Permission::firstOrCreate([
+            'name' => User::PERMISSION_DELETE_ANALYSIS,
+            'guard_name' => 'web',
+        ]);
+
+        $canReceivePermission = in_array($data['role'], User::supervisorEquivalentRoles(), true)
+            && (bool) ($data['can_delete_analysis'] ?? false);
+
+        if ($canReceivePermission) {
+            $user->givePermissionTo($permission);
+
+            return;
+        }
+
+        if ($user->hasDirectAnalysisDeletionPermission()) {
+            $user->revokePermissionTo($permission);
+        }
     }
 
     private function isCurrentUser(User $user): bool

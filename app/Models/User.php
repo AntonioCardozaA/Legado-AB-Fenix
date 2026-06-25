@@ -45,6 +45,7 @@ class User extends Authenticatable
     public const PERMISSION_ACCESS_PASTEURIZADORA_MECANICA = 'acceder pasteurizadora mecanica';
     public const PERMISSION_ACCESS_PASTEURIZADORA_CENTRAL_HIDRAULICA = 'acceder pasteurizadora central hidraulica';
     public const PERMISSION_EDIT_ANALYSIS_DATE = 'editar fecha analisis';
+    public const PERMISSION_DELETE_ANALYSIS = 'eliminar analisis';
 
     /**
      * The attributes that should be hidden for serialization.
@@ -129,8 +130,16 @@ public static function elevatedMaintenanceRoles(): array
     return [
         self::ROLE_ADMIN,
         self::ROLE_GERENTE_MANTENIMIENTO,
-        self::ROLE_SUPERVISOR,
         self::ROLE_INGENIERO_MANTENIMIENTO,
+        ...self::supervisorEquivalentRoles(),
+    ];
+}
+
+public static function supervisorEquivalentRoles(): array
+{
+    return [
+        self::ROLE_SUPERVISOR,
+        self::ROLE_PROGRAMADOR_DE_MANTENIMIENTO,
     ];
 }
 
@@ -138,7 +147,6 @@ public static function technicianEquivalentRoles(): array
 {
     return [
         self::ROLE_TECNICO,
-        self::ROLE_PROGRAMADOR_DE_MANTENIMIENTO,
     ];
 }
 
@@ -146,15 +154,36 @@ public static function analysisDateEditorRoles(): array
 {
     return [
         self::ROLE_ADMIN,
-        self::ROLE_SUPERVISOR,
         self::ROLE_TECNICO,
-        self::ROLE_PROGRAMADOR_DE_MANTENIMIENTO,
+        ...self::supervisorEquivalentRoles(),
     ];
 }
 
 public function canEditAnalysisDate(): bool
 {
     return $this->hasAnyRole(self::analysisDateEditorRoles());
+}
+
+public function canDeleteAnalysis(): bool
+{
+    if ($this->hasRole(self::ROLE_ADMIN)) {
+        return true;
+    }
+
+    try {
+        return $this->hasPermissionTo(self::PERMISSION_DELETE_ANALYSIS);
+    } catch (PermissionDoesNotExist) {
+        return false;
+    }
+}
+
+public function hasDirectAnalysisDeletionPermission(): bool
+{
+    try {
+        return $this->hasDirectPermission(self::PERMISSION_DELETE_ANALYSIS);
+    } catch (PermissionDoesNotExist) {
+        return false;
+    }
 }
 
 public function usesTechnicianAccessProfile(): bool
@@ -188,6 +217,10 @@ public function canAccessModule(string $module): bool
         return true;
     }
 
+    if ($this->hasAnyRole(self::supervisorEquivalentRoles())) {
+        return $module !== self::MODULE_PASTEURIZADORA;
+    }
+
     if ($this->usesTechnicianAccessProfile()) {
         return $module === self::MODULE_LAVADORA;
     }
@@ -207,7 +240,7 @@ public function canAccessModule(string $module): bool
     if ($module === self::MODULE_PASTEURIZADORA) {
         return !$this->hasAnyRole([
             self::ROLE_GERENTE_MANTENIMIENTO,
-            self::ROLE_SUPERVISOR,
+            ...self::supervisorEquivalentRoles(),
         ]);
     }
 
@@ -244,7 +277,7 @@ public function shouldShowPasteurizadoraComingSoon(): bool
 
     $isRestrictedMaintenanceRole = $this->hasAnyRole([
         self::ROLE_GERENTE_MANTENIMIENTO,
-        self::ROLE_SUPERVISOR,
+        ...self::supervisorEquivalentRoles(),
     ]) && !$this->canAccessModule(self::MODULE_PASTEURIZADORA);
 
     return $isTechnicianOnly || $isRestrictedMaintenanceRole;
