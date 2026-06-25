@@ -12,7 +12,7 @@ class AnalysisDeletionLogger
     {
         $linea = method_exists($analysis, 'linea') ? $analysis->linea : null;
 
-        return AnalysisDeletionLog::create([
+        $deletionLog = AnalysisDeletionLog::create([
             'user_id' => $user->id,
             'analysis_type' => $analysisType,
             'analysis_model' => $analysis::class,
@@ -24,5 +24,9 @@ class AnalysisDeletionLogger
             'deleted_at' => now(),
             'metadata' => $metadata,
         ]);
+
+        app(AdminRecordNotificationService::class)->notifyAnalysisDeletedBySupervisor($user, $deletionLog, $analysis);
+
+        return $deletionLog;
     }
 }

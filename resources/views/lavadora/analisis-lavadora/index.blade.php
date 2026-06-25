@@ -2191,15 +2191,6 @@
                                                                         {{ count($imagenes) }} img
                                                                     </button>
                                                                 @endif
-                                                                @if($canDeleteAnalysis)
-                                                                    <button type="button"
-                                                                            title="Eliminar analisis"
-                                                                            aria-label="Eliminar analisis #{{ $registro->id }}"
-                                                                            onclick="event.stopPropagation(); confirmDeleteAnalysisFromUrl(@js(route('analisis-lavadora.destroy', ['analisislavadora' => $registro->id])))"
-                                                                            class="inline-flex h-9 w-9 items-center justify-center rounded bg-red-600 text-white transition hover:bg-red-700">
-                                                                        <i class="fas fa-trash text-xs"></i>
-                                                                    </button>
-                                                                @endif
                                                                 <a href="{{ route('analisis-lavadora.create-quick', [
                                                                         'linea_id' => $linea->id,
                                                                         'componente_codigo' => $c->id,
@@ -2745,15 +2736,6 @@
                                                                     class="inline-flex items-center justify-center gap-1 px-3 py-1.5 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition text-xs font-medium">
                                                                     <i class="fas fa-images mr-1"></i>
                                                                     {{ count($imagenes) }} img
-                                                                </button>
-                                                            @endif
-                                                            @if($canDeleteAnalysis)
-                                                                <button type="button"
-                                                                        title="Eliminar analisis"
-                                                                        aria-label="Eliminar analisis #{{ $registro->id }}"
-                                                                        onclick="event.stopPropagation(); confirmDeleteAnalysisFromUrl(@js(route('analisis-lavadora.destroy', ['analisislavadora' => $registro->id])))"
-                                                                        class="inline-flex h-9 w-9 items-center justify-center rounded bg-red-600 text-white transition hover:bg-red-700">
-                                                                    <i class="fas fa-trash text-xs"></i>
                                                                 </button>
                                                             @endif
                                                             <a href="{{ route('analisis-lavadora.create-quick', [
@@ -3699,14 +3681,6 @@ function confirmDeleteAnalysis() {
             form.submit();
         }
     });
-}
-
-function confirmDeleteAnalysisFromUrl(deleteUrl) {
-    currentAnalysisData = Object.assign({}, currentAnalysisData || {}, {
-        delete_url: deleteUrl,
-    });
-
-    confirmDeleteAnalysis();
 }
 
 function normalizeEvidenceImages(imagenes) {

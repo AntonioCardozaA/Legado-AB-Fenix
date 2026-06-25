@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Analisis;
 use App\Models\AnalisisLavadora;
 use App\Models\AnalisisPasteurizadora;
+use App\Models\AnalysisDeletionLog;
 use App\Models\Elongacion;
 use App\Models\Linea;
 use App\Models\PlanAccion;
@@ -49,6 +50,28 @@ class AdminRecordNotificationService
             Log::warning('No se pudo crear la notificacion administrativa del registro.', [
                 'record_type' => $record::class,
                 'record_id' => $record->getKey(),
+                'error' => $exception->getMessage(),
+            ]);
+
+            return 0;
+        }
+    }
+
+    public function notifyAnalysisDeletedBySupervisor(User $actor, AnalysisDeletionLog $deletionLog, ?Model $record = null): int
+    {
+        if (!$actor->hasAnyRole(User::supervisorEquivalentRoles())) {
+            return 0;
+        }
+
+        try {
+            $payload = $this->buildPayloadForDeletion($actor, $deletionLog, $record);
+
+            return $this->sendToAdmins($payload);
+        } catch (Throwable $exception) {
+            Log::warning('No se pudo crear la notificacion administrativa de eliminacion de analisis.', [
+                'user_id' => $actor->id,
+                'analysis_type' => $deletionLog->analysis_type,
+                'deleted_record_id' => $deletionLog->deleted_record_id,
                 'error' => $exception->getMessage(),
             ]);
 
@@ -162,6 +185,44 @@ class AdminRecordNotificationService
             'prioridad' => 'media',
             'area_pasteurizadora' => $record instanceof AnalisisPasteurizadora ? $record->area : null,
             'area_pasteurizadora_label' => $record instanceof AnalisisPasteurizadora ? $this->areaPasteurizadoraLabel($record->area) : null,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function buildPayloadForDeletion(User $actor, AnalysisDeletionLog $deletionLog, ?Model $record = null): array
+    {
+        $deletedAt = $deletionLog->deleted_at ?? now();
+        $deletedAtDisplay = $this->formatDateTime($deletedAt);
+        $recordLabel = $deletionLog->tipo_analisis ?: $this->analysisDeletionTypeLabel($deletionLog->analysis_type);
+        $lineaNombre = $deletionLog->linea_nombre ?: 'Linea no asignada';
+        $detail = $this->resolveDeletionDetail($deletionLog);
+        $areaPasteurizadora = $this->resolveDeletionPasteurizadoraArea($deletionLog, $record);
+        $message = $this->deletionMessage($actor->name, $recordLabel, $lineaNombre, $deletedAtDisplay, $detail);
+
+        return [
+            'type' => 'admin_analysis_deleted',
+            'record_type' => $deletionLog->analysis_type,
+            'record_label' => $recordLabel,
+            'record_id' => $deletionLog->deleted_record_id,
+            'record_class' => $deletionLog->analysis_model,
+            'title' => 'Analisis eliminado por supervisor',
+            'mensaje' => $message,
+            'message' => $message,
+            'actor_id' => $actor->id,
+            'actor_name' => $actor->name,
+            'linea' => $lineaNombre,
+            'linea_id' => $deletionLog->linea_id,
+            'deleted_at' => $deletedAt instanceof CarbonInterface ? $deletedAt->toIso8601String() : now()->toIso8601String(),
+            'deleted_at_display' => $deletedAtDisplay,
+            'created_at' => $deletedAt instanceof CarbonInterface ? $deletedAt->toIso8601String() : now()->toIso8601String(),
+            'created_at_display' => $deletedAtDisplay,
+            'detail' => $detail,
+            'url' => $this->resolveDeletionUrl($deletionLog, $record),
+            'prioridad' => 'alta',
+            'area_pasteurizadora' => $areaPasteurizadora,
+            'area_pasteurizadora_label' => $areaPasteurizadora ? $this->areaPasteurizadoraLabel($areaPasteurizadora) : null,
         ];
     }
 
@@ -296,6 +357,26 @@ class AdminRecordNotificationService
         return null;
     }
 
+    private function resolveDeletionDetail(AnalysisDeletionLog $deletionLog): ?string
+    {
+        $metadata = $deletionLog->metadata ?? [];
+        $area = $metadata['area'] ?? null;
+
+        return $this->joinDetails([
+            $area ? 'Area: ' . $this->areaPasteurizadoraLabel((string) $area) : null,
+            $this->metadataText($metadata, 'modulo', 'Modulo'),
+            $this->metadataText($metadata, 'componente', 'Componente'),
+            $this->metadataText($metadata, 'categoria', 'Categoria'),
+            $this->metadataText($metadata, 'numero_r', 'Numero R'),
+            $this->metadataText($metadata, 'reductor', 'Reductor'),
+            $this->metadataText($metadata, 'nivel', 'Nivel'),
+            $this->metadataText($metadata, 'lado', 'Lado'),
+            $this->metadataText($metadata, 'estado', 'Estado'),
+            $this->metadataText($metadata, 'numero_orden', 'Orden'),
+            $this->metadataText($metadata, 'fecha_analisis', 'Fecha analisis'),
+        ]);
+    }
+
     private function resolveUrl(Model $record): ?string
     {
         return match (true) {
@@ -313,6 +394,57 @@ class AdminRecordNotificationService
                 'tipo' => $record->tipo_equipo ?: 'lavadora',
             ]),
             default => null,
+        };
+    }
+
+    private function resolveDeletionUrl(AnalysisDeletionLog $deletionLog, ?Model $record = null): ?string
+    {
+        $parameters = $deletionLog->linea_id ? ['linea_id' => $deletionLog->linea_id] : [];
+
+        if ($record instanceof AnalisisPasteurizadora) {
+            return $this->routeIfExists(
+                $record->area === AnalisisPasteurizadora::AREA_CENTRAL_HIDRAULICA
+                    ? 'pasteurizadora.central-hidraulica.index'
+                    : 'pasteurizadora.analisis-pasteurizadora.index',
+                $parameters
+            );
+        }
+
+        $metadata = $deletionLog->metadata ?? [];
+
+        return match ($deletionLog->analysis_type) {
+            'lavadora' => $this->routeIfExists('analisis-lavadora.index', $parameters),
+            'pasteurizadora' => $this->routeIfExists(
+                ($metadata['area'] ?? null) === AnalisisPasteurizadora::AREA_CENTRAL_HIDRAULICA
+                    ? 'pasteurizadora.central-hidraulica.index'
+                    : 'pasteurizadora.analisis-pasteurizadora.index',
+                $parameters
+            ),
+            'analisis' => $this->routeIfExists('analisis.index', $parameters),
+            default => null,
+        };
+    }
+
+    private function resolveDeletionPasteurizadoraArea(AnalysisDeletionLog $deletionLog, ?Model $record = null): ?string
+    {
+        if ($record instanceof AnalisisPasteurizadora) {
+            return $record->area;
+        }
+
+        $metadata = $deletionLog->metadata ?? [];
+
+        return $deletionLog->analysis_type === 'pasteurizadora'
+            ? ($metadata['area'] ?? null)
+            : null;
+    }
+
+    private function analysisDeletionTypeLabel(string $analysisType): string
+    {
+        return match ($analysisType) {
+            'analisis' => 'Analisis general',
+            'lavadora' => 'Analisis Lavadora',
+            'pasteurizadora' => 'Analisis de pasteurizadora',
+            default => 'Analisis',
         };
     }
 
@@ -351,6 +483,16 @@ class AdminRecordNotificationService
         return $details ? implode('. ', $details) . '.' : null;
     }
 
+    /**
+     * @param  array<string, mixed>  $metadata
+     */
+    private function metadataText(array $metadata, string $key, string $label): ?string
+    {
+        $value = $metadata[$key] ?? null;
+
+        return filled($value) ? $label . ': ' . $value : null;
+    }
+
     private function message(string $actorName, string $recordLabel, string $linea, string $createdAtDisplay, ?string $detail): string
     {
         $message = sprintf(
@@ -359,6 +501,19 @@ class AdminRecordNotificationService
             $recordLabel,
             $linea,
             $createdAtDisplay
+        );
+
+        return $detail ? $message . ' ' . $detail : $message;
+    }
+
+    private function deletionMessage(string $actorName, string $recordLabel, string $linea, string $deletedAtDisplay, ?string $detail): string
+    {
+        $message = sprintf(
+            '%s elimino %s en %s el %s.',
+            $actorName,
+            $recordLabel,
+            $linea,
+            $deletedAtDisplay
         );
 
         return $detail ? $message . ' ' . $detail : $message;

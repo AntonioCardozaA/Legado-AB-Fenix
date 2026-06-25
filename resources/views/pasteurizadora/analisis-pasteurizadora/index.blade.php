@@ -1637,15 +1637,6 @@
                                                                     {{ count($registro->evidencia_fotos) }}
                                                                 </button>
                                                             @endif
-                                                            @if($canDeleteAnalysis)
-                                                                <button type="button"
-                                                                        title="Eliminar analisis"
-                                                                        aria-label="Eliminar analisis #{{ $registro->id }}"
-                                                                        onclick="event.stopPropagation(); confirmDeleteAnalysisFromUrl(@js($analisisRoute('destroy', $registro->id)))"
-                                                                        class="inline-flex h-9 w-9 items-center justify-center rounded bg-red-600 text-white transition hover:bg-red-700">
-                                                                    <i class="fas fa-trash text-xs"></i>
-                                                                </button>
-                                                            @endif
                                                             @if($procesoCompletado)
                                                                 <span class="inline-flex items-center gap-1 px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-semibold">
                                                                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2227,14 +2218,6 @@ function confirmDeleteAnalysis() {
             form.submit();
         }
     });
-}
-
-function confirmDeleteAnalysisFromUrl(deleteUrl) {
-    currentAnalysisData = Object.assign({}, currentAnalysisData || {}, {
-        delete_url: deleteUrl,
-    });
-
-    confirmDeleteAnalysis();
 }
 
 function renderComponentesRevisados(data) {

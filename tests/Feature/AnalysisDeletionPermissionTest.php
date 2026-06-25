@@ -131,6 +131,43 @@ class AnalysisDeletionPermissionTest extends TestCase
         ]);
     }
 
+    public function test_admin_receives_notification_when_supervisor_deletes_lavadora_analysis(): void
+    {
+        $this->seed(RoleSeeder::class);
+
+        $supervisor = $this->userWithRole(User::ROLE_SUPERVISOR, [
+            'name' => 'Supervisor Alertas',
+        ]);
+        $supervisor->givePermissionTo(Permission::firstOrCreate([
+            'name' => User::PERMISSION_DELETE_ANALYSIS,
+            'guard_name' => 'web',
+        ]));
+
+        $analisis = $this->crearAnalisisLavadora([
+            'numero_orden' => 'OT-DELETE-NOTIFY',
+        ]);
+        $admin = $this->userWithRole(User::ROLE_ADMIN);
+
+        $this->actingAs($supervisor)
+            ->delete(route('analisis-lavadora.destroy', ['analisislavadora' => $analisis->id]))
+            ->assertRedirect();
+
+        $notification = $admin->fresh()->notifications()->firstOrFail();
+
+        $this->assertSame('admin_analysis_deleted', $notification->data['type']);
+        $this->assertSame('Analisis Lavadora', $notification->data['record_label']);
+        $this->assertSame($analisis->id, $notification->data['record_id']);
+        $this->assertSame($supervisor->name, $notification->data['actor_name']);
+        $this->assertSame('L-04', $notification->data['linea']);
+        $this->assertSame('alta', $notification->data['prioridad']);
+        $this->assertSame(
+            route('analisis-lavadora.index', ['linea_id' => $analisis->linea_id]),
+            $notification->data['url']
+        );
+        $this->assertStringContainsString('elimino Analisis Lavadora', $notification->data['message']);
+        $this->assertArrayHasKey('deleted_at_display', $notification->data);
+    }
+
     private function userWithRole(string $role, array $attributes = []): User
     {
         Role::firstOrCreate([
