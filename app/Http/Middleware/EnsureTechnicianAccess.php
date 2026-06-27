@@ -54,6 +54,7 @@ class EnsureTechnicianAccess
         $allowedPrefixes = [
             // Lavadora
             'analisis-lavadora.',
+            'analisis-tendencia-mensual.lavadora.',
 
             // Histórico revisados
             'historico-revisados.',

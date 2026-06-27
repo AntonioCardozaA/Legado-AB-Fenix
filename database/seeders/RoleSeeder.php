@@ -74,14 +74,7 @@ class RoleSeeder extends Seeder
             User::ROLE_ADMIN => $todosLosPermisos,
             User::ROLE_GERENTE_MANTENIMIENTO => $permisosSinPasteurizadora,
             User::ROLE_SUPERVISOR => $permisosSupervisor,
-            User::ROLE_INGENIERO_MANTENIMIENTO => [
-                User::PERMISSION_ACCESS_LAVADORA,
-                User::PERMISSION_ACCESS_PASTEURIZADORA_MECANICA,
-                User::PERMISSION_ACCESS_PASTEURIZADORA_CENTRAL_HIDRAULICA,
-                'ver analisis', 'crear analisis', 'editar analisis', 'exportar analisis',
-                'ver paros', 'crear paros', 'editar paros', 'gestionar planes accion',
-                'ver reportes', 'generar reportes', 'exportar reportes',
-            ],
+            User::ROLE_INGENIERO_MANTENIMIENTO => $permisosTecnico,
             User::ROLE_TECNICO => $permisosTecnico,
             User::ROLE_PROGRAMADOR_DE_MANTENIMIENTO => $permisosSupervisor,
         ];

@@ -1,6 +1,10 @@
 @extends('layouts.app')
 
-@section('title', 'Dashboard Tecnico')
+@php
+    $dashboardRoleLabel = $userRoleLabel ?? auth()->user()?->role_label ?? 'Usuario';
+@endphp
+
+@section('title', 'Dashboard ' . $dashboardRoleLabel)
 
 @section('content')
 <div class="relative min-h-screen w-full bg-cover bg-center bg-no-repeat bg-fixed" 
@@ -22,9 +26,9 @@
                 {{ auth()->user()->name }}
             </p>
             
-            {{-- Subtítulo - opcional, si quieres mantenerlo --}}
+            {{-- Rol del usuario autenticado --}}
             <p class="text-base sm:text-lg md:text-xl text-gray-200 mt-4 sm:mt-6 drop-shadow px-2">
-                Técnico especializado en Lavadora y Pasteurizadora
+             {{ $dashboardRoleLabel }}
             </p>
         </div>
     </div>

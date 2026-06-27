@@ -116,7 +116,7 @@ class AnalisisLavadoraUserTest extends TestCase
         $this->assertSame('2026-02-15', $cambioFecha->fecha_nueva->toDateString());
     }
 
-    public function test_unauthorized_role_cannot_update_analysis_date(): void
+    public function test_maintenance_engineer_can_update_analysis_date_like_technician(): void
     {
         $user = User::factory()->create();
         Role::firstOrCreate(['name' => User::ROLE_INGENIERO_MANTENIMIENTO, 'guard_name' => 'web']);
@@ -127,11 +127,38 @@ class AnalisisLavadoraUserTest extends TestCase
             'numero_orden' => 'OT-FECHA-002',
         ]);
 
+        $response = $this->actingAs($user)->put(route('analisis-lavadora.update', $analisis->id), [
+            'fecha_analisis' => '2026-02-15',
+            'numero_orden' => 'OT-FECHA-002',
+            'estado' => AnalisisLavadora::ESTADO_BUENO,
+            'actividad' => 'Correccion controlada de fecha por ingeniero',
+        ]);
+
+        $response->assertRedirect(route('analisis-lavadora.index'));
+
+        $this->assertSame('2026-02-15', $analisis->fresh()->fecha_analisis->toDateString());
+        $this->assertDatabaseHas('analisis_lavadora_fecha_cambios', [
+            'analisis_lavadora_id' => $analisis->id,
+            'usuario_id' => $user->id,
+        ]);
+    }
+
+    public function test_role_without_date_permission_cannot_update_analysis_date(): void
+    {
+        $user = User::factory()->create();
+        Role::firstOrCreate(['name' => User::ROLE_GERENTE_MANTENIMIENTO, 'guard_name' => 'web']);
+        $user->assignRole(User::ROLE_GERENTE_MANTENIMIENTO);
+
+        $analisis = $this->crearAnalisisLavadora([
+            'fecha_analisis' => '2026-01-10',
+            'numero_orden' => 'OT-FECHA-004',
+        ]);
+
         $response = $this->actingAs($user)
             ->withHeaders(['Accept' => 'application/json'])
             ->put(route('analisis-lavadora.update', $analisis->id), [
                 'fecha_analisis' => '2026-02-15',
-                'numero_orden' => 'OT-FECHA-002',
+                'numero_orden' => 'OT-FECHA-004',
                 'estado' => AnalisisLavadora::ESTADO_BUENO,
                 'actividad' => 'Intento de cambio no autorizado',
             ]);

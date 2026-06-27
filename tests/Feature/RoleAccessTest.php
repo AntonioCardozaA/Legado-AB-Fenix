@@ -108,6 +108,91 @@ class RoleAccessTest extends TestCase
             ->assertRedirect(route('dashboard'));
     }
 
+    public function test_ingeniero_de_mantenimiento_matches_tecnico_permissions_and_access(): void
+    {
+        $this->seed(RoleSeeder::class);
+
+        $technicianRole = Role::where('name', User::ROLE_TECNICO)->firstOrFail();
+        $engineerRole = Role::where('name', User::ROLE_INGENIERO_MANTENIMIENTO)->firstOrFail();
+        $user = $this->userWithRole(User::ROLE_INGENIERO_MANTENIMIENTO);
+        $message = 'No cuentas con los permisos necesarios para visualizar los reportes.';
+
+        $this->assertEqualsCanonicalizing(
+            $technicianRole->permissions->pluck('name')->all(),
+            $engineerRole->permissions->pluck('name')->all()
+        );
+
+        $this->assertTrue($user->usesTechnicianAccessProfile());
+        $this->assertTrue($user->canEditAnalysisDate());
+        $this->assertTrue($user->canAccessModule(User::MODULE_LAVADORA));
+        $this->assertFalse($user->canAccessModule(User::MODULE_PASTEURIZADORA));
+
+        $this->actingAs($user)
+            ->get(route('dashboard'))
+            ->assertRedirect(route('tecnico.dashboard'));
+
+        $this->actingAs($user)
+            ->get(route('tecnico.dashboard'))
+            ->assertOk()
+            ->assertSee($message, false)
+            ->assertDontSee('href="' . route('reportes.index') . '"', false);
+
+        $this->actingAs($user)
+            ->get(route('reportes.index'))
+            ->assertRedirect(route('tecnico.dashboard'))
+            ->assertSessionHas('acceso_restringido', $message);
+
+        $this->actingAs($user)
+            ->get(route('lineas.index'))
+            ->assertForbidden();
+
+        $this->actingAs($user)
+            ->get(route('pasteurizadora.dashboard'))
+            ->assertRedirect(route('dashboard'));
+    }
+
+    public function test_shared_technician_dashboard_displays_authenticated_role_label(): void
+    {
+        foreach ([User::ROLE_TECNICO, User::ROLE_INGENIERO_MANTENIMIENTO] as $role) {
+            $user = $this->userWithRole($role);
+            $expectedRoleLabel = User::roleLabels()[$role];
+
+            $response = $this->actingAs($user)
+                ->get(route('tecnico.dashboard'))
+                ->assertOk()
+                ->assertSee('Dashboard ' . $expectedRoleLabel, false);
+
+            if ($role === User::ROLE_INGENIERO_MANTENIMIENTO) {
+                $response->assertDontSee('Dashboard ' . User::roleLabels()[User::ROLE_TECNICO], false);
+            }
+        }
+    }
+
+    public function test_technician_profile_roles_can_use_lavadora_trend_analysis_modules(): void
+    {
+        Linea::create([
+            'nombre' => 'L-04',
+            'descripcion' => 'Lavadora de prueba',
+            'activo' => true,
+        ]);
+
+        foreach ([User::ROLE_TECNICO, User::ROLE_INGENIERO_MANTENIMIENTO] as $role) {
+            $user = $this->userWithRole($role);
+
+            $this->actingAs($user)
+                ->get(route('analisis-tendencia-mensual.lavadora.analisis-52-12-4'))
+                ->assertOk();
+
+            $this->actingAs($user)
+                ->get(route('analisis-tendencia-mensual.lavadora.analisis-30-14-7'))
+                ->assertOk();
+
+            $this->actingAs($user)
+                ->get(route('analisis-tendencia-mensual.pasteurizadora.analisis-52-12-4'))
+                ->assertRedirect(route('dashboard'));
+        }
+    }
+
     public function test_technician_cannot_open_reportes_from_menu_or_direct_url(): void
     {
         $user = $this->userWithRole(User::ROLE_TECNICO);

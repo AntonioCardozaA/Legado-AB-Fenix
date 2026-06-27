@@ -130,7 +130,6 @@ public static function elevatedMaintenanceRoles(): array
     return [
         self::ROLE_ADMIN,
         self::ROLE_GERENTE_MANTENIMIENTO,
-        self::ROLE_INGENIERO_MANTENIMIENTO,
         ...self::supervisorEquivalentRoles(),
     ];
 }
@@ -147,6 +146,7 @@ public static function technicianEquivalentRoles(): array
 {
     return [
         self::ROLE_TECNICO,
+        self::ROLE_INGENIERO_MANTENIMIENTO,
     ];
 }
 
@@ -154,7 +154,7 @@ public static function analysisDateEditorRoles(): array
 {
     return [
         self::ROLE_ADMIN,
-        self::ROLE_TECNICO,
+        ...self::technicianEquivalentRoles(),
         ...self::supervisorEquivalentRoles(),
     ];
 }
