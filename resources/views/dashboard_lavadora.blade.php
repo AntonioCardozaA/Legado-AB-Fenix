@@ -2220,21 +2220,32 @@
                 <span>Ranking de Daño</span>
             </h3>
             <ul class="ranking-list" id="rankingList">
-                @foreach([] as $index => $item)
+                @foreach($rankingDanos as $index => $item)
                     <li class="ranking-item">
                         <div class="ranking-position {{ $index === 0 ? 'top-1' : ($index === 1 ? 'top-2' : ($index === 2 ? 'top-3' : '')) }}">
                             {{ $index + 1 }}
                         </div>
-                        <div class="ranking-info">
-                            <div class="ranking-linea">{{ $item['linea'] }}</div>
-                            <div class="ranking-puntaje">
-                                <i class="fas fa-star"></i> 
-                                Puntaje: <strong>{{ $item['puntaje'] }}</strong>
+                        <div class="ranking-asset">
+                            <div class="asset-media">
+                                <i class="fas fa-industry" style="font-size: 18px; color: #2563eb;"></i>
+                            </div>
+                            <div class="ranking-info">
+                                <div class="ranking-linea">{{ $item['linea'] }}</div>
+                                <div class="ranking-puntaje">
+                                    <i class="fas fa-triangle-exclamation"></i>
+                                    Criticas: {{ $item['criticas'] ?? 0 }} · Severo / Moderado: {{ ($item['severos'] ?? 0) + ($item['moderados'] ?? 0) }}
+                                </div>
+                                <div class="ranking-meta">
+                                    Total con dano: {{ $item['total_danos'] ?? 0 }} de {{ $item['total_componentes'] ?? 0 }} componentes · Impacto {{ number_format((float) ($item['porcentaje_impacto'] ?? 0), 1) }}% · Revision: {{ $item['fecha_analisis_humana'] ?? 'Sin fecha' }}
+                                </div>
                             </div>
                         </div>
-                        <div class="ranking-badge">
-                            <i class="fas fa-exclamation-circle"></i>
-                            {{ $item['analisis_criticos'] }} críticos
+                        <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 8px;">
+                            <span class="severity-pill {{ $item['prioridad'] ?? 'estable' }}">{{ $item['prioridad_label'] ?? 'Estable' }}</span>
+                            <div class="ranking-badge">
+                                <i class="fas fa-bolt"></i>
+                                {{ number_format((float) ($item['total_danos'] ?? 0), 0) }} danos
+                            </div>
                         </div>
                     </li>
                 @endforeach
@@ -2242,7 +2253,7 @@
             <div class="ranking-footer" id="rankingFooter">
                 <div>
                     <i class="fas fa-info-circle"></i>
-                    Ordenado por nivel de criticidad
+                    Ordenado por danos activos y criticidad
                 </div>
             </div>
         </div>
@@ -3693,15 +3704,31 @@
         const footer = document.getElementById('rankingFooter');
         const empty = document.getElementById('rankingEmpty');
 
-        const rows = (Array.isArray(data.fallas) ? data.fallas : [])
-            .map((item) => ({
-                linea: item.linea,
-                total_daños: Number(item.criticas || 0) + Number(item.severas_moderadas || 0),
-                criticas: Number(item.criticas || 0),
-                severas_moderadas: Number(item.severas_moderadas || 0),
-            }));
+        if (!list) return;
 
-        rows.sort((a, b) => Number(b.total_daños || 0) - Number(a.total_daños || 0) || Number(b.criticas || 0) - Number(a.criticas || 0) || Number(b.severas_moderadas || 0) - Number(a.severas_moderadas || 0));
+        const rows = (Array.isArray(data.ranking) ? data.ranking : [])
+            .map((item) => ({
+                ...item,
+                total_danos: Number(item.total_danos || 0),
+                criticas: Number(item.criticas || 0),
+                severos: Number(item.severos || 0),
+                moderados: Number(item.moderados || 0),
+                total_componentes: Number(item.total_componentes || 0),
+                porcentaje_impacto: Number(item.porcentaje_impacto || 0),
+                puntaje: Number(item.puntaje || item.total_danos || 0),
+            }))
+            .filter((item) => item.total_danos > 0);
+
+        rows.sort((a, b) => Number(b.total_danos || 0)
+            - Number(a.total_danos || 0)
+            || Number(b.criticas || 0)
+            - Number(a.criticas || 0)
+            || Number(b.severos || 0)
+            - Number(a.severos || 0)
+            || Number(b.moderados || 0)
+            - Number(a.moderados || 0)
+            || Number(b.puntaje || 0)
+            - Number(a.puntaje || 0));
 
         hideLoader('rankingLoader');
 
@@ -3710,14 +3737,17 @@
             if (footer) footer.hidden = true;
             if (empty) {
                 empty.hidden = false;
-                empty.innerHTML = emptyMarkup('Sin lavadoras con daños', 'Aun no existen daños activos para mostrar en el ranking.', 'fa-list-check');
+                empty.innerHTML = emptyMarkup('Sin lavadoras con danos', 'Aun no existen danos activos para mostrar en el ranking.', 'fa-list-check');
             }
             return;
         }
 
         if (empty) empty.hidden = true;
         list.hidden = false;
-        if (footer) footer.hidden = true;
+        if (footer) {
+            footer.hidden = false;
+            footer.innerHTML = '<div><i class="fas fa-info-circle"></i> Ordenado por danos activos y criticidad</div>';
+        }
 
         list.innerHTML = rows.slice(0, 10).map((item, index) => `
             <li class="ranking-item">
@@ -3728,82 +3758,13 @@
                     </div>
                     <div class="ranking-info">
                         <div class="ranking-linea">${escapeHtml(item.linea || 'Sin linea')}</div>
-                        <div class="ranking-puntaje"><i class="fas fa-industry"></i> ${escapeHtml(item.linea || 'Sin linea')} · ${escapeHtml(item.reductor || 'Sin reductor')}${item.lado ? ` · ${escapeHtml(item.lado)}` : ''}</div>
-                        <div class="ranking-meta">Revisión: ${escapeHtml(item.fecha_analisis_humana || 'Sin fecha')} · ${elapsedDaysLabel(item.dias_desde_revision)}</div>
+                        <div class="ranking-puntaje"><i class="fas fa-triangle-exclamation"></i> Criticas: ${Number(item.criticas || 0)} · Severo / Moderado: ${Number(item.severos || 0) + Number(item.moderados || 0)}</div>
+                        <div class="ranking-meta">Total con dano: ${Number(item.total_danos || 0)} de ${Number(item.total_componentes || 0)} componentes · Impacto ${percent(item.porcentaje_impacto || 0, 1)} · ${elapsedDaysLabel(item.dias_desde_revision)}</div>
                     </div>
                 </div>
                 <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 8px;">
                     <span class="severity-pill ${severityClass(item.prioridad)}">${escapeHtml(item.prioridad_label || 'Estable')}</span>
-                    <div class="ranking-badge"><i class="fas fa-bolt"></i> Puntaje ${number(item.puntaje || 0, 2)}</div>
-                </div>
-            </li>
-        `).join('');
-
-        list.querySelectorAll('.ranking-item').forEach((element, index) => {
-            const item = rows[index];
-            if (!item) return;
-
-            const puntaje = element.querySelector('.ranking-puntaje');
-            const meta = element.querySelector('.ranking-meta');
-            const badge = element.querySelector('.ranking-badge');
-
-            if (puntaje) {
-                puntaje.innerHTML = `<i class="fas fa-triangle-exclamation"></i> Críticas: ${Number(item.criticas || 0)} · Severo / Moderado: ${Number(item.severos || 0) + Number(item.moderados || 0)}`;
-            }
-
-            if (meta) {
-                meta.textContent = `Total con daño: ${Number(item.total_danos || 0)} de ${Number(item.total_componentes || 0)} componentes · Impacto ${percent(item.porcentaje_impacto || 0, 1)} · ${elapsedDaysLabel(item.dias_desde_revision)}`;
-            }
-
-            if (badge) {
-                badge.innerHTML = `<i class="fas fa-bolt"></i> ${number(item.total_danos || 0, 0)} danos`;
-            }
-        });
-    }
-
-    function renderRanking() {
-        const list = document.getElementById('rankingList');
-        const footer = document.getElementById('rankingFooter');
-        const empty = document.getElementById('rankingEmpty');
-
-        if (!list) return;
-
-        const rows = (Array.isArray(data.fallas) ? data.fallas : []).map((item) => ({
-            linea: item.linea,
-            total_daños: Number(item.criticas || 0) + Number(item.severas_moderadas || 0),
-            criticas: Number(item.criticas || 0),
-            severos: Number(item.severas_moderadas || 0),
-            moderados: 0,
-        }));
-
-        rows.sort((a, b) => Number(b.total_danos || 0) - Number(a.total_danos || 0) || Number(b.criticas || 0) - Number(a.criticas || 0) || Number(b.severos || 0) - Number(a.severos || 0));
-
-        hideLoader('rankingLoader');
-
-        if (!rows.length) {
-            list.hidden = true;
-            if (footer) footer.hidden = true;
-            if (empty) {
-                empty.hidden = false;
-                empty.innerHTML = emptyMarkup('Sin lavadoras con daños', 'Aun no existen daños activos para mostrar en el ranking.', 'fa-list-check');
-            }
-            return;
-        }
-
-        if (empty) empty.hidden = true;
-        list.hidden = false;
-        if (footer) footer.hidden = true;
-
-        list.innerHTML = rows.slice(0, 10).map((item, index) => `
-            <li class="ranking-item">
-                <div class="ranking-position ${index === 0 ? 'top-1' : (index === 1 ? 'top-2' : (index === 2 ? 'top-3' : ''))}">${index + 1}</div>
-                <div class="ranking-asset">
-                    <div class="ranking-info">
-                        <div class="ranking-linea">${escapeHtml(item.linea || 'Sin linea')}</div>
-                    </div>
-                </div>
-                <div style="display: flex; align-items: center;">
-                    <div class="ranking-badge"><i class="fas fa-bolt"></i> ${number(item.total_danos || 0, 0)} daños</div>
+                    <div class="ranking-badge"><i class="fas fa-bolt"></i> ${number(item.total_danos || 0, 0)} danos</div>
                 </div>
             </li>
         `).join('');
