@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\AnalisisLavadora;
+use App\Models\Componente;
 use App\Models\Linea;
 use App\Models\User;
 use App\Services\AdminRecordNotificationService;
@@ -86,6 +87,59 @@ class AdminRecordNotificationTest extends TestCase
         $this->assertSame($user->name, $notification->data['actor_name']);
         $this->assertSame($linea->nombre, $notification->data['linea']);
         $this->assertSame(route('reportes.index', ['linea_id' => $linea->id]), $notification->data['url']);
+    }
+
+    public function test_component_alert_is_sent_to_allowed_roles_without_actor_data(): void
+    {
+        $admin = $this->userWithRole(User::ROLE_ADMIN);
+        $manager = $this->userWithRole(User::ROLE_GERENTE_MANTENIMIENTO);
+        $technician = $this->userWithRole(User::ROLE_TECNICO, [
+            'name' => 'Tecnico Capturista',
+        ]);
+        $supervisor = $this->userWithRole(User::ROLE_SUPERVISOR);
+        $linea = Linea::create([
+            'nombre' => 'L-04',
+            'descripcion' => 'Lavadora de prueba',
+            'tipo' => 'lavadora',
+            'activo' => true,
+        ]);
+        $componente = Componente::create([
+            'nombre' => 'Servo chico',
+            'codigo' => 'L04_TEST_SERVO_CHICO',
+            'linea' => 'L-04',
+            'reductor' => 'Reductor 1',
+            'ubicacion' => 'Reductor 1',
+            'cantidad_total' => 1,
+            'activo' => true,
+        ]);
+
+        $this->actingAs($technician);
+
+        AnalisisLavadora::create([
+            'linea_id' => $linea->id,
+            'componente_id' => $componente->id,
+            'reductor' => 'Reductor 1',
+            'fecha_analisis' => '2026-06-24',
+            'numero_orden' => 'OT-COMP-001',
+            'estado' => 'Desgaste severo',
+            'actividad' => 'Registrar alerta de componente',
+            'usuario_id' => $technician->id,
+        ]);
+
+        $adminNotifications = $admin->fresh()->notifications()->get()->pluck('data.type')->all();
+
+        $this->assertContains('admin_record_created', $adminNotifications);
+        $this->assertContains('component_alert', $adminNotifications);
+
+        foreach ([$manager, $technician, $supervisor] as $recipient) {
+            $notification = $recipient->fresh()->notifications()->firstOrFail();
+
+            $this->assertSame('component_alert', $notification->data['type']);
+            $this->assertSame('Desgaste severo', $notification->data['estado']);
+            $this->assertSame($linea->nombre, $notification->data['linea']);
+            $this->assertArrayNotHasKey('actor_name', $notification->data);
+            $this->assertArrayNotHasKey('actor_id', $notification->data);
+        }
     }
 
     private function userWithRole(string $role, array $attributes = []): User

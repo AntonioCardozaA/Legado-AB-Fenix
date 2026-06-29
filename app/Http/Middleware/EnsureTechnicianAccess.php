@@ -43,6 +43,18 @@ class EnsureTechnicianAccess
             'profile.edit',
             'profile.update',
             'profile.destroy',
+            'profile.notifications',
+            'profile.notifications.update',
+
+            'notificaciones.configuracion',
+            'notificaciones.configuracion.update',
+            'notificaciones.verify.phone',
+
+            'notifications.index',
+            'notifications.open',
+            'notifications.read',
+            'notifications.read-all',
+            'notifications.unread-count',
 
             // Rutas exactas permitidas
             'historico-revisados',

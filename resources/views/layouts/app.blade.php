@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LEGADO AVE FÉNIX - Sistema de Gestión</title>
+    <title>LEGADO AB FÉNIX - Sistema de Gestión</title>
 
     <link rel="icon" type="image/png" href="{{ asset('images/logoo.png') }}">
 
@@ -309,7 +309,7 @@
                     class="w-30 h-30 mb-0 drop-shadow-lg"
                 >
                 <h1 class="text-sm font-semibold tracking-wide leading-tight logo-text">
-                    LEGADO AVE<br>
+                    LEGADO AB<br>
                     <span class="text-yellow-500 font-bold">FÉNIX</span>
                 </h1>
             </div>
@@ -449,7 +449,7 @@
                     </button>
 
                     <h2 class="text-lg sm:text-xl font-semibold text-gray-800 truncate">
-                        @yield('title', 'Legado Ave Fénix')
+                        @yield('title', 'Legado AB Fénix')
                     </h2>
                 </div>
 
@@ -457,9 +457,11 @@
                     <!-- NOTIFICACIONES DROPDOWN -->
                     @auth
                     @php
-                        $notificationItems = auth()->user()->notifications()->latest()->limit(10)->get();
-                        $notificationsCount = auth()->user()->notifications()->count();
-                        $unreadCount = auth()->user()->unreadNotifications()->count();
+                        $notificationVisibility = app(\App\Services\NotificationVisibilityService::class);
+                        $availableNotifications = $notificationVisibility->availableNotificationsFor(auth()->user());
+                        $notificationItems = $availableNotifications->take(10);
+                        $notificationsCount = $availableNotifications->count();
+                        $unreadCount = $notificationVisibility->availableUnreadNotificationsCountFor(auth()->user());
                     @endphp
                     <div class="relative" x-data="{ open: false }">
                         <button @click="open = !open"
@@ -495,9 +497,10 @@
 
                             <div id="notifications-list" class="max-h-96 overflow-y-auto">
                                 @forelse($notificationItems as $notification)
-                                    <a href="{{ $notification->data['url'] ?? '#' }}"
+                                    @php($notificationOpenUrl = route('notifications.open', $notification->id))
+                                    <a href="{{ $notificationOpenUrl }}"
                                        class="block px-4 py-3 hover:bg-gray-50 border-b border-gray-100 {{ $notification->read_at ? '' : 'bg-blue-50' }}"
-                                       onclick="event.preventDefault(); markAsRead('{{ $notification->id }}', '{{ $notification->data['url'] ?? '#' }}')">
+                                       onclick="event.preventDefault(); markAsRead('{{ $notification->id }}', @js($notificationOpenUrl))">
                                         <div class="flex items-start space-x-3">
                                             <div class="flex-shrink-0">
                                                 @if(($notification->data['prioridad'] ?? 'baja') == 'alta')
@@ -672,12 +675,13 @@ function emptyNotificationsNode() {
 }
 
 function notificationItemNode(item) {
+    const targetUrl = item.open_url || item.url || '#';
     const link = document.createElement('a');
-    link.href = item.url || '#';
+    link.href = targetUrl;
     link.className = 'block px-4 py-3 hover:bg-gray-50 border-b border-gray-100 ' + (item.is_read ? '' : 'bg-blue-50');
     link.addEventListener('click', function(event) {
         event.preventDefault();
-        markAsRead(item.id, item.url || '#');
+        markAsRead(item.id, targetUrl);
     });
 
     const row = document.createElement('div');

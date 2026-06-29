@@ -158,6 +158,8 @@ public function index(Request $request)
             ->get();
     }
 
+    $openAnalysisData = $this->modalPayloadForAnalysisId($request->input('open_analysis_id'));
+
     return view('lavadora/analisis-lavadora.index', [
         'analisis' => $analisis,
         'analisisMonitorDiagrama' => $analisisMonitorDiagrama,
@@ -174,8 +176,92 @@ public function index(Request $request)
         'lineaMostrar' => $lineaMostrar,
         'filtros' => $request->all(),
         'estadisticas' => $estadisticas,
+        'openAnalysisData' => $openAnalysisData,
     ]);
 }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function modalPayloadForAnalysisId(mixed $id): ?array
+    {
+        if (blank($id)) {
+            return null;
+        }
+
+        $registro = AnalisisLavadora::with(['linea', 'componente', 'usuario'])
+            ->find($id);
+
+        if (!$registro) {
+            return null;
+        }
+
+        $imagenes = $registro->evidencia_fotos ?? ($registro->fotos ?? []);
+
+        if (is_string($imagenes)) {
+            $imagenes = json_decode($imagenes, true) ?? [];
+        }
+
+        if (!is_array($imagenes)) {
+            $imagenes = [];
+        }
+
+        $totalHistorial = AnalisisLavadora::query()
+            ->where('linea_id', $registro->linea_id)
+            ->where('componente_id', $registro->componente_id)
+            ->where('reductor', $registro->reductor)
+            ->count();
+
+        $canDeleteAnalysis = auth()->user()?->canDeleteAnalysis() ?? false;
+
+        return [
+            'id' => $registro->id,
+            'linea' => $registro->linea->nombre ?? 'Linea no registrada',
+            'componente' => $registro->componente->nombre ?? 'Componente no registrado',
+            'componente_codigo' => $registro->componente->codigo ?? $registro->componente_id,
+            'reductor' => $registro->reductor,
+            'lado' => $registro->lado ?? null,
+            'fecha_analisis' => $registro->fecha_analisis ? $registro->fecha_analisis->format('d/m/Y') : '',
+            'numero_orden' => $registro->numero_orden,
+            'estado' => $registro->estado ?? 'Buen estado',
+            'usuario_nombre' => $registro->usuario?->name ?? 'Usuario no registrado',
+            'actividad' => $registro->actividad,
+            'imagenes' => $imagenes,
+            'color' => $this->analysisCellColor($registro->estado ?? null),
+            'created_at' => $registro->created_at ? $registro->created_at->format('d/m/Y H:i') : '',
+            'updated_at' => $registro->updated_at ? $registro->updated_at->format('d/m/Y H:i') : '',
+            'is_new' => $registro->created_at ? $registro->created_at->gt(now()->subDays(3)) : false,
+            'total_historial' => $totalHistorial,
+            'edit_url' => route('analisis-lavadora.edit', ['analisislavadora' => $registro->id], false),
+            'delete_url' => $canDeleteAnalysis ? route('analisis-lavadora.destroy', ['analisislavadora' => $registro->id], false) : null,
+            'historial_url' => route('analisis-lavadora.historial', [
+                'linea_id' => $registro->linea_id,
+                'componente_id' => $registro->componente_id,
+                'reductor' => $registro->reductor,
+            ], false),
+        ];
+    }
+
+    private function analysisCellColor(?string $estado): string
+    {
+        if (AnalisisLavadora::esEstadoCambiado($estado)) {
+            return 'cell-changed';
+        }
+
+        if (AnalisisLavadora::esEstadoDanado($estado)) {
+            return 'cell-danger';
+        }
+
+        if (AnalisisLavadora::esEstadoRequiereRevision($estado)) {
+            return 'cell-review';
+        }
+
+        if (AnalisisLavadora::esEstadoDesgaste($estado)) {
+            return 'cell-warning';
+        }
+
+        return 'cell-ok';
+    }
 
     /**
      * Aplica el filtro por codigo base aunque el componente tenga prefijos o sufijos.

@@ -3254,6 +3254,7 @@ let currentImages = [];
 let currentAnalysisData = null;
 let currentImageIndex = 0;
 const SEARCH_COMPONENT_CODE = @json($componenteBuscado ?? null);
+const OPEN_ANALYSIS_DATA = @json($openAnalysisData ?? null);
 
 /*
 |--------------------------------------------------------------------------
@@ -4014,6 +4015,10 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     focusSearchedComponent();
+
+    if (OPEN_ANALYSIS_DATA) {
+        openAnalysisDetail(OPEN_ANALYSIS_DATA);
+    }
 });
 
 document.getElementById('lineasModal').addEventListener('click', function(e) {

@@ -112,7 +112,14 @@
                 <h3 class="text-lg font-semibold text-gray-900">Últimas Notificaciones</h3>
             </div>
             <div class="divide-y">
-                @forelse(auth()->user()->notifications()->take(5)->get() as $notification)
+                @php
+                    $profileNotifications = app(\App\Services\NotificationVisibilityService::class)
+                        ->notificationsFor(auth()->user())
+                        ->latest()
+                        ->take(5)
+                        ->get();
+                @endphp
+                @forelse($profileNotifications as $notification)
                 <div class="p-4 {{ $notification->read_at ? 'bg-white' : 'bg-blue-50' }}">
                     <div class="flex justify-between items-start">
                         <div>

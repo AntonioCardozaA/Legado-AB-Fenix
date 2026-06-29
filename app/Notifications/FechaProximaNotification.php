@@ -82,6 +82,7 @@ class FechaProximaNotification extends Notification implements ShouldQueue
             'actividad' => $this->plan->actividad,
             'linea' => $lineaNombre,
             'linea_id' => $this->plan->linea_id,
+            'tipo_equipo' => $this->plan->tipo_equipo,
             'area_pasteurizadora' => $this->plan->area_pasteurizadora,
             'area_pasteurizadora_label' => $areaPasteurizadora,
             'pcm' => strtoupper($this->pcm),
@@ -91,7 +92,7 @@ class FechaProximaNotification extends Notification implements ShouldQueue
             'title' => 'Plan de accion por vencer',
             'mensaje' => $message,
             'message' => $message,
-            'url' => $this->resolveUrl(),
+            'url' => $this->resolveDatabaseUrl(),
             'prioridad' => $this->getPrioridad(),
         ];
     }
@@ -180,5 +181,14 @@ class FechaProximaNotification extends Notification implements ShouldQueue
             'plan_accion' => $this->plan->id,
             'tipo' => $this->plan->tipo_equipo,
         ]);
+    }
+
+    protected function resolveDatabaseUrl(): string
+    {
+        return route('plan-accion.index', [
+            'tipo' => $this->plan->tipo_equipo,
+            'linea_id' => $this->plan->linea_id,
+            'open_plan_id' => $this->plan->id,
+        ], false);
     }
 }

@@ -1966,6 +1966,7 @@
 <script>
 let currentAnalysisData = null;
 let currentEstadoData = [];
+const OPEN_ANALYSIS_DATA = @json($openAnalysisData ?? null);
 
 function openEstadoModal(tipo, nombre, registros) {
     currentEstadoData = registros;
@@ -2532,5 +2533,11 @@ function toggleAdvancedFilters() {
     panel.classList.toggle('show');
     icon.style.transform = panel.classList.contains('show') ? 'rotate(180deg)' : 'rotate(0deg)';
 }
+
+document.addEventListener('DOMContentLoaded', function() {
+    if (OPEN_ANALYSIS_DATA) {
+        openAnalysisDetail(OPEN_ANALYSIS_DATA);
+    }
+});
 </script>
 @endsection

@@ -3,13 +3,13 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>{{ config('app.name', 'Legado Ave Fenix') }}</title>
+    <title>{{ config('app.name', 'Legado AB Fenix') }}</title>
     
-    <meta name="description" content="Legado Ave Fénix - Soluciones industriales en lavado y pasteurización.">
-    <meta name="author" content="Legado Ave Fénix">
+    <meta name="description" content="Legado AB Fénix - Soluciones industriales en lavado y pasteurización.">
+    <meta name="author" content="Legado AB Fénix">
     <meta name="robots" content="index, follow">
     
-    <meta property="og:title" content="Legado Ave Fénix">
+    <meta property="og:title" content="Legado AB Fénix">
     <meta property="og:description" content="Soluciones industriales en lavado y pasteurización.">
     <meta property="og:type" content="website">
     
@@ -390,7 +390,7 @@
     <div class="hero">
         <!-- Nuevo badge de estado -->
         <h1>
-            Bienvenido a <span id="typingText">Legado Ave Fénix</span><span class="typing-cursor"></span>
+            Bienvenido a <span id="typingText">Legado AB Fénix</span><span class="typing-cursor"></span>
         </h1>
         
         <p>
@@ -435,7 +435,7 @@
                 <a href="#">Soporte Técnico</a>
             </div>
             <div class="copyright">
-                <span>© <span id="currentYear"></span> Legado Ave Fénix</span>
+                <span>© <span id="currentYear"></span> Legado AB Fénix</span>
                 <span>|</span>
                 <span>v2.2.1 · Edition</span>
                 <span>|</span>
@@ -467,7 +467,7 @@
         // --- EFECTO TYPING (NUEVO) ---
         const textElement = document.getElementById('typingText');
         if (textElement && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-            const fullText = "Legado Ave Fénix";
+            const fullText = "Legado AB Fénix";
             textElement.textContent = ""; // Vaciar al inicio
             let i = 0;
             
@@ -485,7 +485,7 @@
             });
         } else if (textElement) {
             // Si el usuario prefiere poco movimiento, mostrar texto completo inmediatamente
-            textElement.textContent = "Legado Ave Fénix";
+            textElement.textContent = "Legado AB Fénix";
         }
 
         // --- Detectar reducción de movimiento y desactivar animaciones ---

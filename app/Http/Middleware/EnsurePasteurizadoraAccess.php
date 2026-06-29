@@ -23,6 +23,10 @@ class EnsurePasteurizadoraAccess
             return $next($request);
         }
 
+        if ($this->isAllowedPlanActionReadRequest($request, $user)) {
+            return $next($request);
+        }
+
         if ($request->expectsJson()) {
             return response()->json([
                 'message' => 'No tienes permiso para acceder al modulo de Pasteurizadora.',
@@ -69,6 +73,23 @@ class EnsurePasteurizadoraAccess
         }
 
         return false;
+    }
+
+    private function isAllowedPlanActionReadRequest(Request $request, User $user): bool
+    {
+        $routeName = $request->route()?->getName();
+
+        if (!in_array($routeName, [
+            'plan-accion.index',
+            'plan-accion.show',
+            'plan-accion.dashboard',
+            'plan-accion.por-lavadora',
+            'plan-accion.notificaciones-pendientes',
+        ], true)) {
+            return false;
+        }
+
+        return $user->canViewPlanActionType(User::MODULE_PASTEURIZADORA);
     }
 
     private function containsPasteurizadora(mixed $value): bool

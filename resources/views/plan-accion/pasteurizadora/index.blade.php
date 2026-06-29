@@ -401,8 +401,8 @@
         display: none;
         position: fixed;
         inset: 0;
-        background: rgba(0, 0, 0, 0.5);
-        backdrop-filter: blur(4px);
+        background: rgba(24, 24, 27, 0.58);
+        backdrop-filter: blur(6px);
         z-index: 1000;
         align-items: center;
         justify-content: center;
@@ -415,18 +415,19 @@
 
     .modal-content {
         background: white;
-        border-radius: 24px;
-        max-width: 550px;
+        border-radius: 20px;
+        max-width: 760px;
         width: 100%;
         max-height: 85vh;
         overflow: hidden;
-        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        border: 1px solid #e4e4e7;
+        box-shadow: 0 24px 70px rgba(24, 24, 27, 0.28);
     }
 
     .modal-header {
         padding: 20px 24px;
-        background: linear-gradient(135deg, #f8fafc, #f1f5f9);
-        border-bottom: 1px solid #e2e8f0;
+        background: #fafafa;
+        border-bottom: 1px solid #e4e4e7;
         display: flex;
         justify-content: space-between;
         align-items: center;
@@ -443,9 +444,9 @@
         width: 44px;
         height: 44px;
         border-radius: 50%;
-        background: white;
-        border: 1px solid #e2e8f0;
-        color: #64748b;
+        background: #ffffff;
+        border: 1px solid #d4d4d8;
+        color: #52525b;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -965,6 +966,7 @@
     <div class="modal-content">
         <div class="modal-header">
             <h3 class="text-lg font-bold text-gray-900 flex items-center gap-2">
+                <i class="fas fa-clipboard-list text-blue-600"></i>
                 Detalles de la Actividad
             </h3>
             <button class="modal-close modal-close-btn">
@@ -1048,6 +1050,168 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
+    const detalleActividad = document.getElementById('detalleActividad');
+
+    function escapeHtml(value) {
+        return String(value ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
+    function fechaLocal(value, dateOnly = false) {
+        if (!value) return null;
+
+        if (dateOnly) {
+            const match = String(value).match(/^(\d{4})-(\d{2})-(\d{2})/);
+
+            if (match) {
+                return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+            }
+        }
+
+        const date = new Date(value);
+        return Number.isNaN(date.getTime()) ? null : date;
+    }
+
+    function formatDate(value) {
+        const date = fechaLocal(value, true);
+        return date ? date.toLocaleDateString('es-MX') : null;
+    }
+
+    function formatDateTime(value) {
+        const date = fechaLocal(value);
+        return date ? date.toLocaleString('es-MX', { dateStyle: 'short', timeStyle: 'short' }) : null;
+    }
+
+    function pcmTone(value) {
+        const date = fechaLocal(value, true);
+        if (!date) return null;
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        date.setHours(0, 0, 0, 0);
+        const days = Math.ceil((date - today) / 86400000);
+
+        if (days < 0) {
+            return { label: 'Vencida', detail: `${Math.abs(days)} dia(s) vencida`, classes: 'border-red-200 bg-red-50 text-red-700', icon: 'fa-circle-exclamation' };
+        }
+
+        if (days <= 3) {
+            return { label: 'Proxima', detail: days === 0 ? 'Vence hoy' : `Faltan ${days} dia(s)`, classes: 'border-blue-200 bg-blue-50 text-blue-800 shadow-sm shadow-blue-100', icon: 'fa-bolt' };
+        }
+
+        if (days <= 7) {
+            return { label: 'Cercana', detail: `Faltan ${days} dia(s)`, classes: 'border-blue-200 bg-blue-50 text-blue-800 shadow-sm shadow-blue-100', icon: 'fa-clock' };
+        }
+
+        return { label: 'Programada', detail: `Faltan ${days} dia(s)`, classes: 'border-zinc-200 bg-zinc-50 text-zinc-700 shadow-sm shadow-zinc-100', icon: 'fa-calendar-check' };
+    }
+
+    function renderPlanActionDetail(data, options = {}) {
+        if (!detalleActividad) return;
+
+        const usuarioNombre = usuario => usuario && usuario.name ? usuario.name : null;
+        const tipo = data.tipo_equipo || options.tipo || 'pasteurizadora';
+        const esPasteurizadora = tipo === 'pasteurizadora';
+        const icon = esPasteurizadora ? 'fa-industry' : 'fa-clipboard-list';
+        const headerGradient = data.completado
+            ? 'linear-gradient(135deg, #065f46 0%, #059669 52%, #34d399 100%)'
+            : 'linear-gradient(135deg, #1e3a8a 0%, #2563eb 52%, #38bdf8 100%)';
+        const iconPanelClasses = data.completado
+            ? 'bg-emerald-500/15 text-emerald-50 ring-1 ring-emerald-300/25'
+            : 'bg-blue-500/15 text-blue-50 ring-1 ring-blue-300/25';
+        const responsable = usuarioNombre(data.responsable) || 'Sin responsable';
+        const registradoPor = usuarioNombre(data.registrado_por) || 'Sin dato historico';
+        const ejecutadoPor = usuarioNombre(data.ejecutado_por) || (data.completado ? 'Sin dato historico' : 'Pendiente');
+        const fechaRegistro = formatDateTime(data.created_at) || 'N/A';
+        const fechaEjecucion = formatDateTime(data.fecha_ejecucion) || (data.completado ? 'Sin dato historico' : 'Pendiente');
+        const estadoClasses = data.completado ? 'border-emerald-200 bg-emerald-50 text-emerald-700 shadow-sm shadow-emerald-100' : 'border-blue-200 bg-blue-50 text-blue-800 shadow-sm shadow-blue-100';
+        const estadoIcon = data.completado ? 'fa-circle-check' : 'fa-hourglass-half';
+        const estadoLabel = data.completado ? 'Actividad completada' : 'Actividad pendiente';
+        const articleBorderClasses = data.completado ? 'border-emerald-100' : 'border-blue-100';
+        const areaLabels = { mecanica: 'Mecanica', central_hidraulica: 'Hidraulica' };
+        const areaLabel = areaLabels[data.area_pasteurizadora] || data.area_pasteurizadora_label || 'No especificada';
+        const pcmCards = ['fecha_pcm1', 'fecha_pcm2', 'fecha_pcm3', 'fecha_pcm4']
+            .map((campo, index) => {
+                const tone = pcmTone(data[campo]);
+                if (!tone) return '';
+
+                return `
+                    <div class="rounded-xl border p-4 ${tone.classes}">
+                        <div class="flex items-center justify-between gap-3">
+                            <span class="text-xs font-bold uppercase tracking-wide">PCM ${index + 1}</span>
+                            <i class="fas ${tone.icon}"></i>
+                        </div>
+                        <p class="mt-2 text-lg font-bold text-gray-950">${formatDate(data[campo])}</p>
+                        <p class="mt-1 text-xs font-semibold">${tone.label} - ${tone.detail}</p>
+                    </div>
+                `;
+            })
+            .join('');
+
+        detalleActividad.innerHTML = `
+            <article class="overflow-hidden rounded-2xl border ${articleBorderClasses} bg-white shadow-xl shadow-zinc-200/70">
+                <div class="relative overflow-hidden px-5 py-5 text-white" style="background: ${headerGradient};">
+                    <div class="absolute inset-x-0 bottom-0 h-px bg-white/15"></div>
+                    <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                        <div class="flex items-center gap-4">
+                            <span class="flex h-14 w-14 items-center justify-center rounded-2xl text-2xl ${iconPanelClasses}">
+                                <i class="fas ${icon}"></i>
+                            </span>
+                            <div>
+                                <div class="mb-1 flex flex-wrap items-center gap-2 text-xs font-bold text-white/85">
+                                    <span class="rounded-full bg-white/15 px-3 py-1">Plan #${escapeHtml(data.id || '')}</span>
+                                    <span class="rounded-full bg-white/15 px-3 py-1">${escapeHtml(data.linea ? data.linea.nombre : 'Sin linea')}</span>
+                                </div>
+                                <h4 class="text-xl font-black leading-tight">${escapeHtml(data.actividad || 'Actividad sin nombre')}</h4>
+                            </div>
+                        </div>
+                        <span class="inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-bold ${estadoClasses}">
+                            <i class="fas ${estadoIcon}"></i>
+                            ${estadoLabel}
+                        </span>
+                    </div>
+                </div>
+
+                <div class="space-y-4 bg-zinc-50 p-5">
+                    <div class="grid gap-3 md:grid-cols-3">
+                        <div class="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
+                            <p class="text-xs font-bold uppercase tracking-wide text-zinc-500">Responsable</p>
+                            <p class="mt-2 font-bold text-zinc-950">${escapeHtml(responsable)}</p>
+                        </div>
+                        <div class="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
+                            <p class="text-xs font-bold uppercase tracking-wide text-zinc-500">Registrado por</p>
+                            <p class="mt-2 font-bold text-zinc-950">${escapeHtml(registradoPor)}</p>
+                            <p class="mt-1 text-xs text-zinc-500">${escapeHtml(fechaRegistro)}</p>
+                        </div>
+                        <div class="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
+                            <p class="text-xs font-bold uppercase tracking-wide text-zinc-500">Ejecutado por</p>
+                            <p class="mt-2 font-bold text-zinc-950">${escapeHtml(ejecutadoPor)}</p>
+                            <p class="mt-1 text-xs text-zinc-500">${escapeHtml(fechaEjecucion)}</p>
+                        </div>
+                    </div>
+
+                    ${pcmCards ? `<div class="grid gap-3 md:grid-cols-2">${pcmCards}</div>` : ''}
+
+                    <div class="rounded-xl border border-zinc-200 bg-white p-4 text-zinc-800 shadow-sm">
+                        <p class="text-xs font-bold uppercase tracking-wide">Parte de Pasteurizadora</p>
+                        <p class="mt-2 font-bold">${escapeHtml(areaLabel)}</p>
+                    </div>
+
+                    ${data.observaciones ? `
+                        <div class="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
+                            <p class="text-xs font-bold uppercase tracking-wide text-zinc-500">Observaciones</p>
+                            <p class="mt-2 text-sm leading-6 text-zinc-700">${escapeHtml(data.observaciones)}</p>
+                        </div>
+                    ` : ''}
+                </div>
+            </article>
+        `;
+    }
+
     document.querySelectorAll('.ver-btn').forEach(btn => {
         btn.addEventListener('click', function() {
             const id = this.dataset.id;
@@ -1060,9 +1224,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
             `;
 
-            fetch(`/plan-accion/${id}`)
-                .then(response => response.json())
+            fetch(`/plan-accion/${id}`, { headers: { 'Accept': 'application/json' } })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(response.status === 403 ? 'forbidden' : (response.status === 404 ? 'missing' : 'load'));
+                    }
+
+                    return response.json();
+                })
                 .then(data => {
+                    renderPlanActionDetail(data, { tipo: 'pasteurizadora' });
+                    return;
                     const areaLabels = {
                         mecanica: 'Mecanica',
                         central_hidraulica: 'Hidraulica'
@@ -1139,11 +1311,17 @@ document.addEventListener('DOMContentLoaded', function() {
                     html += '</div>';
                     document.getElementById('detalleActividad').innerHTML = html;
                 })
-                .catch(() => {
+                .catch(error => {
+                    const message = error.message === 'forbidden'
+                        ? 'No cuentas con autorizacion para visualizar este contenido.'
+                        : (error.message === 'missing'
+                            ? 'La actividad ya no esta disponible o fue eliminada.'
+                            : 'Error al cargar los detalles');
+
                     document.getElementById('detalleActividad').innerHTML = `
                         <div class="text-center py-8 text-red-600">
                             <i class="fas fa-exclamation-circle text-4xl mb-3"></i>
-                            <p>Error al cargar los detalles</p>
+                            <p>${message}</p>
                         </div>
                     `;
                 });
@@ -1157,6 +1335,103 @@ document.addEventListener('DOMContentLoaded', function() {
             openModal(eliminarModal);
         });
     });
+
+    function openPlanFromNotification(id) {
+        const button = document.querySelector(`.ver-btn[data-id="${id}"]`);
+
+        if (button) {
+            button.click();
+            return;
+        }
+
+        openModal(verModal);
+
+        document.getElementById('detalleActividad').innerHTML = `
+            <div class="text-center py-8">
+                <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-blue-600 border-t-transparent"></div>
+                <p class="mt-3 text-sm text-gray-500">Cargando detalles...</p>
+            </div>
+        `;
+
+        fetch(`/plan-accion/${id}?tipo=pasteurizadora`, { headers: { 'Accept': 'application/json' } })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(response.status === 403 ? 'forbidden' : (response.status === 404 ? 'missing' : 'load'));
+                }
+
+                return response.json();
+            })
+            .then(data => {
+                renderPlanActionDetail(data, { tipo: 'pasteurizadora' });
+                return;
+                const areaLabels = {
+                    mecanica: 'Mecanica',
+                    central_hidraulica: 'Hidraulica'
+                };
+                const fechaHora = value => value
+                    ? new Date(value).toLocaleString('es-MX', { dateStyle: 'short', timeStyle: 'short' })
+                    : null;
+                const responsable = data.responsable && data.responsable.name ? data.responsable.name : 'Sin responsable';
+                const registradoPor = data.registrado_por && data.registrado_por.name ? data.registrado_por.name : 'Sin dato historico';
+                const ejecutadoPor = data.ejecutado_por && data.ejecutado_por.name
+                    ? data.ejecutado_por.name
+                    : (data.completado ? 'Sin dato historico' : 'Pendiente');
+                const fechas = ['fecha_pcm1', 'fecha_pcm2', 'fecha_pcm3', 'fecha_pcm4']
+                    .map((campo, index) => data[campo]
+                        ? `<div class="bg-gray-50 p-4 rounded-xl">
+                            <label class="text-xs text-gray-500 uppercase font-semibold">PCM ${index + 1}</label>
+                            <p class="font-medium text-gray-900 mt-1">${new Date(data[campo]).toLocaleDateString('es-MX')}</p>
+                        </div>`
+                        : '')
+                    .join('');
+
+                document.getElementById('detalleActividad').innerHTML = `
+                    <div class="space-y-4">
+                        <div class="bg-gray-50 p-4 rounded-xl">
+                            <label class="text-xs text-gray-500 uppercase font-semibold">Linea</label>
+                            <p class="font-medium text-gray-900 mt-1">${data.linea ? data.linea.nombre : 'No asignada'}</p>
+                        </div>
+                        <div class="bg-gray-50 p-4 rounded-xl">
+                            <label class="text-xs text-gray-500 uppercase font-semibold">Actividad</label>
+                            <p class="font-medium text-gray-900 mt-1">${data.actividad || 'No especificada'}</p>
+                        </div>
+                        <div class="bg-gray-50 p-4 rounded-xl">
+                            <label class="text-xs text-gray-500 uppercase font-semibold">Parte de Pasteurizadora</label>
+                            <p class="font-medium text-gray-900 mt-1">${areaLabels[data.area_pasteurizadora] || 'No especificada'}</p>
+                        </div>
+                        <div class="bg-gray-50 p-4 rounded-xl">
+                            <label class="text-xs text-gray-500 uppercase font-semibold">Trazabilidad</label>
+                            <div class="mt-2 space-y-1 text-sm text-gray-700">
+                                <p><span class="font-semibold">Responsable:</span> ${responsable}</p>
+                                <p><span class="font-semibold">Registrado por:</span> ${registradoPor} | ${fechaHora(data.created_at) || 'N/A'}</p>
+                                <p><span class="font-semibold">Ejecutado por:</span> ${ejecutadoPor} | ${fechaHora(data.fecha_ejecucion) || (data.completado ? 'Sin dato historico' : 'Pendiente')}</p>
+                            </div>
+                        </div>
+                        ${fechas}
+                    </div>
+                `;
+            })
+            .catch(error => {
+                const message = error.message === 'forbidden'
+                    ? 'No cuentas con autorizacion para visualizar este contenido.'
+                    : (error.message === 'missing'
+                        ? 'La actividad ya no esta disponible o fue eliminada.'
+                        : 'No se pudo cargar la actividad solicitada.');
+
+                document.getElementById('detalleActividad').innerHTML = `
+                    <div class="text-center py-8 text-red-600">
+                        <i class="fas fa-exclamation-circle text-4xl mb-3"></i>
+                        <p>${message}</p>
+                    </div>
+                `;
+            });
+    }
+
+    const openPlanId = @json(request('open_plan_id'));
+
+    if (openPlanId) {
+        openPlanFromNotification(openPlanId);
+    }
 
     document.querySelectorAll('.checklist-btn').forEach(btn => {
         btn.addEventListener('click', function() {

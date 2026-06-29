@@ -87,6 +87,9 @@ class NotificationServiceTest extends TestCase
         $this->assertSame('plan_accion_due', $notification->data['type']);
         $this->assertSame('L-04', $notification->data['linea']);
         $this->assertSame('PCM1', $notification->data['pcm']);
+        $this->assertSame('lavadora', $notification->data['tipo_equipo']);
+        $this->assertStringStartsWith('/plan-accion?', $notification->data['url']);
+        $this->assertStringContainsString('open_plan_id=', $notification->data['url']);
     }
 
     public function test_pasteurizadora_action_plan_notifications_include_area(): void
@@ -126,6 +129,7 @@ class NotificationServiceTest extends TestCase
 
         $this->assertSame('central_hidraulica', $notification->data['area_pasteurizadora']);
         $this->assertSame('Hidraulica', $notification->data['area_pasteurizadora_label']);
+        $this->assertSame('pasteurizadora', $notification->data['tipo_equipo']);
         $this->assertStringContainsString('Parte: Hidraulica', $notification->data['message']);
     }
 }

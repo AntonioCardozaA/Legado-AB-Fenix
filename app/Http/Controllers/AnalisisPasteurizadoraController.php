@@ -343,11 +343,119 @@ class AnalisisPasteurizadoraController extends Controller
         $mostrarTodas = !request('linea_id') || request('linea_id') === 'todas';
 
         $seguimientoPasteurizadora = $this->buildSeguimientoPasteurizadora($lineasFiltradas);
+        $openAnalysisData = $this->modalPayloadForAnalysisId($request->input('open_analysis_id'));
 
         return $this->renderView('index', compact(
             'analisis', 'lineasFiltradas', 'totalAnalisis', 'totalDanados', 'totalCambiados',
-            'totalRequiereRevision', 'lineaSeleccionada', 'mostrarTodas', 'seguimientoPasteurizadora'
+            'totalRequiereRevision', 'lineaSeleccionada', 'mostrarTodas', 'seguimientoPasteurizadora',
+            'openAnalysisData'
         ));
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function modalPayloadForAnalysisId(mixed $id): ?array
+    {
+        if (blank($id)) {
+            return null;
+        }
+
+        $registro = $this->analisisQuery()
+            ->with(['linea', 'usuario'])
+            ->find($id);
+
+        if (!$registro) {
+            return null;
+        }
+
+        $imagenes = $registro->evidencia_fotos ?? [];
+
+        if (is_string($imagenes)) {
+            $imagenes = json_decode($imagenes, true) ?? [];
+        }
+
+        if (!is_array($imagenes)) {
+            $imagenes = [];
+        }
+
+        $componentesRevisados = $registro->componentes_revisados;
+
+        if (is_string($componentesRevisados)) {
+            $componentesRevisados = json_decode($componentesRevisados, true) ?? [];
+        }
+
+        if (!is_array($componentesRevisados)) {
+            $componentesRevisados = [];
+        }
+
+        $actualizaciones = $this->analisisQuery()
+            ->with('usuario')
+            ->where('linea_id', $registro->linea_id)
+            ->where('modulo', $registro->modulo)
+            ->where('componente', $registro->componente)
+            ->orderByDesc('created_at')
+            ->get()
+            ->map(function (AnalisisPasteurizadora $item): array {
+                $componentes = $item->componentes_revisados;
+
+                if (is_string($componentes)) {
+                    $componentes = json_decode($componentes, true) ?? [];
+                }
+
+                if (!is_array($componentes)) {
+                    $componentes = [];
+                }
+
+                return [
+                    'id' => $item->id,
+                    'fecha' => $item->fecha_analisis ? $item->fecha_analisis->format('d/m/Y') : $item->created_at?->format('d/m/Y'),
+                    'hora' => $item->created_at?->format('H:i'),
+                    'orden' => $item->numero_orden,
+                    'estado' => $item->estado,
+                    'usuario_nombre' => $item->usuario?->name ?? $item->responsable ?? 'Usuario no registrado',
+                    'actividad' => $item->actividad,
+                    'lado' => $item->lado,
+                    'nivel' => $item->nivel,
+                    'componentes_revisados' => collect($componentes)
+                        ->filter(fn ($numeroComponente) => is_numeric($numeroComponente))
+                        ->map(fn ($numeroComponente) => (int) $numeroComponente)
+                        ->values(),
+                ];
+            })
+            ->values();
+
+        $canDeleteAnalysis = auth()->user()?->canDeleteAnalysis() ?? false;
+
+        return [
+            'id' => $registro->id,
+            'linea' => $registro->linea->nombre ?? 'Linea no registrada',
+            'modulo' => $registro->modulo,
+            'componente' => $registro->componente_nombre ?? $registro->componente,
+            'lado' => $registro->lado,
+            'nivel' => $registro->nivel,
+            'fecha_analisis' => $registro->fecha_analisis ? $registro->fecha_analisis->format('d/m/Y') : $registro->created_at?->format('d/m/Y'),
+            'numero_orden' => $registro->numero_orden,
+            'estado' => $registro->estado,
+            'usuario_nombre' => $registro->usuario?->name ?? $registro->responsable ?? 'Usuario no registrado',
+            'actividad' => $registro->actividad,
+            'imagenes' => $imagenes,
+            'componentes_revisados' => collect($componentesRevisados)
+                ->filter(fn ($numeroComponente) => is_numeric($numeroComponente))
+                ->map(fn ($numeroComponente) => (int) $numeroComponente)
+                ->values(),
+            'total_componentes' => $registro->total_componentes,
+            'estado_por_nivel' => null,
+            'pendientes_por_nivel' => [],
+            'actualizaciones' => $actualizaciones,
+            'edit_url' => route($this->routeName('edit'), $registro->id, false),
+            'delete_url' => $canDeleteAnalysis ? route($this->routeName('destroy'), $registro->id, false) : null,
+            'historial_url' => route($this->routeName('historial'), [
+                'linea_id' => $registro->linea_id,
+                'modulo' => $registro->modulo,
+                'componente' => $registro->componente,
+            ], false),
+        ];
     }
 
         public function dashboard()

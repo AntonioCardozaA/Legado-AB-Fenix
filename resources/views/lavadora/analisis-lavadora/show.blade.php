@@ -10,29 +10,59 @@
         \App\Models\AnalisisLavadora::esEstadoDanado($estado) => [
             'class' => 'bg-red-50 text-red-700 border-red-200',
             'icon' => 'fa-exclamation-circle',
+            'header' => 'from-red-700 via-red-600 to-rose-500',
+            'surface' => 'bg-red-50/70 border-red-100',
+            'card' => 'border-red-100 bg-red-50/70',
+            'iconBox' => 'bg-red-50 text-red-600',
+            'activity' => 'border-red-200 bg-red-50/80',
+            'buttonText' => 'text-red-700 hover:bg-red-50',
         ],
         \App\Models\AnalisisLavadora::esEstadoDesgaste($estado) => [
             'class' => 'bg-orange-50 text-orange-700 border-orange-200',
             'icon' => 'fa-triangle-exclamation',
+            'header' => 'from-orange-700 via-orange-600 to-amber-500',
+            'surface' => 'bg-orange-50/70 border-orange-100',
+            'card' => 'border-orange-100 bg-orange-50/70',
+            'iconBox' => 'bg-orange-50 text-orange-600',
+            'activity' => 'border-orange-200 bg-orange-50/80',
+            'buttonText' => 'text-orange-700 hover:bg-orange-50',
         ],
         \App\Models\AnalisisLavadora::esEstadoRequiereRevision($estado) => [
             'class' => 'bg-amber-50 text-amber-700 border-amber-200',
             'icon' => 'fa-screwdriver-wrench',
+            'header' => 'from-amber-700 via-amber-600 to-yellow-500',
+            'surface' => 'bg-amber-50/70 border-amber-100',
+            'card' => 'border-amber-100 bg-amber-50/70',
+            'iconBox' => 'bg-amber-50 text-amber-600',
+            'activity' => 'border-amber-200 bg-amber-50/80',
+            'buttonText' => 'text-amber-700 hover:bg-amber-50',
         ],
         \App\Models\AnalisisLavadora::esEstadoCambiado($estado) => [
             'class' => 'bg-blue-50 text-blue-700 border-blue-200',
             'icon' => 'fa-arrows-rotate',
+            'header' => 'from-blue-700 via-blue-600 to-sky-500',
+            'surface' => 'bg-blue-50/70 border-blue-100',
+            'card' => 'border-blue-100 bg-blue-50/70',
+            'iconBox' => 'bg-blue-50 text-blue-600',
+            'activity' => 'border-blue-200 bg-blue-50/80',
+            'buttonText' => 'text-blue-700 hover:bg-blue-50',
         ],
         default => [
             'class' => 'bg-emerald-50 text-emerald-700 border-emerald-200',
             'icon' => 'fa-circle-check',
+            'header' => 'from-emerald-700 via-emerald-600 to-teal-500',
+            'surface' => 'bg-emerald-50/70 border-emerald-100',
+            'card' => 'border-emerald-100 bg-emerald-50/70',
+            'iconBox' => 'bg-emerald-50 text-emerald-600',
+            'activity' => 'border-emerald-200 bg-emerald-50/80',
+            'buttonText' => 'text-emerald-700 hover:bg-emerald-50',
         ],
     };
 @endphp
 
 <div class="mx-auto max-w-7xl space-y-6">
-    <section class="overflow-hidden rounded-2xl border border-blue-100 bg-white shadow-sm">
-        <div class="bg-gradient-to-r from-blue-700 via-blue-600 to-sky-500 px-6 py-7 text-white sm:px-8">
+    <section class="overflow-hidden rounded-2xl border {{ $estadoStyles['surface'] }} bg-white shadow-sm">
+        <div class="bg-gradient-to-r {{ $estadoStyles['header'] }} px-6 py-7 text-white sm:px-8">
             <div class="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
                 <div class="flex items-center gap-4">
                     <div class="hidden h-20 w-20 flex-shrink-0 items-center justify-center rounded-2xl bg-white/15 p-3 sm:flex">
@@ -62,7 +92,7 @@
 
                 <div class="flex flex-wrap gap-3">
                     <a href="{{ route('analisis-lavadora.edit', ['analisislavadora' => $analisislavadora->id]) }}"
-                       class="inline-flex items-center justify-center gap-2 rounded-lg bg-white px-4 py-2.5 text-sm font-semibold text-blue-700 shadow-sm transition hover:bg-blue-50">
+                       class="inline-flex items-center justify-center gap-2 rounded-lg bg-white px-4 py-2.5 text-sm font-semibold {{ $estadoStyles['buttonText'] }} shadow-sm transition">
                         <i class="fas fa-edit"></i>
                         Editar
                     </a>
@@ -83,19 +113,19 @@
             </div>
         </div>
 
-        <div class="grid gap-4 border-t border-blue-100 bg-blue-50/60 px-6 py-5 sm:grid-cols-2 lg:grid-cols-4 sm:px-8">
-            <div class="rounded-xl border border-white bg-white/80 p-4 shadow-sm">
+        <div class="grid gap-4 border-t px-6 py-5 sm:grid-cols-2 lg:grid-cols-4 sm:px-8 {{ $estadoStyles['surface'] }}">
+            <div class="rounded-xl border bg-white/85 p-4 shadow-sm {{ $estadoStyles['card'] }}">
                 <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Estado</p>
                 <span class="mt-2 inline-flex items-center gap-2 rounded-full border px-3 py-1 text-sm font-semibold {{ $estadoStyles['class'] }}">
                     <i class="fas {{ $estadoStyles['icon'] }}"></i>
                     {{ $estado ?? 'Sin estado' }}
                 </span>
             </div>
-            <div class="rounded-xl border border-white bg-white/80 p-4 shadow-sm">
+            <div class="rounded-xl border bg-white/85 p-4 shadow-sm {{ $estadoStyles['card'] }}">
                 <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Orden</p>
                 <p class="mt-2 text-lg font-bold text-gray-900">{{ $analisislavadora->numero_orden ?: 'Sin orden' }}</p>
             </div>
-            <div class="rounded-xl border border-white bg-white/80 p-4 shadow-sm">
+            <div class="rounded-xl border bg-white/85 p-4 shadow-sm {{ $estadoStyles['card'] }}">
                 <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Lado</p>
                 <p class="mt-2 text-lg font-bold text-gray-900">{{ $analisislavadora->lado ?: 'No aplica' }}</p>
             </div>
@@ -105,7 +135,7 @@
     <section class="grid gap-6 lg:grid-cols-3">
         <div class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm lg:col-span-2">
             <div class="mb-5 flex items-center gap-3">
-                <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+                <span class="flex h-10 w-10 items-center justify-center rounded-xl {{ $estadoStyles['iconBox'] }}">
                     <i class="fas fa-info-circle"></i>
                 </span>
                 <div>
@@ -114,19 +144,19 @@
             </div>
 
             <div class="grid gap-4 md:grid-cols-2">
-                <div class="rounded-xl border border-gray-100 bg-gray-50 p-4">
+                <div class="rounded-xl border p-4 {{ $estadoStyles['card'] }}">
                     <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Lavadora</p>
                     <p class="mt-2 text-base font-semibold text-gray-900">{{ $analisislavadora->linea->nombre ?? 'Lavadora ' . $analisislavadora->linea_id }}</p>
                 </div>
-                <div class="rounded-xl border border-gray-100 bg-gray-50 p-4">
+                <div class="rounded-xl border p-4 {{ $estadoStyles['card'] }}">
                     <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Componente</p>
                     <p class="mt-2 text-base font-semibold text-gray-900">{{ $analisislavadora->componente->nombre ?? 'N/A' }}</p>
                 </div>
-                <div class="rounded-xl border border-gray-100 bg-gray-50 p-4">
+                <div class="rounded-xl border p-4 {{ $estadoStyles['card'] }}">
                     <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Reductor</p>
                     <p class="mt-2 text-base font-semibold text-gray-900">{{ $analisislavadora->reductor ?: 'Sin reductor' }}</p>
                 </div>
-                <div class="rounded-xl border border-gray-100 bg-gray-50 p-4">
+                <div class="rounded-xl border p-4 {{ $estadoStyles['card'] }}">
                     <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Registrado por</p>
                     <p class="mt-2 text-base font-semibold text-gray-900">{{ $analisislavadora->usuario->name ?? 'Sin usuario asignado' }}</p>
                 </div>
@@ -135,14 +165,14 @@
 
         <div class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
             <div class="mb-5 flex items-center gap-3">
-                <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
+                <span class="flex h-10 w-10 items-center justify-center rounded-xl {{ $estadoStyles['iconBox'] }}">
                     <i class="fas fa-clipboard-check"></i>
                 </span>
                 <div>
                     <h2 class="text-lg font-bold text-gray-900">Actividad</h2>
                 </div>
             </div>
-            <div class="min-h-40 rounded-xl border border-emerald-100 bg-emerald-50/50 p-4 text-sm leading-6 text-gray-800">
+            <div class="min-h-40 rounded-xl border p-4 text-sm leading-6 text-gray-800 {{ $estadoStyles['activity'] }}">
                 {{ $analisislavadora->actividad ?: 'Sin actividad registrada.' }}
             </div>
         </div>
@@ -185,7 +215,7 @@
     <section class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
         <div class="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div class="flex items-center gap-3">
-                <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-50 text-sky-600">
+                <span class="flex h-10 w-10 items-center justify-center rounded-xl {{ $estadoStyles['iconBox'] }}">
                     <i class="fas fa-camera"></i>
                 </span>
                 <div>
@@ -231,7 +261,7 @@
                 @endforeach
             </div>
         @else
-            <div class="rounded-xl border border-dashed border-gray-300 bg-gray-50 px-6 py-12 text-center">
+            <div class="rounded-xl border border-dashed px-6 py-12 text-center {{ $estadoStyles['card'] }}">
                 <i class="fas fa-image mb-3 text-3xl text-gray-300"></i>
                 <p class="text-sm font-semibold text-gray-700">No hay evidencia fotografica registrada.</p>
             </div>

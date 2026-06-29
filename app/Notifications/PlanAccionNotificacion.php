@@ -64,7 +64,7 @@ class PlanAccionNotificacion extends Notification implements ShouldQueue
             ->line("**PCM:** {$this->pcm}")
             ->line("**Dias restantes:** {$this->diasRestantes}")
             ->line('**Fecha limite:** ' . $this->fechaLimite()->format('d/m/Y'))
-            ->action('Ver actividad', url('/plan-accion/' . $this->plan->id))
+            ->action('Ver actividad', $this->resolvePlanActionUrl(true))
             ->line('Por favor, toma las acciones necesarias.')
             ->salutation('Saludos, Sistema de Gestion');
     }
@@ -76,7 +76,9 @@ class PlanAccionNotificacion extends Notification implements ShouldQueue
         return [
             'plan_id' => $this->plan->id,
             'actividad' => $this->plan->actividad,
+            'linea_id' => $this->plan->linea_id,
             'linea_nombre' => $this->plan->linea?->nombre,
+            'tipo_equipo' => $this->plan->tipo_equipo,
             'area_pasteurizadora' => $this->plan->area_pasteurizadora,
             'area_pasteurizadora_label' => $this->getAreaPasteurizadoraLabel(),
             'pcm' => $this->pcm,
@@ -85,7 +87,7 @@ class PlanAccionNotificacion extends Notification implements ShouldQueue
             'tipo' => $this->tipo,
             'prioridad' => $prioridad,
             'mensaje' => $this->getMensaje(),
-            'url' => url('/plan-accion/' . $this->plan->id),
+            'url' => $this->resolvePlanActionUrl(),
         ];
     }
 
@@ -137,5 +139,14 @@ class PlanAccionNotificacion extends Notification implements ShouldQueue
     private function fechaLimite()
     {
         return $this->plan->{'fecha_' . strtolower($this->pcm)} ?? now();
+    }
+
+    private function resolvePlanActionUrl(bool $absolute = false): string
+    {
+        return route('plan-accion.index', [
+            'tipo' => $this->plan->tipo_equipo ?: 'lavadora',
+            'linea_id' => $this->plan->linea_id,
+            'open_plan_id' => $this->plan->id,
+        ], $absolute);
     }
 }

@@ -38,9 +38,8 @@ class RoleAccessTest extends TestCase
             ->assertOk();
     }
 
-    public function test_restricted_roles_cannot_use_indirect_pasteurizadora_urls(): void
+    public function test_restricted_roles_can_view_pasteurizadora_action_plans_without_opening_restricted_modules(): void
     {
-        $user = $this->userWithRole(User::ROLE_SUPERVISOR);
         $linea = Linea::create([
             'nombre' => 'P-03',
             'descripcion' => 'Pasteurizadora de prueba',
@@ -52,13 +51,78 @@ class RoleAccessTest extends TestCase
             'tipo_equipo' => 'pasteurizadora',
         ]);
 
-        $this->actingAs($user)
-            ->get(route('reportes.index', ['tipo' => 'pasteurizadoras']))
-            ->assertRedirect(route('dashboard'));
+        foreach ([User::ROLE_GERENTE_MANTENIMIENTO, User::ROLE_TECNICO, User::ROLE_SUPERVISOR] as $role) {
+            $user = $this->userWithRole($role);
 
-        $this->actingAs($user)
-            ->get(route('plan-accion.show', $plan))
-            ->assertForbidden();
+            $this->actingAs($user)
+                ->get(route('reportes.index', ['tipo' => 'pasteurizadoras']))
+                ->assertRedirect(route('dashboard'));
+
+            $this->actingAs($user)
+                ->get(route('pasteurizadora.dashboard'))
+                ->assertRedirect(route('dashboard'));
+
+            $this->actingAs($user)
+                ->get(route('plan-accion.index', [
+                    'tipo' => 'pasteurizadora',
+                    'linea_id' => $linea->id,
+                ]))
+                ->assertOk();
+
+            $this->actingAs($user)
+                ->get(route('plan-accion.show', $plan))
+                ->assertOk()
+                ->assertJsonPath('id', $plan->id);
+
+            $this->actingAs($user)
+                ->get(route('plan-accion.edit', [
+                    'plan_accion' => $plan->id,
+                    'tipo' => 'pasteurizadora',
+                ]))
+                ->assertRedirect(route('dashboard'));
+        }
+    }
+
+    public function test_all_plan_action_roles_can_view_legacy_pasteurizadora_plans_without_saved_type(): void
+    {
+        $linea = Linea::create([
+            'nombre' => 'P-04',
+            'descripcion' => 'Pasteurizadora sin tipo guardado',
+            'activo' => true,
+        ]);
+        $plan = PlanAccion::create([
+            'linea_id' => $linea->id,
+            'actividad' => 'Actividad legado pasteurizadora',
+            'tipo_equipo' => null,
+        ]);
+
+        foreach ([
+            User::ROLE_ADMIN,
+            User::ROLE_GERENTE_MANTENIMIENTO,
+            User::ROLE_SUPERVISOR,
+            User::ROLE_PROGRAMADOR_DE_MANTENIMIENTO,
+            User::ROLE_TECNICO,
+            User::ROLE_INGENIERO_MANTENIMIENTO,
+        ] as $role) {
+            $user = $this->userWithRole($role);
+
+            $response = $this->actingAs($user)
+                ->get(route('plan-accion.index', [
+                    'tipo' => 'pasteurizadora',
+                    'linea_id' => $linea->id,
+                ]))
+                ->assertOk();
+
+            $this->assertTrue(
+                $response->viewData('planes')->getCollection()->contains('id', $plan->id),
+                "The {$role} role should see legacy pasteurizadora action plans."
+            );
+
+            $this->actingAs($user)
+                ->get(route('plan-accion.show', $plan))
+                ->assertOk()
+                ->assertJsonPath('id', $plan->id);
+        }
     }
 
     public function test_admin_keeps_pasteurizadora_access(): void

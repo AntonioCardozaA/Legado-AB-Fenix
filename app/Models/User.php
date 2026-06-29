@@ -271,6 +271,26 @@ public function canAccessPasteurizadoraArea(string $area): bool
     }
 }
 
+public function canViewPlanActionType(string $type): bool
+{
+    $type = strtolower($type);
+
+    if ($type === self::MODULE_LAVADORA) {
+        return $this->canAccessModule(self::MODULE_LAVADORA);
+    }
+
+    if ($type === self::MODULE_PASTEURIZADORA) {
+        return $this->hasAnyRole([
+            self::ROLE_ADMIN,
+            self::ROLE_GERENTE_MANTENIMIENTO,
+            ...self::technicianEquivalentRoles(),
+            ...self::supervisorEquivalentRoles(),
+        ]) || $this->canAccessModule(self::MODULE_PASTEURIZADORA);
+    }
+
+    return false;
+}
+
 public function shouldShowPasteurizadoraComingSoon(): bool
 {
     $isTechnicianOnly = $this->usesTechnicianAccessProfile();

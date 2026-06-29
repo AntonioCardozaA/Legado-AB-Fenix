@@ -26,7 +26,7 @@ class PlanAccionController extends Controller
     public function planAccion(Request $request)
     {
         $tipo = $this->normalizarTipo($request->get('tipo', 'lavadora'));
-        $this->ensureCanAccessTipo($tipo);
+        $this->ensureCanViewTipo($tipo);
 
         $lineaId = $request->get('linea_id');
         $lineasTipo = $this->obtenerLineasPorTipo($tipo);
@@ -89,7 +89,7 @@ class PlanAccionController extends Controller
     public function porLavadora($lavadora)
     {
         $linea = Linea::findOrFail($lavadora);
-        $this->ensureCanAccessTipo($this->tipoDesdeLinea($linea));
+        $this->ensureCanViewTipo($this->tipoDesdeLinea($linea));
         
         $planes = PlanAccion::where('linea_id', $lavadora)
             ->with($this->relacionesTrazabilidad())
@@ -221,7 +221,7 @@ class PlanAccionController extends Controller
     public function notificacionesPendientes(Request $request): JsonResponse
     {
         $tipo = $this->normalizarTipo($request->get('tipo', 'lavadora'));
-        $this->ensureCanAccessTipo($tipo);
+        $this->ensureCanViewTipo($tipo);
 
         $alertas = $this->obtenerAlertasGlobales($tipo);
 
@@ -320,7 +320,7 @@ class PlanAccionController extends Controller
     public function show($id)
     {
         $plan = PlanAccion::with($this->relacionesTrazabilidad())->findOrFail($id);
-        $this->ensureCanAccessPlan($plan);
+        $this->ensureCanViewPlan($plan);
 
         return response()->json($plan);
     }
@@ -503,8 +503,10 @@ class PlanAccionController extends Controller
 
                     $alertas[] = [
                         'id' => $plan->id,
+                        'linea_id' => $plan->linea_id,
                         'linea' => optional($plan->linea)->nombre ?? 'Sin línea',
                         'actividad' => $plan->actividad,
+                        'tipo_equipo' => $this->tipoDesdePlan($plan),
                         'area_pasteurizadora' => $plan->area_pasteurizadora,
                         'area_pasteurizadora_label' => $this->resolveAreaPasteurizadoraLabel($plan),
                         'pcm' => strtoupper($pcm),
@@ -597,7 +599,22 @@ class PlanAccionController extends Controller
 
     private function normalizarTipo(?string $tipo): string
     {
-        return $tipo === 'pasteurizadora' ? 'pasteurizadora' : 'lavadora';
+        return $this->normalizarTipoValido($tipo) ?? User::MODULE_LAVADORA;
+    }
+
+    private function normalizarTipoValido(?string $tipo): ?string
+    {
+        $tipo = strtolower(trim((string) $tipo));
+
+        if (str_contains($tipo, User::MODULE_PASTEURIZADORA)) {
+            return User::MODULE_PASTEURIZADORA;
+        }
+
+        if (str_contains($tipo, User::MODULE_LAVADORA)) {
+            return User::MODULE_LAVADORA;
+        }
+
+        return null;
     }
 
     private function reglasValidacion(string $tipo): array
@@ -659,18 +676,39 @@ class PlanAccionController extends Controller
         }
     }
 
+    private function ensureCanViewTipo(string $tipo): void
+    {
+        if (!auth()->user()?->canViewPlanActionType($this->normalizarTipo($tipo))) {
+            abort(403, 'No tienes permiso para visualizar Plan de Accion.');
+        }
+    }
+
     private function ensureCanAccessPlan(PlanAccion $plan): void
     {
-        $tipo = $plan->tipo_equipo ?: ($plan->linea ? $this->tipoDesdeLinea($plan->linea) : 'lavadora');
+        $tipo = $this->tipoDesdePlan($plan);
 
         $this->ensureCanAccessTipo($tipo);
+    }
+
+    private function ensureCanViewPlan(PlanAccion $plan): void
+    {
+        $tipo = $this->tipoDesdePlan($plan);
+
+        $this->ensureCanViewTipo($tipo);
+    }
+
+    private function tipoDesdePlan(PlanAccion $plan): string
+    {
+        return $plan->linea
+            ? $this->tipoDesdeLinea($plan->linea)
+            : ($this->normalizarTipoValido($plan->tipo_equipo) ?? User::MODULE_LAVADORA);
     }
 
     private function obtenerLineaIdsPermitidas(): array
     {
         $lineaIds = $this->obtenerLineaIdsPorTipo('lavadora');
 
-        if (auth()->user()?->canAccessModule(User::MODULE_PASTEURIZADORA)) {
+        if (auth()->user()?->canViewPlanActionType(User::MODULE_PASTEURIZADORA)) {
             $lineaIds = array_merge($lineaIds, $this->obtenerLineaIdsPorTipo('pasteurizadora'));
         }
 
@@ -709,8 +747,8 @@ class PlanAccionController extends Controller
 
     private function crearQueryPlanesPorTipo(string $tipo)
     {
-        $query = PlanAccion::with($this->relacionesTrazabilidad())
-            ->where('tipo_equipo', $this->normalizarTipo($tipo));
+        $tipo = $this->normalizarTipo($tipo);
+        $query = PlanAccion::with($this->relacionesTrazabilidad());
 
         return $query->whereIn('linea_id', $this->obtenerLineaIdsPorTipo($tipo));
     }
@@ -729,9 +767,11 @@ class PlanAccionController extends Controller
 
     private function tipoDesdeLinea(Linea $linea): string
     {
-        return in_array($linea->nombre, $this->lineasPasteurizadoraNombres, true)
-            ? 'pasteurizadora'
-            : 'lavadora';
+        if (in_array($linea->nombre, $this->lineasPasteurizadoraNombres, true)) {
+            return User::MODULE_PASTEURIZADORA;
+        }
+
+        return $this->normalizarTipoValido($linea->tipo ?? null) ?? User::MODULE_LAVADORA;
     }
 
 }

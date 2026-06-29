@@ -31,6 +31,11 @@ class AdminRecordNotificationService
         PlanAccion::class,
     ];
 
+    public function __construct(
+        private readonly NotificationRecipientService $notificationRecipientService
+    ) {
+    }
+
     public function registerModelEvents(): void
     {
         foreach ($this->watchedModels as $modelClass) {
@@ -45,7 +50,8 @@ class AdminRecordNotificationService
         try {
             $payload = $this->buildPayloadForRecord($record);
 
-            return $this->sendToAdmins($payload);
+            return $this->sendToAdmins($payload)
+                + $this->sendComponentAlertIfNeeded($record);
         } catch (Throwable $exception) {
             Log::warning('No se pudo crear la notificacion administrativa del registro.', [
                 'record_type' => $record::class,
@@ -152,6 +158,48 @@ class AdminRecordNotificationService
         return $admins->count();
     }
 
+    private function sendComponentAlertIfNeeded(Model $record): int
+    {
+        if (!$this->shouldSendComponentAlert($record)) {
+            return 0;
+        }
+
+        $payload = $this->buildPayloadForComponentAlert($record);
+        $lineaId = $payload['linea_id'] !== null ? (int) $payload['linea_id'] : null;
+        $recipients = $this->notificationRecipientService
+            ->getInternalRecipients()
+            ->filter(function (array $recipient) use ($lineaId): bool {
+                /** @var User $user */
+                $user = $recipient['user'];
+
+                return $this->canReceiveComponentAlerts($user)
+                    && $this->notificationRecipientService->shouldNotifyForLine(
+                        $recipient['settings'],
+                        $lineaId
+                    );
+            })
+            ->pluck('user')
+            ->values();
+
+        if ($recipients->isEmpty()) {
+            return 0;
+        }
+
+        Notification::send($recipients, new AdminRegistroCreadoNotification($payload));
+
+        return $recipients->count();
+    }
+
+    private function canReceiveComponentAlerts(User $user): bool
+    {
+        return $user->hasAnyRole([
+            User::ROLE_ADMIN,
+            User::ROLE_GERENTE_MANTENIMIENTO,
+            ...User::technicianEquivalentRoles(),
+            ...User::supervisorEquivalentRoles(),
+        ]);
+    }
+
     /**
      * @return array<string, mixed>
      */
@@ -183,8 +231,48 @@ class AdminRecordNotificationService
             'detail' => $detail,
             'url' => $this->resolveUrl($record),
             'prioridad' => 'media',
+            'tipo_equipo' => $record instanceof PlanAccion ? $this->resolvePlanActionType($record) : null,
             'area_pasteurizadora' => $record instanceof AnalisisPasteurizadora ? $record->area : null,
             'area_pasteurizadora_label' => $record instanceof AnalisisPasteurizadora ? $this->areaPasteurizadoraLabel($record->area) : null,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function buildPayloadForComponentAlert(Model $record): array
+    {
+        $createdAt = $record->created_at ?? now();
+        $createdAtDisplay = $this->formatDateTime($createdAt);
+        $linea = $this->resolveLinea($record);
+        $estado = (string) $record->estado;
+        $componentName = $this->resolveComponentName($record);
+        $detail = $this->resolveComponentAlertDetail($record);
+        $message = $this->componentAlertMessage($componentName, $linea['nombre'], $estado, $detail);
+        $areaPasteurizadora = $record instanceof AnalisisPasteurizadora ? $record->area : null;
+
+        return [
+            'type' => NotificationVisibilityService::TYPE_COMPONENT_ALERT,
+            'record_type' => $this->resolveRecordType($record),
+            'record_label' => 'Alerta de componente',
+            'record_id' => $record->getKey(),
+            'record_class' => $record::class,
+            'title' => 'Alerta de componente: ' . $estado,
+            'mensaje' => $message,
+            'message' => $message,
+            'component_name' => $componentName,
+            'estado' => $estado,
+            'component_state' => $estado,
+            'linea' => $linea['nombre'],
+            'linea_id' => $linea['id'],
+            'created_at' => $createdAt instanceof CarbonInterface ? $createdAt->toIso8601String() : now()->toIso8601String(),
+            'created_at_display' => $createdAtDisplay,
+            'fecha_analisis' => $this->formatDate($record->fecha_analisis ?? null),
+            'detail' => $detail,
+            'url' => $this->resolveUrl($record),
+            'prioridad' => $this->componentAlertPriority($record),
+            'area_pasteurizadora' => $areaPasteurizadora,
+            'area_pasteurizadora_label' => $areaPasteurizadora ? $this->areaPasteurizadoraLabel($areaPasteurizadora) : null,
         ];
     }
 
@@ -357,6 +445,88 @@ class AdminRecordNotificationService
         return null;
     }
 
+    private function resolveComponentName(Model $record): string
+    {
+        if ($record instanceof AnalisisLavadora) {
+            $record->loadMissing('componente');
+
+            return $record->componente?->nombre ?? 'Componente sin nombre';
+        }
+
+        if ($record instanceof AnalisisPasteurizadora) {
+            return $record->componente_nombre ?? $record->componente ?? 'Componente sin nombre';
+        }
+
+        return 'Componente sin nombre';
+    }
+
+    private function resolveComponentAlertDetail(Model $record): ?string
+    {
+        if ($record instanceof AnalisisLavadora) {
+            return $this->joinDetails([
+                $record->reductor ? 'Reductor: ' . $record->reductor : null,
+                $record->lado ? 'Lado: ' . $record->lado : null,
+                $record->numero_orden ? 'Orden: ' . $record->numero_orden : null,
+                $this->formatDate($record->fecha_analisis) ? 'Fecha analisis: ' . $this->formatDate($record->fecha_analisis) : null,
+            ]);
+        }
+
+        if ($record instanceof AnalisisPasteurizadora) {
+            return $this->joinDetails([
+                'Area: ' . $this->areaPasteurizadoraLabel($record->area),
+                $record->modulo ? 'Modulo: ' . $record->modulo : null,
+                $record->nivel ? 'Nivel: ' . $record->nivel : null,
+                $record->lado ? 'Lado: ' . $record->lado : null,
+                $record->numero_orden ? 'Orden: ' . $record->numero_orden : null,
+                $this->formatDate($record->fecha_analisis) ? 'Fecha analisis: ' . $this->formatDate($record->fecha_analisis) : null,
+            ]);
+        }
+
+        return null;
+    }
+
+    private function shouldSendComponentAlert(Model $record): bool
+    {
+        if ($record instanceof AnalisisLavadora) {
+            return AnalisisLavadora::esEstadoDanado($record->estado)
+                || AnalisisLavadora::esEstadoDesgaste($record->estado)
+                || AnalisisLavadora::esEstadoRequiereRevision($record->estado);
+        }
+
+        if ($record instanceof AnalisisPasteurizadora) {
+            return AnalisisPasteurizadora::esEstadoDanado($record->estado)
+                || AnalisisPasteurizadora::esEstadoDesgaste($record->estado)
+                || AnalisisPasteurizadora::esEstadoRequiereRevision($record->estado);
+        }
+
+        return false;
+    }
+
+    private function componentAlertPriority(Model $record): string
+    {
+        if (
+            ($record instanceof AnalisisLavadora && AnalisisLavadora::esEstadoDanado($record->estado))
+            || ($record instanceof AnalisisPasteurizadora && AnalisisPasteurizadora::esEstadoDanado($record->estado))
+            || $record->estado === 'Desgaste severo'
+        ) {
+            return 'alta';
+        }
+
+        return 'media';
+    }
+
+    private function componentAlertMessage(string $componentName, string $linea, string $estado, ?string $detail): string
+    {
+        $message = sprintf(
+            'ALERTA DE COMPONENTE: %s en %s se encuentra en estado %s.',
+            $componentName,
+            $linea,
+            $estado
+        );
+
+        return $detail ? $message . ' ' . $detail : $message;
+    }
+
     private function resolveDeletionDetail(AnalysisDeletionLog $deletionLog): ?string
     {
         $metadata = $deletionLog->metadata ?? [];
@@ -389,12 +559,43 @@ class AdminRecordNotificationService
                 ['analisispasteurizadora' => $record->getKey()]
             ),
             $record instanceof Elongacion => $this->routeIfExists('elongaciones.show', ['elongacion' => $record->getKey()]),
-            $record instanceof PlanAccion => $this->routeIfExists('plan-accion.edit', [
-                'plan_accion' => $record->getKey(),
-                'tipo' => $record->tipo_equipo ?: 'lavadora',
+            $record instanceof PlanAccion => $this->routeIfExists('plan-accion.index', [
+                'tipo' => $this->resolvePlanActionType($record),
+                'linea_id' => $record->linea_id,
+                'open_plan_id' => $record->getKey(),
             ]),
             default => null,
         };
+    }
+
+    private function resolvePlanActionType(PlanAccion $record): string
+    {
+        $record->loadMissing('linea');
+        $lineName = strtoupper((string) $record->linea?->nombre);
+
+        if (str_starts_with($lineName, 'P-')) {
+            return User::MODULE_PASTEURIZADORA;
+        }
+
+        if (str_starts_with($lineName, 'L-')) {
+            return User::MODULE_LAVADORA;
+        }
+
+        $lineType = strtolower(trim((string) $record->linea?->tipo));
+
+        if (str_contains($lineType, User::MODULE_PASTEURIZADORA)) {
+            return User::MODULE_PASTEURIZADORA;
+        }
+
+        if (str_contains($lineType, User::MODULE_LAVADORA)) {
+            return User::MODULE_LAVADORA;
+        }
+
+        $type = strtolower(trim((string) $record->tipo_equipo));
+
+        return str_contains($type, User::MODULE_PASTEURIZADORA)
+            ? User::MODULE_PASTEURIZADORA
+            : User::MODULE_LAVADORA;
     }
 
     private function resolveDeletionUrl(AnalysisDeletionLog $deletionLog, ?Model $record = null): ?string
@@ -529,5 +730,14 @@ class AdminRecordNotificationService
         }
 
         return now()->format('d/m/Y H:i');
+    }
+
+    private function formatDate(mixed $date): ?string
+    {
+        if ($date instanceof CarbonInterface) {
+            return $date->format('Y-m-d');
+        }
+
+        return filled($date) ? (string) $date : null;
     }
 }

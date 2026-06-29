@@ -526,6 +526,9 @@ Route::prefix('pasteurizadora')->group(function () {
     Route::get('/notifications', [NotificationController::class, 'index'])
         ->name('notifications.index');
 
+    Route::get('/notifications/{id}/open', [NotificationController::class, 'open'])
+        ->name('notifications.open');
+
     Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead'])
         ->name('notifications.read');
 

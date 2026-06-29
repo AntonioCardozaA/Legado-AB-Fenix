@@ -11,7 +11,7 @@
                 <p class="text-sm text-gray-500">Consulta alertas internas y marca su lectura cuando lo necesites.</p>
             </div>
 
-            @if(auth()->user()->unreadNotifications()->count() > 0)
+            @if(($unreadCount ?? 0) > 0)
                 <form action="{{ route('notifications.read-all') }}" method="POST">
                     @csrf
                     <button type="submit" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-700 bg-blue-50 rounded-lg hover:bg-blue-100 transition">
@@ -21,6 +21,12 @@
                 </form>
             @endif
         </div>
+
+        @if(session('notification_warning'))
+            <div class="mx-6 mt-4 rounded-lg border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-yellow-800">
+                {{ session('notification_warning') }}
+            </div>
+        @endif
 
         <div class="divide-y divide-gray-100">
             @forelse($notifications as $notification)
@@ -98,14 +104,12 @@
                         </div>
 
                         <div class="flex items-center gap-2">
-                            @if(!empty($notification->data['url']))
-                                <a
-                                    href="{{ $notification->data['url'] }}"
-                                    class="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition">
-                                    <i class="fas fa-arrow-up-right-from-square"></i>
-                                    Abrir
-                                </a>
-                            @endif
+                            <a
+                                href="{{ route('notifications.open', $notification->id) }}"
+                                class="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition">
+                                <i class="fas fa-arrow-up-right-from-square"></i>
+                                Abrir
+                            </a>
 
                             @if(!$notification->read_at)
                                 <form action="{{ route('notifications.read', $notification->id) }}" method="POST">
