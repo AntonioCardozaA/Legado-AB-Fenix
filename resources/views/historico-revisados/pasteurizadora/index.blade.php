@@ -956,7 +956,7 @@
 </style>
 
 <div class="historico-container">
-    <div class="flex justify-between items-center mb-6">
+    <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
             <a href="{{ route($analisisDashboardRoute) }}"
                class="responsive-action responsive-action--secondary mb-4">
@@ -965,7 +965,7 @@
                 </svg>
                 <span class="font-medium">Volver</span>
             </a>
-            <h1 class="text-2xl font-bold text-gray-800 flex items-center gap-2">
+            <h1 class="flex items-start gap-2 text-xl font-bold text-gray-800 sm:items-center sm:text-2xl">
                 <i class="fas fa-chart-bar text-blue-600"></i>
                 {{ $historicoRevisadosTitulo ?? 'Historico de Revisados - Pasteurizadora' }}
             </h1>

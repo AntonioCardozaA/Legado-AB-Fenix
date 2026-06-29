@@ -6,10 +6,10 @@
 <div class="max-w-7xl mx-auto py-8 px-4">
     <div class="mb-8 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
-            <h1 class="text-3xl font-bold text-gray-800">Comparación de ciclos por línea</h1>
+            <h1 class="text-2xl font-bold text-gray-800 sm:text-3xl">Comparación de ciclos por línea</h1>
             <p class="text-gray-600 mt-1">Consulta vida útil, proveedor y comportamiento de elongación entre cadenas instaladas en la misma línea.</p>
         </div>
-        <a href="{{ route('elongaciones.index') }}" class="inline-flex items-center gap-2 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition w-fit">
+        <a href="{{ route('elongaciones.index') }}" class="inline-flex w-full items-center justify-center gap-2 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition sm:w-fit">
             <i class="fas fa-arrow-left"></i>
             Volver al historial
         </a>
@@ -25,8 +25,8 @@
                     @endforeach
                 </select>
             </div>
-            <div class="flex flex-col gap-2 sm:flex-row">
-                <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
+            <div class="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+                <button type="submit" class="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition sm:w-auto">
                     <i class="fas fa-filter mr-1"></i> Consultar
                 </button>
                 <a href="{{ route('elongaciones.create', ['linea' => $lineaSeleccionada]) }}" class="create-action">
@@ -50,7 +50,7 @@
                     $activo = $ciclo->activa;
                 @endphp
                 <div class="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
-                    <div class="px-6 py-5 border-b border-gray-200 bg-slate-50 flex items-start justify-between gap-4">
+                    <div class="flex flex-col gap-4 border-b border-gray-200 bg-slate-50 px-4 py-5 sm:flex-row sm:items-start sm:justify-between sm:px-6">
                         <div>
                             <p class="text-sm text-slate-500">Ciclo {{ $ciclo->numero_ciclo }}</p>
                             <h2 class="text-2xl font-bold text-slate-900">{{ $ciclo->codigo }}</h2>
@@ -61,7 +61,7 @@
                         </span>
                     </div>
 
-                    <div class="p-6 grid grid-cols-2 gap-4 text-sm">
+                    <div class="grid grid-cols-1 gap-4 p-4 text-sm sm:grid-cols-2 sm:p-6">
                         <div>
                             <p class="text-gray-500">Instalada en</p>
                             <p class="font-semibold text-gray-900">{{ optional($ciclo->instalada_en)->format('d/m/Y') ?? '-' }}</p>
@@ -96,7 +96,7 @@
                         </div>
                     </div>
 
-                    <div class="px-6 pb-6 flex items-center justify-between gap-4">
+                    <div class="flex flex-col gap-4 px-4 pb-5 sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:pb-6">
                         <div class="text-sm text-gray-500">
                             @if($item['ultima_medicion'])
                                 Última medición {{ $item['ultima_medicion']->created_at->format('d/m/Y H:i') }}
@@ -104,7 +104,7 @@
                                 Sin mediciones asociadas
                             @endif
                         </div>
-                        <a href="{{ route('elongaciones.ciclos.show', $ciclo) }}" class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
+                        <a href="{{ route('elongaciones.ciclos.show', $ciclo) }}" class="inline-flex w-full items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition sm:w-auto">
                             <i class="fas fa-eye"></i>
                             Ver historial
                         </a>

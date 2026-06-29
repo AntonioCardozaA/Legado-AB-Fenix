@@ -6,15 +6,15 @@
 <div class="max-w-7xl mx-auto py-8 px-4">
     <div class="mb-8 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
-            <h1 class="text-3xl font-bold text-gray-800">Historial del ciclo {{ $ciclo->codigo }}</h1>
+            <h1 class="text-2xl font-bold text-gray-800 sm:text-3xl">Historial del ciclo {{ $ciclo->codigo }}</h1>
             <p class="text-gray-600 mt-1">Línea {{ $ciclo->linea }} · Proveedor {{ $ciclo->proveedor }}</p>
         </div>
-        <div class="flex flex-wrap gap-3">
-            <a href="{{ route('elongaciones.ciclos.comparacion', ['linea' => $ciclo->linea]) }}" class="inline-flex items-center gap-2 px-4 py-2.5 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition">
+        <div class="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:flex-wrap">
+            <a href="{{ route('elongaciones.ciclos.comparacion', ['linea' => $ciclo->linea]) }}" class="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition">
                 <i class="fas fa-code-compare"></i>
                 Comparar ciclos
             </a>
-            <a href="{{ route('elongaciones.index') }}" class="inline-flex items-center gap-2 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition">
+            <a href="{{ route('elongaciones.index') }}" class="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition">
                 <i class="fas fa-arrow-left"></i>
                 Volver
             </a>

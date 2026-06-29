@@ -3,13 +3,13 @@
 @section('title', 'Configuración de Notificaciones')
 
 @section('content')
-<div class="container mx-auto px-4 py-8">
+<div class="mx-auto max-w-4xl px-4 py-6 sm:py-8">
     <div class="max-w-4xl mx-auto">
         <!-- Header -->
-        <div class="flex justify-between items-center mb-6">
+        <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
                 <a href="{{ route('plan-accion.index', ['tipo' => 'lavadora']) }}" 
-                   class="inline-flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 
+                   class="inline-flex w-full items-center justify-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 sm:w-auto
                           bg-gray-100 hover:bg-gray-200 rounded-lg transition-all duration-300 mb-4">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
@@ -17,7 +17,7 @@
                     </svg>
                     <span class="font-medium">Volver a Plan de Acción</span>
                 </a>
-                <h1 class="text-2xl font-bold text-gray-800 flex items-center gap-3">
+                <h1 class="flex items-start gap-3 text-xl font-bold text-gray-800 sm:items-center sm:text-2xl">
                     <i class="fas fa-bell text-blue-600"></i>
                     Configuración de Notificaciones
                 </h1>
@@ -41,7 +41,7 @@
             @method('PUT')
 
             <!-- Canales de Notificación -->
-            <div class="p-6 border-b border-gray-200">
+            <div class="border-b border-gray-200 p-4 sm:p-6">
                 <h2 class="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
                     <i class="fas fa-broadcast-tower text-blue-600"></i>
                     Canales de Notificación
@@ -85,7 +85,7 @@
             </div>
 
             <!-- Datos de Contacto -->
-            <div class="p-6 border-b border-gray-200 bg-gray-50">
+            <div class="border-b border-gray-200 bg-gray-50 p-4 sm:p-6">
                 <h2 class="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
                     <i class="fas fa-address-card text-blue-600"></i>
                     Datos de Contacto
@@ -93,23 +93,23 @@
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <!-- Email (siempre visible pero editable) -->
-                    <div class="col-span-2">
+                    <div class="md:col-span-2">
                         <label class="block text-sm font-medium text-gray-700 mb-2">
                             <i class="fas fa-envelope mr-2 text-blue-600"></i>
                             Correo electrónico para notificaciones
                         </label>
-                        <div class="flex gap-2">
+                        <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
                             <input type="email" name="notification_email" 
                                    value="{{ old('notification_email', $settings->notification_email ?? Auth::user()->email) }}"
-                                   class="flex-1 rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500"
+                                   class="min-w-0 flex-1 rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500"
                                    placeholder="lbrm2307@gmail.com"
                                    {{ $settings->email_notifications ? '' : 'disabled' }}>
                             @if($settings->email_notifications)
-                                <span class="inline-flex items-center px-4 py-2 bg-blue-100 text-blue-700 rounded-lg">
+                                <span class="inline-flex items-center justify-center px-4 py-2 bg-blue-100 text-blue-700 rounded-lg sm:shrink-0">
                                     <i class="fas fa-check-circle mr-2"></i> Activo
                                 </span>
                             @else
-                                <span class="inline-flex items-center px-4 py-2 bg-gray-100 text-gray-700 rounded-lg">
+                                <span class="inline-flex items-center justify-center px-4 py-2 bg-gray-100 text-gray-700 rounded-lg sm:shrink-0">
                                     <i class="fas fa-times-circle mr-2"></i> Desactivado
                                 </span>
                             @endif
@@ -123,17 +123,17 @@
                             <i class="fas fa-sms mr-2 text-blue-600"></i>
                             Número de teléfono para SMS
                         </label>
-                        <div class="flex gap-2">
+                        <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
                             <input type="text" name="phone_number" value="{{ old('phone_number', $settings->phone_number) }}"
-                                   class="flex-1 rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500"
+                                   class="min-w-0 flex-1 rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500"
                                    placeholder="+52 498 109 6696">
                             @if($settings->phone_number && !$settings->phone_verified)
                                 <button type="button" onclick="verificarTelefono()"
-                                        class="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600">
+                                        class="w-full px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 sm:w-auto">
                                     Verificar
                                 </button>
                             @elseif($settings->phone_verified)
-                                <span class="inline-flex items-center px-4 py-2 bg-green-100 text-green-700 rounded-lg">
+                                <span class="inline-flex items-center justify-center px-4 py-2 bg-green-100 text-green-700 rounded-lg sm:shrink-0">
                                     <i class="fas fa-check-circle mr-2"></i> Verificado
                                 </span>
                             @endif
@@ -154,7 +154,7 @@
             </div>
 
             <!-- Configuración de Tiempo -->
-            <div class="p-6 border-b border-gray-200">
+            <div class="border-b border-gray-200 p-4 sm:p-6">
                 <h2 class="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
                     <i class="fas fa-clock text-blue-600"></i>
                     Configuración de Tiempo
@@ -186,13 +186,13 @@
             </div>
 
             <!-- Qué Notificar -->
-            <div class="p-6 border-b border-gray-200">
+            <div class="border-b border-gray-200 p-4 sm:p-6">
                 <h2 class="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
                     <i class="fas fa-filter text-blue-600"></i>
                     ¿Qué notificar?
                 </h2>
 
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                <div class="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4">
                     <label class="flex items-center gap-2">
                         <input type="checkbox" name="notify_for_pcm1" value="1" 
                                {{ $settings->notify_for_pcm1 ? 'checked' : '' }}>
@@ -224,9 +224,9 @@
                     </label>
 
                     <div id="lines_selection" style="{{ $settings->notify_only_my_lines ? '' : 'display: none;' }}" 
-                         class="ml-6 p-4 bg-gray-50 rounded-lg">
+                         class="p-4 bg-gray-50 rounded-lg sm:ml-6">
                         <p class="text-sm text-gray-600 mb-3">Selecciona las líneas que te interesan:</p>
-                        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-4">
                             @foreach($lineas as $linea)
                                 <label class="flex items-center gap-2">
                                     <input type="checkbox" name="lines_to_notify[]" value="{{ $linea->id }}"
@@ -240,7 +240,7 @@
             </div>
 
             <!-- Preferencias Adicionales -->
-            <div class="p-6 border-b border-gray-200">
+            <div class="border-b border-gray-200 p-4 sm:p-6">
                 <h2 class="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
                     <i class="fas fa-sliders-h text-blue-600"></i>
                     Preferencias Adicionales
@@ -271,13 +271,13 @@
             </div>
 
             <!-- Botones -->
-            <div class="p-6 bg-gray-50 flex justify-end gap-3">
+            <div class="flex flex-col-reverse gap-3 bg-gray-50 p-4 sm:flex-row sm:justify-end sm:p-6">
                 <a href="{{ route('plan-accion.index', ['tipo' => 'lavadora']) }}" 
-                   class="px-6 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition duration-200">
+                   class="w-full px-6 py-2 text-center bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition duration-200 sm:w-auto">
                     Cancelar
                 </a>
                 <button type="submit" 
-                        class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition duration-200">
+                        class="w-full px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition duration-200 sm:w-auto">
                     Guardar Configuración
                 </button>
             </div>
@@ -313,9 +313,14 @@ document.addEventListener('DOMContentLoaded', function() {
         document.querySelector('.whatsapp-field').style.display = this.checked ? 'block' : 'none';
     });
     
-    telegramCheckbox.addEventListener('change', function() {
-        document.querySelector('.telegram-field').style.display = this.checked ? 'block' : 'none';
-    });
+    if (telegramCheckbox) {
+        telegramCheckbox.addEventListener('change', function() {
+            const telegramField = document.querySelector('.telegram-field');
+            if (telegramField) {
+                telegramField.style.display = this.checked ? 'block' : 'none';
+            }
+        });
+    }
 
     // Mostrar/ocultar selección de líneas
     const onlyMyLines = document.getElementById('notify_only_my_lines');

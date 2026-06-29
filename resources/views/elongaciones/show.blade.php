@@ -19,23 +19,23 @@
     <div class="mb-8">
         <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
-                <h1 class="text-3xl font-bold text-gray-800 flex items-center gap-3">
+                <h1 class="flex items-start gap-3 text-2xl font-bold text-gray-800 sm:items-center sm:text-3xl">
                     <i class="fas fa-file-alt text-blue-600"></i>
                     Detalle de registro
                 </h1>
                 <p class="text-gray-600 mt-1">Línea {{ $elongacion->linea }} · {{ $elongacion->created_at->format('d/m/Y H:i') }}</p>
             </div>
 
-            <div class="flex flex-wrap gap-3">
+            <div class="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:flex-wrap">
                 @if($elongacion->cadenaCiclo)
                     <a href="{{ route('elongaciones.ciclos.show', $elongacion->cadenaCiclo) }}"
-                       class="inline-flex items-center gap-2 px-4 py-2.5 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition">
+                       class="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition">
                         <i class="fas fa-link"></i>
                         Ver ciclo
                     </a>
                 @endif
                 <a href="{{ route('elongaciones.index', ['linea' => $elongacion->linea]) }}"
-                   class="inline-flex items-center gap-2 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition">
+                   class="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition">
                     <i class="fas fa-arrow-left"></i>
                     Volver
                 </a>
@@ -45,33 +45,33 @@
 
     <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
         <div class="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-6 divide-y md:divide-y-0 md:divide-x divide-gray-200">
-            <div class="p-6">
+            <div class="p-4 sm:p-6">
                 <p class="text-sm text-gray-500">Línea</p>
                 <p class="text-xl font-bold text-gray-800">{{ $elongacion->linea }}</p>
             </div>
-            <div class="p-6">
+            <div class="p-4 sm:p-6">
                 <p class="text-sm text-gray-500">Ciclo</p>
                 <p class="text-xl font-bold text-gray-800">{{ $elongacion->cadenaCiclo?->codigo ?? 'Sin ciclo' }}</p>
             </div>
-            <div class="p-6">
+            <div class="p-4 sm:p-6">
                 <p class="text-sm text-gray-500">Proveedor</p>
                 <p class="text-xl font-bold text-gray-800">{{ $elongacion->proveedor_actual ?? 'Sin proveedor' }}</p>
             </div>
-            <div class="p-6">
+            <div class="p-4 sm:p-6">
                 <p class="text-sm text-gray-500">Paso inicial</p>
                 <p class="text-xl font-bold text-gray-800">{{ $pasoInicial }} mm</p>
             </div>
-            <div class="p-6">
+            <div class="p-4 sm:p-6">
                 <p class="text-sm text-gray-500">Hodómetro</p>
                 <p class="text-xl font-bold text-gray-800">{{ $elongacion->hodometro_formateado ?? '-' }}</p>
             </div>
-            <div class="p-6">
+            <div class="p-4 sm:p-6">
                 <p class="text-sm text-gray-500">Horas del ciclo</p>
                 <p class="text-xl font-bold text-gray-800">{{ $elongacion->hodometro_ciclo_formateado ?? '-' }}</p>
             </div>
         </div>
 
-        <div class="p-6 border-t border-gray-200">
+        <div class="border-t border-gray-200 p-4 sm:p-6">
             @if($bombasCambio || $vaporCambio)
                 <div class="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl">
                     <p class="font-semibold text-red-800">Cambio de cadena requerido</p>
@@ -91,14 +91,14 @@
 
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
                 <div class="border border-blue-200 rounded-xl overflow-hidden">
-                    <div class="bg-blue-50 px-4 py-3 border-b border-blue-100 flex items-center justify-between">
+                    <div class="flex flex-col gap-2 border-b border-blue-100 bg-blue-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                         <h3 class="font-semibold text-blue-800">Lado bombas</h3>
                         <span class="px-3 py-1 rounded-full text-sm font-semibold {{ $bombasCambio ? 'bg-red-100 text-red-800' : ($bombasCompra ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800') }}">
                             {{ number_format($elongacion->bombas_porcentaje, 2) }}%
                         </span>
                     </div>
                     <div class="p-4">
-                        <div class="grid grid-cols-5 gap-3 mb-4">
+                        <div class="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-5">
                             @for($i = 1; $i <= 10; $i++)
                                 <div class="text-center">
                                     <div class="text-xs text-gray-500 mb-1">M{{ $i }}</div>
@@ -108,7 +108,7 @@
                                 </div>
                             @endfor
                         </div>
-                        <div class="grid grid-cols-2 xl:grid-cols-5 gap-4 text-sm">
+                        <div class="grid grid-cols-1 gap-4 text-sm sm:grid-cols-2 xl:grid-cols-5">
                             <div>
                                 <p class="text-gray-500">Promedio</p>
                                 <p class="font-semibold text-gray-800">{{ number_format($elongacion->bombas_promedio, 2) }} mm</p>
@@ -138,14 +138,14 @@
                 </div>
 
                 <div class="border border-green-200 rounded-xl overflow-hidden">
-                    <div class="bg-green-50 px-4 py-3 border-b border-green-100 flex items-center justify-between">
+                    <div class="flex flex-col gap-2 border-b border-green-100 bg-green-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                         <h3 class="font-semibold text-green-800">Lado vapor</h3>
                         <span class="px-3 py-1 rounded-full text-sm font-semibold {{ $vaporCambio ? 'bg-red-100 text-red-800' : ($vaporCompra ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800') }}">
                             {{ number_format($elongacion->vapor_porcentaje, 2) }}%
                         </span>
                     </div>
                     <div class="p-4">
-                        <div class="grid grid-cols-5 gap-3 mb-4">
+                        <div class="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-5">
                             @for($i = 1; $i <= 10; $i++)
                                 <div class="text-center">
                                     <div class="text-xs text-gray-500 mb-1">M{{ $i }}</div>
@@ -155,7 +155,7 @@
                                 </div>
                             @endfor
                         </div>
-                        <div class="grid grid-cols-2 xl:grid-cols-5 gap-4 text-sm">
+                        <div class="grid grid-cols-1 gap-4 text-sm sm:grid-cols-2 xl:grid-cols-5">
                             <div>
                                 <p class="text-gray-500">Promedio</p>
                                 <p class="font-semibold text-gray-800">{{ number_format($elongacion->vapor_promedio, 2) }} mm</p>

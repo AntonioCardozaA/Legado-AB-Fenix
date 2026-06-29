@@ -675,10 +675,10 @@
 
 <div class="historico-container">
     {{-- HEADER --}}
-    <div class="flex justify-between items-center mb-6">
+    <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
             <a href="{{ route('lavadora.dashboard') }}" 
-               class="inline-flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 
+               class="inline-flex w-full items-center justify-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 sm:w-auto
                       bg-gray-100 hover:bg-gray-200 rounded-lg transition-all duration-300 mb-4">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
@@ -686,7 +686,7 @@
                 </svg>
                 <span class="font-medium">Volver</span>
             </a>
-            <h1 class="text-2xl font-bold text-gray-800 flex items-center gap-2">
+            <h1 class="flex items-start gap-2 text-xl font-bold text-gray-800 sm:items-center sm:text-2xl">
                 <i class="fas fa-chart-bar text-blue-600"></i>
                 Histórico de Revisados
             </h1>

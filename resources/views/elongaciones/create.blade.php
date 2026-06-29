@@ -32,20 +32,20 @@
     })->toArray();
 @endphp
 
-<div class="max-w-7xl mx-auto py-10 px-4">
+<div class="max-w-7xl mx-auto px-4 py-6 sm:py-10">
     <div class="mb-8">
         <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
-                <div class="flex items-center gap-3 mb-2">
+                <div class="mb-2 flex flex-col items-start gap-3 sm:flex-row sm:items-center">
                     <a href="{{ route('elongaciones.index') }}"
-                       class="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 rounded-lg transition-all duration-300 group">
+                       class="flex w-full items-center justify-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 rounded-lg transition-all duration-300 group sm:w-auto">
                         <svg class="w-5 h-5 group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
                         </svg>
                         <span class="font-medium">Volver</span>
                     </a>
-                    <i class="fas fa-ruler-combined text-3xl text-blue-600"></i>
-                    <h1 class="text-3xl font-bold text-gray-800">Registro de elongaciones</h1>
+                    <i class="fas fa-ruler-combined text-2xl text-blue-600 sm:text-3xl"></i>
+                    <h1 class="text-2xl font-bold text-gray-800 sm:text-3xl">Registro de elongaciones</h1>
                 </div>
                 <p class="text-gray-600">
                     Seguimos usando el mismo cálculo de porcentajes y alertas, ahora con control por ciclo de cadena y proveedor.
@@ -53,7 +53,7 @@
             </div>
 
             <a href="{{ route('elongaciones.ciclos.comparacion', ['linea' => old('linea', $lineaSeleccionada)]) }}"
-               class="inline-flex items-center gap-2 px-5 py-3 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition shadow-md">
+               class="inline-flex w-full items-center justify-center gap-2 px-5 py-3 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition shadow-md sm:w-auto">
                 <i class="fas fa-code-compare"></i>
                 Comparar ciclos
             </a>
@@ -66,7 +66,7 @@
         </div>
     @endif
 
-    <div class="bg-white rounded-2xl shadow-lg p-8">
+    <div class="rounded-2xl bg-white p-4 shadow-lg sm:p-8">
         <form method="POST" action="{{ route('elongaciones.store') }}" id="elongacionForm">
             @csrf
 
@@ -76,7 +76,7 @@
                     <h2 class="text-xl font-semibold text-gray-800">Seleccionar línea</h2>
                 </div>
 
-                <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4 mb-6">
+                <div class="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-8">
                     @foreach($lineas as $codigo)
                         <div class="relative">
                             <input
@@ -102,7 +102,7 @@
 
             <div class="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-8">
                 <div class="xl:col-span-2 border border-gray-200 rounded-xl p-5 bg-slate-50">
-                    <div class="flex items-center justify-between gap-3 mb-4">
+                    <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                         <div>
                             <p class="text-sm font-medium text-slate-500">Ciclo activo</p>
                             <h3 id="ciclo_codigo" class="text-2xl font-bold text-slate-900">
@@ -152,10 +152,10 @@
                 </div>
             </div>
 
-            <div class="mb-8 border border-amber-200 rounded-2xl bg-amber-50/60 p-6">
+            <div class="mb-8 rounded-2xl border border-amber-200 bg-amber-50/60 p-4 sm:p-6">
                 <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                     <div>
-                        <div class="flex items-center gap-3 mb-2">
+                        <div class="mb-2 flex items-start gap-3">
                             <input type="hidden" name="nueva_cadena" value="0">
                             <input type="checkbox" id="nueva_cadena" name="nueva_cadena" value="1" class="rounded border-gray-300 text-amber-600 focus:ring-amber-500" {{ old('nueva_cadena') ? 'checked' : '' }}>
                             <label for="nueva_cadena" class="text-lg font-semibold text-amber-900">Instalar nueva cadena / reiniciar ciclo</label>
@@ -203,11 +203,11 @@
                 </div>
 
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-                    <div class="border border-gray-200 rounded-xl p-6 shadow-sm">
-                        <div class="flex items-center gap-2 mb-4">
+                    <div class="rounded-xl border border-gray-200 p-4 shadow-sm sm:p-6">
+                        <div class="mb-4 flex flex-wrap items-center gap-2">
                             <i class="fas fa-tint text-lg text-blue-600"></i>
                             <h3 class="text-lg font-medium text-gray-800">Lado bombas</h3>
-                            <span class="ml-auto px-2 py-1 bg-gray-100 text-gray-600 text-xs font-medium rounded">10 mediciones</span>
+                            <span class="px-2 py-1 bg-gray-100 text-gray-600 text-xs font-medium rounded sm:ml-auto">10 mediciones</span>
                         </div>
                         <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 mb-6">
                             @for($i = 1; $i <= 10; $i++)
@@ -218,18 +218,18 @@
                                 </div>
                             @endfor
                         </div>
-                        <div class="pt-4 border-t border-gray-200 flex items-center justify-between">
+                        <div class="flex flex-col gap-1 border-t border-gray-200 pt-4 sm:flex-row sm:items-center sm:justify-between">
                             <span class="text-sm font-medium text-gray-700">Promedio</span>
                             <div><span id="bombas_promedio_display" class="text-xl font-bold text-blue-600">0.00</span><span class="text-sm text-gray-500 ml-1">mm</span></div>
                         </div>
                         <div id="alerta_bombas" class="mt-4 hidden"><div class="flex items-center gap-2 p-3 rounded-lg"><i class="fas fa-exclamation-circle text-xl"></i><span id="alerta_bombas_texto" class="text-sm font-medium"></span></div></div>
                     </div>
 
-                    <div class="border border-gray-200 rounded-xl p-6 shadow-sm">
-                        <div class="flex items-center gap-2 mb-4">
+                    <div class="rounded-xl border border-gray-200 p-4 shadow-sm sm:p-6">
+                        <div class="mb-4 flex flex-wrap items-center gap-2">
                             <i class="fas fa-wind text-lg text-green-600"></i>
                             <h3 class="text-lg font-medium text-gray-800">Lado vapor</h3>
-                            <span class="ml-auto px-2 py-1 bg-gray-100 text-gray-600 text-xs font-medium rounded">10 mediciones</span>
+                            <span class="px-2 py-1 bg-gray-100 text-gray-600 text-xs font-medium rounded sm:ml-auto">10 mediciones</span>
                         </div>
                         <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 mb-6">
                             @for($i = 1; $i <= 10; $i++)
@@ -240,7 +240,7 @@
                                 </div>
                             @endfor
                         </div>
-                        <div class="pt-4 border-t border-gray-200 flex items-center justify-between">
+                        <div class="flex flex-col gap-1 border-t border-gray-200 pt-4 sm:flex-row sm:items-center sm:justify-between">
                             <span class="text-sm font-medium text-gray-700">Promedio</span>
                             <div><span id="vapor_promedio_display" class="text-xl font-bold text-green-600">0.00</span><span class="text-sm text-gray-500 ml-1">mm</span></div>
                         </div>
@@ -251,7 +251,7 @@
                 <div class="mb-8">
                     <div class="max-w-md mx-auto">
                         <label for="hodometro" class="block text-sm font-medium text-gray-700 mb-2 text-center">Hodómetro actual <span class="text-gray-400 text-xs">(opcional)</span></label>
-                        <div class="flex items-center gap-3">
+                        <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
                             <div class="flex-1"><input type="number" id="hodometro" name="hodometro" value="{{ old('hodometro') }}" class="block w-full rounded-lg border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-lg text-center font-medium py-3" placeholder="Ej. 1205 para 12:05 h"></div>
                             <span class="text-lg font-medium text-gray-700 whitespace-nowrap">HORAS</span>
                         </div>
@@ -265,16 +265,16 @@
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                    <div class="border border-blue-200 rounded-xl p-6 bg-blue-50/30">
+                    <div class="rounded-xl border border-blue-200 bg-blue-50/30 p-4 sm:p-6">
                         <div class="text-center mb-4">
                             <h4 class="text-sm font-medium text-blue-700 mb-1">Elongación bombas</h4>
-                            <div id="bombas_porcentaje_display" class="text-3xl font-bold text-blue-600">0.00%</div>
+                            <div id="bombas_porcentaje_display" class="text-2xl font-bold text-blue-600 sm:text-3xl">0.00%</div>
                             <div class="mt-2"><span id="bombas_status" class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">Sin datos</span></div>
                         </div>
                         <div class="w-full bg-gray-200 rounded-full h-3">
                             <div id="bombas_progress" class="h-3 rounded-full transition-all duration-300" style="width: 0%"></div>
                         </div>
-                        <div class="flex justify-between text-xs text-gray-500 mt-2">
+                        <div class="mt-2 flex flex-wrap justify-between gap-2 text-xs text-gray-500">
                             <span>0%</span>
                             <span class="font-bold text-yellow-600">Compra: 1.3%</span>
                             <span class="font-bold text-red-600">Cambio: 1.46%</span>
@@ -285,16 +285,16 @@
                         </div>
                     </div>
 
-                    <div class="border border-green-200 rounded-xl p-6 bg-green-50/30">
+                    <div class="rounded-xl border border-green-200 bg-green-50/30 p-4 sm:p-6">
                         <div class="text-center mb-4">
                             <h4 class="text-sm font-medium text-green-700 mb-1">Elongación vapor</h4>
-                            <div id="vapor_porcentaje_display" class="text-3xl font-bold text-green-600">0.00%</div>
+                            <div id="vapor_porcentaje_display" class="text-2xl font-bold text-green-600 sm:text-3xl">0.00%</div>
                             <div class="mt-2"><span id="vapor_status" class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">Sin datos</span></div>
                         </div>
                         <div class="w-full bg-gray-200 rounded-full h-3">
                             <div id="vapor_progress" class="h-3 rounded-full transition-all duration-300" style="width: 0%"></div>
                         </div>
-                        <div class="flex justify-between text-xs text-gray-500 mt-2">
+                        <div class="mt-2 flex flex-wrap justify-between gap-2 text-xs text-gray-500">
                             <span>0%</span>
                             <span class="font-bold text-yellow-600">Compra: 1.3%</span>
                             <span class="font-bold text-red-600">Cambio: 1.46%</span>
@@ -307,7 +307,7 @@
                 </div>
 
                 <div id="alerta_limite" class="mb-6 border border-amber-200 rounded-xl p-4 bg-amber-50/50">
-                    <div class="flex items-center gap-3">
+                    <div class="flex flex-col items-start gap-3 sm:flex-row sm:items-center">
                         <i class="fas fa-exclamation-triangle text-amber-500 text-xl"></i>
                         <div class="flex-1">
                             <h4 class="text-sm font-medium text-amber-800 mb-1">Límites del análisis</h4>

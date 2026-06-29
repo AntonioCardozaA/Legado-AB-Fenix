@@ -4,14 +4,14 @@
 
 @section('content')
 <div class="mx-auto max-w-3xl space-y-6">
-    <div class="flex items-center justify-between">
+    <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
             <h1 class="text-2xl font-bold text-gray-900">{{ $linea->nombre }}</h1>
             <p class="text-sm text-gray-500">Detalle de la linea.</p>
         </div>
-        <div class="flex gap-2">
-            <a href="{{ route('lineas.edit', $linea) }}" class="rounded bg-yellow-500 px-4 py-2 text-sm font-semibold text-white hover:bg-yellow-600">Editar</a>
-            <a href="{{ route('lineas.index') }}" class="rounded border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">Volver</a>
+        <div class="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+            <a href="{{ route('lineas.edit', $linea) }}" class="inline-flex items-center justify-center rounded bg-yellow-500 px-4 py-2 text-sm font-semibold text-white hover:bg-yellow-600">Editar</a>
+            <a href="{{ route('lineas.index') }}" class="inline-flex items-center justify-center rounded border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">Volver</a>
         </div>
     </div>
 

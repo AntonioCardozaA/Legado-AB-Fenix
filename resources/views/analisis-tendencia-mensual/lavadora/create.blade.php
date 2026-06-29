@@ -14,20 +14,20 @@
 
     <div class="bg-white rounded-2xl shadow-xl overflow-hidden">
         {{-- Header --}}
-        <div class="bg-gradient-to-r from-blue-600 to-purple-600 px-8 py-6">
-            <div class="flex items-center gap-4">
+        <div class="bg-gradient-to-r from-blue-600 to-purple-600 px-4 py-5 sm:px-8 sm:py-6">
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
                 <div class="bg-white/20 p-3 rounded-xl">
-                    <i class="fas fa-calendar-alt text-white text-3xl"></i>
+                    <i class="fas fa-calendar-alt text-2xl text-white sm:text-3xl"></i>
                 </div>
                 <div>
-                    <h2 class="text-2xl font-bold text-white">Nuevo Análisis Mensual</h2>
+                    <h2 class="text-xl font-bold text-white sm:text-2xl">Nuevo Análisis Mensual</h2>
                     <p class="text-blue-100 mt-1">Ingresa los totales de daños del período</p>
                 </div>
             </div>
         </div>
 
         {{-- Formulario --}}
-        <form method="POST" action="{{ route('analisis-tendencia-mensual.lavadora.store') }}" class="p-8">
+        <form method="POST" action="{{ route('analisis-tendencia-mensual.lavadora.store') }}" class="p-4 sm:p-8">
             @csrf
 
             {{-- Línea --}}
@@ -49,7 +49,7 @@
             </div>
 
             {{-- Período --}}
-            <div class="grid grid-cols-2 gap-4 mb-6">
+            <div class="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-3">
                         <i class="fas fa-calendar mr-2 text-blue-600"></i>
@@ -93,8 +93,8 @@
             @endif
 
             {{-- Datos del análisis --}}
-            <div class="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-6 mb-6">
-                <h3 class="font-semibold text-gray-800 mb-6 flex items-center gap-2">
+            <div class="mb-6 rounded-xl bg-gradient-to-r from-blue-50 to-purple-50 p-4 sm:p-6">
+                <h3 class="mb-6 flex items-start gap-2 font-semibold text-gray-800 sm:items-center">
                     <i class="fas fa-clipboard-list text-blue-600"></i>
                     Totales de Daños del Período
                 </h3>
@@ -102,7 +102,7 @@
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
 
         {{-- 52 Semanas --}}
-        <div class="bg-white rounded-xl p-6 shadow-sm">
+        <div class="rounded-xl bg-white p-4 shadow-sm sm:p-6">
             <div class="flex items-center gap-3 mb-4">
                 <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
                     <i class="fas fa-calendar-week text-green-600"></i>
@@ -117,7 +117,7 @@
                 value="{{ old('total_danos_52_semanas') }}"
                 min="0"
                 step="0.01"  {{-- Permite decimales --}}
-                class="w-full px-4 py-3 text-2xl font-bold text-green-600 border-2 border-green-200 rounded-xl focus:border-green-500 focus:ring-0 text-center"
+                class="w-full rounded-xl border-2 border-green-200 px-4 py-3 text-center text-xl font-bold text-green-600 focus:border-green-500 focus:ring-0 sm:text-2xl"
                 placeholder="0.00"
                 required>
             <p class="text-xs text-gray-500 mt-3 text-center">
@@ -126,7 +126,7 @@
         </div>
 
         {{-- 12 Semanas --}}
-        <div class="bg-white rounded-xl p-6 shadow-sm">
+        <div class="rounded-xl bg-white p-4 shadow-sm sm:p-6">
             <div class="flex items-center gap-3 mb-4">
                 <div class="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
                     <i class="fas fa-calendar-week text-red-600"></i>
@@ -141,7 +141,7 @@
                 value="{{ old('total_danos_12_semanas') }}"
                 min="0"
                 step="0.01"  {{-- Permite decimales --}}
-                class="w-full px-4 py-3 text-2xl font-bold text-red-600 border-2 border-red-200 rounded-xl focus:border-red-500 focus:ring-0 text-center"
+                class="w-full rounded-xl border-2 border-red-200 px-4 py-3 text-center text-xl font-bold text-red-600 focus:border-red-500 focus:ring-0 sm:text-2xl"
                 placeholder="0.00"
                 required>
             <p class="text-xs text-gray-500 mt-3 text-center">
@@ -150,7 +150,7 @@
         </div>
 
         {{-- 4 Semanas --}}
-        <div class="bg-white rounded-xl p-6 shadow-sm">
+        <div class="rounded-xl bg-white p-4 shadow-sm sm:p-6">
             <div class="flex items-center gap-3 mb-4">
                 <div class="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center">
                     <i class="fas fa-calendar-week text-orange-600"></i>
@@ -165,7 +165,7 @@
                 value="{{ old('total_danos_4_semanas') }}"
                 min="0"
                 step="0.01"  {{-- Permite decimales --}}
-                class="w-full px-4 py-3 text-2xl font-bold text-orange-600 border-2 border-orange-200 rounded-xl focus:border-orange-500 focus:ring-0 text-center"
+                class="w-full rounded-xl border-2 border-orange-200 px-4 py-3 text-center text-xl font-bold text-orange-600 focus:border-orange-500 focus:ring-0 sm:text-2xl"
                 placeholder="0.00"
                 required>
             <p class="text-xs text-gray-500 mt-3 text-center">

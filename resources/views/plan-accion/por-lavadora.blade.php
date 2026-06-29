@@ -4,12 +4,12 @@
 
 @section('content')
 <div class="space-y-6">
-    <div class="flex items-center justify-between">
+    <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
             <h1 class="text-2xl font-bold text-gray-900">Plan de accion {{ $linea->nombre }}</h1>
             <p class="text-sm text-gray-500">{{ $estadisticas['total'] ?? 0 }} actividades registradas.</p>
         </div>
-        <a href="{{ route('plan-accion.index', ['linea_id' => $linea->id]) }}" class="rounded border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">Volver</a>
+        <a href="{{ route('plan-accion.index', ['linea_id' => $linea->id]) }}" class="inline-flex w-full items-center justify-center rounded border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 sm:w-auto">Volver</a>
     </div>
 
     <div class="grid gap-4 md:grid-cols-2">

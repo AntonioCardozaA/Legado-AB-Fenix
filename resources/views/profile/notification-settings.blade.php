@@ -2,32 +2,32 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container mx-auto px-4 py-8">
+<div class="mx-auto max-w-2xl px-4 py-6 sm:py-8">
     <div class="max-w-2xl mx-auto">
         <div class="bg-white rounded-lg shadow-lg overflow-hidden">
-            <div class="px-6 py-4 bg-gradient-to-r from-blue-600 to-blue-700">
-                <h2 class="text-xl font-semibold text-white flex items-center">
+            <div class="bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-4 sm:px-6">
+                <h2 class="flex items-start text-lg font-semibold text-white sm:items-center sm:text-xl">
                     <i class="fas fa-bell mr-2"></i>
                     Configuración de Notificaciones
                 </h2>
             </div>
 
-            <form action="{{ route('profile.notifications.update') }}" method="POST" class="p-6">
+            <form action="{{ route('profile.notifications.update') }}" method="POST" class="p-4 sm:p-6">
                 @csrf
                 @method('PUT')
 
                 <div class="space-y-6">
                     {{-- Notificaciones por Email --}}
                     <div class="bg-gray-50 rounded-lg p-4">
-                        <label class="flex items-center justify-between cursor-pointer">
-                            <div class="flex items-center space-x-3">
+                        <label class="flex cursor-pointer flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                            <div class="flex items-start gap-3 sm:items-center">
                                 <i class="fas fa-envelope text-2xl text-blue-600"></i>
                                 <div>
                                     <span class="font-medium text-gray-900">Notificaciones por Email</span>
                                     <p class="text-sm text-gray-600">Recibe alertas en tu correo electrónico</p>
                                 </div>
                             </div>
-                            <div class="relative">
+                            <div class="relative self-start sm:self-auto">
                                 <input type="checkbox" 
                                        name="email_notifications" 
                                        class="toggle-checkbox"
@@ -39,15 +39,15 @@
 
                     {{-- Notificaciones por SMS --}}
                     <div class="bg-gray-50 rounded-lg p-4">
-                        <label class="flex items-center justify-between cursor-pointer">
-                            <div class="flex items-center space-x-3">
+                        <label class="flex cursor-pointer flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                            <div class="flex items-start gap-3 sm:items-center">
                                 <i class="fas fa-mobile-alt text-2xl text-green-600"></i>
                                 <div>
                                     <span class="font-medium text-gray-900">Notificaciones por SMS</span>
                                     <p class="text-sm text-gray-600">Recibe alertas en tu teléfono móvil</p>
                                 </div>
                             </div>
-                            <div class="relative">
+                            <div class="relative self-start sm:self-auto">
                                 <input type="checkbox" 
                                        name="sms_notifications" 
                                        class="toggle-checkbox sms-toggle"
@@ -68,7 +68,7 @@
                                 <input type="tel" 
                                        name="phone_number" 
                                        value="{{ $settings->phone_number }}"
-                                       class="flex-1 rounded-none rounded-r-md border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                                       class="min-w-0 flex-1 rounded-none rounded-r-md border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                                        placeholder="3001234567">
                             </div>
                             <p class="mt-2 text-xs text-gray-500">
@@ -81,7 +81,7 @@
                     {{-- Días de anticipación --}}
                     <div class="bg-gray-50 rounded-lg p-4">
                         <label class="block">
-                            <div class="flex items-center space-x-3 mb-3">
+                            <div class="mb-3 flex items-start gap-3 sm:items-center">
                                 <i class="fas fa-calendar-alt text-2xl text-purple-600"></i>
                                 <span class="font-medium text-gray-900">Notificar con anticipación</span>
                             </div>
@@ -97,9 +97,9 @@
                     </div>
                 </div>
 
-                <div class="mt-6 flex items-center justify-end space-x-3">
+                <div class="mt-6 flex justify-stretch sm:justify-end">
                     <button type="submit" 
-                            class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition duration-200">
+                            class="w-full px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition duration-200 sm:w-auto">
                         Guardar Configuración
                     </button>
                 </div>
@@ -108,7 +108,7 @@
 
         {{-- Historial de notificaciones --}}
         <div class="mt-8 bg-white rounded-lg shadow-lg overflow-hidden">
-            <div class="px-6 py-4 bg-gray-50 border-b">
+            <div class="border-b bg-gray-50 px-4 py-4 sm:px-6">
                 <h3 class="text-lg font-semibold text-gray-900">Últimas Notificaciones</h3>
             </div>
             <div class="divide-y">
@@ -121,7 +121,7 @@
                 @endphp
                 @forelse($profileNotifications as $notification)
                 <div class="p-4 {{ $notification->read_at ? 'bg-white' : 'bg-blue-50' }}">
-                    <div class="flex justify-between items-start">
+                    <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                         <div>
                             <p class="text-sm text-gray-800">{!! $notification->data['mensaje'] ?? $notification->data['message'] ?? '' !!}</p>
                             <p class="text-xs text-gray-500 mt-1">{{ $notification->created_at->diffForHumans() }}</p>

@@ -3,16 +3,16 @@
 @section('title', 'Menú | Pasteurizadora')
 
 @section('content')
-<div class="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-8">
+<div class="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-6 sm:py-8">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {{-- HEADER MEJORADO --}}
         <div class="mb-10 animate-fade-in">
-            <div class="flex items-center justify-between">
+            <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                    <div class="flex items-center gap-3 mb-2">
+                    <div class="mb-2 flex flex-col items-start gap-3 sm:flex-row sm:items-center">
                         <!-- Imagen a la izquierda (icono de pasteurizadora) -->
-                        <div class="w-32 h-32 mb-4 flex items-center justify-center">
+                        <div class="mb-2 flex h-24 w-24 items-center justify-center sm:mb-4 sm:h-32 sm:w-32">
                             <img src="{{ asset('images/icono_pas.png') }}" 
                                  alt="Icono de Pasteurizadora" 
                                  class="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300">
@@ -20,7 +20,7 @@
                         <!-- Barra decorativa -->
                         <div class="h-10 w-2 bg-gradient-to-b from-gray-800 to-gray-600 rounded-full"></div>
                         
-                        <h1 class="text-4xl font-black text-gray-800 tracking-tight">
+                        <h1 class="text-3xl font-black tracking-tight text-gray-800 sm:text-4xl">
                             <span class="text-transparent bg-clip-text bg-gradient-to-r from-gray-800 to-gray-600">
                                 PASTEURIZADORA
                             </span>
@@ -56,13 +56,13 @@
                 {{-- Efecto de brillo hover con el color especificado --}}
                 <div class="absolute inset-0 bg-gradient-to-r from-transparent via-[rgba(31,35,72,0.1)] to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
                 
-                <div class="p-8 relative z-10">
+                <div class="relative z-10 p-5 sm:p-8">
                     <div class="flex flex-col items-center text-center">
                         {{-- Icono con animación usando el color especificado --}}
                         <div class="relative mb-6">
                             <div class="absolute inset-0 rounded-full blur-lg opacity-50 group-hover:opacity-75 transition-opacity" style="background-color: rgba(31, 35, 72, 0.5);"></div>
                             <div class="relative text-white p-5 rounded-2xl shadow-lg group-hover:scale-110 transition-transform duration-300 group-hover:rotate-3" style="background: linear-gradient(135deg, rgb(31, 35, 72), rgb(51, 55, 92));">
-                                <i class="fas fa-chart-pie text-3xl"></i>
+                                <i class="fas fa-chart-pie text-2xl sm:text-3xl"></i>
                             </div>
                         </div>
                         
@@ -90,12 +90,12 @@
                 <div class="absolute top-0 left-0 right-0 h-2" style="background-color: rgb(31, 35, 72);"></div>
                 <div class="absolute inset-0 bg-gradient-to-r from-transparent via-[rgba(31,35,72,0.1)] to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
                 
-                <div class="p-8 relative z-10">
+                <div class="relative z-10 p-5 sm:p-8">
                     <div class="flex flex-col items-center text-center">
                         <div class="relative mb-6">
                             <div class="absolute inset-0 rounded-full blur-lg opacity-50 group-hover:opacity-75 transition-opacity" style="background-color: rgba(31, 35, 72, 0.5);"></div>
                             <div class="relative text-white p-5 rounded-2xl shadow-lg group-hover:scale-110 transition-transform duration-300 group-hover:rotate-3" style="background: linear-gradient(135deg, rgb(31, 35, 72), rgb(51, 55, 92));">
-                                <i class="fas fa-history text-3xl"></i>
+                                <i class="fas fa-history text-2xl sm:text-3xl"></i>
                             </div>
                         </div>
                         
@@ -122,12 +122,12 @@
                 <div class="absolute top-0 left-0 right-0 h-2" style="background-color: rgb(31, 35, 72);"></div>
                 <div class="absolute inset-0 bg-gradient-to-r from-transparent via-[rgba(31,35,72,0.1)] to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
 
-                <div class="p-8 relative z-10">
+                <div class="relative z-10 p-5 sm:p-8">
                     <div class="flex flex-col items-center text-center">
                         <div class="relative mb-6">
                             <div class="absolute inset-0 rounded-full blur-lg opacity-50 group-hover:opacity-75 transition-opacity" style="background-color: rgba(31, 35, 72, 0.5);"></div>
                             <div class="relative text-white p-5 rounded-2xl shadow-lg group-hover:scale-110 transition-transform duration-300 group-hover:rotate-3" style="background: linear-gradient(135deg, rgb(31, 35, 72), rgb(51, 55, 92));">
-                                <i class="fas fa-oil-can text-3xl"></i>
+                                <i class="fas fa-oil-can text-2xl sm:text-3xl"></i>
                             </div>
                         </div>
 
@@ -153,12 +153,12 @@
                 <div class="absolute top-0 left-0 right-0 h-2" style="background-color: rgb(31, 35, 72);"></div>
                 <div class="absolute inset-0 bg-gradient-to-r from-transparent via-[rgba(31,35,72,0.1)] to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
 
-                <div class="p-8 relative z-10">
+                <div class="relative z-10 p-5 sm:p-8">
                     <div class="flex flex-col items-center text-center">
                         <div class="relative mb-6">
                             <div class="absolute inset-0 rounded-full blur-lg opacity-50 group-hover:opacity-75 transition-opacity" style="background-color: rgba(31, 35, 72, 0.5);"></div>
                             <div class="relative text-white p-5 rounded-2xl shadow-lg group-hover:scale-110 transition-transform duration-300 group-hover:rotate-3" style="background: linear-gradient(135deg, rgb(31, 35, 72), rgb(51, 55, 92));">
-                                <i class="fas fa-clipboard-check text-3xl"></i>
+                                <i class="fas fa-clipboard-check text-2xl sm:text-3xl"></i>
                             </div>
                         </div>
 
@@ -185,12 +185,12 @@
                 <div class="absolute top-0 left-0 right-0 h-2" style="background-color: rgb(31, 35, 72);"></div>
                 <div class="absolute inset-0 bg-gradient-to-r from-transparent via-[rgba(31,35,72,0.1)] to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
                 
-                <div class="p-8 relative z-10">
+                <div class="relative z-10 p-5 sm:p-8">
                     <div class="flex flex-col items-center text-center">
                         <div class="relative mb-6">
                             <div class="absolute inset-0 rounded-full blur-lg opacity-50 group-hover:opacity-75 transition-opacity" style="background-color: rgba(31, 35, 72, 0.5);"></div>
                             <div class="relative text-white p-5 rounded-2xl shadow-lg group-hover:scale-110 transition-transform duration-300 group-hover:rotate-3" style="background: linear-gradient(135deg, rgb(31, 35, 72), rgb(51, 55, 92));">
-                                <i class="fas fa-tasks text-3xl"></i>
+                                <i class="fas fa-tasks text-2xl sm:text-3xl"></i>
                             </div>
                         </div>
                         
@@ -216,12 +216,12 @@
                 <div class="absolute top-0 left-0 right-0 h-2" style="background-color: rgb(31, 35, 72);"></div>
                 <div class="absolute inset-0 bg-gradient-to-r from-transparent via-[rgba(31,35,72,0.1)] to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
                 
-                <div class="p-8 relative z-10">
+                <div class="relative z-10 p-5 sm:p-8">
                     <div class="flex flex-col items-center text-center">
                         <div class="relative mb-6">
                             <div class="absolute inset-0 rounded-full blur-lg opacity-50 group-hover:opacity-75 transition-opacity" style="background-color: rgba(31, 35, 72, 0.5);"></div>
                             <div class="relative text-white p-5 rounded-2xl shadow-lg group-hover:scale-110 transition-transform duration-300 group-hover:rotate-3" style="background: linear-gradient(135deg, rgb(31, 35, 72), rgb(51, 55, 92));">
-                                <i class="fas fa-search text-3xl"></i>
+                                <i class="fas fa-search text-2xl sm:text-3xl"></i>
                             </div>
                         </div>
                         

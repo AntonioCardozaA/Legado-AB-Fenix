@@ -4,12 +4,12 @@
 
 @section('content')
 <div class="space-y-6">
-    <div class="flex items-center justify-between">
+    <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
             <h1 class="text-2xl font-bold text-gray-900">Plan de accion</h1>
             <p class="text-sm text-gray-500">Resumen general de actividades y alertas.</p>
         </div>
-        <a href="{{ route('plan-accion.index') }}" class="rounded border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">Ver planes</a>
+        <a href="{{ route('plan-accion.index') }}" class="inline-flex w-full items-center justify-center rounded border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 sm:w-auto">Ver planes</a>
     </div>
 
     <div class="grid gap-4 md:grid-cols-3">
@@ -33,7 +33,7 @@
             <div class="space-y-3">
                 @forelse($alertas as $alerta)
                     <div class="rounded border border-gray-200 p-3">
-                        <div class="flex justify-between gap-3">
+                        <div class="flex flex-col gap-1 sm:flex-row sm:justify-between sm:gap-3">
                             <div class="font-semibold text-gray-900">{{ $alerta['linea'] ?? 'Sin linea' }}</div>
                             <div class="text-sm text-gray-500">{{ $alerta['fecha'] ?? '' }}</div>
                         </div>

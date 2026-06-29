@@ -4,16 +4,16 @@
 @section('title', 'Reporte de Elongación')
 
 @section('content')
-<div class="max-w-7xl mx-auto">
+<div class="mx-auto max-w-7xl">
     <div class="mb-6">
-        <div class="flex justify-between items-start">
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div>
                 <h1 class="text-2xl font-bold text-gray-800">Reporte de Elongación</h1>
                 <p class="text-gray-600">Mediciones y análisis de elongación de cadenas</p>
             </div>
-            <div class="flex space-x-3">
+            <div class="flex w-full sm:w-auto">
                 <button onclick="imprimirReporte()" 
-                        class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                        class="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 sm:w-auto">
                     <i class="fas fa-print mr-2"></i> Imprimir
                 </button>
             </div>
@@ -21,7 +21,7 @@
     </div>
 
     <!-- Gráfico de Elongación -->
-    <div class="card p-6 mb-6">
+    <div class="card mb-6 p-4 sm:p-6">
         <form method="GET" action="{{ route('reportes.elongacion') }}" class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Linea</label>
@@ -42,18 +42,18 @@
                 <label class="block text-sm font-medium text-gray-700 mb-1">Fecha fin</label>
                 <input type="date" name="fecha_fin" value="{{ request('fecha_fin', $fechaFin->format('Y-m-d')) }}" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
             </div>
-            <div class="flex gap-2">
+            <div class="flex flex-col gap-2 sm:flex-row">
                 <button type="submit" class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
                     <i class="fas fa-filter mr-2"></i>Aplicar filtros
                 </button>
-                <a href="{{ route('reportes.elongacion') }}" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition">
+                <a href="{{ route('reportes.elongacion') }}" class="inline-flex items-center justify-center px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition">
                     <i class="fas fa-times"></i>
                 </a>
             </div>
         </form>
     </div>
 
-    <div class="card p-6 mb-6">
+    <div class="card mb-6 p-4 sm:p-6">
         <h2 class="text-lg font-semibold text-gray-800 mb-4">Tendencia de Elongación</h2>
         <canvas id="elongacionChart" height="150"></canvas>
     </div>
@@ -118,20 +118,20 @@
 
     <!-- Resumen Estadístico -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
-        <div class="card p-6">
+        <div class="card p-4 sm:p-6">
             <h3 class="font-semibold text-gray-800 mb-3">Resumen</h3>
             <div class="space-y-2">
-                <div class="flex justify-between">
+                <div class="flex flex-col gap-1 sm:flex-row sm:justify-between">
                     <span>Líneas analizadas:</span>
                     <span class="font-medium">{{ count($datos) }}/{{ $lineas->count() }}</span>
                 </div>
-                <div class="flex justify-between">
+                <div class="flex flex-col gap-1 sm:flex-row sm:justify-between">
                     <span>Promedio elongación:</span>
                     <span class="font-medium">
                         {{ number_format(collect($datos)->avg('elongacion') ?? 0, 2) }} mm
                     </span>
                 </div>
-                <div class="flex justify-between">
+                <div class="flex flex-col gap-1 sm:flex-row sm:justify-between">
                     <span>Líneas en estado crítico:</span>
                     <span class="font-medium text-red-600">
                         {{ collect($datos)->where('estado.text', 'CRITICO')->count() }}
@@ -140,7 +140,7 @@
             </div>
         </div>
         
-        <div class="card p-6 md:col-span-2">
+        <div class="card p-4 sm:p-6 md:col-span-2">
             <h3 class="font-semibold text-gray-800 mb-3">Recomendaciones</h3>
             <div class="space-y-3">
                 @foreach(collect($datos)->where('estado.text', 'CRITICO') as $critica)

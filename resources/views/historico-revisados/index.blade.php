@@ -9,24 +9,24 @@
         <p class="text-sm text-gray-500">Resumen de avance por linea y componente.</p>
     </div>
 
-    <form method="GET" class="flex flex-wrap gap-3 rounded bg-white p-4 shadow">
-        <select name="tipo" class="rounded border-gray-300 text-sm">
+    <form method="GET" class="flex flex-col gap-3 rounded bg-white p-4 shadow sm:flex-row sm:flex-wrap">
+        <select name="tipo" class="w-full rounded border-gray-300 text-sm sm:w-auto">
             <option value="lavadora" @selected(($tipoSeleccionado ?? 'lavadora') === 'lavadora')>Lavadora</option>
             @if($canSeePasteurizadora ?? ($canAccessPasteurizadora ?? true))
             <option value="pasteurizadora" @selected(($tipoSeleccionado ?? '') === 'pasteurizadora')>Pasteurizadora</option>
             @endif
         </select>
-        <select name="linea_id" class="rounded border-gray-300 text-sm">
+        <select name="linea_id" class="w-full rounded border-gray-300 text-sm sm:w-auto">
             @foreach(($lineas ?? collect()) as $linea)
                 <option value="{{ $linea->id }}" @selected(optional($lineaSeleccionada ?? null)->id === $linea->id)>{{ $linea->nombre }}</option>
             @endforeach
         </select>
-        <button class="rounded bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700">Filtrar</button>
+        <button class="w-full rounded bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 sm:w-auto">Filtrar</button>
     </form>
 
     <div class="rounded bg-white p-5 shadow">
         <div class="text-sm text-gray-500">Avance general</div>
-        <div class="mt-2 text-3xl font-bold text-gray-900">{{ $resumen['porcentaje_general'] ?? 0 }}%</div>
+        <div class="mt-2 text-2xl font-bold text-gray-900 sm:text-3xl">{{ $resumen['porcentaje_general'] ?? 0 }}%</div>
         <div class="mt-1 text-sm text-gray-500">{{ $resumen['revisado_general'] ?? 0 }} de {{ $resumen['total_general'] ?? 0 }} revisados</div>
     </div>
 
