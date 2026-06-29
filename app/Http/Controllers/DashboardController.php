@@ -23,6 +23,15 @@ class DashboardController extends Controller
         'desgaste severo',
         'desgaste moderado',
     ];
+    private const LAVADORA_DAMAGE_STATE_KEYS = [
+        'danado - requiere cambio',
+        'dano - requiere cambio',
+        'desgaste severo',
+        'desgaste moderado',
+    ];
+    private const LAVADORA_CRITICAL_STATE_KEYS = ['danado - requiere cambio', 'dano - requiere cambio'];
+    private const LAVADORA_SEVERE_STATE_KEYS = ['desgaste severo', 'desgaste moderado'];
+    private const LAVADORA_REVIEW_STATE_KEYS = ['requiere revision'];
 
     private const LAVADORA_NOMBRES = ['L-04', 'L-05', 'L-06', 'L-07', 'L-08', 'L-09', 'L-12', 'L-13'];
     private const LAVADORA_DAMAGE_STATES = ['Dañado - Requiere cambio', 'Desgaste severo', 'Desgaste moderado'];
@@ -1026,7 +1035,7 @@ public function pasteurizadoraOperativo(Request $request)
         $analisisActuales = $analisisActuales ?: $this->getAnalisisActualesLavadoras($lineasLavadora);
 
         return $analisisActuales
-            ->filter(fn ($analisis) => in_array($analisis->estado, self::LAVADORA_DAMAGE_STATES, true))
+            ->filter(fn ($analisis) => $this->isLavadoraDamageState($analisis->estado))
             ->map(function ($analisis) {
                 $meta = $this->getLavadoraSeverityMeta($analisis->estado);
                 $diasDesdeRevision = $analisis->fecha_analisis
@@ -1049,7 +1058,7 @@ public function pasteurizadoraOperativo(Request $request)
                     'color' => $meta['color'],
                     'puntaje' => round($meta['score'] + min((int) ($diasDesdeRevision ?? 0), 90) / 30, 2),
                     'icono' => $this->getLavadoraComponentIcon(optional($analisis->componente)->codigo),
-                    'requiere_cambio' => $analisis->estado === 'Dañado - Requiere cambio',
+                    'requiere_cambio' => $this->isLavadoraCriticalState($analisis->estado),
                 ];
             })
             ->sortByDesc(fn ($item) => ($item['puntaje'] * 100) + (($item['dias_desde_revision'] ?? 0) / 10))
@@ -1069,9 +1078,9 @@ public function pasteurizadoraOperativo(Request $request)
         return $lineasLavadora
             ->map(function ($linea) use ($agrupados) {
                 $analisisLinea = $agrupados->get($linea->id, collect());
-                $criticas = $analisisLinea->where('estado', 'DaÃ±ado - Requiere cambio')->count();
-                $severos = $analisisLinea->where('estado', 'Desgaste severo')->count();
-                $moderados = $analisisLinea->where('estado', 'Desgaste moderado')->count();
+                $criticas = $analisisLinea->filter(fn ($item) => $this->isLavadoraCriticalState($item->estado))->count();
+                $severos = $analisisLinea->filter(fn ($item) => $this->normalizeLavadoraState($item->estado) === 'desgaste severo')->count();
+                $moderados = $analisisLinea->filter(fn ($item) => $this->normalizeLavadoraState($item->estado) === 'desgaste moderado')->count();
                 $totalDanos = $criticas + $severos + $moderados;
                 $ultimaRevision = $analisisLinea
                     ->filter(fn ($item) => $item->fecha_analisis)
@@ -1120,10 +1129,10 @@ public function pasteurizadoraOperativo(Request $request)
         return $lineasLavadora
             ->map(function ($linea) use ($agrupados) {
                 $componentes = $agrupados->get($linea->id, collect());
-                $criticas = $componentes->where('estado', 'Dañado - Requiere cambio')->count();
-                $severasModeradas = $componentes->whereIn('estado', self::LAVADORA_SEVERE_STATES)->count();
-                $requiereRevision = $componentes->whereIn('estado', self::LAVADORA_REVIEW_STATES)->count();
-                $estables = $componentes->filter(fn ($item) => in_array($item->estado, ['Buen estado', 'Cambiado'], true))->count();
+                $criticas = $componentes->filter(fn ($item) => $this->isLavadoraCriticalState($item->estado))->count();
+                $severasModeradas = $componentes->filter(fn ($item) => $this->isLavadoraSevereState($item->estado))->count();
+                $requiereRevision = $componentes->filter(fn ($item) => $this->isLavadoraReviewState($item->estado))->count();
+                $estables = $componentes->filter(fn ($item) => in_array($this->normalizeLavadoraState($item->estado), ['buen estado', 'cambiado'], true))->count();
                 $impactados = $criticas + $severasModeradas + $requiereRevision;
                 $ultimaRevision = $componentes
                     ->filter(fn ($item) => $item->fecha_analisis)
@@ -1842,9 +1851,49 @@ public function pasteurizadoraOperativo(Request $request)
      */
     private function isLavadoraTrendDamageState(?string $estado): bool
     {
-        $normalizado = Str::of((string) $estado)->ascii()->lower()->squish()->value();
+        $normalizado = $this->normalizeLavadoraState($estado);
 
         return in_array($normalizado, self::LAVADORA_TREND_COMPONENT_STATES, true);
+    }
+
+    /**
+     * Normaliza el texto de estado para comparaciones robustas.
+     */
+    private function normalizeLavadoraState(?string $estado): string
+    {
+        return Str::of((string) $estado)->ascii()->lower()->squish()->value();
+    }
+
+    /**
+     * Determina si el estado representa un dano relevante para dashboard.
+     */
+    private function isLavadoraDamageState(?string $estado): bool
+    {
+        return in_array($this->normalizeLavadoraState($estado), self::LAVADORA_DAMAGE_STATE_KEYS, true);
+    }
+
+    /**
+     * Determina si el estado es critico y requiere cambio.
+     */
+    private function isLavadoraCriticalState(?string $estado): bool
+    {
+        return in_array($this->normalizeLavadoraState($estado), self::LAVADORA_CRITICAL_STATE_KEYS, true);
+    }
+
+    /**
+     * Determina si el estado corresponde a desgaste severo o moderado.
+     */
+    private function isLavadoraSevereState(?string $estado): bool
+    {
+        return in_array($this->normalizeLavadoraState($estado), self::LAVADORA_SEVERE_STATE_KEYS, true);
+    }
+
+    /**
+     * Determina si el estado requiere revision operativa.
+     */
+    private function isLavadoraReviewState(?string $estado): bool
+    {
+        return in_array($this->normalizeLavadoraState($estado), self::LAVADORA_REVIEW_STATE_KEYS, true);
     }
 
     /**
@@ -1887,32 +1936,33 @@ public function pasteurizadoraOperativo(Request $request)
      */
     private function getLavadoraSeverityMeta(?string $estado): array
     {
-        return match ($estado) {
-            'Dañado - Requiere cambio' => [
+        return match ($this->normalizeLavadoraState($estado)) {
+            'danado - requiere cambio',
+            'dano - requiere cambio' => [
                 'level' => 'critico',
                 'label' => 'Critico',
                 'color' => '#ef4444',
                 'score' => 100,
             ],
-            'Requiere revisión' => [
+            'requiere revision' => [
                 'level' => 'revision',
-                'label' => 'Requiere revisión',
+                'label' => 'Requiere revision',
                 'color' => '#f59e0b',
                 'score' => 20,
             ],
-            'Desgaste severo' => [
+            'desgaste severo' => [
                 'level' => 'severo',
                 'label' => 'Severo / Moderado',
                 'color' => '#f97316',
                 'score' => 70,
             ],
-            'Desgaste moderado' => [
+            'desgaste moderado' => [
                 'level' => 'severo',
                 'label' => 'Severo / Moderado',
                 'color' => '#f97316',
                 'score' => 45,
             ],
-            'Cambiado' => [
+            'cambiado' => [
                 'level' => 'cambiado',
                 'label' => 'Cambiado',
                 'color' => '#10b981',
