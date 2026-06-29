@@ -91,6 +91,171 @@
         input[name="actividad"] {
             text-transform: uppercase;
         }
+
+        .create-actions,
+        .responsive-actions {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 0.75rem;
+            max-width: 100%;
+            min-width: 0;
+        }
+
+        .create-actions--end,
+        .responsive-actions--end {
+            justify-content: flex-end;
+        }
+
+        .create-actions > .create-action,
+        .responsive-actions > .responsive-action {
+            flex: 0 1 auto;
+        }
+
+        .create-actions > .create-action.flex-1,
+        .responsive-actions > .responsive-action.flex-1 {
+            flex: 1 1 12rem;
+        }
+
+        .create-action,
+        .responsive-action {
+            --create-action-bg: linear-gradient(135deg, #2563eb, #1e40af);
+            --create-action-bg-hover: linear-gradient(135deg, #1d4ed8, #1e3a8a);
+            --create-action-border: rgba(30, 64, 175, 0.85);
+            --create-action-color: #ffffff;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.55rem;
+            box-sizing: border-box;
+            min-height: 2.75rem;
+            min-width: 0;
+            max-width: 100%;
+            padding: 0.72rem 1.15rem;
+            border: 1px solid var(--create-action-border);
+            border-radius: 0.65rem;
+            background: var(--create-action-bg);
+            color: var(--create-action-color) !important;
+            font-size: 0.875rem;
+            font-weight: 700;
+            line-height: 1.2;
+            text-align: center;
+            text-decoration: none;
+            white-space: normal;
+            overflow-wrap: anywhere;
+            box-shadow: 0 12px 22px rgba(30, 64, 175, 0.2);
+            transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease, border-color 0.2s ease;
+            touch-action: manipulation;
+        }
+
+        .create-action:hover,
+        .responsive-action:hover {
+            background: var(--create-action-bg-hover);
+            box-shadow: 0 16px 26px rgba(30, 64, 175, 0.26);
+            transform: translateY(-1px);
+        }
+
+        .create-action:focus-visible,
+        .responsive-action:focus-visible {
+            outline: 3px solid rgba(59, 130, 246, 0.35);
+            outline-offset: 3px;
+        }
+
+        .create-action i,
+        .create-action svg,
+        .responsive-action i,
+        .responsive-action svg {
+            flex: 0 0 auto;
+        }
+
+        .create-action.hidden,
+        .responsive-action.hidden {
+            display: none !important;
+        }
+
+        .create-action--compact,
+        .responsive-action--compact {
+            min-height: 2.25rem;
+            padding: 0.48rem 0.78rem;
+            border-radius: 0.5rem;
+            gap: 0.38rem;
+            font-size: 0.75rem;
+            box-shadow: 0 6px 12px rgba(30, 64, 175, 0.12);
+        }
+
+        .create-action--compact:hover,
+        .responsive-action--compact:hover {
+            box-shadow: 0 8px 16px rgba(30, 64, 175, 0.18);
+        }
+
+        .create-action--success,
+        .responsive-action--success {
+            --create-action-bg: #dcfce7;
+            --create-action-bg-hover: #bbf7d0;
+            --create-action-border: #86efac;
+            --create-action-color: #166534;
+            box-shadow: none;
+        }
+
+        .create-action--secondary,
+        .responsive-action--secondary {
+            --create-action-bg: #f8fafc;
+            --create-action-bg-hover: #e2e8f0;
+            --create-action-border: #cbd5e1;
+            --create-action-color: #334155;
+            box-shadow: none;
+        }
+
+        .create-action--danger,
+        .responsive-action--danger {
+            --create-action-bg: #dc2626;
+            --create-action-bg-hover: #b91c1c;
+            --create-action-border: #b91c1c;
+            --create-action-color: #ffffff;
+            box-shadow: none;
+        }
+
+        .create-action--on-dark,
+        .responsive-action--on-dark {
+            --create-action-bg: rgba(255, 255, 255, 0.14);
+            --create-action-bg-hover: rgba(255, 255, 255, 0.24);
+            --create-action-border: rgba(255, 255, 255, 0.34);
+            --create-action-color: #ffffff;
+            box-shadow: none;
+            backdrop-filter: blur(8px);
+        }
+
+        @media (pointer: coarse) {
+            .create-action,
+            .responsive-action {
+                min-height: 3rem;
+            }
+
+            .create-action--compact,
+            .responsive-action--compact {
+                min-height: 2.75rem;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .create-actions,
+            .responsive-actions {
+                width: 100%;
+                align-items: stretch;
+            }
+
+            .create-actions--end,
+            .responsive-actions--end {
+                justify-content: stretch;
+            }
+
+            .create-action,
+            .responsive-action {
+                width: 100%;
+                min-width: 0;
+                padding-inline: 1rem;
+            }
+        }
     </style>
 </head>
 
@@ -216,8 +381,7 @@
             @php
                 $usuarioActual = auth()->user();
                 $bloquearReportesTecnico = $usuarioActual
-                    && $usuarioActual->hasRole(\App\Models\User::ROLE_TECNICO)
-                    && !$usuarioActual->hasAnyRole(\App\Models\User::elevatedMaintenanceRoles());
+                    && $usuarioActual->usesTechnicianAccessProfile();
             @endphp
 
             @if($bloquearReportesTecnico)
@@ -321,17 +485,15 @@
 
                             <div class="px-4 py-3 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
                                 <span class="text-sm font-semibold text-gray-700">Notificaciones</span>
-                                @if($unreadCount > 0)
-                                    <form action="{{ route('notifications.read-all') }}" method="POST" class="inline">
-                                        @csrf
-                                        <button type="submit" class="text-xs text-blue-600 hover:text-blue-800">
-                                            Marcar todas como leídas
-                                        </button>
-                                    </form>
-                                @endif
+                                <form id="notification-read-all-form" action="{{ route('notifications.read-all') }}" method="POST" class="inline {{ $unreadCount > 0 ? '' : 'hidden' }}">
+                                    @csrf
+                                    <button type="submit" class="text-xs text-blue-600 hover:text-blue-800">
+                                        Marcar todas como leídas
+                                    </button>
+                                </form>
                             </div>
 
-                            <div class="max-h-96 overflow-y-auto">
+                            <div id="notifications-list" class="max-h-96 overflow-y-auto">
                                 @forelse($notificationItems as $notification)
                                     <a href="{{ $notification->data['url'] ?? '#' }}"
                                        class="block px-4 py-3 hover:bg-gray-50 border-b border-gray-100 {{ $notification->read_at ? '' : 'bg-blue-50' }}"
@@ -347,7 +509,12 @@
                                                 @endif
                                             </div>
                                             <div class="flex-1 min-w-0">
-                                                <p class="text-sm text-gray-900 mb-1">{!! $notification->data['mensaje'] ?? $notification->data['message'] ?? 'Nueva notificación' !!}</p>
+                                                <div class="flex items-start justify-between gap-2">
+                                                    <p class="text-sm text-gray-900 mb-1">{{ $notification->data['mensaje'] ?? $notification->data['message'] ?? 'Nueva notificación' }}</p>
+                                                    @if(!$notification->read_at)
+                                                        <span class="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-semibold uppercase text-blue-700">Nueva</span>
+                                                    @endif
+                                                </div>
                                                 @if(!empty($notification->data['area_pasteurizadora_label']))
                                                     <span class="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-700">
                                                         <i class="fas fa-tools"></i>
@@ -366,8 +533,14 @@
                                 @endforelse
                             </div>
 
-                            @if($notificationsCount > 10)
-                                <div class="px-4 py-2 bg-gray-50 border-t border-gray-200 text-center">
+                            @if($notificationsCount > 0)
+                                <div id="notifications-view-all-wrapper" class="px-4 py-2 bg-gray-50 border-t border-gray-200 text-center">
+                                    <a href="{{ route('notifications.index') }}" class="text-xs text-blue-600 hover:text-blue-800">
+                                        Ver todas las notificaciones
+                                    </a>
+                                </div>
+                            @else
+                                <div id="notifications-view-all-wrapper" class="hidden px-4 py-2 bg-gray-50 border-t border-gray-200 text-center">
                                     <a href="{{ route('notifications.index') }}" class="text-xs text-blue-600 hover:text-blue-800">
                                         Ver todas las notificaciones
                                     </a>
@@ -470,28 +643,160 @@ function markAsRead(notificationId, url) {
     });
 }
 
-setInterval(function() {
-    fetch('/notifications/unread-count', {
-        headers: {
-            'X-CSRF-TOKEN': '{{ csrf_token() }}'
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        const badge = document.getElementById('notification-badge');
+function notificationIconClasses(priority) {
+    if (priority === 'alta') {
+        return 'fas fa-exclamation-circle text-red-500';
+    }
 
-        if (!badge) {
-            return;
-        }
+    if (priority === 'media') {
+        return 'fas fa-exclamation-triangle text-yellow-500';
+    }
 
+    return 'fas fa-info-circle text-blue-500';
+}
+
+function emptyNotificationsNode() {
+    const empty = document.createElement('div');
+    empty.className = 'px-4 py-6 text-center text-gray-500';
+
+    const icon = document.createElement('i');
+    icon.className = 'fas fa-bell-slash text-gray-400 text-2xl mb-2';
+
+    const text = document.createElement('p');
+    text.className = 'text-sm';
+    text.textContent = 'No hay notificaciones';
+
+    empty.append(icon, text);
+
+    return empty;
+}
+
+function notificationItemNode(item) {
+    const link = document.createElement('a');
+    link.href = item.url || '#';
+    link.className = 'block px-4 py-3 hover:bg-gray-50 border-b border-gray-100 ' + (item.is_read ? '' : 'bg-blue-50');
+    link.addEventListener('click', function(event) {
+        event.preventDefault();
+        markAsRead(item.id, item.url || '#');
+    });
+
+    const row = document.createElement('div');
+    row.className = 'flex items-start space-x-3';
+
+    const iconWrap = document.createElement('div');
+    iconWrap.className = 'flex-shrink-0';
+    const icon = document.createElement('i');
+    icon.className = notificationIconClasses(item.prioridad || 'baja');
+    iconWrap.appendChild(icon);
+
+    const body = document.createElement('div');
+    body.className = 'flex-1 min-w-0';
+
+    const messageRow = document.createElement('div');
+    messageRow.className = 'flex items-start justify-between gap-2';
+
+    const message = document.createElement('p');
+    message.className = 'text-sm text-gray-900 mb-1';
+    message.textContent = item.message || item.title || 'Nueva notificacion';
+    messageRow.appendChild(message);
+
+    if (!item.is_read) {
+        const unread = document.createElement('span');
+        unread.className = 'rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-semibold uppercase text-blue-700';
+        unread.textContent = 'Nueva';
+        messageRow.appendChild(unread);
+    }
+
+    body.appendChild(messageRow);
+
+    if (item.area_pasteurizadora_label) {
+        const area = document.createElement('span');
+        area.className = 'inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-700';
+
+        const areaIcon = document.createElement('i');
+        areaIcon.className = 'fas fa-tools';
+
+        const areaText = document.createTextNode(' Parte: ' + item.area_pasteurizadora_label);
+        area.append(areaIcon, areaText);
+        body.appendChild(area);
+    }
+
+    const time = document.createElement('p');
+    time.className = 'text-xs text-gray-500';
+    time.textContent = item.created_at_human || '';
+    body.appendChild(time);
+
+    row.append(iconWrap, body);
+    link.appendChild(row);
+
+    return link;
+}
+
+function renderNotifications(items) {
+    const list = document.getElementById('notifications-list');
+
+    if (!list) {
+        return;
+    }
+
+    list.replaceChildren();
+
+    if (!items || items.length === 0) {
+        list.appendChild(emptyNotificationsNode());
+        return;
+    }
+
+    items.forEach(function(item) {
+        list.appendChild(notificationItemNode(item));
+    });
+}
+
+function updateNotificationControls(data) {
+    const badge = document.getElementById('notification-badge');
+    const readAllForm = document.getElementById('notification-read-all-form');
+    const viewAllWrapper = document.getElementById('notifications-view-all-wrapper');
+
+    if (badge) {
         if (data.count > 0) {
             badge.textContent = data.count > 9 ? '9+' : data.count;
             badge.classList.remove('hidden');
         } else {
             badge.classList.add('hidden');
         }
+    }
+
+    if (readAllForm) {
+        readAllForm.classList.toggle('hidden', data.count <= 0);
+    }
+
+    if (viewAllWrapper) {
+        viewAllWrapper.classList.toggle('hidden', (data.notifications_count || 0) <= 0);
+    }
+}
+
+function refreshNotifications() {
+    if (!document.getElementById('notification-badge') && !document.getElementById('notifications-list')) {
+        return;
+    }
+
+    fetch('/notifications/unread-count', {
+        headers: {
+            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+            'Accept': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        updateNotificationControls(data);
+        renderNotifications(data.items || []);
+    })
+    .catch(error => {
+        console.error('Error al actualizar notificaciones:', error);
     });
-}, 30000);
+}
+
+refreshNotifications();
+setInterval(refreshNotifications, 30000);
 
 (function() {
     const actividadSelector = 'textarea[name="actividad"], input[name="actividad"]';

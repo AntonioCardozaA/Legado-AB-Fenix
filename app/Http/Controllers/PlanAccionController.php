@@ -64,7 +64,7 @@ class PlanAccionController extends Controller
             ->groupBy('linea_id')
             ->get();
         
-        $actividadesProximas = PlanAccion::with('linea')
+        $actividadesProximas = PlanAccion::with($this->relacionesTrazabilidad())
             ->whereIn('linea_id', $lineaIdsPermitidas)
             ->where(function ($query) {
                 $now = Carbon::now();
@@ -92,7 +92,7 @@ class PlanAccionController extends Controller
         $this->ensureCanAccessTipo($this->tipoDesdeLinea($linea));
         
         $planes = PlanAccion::where('linea_id', $lavadora)
-            ->with('linea')
+            ->with($this->relacionesTrazabilidad())
             ->orderBy('created_at', 'desc')
             ->paginate(15);
         
@@ -118,7 +118,7 @@ class PlanAccionController extends Controller
         $id = $request->input('id');
         $tipo = $this->normalizarTipo($request->get('tipo', 'lavadora'));
         
-        $plan = PlanAccion::with('linea')->findOrFail($id);
+        $plan = PlanAccion::with($this->relacionesTrazabilidad())->findOrFail($id);
         $this->ensureCanAccessPlan($plan);
 
         if (!$request->filled('tipo') && $plan->linea) {
@@ -132,6 +132,7 @@ class PlanAccionController extends Controller
             ? $plan->tipo_maquina
             : ($plan->tipo_maquina ? json_decode($plan->tipo_maquina, true) : []);
         $areasPasteurizadora = PlanAccion::areasPasteurizadoraOpciones();
+        $usuariosResponsables = $this->obtenerUsuariosResponsables();
 
         $lavadoras = $lineas;
 
@@ -141,6 +142,7 @@ class PlanAccionController extends Controller
             'lavadoras',
             'tiposMaquinaSeleccionados',
             'areasPasteurizadora',
+            'usuariosResponsables',
             'tipo'
         ));
     }
@@ -263,13 +265,15 @@ class PlanAccionController extends Controller
         $lineas = $this->obtenerLineasPorTipo($tipo, true);
         $linea = $lineaSeleccionada ? $lineas->firstWhere('id', (int) $lineaSeleccionada) : null;
         $areasPasteurizadora = PlanAccion::areasPasteurizadoraOpciones();
+        $usuariosResponsables = $this->obtenerUsuariosResponsables();
 
         return view($this->obtenerVistaPorTipo($tipo, 'create'), compact(
             'lineas',
             'tipo',
             'lineaSeleccionada',
             'linea',
-            'areasPasteurizadora'
+            'areasPasteurizadora',
+            'usuariosResponsables'
         ));
     }
 
@@ -288,6 +292,9 @@ class PlanAccionController extends Controller
         ]));
 
         $validated = $this->prepararDatosValidados($validated, $tipo);
+        $usuarioActualId = auth()->id();
+        $validated['registrado_por_id'] = $usuarioActualId;
+        $validated['responsable_id'] = $validated['responsable_id'] ?? $usuarioActualId;
 
         if (isset($validated['tipo_maquina'])) {
             $validated['tipo_maquina'] = json_encode($validated['tipo_maquina']);
@@ -312,7 +319,7 @@ class PlanAccionController extends Controller
      */
     public function show($id)
     {
-        $plan = PlanAccion::with(['linea'])->findOrFail($id);
+        $plan = PlanAccion::with($this->relacionesTrazabilidad())->findOrFail($id);
         $this->ensureCanAccessPlan($plan);
 
         return response()->json($plan);
@@ -557,17 +564,34 @@ class PlanAccionController extends Controller
 
       public function checklist($id)
     {
-        $plan = PlanAccion::with('linea')->findOrFail($id);
+        $plan = PlanAccion::with($this->relacionesTrazabilidad())->findOrFail($id);
         $this->ensureCanAccessPlan($plan);
 
         $plan->completado = !$plan->completado;
+
+        if ($plan->completado) {
+            $plan->ejecutado_por_id = auth()->id();
+            $plan->fecha_ejecucion = now();
+
+            if (!$plan->responsable_id) {
+                $plan->responsable_id = auth()->id();
+            }
+        } else {
+            $plan->ejecutado_por_id = null;
+            $plan->fecha_ejecucion = null;
+        }
+
         $plan->save();
+        $plan->load(['ejecutadoPor', 'responsable']);
 
         // Opcional: Aquí podrías agregar lógica para resetear alertas si se desmarca.
         // Por ahora, solo guardamos el cambio.
 
         return response()->json([
-            'completado' => $plan->completado
+            'completado' => $plan->completado,
+            'ejecutado_por' => $plan->ejecutadoPor,
+            'responsable' => $plan->responsable,
+            'fecha_ejecucion' => optional($plan->fecha_ejecucion)->toISOString(),
         ]);
     }
 
@@ -583,6 +607,7 @@ class PlanAccionController extends Controller
         $reglas = [
             'linea_id' => ['required', 'exists:lineas,id', Rule::in($this->obtenerLineaIdsPorTipo($tipo))],
             'actividad' => 'required|string|max:1000',
+            'responsable_id' => ['nullable', 'exists:users,id'],
             'fecha_pcm1' => 'nullable|date',
             'fecha_pcm2' => 'nullable|date',
             'fecha_pcm3' => 'nullable|date',
@@ -684,10 +709,22 @@ class PlanAccionController extends Controller
 
     private function crearQueryPlanesPorTipo(string $tipo)
     {
-        $query = PlanAccion::with(['linea'])
+        $query = PlanAccion::with($this->relacionesTrazabilidad())
             ->where('tipo_equipo', $this->normalizarTipo($tipo));
 
         return $query->whereIn('linea_id', $this->obtenerLineaIdsPorTipo($tipo));
+    }
+
+    private function relacionesTrazabilidad(): array
+    {
+        return ['linea', 'responsable', 'registradoPor', 'ejecutadoPor'];
+    }
+
+    private function obtenerUsuariosResponsables()
+    {
+        return User::query()
+            ->orderBy('name')
+            ->get(['id', 'name', 'email']);
     }
 
     private function tipoDesdeLinea(Linea $linea): string

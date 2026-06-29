@@ -123,17 +123,16 @@
 <div class="pasteur-detail max-w-5xl mx-auto px-4 py-8">
     {{-- Header con navegación --}}
     <div class="mb-6">
-        <div class="flex items-center gap-3 mb-4">
+        <div class="responsive-actions mb-4">
             <a href="{{ $analisisRoute('index') }}"
-               class="inline-flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900
-                      bg-gray-100 hover:bg-gray-200 rounded-lg transition">
+               class="responsive-action responsive-action--secondary">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
                 </svg>
                 Volver
             </a>
             <a href="{{ $analisisRoute('historial', ['linea_id' => $analisis->linea_id, 'modulo' => $analisis->modulo, 'componente' => $analisis->componente]) }}"
-               class="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition">
+               class="responsive-action responsive-action--secondary">
                 <i class="fas fa-history"></i>
                 Ver Historial
             </a>
@@ -152,15 +151,17 @@
                     </div>
                     <p class="text-blue-200">Orden #{{ $analisis->numero_orden }}</p>
                 </div>
-            <div class="flex gap-2">
+            <div class="responsive-actions">
                     <a href="{{ $analisisRoute('edit', $analisis->id) }}"
-                       class="pasteur-detail-action bg-blue-600 hover:bg-blue-700 text-white transition">
+                       class="responsive-action responsive-action--compact">
                         <i class="fas fa-edit"></i> Editar
                     </a>
-                    <button onclick="confirmDelete()"
-                            class="pasteur-detail-action bg-red-600 hover:bg-red-700 text-white transition">
-                        <i class="fas fa-trash"></i> Eliminar
-                    </button>
+                    @if($canDeleteAnalysis ?? false)
+                        <button onclick="confirmDelete()"
+                                class="responsive-action responsive-action--compact responsive-action--danger">
+                            <i class="fas fa-trash"></i> Eliminar
+                        </button>
+                    @endif
                 </div>
             </div>
         </div>
@@ -338,14 +339,14 @@
         @if($analisis->evidencia_fotos && count($analisis->evidencia_fotos) > 0)
         <div class="border-t border-gray-200">
             <div class="bg-gray-50 px-6 py-4">
-                <div class="flex items-center justify-between">
+                <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div class="flex items-center gap-2">
                         <i class="fas fa-images text-blue-600"></i>
                         <h3 class="font-semibold text-gray-800">Evidencia Fotográfica</h3>
                         <span class="text-xs text-gray-500">{{ count($analisis->evidencia_fotos) }} imágenes</span>
                     </div>
                     <button onclick="descargarTodasImagenes()"
-                            class="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 transition">
+                            class="responsive-action responsive-action--compact">
                         <i class="fas fa-download"></i> Descargar todas
                     </button>
                 </div>
@@ -535,7 +536,7 @@
 <div id="imageModal" class="fixed inset-0 bg-black/90 hidden items-center justify-center z-50 p-4" onclick="cerrarModalImagen()">
     <div class="relative max-w-5xl w-full">
         <button onclick="cerrarModalImagen()"
-                class="absolute -top-12 right-0 text-white hover:text-gray-300 text-2xl">
+                class="absolute -top-14 right-0 flex h-11 w-11 items-center justify-center rounded-full bg-black/50 text-2xl text-white transition hover:bg-black/70 hover:text-gray-300">
             <i class="fas fa-times"></i>
         </button>
         <img id="modalImage" src="" class="w-full h-auto max-h-[85vh] object-contain rounded-lg">
@@ -543,20 +544,22 @@
             <span id="currentImageIndex">1</span> / <span id="totalImages">1</span>
         </div>
         <button onclick="navegarImagen(-1)" id="prevBtn"
-                class="absolute left-4 top-1/2 transform -translate-y-1/2 bg-black/50 text-white w-10 h-10 rounded-full hover:bg-black/70 hidden">
+                class="absolute left-4 top-1/2 hidden h-11 w-11 -translate-y-1/2 transform rounded-full bg-black/50 text-white hover:bg-black/70">
             <i class="fas fa-chevron-left"></i>
         </button>
         <button onclick="navegarImagen(1)" id="nextBtn"
-                class="absolute right-4 top-1/2 transform -translate-y-1/2 bg-black/50 text-white w-10 h-10 rounded-full hover:bg-black/70 hidden">
+                class="absolute right-4 top-1/2 hidden h-11 w-11 -translate-y-1/2 transform rounded-full bg-black/50 text-white hover:bg-black/70">
             <i class="fas fa-chevron-right"></i>
         </button>
     </div>
 </div>
 
-<form id="deleteForm" action="{{ $analisisRoute('destroy', $analisis->id) }}" method="POST" style="display: none;">
-    @csrf
-    @method('DELETE')
-</form>
+@if($canDeleteAnalysis ?? false)
+    <form id="deleteForm" action="{{ $analisisRoute('destroy', $analisis->id) }}" method="POST" style="display: none;">
+        @csrf
+        @method('DELETE')
+    </form>
+@endif
 
 <script>
     let imagenes = @json($analisis->evidencia_fotos ?? []);
@@ -621,9 +624,20 @@
     }
 
     function confirmDelete() {
-        if (confirm('¿Está seguro de eliminar este análisis? Esta acción no se puede deshacer.')) {
-            document.getElementById('deleteForm').submit();
-        }
+        Swal.fire({
+            icon: 'warning',
+            title: 'Eliminar analisis',
+            text: 'Esta accion es irreversible y eliminara el registro seleccionado.',
+            showCancelButton: true,
+            confirmButtonText: 'Eliminar',
+            cancelButtonText: 'Cancelar',
+            confirmButtonColor: '#dc2626',
+            cancelButtonColor: '#6b7280',
+        }).then(function(result) {
+            if (result.isConfirmed) {
+                document.getElementById('deleteForm').submit();
+            }
+        });
     }
 
     document.addEventListener('keydown', function(e) {

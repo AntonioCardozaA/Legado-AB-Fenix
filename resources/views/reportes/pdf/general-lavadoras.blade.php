@@ -1,3 +1,6 @@
+@include('reportes.pdf.general-corporativo')
+@php return; @endphp
+
 @php
     $lineasReporte = collect($reporte['lineas'] ?? []);
     $esPasteurizadora = ($tipoEquipo ?? 'lavadoras') === 'pasteurizadoras';

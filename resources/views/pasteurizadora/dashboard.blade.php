@@ -75,7 +75,7 @@
                         </p>
                         
                         {{-- Indicador de acción con el color especificado --}}
-                        <div class="mt-6 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity" style="color: rgb(31, 35, 72);">
+                        <div class="mt-6 flex items-center gap-2 transition-opacity sm:opacity-0 sm:group-hover:opacity-100" style="color: rgb(31, 35, 72);">
                             <span class="text-sm font-medium">Acceder</span>
                             <i class="fas fa-arrow-right transform group-hover:translate-x-1 transition-transform"></i>
                         </div>
@@ -106,7 +106,7 @@
                             Visualiza registros de componentes revisados
                         </p>
                         
-                        <div class="mt-6 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity" style="color: rgb(31, 35, 72);">
+                        <div class="mt-6 flex items-center gap-2 transition-opacity sm:opacity-0 sm:group-hover:opacity-100" style="color: rgb(31, 35, 72);">
                             <span class="text-sm font-medium">Acceder</span>
                             <i class="fas fa-arrow-right transform group-hover:translate-x-1 transition-transform"></i>
                         </div>
@@ -138,7 +138,7 @@
                             Registra y consulta análisis de Central Hidráulica
                         </p>
 
-                        <div class="mt-6 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity" style="color: rgb(31, 35, 72);">
+                        <div class="mt-6 flex items-center gap-2 transition-opacity sm:opacity-0 sm:group-hover:opacity-100" style="color: rgb(31, 35, 72);">
                             <span class="text-sm font-medium">Acceder</span>
                             <i class="fas fa-arrow-right transform group-hover:translate-x-1 transition-transform"></i>
                         </div>
@@ -169,7 +169,7 @@
                             Visualiza registros revisados de Central Hidráulica
                         </p>
 
-                        <div class="mt-6 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity" style="color: rgb(31, 35, 72);">
+                        <div class="mt-6 flex items-center gap-2 transition-opacity sm:opacity-0 sm:group-hover:opacity-100" style="color: rgb(31, 35, 72);">
                             <span class="text-sm font-medium">Acceder</span>
                             <i class="fas fa-arrow-right transform group-hover:translate-x-1 transition-transform"></i>
                         </div>
@@ -201,7 +201,7 @@
                             Administración y seguimiento de acciones preventivas
                         </p>
                         
-                        <div class="mt-6 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity" style="color: rgb(31, 35, 72);">
+                        <div class="mt-6 flex items-center gap-2 transition-opacity sm:opacity-0 sm:group-hover:opacity-100" style="color: rgb(31, 35, 72);">
                             <span class="text-sm font-medium">Acceder</span>
                             <i class="fas fa-arrow-right transform group-hover:translate-x-1 transition-transform"></i>
                         </div>
@@ -231,7 +231,7 @@
                         <p class="text-gray-500 text-sm leading-relaxed">
                             Visualizacion automatica de tendencia de danos
                         </p>
-                        <div class="mt-6 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity" style="color: rgb(31, 35, 72);">
+                        <div class="mt-6 flex items-center gap-2 transition-opacity sm:opacity-0 sm:group-hover:opacity-100" style="color: rgb(31, 35, 72);">
                             <span class="text-sm font-medium">Acceder</span>
                             <i class="fas fa-arrow-right transform group-hover:translate-x-1 transition-transform"></i>
                         </div>

@@ -98,6 +98,28 @@
                                     </p>
                                 @enderror
                             </div>
+
+                            <div class="group">
+                                <label for="responsable_id" class="block text-sm font-medium text-gray-700 mb-2 group-hover:text-blue-600 transition-colors">
+                                    <i class="fas fa-user-check mr-2 text-blue-500"></i>
+                                    Responsable
+                                </label>
+                                <select name="responsable_id" id="responsable_id"
+                                        class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all select2 @error('responsable_id') border-red-500 @enderror">
+                                    <option value="">Sin responsable</option>
+                                    @foreach(($usuariosResponsables ?? collect()) as $usuario)
+                                        <option value="{{ $usuario->id }}" {{ (int) old('responsable_id', $plan->responsable_id) === $usuario->id ? 'selected' : '' }}>
+                                            {{ $usuario->name }}{{ $usuario->email ? ' - ' . $usuario->email : '' }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                                @error('responsable_id')
+                                    <p class="mt-1 text-sm text-red-500 flex items-center">
+                                        <i class="fas fa-exclamation-circle mr-1"></i>
+                                        {{ $message }}
+                                    </p>
+                                @enderror
+                            </div>
                         </div>
 
                         {{-- Actividad --}}
@@ -157,12 +179,40 @@
                                 <i class="fas fa-info-circle mr-2 text-blue-500"></i>
                                 Información del registro
                             </h6>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                <div class="flex items-center space-x-2">
+                                    <i class="fas fa-user-check text-indigo-500"></i>
+                                    <span class="text-sm text-gray-600">
+                                        <span class="font-medium">Responsable:</span>
+                                        {{ $plan->responsable?->name ?? 'Sin responsable' }}
+                                    </span>
+                                </div>
+                                <div class="flex items-center space-x-2">
+                                    <i class="fas fa-user-plus text-green-500"></i>
+                                    <span class="text-sm text-gray-600">
+                                        <span class="font-medium">Registrado por:</span>
+                                        {{ $plan->registradoPor?->name ?? 'Sin dato historico' }}
+                                    </span>
+                                </div>
                                 <div class="flex items-center space-x-2">
                                     <i class="fas fa-plus-circle text-green-500"></i>
                                     <span class="text-sm text-gray-600">
                                         <span class="font-medium">Creado:</span> 
                                         {{ $plan->created_at ? $plan->created_at->format('d/m/Y H:i') : 'N/A' }}
+                                    </span>
+                                </div>
+                                <div class="flex items-center space-x-2">
+                                    <i class="fas fa-user-cog text-purple-500"></i>
+                                    <span class="text-sm text-gray-600">
+                                        <span class="font-medium">Ejecutado por:</span>
+                                        {{ $plan->ejecutadoPor?->name ?? ($plan->completado ? 'Sin dato historico' : 'Pendiente') }}
+                                    </span>
+                                </div>
+                                <div class="flex items-center space-x-2">
+                                    <i class="fas fa-calendar-check text-purple-500"></i>
+                                    <span class="text-sm text-gray-600">
+                                        <span class="font-medium">Fecha ejecucion:</span>
+                                        {{ $plan->fecha_ejecucion ? $plan->fecha_ejecucion->format('d/m/Y H:i') : ($plan->completado ? 'Sin dato historico' : 'Pendiente') }}
                                     </span>
                                 </div>
                                 <div class="flex items-center space-x-2">

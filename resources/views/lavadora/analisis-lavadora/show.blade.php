@@ -1,490 +1,346 @@
 @extends('layouts.app')
 
-@section('title', 'Ver Análisis de Componente')
+@section('title', 'Detalle de Analisis Lavadora')
 
 @section('content')
-<div class="container-fluid">
-    <div class="row justify-content-center">
-        <div class="col-xxl-10">
-            <!-- Header con gradiente -->
-            <div class="header-analisis mb-4">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div class="d-flex align-items-center">
-                        <div class="analisis-icon me-3">
-                            <i class="fas fa-microscope fa-2x"></i>
-                        </div>
-                        <div>
-                            <h1 class="mb-0">Análisis Lavadora {{ $analisislavadora->id }}</h1>
-                            <p class="text-muted mb-0">
-                                <i class="far fa-calendar-alt me-1"></i>
-                                {{ $analisislavadora->fecha_analisis->format('d/m/Y') }}
-                            </p>
-                        </div>
+@php
+    $evidencias = collect($analisislavadora->evidencia_fotos ?? [])->filter()->values();
+    $estado = $analisislavadora->estado;
+    $estadoStyles = match (true) {
+        \App\Models\AnalisisLavadora::esEstadoDanado($estado) => [
+            'class' => 'bg-red-50 text-red-700 border-red-200',
+            'icon' => 'fa-exclamation-circle',
+        ],
+        \App\Models\AnalisisLavadora::esEstadoDesgaste($estado) => [
+            'class' => 'bg-orange-50 text-orange-700 border-orange-200',
+            'icon' => 'fa-triangle-exclamation',
+        ],
+        \App\Models\AnalisisLavadora::esEstadoRequiereRevision($estado) => [
+            'class' => 'bg-amber-50 text-amber-700 border-amber-200',
+            'icon' => 'fa-screwdriver-wrench',
+        ],
+        \App\Models\AnalisisLavadora::esEstadoCambiado($estado) => [
+            'class' => 'bg-blue-50 text-blue-700 border-blue-200',
+            'icon' => 'fa-arrows-rotate',
+        ],
+        default => [
+            'class' => 'bg-emerald-50 text-emerald-700 border-emerald-200',
+            'icon' => 'fa-circle-check',
+        ],
+    };
+@endphp
+
+<div class="mx-auto max-w-7xl space-y-6">
+    <section class="overflow-hidden rounded-2xl border border-blue-100 bg-white shadow-sm">
+        <div class="bg-gradient-to-r from-blue-700 via-blue-600 to-sky-500 px-6 py-7 text-white sm:px-8">
+            <div class="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+                <div class="flex items-center gap-4">
+                    <div class="hidden h-20 w-20 flex-shrink-0 items-center justify-center rounded-2xl bg-white/15 p-3 sm:flex">
+                        <img src="{{ asset('images/icono-maquina.png') }}" alt="Lavadora" class="h-full w-full object-contain">
                     </div>
-                    <div class="btn-group">
-                        <a href="{{ route('analisis-lavadora.edit', $analisislavadora) }}" 
-                           class="btn btn-warning btn-lg">
-                            <i class="fas fa-edit me-2"></i> Editar
-                        </a>
-                        <a href="{{ route('analisis-lavadora.index') }}" class="btn btn-secondary btn-lg">
-                            <i class="fas fa-arrow-left me-2"></i> Volver
-                        </a>
+                    <div class="min-w-0">
+                        <div class="mb-2 flex flex-wrap items-center gap-2 text-sm text-blue-100">
+                            <span class="inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 font-semibold">
+                                Analisis #{{ $analisislavadora->id }}
+                            </span>
+                            <span class="inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 font-semibold">
+                                <i class="far fa-calendar-alt"></i>
+                                {{ optional($analisislavadora->fecha_analisis)->format('d/m/Y') ?? 'Sin fecha' }}
+                            </span>
+                        </div>
+                        <h1 class="text-2xl font-bold leading-tight sm:text-3xl">
+                            {{ $analisislavadora->linea->nombre ?? 'Lavadora ' . $analisislavadora->linea_id }}
+                        </h1>
+                        <p class="mt-2 max-w-3xl text-sm text-blue-50">
+                            {{ $analisislavadora->componente->nombre ?? 'Componente no asignado' }}
+                            @if($analisislavadora->reductor)
+                                <span class="mx-2 text-blue-200">|</span>{{ $analisislavadora->reductor }}
+                            @endif
+                        </p>
                     </div>
                 </div>
-            </div>
 
-            <!-- Tarjeta Principal -->
-            <div class="card shadow-lg border-0">
-                <div class="card-body p-4">
-                    <div class="row g-4">
-                        <!-- Información General -->
-                        <div class="col-lg-6">
-                            <div class="info-card h-100">
-                                <div class="card-header-custom bg-primary">
-                                    <h5 class="mb-0">
-                                        <i class="fas fa-info-circle me-2"></i>
-                                        Información General
-                                    </h5>
-                                </div>
-                                <div class="card-body-custom">
-                                    <div class="info-grid">
-                                        <div class="info-item">
-                                            <div class="info-label">
-                                                <i class="fas fa-washing-machine me-2 text-primary"></i>
-                                                Lavadora
-                                            </div>
-                                            <div class="info-value">
-                                                <span class="badge bg-primary-light text-primary">
-                                                    {{ $analisislavadora->linea->nombre ?? 'Lavadora ' . $analisislavadora->linea_id }}
-                                                </span>
-                                            </div>
-                                        </div>
-                                        
-                                        <div class="info-item">
-                                            <div class="info-label">
-                                                <i class="fas fa-cogs me-2 text-success"></i>
-                                                Componente
-                                            </div>
-                                            <div class="info-value">
-                                                <span class="badge bg-success-light text-success">
-                                                    {{ $analisislavadora->componente->nombre ?? 'N/A' }}
-                                                </span>
-                                            </div>
-                                        </div>
-                                        
-                                        <div class="info-item">
-                                            <div class="info-label">
-                                                <i class="fas fa-tachometer-alt me-2 text-warning"></i>
-                                                Reductor
-                                            </div>
-                                            <div class="info-value">
-                                                <span class="badge bg-warning-light text-warning">
-                                                    {{ $analisislavadora->reductor }}
-                                                </span>
-                                            </div>
-                                        </div>
-                                        
-                                        <div class="info-item">
-                                            <div class="info-label">
-                                                <i class="fas fa-hashtag me-2 text-info"></i>
-                                                Número de Orden
-                                            </div>
-                                            <div class="info-value">
-                                                <span class="badge bg-info-light text-info">
-                                                    {{ $analisislavadora->numero_orden }}
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Actividad Realizada -->
-                        <div class="col-lg-6">
-                            <div class="info-card h-100">
-                                <div class="card-header-custom bg-success">
-                                    <h5 class="mb-0">
-                                        <i class="fas fa-tasks me-2"></i>
-                                        Actividad Realizada
-                                    </h5>
-                                </div>
-                                <div class="card-body-custom">
-                                    <div class="actividad-content">
-                                        <div class="actividad-icon">
-                                            <i class="fas fa-clipboard-check text-success"></i>
-                                        </div>
-                                        <div class="actividad-text">
-                                            {{ $analisislavadora->actividad }}
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Evidencia Fotográfica -->
-                    @if(!empty($analisislavadora->evidencia_fotos))
-                        <div class="row mt-5">
-                            <div class="col-12">
-                                <div class="section-header mb-4">
-                                    <h3>
-                                        <i class="fas fa-camera me-2 text-danger"></i>
-                                        Evidencia Fotográficaaaaaaaaaaa
-                                        <span class="badge bg-danger ms-2">
-                                            {{ count($analisislavadora->evidencia_fotos) }}
-                                        </span>
-                                    </h3>
-                                </div>
-                                
-                                <div class="gallery-container">
-                                    @foreach($analisislavadora->evidencia_fotos as $index => $foto)
-                                        <div class="photo-card">
-                                            <div class="photo-header">
-                                                <span class="photo-number">#{{ $index + 1 }}</span>
-                                                <button type="button" 
-                                                        class="btn-view-photo" 
-                                                        data-bs-toggle="modal" 
-                                                        data-bs-target="#photoModal{{ $index }}">
-                                                    <i class="fas fa-expand"></i>
-                                                </button>
-                                            </div>
-                                            <div class="photo-image" 
-                                                 onclick="openModal('{{ asset('storage/' . $foto) }}')"
-                                                 style="cursor: pointer;">
-                                                <img src="{{ asset('storage/' . $foto) }}" 
-                                                     alt="Evidencia {{ $index + 1 }}"
-                                                     class="img-fluid">
-                                                <div class="photo-overlay">
-                                                    <i class="fas fa-search-plus"></i>
-                                                </div>
-                                            </div>
-                                            <div class="photo-footer">
-                                                <form action="{{ route('analisis-lavadora.delete-foto', [$analisislavadora, $index]) }}"
-                                                      method="POST" 
-                                                      class="delete-form">
-                                                    @csrf
-                                                    @method('DELETE')
-                                                    <button type="submit" 
-                                                            class="btn btn-sm btn-danger delete-btn"
-                                                            onclick="return confirmDelete()">
-                                                        <i class="fas fa-trash me-1"></i> Eliminar
-                                                    </button>
-                                                </form>
-                                            </div>
-                                        </div>
-                                    @endforeach
-                                </div>
-                            </div>
-                        </div>
+                <div class="flex flex-wrap gap-3">
+                    <a href="{{ route('analisis-lavadora.edit', ['analisislavadora' => $analisislavadora->id]) }}"
+                       class="inline-flex items-center justify-center gap-2 rounded-lg bg-white px-4 py-2.5 text-sm font-semibold text-blue-700 shadow-sm transition hover:bg-blue-50">
+                        <i class="fas fa-edit"></i>
+                        Editar
+                    </a>
+                    @if($canDeleteAnalysis ?? false)
+                        <button type="button"
+                                id="delete-analysis-button"
+                                class="inline-flex items-center justify-center gap-2 rounded-lg bg-red-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-red-700">
+                            <i class="fas fa-trash"></i>
+                            Eliminar
+                        </button>
                     @endif
-
-                    <!-- Acciones -->
-                    <div class="row mt-5">
-                        <div class="col-12">
-                            <div class="d-flex justify-content-between align-items-center">
-                            
-                                
-                                <div class="d-flex gap-2">
-                                    <button class="btn btn-outline-info">
-                                        <i class="fas fa-print me-2"></i>
-                                        Imprimir
-                                    </button>
-                                    <button class="btn btn-outline-success">
-                                        <i class="fas fa-download me-2"></i>
-                                        Exportar PDF
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                    <a href="{{ route('analisis-lavadora.index', ['linea_id' => $analisislavadora->linea_id]) }}"
+                       class="inline-flex items-center justify-center gap-2 rounded-lg border border-white/40 bg-white/10 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-white/20">
+                        <i class="fas fa-arrow-left"></i>
+                        Volver
+                    </a>
                 </div>
             </div>
         </div>
-    </div>
+
+        <div class="grid gap-4 border-t border-blue-100 bg-blue-50/60 px-6 py-5 sm:grid-cols-2 lg:grid-cols-4 sm:px-8">
+            <div class="rounded-xl border border-white bg-white/80 p-4 shadow-sm">
+                <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Estado</p>
+                <span class="mt-2 inline-flex items-center gap-2 rounded-full border px-3 py-1 text-sm font-semibold {{ $estadoStyles['class'] }}">
+                    <i class="fas {{ $estadoStyles['icon'] }}"></i>
+                    {{ $estado ?? 'Sin estado' }}
+                </span>
+            </div>
+            <div class="rounded-xl border border-white bg-white/80 p-4 shadow-sm">
+                <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Orden</p>
+                <p class="mt-2 text-lg font-bold text-gray-900">{{ $analisislavadora->numero_orden ?: 'Sin orden' }}</p>
+            </div>
+            <div class="rounded-xl border border-white bg-white/80 p-4 shadow-sm">
+                <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Lado</p>
+                <p class="mt-2 text-lg font-bold text-gray-900">{{ $analisislavadora->lado ?: 'No aplica' }}</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="grid gap-6 lg:grid-cols-3">
+        <div class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm lg:col-span-2">
+            <div class="mb-5 flex items-center gap-3">
+                <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+                    <i class="fas fa-info-circle"></i>
+                </span>
+                <div>
+                    <h2 class="text-lg font-bold text-gray-900">Informacion General</h2>
+                </div>
+            </div>
+
+            <div class="grid gap-4 md:grid-cols-2">
+                <div class="rounded-xl border border-gray-100 bg-gray-50 p-4">
+                    <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Lavadora</p>
+                    <p class="mt-2 text-base font-semibold text-gray-900">{{ $analisislavadora->linea->nombre ?? 'Lavadora ' . $analisislavadora->linea_id }}</p>
+                </div>
+                <div class="rounded-xl border border-gray-100 bg-gray-50 p-4">
+                    <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Componente</p>
+                    <p class="mt-2 text-base font-semibold text-gray-900">{{ $analisislavadora->componente->nombre ?? 'N/A' }}</p>
+                </div>
+                <div class="rounded-xl border border-gray-100 bg-gray-50 p-4">
+                    <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Reductor</p>
+                    <p class="mt-2 text-base font-semibold text-gray-900">{{ $analisislavadora->reductor ?: 'Sin reductor' }}</p>
+                </div>
+                <div class="rounded-xl border border-gray-100 bg-gray-50 p-4">
+                    <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Registrado por</p>
+                    <p class="mt-2 text-base font-semibold text-gray-900">{{ $analisislavadora->usuario->name ?? 'Sin usuario asignado' }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+            <div class="mb-5 flex items-center gap-3">
+                <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
+                    <i class="fas fa-clipboard-check"></i>
+                </span>
+                <div>
+                    <h2 class="text-lg font-bold text-gray-900">Actividad</h2>
+                </div>
+            </div>
+            <div class="min-h-40 rounded-xl border border-emerald-100 bg-emerald-50/50 p-4 text-sm leading-6 text-gray-800">
+                {{ $analisislavadora->actividad ?: 'Sin actividad registrada.' }}
+            </div>
+        </div>
+    </section>
+
+    @if($analisislavadora->cambiosFecha->isNotEmpty())
+    <section class="rounded-2xl border border-amber-200 bg-amber-50 p-6 shadow-sm">
+        <div class="mb-4 flex items-center gap-3">
+            <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-amber-600">
+                <i class="fas fa-history"></i>
+            </span>
+            <div>
+                <h2 class="text-lg font-bold text-gray-900">Historial de cambios de fecha</h2>
+            </div>
+        </div>
+
+        <div class="space-y-3">
+            @foreach($analisislavadora->cambiosFecha->sortByDesc('fecha_cambio') as $cambioFecha)
+                <div class="rounded-xl border border-amber-100 bg-white p-4 text-sm text-gray-700">
+                    <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                        <span class="font-semibold text-gray-900">
+                            {{ $cambioFecha->usuario->name ?? 'Usuario no disponible' }}
+                        </span>
+                        <span class="text-xs text-gray-500">
+                            {{ optional($cambioFecha->fecha_cambio)->format('d/m/Y H:i') }}
+                        </span>
+                    </div>
+                    <p class="mt-2">
+                        Cambio de
+                        <span class="font-semibold">{{ optional($cambioFecha->fecha_anterior)->format('d/m/Y') }}</span>
+                        a
+                        <span class="font-semibold">{{ optional($cambioFecha->fecha_nueva)->format('d/m/Y') }}</span>
+                    </p>
+                </div>
+            @endforeach
+        </div>
+    </section>
+    @endif
+
+    <section class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+        <div class="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div class="flex items-center gap-3">
+                <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-50 text-sky-600">
+                    <i class="fas fa-camera"></i>
+                </span>
+                <div>
+                    <h2 class="text-lg font-bold text-gray-900">Evidencia Fotografica</h2>
+                </div>
+            </div>
+        </div>
+
+        @if($evidencias->isNotEmpty())
+            <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                @foreach($evidencias as $index => $foto)
+                    @php($fotoUrl = asset('storage/' . $foto))
+                    <article class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+                        <button type="button"
+                                class="group relative block aspect-[4/3] w-full overflow-hidden bg-gray-100"
+                                data-photo-url="{{ $fotoUrl }}"
+                                data-photo-title="Evidencia #{{ $index + 1 }}">
+                            <img src="{{ $fotoUrl }}" alt="Evidencia {{ $index + 1 }}" class="h-full w-full object-cover transition duration-300 group-hover:scale-105">
+                            <span class="absolute left-3 top-3 rounded-full bg-black/70 px-3 py-1 text-xs font-semibold text-white">
+                                #{{ $index + 1 }}
+                            </span>
+                            <span class="absolute inset-0 flex items-center justify-center bg-black/0 text-white opacity-0 transition group-hover:bg-black/35 group-hover:opacity-100">
+                                <i class="fas fa-search-plus text-2xl"></i>
+                            </span>
+                        </button>
+                        <div class="flex items-center justify-between gap-3 p-3">
+                            <a href="{{ $fotoUrl }}"
+                               target="_blank"
+                               class="inline-flex items-center gap-2 text-sm font-semibold text-blue-600 hover:text-blue-800">
+                                <i class="fas fa-up-right-from-square"></i>
+                                Abrir
+                            </a>
+                            <form action="{{ route('analisis-lavadora.delete-foto', ['analisislavadora' => $analisislavadora->id, 'fotoIndex' => $index]) }}" method="POST" class="m-0 delete-photo-form">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="inline-flex items-center gap-2 rounded-lg bg-red-50 px-3 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-100">
+                                    <i class="fas fa-trash"></i>
+                                    Eliminar
+                                </button>
+                            </form>
+                        </div>
+                    </article>
+                @endforeach
+            </div>
+        @else
+            <div class="rounded-xl border border-dashed border-gray-300 bg-gray-50 px-6 py-12 text-center">
+                <i class="fas fa-image mb-3 text-3xl text-gray-300"></i>
+                <p class="text-sm font-semibold text-gray-700">No hay evidencia fotografica registrada.</p>
+            </div>
+        @endif
+    </section>
 </div>
 
-<!-- Modal para ver foto en grande -->
-<div class="modal fade" id="photoModal" tabindex="-1">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Evidencia Fotográfica</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body text-center">
-                <img id="modalImage" src="" class="img-fluid" alt="">
-            </div>
+@if($canDeleteAnalysis ?? false)
+    <form id="delete-analysis-form" action="{{ route('analisis-lavadora.destroy', ['analisislavadora' => $analisislavadora->id]) }}" method="POST" class="hidden">
+        @csrf
+        @method('DELETE')
+    </form>
+@endif
+
+<div id="photoPreviewModal" class="fixed inset-0 z-[80] hidden items-center justify-center bg-black/75 p-4">
+    <div class="w-full max-w-5xl overflow-hidden rounded-2xl bg-white shadow-2xl">
+        <div class="flex items-center justify-between border-b border-gray-200 px-5 py-4">
+            <h3 id="photoPreviewTitle" class="text-base font-bold text-gray-900">Evidencia</h3>
+            <button type="button" id="photoPreviewClose" class="flex h-9 w-9 items-center justify-center rounded-full bg-gray-100 text-gray-600 transition hover:bg-gray-200">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="bg-gray-950 p-3">
+            <img id="photoPreviewImage" src="" alt="Evidencia" class="mx-auto max-h-[75vh] w-auto rounded-lg object-contain">
         </div>
     </div>
 </div>
 @endsection
 
-@push('styles')
-<style>
-    /* Estilos personalizados */
-    .header-analisis {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        padding: 2rem;
-        border-radius: 15px;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-    }
-    
-    .analisis-icon {
-        background: rgba(255,255,255,0.2);
-        width: 60px;
-        height: 60px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-    
-    .info-card {
-        background: white;
-        border-radius: 10px;
-        overflow: hidden;
-        box-shadow: 0 5px 15px rgba(0,0,0,0.05);
-        transition: transform 0.3s ease;
-    }
-    
-    .info-card:hover {
-        transform: translateY(-5px);
-    }
-    
-    .card-header-custom {
-        color: white;
-        padding: 1.25rem 1.5rem;
-        border-bottom: none;
-    }
-    
-    .card-body-custom {
-        padding: 1.5rem;
-    }
-    
-    .info-grid {
-        display: grid;
-        gap: 1rem;
-    }
-    
-    .info-item {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 0.75rem 0;
-        border-bottom: 1px solid #f0f0f0;
-    }
-    
-    .info-item:last-child {
-        border-bottom: none;
-    }
-    
-    .info-label {
-        font-weight: 600;
-        color: #555;
-        display: flex;
-        align-items: center;
-    }
-    
-    .info-value {
-        font-weight: 500;
-    }
-    
-    .badge.bg-primary-light {
-        background-color: rgba(102, 126, 234, 0.1) !important;
-    }
-    
-    .badge.bg-success-light {
-        background-color: rgba(40, 167, 69, 0.1) !important;
-    }
-    
-    .badge.bg-warning-light {
-        background-color: rgba(255, 193, 7, 0.1) !important;
-    }
-    
-    .badge.bg-info-light {
-        background-color: rgba(23, 162, 184, 0.1) !important;
-    }
-    
-    .actividad-content {
-        display: flex;
-        align-items: flex-start;
-        gap: 1rem;
-        height: 100%;
-    }
-    
-    .actividad-icon {
-        font-size: 2rem;
-        margin-top: 0.25rem;
-    }
-    
-    .actividad-text {
-        flex: 1;
-        line-height: 1.6;
-        color: #444;
-        font-size: 0.95rem;
-    }
-    
-    .section-header {
-        position: relative;
-        padding-left: 1.5rem;
-    }
-    
-    .section-header::before {
-        content: '';
-        position: absolute;
-        left: 0;
-        top: 0;
-        height: 100%;
-        width: 4px;
-        background: linear-gradient(to bottom, #dc3545, #ff6b6b);
-        border-radius: 2px;
-    }
-    
-    .gallery-container {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-        gap: 1.5rem;
-        margin-top: 1rem;
-    }
-    
-    .photo-card {
-        background: white;
-        border-radius: 10px;
-        overflow: hidden;
-        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
-        transition: all 0.3s ease;
-    }
-    
-    .photo-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
-    }
-    
-    .photo-header {
-        background: #f8f9fa;
-        padding: 0.75rem 1rem;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-    
-    .photo-number {
-        font-weight: 600;
-        color: #666;
-    }
-    
-    .btn-view-photo {
-        background: none;
-        border: none;
-        color: #6c757d;
-        padding: 0.25rem 0.5rem;
-        border-radius: 4px;
-        transition: color 0.2s;
-    }
-    
-    .btn-view-photo:hover {
-        color: #dc3545;
-    }
-    
-    .photo-image {
-        position: relative;
-        height: 200px;
-        overflow: hidden;
-    }
-    
-    .photo-image img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        transition: transform 0.3s ease;
-    }
-    
-    .photo-card:hover .photo-image img {
-        transform: scale(1.05);
-    }
-    
-    .photo-overlay {
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: rgba(0,0,0,0.5);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        opacity: 0;
-        transition: opacity 0.3s ease;
-    }
-    
-    .photo-image:hover .photo-overlay {
-        opacity: 1;
-    }
-    
-    .photo-overlay i {
-        color: white;
-        font-size: 2rem;
-    }
-    
-    .photo-footer {
-        padding: 1rem;
-        background: #f8f9fa;
-    }
-    
-    .delete-form {
-        margin: 0;
-    }
-    
-    .delete-btn {
-        width: 100%;
-        transition: all 0.3s ease;
-    }
-    
-    .delete-btn:hover {
-        transform: scale(1.05);
-    }
-    
-    @media (max-width: 768px) {
-        .header-analisis {
-            padding: 1.5rem;
-        }
-        
-        .gallery-container {
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-        }
-        
-        .actividad-content {
-            flex-direction: column;
-        }
-        
-        .analisis-icon {
-            width: 50px;
-            height: 50px;
-        }
-    }
-</style>
-@endpush
-
-@push('scripts')
+@section('scripts')
 <script>
-    function openModal(imageSrc) {
-        document.getElementById('modalImage').src = imageSrc;
-        var modal = new bootstrap.Modal(document.getElementById('photoModal'));
-        modal.show();
+document.addEventListener('DOMContentLoaded', function() {
+    const modal = document.getElementById('photoPreviewModal');
+    const image = document.getElementById('photoPreviewImage');
+    const title = document.getElementById('photoPreviewTitle');
+    const close = document.getElementById('photoPreviewClose');
+
+    function closeModal() {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+        image.src = '';
     }
-    
-    function confirmDelete() {
-        return confirm('¿Está seguro de eliminar esta foto? Esta acción no se puede deshacer.');
-    }
-    
-    // Inicializar tooltips
-    document.addEventListener('DOMContentLoaded', function() {
-        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-            return new bootstrap.Tooltip(tooltipTriggerEl);
+
+    document.querySelectorAll('[data-photo-url]').forEach(function(button) {
+        button.addEventListener('click', function() {
+            image.src = this.dataset.photoUrl;
+            title.textContent = this.dataset.photoTitle || 'Evidencia';
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
         });
     });
+
+    close.addEventListener('click', closeModal);
+    modal.addEventListener('click', function(event) {
+        if (event.target === modal) {
+            closeModal();
+        }
+    });
+
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape' && !modal.classList.contains('hidden')) {
+            closeModal();
+        }
+    });
+
+    document.querySelectorAll('.delete-photo-form').forEach(function(form) {
+        form.addEventListener('submit', function(event) {
+            event.preventDefault();
+
+            Swal.fire({
+                icon: 'warning',
+                title: 'Eliminar evidencia',
+                text: 'Esta accion no se puede deshacer.',
+                showCancelButton: true,
+                confirmButtonText: 'Eliminar',
+                cancelButtonText: 'Cancelar',
+                confirmButtonColor: '#dc2626',
+                cancelButtonColor: '#6b7280',
+            }).then(function(result) {
+                if (result.isConfirmed) {
+                    form.submit();
+                }
+            });
+        });
+    });
+
+    @if($canDeleteAnalysis ?? false)
+        const deleteAnalysisButton = document.getElementById('delete-analysis-button');
+        const deleteAnalysisForm = document.getElementById('delete-analysis-form');
+
+        if (deleteAnalysisButton && deleteAnalysisForm) {
+            deleteAnalysisButton.addEventListener('click', function() {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Eliminar analisis',
+                    text: 'Esta accion es irreversible y eliminara el registro seleccionado.',
+                    showCancelButton: true,
+                    confirmButtonText: 'Eliminar',
+                    cancelButtonText: 'Cancelar',
+                    confirmButtonColor: '#dc2626',
+                    cancelButtonColor: '#6b7280',
+                }).then(function(result) {
+                    if (result.isConfirmed) {
+                        deleteAnalysisForm.submit();
+                    }
+                });
+            });
+        }
+    @endif
+});
 </script>
-@endpush
+@endsection

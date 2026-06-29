@@ -2,7 +2,7 @@
     $isCreateSubmission = $isCreateSubmission ?? false;
 @endphp
 
-<form action="{{ route('admin.users.store') }}" method="POST" class="space-y-5" x-data="{ showPassword: false, showPasswordConfirmation: false, passwordPreview: '' }">
+<form action="{{ route('admin.users.store') }}" method="POST" class="space-y-5" x-data="{ showPassword: false, showPasswordConfirmation: false, passwordPreview: '', selectedRole: @js($isCreateSubmission ? old('role', \App\Models\User::ROLE_TECNICO) : \App\Models\User::ROLE_TECNICO), supervisorRoles: @js(\App\Models\User::supervisorEquivalentRoles()) }">
     @csrf
     <input type="hidden" name="form_context" value="create">
 
@@ -35,7 +35,7 @@
 
     <div>
         <label for="role" class="mb-1 block text-sm font-medium text-gray-700">Rol</label>
-        <select id="role" name="role" class="w-full rounded border-gray-300 text-sm" required>
+        <select id="role" name="role" class="w-full rounded border-gray-300 text-sm" required x-model="selectedRole">
             @foreach($roleOptions as $roleName => $roleLabel)
                 <option value="{{ $roleName }}" @selected(($isCreateSubmission ? old('role', \App\Models\User::ROLE_TECNICO) : \App\Models\User::ROLE_TECNICO) === $roleName)>
                     {{ $roleLabel }}
@@ -44,8 +44,19 @@
         </select>
     </div>
 
+    <div x-show="supervisorRoles.includes(selectedRole)" x-cloak class="rounded border border-red-100 bg-red-50 px-4 py-3">
+        <input type="hidden" name="can_delete_analysis" value="0">
+        <label class="flex items-start gap-3 text-sm text-gray-700">
+            <input type="checkbox" name="can_delete_analysis" value="1" class="mt-1 rounded border-gray-300 text-red-600" @checked($isCreateSubmission ? old('can_delete_analysis') == '1' : false)>
+            <span>
+                <span class="block font-semibold text-red-800">Eliminar Analisis</span>
+                <span class="block text-xs text-red-700">Permiso especial asignado al usuario, no al rol Supervisor.</span>
+            </span>
+        </label>
+    </div>
+
     <div>
-        <label for="password" class="mb-1 block text-sm font-medium text-gray-700">Contrasena</label>
+        <label for="password" class="mb-1 block text-sm font-medium text-gray-700">Contraseña</label>
         <div class="relative">
             <input
                 id="password"
@@ -60,7 +71,7 @@
                 type="button"
                 @click="showPassword = !showPassword"
                 class="absolute inset-y-0 right-3 inline-flex items-center text-slate-500 transition hover:text-slate-700"
-                x-bind:aria-label="showPassword ? 'Ocultar contrasena' : 'Mostrar contrasena'"
+                x-bind:aria-label="showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'"
             >
                 <i class="fas" x-bind:class="showPassword ? 'fa-eye-slash' : 'fa-eye'"></i>
             </button>
@@ -69,7 +80,7 @@
     </div>
 
     <div>
-        <label for="password_confirmation" class="mb-1 block text-sm font-medium text-gray-700">Confirmar contrasena</label>
+        <label for="password_confirmation" class="mb-1 block text-sm font-medium text-gray-700">Confirmar contraseña</label>
         <div class="relative">
             <input
                 id="password_confirmation"
@@ -83,7 +94,7 @@
                 type="button"
                 @click="showPasswordConfirmation = !showPasswordConfirmation"
                 class="absolute inset-y-0 right-3 inline-flex items-center text-slate-500 transition hover:text-slate-700"
-                x-bind:aria-label="showPasswordConfirmation ? 'Ocultar confirmacion de contrasena' : 'Mostrar confirmacion de contrasena'"
+                x-bind:aria-label="showPasswordConfirmation ? 'Ocultar confirmacion de contraseña' : 'Mostrar confirmacion de contraseña'"
             >
                 <i class="fas" x-bind:class="showPasswordConfirmation ? 'fa-eye-slash' : 'fa-eye'"></i>
             </button>
@@ -101,7 +112,7 @@
         Usuario activo
     </label>
 
-    <button type="submit" class="w-full rounded bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700">
+    <button type="submit" class="create-action w-full">
         Crear usuario
     </button>
 </form>

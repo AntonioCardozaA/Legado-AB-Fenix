@@ -74,7 +74,7 @@
 <div class="pasteur-form-shell max-w-4xl mx-auto py-10 px-4">
     <div class="mb-8">
         <div class="flex items-start gap-3 mb-4">
-            <a href="{{ $backUrl }}" class="mt-1 text-gray-400 hover:text-blue-600 transition" aria-label="Volver">
+            <a href="{{ $backUrl }}" class="mt-1 inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-gray-100 text-gray-500 transition hover:bg-gray-200 hover:text-blue-600" aria-label="Volver">
                 <i class="fas fa-arrow-left text-xl"></i>
             </a>
             <div class="min-w-0">
@@ -320,12 +320,12 @@
                                 <div class="flex items-center justify-between gap-2">
                                     <a href="{{ Storage::url($foto) }}"
                                        target="_blank"
-                                       class="text-blue-600 hover:text-blue-800 text-sm inline-flex items-center gap-1">
+                                       class="inline-flex min-h-10 items-center justify-center gap-1 rounded-lg px-3 text-sm font-semibold text-blue-600 transition hover:bg-blue-50 hover:text-blue-800">
                                         <i class="fas fa-expand text-xs"></i>
                                         <span>Ver</span>
                                     </a>
 
-                                    <label class="inline-flex items-center gap-2 cursor-pointer">
+                                    <label class="inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-lg px-3 transition hover:bg-red-50">
                                         <input type="checkbox"
                                                name="eliminar_fotos[]"
                                                value="{{ $index }}"
@@ -354,7 +354,7 @@
                     <div>
                         <button type="button"
                                 id="btn_evidencia_fotos_galeria"
-                                class="flex w-full items-center justify-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-700 transition hover:bg-blue-100">
+                                class="responsive-action responsive-action--secondary w-full">
                             <i class="fas fa-images"></i>
                             Subir desde galeria
                         </button>
@@ -364,7 +364,7 @@
                     <div>
                         <button type="button"
                                 id="btn_evidencia_fotos_camara"
-                                class="flex w-full items-center justify-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-100">
+                                class="responsive-action responsive-action--success w-full">
                             <i class="fas fa-camera-retro"></i>
                             Tomar foto ahora
                         </button>
@@ -379,14 +379,14 @@
                 @error('evidencia_fotos.*')<p class="text-red-500 text-sm mt-1">{{ $message }}</p>@enderror
             </div>
 
-            <div class="flex flex-col sm:flex-row gap-4 pt-6 border-t border-gray-200">
+            <div class="responsive-actions pt-6 border-t border-gray-200">
                 <a href="{{ $cancelUrl }}"
-                   class="flex-1 bg-gray-200 text-gray-700 rounded-lg px-5 py-3 text-center hover:bg-gray-300 transition-all shadow-md">
+                   class="responsive-action responsive-action--secondary flex-1">
                     <i class="fas fa-times mr-2"></i>
                     Cancelar
                 </a>
                 <button type="submit"
-                        class="flex-1 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg px-5 py-3 hover:from-blue-600 hover:to-blue-700 transition-all shadow-md hover:shadow-lg">
+                        class="responsive-action flex-1">
                     <i class="fas fa-save mr-2"></i>
                     Actualizar Analisis
                 </button>
@@ -461,7 +461,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (permitirEliminar) {
                     const removeBtn = document.createElement('button');
                     removeBtn.type = 'button';
-                    removeBtn.className = 'absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 opacity-0 group-hover:opacity-100 transition-opacity text-xs';
+                    removeBtn.className = 'absolute -right-2 -top-2 flex h-10 w-10 items-center justify-center rounded-full bg-red-500 text-base font-bold text-white shadow transition-opacity hover:bg-red-600 sm:opacity-0 sm:group-hover:opacity-100';
                     removeBtn.innerHTML = '&times;';
                     removeBtn.onclick = function() {
                         const fotos = getFotosPrincipales();

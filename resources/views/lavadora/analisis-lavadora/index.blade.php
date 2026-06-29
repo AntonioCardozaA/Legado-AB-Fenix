@@ -5,6 +5,10 @@
 @section('content')
 <link rel="stylesheet" href="{{ asset('css/diagramas-lavadoras.css') }}">
 
+@php
+    $canDeleteAnalysis = $canDeleteAnalysis ?? (auth()->user()?->canDeleteAnalysis() ?? false);
+@endphp
+
 <style>
     /* VARIABLES CSS PARA CONSISTENCIA */
     :root {
@@ -390,6 +394,24 @@
     
     .cell-highlight {
         animation: highlight-pulse 2s ease-out;
+    }
+
+    .search-target-line {
+        border-color: #2563eb;
+        box-shadow: 0 18px 35px -22px rgba(37, 99, 235, 0.75);
+    }
+
+    .search-target-header,
+    .search-target-cell {
+        outline: 3px solid rgba(37, 99, 235, 0.85);
+        outline-offset: -3px;
+        box-shadow: inset 0 0 0 9999px rgba(219, 234, 254, 0.32);
+        position: relative;
+        z-index: 3;
+    }
+
+    .search-target-header .component-name {
+        color: #1d4ed8;
     }
     
     @keyframes highlight-pulse {
@@ -1054,9 +1076,9 @@
             </h1>
         </div>
 
-        <div class="flex flex-wrap gap-2">
+        <div class="create-actions create-actions--end">
             <a href="{{ route('analisis-lavadora.select-linea') }}"
-               class="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 transition flex items-center gap-2 shadow-lg shadow-blue-500/20">
+               class="create-action">
                 <i class="fas fa-plus-circle"></i>
                 Nuevo Análisis
             </a>
@@ -1174,6 +1196,13 @@
         
         // Filtrar solo las lavadoras que queremos mostrar siempre
         $lavadorasPermitidas = ['L-04', 'L-05', 'L-06', 'L-07', 'L-08', 'L-09', 'L-12', 'L-13'];
+        $analisisCollection = isset($analisis) ? collect($analisis) : collect([]);
+        $componenteBuscado = request()->filled('componente_id')
+            ? strtoupper(trim((string) request('componente_id')))
+            : null;
+        $lineasConRegistrosDelComponente = $componenteBuscado
+            ? $analisisCollection->pluck('linea_id')->filter()->unique()->values()
+            : collect();
         
         // Determinar si mostrar todas las lavadoras (por defecto TRUE)
         // NO mostrar todas si hay filtros de componente, reductor o linea_nombre
@@ -1184,6 +1213,15 @@
         $lineasFiltradas = $lineas->filter(function($linea) use ($lavadorasPermitidas) {
             return in_array($linea->nombre, $lavadorasPermitidas);
         })->values();
+
+        if ($mostrarTodas && $componenteBuscado) {
+            $lineasFiltradas = $lineasFiltradas->filter(function($linea) use ($componentesPorLineaArray, $componenteBuscado, $lineasConRegistrosDelComponente) {
+                $componentesLinea = $componentesPorLineaArray[$linea->nombre] ?? [];
+
+                return array_key_exists($componenteBuscado, $componentesLinea)
+                    || $lineasConRegistrosDelComponente->contains($linea->id);
+            })->values();
+        }
         
         // Línea específica si está seleccionada
         $lineaSeleccionada = null;
@@ -1195,8 +1233,6 @@
         $todasLasLineas = $lineas->filter(function($linea) use ($lavadorasPermitidas) {
             return !in_array($linea->nombre, $lavadorasPermitidas) && $linea->nombre != null;
         })->values();
-        
-        $analisisCollection = isset($analisis) ? collect($analisis) : collect([]);
     @endphp
     
     @if(isset($lineas) && $lineas->count() > 0)
@@ -1800,6 +1836,10 @@
                     $componentesLinea = collect();
                     if (isset($componentesPorLineaArray[$linea->nombre])) {
                         foreach ($componentesPorLineaArray[$linea->nombre] as $codigo => $nombre) {
+                            if ($componenteBuscado && $codigo !== $componenteBuscado) {
+                                continue;
+                            }
+
                             $componentesLinea->push((object)[
                                 'id'     => $codigo,
                                 'nombre' => $nombre,
@@ -1899,7 +1939,10 @@
                 @endphp
                 
                 @if($componentesLinea->count() > 0 && $reductoresLinea->count() > 0)
-                    <div class="lavadora-card">
+                    <div class="lavadora-card {{ $componenteBuscado && $componentesLinea->contains('id', $componenteBuscado) ? 'search-target-line' : '' }}"
+                         data-linea-card
+                         data-linea-id="{{ $linea->id }}"
+                         data-linea-nombre="{{ $linea->nombre }}">
                         <div class="lavadora-card-header">
                             <div class="w-12 h-12">
                                 <img src="{{ asset('images/icono-maquina.png') }}" alt="Icono" class="w-full h-full object-contain">
@@ -1924,7 +1967,9 @@
                                             </div>
                                         </th>
                                         @foreach($componentesLinea as $c)
-                                            <th class="cell-header text-blue-900 font-bold px-3 py-2 border text-center whitespace-nowrap text-sm">
+                                            <th class="cell-header text-blue-900 font-bold px-3 py-2 border text-center whitespace-nowrap text-sm {{ $componenteBuscado === $c->id ? 'search-target-component search-target-header' : '' }}"
+                                                data-component-code="{{ $c->id }}"
+                                                data-search-target="{{ $componenteBuscado === $c->id ? 'true' : 'false' }}">
                                                 <div class="component-header">
                                                     <div class="component-name">{{ $c->nombre }}</div>
                                                     <img src="{{ $c->icono }}" alt="Icono" class="w-20 h-20 object-contain" onerror="this.src='{{ asset('images/extras/sin imagen.png') }}'">
@@ -2041,7 +2086,10 @@
                                                     }
                                                 @endphp
                                                 
-                                                <td class="border px-3 py-2 align-top {{ $hasData ? $color : 'cell-empty' }} {{ $hasData ? 'analysis-cell' : 'analysis-cell no-data' }}"
+                                                <td class="border px-3 py-2 align-top {{ $hasData ? $color : 'cell-empty' }} {{ $hasData ? 'analysis-cell' : 'analysis-cell no-data' }} {{ $componenteBuscado === $c->id ? 'search-target-component search-target-cell' : '' }}"
+                                                    data-component-code="{{ $c->id }}"
+                                                    data-linea-id="{{ $linea->id }}"
+                                                    data-reductor="{{ $r }}"
                                                     @if($hasData)
                                                     onclick="openAnalysisDetail({{ json_encode([
                                                         'id' => $registro->id,
@@ -2062,6 +2110,7 @@
                                                         'is_new' => $isNew,
                                                         'total_historial' => $totalHistorial,
                                                         'edit_url' => route('analisis-lavadora.edit', ['analisislavadora' => $registro->id]),
+                                                        'delete_url' => $canDeleteAnalysis ? route('analisis-lavadora.destroy', ['analisislavadora' => $registro->id]) : null,
                                                         'historial_url' => route('analisis-lavadora.historial', [
                                                             'linea_id' => $registro->linea_id,
                                                             'componente_id' => $c->id,
@@ -2148,7 +2197,7 @@
                                                                         'reductor' => $r,
                                                                         'fecha' => now()->format('Y-m')
                                                                         ]) }}"
-                                                                        class="inline-flex items-center justify-center gap-1 px-3 py-1.5 bg-green-100 text-green-700 rounded hover:bg-green-200 transition text-xs font-medium"
+                                                                        class="create-action create-action--compact create-action--success"
                                                                         onclick="event.stopPropagation();">
                                                                             <i class="fas fa-plus"></i>
                                                                             Nuevo Registro
@@ -2166,7 +2215,7 @@
                                                                 'componente_codigo' => $c->id,
                                                                 'reductor' => $r,
                                                                 'fecha' => request('fecha', now()->format('Y-m'))]) }}"
-                                                            class="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 transition text-xs font-medium"
+                                                            class="create-action create-action--compact"
                                                             onclick="event.stopPropagation();">
                                                                 <i class="fas fa-plus"></i> Nuevo
                                                             </a>
@@ -2462,7 +2511,9 @@
                                             @endif
                                         @endforeach
 
-                                        <th class="sticky-top cell-header text-blue-900 font-bold px-3 py-2 border text-center whitespace-nowrap text-sm">
+                                        <th class="sticky-top cell-header text-blue-900 font-bold px-3 py-2 border text-center whitespace-nowrap text-sm {{ $componenteBuscado === $c->id ? 'search-target-component search-target-header' : '' }}"
+                                            data-component-code="{{ $c->id }}"
+                                            data-search-target="{{ $componenteBuscado === $c->id ? 'true' : 'false' }}">
                                             <div class="component-header">
                                                 <div class="component-name">{{ $c->nombre }}</div>
                                                 <img
@@ -2575,7 +2626,10 @@
                                                 }
                                             @endphp
                                             
-                                            <td class="border px-3 py-2 align-top {{ $hasData ? $color : 'cell-empty' }} {{ $hasData ? 'analysis-cell' : 'analysis-cell no-data' }}" 
+                                            <td class="border px-3 py-2 align-top {{ $hasData ? $color : 'cell-empty' }} {{ $hasData ? 'analysis-cell' : 'analysis-cell no-data' }} {{ $componenteBuscado === $c->id ? 'search-target-component search-target-cell' : '' }}"
+                                                data-component-code="{{ $c->id }}"
+                                                data-linea-id="{{ $registro->linea_id ?? ($lineaMostrar->id ?? '') }}"
+                                                data-reductor="{{ $r }}"
                                                 @if($hasData)
                                                 onclick="openAnalysisDetail({{ json_encode([
                                                     'id' => $registro->id,
@@ -2598,6 +2652,9 @@
                                                     'edit_url' => route('analisis-lavadora.edit', [
                                                         'analisislavadora' => $registro->id
                                                     ]),
+                                                    'delete_url' => $canDeleteAnalysis ? route('analisis-lavadora.destroy', [
+                                                        'analisislavadora' => $registro->id
+                                                    ]) : null,
                                                     'historial_url' => route('analisis-lavadora.historial', [
                                                         'linea_id' => $registro->linea_id,
                                                         'componente_id' => $c->id,
@@ -2687,7 +2744,7 @@
                                                                     'reductor' => $r,
                                                                     'fecha' => now()->format('Y-m')
                                                                     ]) }}"
-                                                                    class="inline-flex items-center justify-center gap-1 px-3 py-1.5 bg-green-100 text-green-700 rounded hover:bg-green-200 transition text-xs font-medium"
+                                                                    class="create-action create-action--compact create-action--success"
                                                                     onclick="event.stopPropagation();">
                                                                         <i class="fas fa-plus"></i>
                                                                         Nuevo Registro
@@ -2707,13 +2764,13 @@
                                                                 'componente_codigo' => $c->id,
                                                                 'reductor' => $r,
                                                                 'fecha' => request('fecha', now()->format('Y-m'))]) }}"
-                                                            class="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 transition text-xs font-medium"
+                                                            class="create-action create-action--compact"
                                                             onclick="event.stopPropagation();">
                                                                 <i class="fas fa-plus"></i> Nuevo
                                                             </a>
                                                         @else
                                                             <a href="{{ route('analisis-lavadora.select-linea') }}"
-                                                            class="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 transition text-xs font-medium"
+                                                            class="create-action create-action--compact"
                                                             onclick="event.stopPropagation();">
                                                                 <i class="fas fa-plus"></i>
                                                                 Nuevo
@@ -2744,6 +2801,10 @@
                             $componentesLinea = collect();
                             if (isset($componentesPorLineaArray[$linea->nombre])) {
                                 foreach ($componentesPorLineaArray[$linea->nombre] as $codigo => $nombre) {
+                                    if ($componenteBuscado && $codigo !== $componenteBuscado) {
+                                        continue;
+                                    }
+
                                     $componentesLinea->push((object)[
                                         'id'     => $codigo,
                                         'nombre' => $nombre,
@@ -2761,7 +2822,10 @@
                         @endphp
                         
                         @if($componentesLinea->count() > 0 && $reductoresLinea->count() > 0)
-                            <div class="lavadora-card">
+                            <div class="lavadora-card {{ $componenteBuscado && $componentesLinea->contains('id', $componenteBuscado) ? 'search-target-line' : '' }}"
+                                 data-linea-card
+                                 data-linea-id="{{ $linea->id }}"
+                                 data-linea-nombre="{{ $linea->nombre }}">
                                 <div class="lavadora-card-header">
                                     <div class="w-12 h-12">
                                         <img src="{{ asset('images/icono-maquina.png') }}" alt="Icono" class="w-full h-full object-contain">
@@ -2786,7 +2850,9 @@
                                                     </div>
                                                 </th>
                                                 @foreach($componentesLinea as $c)
-                                                    <th class="cell-header text-blue-900 font-bold px-3 py-2 border text-center whitespace-nowrap text-sm">
+                                                    <th class="cell-header text-blue-900 font-bold px-3 py-2 border text-center whitespace-nowrap text-sm {{ $componenteBuscado === $c->id ? 'search-target-component search-target-header' : '' }}"
+                                                        data-component-code="{{ $c->id }}"
+                                                        data-search-target="{{ $componenteBuscado === $c->id ? 'true' : 'false' }}">
                                                         <div class="component-header">
                                                             <div class="component-name">{{ $c->nombre }}</div>
                                                             <img src="{{ $c->icono }}" alt="Icono" class="w-20 h-20 object-contain" onerror="this.src='{{ asset('images/extras/sin imagen.png') }}'">
@@ -2809,7 +2875,10 @@
                                                     </th>
                                                     
                                                     @foreach($componentesLinea as $c)
-                                                        <td class="border px-3 py-2 align-top cell-empty analysis-cell no-data">
+                                                        <td class="border px-3 py-2 align-top cell-empty analysis-cell no-data {{ $componenteBuscado === $c->id ? 'search-target-component search-target-cell' : '' }}"
+                                                            data-component-code="{{ $c->id }}"
+                                                            data-linea-id="{{ $linea->id }}"
+                                                            data-reductor="{{ $r }}">
                                                             <div class="empty-cell">
                                                                 <div class="empty-cell-icon">
                                                                     <i class="fas fa-clipboard"></i>
@@ -2820,7 +2889,7 @@
                                                                     'componente_codigo' => $c->id,
                                                                     'reductor' => $r,
                                                                     'fecha' => now()->format('Y-m')]) }}"
-                                                                class="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 transition text-xs font-medium"
+                                                                class="create-action create-action--compact"
                                                                 onclick="event.stopPropagation();">
                                                                     <i class="fas fa-plus"></i> Nuevo
                                                                 </a>
@@ -2862,9 +2931,7 @@
                     </div>
                     
                     <a href="{{ route('analisis-lavadora.select-linea') }}"
-                       class="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 
-                              text-white rounded-lg hover:from-blue-700 hover:to-blue-800 
-                              transition shadow-lg hover:shadow-xl">
+                       class="create-action">
                         <i class="fas fa-plus-circle"></i>
                         Nuevo Análisis
                     </a>
@@ -3092,6 +3159,16 @@
                     <span id="detail-historial-text">Ver Historial</span>
                 </a>
 
+                @if($canDeleteAnalysis)
+                    <button id="detail-delete-btn"
+                            type="button"
+                            onclick="confirmDeleteAnalysis()"
+                            class="w-full sm:w-auto justify-center px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all shadow-md hover:shadow-lg flex items-center gap-2 font-medium border border-red-700">
+                        <i class="fas fa-trash"></i>
+                        Eliminar
+                    </button>
+                @endif
+
                 <button onclick="closeAnalysisDetailModal()" 
                         class="w-full sm:w-auto justify-center px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-all shadow-md hover:shadow-lg flex items-center gap-2 font-medium border border-gray-300">
                     <i class="fas fa-times"></i>
@@ -3101,6 +3178,13 @@
                     </div>
                 </div>
             </div>
+
+@if($canDeleteAnalysis)
+    <form id="delete-analysis-form" method="POST" class="hidden">
+        @csrf
+        @method('DELETE')
+    </form>
+@endif
 
 {{-- MODAL DE IMÁGENES MONOCROMÁTICO --}}
 <div id="allImagesModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden items-center justify-center z-50 p-4 transition-all duration-300"
@@ -3169,6 +3253,7 @@
 let currentImages = [];
 let currentAnalysisData = null;
 let currentImageIndex = 0;
+const SEARCH_COMPONENT_CODE = @json($componenteBuscado ?? null);
 
 /*
 |--------------------------------------------------------------------------
@@ -3575,6 +3660,29 @@ function openAnalysisDetail(analysisData) {
     hideLoading();
 }
 
+function confirmDeleteAnalysis() {
+    if (!currentAnalysisData || !currentAnalysisData.delete_url) {
+        return;
+    }
+
+    Swal.fire({
+        icon: 'warning',
+        title: 'Eliminar analisis',
+        text: 'Esta accion es irreversible y eliminara el registro seleccionado.',
+        showCancelButton: true,
+        confirmButtonText: 'Eliminar',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#dc2626',
+        cancelButtonColor: '#6b7280',
+    }).then(function(result) {
+        if (result.isConfirmed) {
+            const form = document.getElementById('delete-analysis-form');
+            form.action = currentAnalysisData.delete_url;
+            form.submit();
+        }
+    });
+}
+
 function normalizeEvidenceImages(imagenes) {
     if (!imagenes) {
         return [];
@@ -3848,6 +3956,43 @@ function hideLoading() {
     document.getElementById('loadingOverlay').classList.add('hidden');
 }
 
+function focusSearchedComponent() {
+    if (!SEARCH_COMPONENT_CODE) {
+        return;
+    }
+
+    const targets = Array.from(document.querySelectorAll('.search-target-component'));
+
+    if (targets.length === 0) {
+        return;
+    }
+
+    targets.forEach((target) => {
+        target.classList.remove('cell-highlight');
+        void target.offsetWidth;
+        target.classList.add('cell-highlight');
+    });
+
+    const firstTarget = document.querySelector('.search-target-cell') || targets[0];
+    const lineCard = firstTarget.closest('[data-linea-card]') || firstTarget.closest('.mb-8');
+
+    if (lineCard) {
+        lineCard.classList.add('search-target-line');
+        lineCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    window.setTimeout(() => {
+        const wrapper = firstTarget.closest('.table-wrapper');
+
+        if (wrapper) {
+            const targetLeft = firstTarget.offsetLeft - (wrapper.clientWidth / 2) + (firstTarget.offsetWidth / 2);
+            wrapper.scrollTo({ left: Math.max(0, targetLeft), behavior: 'smooth' });
+        }
+
+        firstTarget.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+    }, 250);
+}
+
 // EVENT LISTENERS
 document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') {
@@ -3867,6 +4012,8 @@ document.addEventListener('DOMContentLoaded', function() {
             newCell.closest('.analysis-cell').classList.add('cell-highlight');
         }
     }
+
+    focusSearchedComponent();
 });
 
 document.getElementById('lineasModal').addEventListener('click', function(e) {

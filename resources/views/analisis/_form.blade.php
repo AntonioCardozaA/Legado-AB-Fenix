@@ -107,8 +107,8 @@
         <input type="file" name="fotos[]" multiple accept="image/*" class="w-full rounded border border-gray-300 bg-white p-2 text-sm">
     </div>
 
-    <div class="flex justify-end gap-2">
-        <a href="{{ route('analisis.index') }}" class="rounded border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">Cancelar</a>
-        <button class="rounded bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700">Guardar</button>
+    <div class="create-actions create-actions--end">
+        <a href="{{ route('analisis.index') }}" class="create-action create-action--secondary">Cancelar</a>
+        <button class="create-action">Guardar</button>
     </div>
 </form>

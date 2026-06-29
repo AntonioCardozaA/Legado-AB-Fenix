@@ -57,11 +57,7 @@
                         </p>
 
                         {{-- Acción --}}
-                        <span class="inline-flex items-center gap-1 px-4 py-1.5
-                                     rounded-full text-sm font-medium
-                                     bg-blue-50 text-blue-700
-                                     group-hover:bg-blue-600 group-hover:text-white
-                                     transition-colors">
+                        <span class="create-action create-action--compact">
                             Seleccionar
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"

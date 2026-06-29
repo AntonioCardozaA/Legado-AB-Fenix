@@ -7,6 +7,7 @@ use App\Models\Linea;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 class PasteurizadoraAnalysisCycleTest extends TestCase
@@ -15,7 +16,7 @@ class PasteurizadoraAnalysisCycleTest extends TestCase
 
     public function test_completed_component_can_start_a_new_cycle_from_zero(): void
     {
-        $user = User::factory()->create();
+        $user = $this->userWithRole(User::ROLE_ADMIN);
         $linea = Linea::create([
             'nombre' => 'P-03',
             'descripcion' => 'Pasteurizadora de prueba',
@@ -53,7 +54,7 @@ class PasteurizadoraAnalysisCycleTest extends TestCase
                 'componente' => 'ANILLAS',
                 'lado' => 'VAPOR',
                 'fecha_analisis' => now()->toDateString(),
-                'numero_orden' => 'OT-NUEVO-001',
+                'numero_orden' => '1001',
                 'estado' => 'Buen estado',
                 'actividad' => 'Inicio de un nuevo ciclo de revision',
                 'componentes_revisados' => [1],
@@ -68,7 +69,7 @@ class PasteurizadoraAnalysisCycleTest extends TestCase
             'componente' => 'ANILLAS',
             'nivel' => 'SUPERIOR',
             'lado' => 'VAPOR',
-            'numero_orden' => 'OT-NUEVO-001',
+            'numero_orden' => '1001',
             'usuario_id' => $user->id,
         ]);
 
@@ -76,7 +77,7 @@ class PasteurizadoraAnalysisCycleTest extends TestCase
         $this->assertSame(1, AnalisisPasteurizadora::getCantidadComponentesRevisados($linea->id, 1, 'ANILLAS', 'VAPOR', 'SUPERIOR'));
 
         $analisis = AnalisisPasteurizadora::with('usuario')
-            ->where('numero_orden', 'OT-NUEVO-001')
+            ->where('numero_orden', '1001')
             ->firstOrFail();
 
         $this->assertTrue($analisis->usuario->is($user));
@@ -84,7 +85,7 @@ class PasteurizadoraAnalysisCycleTest extends TestCase
 
     public function test_pasteurizadora_evidence_is_stored_in_pasteurizadora_public_folder(): void
     {
-        $user = User::factory()->create();
+        $user = $this->userWithRole(User::ROLE_ADMIN);
         $linea = Linea::create([
             'nombre' => 'P-03',
             'descripcion' => 'Pasteurizadora de prueba',
@@ -100,7 +101,7 @@ class PasteurizadoraAnalysisCycleTest extends TestCase
                 'componente' => 'ANILLAS',
                 'lado' => 'VAPOR',
                 'fecha_analisis' => now()->toDateString(),
-                'numero_orden' => 'OT-FOTO-001',
+                'numero_orden' => '2001',
                 'estado' => 'Buen estado',
                 'actividad' => 'Registro con evidencia fotografica',
                 'componentes_revisados' => [1],
@@ -112,7 +113,7 @@ class PasteurizadoraAnalysisCycleTest extends TestCase
 
         $response->assertRedirect(route('pasteurizadora.analisis-pasteurizadora.index', ['linea_id' => $linea->id]));
 
-        $analisis = AnalisisPasteurizadora::where('numero_orden', 'OT-FOTO-001')->firstOrFail();
+        $analisis = AnalisisPasteurizadora::where('numero_orden', '2001')->firstOrFail();
         $this->assertCount(1, $analisis->evidencia_fotos);
         $this->assertStringStartsWith('analisis-pasteurizadora/', $analisis->evidencia_fotos[0]);
 
@@ -124,7 +125,7 @@ class PasteurizadoraAnalysisCycleTest extends TestCase
 
     public function test_pasteurizadora_analysis_can_be_stored_without_order_number(): void
     {
-        $user = User::factory()->create();
+        $user = $this->userWithRole(User::ROLE_ADMIN);
         $linea = Linea::create([
             'nombre' => 'P-03',
             'descripcion' => 'Pasteurizadora de prueba',
@@ -156,6 +157,19 @@ class PasteurizadoraAnalysisCycleTest extends TestCase
             'numero_orden' => null,
             'usuario_id' => $user->id,
         ]);
+    }
+
+    private function userWithRole(string $role, array $attributes = []): User
+    {
+        Role::firstOrCreate([
+            'name' => $role,
+            'guard_name' => 'web',
+        ]);
+
+        $user = User::factory()->create($attributes);
+        $user->assignRole($role);
+
+        return $user;
     }
 
     private function crearAnalisis(Linea $linea, array $overrides = []): AnalisisPasteurizadora

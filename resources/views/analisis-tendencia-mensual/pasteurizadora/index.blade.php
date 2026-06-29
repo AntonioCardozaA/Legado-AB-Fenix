@@ -109,6 +109,7 @@
         font-size: 15px;
         display: inline-flex;
         align-items: center;
+        justify-content: center;
         gap: 12px;
         transition: all 0.3s;
         border: none;
@@ -117,12 +118,37 @@
         box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.3);
         border: 1px solid rgba(255, 255, 255, 0.2);
         letter-spacing: 0.3px;
+        min-height: 48px;
+        min-width: 0;
+        max-width: 100%;
+        line-height: 1.2;
+        text-align: center;
+        white-space: normal;
+        overflow-wrap: anywhere;
+        touch-action: manipulation;
     }
 
     .btn-industrial:hover {
         transform: translateY(-3px);
         box-shadow: 0 20px 25px -5px rgba(37, 99, 235, 0.4);
         background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+    }
+
+    .analysis-switcher {
+        max-width: 100%;
+        min-width: 0;
+    }
+
+    .analysis-switcher a {
+        justify-content: center;
+        min-height: 48px;
+        min-width: 0;
+        max-width: 100%;
+        line-height: 1.2;
+        text-align: center;
+        white-space: normal;
+        overflow-wrap: anywhere;
+        touch-action: manipulation;
     }
 
     /* Filtros Industriales */
@@ -164,6 +190,8 @@
         display: flex;
         flex-wrap: wrap;
         gap: 12px;
+        max-width: 100%;
+        min-width: 0;
     }
 
     .machine-pill {
@@ -175,8 +203,17 @@
         transition: all 0.2s;
         display: inline-flex;
         align-items: center;
+        justify-content: center;
         gap: 8px;
         border: 1px solid transparent;
+        min-height: 44px;
+        min-width: 0;
+        max-width: 100%;
+        line-height: 1.2;
+        text-align: center;
+        white-space: normal;
+        overflow-wrap: anywhere;
+        touch-action: manipulation;
     }
 
     .machine-pill-active {
@@ -202,14 +239,18 @@
     .industrial-table-container {
         background: white;
         border-radius: 20px;
-        overflow: hidden;
+        overflow-x: auto;
+        overflow-y: hidden;
         box-shadow: 0 20px 25px -5px rgba(82, 74, 74, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.02);
         margin-bottom: 32px;
         border: 1px solid var(--border);
+        max-width: 100%;
+        -webkit-overflow-scrolling: touch;
     }
 
     .industrial-table {
         width: 100%;
+        min-width: 940px;
         border-collapse: collapse;
         font-size: 14px;
     }
@@ -241,6 +282,7 @@
         padding: 18px 12px;
         border: 1px solid var(--border);
         vertical-align: middle;
+        text-align: center;
     }
 
     .industrial-table tbody tr {
@@ -249,7 +291,6 @@
 
     .industrial-table tbody tr:hover {
         background: #f8fafc;
-        transform: scale(1.01);
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
         position: relative;
         z-index: 10;
@@ -258,6 +299,7 @@
     .period-cell {
         background: #f8fafc;
         font-weight: 700;
+        text-align: left;
         position: relative;
     }
 
@@ -336,12 +378,15 @@
         box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.02);
         border: 1px solid var(--border);
         margin-top: 32px;
+        max-width: 100%;
+        overflow: hidden;
     }
 
     .chart-header {
         display: flex;
         align-items: center;
         gap: 12px;
+        flex-wrap: wrap;
         margin-bottom: 24px;
         padding-bottom: 16px;
         border-bottom: 2px solid var(--border);
@@ -359,18 +404,24 @@
         font-size: 18px;
         font-weight: 600;
         color: var(--text-primary);
+        min-width: 0;
+        overflow-wrap: anywhere;
     }
 
     .chart-container {
-        height: 450px;
+        height: clamp(300px, 48vh, 450px);
         position: relative;
+        width: 100%;
     }
 
     /* Selector de vista para la gráfica */
     .chart-view-selector {
         display: flex;
+        flex-wrap: wrap;
         gap: 8px;
         margin-left: auto;
+        max-width: 100%;
+        min-width: 0;
     }
 
     .view-btn {
@@ -383,6 +434,13 @@
         border: 1px solid var(--border);
         background: white;
         color: var(--text-secondary);
+        min-height: 44px;
+        min-width: 0;
+        max-width: 100%;
+        text-align: center;
+        white-space: normal;
+        overflow-wrap: anywhere;
+        touch-action: manipulation;
     }
 
     .view-btn.active {
@@ -497,27 +555,258 @@
         box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
         border: 1px solid var(--primary);
     }
+
+    @media (max-width: 1024px) {
+        .industrial-table {
+            min-width: 880px;
+        }
+
+        .industrial-table th,
+        .industrial-table td {
+            padding: 14px 10px;
+        }
+    }
+
+    @media (max-width: 640px) {
+        .analysis-page {
+            padding: 20px 12px;
+        }
+
+        .analysis-title {
+            font-size: 22px;
+            line-height: 1.2;
+        }
+
+        .analysis-switcher {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            width: 100%;
+        }
+
+        .analysis-switcher a {
+            justify-content: center;
+            padding: 12px 10px;
+            border-radius: 14px;
+            width: 100%;
+        }
+
+        .industrial-filters,
+        .industrial-chart,
+        .industrial-empty {
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+
+        .filters-header,
+        .chart-header {
+            align-items: flex-start;
+            gap: 10px;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+        }
+
+        .filters-header h2,
+        .chart-header h3 {
+            font-size: 15px;
+            line-height: 1.35;
+        }
+
+        .machine-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 8px;
+        }
+
+        .machine-pill {
+            justify-content: center;
+            width: 100%;
+            min-width: 0;
+            padding: 10px 8px;
+            border-radius: 14px;
+            font-size: 13px;
+            text-align: center;
+        }
+
+        .industrial-table-container {
+            background: transparent;
+            border: 0;
+            border-radius: 0;
+            box-shadow: none;
+            overflow: visible;
+            margin-bottom: 24px;
+        }
+
+        .industrial-table {
+            min-width: 0;
+            border-collapse: separate;
+            border-spacing: 0 12px;
+            font-size: 13px;
+        }
+
+        .industrial-table,
+        .industrial-table thead,
+        .industrial-table tbody,
+        .industrial-table tr,
+        .industrial-table td {
+            display: block;
+            width: 100%;
+        }
+
+        .industrial-table thead {
+            display: none;
+        }
+
+        .industrial-table tbody tr {
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
+            overflow: hidden;
+        }
+
+        .industrial-table tbody tr:hover {
+            background: white;
+            box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
+            z-index: auto;
+        }
+
+        .industrial-table td {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            min-height: 48px;
+            padding: 12px 14px;
+            border: 0;
+            border-bottom: 1px solid var(--border);
+            text-align: right;
+        }
+
+        .industrial-table td:last-child {
+            border-bottom: 0;
+        }
+
+        .industrial-table td::before {
+            content: attr(data-label);
+            flex: 1 1 auto;
+            color: var(--text-secondary);
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            line-height: 1.25;
+            text-align: left;
+            text-transform: uppercase;
+            white-space: normal;
+        }
+
+        .industrial-table td.period-cell {
+            display: block;
+            text-align: left;
+            background: #f8fafc;
+        }
+
+        .industrial-table td.period-cell::before {
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        .period-main {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .current-badge {
+            margin-left: 0;
+        }
+
+        .value-industrial,
+        .comparison-industrial,
+        .trend-industrial {
+            flex: 0 0 auto;
+            max-width: 48%;
+        }
+
+        .trend-industrial {
+            min-width: 0;
+            white-space: nowrap;
+        }
+
+        .chart-view-selector {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            width: 100%;
+            margin-left: 0;
+        }
+
+        .view-btn {
+            width: 100%;
+            padding: 10px 12px;
+        }
+
+        .chart-container {
+            height: 320px;
+        }
+
+        .industrial-empty {
+            padding: 32px 18px;
+        }
+
+        .empty-icon {
+            width: 88px;
+            height: 88px;
+            font-size: 34px;
+            margin-bottom: 18px;
+        }
+
+        .industrial-empty h3 {
+            font-size: 20px;
+            line-height: 1.25;
+        }
+    }
+
+    @media (max-width: 380px) {
+        .analysis-switcher,
+        .machine-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .industrial-table td {
+            align-items: flex-start;
+            flex-direction: column;
+            gap: 6px;
+            text-align: left;
+        }
+
+        .value-industrial,
+        .comparison-industrial,
+        .trend-industrial {
+            max-width: 100%;
+        }
+    }
 </style>
 
-<div class="max-w-7xl mx-auto px-4 py-8">
+<div class="analysis-page max-w-7xl mx-auto px-4 py-8">
     {{-- Header Industrial --}}
     <div class="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4 mb-6">
         <div>
             <a href="{{ route('pasteurizadora.dashboard') }}" 
-               class="inline-flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 
-                      bg-gray-100 hover:bg-gray-200 rounded-lg transition-all duration-300 mb-4">
+               class="responsive-action responsive-action--secondary mb-4">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
                           d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
                 </svg>
                 <span class="font-medium">Volver</span>
             </a>
-            <h1 class="text-2xl font-bold text-gray-800 flex items-center gap-2">
+            <h1 class="analysis-title text-2xl font-bold text-gray-800 flex items-center gap-2">
                 <i class="fas fa-chart-bar text-blue-600"></i>
                 {{ $tituloAnalisis }}
             </h1>
         </div>
-        <div class="flex flex-wrap gap-3">
+        <div class="analysis-switcher flex flex-wrap gap-3">
             <a href="{{ route('analisis-tendencia-mensual.pasteurizadora.analisis-52-12-4', $parametrosLinea) }}" 
                class="inline-flex items-center gap-2 px-5 py-3 rounded-full font-semibold transition-all duration-300 {{ !$isAnalisis30147 ? 'bg-blue-600 text-white shadow-lg' : 'bg-white text-gray-700 border border-gray-200 hover:border-blue-300 hover:text-blue-700' }}">
                 <i class="fas fa-chart-line"></i>
@@ -594,7 +883,7 @@
                             @endphp
                             <tr>
                                 {{-- Período --}}
-                                <td class="period-cell">
+                                <td class="period-cell" data-label="Periodo">
                                     <div class="period-main">
                                         {{ $item->mesNombre }} {{ $item->anio }}
                                         @if($loop->first)
@@ -605,8 +894,8 @@
                                 </td>
 
                                 {{-- 52 Semanas --}}
-                                <td class="value-industrial">{{ number_format($item->total_danos_52_semanas, 2) }}</td>
-                                <td class="comparison-industrial">
+                                <td class="value-industrial" data-label="52 semanas - Total">{{ number_format($item->total_danos_52_semanas, 2) }}</td>
+                                <td class="comparison-industrial" data-label="52 semanas - Vs mes ant">
                                     @if($variacion52)
                                         <span style="color: {{ $variacion52['diferencia'] > 0 ? 'var(--danger)' : ($variacion52['diferencia'] < 0 ? 'var(--success)' : 'var(--warning)') }}">
                                             {{ $variacion52['diferencia'] > 0 ? '+' : '' }}{{ number_format($variacion52['diferencia'], 2) }}
@@ -615,7 +904,7 @@
                                         <span class="text-gray-400">—</span>
                                     @endif
                                 </td>
-                                <td>
+                                <td data-label="52 semanas - Tendencia">
                                     @if($variacion52)
                                         @php
                                             $clase = $variacion52['tendencia'] == 'up' ? 'trend-up-industrial' : ($variacion52['tendencia'] == 'down' ? 'trend-down-industrial' : 'trend-stable-industrial');
@@ -631,8 +920,8 @@
                                 </td>
 
                                 {{-- 12 Semanas --}}
-                                <td class="value-industrial">{{ number_format($item->total_danos_12_semanas, 2) }}</td>
-                                <td class="comparison-industrial">
+                                <td class="value-industrial" data-label="12 semanas - Total">{{ number_format($item->total_danos_12_semanas, 2) }}</td>
+                                <td class="comparison-industrial" data-label="12 semanas - Vs mes ant">
                                     @if($variacion12)
                                         <span style="color: {{ $variacion12['diferencia'] > 0 ? 'var(--danger)' : ($variacion12['diferencia'] < 0 ? 'var(--success)' : 'var(--warning)') }}">
                                             {{ $variacion12['diferencia'] > 0 ? '+' : '' }}{{ number_format($variacion12['diferencia'], 2) }}
@@ -641,7 +930,7 @@
                                         <span class="text-gray-400">—</span>
                                     @endif
                                 </td>
-                                <td>
+                                <td data-label="12 semanas - Tendencia">
                                     @if($variacion12)
                                         @php
                                             $clase = $variacion12['tendencia'] == 'up' ? 'trend-up-industrial' : ($variacion12['tendencia'] == 'down' ? 'trend-down-industrial' : 'trend-stable-industrial');
@@ -657,8 +946,8 @@
                                 </td>
 
                                 {{-- 4 Semanas --}}
-                                <td class="value-industrial">{{ number_format($item->total_danos_4_semanas, 2) }}</td>
-                                <td class="comparison-industrial">
+                                <td class="value-industrial" data-label="4 semanas - Total">{{ number_format($item->total_danos_4_semanas, 2) }}</td>
+                                <td class="comparison-industrial" data-label="4 semanas - Vs mes ant">
                                     @if($variacion4)
                                         <span style="color: {{ $variacion4['diferencia'] > 0 ? 'var(--danger)' : ($variacion4['diferencia'] < 0 ? 'var(--success)' : 'var(--warning)') }}">
                                             {{ $variacion4['diferencia'] > 0 ? '+' : '' }}{{ number_format($variacion4['diferencia'], 2) }}
@@ -667,7 +956,7 @@
                                         <span class="text-gray-400">—</span>
                                     @endif
                                 </td>
-                                <td>
+                                <td data-label="4 semanas - Tendencia">
                                     @if($variacion4)
                                         @php
                                             $clase = $variacion4['tendencia'] == 'up' ? 'trend-up-industrial' : ($variacion4['tendencia'] == 'down' ? 'trend-down-industrial' : 'trend-stable-industrial');
@@ -719,7 +1008,7 @@
                                 $variacion7 = $item->variacion_7_dias;
                             @endphp
                             <tr>
-                                <td class="period-cell">
+                                <td class="period-cell" data-label="Periodo">
                                     <div class="period-main">
                                         {{ $item->mesNombre }} {{ $item->anio }}
                                         @if($loop->first)
@@ -733,8 +1022,8 @@
                                     ['valor' => $item->total_danos_14_dias, 'variacion' => $variacion14],
                                     ['valor' => $item->total_danos_7_dias, 'variacion' => $variacion7],
                                 ] as $metrica)
-                                    <td class="value-industrial">{{ number_format($metrica['valor'], 2) }}</td>
-                                    <td class="comparison-industrial">
+                                    <td class="value-industrial" data-label="{{ [0 => '30 dias - Total', 1 => '14 dias - Total', 2 => '7 dias - Total'][$loop->index] }}">{{ number_format($metrica['valor'], 2) }}</td>
+                                    <td class="comparison-industrial" data-label="{{ [0 => '30 dias - Vs mes ant', 1 => '14 dias - Vs mes ant', 2 => '7 dias - Vs mes ant'][$loop->index] }}">
                                         @if($metrica['variacion'])
                                             <span style="color: {{ $metrica['variacion']['diferencia'] > 0 ? 'var(--danger)' : ($metrica['variacion']['diferencia'] < 0 ? 'var(--success)' : 'var(--warning)') }}">
                                                 {{ $metrica['variacion']['diferencia'] > 0 ? '+' : '' }}{{ number_format($metrica['variacion']['diferencia'], 2) }}
@@ -743,7 +1032,7 @@
                                             <span class="text-gray-400">-</span>
                                         @endif
                                     </td>
-                                    <td>
+                                    <td data-label="{{ [0 => '30 dias - Tendencia', 1 => '14 dias - Tendencia', 2 => '7 dias - Tendencia'][$loop->index] }}">
                                         @if($metrica['variacion'])
                                             @php
                                                 $clase = $metrica['variacion']['tendencia'] == 'up' ? 'trend-up-industrial' : ($metrica['variacion']['tendencia'] == 'down' ? 'trend-down-industrial' : 'trend-stable-industrial');
@@ -770,8 +1059,8 @@
                     <i class="fas fa-chart-bar"></i>
                     <h3>{{ strtoupper($tituloAnalisis) }} - {{ $lineas->find($lineaSeleccionada)?->nombre }}</h3>
                     <div class="chart-view-selector">
-                        <button class="view-btn active" onclick="changeChartType('bar')">Barras</button>
-                        <button class="view-btn" onclick="changeChartType('line')">Línea</button>
+                        <button class="view-btn active" data-chart-type="bar" onclick="changeChartType('bar')">Barras</button>
+                        <button class="view-btn" data-chart-type="line" onclick="changeChartType('line')">Línea</button>
                     </div>
                 </div>
                 <div class="chart-container">
@@ -812,7 +1101,13 @@
 let chart;
 
 document.addEventListener('DOMContentLoaded', function() {
+    if (window.ChartDataLabels) {
+        Chart.register(ChartDataLabels);
+    }
+
     const analisisData = @json($analisis);
+    const mobileQuery = window.matchMedia('(max-width: 640px)');
+    let currentChartType = 'bar';
     
     const datosOrdenados = [...analisisData].sort((a, b) => {
         if (a.anio !== b.anio) return a.anio - b.anio;
@@ -833,6 +1128,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Función para crear la gráfica
     function createChart(type = 'bar') {
+        const isSmallScreen = mobileQuery.matches;
+        const isMediumScreen = window.matchMedia('(max-width: 1024px)').matches;
+
         if (chart) {
             chart.destroy();
         }
@@ -958,12 +1256,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 },
                 plugins: {
                     legend: {
-                        position: 'top',
+                        position: isSmallScreen ? 'bottom' : 'top',
                         labels: {
                             usePointStyle: true,
-                            padding: 20,
+                            padding: isSmallScreen ? 10 : 20,
+                            boxWidth: isSmallScreen ? 8 : 12,
                             font: {
-                                size: 12,
+                                size: isSmallScreen ? 10 : 12,
                                 weight: '500',
                                 family: 'Inter'
                             }
@@ -996,11 +1295,11 @@ document.addEventListener('DOMContentLoaded', function() {
                         }
                     },
                     datalabels: type === 'bar' ? {
-                        display: true,
+                        display: !isSmallScreen,
                         color: 'white',
                         font: {
                             weight: 'bold',
-                            size: 11,
+                            size: isMediumScreen ? 10 : 11,
                             family: 'JetBrains Mono'
                         },
                         formatter: (value) => {
@@ -1024,8 +1323,9 @@ document.addEventListener('DOMContentLoaded', function() {
                             callback: function(value) {
                                 return value.toFixed(2);
                             },
+                            maxTicksLimit: isSmallScreen ? 6 : 8,
                             font: {
-                                size: 11,
+                                size: isSmallScreen ? 10 : 11,
                                 family: 'JetBrains Mono'
                             }
                         },
@@ -1033,7 +1333,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             display: true,
                             text: 'TOTAL DE DAÑOS',
                             font: {
-                                size: 11,
+                                size: isSmallScreen ? 10 : 11,
                                 weight: '600',
                                 family: 'Inter'
                             },
@@ -1045,10 +1345,12 @@ document.addEventListener('DOMContentLoaded', function() {
                             display: false
                         },
                         ticks: {
-                            maxRotation: 45,
-                            minRotation: 45,
+                            autoSkip: true,
+                            maxTicksLimit: isSmallScreen ? 4 : 8,
+                            maxRotation: isSmallScreen ? 0 : 45,
+                            minRotation: isSmallScreen ? 0 : 45,
                             font: {
-                                size: 11,
+                                size: isSmallScreen ? 10 : 11,
                                 family: 'Inter'
                             }
                         }
@@ -1061,9 +1363,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 },
                 layout: {
                     padding: {
-                        left: 10,
-                        right: 10,
-                        top: type === 'bar' ? 30 : 20,
+                        left: isSmallScreen ? 4 : 10,
+                        right: isSmallScreen ? 4 : 10,
+                        top: type === 'bar' && !isSmallScreen ? 30 : 16,
                         bottom: 10
                     }
                 }
@@ -1072,15 +1374,16 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Crear gráfica inicial de barras
-    createChart('bar');
+    createChart(currentChartType);
     
     // Función para cambiar el tipo de gráfica
     window.changeChartType = function(type) {
+        currentChartType = type;
+
         // Actualizar botones
         document.querySelectorAll('.view-btn').forEach(btn => {
-            btn.classList.remove('active');
+            btn.classList.toggle('active', btn.dataset.chartType === type);
         });
-        event.target.classList.add('active');
         
         // Cambiar gráfica
         createChart(type);
@@ -1093,6 +1396,16 @@ document.addEventListener('DOMContentLoaded', function() {
             chartIcon.className = 'fas fa-chart-line';
         }
     };
+
+    let wasSmallScreen = mobileQuery.matches;
+    window.addEventListener('resize', () => {
+        const isSmallScreen = mobileQuery.matches;
+
+        if (isSmallScreen !== wasSmallScreen) {
+            wasSmallScreen = isSmallScreen;
+            createChart(currentChartType);
+        }
+    });
 });
 </script>
 

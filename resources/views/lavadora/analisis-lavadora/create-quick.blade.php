@@ -216,7 +216,7 @@
                     <div>
                         <button type="button"
                                 id="btn_evidencia_fotos_galeria"
-                                class="flex w-full items-center justify-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-700 transition hover:bg-blue-100">
+                                class="create-action create-action--secondary w-full">
                             <i class="fas fa-images"></i>
                             Subir desde galeria
                         </button>
@@ -230,7 +230,7 @@
                     <div>
                         <button type="button"
                                 id="btn_evidencia_fotos_camara"
-                                class="flex w-full items-center justify-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-100">
+                                class="create-action create-action--success w-full">
                             <i class="fas fa-camera-retro"></i>
                             Tomar foto ahora
                         </button>
@@ -256,13 +256,13 @@
             </div>
             
             {{-- Botones --}}
-            <div class="flex gap-4 pt-6 border-t border-gray-200">
+            <div class="create-actions pt-6 border-t border-gray-200">
                 <a href="{{ route('analisis-lavadora.index', ['linea_id' => $linea->id]) }}"
-                class="flex-1 bg-gray-200 text-gray-700 rounded-lg px-5 py-3 text-center hover:bg-gray-300 transition-all shadow-md">
+                class="create-action create-action--secondary flex-1">
                     Cancelar
                 </a>
                 <button type="submit"
-                        class="flex-1 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg px-5 py-3 hover:from-blue-600 hover:to-blue-700 transition-all shadow-md hover:shadow-lg">
+                        class="create-action flex-1">
                     <i class="fas fa-save mr-2"></i>
                     Guardar Análisis
                 </button>

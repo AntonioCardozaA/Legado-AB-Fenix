@@ -87,13 +87,45 @@
         </div>
     @endif
 
-    <form method="POST" action="{{ route('analisis.destroy', $analisis) }}" class="rounded border border-red-200 bg-red-50 p-4">
-        @csrf
-        @method('DELETE')
-        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <p class="text-sm text-red-700">Esta accion elimina el analisis y sus fotos asociadas.</p>
-            <button class="rounded bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700" onclick="return confirm('Eliminar este analisis?')">Eliminar</button>
-        </div>
-    </form>
+    @if($canDeleteAnalysis ?? false)
+        <form method="POST" action="{{ route('analisis.destroy', $analisis) }}" class="delete-analysis-form rounded border border-red-200 bg-red-50 p-4">
+            @csrf
+            @method('DELETE')
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <p class="text-sm text-red-700">Esta accion elimina el analisis y sus fotos asociadas. No se puede deshacer.</p>
+                <button type="submit" class="rounded bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700">
+                    <i class="fas fa-trash mr-2"></i>
+                    Eliminar
+                </button>
+            </div>
+        </form>
+    @endif
 </div>
+@endsection
+
+@section('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.delete-analysis-form').forEach(function(form) {
+        form.addEventListener('submit', function(event) {
+            event.preventDefault();
+
+            Swal.fire({
+                icon: 'warning',
+                title: 'Eliminar analisis',
+                text: 'Esta accion es irreversible y eliminara el registro seleccionado.',
+                showCancelButton: true,
+                confirmButtonText: 'Eliminar',
+                cancelButtonText: 'Cancelar',
+                confirmButtonColor: '#dc2626',
+                cancelButtonColor: '#6b7280',
+            }).then(function(result) {
+                if (result.isConfirmed) {
+                    form.submit();
+                }
+            });
+        });
+    });
+});
+</script>
 @endsection

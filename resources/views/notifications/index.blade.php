@@ -30,6 +30,11 @@
                             <div class="flex items-center gap-3 mb-2">
                                 @php
                                     $priority = $notification->data['prioridad'] ?? 'baja';
+                                    $notificationType = $notification->data['type'] ?? null;
+                                    $isAdminRecordActivity = in_array($notificationType, ['admin_record_created', 'admin_analysis_deleted'], true);
+                                    $activityDateDisplay = $notificationType === 'admin_analysis_deleted'
+                                        ? ($notification->data['deleted_at_display'] ?? $notification->created_at->format('d/m/Y H:i'))
+                                        : ($notification->data['created_at_display'] ?? $notification->created_at->format('d/m/Y H:i'));
                                 @endphp
 
                                 @if($priority === 'alta')
@@ -46,10 +51,15 @@
                                     </span>
                                 @endif
 
-                                <div>
-                                    <p class="text-sm font-semibold text-gray-900">
-                                        {{ $notification->data['title'] ?? 'Notificacion interna' }}
-                                    </p>
+                                <div class="min-w-0">
+                                    <div class="flex flex-wrap items-center gap-2">
+                                        <p class="text-sm font-semibold text-gray-900">
+                                            {{ $notification->data['title'] ?? 'Notificacion interna' }}
+                                        </p>
+                                        <span class="inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold {{ $notification->read_at ? 'bg-gray-100 text-gray-600' : 'bg-blue-100 text-blue-700' }}">
+                                            {{ $notification->read_at ? 'Revisada' : 'Nueva' }}
+                                        </span>
+                                    </div>
                                     <p class="text-xs text-gray-500">{{ $notification->created_at->diffForHumans() }}</p>
                                 </div>
                             </div>
@@ -57,6 +67,26 @@
                             <p class="text-sm text-gray-700 leading-relaxed">
                                 {{ $notification->data['message'] ?? $notification->data['mensaje'] ?? 'Nueva notificacion.' }}
                             </p>
+                            @if($isAdminRecordActivity)
+                                <div class="mt-4 grid gap-3 rounded-lg border border-gray-200 bg-white/80 p-4 text-sm sm:grid-cols-2 lg:grid-cols-4">
+                                    <div>
+                                        <p class="text-xs font-semibold uppercase text-gray-500">Usuario</p>
+                                        <p class="mt-1 text-gray-900">{{ $notification->data['actor_name'] ?? 'Usuario no identificado' }}</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs font-semibold uppercase text-gray-500">Linea</p>
+                                        <p class="mt-1 text-gray-900">{{ $notification->data['linea'] ?? 'Linea no asignada' }}</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs font-semibold uppercase text-gray-500">Tipo</p>
+                                        <p class="mt-1 text-gray-900">{{ $notification->data['record_label'] ?? 'Registro' }}</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs font-semibold uppercase text-gray-500">Fecha y hora</p>
+                                        <p class="mt-1 text-gray-900">{{ $activityDateDisplay }}</p>
+                                    </div>
+                                </div>
+                            @endif
                             @if(!empty($notification->data['area_pasteurizadora_label']))
                                 <div class="mt-3">
                                     <span class="inline-flex items-center gap-2 rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">

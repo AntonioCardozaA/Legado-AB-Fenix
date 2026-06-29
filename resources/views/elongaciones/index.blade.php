@@ -19,14 +19,14 @@
                     Historial de elongaciones
                 </h1>
             </div>      
-            <div class="flex flex-wrap gap-3">
+            <div class="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
                 <a href="{{ route('elongaciones.ciclos.comparacion', ['linea' => request('linea')]) }}"
                    class="inline-flex items-center gap-2 px-5 py-3 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition shadow-md">
                     <i class="fas fa-code-compare"></i>
                     Comparar ciclos
                 </a>
                 <a href="{{ route('elongaciones.create') }}"
-                   class="inline-flex items-center gap-2 px-5 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition shadow-md">
+                   class="create-action">
                     <i class="fas fa-plus-circle"></i>
                     Nuevo registro
                 </a>
@@ -231,7 +231,7 @@
             <i class="fas fa-chart-line text-5xl text-gray-300 mb-4"></i>
             <h3 class="text-lg font-medium text-gray-900 mb-2">No hay registros</h3>
             <p class="text-gray-500 mb-6">Comienza registrando una nueva medición o iniciando un nuevo ciclo de cadena.</p>
-            <a href="{{ route('elongaciones.create') }}" class="inline-flex items-center gap-2 px-5 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"><i class="fas fa-plus-circle"></i> Nuevo registro</a>
+            <a href="{{ route('elongaciones.create') }}" class="create-action"><i class="fas fa-plus-circle"></i> Nuevo registro</a>
         </div>
     @endif
 </div>

@@ -1993,6 +1993,11 @@
                     <i class="fas fa-chart-line text-blue-600"></i>
                     Dashboard Lavadoras
                 </h1>
+                @auth
+                    <p class="mt-1 text-sm font-medium text-gray-500">
+                        Rol: {{ $userRoleLabel ?? auth()->user()->role_label }}
+                    </p>
+                @endauth
             </div>
             <div class="dashboard-actions">
                 <button onclick="refreshData()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">

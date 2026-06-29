@@ -276,17 +276,25 @@
     .btn-agregar-rapido {
         display: inline-flex;
         align-items: center;
+        justify-content: center;
         gap: 10px;
+        min-height: 44px;
+        max-width: 100%;
         padding: 10px 20px;
         background: rgba(255,255,255,0.15);
         color: white;
         border-radius: 40px;
         font-size: 14px;
         font-weight: 600;
+        line-height: 1.2;
+        text-align: center;
         text-decoration: none;
+        white-space: normal;
+        overflow-wrap: anywhere;
         transition: all 0.2s ease;
         border: 1px solid rgba(255,255,255,0.3);
         cursor: pointer;
+        touch-action: manipulation;
     }
 
     .btn-agregar-rapido:hover {
@@ -344,6 +352,32 @@
         font-weight: 600;
         color: #1e293b;
         margin-bottom: 8px;
+    }
+
+    .trazabilidad {
+        display: grid;
+        gap: 4px;
+        margin-top: 10px;
+        font-size: 12px;
+        line-height: 1.35;
+        color: #64748b;
+    }
+
+    .trazabilidad-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 6px;
+    }
+
+    .trazabilidad-item i {
+        width: 14px;
+        margin-top: 2px;
+        color: #94a3b8;
+    }
+
+    .trazabilidad-item strong {
+        color: #334155;
+        font-weight: 700;
     }
 
     /* Badges de tipo de máquina */
@@ -681,11 +715,17 @@
 
         .linea-header {
             flex-direction: column;
+            align-items: stretch;
             text-align: center;
         }
 
         .linea-info {
             justify-content: center;
+            width: 100%;
+        }
+
+        .btn-agregar-rapido {
+            width: 100%;
         }
 
         .notificacion-lateral {
@@ -942,9 +982,9 @@
                         @endif
                     </div>
                     <a href="{{ route('plan-accion.create', ['tipo' => 'lavadora', 'linea_id' => $linea->id]) }}" 
-                       class="btn-agregar-rapido">
+                       class="btn-agregar-rapido create-action create-action--on-dark">
                         <i class="fas fa-plus"></i>
-                        <span class="hidden sm:inline">Agregar Actividad</span>
+                        <span>Agregar Actividad</span>
                     </a>
                 </div>
                 
@@ -984,6 +1024,31 @@
                                             @endforeach
                                         </div>
                                     @endif
+                                    <div class="trazabilidad">
+                                        <div class="trazabilidad-item">
+                                            <i class="fas fa-user-check"></i>
+                                            <span><strong>Responsable:</strong> {{ $plan->responsable?->name ?? 'Sin responsable' }}</span>
+                                        </div>
+                                        <div class="trazabilidad-item">
+                                            <i class="fas fa-user-plus"></i>
+                                            <span>
+                                                <strong>Fecha:</strong> 
+                                                @if($plan->created_at)
+                                                    <span class="text-gray-400">|</span> {{ $plan->created_at->format('d/m/Y H:i') }}
+                                                @endif
+                                            </span>
+                                        </div>
+                                        <div class="trazabilidad-item">
+                                            <i class="fas fa-user-cog"></i>
+                                            <span>
+                                                <strong>Ejecutado por:</strong>
+                                                {{ $plan->ejecutadoPor?->name ?? ($plan->completado ? 'Sin dato historico' : 'Pendiente') }}
+                                                @if($plan->fecha_ejecucion)
+                                                    <span class="text-gray-400">|</span> {{ $plan->fecha_ejecucion->format('d/m/Y H:i') }}
+                                                @endif
+                                            </span>
+                                        </div>
+                                    </div>
                                 </td>
                                 @foreach(['pcm1', 'pcm2', 'pcm3', 'pcm4'] as $pcm)
                                     @php
@@ -1059,7 +1124,7 @@
                                         <i class="fas fa-washing-machine text-5xl text-gray-300 mb-4"></i>
                                         <p class="text-gray-500 mb-4">No hay actividades para esta línea</p>
                                         <a href="{{ route('plan-accion.create', ['tipo' => 'lavadora', 'linea_id' => $linea->id]) }}" 
-                                           class="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all">
+                                           class="create-action">
                                             <i class="fas fa-plus-circle"></i>
                                             Agregar primera actividad
                                         </a>
@@ -1416,6 +1481,15 @@ document.addEventListener('DOMContentLoaded', function() {
             fetch(`/plan-accion/${id}`)
                 .then(response => response.json())
                 .then(data => {
+                    const usuarioNombre = usuario => usuario && usuario.name ? usuario.name : null;
+                    const fechaHora = value => value
+                        ? new Date(value).toLocaleString('es-MX', { dateStyle: 'short', timeStyle: 'short' })
+                        : null;
+                    const responsable = usuarioNombre(data.responsable) || 'Sin responsable';
+                    const registradoPor = usuarioNombre(data.registrado_por) || 'Sin dato historico';
+                    const fechaRegistro = fechaHora(data.created_at) || 'N/A';
+                    const ejecutadoPor = usuarioNombre(data.ejecutado_por) || (data.completado ? 'Sin dato historico' : 'Pendiente');
+                    const fechaEjecucion = fechaHora(data.fecha_ejecucion) || (data.completado ? 'Sin dato historico' : 'Pendiente');
                     let html = `
                         <div class="space-y-4">
                             <div class="bg-gray-50 p-4 rounded-xl">
@@ -1428,6 +1502,14 @@ document.addEventListener('DOMContentLoaded', function() {
                             <div class="bg-gray-50 p-4 rounded-xl">
                                 <label class="text-xs text-gray-500 uppercase font-semibold">Actividad</label>
                                 <p class="font-medium text-gray-900 mt-1">${data.actividad || 'No especificada'}</p>
+                            </div>
+                            <div class="bg-gray-50 p-4 rounded-xl">
+                                <label class="text-xs text-gray-500 uppercase font-semibold">Trazabilidad</label>
+                                <div class="mt-2 space-y-1 text-sm text-gray-700">
+                                    <p><span class="font-semibold">Responsable:</span> ${responsable}</p>
+                                    <p><span class="font-semibold">Registrado por:</span> ${registradoPor} | ${fechaRegistro}</p>
+                                    <p><span class="font-semibold">Ejecutado por:</span> ${ejecutadoPor} | ${fechaEjecucion}</p>
+                                </div>
                             </div>
                     `;
                     

@@ -66,6 +66,7 @@ document.addEventListener('DOMContentLoaded', function () {
     document.body.appendChild(monitorTooltip);
 
     var activeMonitorTarget = null;
+    var pinnedMonitorTarget = null;
 
     function escapeTooltipText(value) {
         return String(value || '')
@@ -118,6 +119,20 @@ document.addEventListener('DOMContentLoaded', function () {
         ].join('');
     }
 
+    function getMonitorTarget(event) {
+        return event.target.closest ? event.target.closest('[data-monitor-tooltip]') : null;
+    }
+
+    function isTouchLikePointer(event) {
+        if (event.pointerType === 'touch' || event.pointerType === 'pen') {
+            return true;
+        }
+
+        return !event.pointerType &&
+            window.matchMedia &&
+            window.matchMedia('(hover: none), (pointer: coarse)').matches;
+    }
+
     function positionMonitorTooltip(event) {
         var offset = 14;
         var viewportPadding = 12;
@@ -137,32 +152,51 @@ document.addEventListener('DOMContentLoaded', function () {
         monitorTooltip.style.top = Math.max(viewportPadding, top) + 'px';
     }
 
-    function hideMonitorTooltip() {
-        activeMonitorTarget = null;
-        monitorTooltip.classList.remove('is-visible');
-    }
-
-    document.addEventListener('pointerover', function (event) {
-        var target = event.target.closest ? event.target.closest('[data-monitor-tooltip]') : null;
-
-        if (!target) {
-            return;
+    function showMonitorTooltip(target, event) {
+        if (activeMonitorTarget && activeMonitorTarget !== target) {
+            activeMonitorTarget.classList.remove('is-tooltip-active');
         }
 
         activeMonitorTarget = target;
         buildMonitorTooltip(target);
         monitorTooltip.classList.add('is-visible');
+        target.classList.add('is-tooltip-active');
         positionMonitorTooltip(event);
+    }
+
+    function hideMonitorTooltip() {
+        if (activeMonitorTarget) {
+            activeMonitorTarget.classList.remove('is-tooltip-active');
+        }
+
+        activeMonitorTarget = null;
+        pinnedMonitorTarget = null;
+        monitorTooltip.classList.remove('is-visible');
+    }
+
+    document.addEventListener('pointerover', function (event) {
+        if (isTouchLikePointer(event)) {
+            return;
+        }
+
+        var target = getMonitorTarget(event);
+
+        if (!target) {
+            return;
+        }
+
+        pinnedMonitorTarget = null;
+        showMonitorTooltip(target, event);
     });
 
     document.addEventListener('pointermove', function (event) {
-        if (activeMonitorTarget) {
+        if (activeMonitorTarget && !pinnedMonitorTarget) {
             positionMonitorTooltip(event);
         }
     });
 
     document.addEventListener('pointerout', function (event) {
-        if (!activeMonitorTarget) {
+        if (!activeMonitorTarget || pinnedMonitorTarget) {
             return;
         }
 
@@ -171,6 +205,31 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         hideMonitorTooltip();
+    });
+
+    document.addEventListener('pointerdown', function (event) {
+        var target = getMonitorTarget(event);
+
+        if (!target) {
+            if (pinnedMonitorTarget) {
+                hideMonitorTooltip();
+            }
+
+            return;
+        }
+
+        if (!isTouchLikePointer(event)) {
+            return;
+        }
+
+        pinnedMonitorTarget = target;
+        showMonitorTooltip(target, event);
+    });
+
+    document.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape') {
+            hideMonitorTooltip();
+        }
     });
 
     window.addEventListener('scroll', hideMonitorTooltip, true);

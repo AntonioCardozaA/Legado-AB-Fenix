@@ -24,7 +24,7 @@ class RoleSeeder extends Seeder
             'ver analisis',
             'crear analisis',
             'editar analisis',
-            'eliminar analisis',
+            User::PERMISSION_DELETE_ANALYSIS,
             'exportar analisis',
             'ver paros',
             'crear paros',
@@ -38,6 +38,7 @@ class RoleSeeder extends Seeder
             'gestionar componentes',
             'gestionar usuarios',
             'gestionar configuracion',
+            User::PERMISSION_EDIT_ANALYSIS_DATE,
         ];
 
         // Crear permisos con guard web
@@ -54,27 +55,28 @@ class RoleSeeder extends Seeder
             User::PERMISSION_ACCESS_PASTEURIZADORA_MECANICA,
             User::PERMISSION_ACCESS_PASTEURIZADORA_CENTRAL_HIDRAULICA,
         ];
-        $permisosSinPasteurizadora = Permission::whereNotIn('name', $permisosPasteurizadora)->get();
+        $permisosFechaAnalisis = [
+            User::PERMISSION_EDIT_ANALYSIS_DATE,
+        ];
+        $permisosEspecialesUsuario = [
+            User::PERMISSION_DELETE_ANALYSIS,
+        ];
+        $permisosSinPasteurizadora = Permission::whereNotIn('name', array_merge($permisosPasteurizadora, $permisosFechaAnalisis, $permisosEspecialesUsuario))->get();
+        $permisosSupervisor = Permission::whereNotIn('name', array_merge($permisosPasteurizadora, $permisosEspecialesUsuario))->get();
+        $permisosTecnico = [
+            User::PERMISSION_ACCESS_LAVADORA,
+            'ver analisis', 'crear analisis', 'editar analisis',
+            User::PERMISSION_EDIT_ANALYSIS_DATE,
+        ];
 
         // Roles y permisos
         $roles = [
             User::ROLE_ADMIN => $todosLosPermisos,
             User::ROLE_GERENTE_MANTENIMIENTO => $permisosSinPasteurizadora,
-            User::ROLE_SUPERVISOR => $permisosSinPasteurizadora,
-            User::ROLE_INGENIERO_MANTENIMIENTO => [
-                User::PERMISSION_ACCESS_LAVADORA,
-                User::PERMISSION_ACCESS_PASTEURIZADORA_MECANICA,
-                User::PERMISSION_ACCESS_PASTEURIZADORA_CENTRAL_HIDRAULICA,
-                'ver analisis', 'crear analisis', 'editar analisis', 'exportar analisis',
-                'ver paros', 'crear paros', 'editar paros', 'gestionar planes accion',
-                'ver reportes', 'generar reportes', 'exportar reportes',
-            ],
-            User::ROLE_TECNICO => [
-                User::PERMISSION_ACCESS_LAVADORA,
-                User::PERMISSION_ACCESS_PASTEURIZADORA_MECANICA,
-                User::PERMISSION_ACCESS_PASTEURIZADORA_CENTRAL_HIDRAULICA,
-                'ver analisis', 'crear analisis', 'editar analisis',
-            ],
+            User::ROLE_SUPERVISOR => $permisosSupervisor,
+            User::ROLE_INGENIERO_MANTENIMIENTO => $permisosTecnico,
+            User::ROLE_TECNICO => $permisosTecnico,
+            User::ROLE_PROGRAMADOR_DE_MANTENIMIENTO => $permisosSupervisor,
         ];
 
         foreach ($roles as $rol => $perms) {

@@ -7,6 +7,7 @@
     $analisisRoutePrefix = $analisisRoutePrefix ?? 'pasteurizadora.analisis-pasteurizadora';
     $analisisRoute = fn ($name, $params = []) => route($analisisRoutePrefix . '.' . $name, $params);
     $analisisBaseUrl = $analisisBaseUrl ?? '/pasteurizadora/analisis-pasteurizadora';
+    $canDeleteAnalysis = $canDeleteAnalysis ?? (auth()->user()?->canDeleteAnalysis() ?? false);
 @endphp
 <style>
     /* VARIABLES CSS PARA CONSISTENCIA */
@@ -102,15 +103,21 @@
     
     .download-image-btn {
         width: 100%;
-        padding: 6px;
+        min-height: 44px;
+        padding: 8px 10px;
         margin-top: 8px;
         background: var(--primary-blue);
         color: white;
         border: none;
-        border-radius: 4px;
+        border-radius: 8px;
         cursor: pointer;
         font-size: 12px;
+        font-weight: 700;
+        text-align: center;
+        white-space: normal;
+        overflow-wrap: anywhere;
         transition: background 0.3s ease;
+        touch-action: manipulation;
     }
     
     .download-image-btn:hover {
@@ -439,6 +446,7 @@
     .linea-item {
         display: inline-flex;
         align-items: center;
+        justify-content: center;
         padding: 8px 20px;
         background: #f8fafc;
         border: 2px solid #e2e8f0;
@@ -449,6 +457,13 @@
         transition: all 0.2s ease;
         cursor: pointer;
         text-decoration: none;
+        min-height: 44px;
+        min-width: 0;
+        max-width: 100%;
+        text-align: center;
+        white-space: normal;
+        overflow-wrap: anywhere;
+        touch-action: manipulation;
     }
     
     .linea-item i {
@@ -503,6 +518,7 @@
     .filter-link {
         display: inline-flex;
         align-items: center;
+        justify-content: center;
         gap: 8px;
         padding: 8px 16px;
         color: #475569;
@@ -512,6 +528,13 @@
         transition: all 0.2s ease;
         cursor: pointer;
         text-decoration: none;
+        min-height: 44px;
+        min-width: 0;
+        max-width: 100%;
+        text-align: center;
+        white-space: normal;
+        overflow-wrap: anywhere;
+        touch-action: manipulation;
     }
     
     .filter-link i {
@@ -532,10 +555,31 @@
         color: #2563eb;
         font-weight: 600;
     }
+
+    .stat-action-card {
+        min-height: 6rem;
+        min-width: 0;
+        max-width: 100%;
+        text-align: left;
+        white-space: normal;
+        overflow-wrap: anywhere;
+        touch-action: manipulation;
+    }
+
+    .stat-action-card > div {
+        min-width: 0;
+        gap: 0.75rem;
+    }
+
+    .stat-action-card p,
+    .stat-action-card h3 {
+        overflow-wrap: anywhere;
+    }
     
     .btn-apply {
         display: inline-flex;
         align-items: center;
+        justify-content: center;
         gap: 8px;
         padding: 10px 28px;
         background: #2563eb;
@@ -545,9 +589,16 @@
         border: none;
         border-radius: 40px;
         cursor: pointer;
+        min-height: 44px;
+        min-width: 0;
+        max-width: 100%;
+        text-align: center;
+        white-space: normal;
+        overflow-wrap: anywhere;
         transition: all 0.2s ease;
         margin-left: auto;
         box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);
+        touch-action: manipulation;
     }
     
     .btn-apply:hover {
@@ -559,6 +610,7 @@
     .btn-clear {
         display: inline-flex;
         align-items: center;
+        justify-content: center;
         gap: 8px;
         padding: 10px 24px;
         background: white;
@@ -568,8 +620,15 @@
         border: 2px solid #e2e8f0;
         border-radius: 40px;
         cursor: pointer;
+        min-height: 44px;
+        min-width: 0;
+        max-width: 100%;
+        text-align: center;
+        white-space: normal;
+        overflow-wrap: anywhere;
         transition: all 0.2s ease;
         text-decoration: none;
+        touch-action: manipulation;
     }
     
     .btn-clear:hover {
@@ -644,9 +703,15 @@
             align-items: stretch;
         }
 
-        .btn-apply {
+        .filter-link {
+            width: 100%;
+        }
+
+        .btn-apply,
+        .btn-clear {
             margin-left: 0;
             justify-content: center;
+            width: 100%;
         }
 
         .compact-table td, .compact-table th {
@@ -831,19 +896,25 @@
 
     .image-grid-enhanced .download-image-btn {
         width: 100%;
-        padding: 6px;
+        min-height: 44px;
+        padding: 8px 10px;
         background: #374151;
         color: white;
         border: none;
-        border-radius: 4px;
+        border-radius: 8px;
         cursor: pointer;
         font-size: 12px;
+        font-weight: 700;
         font-family: monospace;
+        text-align: center;
+        white-space: normal;
+        overflow-wrap: anywhere;
         transition: background 0.3s ease;
         display: flex;
         align-items: center;
         justify-content: center;
         gap: 4px;
+        touch-action: manipulation;
     }
 
     .image-grid-enhanced .download-image-btn:hover {
@@ -872,7 +943,7 @@
     {{-- HEADER --}}
     <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
         <div>
-            <a href="{{ route($analisisDashboardRoute ?? 'pasteurizadora.dashboard') }}" class="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 rounded-lg transition-all duration-300 group">
+            <a href="{{ route($analisisDashboardRoute ?? 'pasteurizadora.dashboard') }}" class="responsive-action responsive-action--secondary group">
                 <svg class="w-5 h-5 group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
                 </svg>
@@ -1144,7 +1215,7 @@
                 'actividad' => Str::limit($item->actividad, 80),
                 'lado' => $item->lado,
             ])->values()) }})" 
-                    class="bg-white rounded-xl shadow-sm p-4 border-t-4 border-emerald-600 hover:shadow-lg hover:bg-emerald-50 transition-all text-left w-full cursor-pointer group">
+                    class="stat-action-card bg-white rounded-xl shadow-sm p-4 border-t-4 border-emerald-600 hover:shadow-lg hover:bg-emerald-50 transition-all text-left w-full cursor-pointer group">
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-xs font-semibold text-emerald-600 uppercase tracking-wide">Buen estado</p>
@@ -1166,7 +1237,7 @@
                 'actividad' => Str::limit($item->actividad, 80),
                 'lado' => $item->lado,
             ])->values()) }})"
-                    class="bg-white rounded-xl shadow-sm p-4 border-t-4 border-yellow-500 hover:shadow-lg hover:bg-yellow-50 transition-all text-left w-full cursor-pointer group">
+                    class="stat-action-card bg-white rounded-xl shadow-sm p-4 border-t-4 border-yellow-500 hover:shadow-lg hover:bg-yellow-50 transition-all text-left w-full cursor-pointer group">
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-xs font-semibold text-yellow-600 uppercase tracking-wide">🔧 Requiere revisión</p>
@@ -1188,7 +1259,7 @@
                 'actividad' => Str::limit($item->actividad, 80),
                 'lado' => $item->lado,
             ])->values()) }})"
-                    class="bg-white rounded-xl shadow-sm p-4 border-t-4 border-orange-500 hover:shadow-lg hover:bg-orange-50 transition-all text-left w-full cursor-pointer group">
+                    class="stat-action-card bg-white rounded-xl shadow-sm p-4 border-t-4 border-orange-500 hover:shadow-lg hover:bg-orange-50 transition-all text-left w-full cursor-pointer group">
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-xs font-semibold text-orange-600 uppercase tracking-wide">Severo / Moderado</p>
@@ -1210,7 +1281,7 @@
                 'actividad' => Str::limit($item->actividad, 80),
                 'lado' => $item->lado,
             ])->values()) }})"
-                    class="bg-white rounded-xl shadow-sm p-4 border-t-4 border-red-600 hover:shadow-lg hover:bg-red-50 transition-all text-left w-full cursor-pointer group">
+                    class="stat-action-card bg-white rounded-xl shadow-sm p-4 border-t-4 border-red-600 hover:shadow-lg hover:bg-red-50 transition-all text-left w-full cursor-pointer group">
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-xs font-semibold text-red-600 uppercase tracking-wide">Dañados</p>
@@ -1232,7 +1303,7 @@
                 'actividad' => Str::limit($item->actividad, 80),
                 'lado' => $item->lado,
             ])->values()) }})"
-                    class="bg-white rounded-xl shadow-sm p-4 border-t-4 border-sky-600 hover:shadow-lg hover:bg-sky-50 transition-all text-left w-full cursor-pointer group">
+                    class="stat-action-card bg-white rounded-xl shadow-sm p-4 border-t-4 border-sky-600 hover:shadow-lg hover:bg-sky-50 transition-all text-left w-full cursor-pointer group">
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-xs font-semibold text-sky-600 uppercase tracking-wide">Cambiados</p>
@@ -1472,6 +1543,7 @@
                                                             })
                                                             ->values(),
                                                         'edit_url' => $analisisRoute('edit', $registro->id),
+                                                        'delete_url' => $canDeleteAnalysis ? $analisisRoute('destroy', $registro->id) : null,
                                                         'historial_url' => $analisisRoute('historial', ['linea_id' => $linea->id, 'modulo' => $moduloNumero, 'componente' => $codigo])
                                                     ]) }})"
                                                 @endif>
@@ -1555,10 +1627,10 @@
                                                         {{-- Resumen simple de progreso --}}
                                                  
 
-                                                        <div class="flex gap-2 pt-1">
+                                                        <div class="flex flex-wrap gap-2 pt-1">
                                                             @if(count($registro->evidencia_fotos ?? []) > 0)
                                                                 <button onclick="event.stopPropagation(); openAllImages({{ Illuminate\Support\Js::from($registro->evidencia_fotos ?? []) }}, {{ Illuminate\Support\Js::from($registro->numero_orden) }})"
-                                                                        class="inline-flex items-center justify-center gap-1 px-3 py-1.5 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition text-xs font-medium">
+                                                                        class="responsive-action responsive-action--compact responsive-action--secondary">
                                                                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                                                                     </svg>
@@ -1579,7 +1651,7 @@
                                                                     'lado' => $siguienteRevision['lado'] ?? '',
                                                                     'nivel' => $siguienteRevision['nivel'] ?? ''
                                                                 ]) }}"
-                                                                   class="inline-flex items-center justify-center gap-1 px-3 py-1.5 bg-green-100 text-green-700 rounded hover:bg-green-200 transition text-xs font-medium"
+                                                                   class="create-action create-action--compact create-action--success"
                                                                    onclick="event.stopPropagation();">
                                                                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
@@ -1594,7 +1666,7 @@
                                                                     'lado' => $siguienteRevision['lado'] ?? '',
                                                                     'nivel' => $siguienteRevision['nivel'] ?? ''
                                                                 ]) }}"
-                                                                   class="inline-flex items-center justify-center gap-1 px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 transition text-xs font-medium"
+                                                                   class="create-action create-action--compact"
                                                                    onclick="event.stopPropagation();">
                                                                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
@@ -1625,7 +1697,7 @@
                                                                 'lado' => '',
                                                                 'nivel' => ''
                                                             ]) }}"
-                                                               class="inline-flex items-center justify-center gap-1 px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 transition text-xs font-medium"
+                                                               class="create-action create-action--compact"
                                                                onclick="event.stopPropagation();">
                                                                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
@@ -1657,7 +1729,7 @@
         <div class="px-6 py-4 border-b border-gray-100">
             <div class="flex justify-between items-center">
                 <div class="flex items-center gap-3">
-                    <div class="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center">
+                    <div class="w-11 h-11 bg-gray-100 rounded-lg flex items-center justify-center">
                         <i class="fas fa-chart-line text-gray-600 text-sm"></i>
                     </div>
                     <h3 class="font-medium text-gray-900" id="detailModalTitle">
@@ -1665,7 +1737,7 @@
                     </h3>
                 </div>
                 <button onclick="closeAnalysisDetailModal()" 
-                        class="w-8 h-8 rounded-lg hover:bg-gray-100 flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors">
+                        class="w-11 h-11 rounded-lg hover:bg-gray-100 flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
@@ -1807,22 +1879,32 @@
                 </div>
             </div>
 
-            <div class="flex flex-col sm:flex-row sm:justify-end gap-3 mt-8 pt-4 border-t border-gray-200">
+            <div class="responsive-actions responsive-actions--end mt-8 pt-4 border-t border-gray-200">
                 <a id="detail-edit-btn" 
                 href="#" 
-                class="w-full sm:w-auto justify-center px-6 py-3 bg-gray-800 text-white rounded-lg hover:bg-gray-900 transition-all shadow-md hover:shadow-lg flex items-center gap-2 font-medium border border-gray-700">
+                class="responsive-action">
                     <i class="fas fa-edit"></i>
                     Editar Análisis
                 </a>
 
                 <a id="detail-historial-btn"
                 href="#"
-                class="w-full sm:w-auto justify-center px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-all shadow-md hover:shadow-lg flex items-center gap-2 font-medium hidden border border-gray-500">
+                class="responsive-action responsive-action--secondary hidden">
                     <span id="detail-historial-text">Ver Historial</span>
                 </a>
 
+                @if($canDeleteAnalysis)
+                    <button id="detail-delete-btn"
+                            type="button"
+                            onclick="confirmDeleteAnalysis()"
+                            class="responsive-action responsive-action--danger">
+                        <i class="fas fa-trash"></i>
+                        Eliminar
+                    </button>
+                @endif
+
                 <button onclick="closeAnalysisDetailModal()" 
-                        class="w-full sm:w-auto justify-center px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-all shadow-md hover:shadow-lg flex items-center gap-2 font-medium border border-gray-300">
+                        class="responsive-action responsive-action--secondary">
                     <i class="fas fa-times"></i>
                     Cerrar
                 </button>
@@ -1831,12 +1913,19 @@
     </div>
 </div>
 
+@if($canDeleteAnalysis)
+    <form id="delete-analysis-form" method="POST" class="hidden">
+        @csrf
+        @method('DELETE')
+    </form>
+@endif
+
 {{-- MODAL DE ESTADÍSTICAS --}}
 <div id="estadoModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50 p-4" onclick="if(event.target === this) closeEstadoModal()">
     <div class="bg-white rounded-xl shadow-xl max-w-5xl w-full max-h-[85vh] overflow-hidden">
         <div class="px-6 py-4 border-b flex justify-between items-center" id="estadoModalHeader">
             <h3 class="text-xl font-bold" id="estadoModalTitle">Detalle de registros</h3>
-            <button onclick="closeEstadoModal()" class="w-8 h-8 rounded-lg hover:bg-gray-100 flex items-center justify-center transition">
+            <button onclick="closeEstadoModal()" class="w-11 h-11 rounded-lg hover:bg-gray-100 flex items-center justify-center transition">
                 <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                 </svg>
@@ -1856,7 +1945,7 @@
     <div class="bg-white rounded-lg shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden">
         <div class="bg-gray-800 text-white px-6 py-4 flex justify-between items-center">
             <h3 class="font-bold text-lg">Galería de Imágenes</h3>
-            <button onclick="closeAllImagesModal()" class="w-8 h-8 rounded-lg hover:bg-gray-700 flex items-center justify-center transition">
+            <button onclick="closeAllImagesModal()" class="w-11 h-11 rounded-lg hover:bg-gray-700 flex items-center justify-center transition">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                 </svg>
@@ -2106,6 +2195,29 @@ function openAnalysisDetail(data) {
     modal.classList.remove('hidden');
     modal.classList.add('flex');
     document.body.style.overflow = 'hidden';
+}
+
+function confirmDeleteAnalysis() {
+    if (!currentAnalysisData || !currentAnalysisData.delete_url) {
+        return;
+    }
+
+    Swal.fire({
+        icon: 'warning',
+        title: 'Eliminar analisis',
+        text: 'Esta accion es irreversible y eliminara el registro seleccionado.',
+        showCancelButton: true,
+        confirmButtonText: 'Eliminar',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#dc2626',
+        cancelButtonColor: '#6b7280',
+    }).then(function(result) {
+        if (result.isConfirmed) {
+            const form = document.getElementById('delete-analysis-form');
+            form.action = currentAnalysisData.delete_url;
+            form.submit();
+        }
+    });
 }
 
 function renderComponentesRevisados(data) {
@@ -2368,7 +2480,7 @@ function openAllImages(imagenes, orden) {
             item.innerHTML = `
                 <img src="${resolveEvidenceImageUrl(path)}" class="w-full h-40 object-cover rounded-lg border-2 border-gray-200 hover:border-blue-500 transition" onclick="openSingleImage('${safePath}')">
                 <div class="absolute bottom-2 right-2 bg-black/70 text-white text-xs w-6 h-6 rounded-full flex items-center justify-center">${index + 1}</div>
-                <button onclick="event.stopPropagation(); downloadImage('${safePath}', ${index + 1})" class="absolute top-2 right-2 bg-blue-600 text-white p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition">
+                <button onclick="event.stopPropagation(); downloadImage('${safePath}', ${index + 1})" class="absolute top-2 right-2 flex min-h-11 min-w-11 items-center justify-center rounded-lg bg-blue-600 p-2.5 text-white transition sm:opacity-0 sm:group-hover:opacity-100">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
                     </svg>

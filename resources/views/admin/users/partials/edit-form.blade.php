@@ -9,9 +9,10 @@
     $managedPuesto = old('puesto', $managedUser->puesto);
     $managedRole = old('role', $managedUser->primary_role);
     $managedActivo = old('activo', $managedUser->activo ? '1' : '0') == '1';
+    $managedCanDeleteAnalysis = old('can_delete_analysis', $managedUser->hasDirectAnalysisDeletionPermission() ? '1' : '0') == '1';
 @endphp
 
-<form action="{{ route('admin.users.update', array_merge(['user' => $managedUser], $activeFilters)) }}" method="POST" class="space-y-5">
+<form action="{{ route('admin.users.update', array_merge(['user' => $managedUser], $activeFilters)) }}" method="POST" class="space-y-5" x-data="{ selectedRole: @js($managedRole), supervisorRoles: @js(\App\Models\User::supervisorEquivalentRoles()) }">
     @csrf
     @method('PUT')
     <input type="hidden" name="form_context" value="update">
@@ -53,7 +54,7 @@
                     Tu cuenta conserva el rol de administrador para evitar que pierdas acceso al panel.
                 </div>
             @else
-                <select id="role_{{ $managedUser->id }}" name="role" class="w-full rounded border-gray-300 text-sm" required>
+                <select id="role_{{ $managedUser->id }}" name="role" class="w-full rounded border-gray-300 text-sm" required x-model="selectedRole">
                     @foreach($roleOptions as $roleName => $roleLabel)
                         <option value="{{ $roleName }}" @selected($managedRole === $roleName)>
                             {{ $roleLabel }}
@@ -79,14 +80,25 @@
             @endif
         </div>
 
+        <div x-show="supervisorRoles.includes(selectedRole)" x-cloak class="rounded border border-red-100 bg-red-50 px-4 py-3 lg:col-span-2">
+            <input type="hidden" name="can_delete_analysis" value="0">
+            <label class="flex items-start gap-3 text-sm text-gray-700">
+                <input type="checkbox" name="can_delete_analysis" value="1" class="mt-1 rounded border-gray-300 text-red-600" @checked($managedCanDeleteAnalysis)>
+                <span>
+                    <span class="block font-semibold text-red-800">Eliminar Analisis</span>
+                    <span class="block text-xs text-red-700">Permiso especial asignado directamente a este usuario.</span>
+                </span>
+            </label>
+        </div>
+
         <div>
-            <label class="mb-1 block text-sm font-medium text-gray-700" for="password_{{ $managedUser->id }}">Nueva contrasena</label>
+            <label class="mb-1 block text-sm font-medium text-gray-700" for="password_{{ $managedUser->id }}">Nueva contraseña</label>
             <input id="password_{{ $managedUser->id }}" type="password" name="password" class="w-full rounded border-gray-300 text-sm" autocomplete="new-password">
             <p class="mt-1 text-xs text-gray-500">Deja en blanco si no deseas cambiarla.</p>
         </div>
 
         <div>
-            <label class="mb-1 block text-sm font-medium text-gray-700" for="password_confirmation_{{ $managedUser->id }}">Confirmar contrasena</label>
+            <label class="mb-1 block text-sm font-medium text-gray-700" for="password_confirmation_{{ $managedUser->id }}">Confirmar contraseña</label>
             <input id="password_confirmation_{{ $managedUser->id }}" type="password" name="password_confirmation" class="w-full rounded border-gray-300 text-sm" autocomplete="new-password">
         </div>
     </div>

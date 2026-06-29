@@ -72,6 +72,13 @@
         transition: all 0.2s ease;
         text-decoration: none;
         gap: 8px;
+        min-height: 44px;
+        min-width: 0;
+        max-width: 100%;
+        text-align: center;
+        white-space: normal;
+        overflow-wrap: anywhere;
+        touch-action: manipulation;
     }
 
     .linea-btn:hover {
@@ -199,16 +206,24 @@
     .btn-agregar-rapido {
         display: inline-flex;
         align-items: center;
+        justify-content: center;
         gap: 10px;
+        min-height: 44px;
+        max-width: 100%;
         padding: 10px 20px;
         background: rgba(255, 255, 255, 0.15);
         color: white;
         border-radius: 40px;
         font-size: 14px;
         font-weight: 600;
+        line-height: 1.2;
+        text-align: center;
         text-decoration: none;
+        white-space: normal;
+        overflow-wrap: anywhere;
         transition: all 0.2s ease;
         border: 1px solid rgba(255, 255, 255, 0.3);
+        touch-action: manipulation;
     }
 
     .btn-agregar-rapido:hover {
@@ -262,6 +277,32 @@
         font-weight: 600;
         color: #1e293b;
         margin-bottom: 8px;
+    }
+
+    .trazabilidad {
+        display: grid;
+        gap: 4px;
+        margin-top: 10px;
+        font-size: 12px;
+        line-height: 1.35;
+        color: #64748b;
+    }
+
+    .trazabilidad-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 6px;
+    }
+
+    .trazabilidad-item i {
+        width: 14px;
+        margin-top: 2px;
+        color: #94a3b8;
+    }
+
+    .trazabilidad-item strong {
+        color: #334155;
+        font-weight: 700;
     }
 
     .col-area {
@@ -333,8 +374,8 @@
     }
 
     .btn-accion {
-        width: 36px;
-        height: 36px;
+        width: 44px;
+        height: 44px;
         border-radius: 10px;
         display: inline-flex;
         align-items: center;
@@ -343,6 +384,7 @@
         transition: all 0.2s ease;
         border: none;
         cursor: pointer;
+        touch-action: manipulation;
     }
 
     .btn-accion:hover {
@@ -388,6 +430,7 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
+        gap: 12px;
     }
 
     .modal-body {
@@ -397,8 +440,8 @@
     }
 
     .modal-close {
-        width: 36px;
-        height: 36px;
+        width: 44px;
+        height: 44px;
         border-radius: 50%;
         background: white;
         border: 1px solid #e2e8f0;
@@ -407,6 +450,8 @@
         align-items: center;
         justify-content: center;
         cursor: pointer;
+        flex-shrink: 0;
+        touch-action: manipulation;
     }
 
     .leyenda {
@@ -481,16 +526,33 @@
 
         .linea-header {
             flex-direction: column;
+            align-items: stretch;
             text-align: center;
         }
 
         .linea-info {
             justify-content: center;
+            width: 100%;
+        }
+
+        .btn-agregar-rapido {
+            width: 100%;
         }
 
         .notificacion-lateral {
             max-width: calc(100% - 40px);
             right: 20px;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .lineas-grid {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .linea-btn {
+            width: 100%;
         }
     }
 </style>
@@ -537,7 +599,7 @@
     <div class="flex justify-between items-center mb-6">
         <div>
             <a href="{{ route('pasteurizadora.dashboard') }}"
-               class="inline-flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 rounded-lg transition-all duration-300 mb-4">
+               class="responsive-action responsive-action--secondary mb-4">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
                 </svg>
@@ -597,7 +659,7 @@
                         </div>
                     </div>
                     <div class="ml-4 flex-shrink-0 flex">
-                        <button class="bg-white rounded-md inline-flex text-gray-400 hover:text-gray-500"
+                        <button class="inline-flex h-11 w-11 items-center justify-center rounded-md bg-white text-gray-400 hover:text-gray-500"
                                 onclick="document.getElementById('notificacionLateral').remove()">
                             <i class="fas fa-times"></i>
                         </button>
@@ -703,9 +765,9 @@
                         @endif
                     </div>
                     <a href="{{ route('plan-accion.create', ['tipo' => 'pasteurizadora', 'linea_id' => $linea->id]) }}"
-                       class="btn-agregar-rapido">
+                       class="btn-agregar-rapido create-action create-action--on-dark">
                         <i class="fas fa-plus"></i>
-                        <span class="hidden sm:inline">Agregar Actividad</span>
+                        <span>Agregar Actividad</span>
                     </a>
                 </div>
 
@@ -735,6 +797,31 @@
                                                     <i class="fas fa-check-circle"></i> Completado
                                                 </span>
                                             @endif
+                                        </div>
+                                        <div class="trazabilidad">
+                                            <div class="trazabilidad-item">
+                                                <i class="fas fa-user-check"></i>
+                                                <span><strong>Responsable:</strong> {{ $plan->responsable?->name ?? 'Sin responsable' }}</span>
+                                            </div>
+                                            <div class="trazabilidad-item">
+                                                <i class="fas fa-user-plus"></i>
+                                                <span>
+                                                    <strong>Registrado por:</strong> {{ $plan->registradoPor?->name ?? 'Sin dato historico' }}
+                                                    @if($plan->created_at)
+                                                        <span class="text-gray-400">|</span> {{ $plan->created_at->format('d/m/Y H:i') }}
+                                                    @endif
+                                                </span>
+                                            </div>
+                                            <div class="trazabilidad-item">
+                                                <i class="fas fa-user-cog"></i>
+                                                <span>
+                                                    <strong>Ejecutado por:</strong>
+                                                    {{ $plan->ejecutadoPor?->name ?? ($plan->completado ? 'Sin dato historico' : 'Pendiente') }}
+                                                    @if($plan->fecha_ejecucion)
+                                                        <span class="text-gray-400">|</span> {{ $plan->fecha_ejecucion->format('d/m/Y H:i') }}
+                                                    @endif
+                                                </span>
+                                            </div>
                                         </div>
                                     </td>
                                     <td class="text-center">
@@ -817,7 +904,7 @@
                                         <div class="flex flex-col items-center">
                                             <p class="text-gray-500 mb-4">No hay actividades para esta línea</p>
                                             <a href="{{ route('plan-accion.create', ['tipo' => 'pasteurizadora', 'linea_id' => $linea->id]) }}"
-                                               class="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all">
+                                               class="create-action">
                                                 <i class="fas fa-plus-circle"></i>
                                                 Agregar primera actividad
                                             </a>
@@ -908,15 +995,15 @@
                 <p class="text-lg font-bold text-gray-900 mb-2" id="actividadEliminar"></p>
                 <p class="text-sm text-red-600 mb-6">Esta acción no se puede deshacer.</p>
 
-                <form id="eliminarForm" method="POST" class="flex justify-center gap-3">
+                <form id="eliminarForm" method="POST" class="responsive-actions responsive-actions--end">
                     @csrf
                     @method('DELETE')
                     <input type="hidden" name="tipo" value="pasteurizadora">
-                    <button type="submit" class="px-6 py-2.5 bg-red-600 text-white rounded-xl hover:bg-red-700 transition duration-200 font-medium">
+                    <button type="submit" class="responsive-action responsive-action--danger">
                         <i class="fas fa-trash mr-2"></i>
                         Eliminar
                     </button>
-                    <button type="button" class="px-6 py-2.5 bg-gray-500 text-white rounded-xl hover:bg-gray-600 transition duration-200 font-medium modal-close-btn">
+                    <button type="button" class="responsive-action responsive-action--secondary modal-close-btn">
                         <i class="fas fa-times mr-2"></i>
                         Cancelar
                     </button>
@@ -981,6 +1068,15 @@ document.addEventListener('DOMContentLoaded', function() {
                         central_hidraulica: 'Hidraulica'
                     };
                     const areaLabel = areaLabels[data.area_pasteurizadora] || 'No especificada';
+                    const usuarioNombre = usuario => usuario && usuario.name ? usuario.name : null;
+                    const fechaHora = value => value
+                        ? new Date(value).toLocaleString('es-MX', { dateStyle: 'short', timeStyle: 'short' })
+                        : null;
+                    const responsable = usuarioNombre(data.responsable) || 'Sin responsable';
+                    const registradoPor = usuarioNombre(data.registrado_por) || 'Sin dato historico';
+                    const fechaRegistro = fechaHora(data.created_at) || 'N/A';
+                    const ejecutadoPor = usuarioNombre(data.ejecutado_por) || (data.completado ? 'Sin dato historico' : 'Pendiente');
+                    const fechaEjecucion = fechaHora(data.fecha_ejecucion) || (data.completado ? 'Sin dato historico' : 'Pendiente');
 
                     let html = `
                         <div class="space-y-4">
@@ -993,6 +1089,14 @@ document.addEventListener('DOMContentLoaded', function() {
                             <div class="bg-gray-50 p-4 rounded-xl">
                                 <label class="text-xs text-gray-500 uppercase font-semibold">Actividad</label>
                                 <p class="font-medium text-gray-900 mt-1">${data.actividad || 'No especificada'}</p>
+                            </div>
+                            <div class="bg-gray-50 p-4 rounded-xl">
+                                <label class="text-xs text-gray-500 uppercase font-semibold">Trazabilidad</label>
+                                <div class="mt-2 space-y-1 text-sm text-gray-700">
+                                    <p><span class="font-semibold">Responsable:</span> ${responsable}</p>
+                                    <p><span class="font-semibold">Registrado por:</span> ${registradoPor} | ${fechaRegistro}</p>
+                                    <p><span class="font-semibold">Ejecutado por:</span> ${ejecutadoPor} | ${fechaEjecucion}</p>
+                                </div>
                             </div>
                             <div class="bg-gray-50 p-4 rounded-xl">
                                 <label class="text-xs text-gray-500 uppercase font-semibold">Parte de Pasteurizadora</label>

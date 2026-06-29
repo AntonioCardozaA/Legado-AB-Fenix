@@ -42,7 +42,7 @@
                     </div>
                 </div>
                 <button onclick="closeGalleryModal()" 
-                        class="w-10 h-10 rounded-xl bg-gray-700 hover:bg-gray-600 transition-all flex items-center justify-center group border border-gray-600">
+                        class="w-11 h-11 rounded-xl bg-gray-700 hover:bg-gray-600 transition-all flex items-center justify-center group border border-gray-600">
                     <i class="fas fa-times text-xl group-hover:rotate-90 transition-transform"></i>
                 </button>
             </div>

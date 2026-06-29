@@ -16,6 +16,7 @@ use App\Exports\ReporteLavadoraGeneralExcel;
 use Carbon\Carbon;
 use App\Models\Elongacion;
 use App\Models\HistorialRestablecimiento;
+use App\Services\AdminRecordNotificationService;
 use App\Services\TendenciaDanosService;
 use Illuminate\Support\Facades\DB;
 
@@ -1100,6 +1101,7 @@ class ReporteController extends Controller
                 'actividad' => $item->actividad,
                 'numero_orden' => $item->numero_orden,
                 'lado' => $item->lado,
+                'responsable' => $item->usuario?->name,
                 'imagenes' => $imagenes,
                 'componente' => [
                     'nombre' => $item->componente_nombre,
@@ -1145,13 +1147,13 @@ class ReporteController extends Controller
 
         $analisis = AnalisisLavadora::where('linea_id', $linea->id)
             ->whereBetween('fecha_analisis', [$fechaInicio, $fechaFin])
-            ->with(['componente:id,nombre,codigo'])
+            ->with(['componente:id,nombre,codigo', 'usuario:id,name'])
             ->orderByDesc('fecha_analisis')
             ->orderByDesc('created_at')
             ->get();
 
         $analisisHistorico = AnalisisLavadora::where('linea_id', $linea->id)
-            ->with(['componente:id,nombre,codigo'])
+            ->with(['componente:id,nombre,codigo', 'usuario:id,name'])
             ->orderByDesc('fecha_analisis')
             ->orderByDesc('created_at')
             ->orderByDesc('id')
@@ -1161,6 +1163,21 @@ class ReporteController extends Controller
             ->whereBetween('created_at', [$fechaInicio, $fechaFin])
             ->orderByDesc('created_at')
             ->get();
+
+        $paros = Paro::with(['supervisor:id,name'])
+            ->where('linea_id', $linea->id)
+            ->whereDate('fecha_inicio', '<=', $fechaFin)
+            ->whereDate('fecha_fin', '>=', $fechaInicio)
+            ->orderByDesc('fecha_inicio')
+            ->get();
+
+        $planesPendientes = PlanAccion::where('linea_id', $linea->id)
+            ->where('completado', false)
+            ->where(function ($query) {
+                $query->where('tipo_equipo', 'lavadora')
+                    ->orWhereNull('tipo_equipo');
+            })
+            ->count();
 
         $tendenciaService = app(TendenciaDanosService::class);
         $analisisTendencia = $tendenciaService->construirFilasMensuales(
@@ -1203,12 +1220,16 @@ class ReporteController extends Controller
                 'componentes_criticos' => $analisis->filter(fn ($registro) => $this->esEstadoDanadoReporte($registro->estado))->count(),
                 'componentes_severos_moderados' => $analisis->filter(fn ($registro) => $this->esEstadoDesgasteReporte($registro->estado))->count(),
                 'componentes_revision' => $analisis->filter(fn ($registro) => $this->esEstadoRevisionReporte($registro->estado))->count(),
+                'total_paros' => $paros->count(),
+                'horas_paro' => $paros->sum(fn ($paro) => $this->calcularHorasParo($paro)),
+                'planes_pendientes' => $planesPendientes,
                 'componentes_definidos' => $this->getComponentesDefinidos($tipoEquipo),
                 'estado_general' => $this->determinarEstadoGeneralDesdeRegistros($analisis),
             ],
             'analisis' => $analisis,
             'analisis_historico' => $analisisHistorico,
             'elongaciones' => $elongaciones,
+            'paros' => $paros,
             'analisis_tendencia' => $analisisTendencia,
             'analisis_52124' => $analisis52124Reporte,
             'analisis_30147' => $analisis30147Reporte,
@@ -1513,6 +1534,18 @@ class ReporteController extends Controller
             ->orderByDesc('id')
             ->get();
 
+        $paros = Paro::with(['supervisor:id,name'])
+            ->where('linea_id', $linea->id)
+            ->whereDate('fecha_inicio', '<=', $fechaFin)
+            ->whereDate('fecha_fin', '>=', $fechaInicio)
+            ->orderByDesc('fecha_inicio')
+            ->get();
+
+        $planesPendientes = PlanAccion::where('linea_id', $linea->id)
+            ->where('completado', false)
+            ->where('tipo_equipo', 'pasteurizadora')
+            ->count();
+
         $tendenciaService = app(TendenciaDanosService::class);
         $analisisTendencia = $tendenciaService->construirFilasMensuales(
             $linea,
@@ -1556,6 +1589,9 @@ class ReporteController extends Controller
                 'componentes_revision' => $analisis
                     ->where('estado', AnalisisPasteurizadora::ESTADO_REQUIERE_REVISION)
                     ->count(),
+                'total_paros' => $paros->count(),
+                'horas_paro' => $paros->sum(fn ($paro) => $this->calcularHorasParo($paro)),
+                'planes_pendientes' => $planesPendientes,
                 'piezas_revisadas' => $analisis->sum(fn ($registro) => (int) ($registro->cantidad_componentes_revisados ?? 0)),
                 'total_modulos' => $avance['total_modulos'],
                 'modulos_con_analisis' => $avance['modulos_con_analisis'],
@@ -1565,6 +1601,7 @@ class ReporteController extends Controller
             ],
             'analisis' => $analisis,
             'analisis_historico' => $analisisHistorico,
+            'paros' => $paros,
             'analisis_tendencia' => $analisisTendencia,
             'analisis_52124' => $analisis52124Reporte,
             'analisis_30147' => $analisis30147Reporte,
@@ -2019,6 +2056,22 @@ class ReporteController extends Controller
 
         $fechaInicio = Carbon::parse($request->get('fecha_inicio', Carbon::now()->subMonth()))->startOfDay();
         $fechaFin = Carbon::parse($request->get('fecha_fin', Carbon::now()))->endOfDay();
+        $linea = $lineaId ? Linea::find($lineaId) : null;
+
+        app(AdminRecordNotificationService::class)->notifyReportGenerated(
+            $request->user(),
+            $tipoEquipo,
+            $linea,
+            $fechaInicio,
+            $fechaFin,
+            $formato,
+            route('reportes.index', array_filter([
+                'tipo' => $tipoEquipo,
+                'linea_id' => $linea?->id,
+                'fecha_inicio' => $fechaInicio->toDateString(),
+                'fecha_fin' => $fechaFin->toDateString(),
+            ], fn ($value) => $value !== null && $value !== ''))
+        );
 
         if ($formato === 'pdf') {
             return $this->exportarPDF($tipo, $lineaId, $tipoEquipo, $fechaInicio, $fechaFin);
@@ -2032,6 +2085,9 @@ class ReporteController extends Controller
     if ($tipo === 'linea' && $lineaId) {
 
         $linea = Linea::findOrFail($lineaId);
+        $tipoEquipo = $this->tipoEquipoDeLinea($linea) ?? $this->normalizarTipoEquipo($tipoEquipo);
+
+        $this->ensureCanAccessTipoEquipo($tipoEquipo);
         $this->ensureCanAccessLinea($linea);
 
         $reporteLinea = $this->getReporteDetalladoLinea(
@@ -2046,7 +2102,7 @@ class ReporteController extends Controller
         $pdf = Pdf::loadView(
             'reportes.pdf.general-lavadoras',
             compact('reporte', 'fechaInicio', 'fechaFin', 'tipoEquipo', 'modoReporte')
-        );
+        )->setPaper('a4', 'landscape');
 
         return $pdf->download(
             "reporte_{$linea->nombre}_{$fechaInicio->format('Ymd')}_{$fechaFin->format('Ymd')}.pdf"
@@ -2064,7 +2120,7 @@ class ReporteController extends Controller
         $pdf = Pdf::loadView(
             'reportes.pdf.general-lavadoras',
             compact('reporte', 'fechaInicio', 'fechaFin', 'tipoEquipo', 'modoReporte')
-        );
+        )->setPaper('a4', 'landscape');
 
         return $pdf->download(
             "reporte_general_{$fechaInicio->format('Ymd')}_{$fechaFin->format('Ymd')}.pdf"
