@@ -15,6 +15,8 @@
         $totalComponentes
     );
     $esBrazoTorsion = \App\Models\AnalisisPasteurizadora::esBrazoTorsion($analisis->componente);
+    $esRegistroQuick = $analisis->es_registro_quick;
+    $numeroComponenteSeleccionado = old('numero_componente', $analisis->numero_componente_principal);
 
     if (empty($componentesRevisados) && $analisis->cantidad_componentes_revisados && $totalComponentes > 0) {
         $componentesRevisados = range(1, min($analisis->cantidad_componentes_revisados, $totalComponentes));
@@ -253,7 +255,7 @@
 
             </div>
 
-            @if($totalComponentes > 0 && !$esBrazoTorsion)
+            @if($esRegistroQuick && $totalComponentes > 0 && !$esBrazoTorsion)
                 <div class="mb-6 rounded-xl border border-indigo-200 bg-indigo-50 p-4">
                     <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between mb-4">
                         <h3 class="text-sm font-semibold text-indigo-900">
@@ -282,11 +284,42 @@
                     </div>
                     @error('componentes_revisados')<p class="text-red-500 text-sm mt-3">{{ $message }}</p>@enderror
                 </div>
-            @elseif($esBrazoTorsion)
+            @elseif($esRegistroQuick && $esBrazoTorsion)
                 <input type="hidden" name="componentes_revisados[]" value="1">
                 <div class="mb-6 rounded-xl border border-indigo-200 bg-indigo-50 p-4 text-sm text-indigo-900">
                     <i class="fas fa-info-circle mr-1"></i>
                     Este registro corresponde al Brazo de Torsion del modulo {{ $analisis->modulo }}.
+                </div>
+            @else
+                <div class="mb-6 rounded-xl border border-indigo-200 bg-indigo-50 p-4">
+                    <label for="numero_componente" class="block text-sm font-semibold text-indigo-900 mb-2">
+                        <i class="fas fa-list-ol mr-1"></i>
+                        Numero especifico del componente
+                    </label>
+
+                    @if($esBrazoTorsion)
+                        <input type="hidden" name="numero_componente" value="1">
+                        <div class="rounded-lg border border-indigo-200 bg-white px-4 py-3 text-sm text-indigo-800">
+                            El Brazo de Torsion utiliza un registro unico por modulo.
+                        </div>
+                    @elseif($totalComponentes <= 1)
+                        <input type="hidden" name="numero_componente" value="1">
+                        <div class="rounded-lg border border-indigo-200 bg-white px-4 py-3 text-sm text-indigo-800">
+                            Este componente solo tiene una pieza configurada en el modulo.
+                        </div>
+                    @else
+                        <select name="numero_componente"
+                                id="numero_componente"
+                                class="w-full rounded-lg border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 @error('numero_componente') border-red-500 @enderror">
+                            <option value="">Seleccionar pieza...</option>
+                            @for($i = 1; $i <= $totalComponentes; $i++)
+                                <option value="{{ $i }}" {{ (string) $numeroComponenteSeleccionado === (string) $i ? 'selected' : '' }}>
+                                    Pieza #{{ $i }}
+                                </option>
+                            @endfor
+                        </select>
+                        @error('numero_componente')<p class="text-red-500 text-sm mt-3">{{ $message }}</p>@enderror
+                    @endif
                 </div>
             @endif
 

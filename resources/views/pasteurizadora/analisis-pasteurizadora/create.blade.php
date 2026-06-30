@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', ($modoQuick ?? false) ? 'Agregar Análisis Rápido - Pasteurizadora' : 'Crear Análisis de Componente - Pasteurizadora')
+@section('title', 'Agregar Analisis - Pasteurizadora')
 
 @section('content')
 @php
@@ -8,8 +8,14 @@
     $analisisRoute = fn ($name, $params = []) => route($analisisRoutePrefix . '.' . $name, $params);
     $componentesLinea = \App\Models\AnalisisPasteurizadora::getComponentesPorLinea($linea->nombre);
     $totalModulos = \App\Models\AnalisisPasteurizadora::getModulosPorLinea($linea->nombre);
-    $estadoRevision = $estadoRevision ?? [];
-    $modoQuick = $modoQuick ?? false;
+    $componentesConfiguracion = collect($componentesLinea)->map(function ($config, $codigo) {
+        return [
+            'codigo' => $codigo,
+            'nombre' => $config['nombre'],
+            'cantidad' => (int) ($config['cantidad'] ?? 0),
+            'es_brazo_torsion' => \App\Models\AnalisisPasteurizadora::esBrazoTorsion($codigo),
+        ];
+    })->values();
 @endphp
 
 <style>
@@ -41,21 +47,22 @@
         padding: 8px;
     }
 
-    .pasteur-form-shell label i {
+    .pasteur-form-shell label i,
+    .pasteur-form-shell p i {
         color: var(--primary-blue);
     }
 </style>
 
-<div class="pasteur-form-shell max-w-4xl mx-auto px-4 py-8">
+<div class="pasteur-form-shell max-w-5xl mx-auto px-4 py-8">
     <div class="pasteur-form-card">
         <div class="mb-8">
             <div class="flex items-center gap-3 mb-4">
-                <a href="{{ $analisisRoute('index', request()->query()) }}"
+                <a href="{{ $analisisRoute('select-linea') }}"
                    class="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-gray-100 text-gray-500 transition hover:bg-gray-200 hover:text-blue-600">
                     <i class="fas fa-arrow-left text-xl"></i>
                 </a>
                 <h1 class="text-2xl font-bold text-gray-800">
-                    {{ $modoQuick ? 'Agregar Análisis Rápido' : 'Crear Análisis' }}
+                    Agregar Analisis
                 </h1>
             </div>
 
@@ -74,19 +81,17 @@
                         <div class="text-center md:text-left">
                             <p class="text-gray-600 font-semibold text-sm mb-1">
                                 <i class="fas fa-temperature-high mr-1"></i>
-                                Línea
+                                Linea
                             </p>
-                            <p class="text-gray-800 font-medium">{{ $linea->nombre ?? 'Sin línea' }}</p>
+                            <p class="text-gray-800 font-medium">{{ $linea->nombre }}</p>
                         </div>
 
                         <div class="text-center md:text-left">
                             <p class="text-gray-600 font-semibold text-sm mb-1">
                                 <i class="fas fa-cubes mr-1"></i>
-                                Módulo
+                                Modulo
                             </p>
-                            <p class="text-gray-800 font-medium" id="summary-modulo">
-                                {{ $modulo ? 'Módulo ' . $modulo : '—' }}
-                            </p>
+                            <p class="text-gray-800 font-medium" id="summary-modulo">Sin seleccionar</p>
                         </div>
 
                         <div class="text-center md:text-left">
@@ -94,265 +99,183 @@
                                 <i class="fas fa-cog mr-1"></i>
                                 Componente
                             </p>
-                            <p class="text-gray-800 font-medium" id="summary-componente">
-                                {{ $nombreComponente ?: 'No especificado' }}
-                            </p>
+                            <p class="text-gray-800 font-medium" id="summary-componente">Sin seleccionar</p>
                         </div>
 
                         <div class="text-center md:text-left">
                             <p class="text-gray-600 font-semibold text-sm mb-1">
-                                <i class="fas fa-layer-group mr-1"></i>
-                                Nivel
+                                <i class="fas fa-hashtag mr-1"></i>
+                                Pieza
                             </p>
-                            <p class="text-gray-800 font-medium" id="summary-nivel">
-                                @if($nivel)
-                                    {{ $nivel === 'SUPERIOR' ? '⬆️ Nivel Superior' : '⬇️ Nivel Inferior' }}
-                                @else
-                                    <span class="text-gray-400">No especificado</span>
-                                @endif
-                            </p>
+                            <p class="text-gray-800 font-medium" id="summary-pieza">Sin seleccionar</p>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <form action="{{ $modoQuick ? $analisisRoute('store-quick') : $analisisRoute('store') }}"
+        <div class="mb-6 rounded-xl border border-blue-200 bg-blue-50 px-4 py-4 text-sm text-blue-800">
+            <div class="flex items-start gap-3">
+                <i class="fas fa-info-circle mt-0.5"></i>
+                <div>
+                    <p class="font-semibold">Este formulario registra analisis normales.</p>
+                    <p>Usalo para fallas, ordenes de revision, reportes de dano y condiciones especiales de componentes.</p>
+                </div>
+            </div>
+        </div>
+
+        <form action="{{ $analisisRoute('store') }}"
               method="POST"
               enctype="multipart/form-data"
               class="space-y-6"
-              id="analisisForm">
+              id="analisisNormalForm">
             @csrf
-
-            @if(($registrosYaRealizados ?? collect())->isNotEmpty())
-                <div class="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3">
-                    <p class="text-sm font-bold text-blue-900 mb-2">Analisis ya realizados en esta seleccion</p>
-                    <div class="space-y-2">
-                        @foreach($registrosYaRealizados as $registroRealizado)
-                            <div class="flex flex-wrap items-center gap-2 text-xs text-blue-800">
-                                <span class="rounded bg-white px-2 py-1 font-semibold">{{ $registroRealizado->fecha_analisis?->format('d/m/Y') ?? 'Sin fecha' }}</span>
-                                <span class="rounded bg-white px-2 py-1">
-                                    {{ $registroRealizado->numero_orden ? 'Orden #' . $registroRealizado->numero_orden : 'Sin orden' }}
-                                </span>
-                                <span class="rounded bg-white px-2 py-1">{{ $registroRealizado->nivel }} / {{ $registroRealizado->lado }}</span>
-                                <span class="rounded bg-blue-100 px-2 py-1 font-semibold">Realizado por: {{ $registroRealizado->usuario?->name ?? $registroRealizado->responsable ?? 'Usuario no registrado' }}</span>
-                            </div>
-                        @endforeach
-                    </div>
-                </div>
-            @endif
 
             <input type="hidden" name="linea_id" value="{{ $linea->id }}">
 
-            <div>
-                <label for="modulo" class="block text-sm font-semibold text-gray-700 mb-2">
-                    <i class="fas fa-cubes text-blue-600 mr-1"></i>
-                    Módulo *
-                </label>
-                <select id="modulo" name="modulo"
-                        class="block w-full rounded-lg border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm @error('modulo') border-red-500 @enderror"
-                        required>
-                    <option value="">Seleccionar módulo...</option>
-                    @for($i = 1; $i <= $totalModulos; $i++)
-                        <option value="{{ $i }}" {{ old('modulo', $modulo) == $i ? 'selected' : '' }}>
-                            Módulo {{ $i }}
-                        </option>
-                    @endfor
-                </select>
-                @error('modulo')
-                    <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
-                @enderror
-            </div>
-
-            <div>
-                <label for="componente" class="block text-sm font-semibold text-gray-700 mb-2">
-                    <i class="fas fa-cog text-blue-600 mr-1"></i>
-                    Componente *
-                </label>
-                <select id="componente" name="componente"
-                        class="block w-full rounded-lg border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm @error('componente') border-red-500 @enderror"
-                        required>
-                    <option value="">Seleccionar componente...</option>
-                    @foreach($componentesLinea as $codigo => $comp)
-                        <option value="{{ $codigo }}" {{ old('componente', $componente) == $codigo ? 'selected' : '' }}>
-                            {{ $comp['nombre'] }} ({{ $comp['cantidad'] }} und)
-                        </option>
-                    @endforeach
-                </select>
-                @error('componente')
-                    <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
-                @enderror
-            </div>
-
-            <div>
-                <label for="lado" class="block text-sm font-semibold text-gray-700 mb-2">
-                    <i class="fas fa-arrows-alt-h text-blue-600 mr-1"></i>
-                    Lado del Análisis *
-                </label>
-                <select id="lado" name="lado"
-                        class="block w-full rounded-lg border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm @error('lado') border-red-500 @enderror"
-                        required>
-                    <option value="">Seleccionar lado...</option>
-                    <option value="VAPOR" {{ old('lado', $lado) == 'VAPOR' ? 'selected' : '' }}>💨 Lado Vapor</option>
-                    <option value="PASILLO" {{ old('lado', $lado) == 'PASILLO' ? 'selected' : '' }}>🚶 Lado Pasillo</option>
-                </select>
-                @error('lado')
-                    <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
-                @enderror
-            </div>
-
-            <div>
-                <label for="nivel" class="block text-sm font-semibold text-gray-700 mb-2">
-                    <i class="fas fa-layer-group text-blue-600 mr-1"></i>
-                    Nivel del Módulo *
-                </label>
-                <select id="nivel" name="nivel"
-                        class="block w-full rounded-lg border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm @error('nivel') border-red-500 @enderror"
-                        required>
-                    <option value="">Seleccionar nivel...</option>
-                    <option value="SUPERIOR" {{ old('nivel', $nivel) == 'SUPERIOR' ? 'selected' : '' }}>⬆️ Nivel Superior</option>
-                    <option value="INFERIOR" {{ old('nivel', $nivel) == 'INFERIOR' ? 'selected' : '' }}>⬇️ Nivel Inferior</option>
-                </select>
-                @error('nivel')
-                    <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
-                @enderror
-            </div>
-
-            <div class="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl p-6 border border-indigo-200">
-                <div class="mb-4">
-                    <h3 class="text-sm font-bold text-indigo-900 mb-4 flex items-center gap-2">
-                        <i class="fas fa-tasks text-indigo-600"></i>
-                        Estado de Revisión por Nivel
-                    </h3>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="estado-revision-grid">
-                    @foreach(\App\Models\AnalisisPasteurizadora::NIVELES as $nivelKey)
-                        @php
-                            $datosNivel = $estadoRevision[$nivelKey] ?? ['completado' => false, 'lados_pendientes' => \App\Models\AnalisisPasteurizadora::LADOS];
-                            $nivelLabel = $nivelKey === 'SUPERIOR' ? '⬆️ Nivel Superior' : '⬇️ Nivel Inferior';
-                        @endphp
-                        <div class="p-4 rounded-lg {{ $datosNivel['completado'] ? 'bg-green-100 border border-green-300' : 'bg-white border border-indigo-200' }}"
-                             data-nivel-card="{{ $nivelKey }}">
-                            <div class="flex items-center justify-between mb-2">
-                                <span class="font-semibold text-gray-800">{{ $nivelLabel }}</span>
-                                <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold {{ $datosNivel['completado'] ? 'bg-green-600 text-white' : 'bg-amber-600 text-white' }}"
-                                      data-status-badge>
-                                    <i class="fas {{ $datosNivel['completado'] ? 'fa-check-circle' : 'fa-clock' }}"></i>
-                                    {{ $datosNivel['completado'] ? 'Completado' : 'Pendiente' }}
-                                </span>
-                            </div>
-                            <div data-status-detail>
-                                @if($datosNivel['completado'])
-                                    <div class="text-sm text-green-700">
-                                        <i class="fas fa-check mr-1"></i>
-                                        Ambos lados revisados correctamente
-                                    </div>
-                                @else
-                                    <div class="flex items-center gap-2 text-sm text-gray-700">
-                                        <span class="font-medium">Lados pendientes:</span>
-                                        <div class="flex gap-2">
-                                            @foreach($datosNivel['lados_pendientes'] as $ladoPendiente)
-                                                <span class="inline-flex items-center gap-1 px-2 py-1 rounded text-xs {{ $ladoPendiente === 'VAPOR' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700' }}">
-                                                    <i class="fas {{ $ladoPendiente === 'VAPOR' ? 'fa-wind' : 'fa-walking' }}"></i>
-                                                    {{ $ladoPendiente === 'VAPOR' ? 'Vapor' : 'Pasillo' }}
-                                                </span>
-                                            @endforeach
-                                        </div>
-                                    </div>
-                                @endif
-                            </div>
-                        </div>
-                    @endforeach
-                </div>
-            </div>
-
-            <div id="checklist-container" class="{{ $totalComponentes > 0 && $componenteKey !== \App\Models\AnalisisPasteurizadora::COMPONENTE_BRAZO_TORSION ? '' : 'hidden' }}">
-                <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-200">
-                    <div class="mb-4">
-                        <label class="block text-sm font-bold text-gray-800 mb-2">
-                            <i class="fas fa-clipboard-check text-blue-600 mr-2"></i>
-                            Checklist de componentes revisados
-                        </label>
-                        <p class="text-sm text-blue-800 mb-3">
-                            Marque una o varias piezas para este registro. Las piezas ya revisadas en este lado y nivel aparecen bloqueadas.
-                        </p>
-                        <div id="remaining-info" class="bg-blue-100 border border-blue-400 rounded-lg p-3 mb-3 {{ $cantidadComponentesRevisados > 0 ? '' : 'hidden' }}">
-                            <p class="text-sm text-blue-800">
-                                <i class="fas fa-info-circle mr-2"></i>
-                                <strong>Ya revisados en este lado y nivel:</strong>
-                                <span id="already-reviewed-count">{{ $cantidadComponentesRevisados }}</span> de
-                                <span id="total-count">{{ $totalComponentes }}</span> componentes
-                            </p>
-                            <div class="mt-2 flex flex-wrap gap-1" id="already-reviewed-badges">
-                                @foreach($componentesYaRevisados as $compNum)
-                                    <span class="inline-flex items-center px-2 py-0.5 bg-blue-200 text-blue-800 rounded text-xs">#{{ $compNum }}</span>
-                                @endforeach
-                            </div>
-                            <p class="text-sm text-blue-800 mt-2">
-                                <strong>Pendientes en este lado y nivel:</strong>
-                                <span id="remaining-count">{{ $componentesPendientes }}</span> componentes
-                            </p>
-                        </div>
-                    </div>
-
-                    <div id="componentes-checklist" class="grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
-                    <input type="hidden" name="componentes_revisados" id="componentes_revisados_input" value="{{ json_encode(old('componentes_revisados', [])) }}">
-                    @error('componentes_revisados')
-                        <p class="text-red-500 text-sm mt-3">{{ $message }}</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label for="modulo" class="block text-sm font-semibold text-gray-700 mb-2">
+                        <i class="fas fa-cubes text-blue-600 mr-1"></i>
+                        Modulo *
+                    </label>
+                    <select id="modulo" name="modulo"
+                            class="block w-full rounded-lg border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm @error('modulo') border-red-500 @enderror"
+                            required>
+                        <option value="">Seleccionar modulo...</option>
+                        @for($i = 1; $i <= $totalModulos; $i++)
+                            <option value="{{ $i }}" {{ (string) old('modulo', $modulo ?? '') === (string) $i ? 'selected' : '' }}>
+                                Modulo {{ $i }}
+                            </option>
+                        @endfor
+                    </select>
+                    @error('modulo')
+                        <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
                     @enderror
+                </div>
 
-                    <div id="lados-pendientes-alert"
-                         class="{{ !empty($ladosPendientes) && $lado ? '' : 'hidden' }} mt-4 p-3 bg-yellow-100 border border-yellow-400 rounded-lg text-sm text-yellow-800">
+                <div>
+                    <label for="componente" class="block text-sm font-semibold text-gray-700 mb-2">
+                        <i class="fas fa-cog text-blue-600 mr-1"></i>
+                        Componente *
+                    </label>
+                    <select id="componente" name="componente"
+                            class="block w-full rounded-lg border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm @error('componente') border-red-500 @enderror"
+                            required>
+                        <option value="">Seleccionar componente...</option>
+                        @foreach($componentesLinea as $codigo => $comp)
+                            <option value="{{ $codigo }}" {{ old('componente', $componente ?? '') === $codigo ? 'selected' : '' }}>
+                                {{ $comp['nombre'] }} ({{ $comp['cantidad'] }} pza)
+                            </option>
+                        @endforeach
+                    </select>
+                    @error('componente')
+                        <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+                    @enderror
+                </div>
+
+                <div>
+                    <label for="lado" class="block text-sm font-semibold text-gray-700 mb-2">
+                        <i class="fas fa-arrows-alt-h text-blue-600 mr-1"></i>
+                        Lado del analisis *
+                    </label>
+                    <select id="lado" name="lado"
+                            class="block w-full rounded-lg border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm @error('lado') border-red-500 @enderror"
+                            required>
+                        <option value="">Seleccionar lado...</option>
+                        <option value="VAPOR" {{ old('lado', $lado ?? '') === 'VAPOR' ? 'selected' : '' }}>Lado Vapor</option>
+                        <option value="PASILLO" {{ old('lado', $lado ?? '') === 'PASILLO' ? 'selected' : '' }}>Lado Pasillo</option>
+                    </select>
+                    @error('lado')
+                        <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+                    @enderror
+                </div>
+
+                <div>
+                    <label for="nivel" class="block text-sm font-semibold text-gray-700 mb-2">
+                        <i class="fas fa-layer-group text-blue-600 mr-1"></i>
+                        Nivel del modulo *
+                    </label>
+                    <select id="nivel" name="nivel"
+                            class="block w-full rounded-lg border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm @error('nivel') border-red-500 @enderror"
+                            required>
+                        <option value="">Seleccionar nivel...</option>
+                        <option value="SUPERIOR" {{ old('nivel', $nivel ?? '') === 'SUPERIOR' ? 'selected' : '' }}>Nivel Superior</option>
+                        <option value="INFERIOR" {{ old('nivel', $nivel ?? '') === 'INFERIOR' ? 'selected' : '' }}>Nivel Inferior</option>
+                    </select>
+                    @error('nivel')
+                        <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+                    @enderror
+                </div>
+            </div>
+
+            <div class="rounded-xl border border-indigo-200 bg-indigo-50 p-5">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+                    <div>
+                        <label for="numero_componente" class="block text-sm font-semibold text-gray-700 mb-2">
+                            <i class="fas fa-list-ol text-blue-600 mr-1"></i>
+                            Numero especifico del componente
+                        </label>
+                        <select id="numero_componente" name="numero_componente"
+                                class="block w-full rounded-lg border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm @error('numero_componente') border-red-500 @enderror">
+                            <option value="">Seleccionar componente...</option>
+                        </select>
+                        @error('numero_componente')
+                            <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                    <div id="numero-componente-help" class="rounded-lg border border-indigo-200 bg-white px-4 py-3 text-sm text-indigo-800">
+                        Selecciona primero el componente para mostrar las piezas disponibles.
                     </div>
                 </div>
-                <p class="text-sm text-gray-600 mt-2">
-                    <i class="fas fa-info-circle text-blue-500 mr-1"></i>
-                    Marque los componentes que fueron revisados en este análisis
-                </p>
             </div>
 
-            <div>
-                <label class="block text-sm font-semibold text-gray-700 mb-2">
-                    <i class="far fa-calendar-alt text-blue-600 mr-1"></i>
-                    Fecha del Análisis *
-                </label>
-                <input type="date"
-                       name="fecha_analisis"
-                       value="{{ old('fecha_analisis', $fechaSugerida ?? now()->format('Y-m-d')) }}"
-                       required
-                       class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500 shadow-sm @error('fecha_analisis') border-red-500 @enderror">
-                @error('fecha_analisis')
-                    <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
-                @enderror
-            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">
+                        <i class="far fa-calendar-alt text-blue-600 mr-1"></i>
+                        Fecha del analisis *
+                    </label>
+                    <input type="date"
+                           name="fecha_analisis"
+                           value="{{ old('fecha_analisis', $fechaSugerida ?? now()->format('Y-m-d')) }}"
+                           required
+                           class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500 shadow-sm @error('fecha_analisis') border-red-500 @enderror">
+                    @error('fecha_analisis')
+                        <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+                    @enderror
+                </div>
 
-            <div>
-                <label class="block text-sm font-semibold text-gray-700 mb-2">
-                    <i class="fas fa-hashtag text-blue-600 mr-1"></i>
-                    Número de Orden
-                </label>
-                <input type="text"
-                       name="numero_orden"
-                       value="{{ old('numero_orden') }}"
-                       maxlength="50"
-                       inputmode="numeric"
-                       pattern="[0-9]*"
-                       autocomplete="off"
-                       placeholder="Ej: 35221456"
-                       oninput="this.value = this.value.replace(/[^0-9]/g, '')"
-                       class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500 shadow-sm @error('numero_orden') border-red-500 @enderror">
-                @error('numero_orden')
-                    <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
-                @enderror
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">
+                        <i class="fas fa-hashtag text-blue-600 mr-1"></i>
+                        Numero de orden
+                    </label>
+                    <input type="text"
+                           name="numero_orden"
+                           value="{{ old('numero_orden') }}"
+                           maxlength="50"
+                           inputmode="numeric"
+                           pattern="[0-9]*"
+                           autocomplete="off"
+                           placeholder="Ej: 35221456"
+                           oninput="this.value = this.value.replace(/[^0-9]/g, '')"
+                           class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500 shadow-sm @error('numero_orden') border-red-500 @enderror">
+                    @error('numero_orden')
+                        <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+                    @enderror
+                </div>
             </div>
 
             <div>
                 <label class="block text-sm font-semibold text-gray-700 mb-2">
                     <i class="fas fa-clipboard-check text-blue-600 mr-1"></i>
-                    Estado del Componente *
+                    Estado del componente *
                 </label>
-                <select name="estado" class="w-full rounded-lg border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 @error('estado') border-red-500 @enderror" required>
+                <select name="estado"
+                        class="w-full rounded-lg border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 @error('estado') border-red-500 @enderror"
+                        required>
                     <option value="">Seleccionar estado...</option>
                     @foreach(\App\Models\AnalisisPasteurizadora::getEstadoOpciones() as $estado => $label)
                         <option value="{{ $estado }}" {{ old('estado') === $estado ? 'selected' : '' }}>{{ $label }}</option>
@@ -366,11 +289,11 @@
             <div>
                 <label class="block text-sm font-semibold text-gray-700 mb-2">
                     <i class="fas fa-sticky-note text-blue-600 mr-1"></i>
-                    Actividad *
+                    Actividad realizada y/o observaciones *
                 </label>
                 <textarea name="actividad"
-                          rows="4"
-                          placeholder="Describa la actividad realizada, observaciones o notas adicionales sobre el componente..."
+                          rows="5"
+                          placeholder="Describe la falla, la revision realizada, la actividad ejecutada o cualquier observacion relevante..."
                           class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500 shadow-sm @error('actividad') border-red-500 @enderror"
                           required>{{ old('actividad') }}</textarea>
                 @error('actividad')
@@ -381,7 +304,7 @@
             <div class="rounded-xl border border-gray-200 bg-gray-50 p-4 sm:p-5">
                 <label class="block text-sm font-semibold text-gray-800 mb-3">
                     <i class="fas fa-camera text-blue-600 mr-1"></i>
-                    Evidencia fotografica
+                    Evidencias fotograficas
                 </label>
                 <input type="file"
                        id="evidencia_fotos"
@@ -436,14 +359,14 @@
             </div>
 
             <div class="create-actions pt-6 border-t border-gray-200">
-                <a href="{{ $analisisRoute('index', request()->query()) }}"
+                <a href="{{ $analisisRoute('index', ['linea_id' => $linea->id]) }}"
                    class="create-action create-action--secondary flex-1">
                     Cancelar
                 </a>
                 <button type="submit"
                         class="create-action flex-1">
                     <i class="fas fa-save mr-2"></i>
-                    Guardar Análisis
+                    Guardar Analisis
                 </button>
             </div>
         </form>
@@ -451,522 +374,177 @@
 </div>
 
 <script>
-const componenteSelect = document.getElementById('componente');
+const componentesConfiguracion = @json($componentesConfiguracion);
 const moduloSelect = document.getElementById('modulo');
-const nivelSelect = document.getElementById('nivel');
-const ladoSelect = document.getElementById('lado');
-const checklistContainer = document.getElementById('checklist-container');
-const componentesChecklist = document.getElementById('componentes-checklist');
-const componentesRevisadosInput = document.getElementById('componentes_revisados_input');
-const revisionContextUrl = '{{ $analisisRoute("ajax.revision-context") }}';
-const oldComponentesRaw = @json(old('componentes_revisados', []));
-const componenteBrazoTorsion = @json(\App\Models\AnalisisPasteurizadora::COMPONENTE_BRAZO_TORSION);
-const totalBrazosTorsion = {{ \App\Models\AnalisisPasteurizadora::getCantidadBrazosTorsionPorLinea($linea->nombre) }};
+const componenteSelect = document.getElementById('componente');
+const numeroComponenteSelect = document.getElementById('numero_componente');
+const numeroComponenteHelp = document.getElementById('numero-componente-help');
+const summaryModulo = document.getElementById('summary-modulo');
+const summaryComponente = document.getElementById('summary-componente');
+const summaryPieza = document.getElementById('summary-pieza');
+const oldNumeroComponente = @json(old('numero_componente'));
 
-function normalizarComponentesSeleccionados(value) {
-    let valores = value;
-
-    if (typeof valores === 'string' && valores.trim() !== '') {
-        try {
-            valores = JSON.parse(valores);
-        } catch (error) {
-            valores = [];
-        }
-    }
-
-    if (!Array.isArray(valores)) {
-        return [];
-    }
-
-    return valores
-        .map((item) => parseInt(item, 10))
-        .filter((item) => Number.isInteger(item) && item > 0);
+function obtenerComponenteSeleccionado() {
+    return componentesConfiguracion.find((item) => item.codigo === componenteSelect.value) || null;
 }
 
-let selectedComponentes = normalizarComponentesSeleccionados(oldComponentesRaw);
+function actualizarResumenFormulario() {
+    const componente = obtenerComponenteSeleccionado();
+    const numero = numeroComponenteSelect.value;
 
-function ladoLabel(lado) {
-    return lado === 'VAPOR' ? 'Vapor' : 'Pasillo';
-}
+    summaryModulo.textContent = moduloSelect.value ? `Modulo ${moduloSelect.value}` : 'Sin seleccionar';
+    summaryComponente.textContent = componente ? componente.nombre : 'Sin seleccionar';
 
-function nivelLabel(nivel) {
-    return nivel === 'SUPERIOR' ? '⬆️ Nivel Superior' : '⬇️ Nivel Inferior';
-}
-
-function actualizarResumen() {
-    const modulo = moduloSelect.value;
-    const componenteNombre = componenteSelect.options[componenteSelect.selectedIndex]?.text?.split(' (')[0] || 'No especificado';
-    document.getElementById('summary-modulo').textContent = modulo ? `Módulo ${modulo}` : '—';
-    document.getElementById('summary-componente').textContent = componenteSelect.value ? componenteNombre : 'No especificado';
-    document.getElementById('summary-nivel').innerHTML = nivelSelect.value ? nivelLabel(nivelSelect.value) : '<span class="text-gray-400">No especificado</span>';
-}
-
-function actualizarEstadoVisualChecklist() {
-    document.querySelectorAll('[data-checklist-item]').forEach((item) => {
-        const checkbox = item.querySelector('.componente-checkbox');
-        if (!checkbox || checkbox.disabled) {
-            return;
-        }
-
-        if (checkbox.checked) {
-            item.className = 'block rounded-xl border border-blue-500 bg-blue-50 shadow-md ring-2 ring-blue-200 transition cursor-pointer overflow-hidden';
-        } else {
-            item.className = 'block rounded-xl border border-gray-200 bg-white hover:border-blue-400 hover:shadow-md transition cursor-pointer overflow-hidden';
-        }
-    });
-}
-
-function actualizarComponentesRevisados() {
-    if (componenteSelect.value === componenteBrazoTorsion) {
-        selectedComponentes = [1];
-        componentesRevisadosInput.value = JSON.stringify(selectedComponentes);
+    if (!componente) {
+        summaryPieza.textContent = 'Sin seleccionar';
         return;
     }
 
-    const checkboxes = document.querySelectorAll('input.componente-checkbox:checked:not(:disabled)');
-    selectedComponentes = Array.from(checkboxes).map(cb => parseInt(cb.dataset.componentValue, 10));
-    componentesRevisadosInput.value = JSON.stringify(selectedComponentes);
-
-    const selectedCount = document.getElementById('selected-count');
-    if (selectedCount) {
-        selectedCount.textContent = selectedComponentes.length;
+    if (componente.es_brazo_torsion) {
+        summaryPieza.textContent = 'Brazo por modulo';
+        return;
     }
 
-    actualizarEstadoVisualChecklist();
+    if (numero) {
+        summaryPieza.textContent = `Pieza #${numero}`;
+        return;
+    }
+
+    if (componente.cantidad === 1) {
+        summaryPieza.textContent = 'Pieza unica';
+        return;
+    }
+
+    summaryPieza.textContent = 'Sin seleccionar';
 }
 
-function renderEstadoRevision(estadoRevision) {
-    document.querySelectorAll('[data-nivel-card]').forEach(card => {
-        const nivel = card.dataset.nivelCard;
-        const data = estadoRevision?.[nivel] || { completado: false, lados_pendientes: ['VAPOR', 'PASILLO'] };
-        const badge = card.querySelector('[data-status-badge]');
-        const detail = card.querySelector('[data-status-detail]');
-        
-        badge.innerHTML = `<i class="fas ${data.completado ? 'fa-check-circle' : 'fa-clock'}"></i>${data.completado ? 'Completado' : 'Pendiente'}`;
-        
-        card.className = `p-4 rounded-lg ${data.completado ? 'bg-green-100 border border-green-300' : 'bg-white border border-indigo-200'}`;
+function renderNumeroComponenteOptions() {
+    const componente = obtenerComponenteSeleccionado();
+    numeroComponenteSelect.innerHTML = '<option value="">Seleccionar componente...</option>';
+    numeroComponenteSelect.disabled = true;
 
-        if (data.completado) {
-            detail.innerHTML = '<div class="text-sm text-green-700"><i class="fas fa-check mr-1"></i>Ambos lados revisados correctamente</div>';
-            return;
+    if (!componente) {
+        numeroComponenteHelp.textContent = 'Selecciona primero el componente para mostrar las piezas disponibles.';
+        actualizarResumenFormulario();
+        return;
+    }
+
+    if (componente.es_brazo_torsion) {
+        numeroComponenteSelect.innerHTML = '<option value="1" selected>Registro unico por modulo</option>';
+        numeroComponenteSelect.disabled = true;
+        numeroComponenteHelp.textContent = 'Brazo de torsion: el modulo identifica la pieza analizada.';
+        actualizarResumenFormulario();
+        return;
+    }
+
+    if (componente.cantidad <= 1) {
+        numeroComponenteSelect.innerHTML = '<option value="1" selected>Pieza unica</option>';
+        numeroComponenteSelect.disabled = true;
+        numeroComponenteHelp.textContent = 'Este componente solo tiene una pieza configurada en el modulo.';
+        actualizarResumenFormulario();
+        return;
+    }
+
+    for (let indice = 1; indice <= componente.cantidad; indice++) {
+        const option = document.createElement('option');
+        option.value = indice;
+        option.textContent = `Pieza #${indice}`;
+        if (String(oldNumeroComponente || '') === String(indice)) {
+            option.selected = true;
         }
+        numeroComponenteSelect.appendChild(option);
+    }
 
-        detail.innerHTML = `
-            <div class="flex items-center gap-2 text-sm text-gray-700">
-                <span class="font-medium">Lados pendientes:</span>
-                <div class="flex gap-2">
-                    ${(data.lados_pendientes || []).map((lado) => `
-                        <span class="inline-flex items-center gap-1 px-2 py-1 rounded text-xs ${lado === 'VAPOR' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}">
-                            <i class="fas ${lado === 'VAPOR' ? 'fa-wind' : 'fa-walking'}"></i>
-                            ${ladoLabel(lado)}
-                        </span>
-                    `).join('')}
+    numeroComponenteSelect.disabled = false;
+    numeroComponenteHelp.textContent = `Selecciona cual de las ${componente.cantidad} piezas del modulo estas analizando.`;
+    actualizarResumenFormulario();
+}
+
+const evidenciaFotosInput = document.getElementById('evidencia_fotos');
+const evidenciaFotosGaleriaInput = document.getElementById('evidencia_fotos_galeria');
+const evidenciaFotosCamaraInput = document.getElementById('evidencia_fotos_camara');
+const fotosResumen = document.getElementById('fotos_resumen');
+const previewFotos = document.getElementById('preview_fotos');
+const btnGaleria = document.getElementById('btn_evidencia_fotos_galeria');
+const btnCamara = document.getElementById('btn_evidencia_fotos_camara');
+const dt = new DataTransfer();
+
+function syncFotosInput() {
+    evidenciaFotosInput.files = dt.files;
+    const total = dt.files.length;
+    fotosResumen.textContent = total === 0
+        ? 'Sin imagenes seleccionadas'
+        : `${total} imagen${total === 1 ? '' : 'es'} seleccionada${total === 1 ? '' : 's'}`;
+}
+
+function renderFotoPreview() {
+    previewFotos.innerHTML = '';
+
+    Array.from(dt.files).forEach((file, index) => {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            const card = document.createElement('div');
+            card.className = 'relative overflow-hidden rounded-lg border border-gray-200 bg-gray-50';
+            card.innerHTML = `
+                <img src="${event.target.result}" alt="${file.name}" class="h-28 w-full object-cover">
+                <div class="flex items-center justify-between gap-2 px-3 py-2">
+                    <span class="truncate text-xs text-gray-600">${file.name}</span>
+                    <button type="button"
+                            class="inline-flex h-7 w-7 items-center justify-center rounded-full bg-red-100 text-red-600 hover:bg-red-200"
+                            data-remove-index="${index}">
+                        <i class="fas fa-times text-xs"></i>
+                    </button>
                 </div>
-            </div>
-        `;
-    });
-}
-
-function renderChecklist(totalComponentes, componentesYaRevisados, cantidadComponentesRevisados, componentesPendientes, componenteNombre) {
-    componentesChecklist.innerHTML = '';
-    const revisadasNormalizadas = (componentesYaRevisados || []).map((item) => parseInt(item, 10));
-    const esBrazoTorsion = componenteSelect.value === componenteBrazoTorsion;
-
-    if (!totalComponentes) {
-        checklistContainer.classList.add('hidden');
-        return;
-    }
-
-    if (esBrazoTorsion) {
-        selectedComponentes = [1];
-        componentesRevisadosInput.value = JSON.stringify(selectedComponentes);
-        checklistContainer.classList.add('hidden');
-        return;
-    }
-
-    checklistContainer.classList.remove('hidden');
-
-    for (let i = 1; i <= totalComponentes; i++) {
-        const yaRevisado = revisadasNormalizadas.includes(i);
-        const seleccionado = selectedComponentes.includes(i);
-        const label = document.createElement('label');
-        label.dataset.checklistItem = i;
-        label.className = `block rounded-xl border ${yaRevisado ? 'border-gray-200 bg-gray-50 opacity-60' : seleccionado ? 'border-blue-500 bg-blue-50 shadow-md ring-2 ring-blue-200' : 'border-gray-200 bg-white hover:border-blue-400 hover:shadow-md'} transition cursor-pointer overflow-hidden`;
-        label.innerHTML = `
-            <div class="flex items-center justify-between gap-3 p-4">
-                <div class="min-w-0 flex-1">
-                    <div class="${yaRevisado ? 'text-gray-400 line-through' : 'text-gray-800'} font-semibold leading-tight">
-                        ${componenteNombre}
-                    </div>
-                    <div class="text-sm ${yaRevisado ? 'text-gray-400' : 'text-blue-700'}">
-                        ${esBrazoTorsion ? `Modulo ${i}` : `Pieza #${i}`}
-                    </div>
-                </div>
-                <div class="flex items-center gap-2">
-                    ${yaRevisado ? '<span class="inline-flex items-center px-2 py-1 text-xs font-semibold rounded-full bg-gray-200 text-gray-600">Bloqueado</span>' : ''}
-                    <input type="checkbox"
-                           data-component-value="${i}"
-                           aria-label="${componenteNombre} ${esBrazoTorsion ? `modulo ${i}` : `pieza ${i}`}"
-                           class="w-5 h-5 text-blue-600 rounded cursor-pointer focus:ring-blue-500 componente-checkbox"
-                           ${yaRevisado ? 'disabled checked' : seleccionado ? 'checked' : ''}>
-                </div>
-            </div>
-        `;
-        componentesChecklist.appendChild(label);
-    }
-
-    componentesChecklist.querySelectorAll('.componente-checkbox:not(:disabled)').forEach((checkbox) => {
-        checkbox.addEventListener('change', actualizarComponentesRevisados);
-    });
-
-    document.getElementById('remaining-info').classList.toggle('hidden', cantidadComponentesRevisados === 0);
-    document.getElementById('already-reviewed-count').textContent = cantidadComponentesRevisados;
-    document.getElementById('remaining-count').textContent = componentesPendientes;
-    document.getElementById('total-count').textContent = totalComponentes;
-    document.getElementById('already-reviewed-badges').innerHTML = revisadasNormalizadas
-        .map((value) => `<span class="inline-flex items-center px-2 py-0.5 bg-blue-200 text-blue-800 rounded text-xs">#${value}</span>`)
-        .join('');
-
-    actualizarComponentesRevisados();
-}
-
-function renderLadosPendientes(ladosPendientes, ladoActual) {
-    const alertBox = document.getElementById('lados-pendientes-alert');
-
-    if (!ladoActual || !ladosPendientes || ladosPendientes.length === 0) {
-        alertBox.classList.add('hidden');
-        alertBox.innerHTML = '';
-        return;
-    }
-
-    alertBox.classList.remove('hidden');
-    alertBox.innerHTML = `
-        <i class="fas fa-info-circle mr-2"></i>
-        <strong>Lados pendientes por revisar:</strong>
-        ${ladosPendientes.map((lado) => `
-            <span class="inline-flex items-center ml-2 px-2 py-1 rounded text-xs ${lado === 'VAPOR' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}">
-                <i class="fas ${lado === 'VAPOR' ? 'fa-wind' : 'fa-walking'} mr-1"></i>
-                ${ladoLabel(lado)}
-            </span>
-        `).join('')}
-    `;
-}
-
-function seleccionarTodosLosDisponibles() {
-    document.querySelectorAll('.componente-checkbox:not(:disabled)').forEach((checkbox) => {
-        checkbox.checked = true;
-    });
-    actualizarComponentesRevisados();
-}
-
-function limpiarSeleccionChecklist() {
-    document.querySelectorAll('.componente-checkbox:not(:disabled)').forEach((checkbox) => {
-        checkbox.checked = false;
-    });
-    actualizarComponentesRevisados();
-}
-
-// Función para inicializar los checkboxes si ya hay datos
-function inicializarCheckboxesSiHayDatos() {
-    const modulo = document.getElementById('modulo')?.value;
-    const componente = document.getElementById('componente')?.value;
-    const nivel = document.getElementById('nivel')?.value;
-    const lado = document.getElementById('lado')?.value;
-    
-    console.log('Inicializando con:', { modulo, componente, nivel, lado });
-    
-    // Si todos los campos necesarios están presentes, cargar los checkboxes
-    if (modulo && componente && nivel && lado) {
-        console.log('Cargando checkboxes automáticamente...');
-        setTimeout(() => {
-            cargarContextoRevision();
-        }, 500);
-    } else if (modulo && componente) {
-        // Si solo tenemos módulo y componente, intentar obtener el próximo nivel/lado
-        console.log('Intentando obtener próximo nivel/lado...');
-        setTimeout(() => {
-            cargarContextoRevision();
-        }, 500);
-    }
-}
-
-// Función principal para cargar el contexto de revisión
-async function cargarContextoRevision() {
-    const modulo = moduloSelect.value;
-    const componente = componenteSelect.value;
-    
-    if (!modulo || !componente) {
-        if (checklistContainer) checklistContainer.classList.add('hidden');
-        return;
-    }
-
-    if (componente === componenteBrazoTorsion && parseInt(modulo, 10) > totalBrazosTorsion) {
-        checklistContainer.classList.add('hidden');
-        alert(`Brazo de Torsion solo aplica del modulo 1 al ${totalBrazosTorsion}. El ultimo modulo no tiene brazo.`);
-        componenteSelect.value = '';
-        actualizarResumen();
-        return;
-    }
-    
-    try {
-        const response = await fetch(revisionContextUrl, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-            },
-            body: JSON.stringify({
-                linea_id: {{ $linea->id }},
-                modulo: modulo,
-                componente: componente,
-                nivel: nivelSelect.value || null,
-                lado: ladoSelect.value || null
-            })
-        });
-
-        const data = await response.json();
-        if (!data.success) {
-            console.error('Error en respuesta:', data);
-            return;
-        }
-
-        // Actualizar los selects con los valores sugeridos si están vacíos
-        if (data.nivel && !nivelSelect.value) {
-            nivelSelect.value = data.nivel;
-        }
-        
-        if (data.lado && !ladoSelect.value) {
-            ladoSelect.value = data.lado;
-        }
-
-    actualizarResumen();
-    renderEstadoRevision(data.estado_revision || {});
-    renderChecklist(
-        data.total_componentes || 0,
-        data.componentes_ya_revisados || [],
-        data.cantidad_componentes_revisados || 0,
-        data.componentes_pendientes || 0,
-        data.nombre_componente || componenteSelect.options[componenteSelect.selectedIndex]?.text?.split(' (')[0] || data.componente
-    );
-    renderLadosPendientes(data.lados_pendientes || [], data.lado);
-
-    const siguienteAlert = document.getElementById('siguiente-revision-alert');
-    if (siguienteAlert && data.siguiente_revision?.nivel && data.siguiente_revision?.lado) {
-        siguienteAlert.classList.remove('hidden');
-        siguienteAlert.innerHTML = `
-            <i class="fas fa-magic mr-2"></i>
-            Se cargó automáticamente la siguiente revisión pendiente:
-            <strong>${nivelLabel(data.siguiente_revision.nivel)}</strong>,
-            <strong>Lado ${ladoLabel(data.siguiente_revision.lado)}</strong>.
-        `;
-    } else if (siguienteAlert) {
-        siguienteAlert.classList.add('hidden');
-        siguienteAlert.innerHTML = '';
-    }
-    } catch (error) {
-        console.error('Error cargando el contexto de revision:', error);
-    }
-}
-
-// Inicializar cuando el DOM esté listo
-document.addEventListener('DOMContentLoaded', function() {
-    // Configurar event listeners
-    if (moduloSelect) moduloSelect.addEventListener('change', cargarContextoRevision);
-    if (componenteSelect) componenteSelect.addEventListener('change', cargarContextoRevision);
-    if (nivelSelect) nivelSelect.addEventListener('change', cargarContextoRevision);
-    if (ladoSelect) ladoSelect.addEventListener('change', cargarContextoRevision);
-    
-    // Registrar eventos para los botones de selección
-    const selectAllBtn = document.getElementById('select-all-componentes');
-    if (selectAllBtn) selectAllBtn.addEventListener('click', seleccionarTodosLosDisponibles);
-    
-    const clearBtn = document.getElementById('clear-componentes');
-    if (clearBtn) clearBtn.addEventListener('click', limpiarSeleccionChecklist);
-    
-    // Configurar preview de imagenes
-    const inputFotos = document.getElementById('evidencia_fotos');
-    const botonGaleria = document.getElementById('btn_evidencia_fotos_galeria');
-    const botonCamara = document.getElementById('btn_evidencia_fotos_camara');
-    const galeriaFotosInput = document.getElementById('evidencia_fotos_galeria');
-    const camaraFotosInput = document.getElementById('evidencia_fotos_camara');
-    const previewFotos = document.getElementById('preview_fotos');
-    const fotosResumen = document.getElementById('fotos_resumen');
-    const maxFotoSize = 5 * 1024 * 1024;
-    const soportaDataTransfer = typeof DataTransfer !== 'undefined';
-    const extensionesPermitidas = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'];
-
-    function actualizarResumenFotos(totalFotos) {
-        fotosResumen.textContent = totalFotos
-            ? `${totalFotos} imagen${totalFotos === 1 ? '' : 'es'} seleccionada${totalFotos === 1 ? '' : 's'}`
-            : 'Sin imagenes seleccionadas';
-    }
-
-    function crearDataTransfer(files) {
-        const dataTransfer = new DataTransfer();
-        files.forEach((file) => dataTransfer.items.add(file));
-        return dataTransfer;
-    }
-
-    function getFotosPrincipales() {
-        return Array.from(inputFotos.files || []);
-    }
-
-    function getFotosFallback() {
-        return [
-            ...Array.from(galeriaFotosInput.files || []),
-            ...Array.from(camaraFotosInput.files || []),
-        ];
-    }
-
-    function esImagenValida(file) {
-        if (!file) {
-            return false;
-        }
-
-        if ((file.type || '').startsWith('image/')) {
-            return true;
-        }
-
-        const extension = (file.name.split('.').pop() || '').toLowerCase();
-        return extensionesPermitidas.includes(extension);
-    }
-
-    function renderPreview(files, permitirEliminar) {
-        previewFotos.innerHTML = '';
-        actualizarResumenFotos(files.length);
-
-        files.forEach((file, index) => {
-            if (!esImagenValida(file)) {
-                return;
-            }
-
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const imgContainer = document.createElement('div');
-                imgContainer.className = 'relative group overflow-hidden rounded-lg border border-gray-200 bg-gray-100 shadow-sm';
-
-                const img = document.createElement('img');
-                img.src = e.target.result;
-                img.alt = file.name;
-                img.className = 'aspect-square w-full object-cover';
-                imgContainer.appendChild(img);
-
-                if (permitirEliminar) {
-                    const removeBtn = document.createElement('button');
-                    removeBtn.type = 'button';
-                    removeBtn.className = 'absolute right-2 top-2 flex h-10 w-10 items-center justify-center rounded-full bg-red-600 text-base font-bold text-white shadow transition hover:bg-red-700 sm:opacity-0 sm:group-hover:opacity-100';
-                    removeBtn.innerHTML = '&times;';
-                    removeBtn.setAttribute('aria-label', `Quitar ${file.name}`);
-                    removeBtn.onclick = function() {
-                        const fotos = getFotosPrincipales();
-                        fotos.splice(index, 1);
-                        inputFotos.files = crearDataTransfer(fotos).files;
-                        renderPreview(getFotosPrincipales(), true);
-                    };
-                    imgContainer.appendChild(removeBtn);
-                }
-
-                previewFotos.appendChild(imgContainer);
-            };
-            reader.readAsDataURL(file);
-        });
-    }
-
-    function agregarFotos(files) {
-        const fotosActuales = getFotosPrincipales();
-        const firmas = new Set(fotosActuales.map((file) => `${file.name}-${file.size}-${file.lastModified}`));
-        const nuevasFotos = [...fotosActuales];
-
-        Array.from(files || []).forEach((file) => {
-            if (!esImagenValida(file)) {
-                alert(`El archivo ${file.name} no es una imagen valida.`);
-                return;
-            }
-
-            if (file.size > maxFotoSize) {
-                alert(`La imagen ${file.name} supera el tamano maximo de 5MB.`);
-                return;
-            }
-
-            const firma = `${file.name}-${file.size}-${file.lastModified}`;
-            if (firmas.has(firma)) {
-                return;
-            }
-
-            firmas.add(firma);
-            nuevasFotos.push(file);
-        });
-
-        inputFotos.files = crearDataTransfer(nuevasFotos).files;
-        renderPreview(getFotosPrincipales(), true);
-    }
-
-    botonGaleria?.addEventListener('click', function() {
-        galeriaFotosInput.click();
-    });
-
-    botonCamara?.addEventListener('click', function() {
-        camaraFotosInput.click();
-    });
-
-    inputFotos?.addEventListener('change', function() {
-        renderPreview(getFotosPrincipales(), true);
-    });
-
-    if (inputFotos && previewFotos && soportaDataTransfer) {
-        galeriaFotosInput.addEventListener('change', function() {
-            agregarFotos(this.files);
-            this.value = '';
-        });
-
-        camaraFotosInput.addEventListener('change', function() {
-            agregarFotos(this.files);
-            this.value = '';
-        });
-
-        renderPreview(getFotosPrincipales(), true);
-    } else if (inputFotos && previewFotos) {
-        galeriaFotosInput.name = 'evidencia_fotos[]';
-        camaraFotosInput.name = 'evidencia_fotos[]';
-        inputFotos.disabled = true;
-
-        const renderizarFallback = function() {
-            renderPreview(getFotosFallback(), false);
+            `;
+            previewFotos.appendChild(card);
         };
+        reader.readAsDataURL(file);
+    });
+}
 
-        galeriaFotosInput.addEventListener('change', renderizarFallback);
-        camaraFotosInput.addEventListener('change', renderizarFallback);
-        renderizarFallback();
-    }
-    
-    // Validación del formulario
-    const form = document.getElementById('analisisForm');
-    if (form) {
-        form.addEventListener('submit', function(e) {
-            if (componenteSelect.value === componenteBrazoTorsion) {
-                componentesRevisadosInput.value = JSON.stringify([1]);
-                return;
-            }
+function agregarArchivos(files) {
+    Array.from(files || []).forEach((file) => {
+        dt.items.add(file);
+    });
 
-            const checkboxes = document.querySelectorAll('input.componente-checkbox:checked:not(:disabled)');
-            const totalDisponibles = document.querySelectorAll('input.componente-checkbox:not(:disabled)').length;
-            
-            if (totalDisponibles > 0 && checkboxes.length === 0) {
-                e.preventDefault();
-                alert('Debe seleccionar al menos una pieza revisada.');
-            }
-            
-            actualizarComponentesRevisados();
-        });
+    syncFotosInput();
+    renderFotoPreview();
+}
+
+previewFotos.addEventListener('click', (event) => {
+    const button = event.target.closest('[data-remove-index]');
+    if (!button) {
+        return;
     }
-    
-    // Inicializar checkboxes si hay datos precargados
-    setTimeout(() => {
-        inicializarCheckboxesSiHayDatos();
-    }, 300);
-    
-    // Cargar contexto inicial
-    cargarContextoRevision();
+
+    const removeIndex = Number(button.dataset.removeIndex);
+    const rebuilt = new DataTransfer();
+
+    Array.from(dt.files).forEach((file, index) => {
+        if (index !== removeIndex) {
+            rebuilt.items.add(file);
+        }
+    });
+
+    while (dt.items.length > 0) {
+        dt.items.remove(0);
+    }
+
+    Array.from(rebuilt.files).forEach((file) => dt.items.add(file));
+    syncFotosInput();
+    renderFotoPreview();
 });
+
+btnGaleria?.addEventListener('click', () => evidenciaFotosGaleriaInput.click());
+btnCamara?.addEventListener('click', () => evidenciaFotosCamaraInput.click());
+evidenciaFotosGaleriaInput?.addEventListener('change', (event) => agregarArchivos(event.target.files));
+evidenciaFotosCamaraInput?.addEventListener('change', (event) => agregarArchivos(event.target.files));
+componenteSelect.addEventListener('change', renderNumeroComponenteOptions);
+numeroComponenteSelect.addEventListener('change', actualizarResumenFormulario);
+moduloSelect.addEventListener('change', actualizarResumenFormulario);
+
+renderNumeroComponenteOptions();
+actualizarResumenFormulario();
+syncFotosInput();
 </script>
 @endsection

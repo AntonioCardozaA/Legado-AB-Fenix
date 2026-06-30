@@ -149,7 +149,11 @@
                              class="w-8 h-8 object-contain filter brightness-0 invert">
                         <h1 class="text-2xl font-bold">Detalle del Análisis</h1>
                     </div>
-                    <p class="text-blue-200">Orden #{{ $analisis->numero_orden }}</p>
+                    <p class="text-blue-200">
+                        {{ $analisis->numero_orden ? 'Orden #' . $analisis->numero_orden : 'Sin numero de orden' }}
+                        <span class="mx-2">|</span>
+                        {{ $analisis->tipo_registro_label }}
+                    </p>
                 </div>
             <div class="responsive-actions">
                     <a href="{{ $analisisRoute('edit', $analisis->id) }}"

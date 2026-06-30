@@ -953,6 +953,11 @@
                 <span>{{ $analisisTitulo ?? 'Análisis de Pasteurizadoras' }}</span>
             </h1>
         </div>
+
+        <a href="{{ $analisisRoute('select-linea') }}" class="responsive-action whitespace-nowrap">
+            <i class="fas fa-plus"></i>
+            AGREGAR AN&Aacute;LISIS
+        </a>
     </div>
 
     {{-- FILTROS ESTILO IMAGEN - CON VER MÁS FUNCIONAL --}}
@@ -1317,6 +1322,150 @@
     @endif
 
     {{-- SECCIÓN PRINCIPAL - TABLA DE ANÁLISIS --}}
+    <div class="mb-6 rounded-xl border border-slate-200 bg-white shadow-sm">
+        <div class="flex flex-col gap-2 border-b border-slate-200 px-5 py-4 md:flex-row md:items-center md:justify-between">
+            <div>
+                <h2 class="text-lg font-semibold text-slate-800">Registros de analisis</h2>
+                <p class="text-sm text-slate-500">
+                    Los registros rapidos de bitacora se resaltan en verde. Los analisis normales usan el color del estado reportado.
+                </p>
+            </div>
+            <span class="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+                {{ $analisisCollection->count() }} registro{{ $analisisCollection->count() === 1 ? '' : 's' }}
+            </span>
+        </div>
+
+        @if($analisisCollection->isEmpty())
+            <div class="px-5 py-10 text-center text-sm text-slate-500">
+                No hay registros para los filtros seleccionados.
+            </div>
+        @else
+            @php
+                $analisisOrdenados = $analisisCollection->sortByDesc(function ($item) {
+                    return ($item->fecha_analisis?->timestamp ?? 0) . '-' . ($item->created_at?->timestamp ?? 0) . '-' . str_pad((string) $item->id, 10, '0', STR_PAD_LEFT);
+                })->values();
+            @endphp
+
+            <div class="overflow-auto">
+                <table class="min-w-full divide-y divide-slate-200 text-sm">
+                    <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                        <tr>
+                            <th class="px-4 py-3">Tipo</th>
+                            <th class="px-4 py-3">Linea</th>
+                            <th class="px-4 py-3">Modulo</th>
+                            <th class="px-4 py-3">Componente</th>
+                            <th class="px-4 py-3">Numero</th>
+                            <th class="px-4 py-3">Lado</th>
+                            <th class="px-4 py-3">Nivel</th>
+                            <th class="px-4 py-3">Estado</th>
+                            <th class="px-4 py-3">Fecha</th>
+                            <th class="px-4 py-3">Orden</th>
+                            <th class="px-4 py-3">Actividad / Observaciones</th>
+                            <th class="px-4 py-3">Evidencias</th>
+                            <th class="px-4 py-3">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        @foreach($analisisOrdenados as $item)
+                            @php
+                                $componentesRevisadosFila = collect(\App\Models\AnalisisPasteurizadora::normalizarComponentesRevisados(
+                                    $item->componentes_revisados,
+                                    $item->total_componentes
+                                ));
+                                $numeroPiezaTexto = 'N/A';
+
+                                if ($componentesRevisadosFila->isNotEmpty()) {
+                                    $numeroPiezaTexto = \App\Models\AnalisisPasteurizadora::esBrazoTorsion($item->componente)
+                                        ? $componentesRevisadosFila->map(fn ($numero) => 'Modulo ' . $numero)->implode(', ')
+                                        : $componentesRevisadosFila->map(fn ($numero) => '#' . $numero)->implode(', ');
+                                }
+
+                                if ($item->es_registro_quick) {
+                                    $rowClass = 'bg-green-50';
+                                    $tipoBadgeClass = 'bg-green-100 text-green-700 border-green-200';
+                                } elseif (\App\Models\AnalisisPasteurizadora::esEstadoDanado($item->estado)) {
+                                    $rowClass = 'bg-red-50';
+                                    $tipoBadgeClass = 'bg-red-100 text-red-700 border-red-200';
+                                } elseif (\App\Models\AnalisisPasteurizadora::esEstadoRequiereRevision($item->estado)) {
+                                    $rowClass = 'bg-yellow-50';
+                                    $tipoBadgeClass = 'bg-yellow-100 text-yellow-700 border-yellow-200';
+                                } elseif (\App\Models\AnalisisPasteurizadora::esEstadoDesgaste($item->estado)) {
+                                    $rowClass = 'bg-orange-50';
+                                    $tipoBadgeClass = 'bg-orange-100 text-orange-700 border-orange-200';
+                                } elseif (\App\Models\AnalisisPasteurizadora::esEstadoCambiado($item->estado)) {
+                                    $rowClass = 'bg-sky-50';
+                                    $tipoBadgeClass = 'bg-sky-100 text-sky-700 border-sky-200';
+                                } else {
+                                    $rowClass = 'bg-white';
+                                    $tipoBadgeClass = 'bg-slate-100 text-slate-700 border-slate-200';
+                                }
+                            @endphp
+                            <tr class="{{ $rowClass }}">
+                                <td class="px-4 py-3 align-top">
+                                    <span class="inline-flex rounded-full border px-3 py-1 text-xs font-semibold {{ $tipoBadgeClass }}">
+                                        {{ $item->es_registro_quick ? 'Bitacora rapida' : 'Analisis normal' }}
+                                    </span>
+                                </td>
+                                <td class="px-4 py-3 align-top font-semibold text-slate-700">{{ $item->linea->nombre ?? 'N/A' }}</td>
+                                <td class="px-4 py-3 align-top">Modulo {{ $item->modulo }}</td>
+                                <td class="px-4 py-3 align-top">
+                                    <div class="font-medium text-slate-700">{{ $item->componente_nombre }}</div>
+                                </td>
+                                <td class="px-4 py-3 align-top text-slate-600">{{ $numeroPiezaTexto }}</td>
+                                <td class="px-4 py-3 align-top">{{ $item->lado ?: 'N/A' }}</td>
+                                <td class="px-4 py-3 align-top">{{ $item->nivel ?: 'N/A' }}</td>
+                                <td class="px-4 py-3 align-top">
+                                    <span class="inline-flex rounded-full px-3 py-1 text-xs font-semibold {{ $item->estado_badge['class'] }}">
+                                        {{ $item->estado }}
+                                    </span>
+                                </td>
+                                <td class="px-4 py-3 align-top whitespace-nowrap">
+                                    {{ $item->fecha_analisis?->format('d/m/Y') ?? optional($item->created_at)->format('d/m/Y') }}
+                                </td>
+                                <td class="px-4 py-3 align-top whitespace-nowrap">
+                                    {{ $item->numero_orden ?: 'Sin orden' }}
+                                </td>
+                                <td class="px-4 py-3 align-top">
+                                    <div class="max-w-xs whitespace-pre-line text-slate-600" title="{{ $item->actividad }}">
+                                        {{ \Illuminate\Support\Str::limit($item->actividad, 120) }}
+                                    </div>
+                                </td>
+                                <td class="px-4 py-3 align-top">
+                                    @php
+                                        $totalEvidencias = is_array($item->evidencia_fotos) ? count($item->evidencia_fotos) : 0;
+                                    @endphp
+                                    @if($totalEvidencias > 0)
+                                        <span class="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
+                                            {{ $totalEvidencias }} foto{{ $totalEvidencias === 1 ? '' : 's' }}
+                                        </span>
+                                    @else
+                                        <span class="text-xs text-slate-400">Sin evidencia</span>
+                                    @endif
+                                </td>
+                                <td class="px-4 py-3 align-top">
+                                    <a href="{{ $analisisRoute('show', $item->id) }}"
+                                       class="responsive-action responsive-action--compact whitespace-nowrap">
+                                        Ver detalle
+                                    </a>
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        @endif
+    </div>
+
+    <div class="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-4 text-sm text-emerald-800">
+        <div class="flex items-start gap-3">
+            <i class="fas fa-clipboard-check mt-0.5"></i>
+            <div>
+                <p class="font-semibold">Bitacora de revisiones rapidas</p>
+                <p>El tablero por linea, modulo y componente muestra el avance operativo de revisiones rapidas.</p>
+            </div>
+        </div>
+    </div>
+
     <div class="pasteurizadoras-section">
         @php
             $lineasToShow = $mostrarTodas ? $lineasFiltradas : collect([$lineaSeleccionada ?? null])->filter();

@@ -316,6 +316,10 @@ class AnalisisPasteurizadoraController extends Controller
         $analisis = $analisis->filter(function($item) use ($hoy) {
             $fechaAnalisis = $item->fecha_analisis?->toDateString();
 
+            if ($item->es_registro_normal) {
+                return true;
+            }
+
             // Si es del hoy, mostrar siempre
             if ($fechaAnalisis === $hoy) {
                 return true;
@@ -389,11 +393,19 @@ class AnalisisPasteurizadoraController extends Controller
             $componentesRevisados = [];
         }
 
-        $actualizaciones = $this->analisisQuery()
+        $actualizacionesQuery = $this->analisisQuery()
             ->with('usuario')
             ->where('linea_id', $registro->linea_id)
             ->where('modulo', $registro->modulo)
-            ->where('componente', $registro->componente)
+            ->where('componente', $registro->componente);
+
+        if ($registro->es_registro_normal) {
+            $actualizacionesQuery->normal();
+        } else {
+            $actualizacionesQuery->quick();
+        }
+
+        $actualizaciones = $actualizacionesQuery
             ->orderByDesc('created_at')
             ->get()
             ->map(function (AnalisisPasteurizadora $item): array {
@@ -409,6 +421,8 @@ class AnalisisPasteurizadoraController extends Controller
 
                 return [
                     'id' => $item->id,
+                    'tipo_registro' => $item->tipo_registro,
+                    'tipo_registro_label' => $item->tipo_registro_label,
                     'fecha' => $item->fecha_analisis ? $item->fecha_analisis->format('d/m/Y') : $item->created_at?->format('d/m/Y'),
                     'hora' => $item->created_at?->format('H:i'),
                     'orden' => $item->numero_orden,
@@ -429,6 +443,8 @@ class AnalisisPasteurizadoraController extends Controller
 
         return [
             'id' => $registro->id,
+            'tipo_registro' => $registro->tipo_registro,
+            'tipo_registro_label' => $registro->tipo_registro_label,
             'linea' => $registro->linea->nombre ?? 'Linea no registrada',
             'modulo' => $registro->modulo,
             'componente' => $registro->componente_nombre ?? $registro->componente,
@@ -505,6 +521,8 @@ class AnalisisPasteurizadoraController extends Controller
 
  public function store(Request $request)
     {
+        $esQuick = $request->boolean('es_quick');
+
         $validated = $request->validate([
             'linea_id' => 'required|exists:lineas,id',
             'modulo' => 'required|integer|min:1',
@@ -518,6 +536,7 @@ class AnalisisPasteurizadoraController extends Controller
             'evidencia_fotos' => 'nullable|array',
             'evidencia_fotos.*' => 'nullable|image|max:5120',
             'componentes_revisados' => 'nullable',
+            'numero_componente' => 'nullable|integer|min:1',
         ], [
             'numero_orden.regex' => 'El numero de orden solo puede contener numeros.',
             'numero_orden.max' => 'El numero de orden no puede tener mas de 50 digitos.',
@@ -525,7 +544,9 @@ class AnalisisPasteurizadoraController extends Controller
 
         // Obtener la linea y validar la seleccion de componentes
         $linea = Linea::findOrFail($validated['linea_id']);
-        $seleccionComponentes = $this->resolverSeleccionComponentesRevisados($request, $linea, $validated);
+        $seleccionComponentes = $esQuick
+            ? $this->resolverSeleccionComponentesRevisados($request, $linea, $validated)
+            : $this->resolverSeleccionAnalisisNormal($request, $linea, $validated);
         $validated['componente'] = $seleccionComponentes['componente'];
 
         // Procesar imágenes
@@ -538,16 +559,18 @@ class AnalisisPasteurizadoraController extends Controller
             }
         }
 
-        // Crear el registro
         $analisis = AnalisisPasteurizadora::create([
             'area' => $this->currentArea(),
+            'tipo_registro' => $esQuick
+                ? AnalisisPasteurizadora::TIPO_REGISTRO_QUICK
+                : AnalisisPasteurizadora::TIPO_REGISTRO_NORMAL,
             'linea_id' => $validated['linea_id'],
             'modulo' => $validated['modulo'],
             'nivel' => $validated['nivel'],
             'componente' => $validated['componente'],
             'lado' => $validated['lado'],
             'fecha_analisis' => $validated['fecha_analisis'],
-            'numero_orden' => $validated['numero_orden'] ?? null,
+            'numero_orden' => $esQuick ? null : ($validated['numero_orden'] ?? null),
             'estado' => $validated['estado'],
             'actividad' => $validated['actividad'],
             'evidencia_fotos' => $fotosPaths,
@@ -579,6 +602,10 @@ class AnalisisPasteurizadoraController extends Controller
             : 'Análisis registrado correctamente. Este proceso quedó terminado.';
 
         // Redirigir al índice con mensaje de éxito
+        if (!$esQuick) {
+            $mensaje = 'Analisis registrado correctamente.';
+        }
+
         return redirect()
             ->route($this->routeName('index'), ['linea_id' => $validated['linea_id']])
             ->with('success', $mensaje);
@@ -623,6 +650,11 @@ class AnalisisPasteurizadoraController extends Controller
 
     private function marcarRegistrosAnterioresComoResueltos($nuevoAnalisis)
     {
+        $componentesObjetivo = AnalisisPasteurizadora::normalizarComponentesRevisados(
+            $nuevoAnalisis->componentes_revisados ?? [],
+            $nuevoAnalisis->total_componentes ?? null
+        );
+
         $registrosAnteriores = $this->analisisQuery()
             ->where('linea_id', $nuevoAnalisis->linea_id)
             ->where('modulo', $nuevoAnalisis->modulo)
@@ -631,6 +663,17 @@ class AnalisisPasteurizadoraController extends Controller
             ->where('resuelto_por_cambio', false)
             ->when($nuevoAnalisis->id ?? null, fn ($query) => $query->where('id', '!=', $nuevoAnalisis->id))
             ->get();
+
+        if (!empty($componentesObjetivo)) {
+            $registrosAnteriores = $registrosAnteriores->filter(function ($registro) use ($componentesObjetivo) {
+                $componentesRegistro = AnalisisPasteurizadora::normalizarComponentesRevisados(
+                    $registro->componentes_revisados,
+                    $registro->total_componentes
+                );
+
+                return !empty(array_intersect($componentesObjetivo, $componentesRegistro));
+            });
+        }
 
         foreach ($registrosAnteriores as $registro) {
             $numeroOrden = $nuevoAnalisis->numero_orden ?: 'sin numero de orden';
@@ -681,6 +724,7 @@ class AnalisisPasteurizadoraController extends Controller
     public function update(Request $request, $id)
     {
         $analisis = $this->analisisQuery()->findOrFail($id);
+        $esQuick = $analisis->es_registro_quick;
 
         $validated = $request->validate([
             'modulo' => 'nullable|integer|min:1',
@@ -693,6 +737,7 @@ class AnalisisPasteurizadoraController extends Controller
             'lado' => 'nullable|in:VAPOR,PASILLO',
             'observaciones' => 'nullable|string',
             'componentes_revisados' => 'nullable|array',
+            'numero_componente' => 'nullable|integer|min:1',
             'evidencia_fotos' => 'nullable|array',
             'evidencia_fotos.*' => 'nullable|image|max:5120',
             'eliminar_fotos' => 'nullable|array',
@@ -711,12 +756,14 @@ class AnalisisPasteurizadoraController extends Controller
             'lado' => $validated['lado'] ?? $analisis->lado,
         ];
 
-        $seleccionComponentes = $this->resolverSeleccionComponentesRevisados(
-            $request,
-            $analisis->linea,
-            $contextoActualizado,
-            $analisis
-        );
+        $seleccionComponentes = $esQuick
+            ? $this->resolverSeleccionComponentesRevisados(
+                $request,
+                $analisis->linea,
+                $contextoActualizado,
+                $analisis
+            )
+            : $this->resolverSeleccionAnalisisNormal($request, $analisis->linea, $contextoActualizado);
         $validated['componente'] = $seleccionComponentes['componente'];
 
         if (
@@ -729,6 +776,8 @@ class AnalisisPasteurizadoraController extends Controller
                 'modulo' => $validated['modulo'] ?? $analisis->modulo,
                 'componente' => $validated['componente'] ?? $analisis->componente,
                 'numero_orden' => array_key_exists('numero_orden', $validated) ? $validated['numero_orden'] : $analisis->numero_orden,
+                'componentes_revisados' => $seleccionComponentes['componentes_revisados'],
+                'total_componentes' => $seleccionComponentes['total_componentes'],
             ];
             $this->marcarRegistrosAnterioresComoResueltos($tempAnalisis);
         }
@@ -861,6 +910,10 @@ class AnalisisPasteurizadoraController extends Controller
         $hoy = now()->toDateString();
         $analisis = $analisis->filter(function($item) use ($hoy) {
             $fechaAnalisis = $item->fecha_analisis?->toDateString();
+
+            if ($item->es_registro_normal) {
+                return true;
+            }
 
             // Si es del hoy, mostrar siempre
             if ($fechaAnalisis === $hoy) {
@@ -1493,6 +1546,7 @@ class AnalisisPasteurizadoraController extends Controller
         }
 
         $registrosPorLinea = $this->analisisQuery()
+            ->quick()
             ->with('usuario')
             ->whereIn('linea_id', $lineaIds)
             ->where('resuelto_por_cambio', false)
@@ -1627,6 +1681,7 @@ class AnalisisPasteurizadoraController extends Controller
                 $this->currentArea()
             );
             $registrosYaRealizados = $this->analisisQuery()
+                ->quick()
                 ->with('usuario')
                 ->where('linea_id', $linea->id)
                 ->where('modulo', $modulo)
@@ -1674,6 +1729,78 @@ class AnalisisPasteurizadoraController extends Controller
             'nombreComponente' => $componentConfig['nombre'] ?? $componente,
             'estadoRevision' => $estadoRevision,
             'siguienteRevision' => $siguienteRevision,
+        ];
+    }
+
+    private function resolverSeleccionAnalisisNormal(
+        Request $request,
+        Linea $linea,
+        array $contexto
+    ): array {
+        $resolved = AnalisisPasteurizadora::resolveComponentePorLinea($linea->nombre, $contexto['componente'] ?? null);
+
+        if (!$resolved) {
+            throw ValidationException::withMessages([
+                'componente' => 'Seleccione un componente valido para la linea seleccionada.',
+            ]);
+        }
+
+        $componente = $resolved['key'];
+        $totalComponentes = (int) ($resolved['config']['cantidad'] ?? 0);
+        $modulo = (int) ($contexto['modulo'] ?? 0);
+        $totalModulos = AnalisisPasteurizadora::getModulosPorLinea($linea->nombre);
+
+        if ($totalComponentes <= 0) {
+            throw ValidationException::withMessages([
+                'componente' => 'El componente seleccionado no tiene piezas configuradas para esta linea.',
+            ]);
+        }
+
+        if ($modulo < 1 || $modulo > $totalModulos) {
+            throw ValidationException::withMessages([
+                'modulo' => 'Seleccione un modulo valido para la linea seleccionada.',
+            ]);
+        }
+
+        if (AnalisisPasteurizadora::esBrazoTorsion($componente)) {
+            $ultimoModuloConBrazo = AnalisisPasteurizadora::getCantidadBrazosTorsionPorLinea($linea->nombre);
+
+            if ($modulo < 1 || $modulo > $ultimoModuloConBrazo) {
+                throw ValidationException::withMessages([
+                    'modulo' => 'El Brazo de Torsion solo aplica del modulo 1 al ' . $ultimoModuloConBrazo . '. El ultimo modulo no tiene brazo.',
+                ]);
+            }
+        }
+
+        $numeroComponente = $contexto['numero_componente'] ?? $request->input('numero_componente');
+        $numeroComponente = is_numeric($numeroComponente) ? (int) $numeroComponente : null;
+
+        if (AnalisisPasteurizadora::esBrazoTorsion($componente) || $totalComponentes === 1) {
+            $componentesSeleccionados = [1];
+        } else {
+            if (!$numeroComponente) {
+                throw ValidationException::withMessages([
+                    'numero_componente' => 'Seleccione el numero especifico del componente analizado.',
+                ]);
+            }
+
+            if ($numeroComponente < 1 || $numeroComponente > $totalComponentes) {
+                throw ValidationException::withMessages([
+                    'numero_componente' => 'Seleccione un numero de componente valido para la configuracion actual.',
+                ]);
+            }
+
+            $componentesSeleccionados = [$numeroComponente];
+        }
+
+        return [
+            'componente' => $componente,
+            'componentes_revisados' => $componentesSeleccionados,
+            'total_componentes' => $totalComponentes,
+            'brazos_torsion' => AnalisisPasteurizadora::esBrazoTorsion($componente) ? $componentesSeleccionados : null,
+            'total_brazos_torsion' => AnalisisPasteurizadora::esBrazoTorsion($componente)
+                ? AnalisisPasteurizadora::getCantidadBrazosTorsionPorLinea($linea->nombre)
+                : null,
         ];
     }
 

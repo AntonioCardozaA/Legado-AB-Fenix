@@ -445,6 +445,18 @@ const quickComponenteNombre = @json($nombreComponente ?? $componente);
 const quickOldSelection = @json(old('componentes_revisados', []));
 const quickEsBrazoTorsion = @json(($componente ?? null) === \App\Models\AnalisisPasteurizadora::COMPONENTE_BRAZO_TORSION);
 
+document.addEventListener('DOMContentLoaded', () => {
+    const numeroOrdenInput = document.querySelector('input[name="numero_orden"]');
+    const numeroOrdenContainer = numeroOrdenInput?.closest('div');
+
+    if (numeroOrdenInput) {
+        numeroOrdenInput.disabled = true;
+        numeroOrdenInput.value = '';
+    }
+
+    numeroOrdenContainer?.remove();
+});
+
 function normalizarSeleccionQuick(value) {
     let valores = value;
 

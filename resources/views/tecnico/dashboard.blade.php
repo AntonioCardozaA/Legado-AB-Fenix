@@ -28,11 +28,7 @@
             
             {{-- Rol del usuario autenticado --}}
             <p class="text-base sm:text-lg md:text-xl text-gray-200 mt-4 sm:mt-6 drop-shadow px-2">
-<<<<<<< HEAD
                 Técnico 
-=======
-             {{ $dashboardRoleLabel }}
->>>>>>> 1b6b10dbaa3ad890769a5c2987018f60c76133d4
             </p>
         </div>
     </div>

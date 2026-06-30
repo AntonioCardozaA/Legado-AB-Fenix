@@ -18,6 +18,7 @@ class AnalisisPasteurizadora extends Model
 
     protected $fillable = [
         'area',
+        'tipo_registro',
         'linea_id',
         'modulo',
         'nivel',
@@ -54,6 +55,7 @@ class AnalisisPasteurizadora extends Model
 
     protected $casts = [
         'area' => 'string',
+        'tipo_registro' => 'string',
         'fecha_analisis' => 'date',
         'evidencia_fotos' => 'array',
         'cantidad_componentes_revisados' => 'integer',
@@ -80,6 +82,12 @@ class AnalisisPasteurizadora extends Model
     public const AREA_MECANICA = 'mecanica';
     public const AREA_CENTRAL_HIDRAULICA = 'central_hidraulica';
     public const DEFAULT_AREA_GLOBAL_SCOPE = 'analisis_pasteurizadora_area_mecanica_default';
+    public const TIPO_REGISTRO_QUICK = 'quick';
+    public const TIPO_REGISTRO_NORMAL = 'normal';
+    public const TIPOS_REGISTRO = [
+        self::TIPO_REGISTRO_QUICK,
+        self::TIPO_REGISTRO_NORMAL,
+    ];
 
     const PASTEURIZADORES = [
         'P-03' => ['tipo' => 'sencillo', 'modulos' => 9],
@@ -249,6 +257,13 @@ class AnalisisPasteurizadora extends Model
         return $area === self::AREA_CENTRAL_HIDRAULICA
             ? self::AREA_CENTRAL_HIDRAULICA
             : self::AREA_MECANICA;
+    }
+
+    public static function normalizarTipoRegistro(?string $tipoRegistro): string
+    {
+        return in_array($tipoRegistro, self::TIPOS_REGISTRO, true)
+            ? $tipoRegistro
+            : self::TIPO_REGISTRO_QUICK;
     }
 
     public function scopeForArea($query, ?string $area = null)
@@ -439,6 +454,7 @@ class AnalisisPasteurizadora extends Model
         $totalComponentes = self::getTotalComponentesPorLineaYComponente($linea?->nombre, $componente);
 
         $registros = self::queryForArea($area)
+            ->quick()
             ->where('linea_id', $lineaId)
             ->where('modulo', $modulo)
             ->where('componente', $componente)
@@ -654,6 +670,7 @@ class AnalisisPasteurizadora extends Model
         }
 
         $registros = self::queryForArea($area)
+            ->quick()
             ->select(['linea_id', 'componente', 'modulo', 'nivel', 'lado', 'componentes_revisados'])
             ->whereIn('linea_id', $lineaIds)
             ->orderBy('created_at', 'desc')
@@ -697,6 +714,7 @@ class AnalisisPasteurizadora extends Model
     public static function getUltimoRegistro($lineaId, $modulo, $componente, $nivel, $lado, ?string $area = null)
     {
         return self::queryForArea($area)
+            ->quick()
             ->where('linea_id', $lineaId)
             ->where('modulo', $modulo)
             ->where('componente', $componente)
@@ -764,6 +782,24 @@ class AnalisisPasteurizadora extends Model
     public function scopeEntreFechas($query, $inicio, $fin)
     {
         return $query->whereBetween('fecha_analisis', [$inicio, $fin]);
+    }
+
+    public function scopeTipoRegistro($query, ?string $tipoRegistro)
+    {
+        return $query->where('tipo_registro', self::normalizarTipoRegistro($tipoRegistro));
+    }
+
+    public function scopeQuick($query)
+    {
+        return $query->where(function ($subQuery) {
+            $subQuery->where('tipo_registro', self::TIPO_REGISTRO_QUICK)
+                ->orWhereNull('tipo_registro');
+        });
+    }
+
+    public function scopeNormal($query)
+    {
+        return $query->where('tipo_registro', self::TIPO_REGISTRO_NORMAL);
     }
 
     public function scopeActivos($query)
@@ -865,6 +901,40 @@ class AnalisisPasteurizadora extends Model
     public function getEstadoAttribute($value)
     {
         return self::normalizarEstado($value);
+    }
+
+    public function getTipoRegistroAttribute($value): string
+    {
+        return self::normalizarTipoRegistro($value);
+    }
+
+    public function getEsRegistroQuickAttribute(): bool
+    {
+        return $this->tipo_registro === self::TIPO_REGISTRO_QUICK;
+    }
+
+    public function getEsRegistroNormalAttribute(): bool
+    {
+        return $this->tipo_registro === self::TIPO_REGISTRO_NORMAL;
+    }
+
+    public function getTipoRegistroLabelAttribute(): string
+    {
+        return $this->es_registro_normal
+            ? 'Analisis normal'
+            : 'Bitacora de revision';
+    }
+
+    public function getComponentesRevisadosListaAttribute(): array
+    {
+        $totalComponentes = $this->total_componentes ?: $this->getTotalComponentesPorComponente();
+
+        return self::normalizarComponentesRevisados($this->componentes_revisados, $totalComponentes);
+    }
+
+    public function getNumeroComponentePrincipalAttribute(): ?int
+    {
+        return $this->componentes_revisados_lista[0] ?? null;
     }
 
     public function getPorcentajeAvanceAttribute()
