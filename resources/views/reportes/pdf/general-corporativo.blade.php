@@ -30,7 +30,7 @@
         : 'Reporte tecnico general de ' . $tipoTitulo;
     $subtituloDocumento = $esReporteLinea
         ? 'Detalle operativo por linea'
-        : 'Resumen ejecutivo y detalle operativo por lineas';
+        : 'Resumen y detalle operativo por lineas';
 
     $logoCandidates = [
         public_path('images/logo.png'),
@@ -453,6 +453,51 @@
             : 'Condicion general estable para la lavadora en el periodo evaluado.';
     };
 
+    $hasUsefulValue = function ($value) use ($formatValue): bool {
+        if ($value instanceof \Illuminate\Support\Collection) {
+            $value = $value->all();
+        }
+
+        if (is_array($value)) {
+            foreach ($value as $item) {
+                if ($item instanceof \Illuminate\Support\Collection) {
+                    $item = $item->all();
+                }
+
+                if (is_array($item)) {
+                    if (count(array_filter($item, fn ($nested) => $nested !== null && trim($formatValue($nested)) !== '')) > 0) {
+                        return true;
+                    }
+
+                    continue;
+                }
+
+                if ($item !== null && trim($formatValue($item)) !== '') {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        $text = trim($formatValue($value));
+
+        return $text !== ''
+            && !in_array($text, ['Sin dato', 'Sin fecha', 'N/A', '-'], true);
+    };
+
+    $makeFact = function (string $label, $value, bool $wide = false) use ($formatValue, $hasUsefulValue) {
+        if (!$hasUsefulValue($value)) {
+            return null;
+        }
+
+        return [
+            'label' => $label,
+            'value' => $formatValue($value),
+            'wide' => $wide,
+        ];
+    };
+
     $totalAnalisisDocumento = $lineasReporte->sum(fn ($linea) => $getLineAnalisis($linea)->count());
     $totalCriticosDocumento = $lineasReporte->sum(fn ($linea) => data_get($linea, 'resumen.componentes_criticos', 0));
     $totalRevisionDocumento = $lineasReporte->sum(fn ($linea) => data_get($linea, 'resumen.componentes_revision', 0));
@@ -463,6 +508,16 @@
     $estadoDocumento = $totalCriticosDocumento > 0
         ? 'CRITICO'
         : (($totalRevisionDocumento + $totalDesgasteDocumento) > 0 ? 'EN SEGUIMIENTO' : 'ESTABLE');
+    $lineHasOperationalData = function ($lineaReporte) use ($getLineAnalisis): bool {
+        return $getLineAnalisis($lineaReporte)->isNotEmpty()
+            || collect(data_get($lineaReporte, 'paros', []))->isNotEmpty()
+            || collect(data_get($lineaReporte, 'elongaciones', []))->isNotEmpty()
+            || collect(data_get($lineaReporte, 'reductores', []))->isNotEmpty()
+            || collect(data_get($lineaReporte, 'modulos', []))->isNotEmpty();
+    };
+    $lineasDetalle = $esReporteLinea
+        ? $lineasReporte
+        : $lineasReporte->filter(fn ($lineaReporte) => $lineHasOperationalData($lineaReporte))->values();
 @endphp
 
 <!DOCTYPE html>
@@ -471,19 +526,18 @@
     <meta charset="UTF-8">
     <title>{{ $tituloDocumento }}</title>
     <style>
-        @page { margin: 76px 28px 50px 28px; }
+        @page { margin: 68px 28px 42px 28px; }
         * { box-sizing: border-box; }
         body {
             font-family: DejaVu Sans, Arial, sans-serif;
             color: #172033;
-            font-size: 8.8px;
-            line-height: 1.32;
+            font-size: 8.6px;
+            line-height: 1.28;
             margin: 0;
         }
         table { border-collapse: collapse; width: 100%; }
         thead { display: table-header-group; }
         tfoot { display: table-footer-group; }
-        tr { page-break-inside: avoid; }
         .page-header,
         .page-footer {
             position: fixed;
@@ -492,23 +546,22 @@
             color: #475569;
         }
         .page-header {
-            top: -58px;
-            height: 48px;
+            top: -50px;
+            height: 42px;
             border-bottom: 1px solid #cbd5e1;
-            padding-bottom: 8px;
+            padding-bottom: 7px;
         }
         .page-footer {
-            bottom: -34px;
-            height: 28px;
+            bottom: -29px;
+            height: 24px;
             border-top: 1px solid #cbd5e1;
-            padding-top: 7px;
+            padding-top: 6px;
             font-size: 7.8px;
         }
         .page-logo {
-            width: 32px;
-            max-height: 28px;
-            vertical-align: middle;
-            margin-right: 7px;
+            width: 28px;
+            max-height: 24px;
+            display: block;
         }
         .page-brand {
             font-size: 9.5px;
@@ -520,14 +573,34 @@
         .page-number:after { content: counter(page); }
         .cover {
             border: 1px solid #cbd5e1;
-            border-top: 7px solid #172554;
+            border-top: 5px solid #172554;
             background: #f8fafc;
-            padding: 17px 18px 16px 18px;
-            margin-bottom: 15px;
+            padding: 13px 14px 12px 14px;
+            margin-bottom: 11px;
+            page-break-inside: avoid;
+        }
+        .cover-head {
+            border-bottom: 1px solid #dbe3ee;
+            padding-bottom: 9px;
+            margin-bottom: 10px;
+        }
+        .cover-head-table td {
+            vertical-align: middle;
+        }
+        .cover-logo-cell {
+            width: 68px;
+        }
+        .cover-brand-cell {
+            padding-left: 2px;
+        }
+        .cover-document-cell {
+            width: 185px;
+            text-align: right;
         }
         .brand-logo {
-            width: 74px;
-            max-height: 52px;
+            width: 54px;
+            max-height: 40px;
+            display: block;
         }
         .kicker {
             color: #64748b;
@@ -545,21 +618,36 @@
         }
         h1 {
             color: #0f172a;
-            font-size: 24px;
-            margin: 12px 0 4px 0;
+            font-size: 21px;
+            margin: 3px 0 3px 0;
             line-height: 1.1;
         }
         .subtitle {
             color: #475569;
-            font-size: 10.5px;
-            margin-bottom: 12px;
+            font-size: 9.6px;
+            margin-bottom: 9px;
         }
-        .meta-table td {
-            width: 16.66%;
+        .meta-strip,
+        .metric-grid {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 4px 0;
+            table-layout: fixed;
+            margin: 0 0 7px 0;
+        }
+        .meta-card,
+        .metric-card {
+            vertical-align: top;
             border: 1px solid #dbe3ee;
             background: #ffffff;
-            padding: 7px 8px;
-            vertical-align: top;
+            overflow-wrap: break-word;
+        }
+        .meta-card {
+            padding: 6px 7px;
+        }
+        .metric-card {
+            padding: 7px 7px 6px 7px;
+            height: 50px;
         }
         .meta-value {
             display: block;
@@ -568,18 +656,10 @@
             font-weight: bold;
             font-size: 9.2px;
         }
-        .kpi-table { margin-top: 12px; }
-        .kpi-table td {
-            width: 16.66%;
-            border: 1px solid #dbe3ee;
-            background: #ffffff;
-            padding: 9px 8px;
-            vertical-align: top;
-        }
         .kpi-value {
             display: block;
             color: #172554;
-            font-size: 18px;
+            font-size: 17px;
             font-weight: bold;
             margin-top: 2px;
         }
@@ -593,17 +673,17 @@
         .conclusion-box {
             border-left: 4px solid #b88a00;
             background: #fffdf5;
-            padding: 9px 10px;
+            padding: 8px 9px;
             color: #334155;
-            margin-top: 12px;
+            margin-top: 6px;
         }
         .section {
-            margin-bottom: 13px;
+            margin-bottom: 10px;
         }
         .section-header {
-            margin: 13px 0 7px 0;
+            margin: 10px 0 6px 0;
             border-bottom: 2px solid #172554;
-            padding-bottom: 5px;
+            padding-bottom: 4px;
         }
         .section-title {
             color: #0f172a;
@@ -621,43 +701,30 @@
             background: #172554;
             color: #ffffff;
             border: 1px solid #172554;
-            padding: 6px 6px;
+            padding: 5.2px 5.5px;
             text-align: left;
             text-transform: uppercase;
-            font-size: 7.6px;
+            font-size: 7.4px;
             letter-spacing: .25px;
         }
         .data-table td {
             border: 1px solid #dbe3ee;
-            padding: 5.5px 6px;
+            padding: 4.8px 5.5px;
             vertical-align: top;
             background: #ffffff;
         }
         .data-table tbody tr:nth-child(even) td {
             background: #f8fafc;
         }
-        .detail-table td {
-            border: 1px solid #dbe3ee;
-            padding: 5.2px 6px;
-            vertical-align: top;
-        }
-        .detail-table .label {
-            width: 15%;
-            background: #f1f5f9;
-            color: #334155;
-            font-weight: bold;
-            text-transform: uppercase;
-            font-size: 7.5px;
-        }
         .machine-title {
             background: #0f172a;
             color: #ffffff;
-            padding: 10px 12px;
-            margin: 10px 0 11px 0;
+            padding: 8px 10px;
+            margin: 9px 0 9px 0;
             page-break-inside: avoid;
         }
         .machine-line {
-            font-size: 17px;
+            font-size: 15.5px;
             font-weight: bold;
             letter-spacing: .2px;
         }
@@ -703,21 +770,60 @@
         }
         .analysis-card {
             border: 1px solid #cbd5e1;
-            margin-bottom: 9px;
+            margin-bottom: 7px;
             background: #ffffff;
         }
         .analysis-head {
             background: #e2e8f0;
             border-bottom: 1px solid #cbd5e1;
-            padding: 6px 7px;
+            padding: 5px 6px;
             font-weight: bold;
             color: #0f172a;
             page-break-after: avoid;
         }
-        .analysis-body { padding: 7px; }
+        .analysis-body { padding: 6px; }
         .analysis-core { page-break-inside: avoid; }
+        .analysis-title {
+            font-size: 9px;
+            color: #0f172a;
+        }
+        .analysis-meta {
+            color: #475569;
+            font-size: 7.6px;
+            margin-top: 2px;
+        }
+        .fact-table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+        }
+        .fact-table td {
+            border: 1px solid #dbe3ee;
+            padding: 4px 5px;
+            vertical-align: top;
+        }
+        .fact-label-cell {
+            width: 14%;
+            background: #f8fafc;
+            color: #64748b;
+            font-size: 7.1px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: .25px;
+        }
+        .fact-value-cell {
+            width: 36%;
+            color: #172033;
+            font-size: 8.2px;
+            background: #ffffff;
+            overflow-wrap: break-word;
+        }
+        .fact-empty-cell {
+            background: #ffffff;
+            border-color: #ffffff;
+        }
         .evidence-grid {
-            margin-top: 7px;
+            margin-top: 4px;
             page-break-before: avoid;
         }
         .evidence-title {
@@ -727,17 +833,17 @@
         }
         .evidence-item {
             display: inline-block;
-            width: 23.6%;
-            margin: 0 .9% 7px 0;
+            width: 18.7%;
+            margin: 0 .8% 5px 0;
             vertical-align: top;
             border: 1px solid #cbd5e1;
-            padding: 4px;
+            padding: 3px;
             page-break-inside: avoid;
             background: #f8fafc;
         }
         .evidence-item img {
             width: 100%;
-            max-height: 92px;
+            max-height: 72px;
             display: block;
         }
         .evidence-caption {
@@ -750,8 +856,8 @@
         .line-footer {
             border-top: 1px solid #cbd5e1;
             color: #64748b;
-            padding-top: 7px;
-            margin-top: 12px;
+            padding-top: 6px;
+            margin-top: 9px;
             page-break-inside: avoid;
         }
         .footer-logo {
@@ -769,10 +875,18 @@
         <table>
             <tr>
                 <td style="width: 55%;">
-                    @if($platformLogo)
-                        <img src="{{ $platformLogo }}" class="page-logo" alt="{{ $platformName }}">
-                    @endif
-                    <span class="page-brand">{{ $companyName }}</span>
+                    <table style="width: auto;">
+                        <tr>
+                            @if($platformLogo)
+                                <td style="width: 34px; vertical-align: middle;">
+                                    <img src="{{ $platformLogo }}" class="page-logo" alt="{{ $platformName }}">
+                                </td>
+                            @endif
+                            <td style="vertical-align: middle; padding-left: {{ $platformLogo ? '6px' : '0' }};">
+                                <span class="page-brand">{{ $companyName }}</span>
+                            </td>
+                        </tr>
+                    </table>
                 </td>
                 <td style="text-align: right;">
                     <span class="strong">{{ $documentCode }}</span><br>
@@ -792,94 +906,96 @@
     </div>
 
     <div class="cover">
-        <table>
-            <tr>
-                <td style="width: 86px;">
+        <div class="cover-head">
+            <table class="cover-head-table">
+                <tr>
                     @if($platformLogo)
-                        <img src="{{ $platformLogo }}" class="brand-logo" alt="{{ $platformName }}">
+                        <td class="cover-logo-cell">
+                            <img src="{{ $platformLogo }}" class="brand-logo" alt="{{ $platformName }}">
+                        </td>
                     @endif
-                </td>
-                <td>
-                    <div class="company">{{ $companyName }}</div>
-                    <div class="kicker">{{ $platformName }} | Gestion tecnica de mantenimiento</div>
-                </td>
-                <td style="text-align: right; width: 170px;">
-                    <div class="kicker">Documento</div>
-                    <div class="strong">{{ $documentCode }}</div>
-                    <div class="muted small">Generado: {{ now()->format('d/m/Y H:i') }}</div>
-                </td>
-            </tr>
-        </table>
+                    <td class="cover-brand-cell">
+                        <div class="company">{{ $companyName }}</div>
+                        <div class="kicker">{{ $platformName }} | Gestion tecnica de mantenimiento</div>
+                    </td>
+                    <td class="cover-document-cell">
+                        <div class="kicker">Documento</div>
+                        <div class="strong">{{ $documentCode }}</div>
+                        <div class="muted small">Generado: {{ now()->format('d/m/Y H:i') }}</div>
+                    </td>
+                </tr>
+            </table>
+        </div>
 
         <h1>{{ $tituloDocumento }}</h1>
         <div class="subtitle">{{ $subtituloDocumento }}</div>
 
-        <table class="meta-table">
+        <table class="meta-strip">
             <tr>
-                <td>
-                    <span class="kicker">Equipo</span>
-                    <span class="meta-value">{{ $tipoTitulo }}</span>
-                </td>
-                <td>
-                    <span class="kicker">Periodo</span>
-                    <span class="meta-value">{{ $fechaInicioPdf->format('d/m/Y') }} - {{ $fechaFinPdf->format('d/m/Y') }}</span>
-                </td>
-                <td>
-                    <span class="kicker">Alcance</span>
-                    <span class="meta-value">{{ $esReporteLinea ? ($nombreLineaUnica ?? 'Linea unica') : $lineasReporte->count() . ' lineas' }}</span>
-                </td>
-                <td>
-                    <span class="kicker">Estado global</span>
-                    <span class="meta-value"><span class="badge {{ $stateClass($estadoDocumento) }}">{{ $estadoDocumento }}</span></span>
-                </td>
-                <td>
-                    <span class="kicker">Lineas con datos</span>
-                    <span class="meta-value">{{ $lineasConAnalisis }} / {{ $lineasReporte->count() }}</span>
-                </td>
-                <td>
-                    <span class="kicker">Confidencialidad</span>
-                    <span class="meta-value">Uso interno</span>
-                </td>
+            <td class="meta-card">
+                <span class="kicker">Equipo</span>
+                <span class="meta-value">{{ $tipoTitulo }}</span>
+            </td>
+            <td class="meta-card">
+                <span class="kicker">Periodo</span>
+                <span class="meta-value">{{ $fechaInicioPdf->format('d/m/Y') }} - {{ $fechaFinPdf->format('d/m/Y') }}</span>
+            </td>
+            <td class="meta-card">
+                <span class="kicker">Alcance</span>
+                <span class="meta-value">{{ $esReporteLinea ? ($nombreLineaUnica ?? 'Linea unica') : $lineasReporte->count() . ' lineas' }}</span>
+            </td>
+            <td class="meta-card">
+                <span class="kicker">Estado global</span>
+                <span class="meta-value"><span class="badge {{ $stateClass($estadoDocumento) }}">{{ $estadoDocumento }}</span></span>
+            </td>
+            <td class="meta-card">
+                <span class="kicker">Lineas con datos</span>
+                <span class="meta-value">{{ $lineasConAnalisis }} / {{ $lineasReporte->count() }}</span>
+            </td>
+            <td class="meta-card">
+                <span class="kicker">Uso</span>
+                <span class="meta-value">Interno</span>
+            </td>
             </tr>
         </table>
 
-        <table class="kpi-table">
+        <table class="metric-grid">
             <tr>
-                <td>
-                    <span class="kicker">Analisis</span>
-                    <span class="kpi-value">{{ $totalAnalisisDocumento }}</span>
-                    <span class="kpi-note">Registros del periodo</span>
-                </td>
-                <td>
-                    <span class="kicker">Criticos</span>
-                    <span class="kpi-value">{{ $totalCriticosDocumento }}</span>
-                    <span class="kpi-note">Requieren accion</span>
-                </td>
-                <td>
-                    <span class="kicker">Revision</span>
-                    <span class="kpi-value">{{ $totalRevisionDocumento }}</span>
-                    <span class="kpi-note">Seguimiento tecnico</span>
-                </td>
-                <td>
-                    <span class="kicker">Desgaste</span>
-                    <span class="kpi-value">{{ $totalDesgasteDocumento }}</span>
-                    <span class="kpi-note">Moderado / severo</span>
-                </td>
-                <td>
-                    <span class="kicker">Paros</span>
-                    <span class="kpi-value">{{ $totalParosDocumento }}</span>
-                    <span class="kpi-note">Cruzan el periodo</span>
-                </td>
-                <td>
-                    <span class="kicker">Evidencias</span>
-                    <span class="kpi-value">{{ $totalEvidenciasDocumento }}</span>
-                    <span class="kpi-note">Fotografias vinculadas</span>
-                </td>
+            <td class="metric-card">
+                <span class="kicker">Analisis</span>
+                <span class="kpi-value">{{ $totalAnalisisDocumento }}</span>
+                <span class="kpi-note">Registros del periodo</span>
+            </td>
+            <td class="metric-card">
+                <span class="kicker">Criticos</span>
+                <span class="kpi-value">{{ $totalCriticosDocumento }}</span>
+                <span class="kpi-note">Requieren accion</span>
+            </td>
+            <td class="metric-card">
+                <span class="kicker">Revision</span>
+                <span class="kpi-value">{{ $totalRevisionDocumento }}</span>
+                <span class="kpi-note">Seguimiento tecnico</span>
+            </td>
+            <td class="metric-card">
+                <span class="kicker">Desgaste</span>
+                <span class="kpi-value">{{ $totalDesgasteDocumento }}</span>
+                <span class="kpi-note">Moderado / severo</span>
+            </td>
+            <td class="metric-card">
+                <span class="kicker">Paros</span>
+                <span class="kpi-value">{{ $totalParosDocumento }}</span>
+                <span class="kpi-note">Cruzan el periodo</span>
+            </td>
+            <td class="metric-card">
+                <span class="kicker">Evidencias</span>
+                <span class="kpi-value">{{ $totalEvidenciasDocumento }}</span>
+                <span class="kpi-note">Fotografias vinculadas</span>
+            </td>
             </tr>
         </table>
 
         <div class="executive-note">
-            <strong>Resumen ejecutivo:</strong>
+            <strong>Resumen:</strong>
             @if($totalAnalisisDocumento === 0)
                 No se encontraron analisis para el periodo seleccionado. Conviene validar filtros, captura de datos y programa de inspeccion.
             @elseif($totalCriticosDocumento > 0)
@@ -890,59 +1006,59 @@
                 La informacion cargada no muestra condiciones criticas en el periodo. Mantener rutina de inspeccion y evidencia documental.
             @endif
         </div>
-
-        <div class="section">
-            <div class="section-header">
-                <div class="section-title">{{ $esReporteLinea ? 'Resumen de la linea' : 'Resumen por linea' }}</div>
-                <div class="section-subtitle">Indicadores consolidados generados con los registros cargados desde la base de datos.</div>
-            </div>
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>Linea</th>
-                        <th>Tipo</th>
-                        <th>Analisis</th>
-                        <th>Componentes</th>
-                        <th>Criticos</th>
-                        <th>Revision / desgaste</th>
-                        <th>Paros / h</th>
-                        <th>Evidencias</th>
-                        <th>Estado</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @forelse($lineasReporte as $lineaReporte)
-                        @php
-                            $linea = data_get($lineaReporte, 'linea');
-                            $resumen = data_get($lineaReporte, 'resumen', []);
-                            $estadoGeneral = data_get($resumen, 'estado_general.texto', data_get($lineaReporte, 'estado_general.texto', 'Sin datos'));
-                            $totalComponentes = $totalComponentesResumen($resumen);
-                        @endphp
-                        <tr>
-                            <td><span class="strong">{{ optional($linea)->nombre ?? 'Sin linea' }}</span></td>
-                            <td>{{ data_get($lineaReporte, 'tipo_equipo', $tipoSingular) }}</td>
-                            <td>{{ $getLineAnalisis($lineaReporte)->count() }}</td>
-                            <td>
-                                {{ data_get($resumen, 'componentes_revisados', 0) }} / {{ $totalComponentes }}
-                                <div class="progress"><div class="progress-fill" style="width: {{ $coveragePercent(data_get($resumen, 'componentes_revisados', 0), $totalComponentes) }}%;"></div></div>
-                            </td>
-                            <td>{{ data_get($resumen, 'componentes_criticos', 0) }}</td>
-                            <td>{{ data_get($resumen, 'componentes_revision', 0) }} / {{ data_get($resumen, 'componentes_severos_moderados', 0) }}</td>
-                            <td>{{ data_get($resumen, 'total_paros', data_get($resumen, 'paros_count', 0)) }} / {{ data_get($resumen, 'horas_paro', 0) }}</td>
-                            <td>{{ $lineEvidenceCount($lineaReporte) }}</td>
-                            <td><span class="badge {{ $stateClass($estadoGeneral) }}">{{ $estadoGeneral }}</span></td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="9">No hay datos para el periodo seleccionado.</td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
     </div>
 
-    @foreach($lineasReporte as $lineaReporte)
+    <div class="section">
+        <div class="section-header">
+            <div class="section-title">{{ $esReporteLinea ? 'Resumen de la linea' : 'Resumen por linea' }}</div>
+            <div class="section-subtitle">Indicadores consolidados generados con los registros cargados desde la base de datos.</div>
+        </div>
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Linea</th>
+                    <th>Tipo</th>
+                    <th>Analisis</th>
+                    <th>Componentes</th>
+                    <th>Criticos</th>
+                    <th>Revision / desgaste</th>
+                    <th>Paros / h</th>
+                    <th>Evidencias</th>
+                    <th>Estado</th>
+                </tr>
+            </thead>
+            <tbody>
+                @forelse($lineasReporte as $lineaReporte)
+                    @php
+                        $linea = data_get($lineaReporte, 'linea');
+                        $resumen = data_get($lineaReporte, 'resumen', []);
+                        $estadoGeneral = data_get($resumen, 'estado_general.texto', data_get($lineaReporte, 'estado_general.texto', 'Sin datos'));
+                        $totalComponentes = $totalComponentesResumen($resumen);
+                    @endphp
+                    <tr>
+                        <td><span class="strong">{{ optional($linea)->nombre ?? 'Sin linea' }}</span></td>
+                        <td>{{ data_get($lineaReporte, 'tipo_equipo', $tipoSingular) }}</td>
+                        <td>{{ $getLineAnalisis($lineaReporte)->count() }}</td>
+                        <td>
+                            {{ data_get($resumen, 'componentes_revisados', 0) }} / {{ $totalComponentes }}
+                            <div class="progress"><div class="progress-fill" style="width: {{ $coveragePercent(data_get($resumen, 'componentes_revisados', 0), $totalComponentes) }}%;"></div></div>
+                        </td>
+                        <td>{{ data_get($resumen, 'componentes_criticos', 0) }}</td>
+                        <td>{{ data_get($resumen, 'componentes_revision', 0) }} / {{ data_get($resumen, 'componentes_severos_moderados', 0) }}</td>
+                        <td>{{ data_get($resumen, 'total_paros', data_get($resumen, 'paros_count', 0)) }} / {{ data_get($resumen, 'horas_paro', 0) }}</td>
+                        <td>{{ $lineEvidenceCount($lineaReporte) }}</td>
+                        <td><span class="badge {{ $stateClass($estadoGeneral) }}">{{ $estadoGeneral }}</span></td>
+                    </tr>
+                @empty
+                    <tr>
+                        <td colspan="9">No hay datos para el periodo seleccionado.</td>
+                    </tr>
+                @endforelse
+            </tbody>
+        </table>
+    </div>
+
+    @foreach($lineasDetalle as $lineaReporte)
         @php
             $linea = data_get($lineaReporte, 'linea');
             $nombreLinea = optional($linea)->nombre ?? 'Sin linea';
@@ -976,49 +1092,49 @@
                 <div class="section-title">Indicadores principales</div>
                 <div class="section-subtitle">Lectura rapida del estado tecnico y cobertura documental.</div>
             </div>
-            <table class="kpi-table" style="margin-top: 0;">
+            <table class="metric-grid">
                 <tr>
-                    <td>
-                        <span class="kicker">Analisis</span>
-                        <span class="kpi-value">{{ $analisisPlanos->count() }}</span>
-                        <span class="kpi-note">Registros cargados</span>
-                    </td>
-                    <td>
-                        <span class="kicker">Componentes</span>
-                        <span class="kpi-value" style="font-size: 15px;">{{ data_get($resumen, 'componentes_revisados', 0) }} / {{ $totalComponentesLinea }}</span>
-                        <span class="kpi-note">Cobertura {{ $formatNumber($coveragePercent(data_get($resumen, 'componentes_revisados', 0), $totalComponentesLinea), 1) }}%</span>
-                    </td>
-                    <td>
-                        <span class="kicker">Criticos</span>
-                        <span class="kpi-value">{{ data_get($resumen, 'componentes_criticos', 0) }}</span>
-                        <span class="kpi-note">Cambio / accion</span>
-                    </td>
-                    <td>
-                        <span class="kicker">Revision / desgaste</span>
-                        <span class="kpi-value" style="font-size: 15px;">{{ data_get($resumen, 'componentes_revision', 0) }} / {{ data_get($resumen, 'componentes_severos_moderados', 0) }}</span>
-                        <span class="kpi-note">Hallazgos no criticos</span>
-                    </td>
-                    <td>
-                        <span class="kicker">{{ $esPasteurizadora ? 'Modulos' : 'Elongaciones' }}</span>
-                        <span class="kpi-value" style="font-size: 15px;">
-                            @if($esPasteurizadora)
-                                {{ data_get($resumen, 'modulos_con_analisis', 0) }} / {{ data_get($resumen, 'total_modulos', 0) }}
-                            @else
-                                {{ $elongacionesLinea->count() }}
-                            @endif
-                        </span>
-                        <span class="kpi-note">{{ $esPasteurizadora ? 'Avance por modulo' : 'Mediciones cadena' }}</span>
-                    </td>
-                    <td>
-                        <span class="kicker">Estado</span>
-                        <span class="kpi-value" style="font-size: 10.5px;"><span class="badge {{ $stateClass($estadoGeneral) }}">{{ $estadoGeneral }}</span></span>
-                        <span class="kpi-note">{{ $lineEvidenceCount($lineaReporte) }} evidencias</span>
-                    </td>
+                <td class="metric-card">
+                    <span class="kicker">Analisis</span>
+                    <span class="kpi-value">{{ $analisisPlanos->count() }}</span>
+                    <span class="kpi-note">Registros cargados</span>
+                </td>
+                <td class="metric-card">
+                    <span class="kicker">Componentes</span>
+                    <span class="kpi-value" style="font-size: 14px;">{{ data_get($resumen, 'componentes_revisados', 0) }} / {{ $totalComponentesLinea }}</span>
+                    <span class="kpi-note">Cobertura {{ $formatNumber($coveragePercent(data_get($resumen, 'componentes_revisados', 0), $totalComponentesLinea), 1) }}%</span>
+                </td>
+                <td class="metric-card">
+                    <span class="kicker">Criticos</span>
+                    <span class="kpi-value">{{ data_get($resumen, 'componentes_criticos', 0) }}</span>
+                    <span class="kpi-note">Cambio / accion</span>
+                </td>
+                <td class="metric-card">
+                    <span class="kicker">Revision / desgaste</span>
+                    <span class="kpi-value" style="font-size: 14px;">{{ data_get($resumen, 'componentes_revision', 0) }} / {{ data_get($resumen, 'componentes_severos_moderados', 0) }}</span>
+                    <span class="kpi-note">Hallazgos no criticos</span>
+                </td>
+                <td class="metric-card">
+                    <span class="kicker">{{ $esPasteurizadora ? 'Modulos' : 'Elongaciones' }}</span>
+                    <span class="kpi-value" style="font-size: 14px;">
+                        @if($esPasteurizadora)
+                            {{ data_get($resumen, 'modulos_con_analisis', 0) }} / {{ data_get($resumen, 'total_modulos', 0) }}
+                        @else
+                            {{ $elongacionesLinea->count() }}
+                        @endif
+                    </span>
+                    <span class="kpi-note">{{ $esPasteurizadora ? 'Avance por modulo' : 'Mediciones cadena' }}</span>
+                </td>
+                <td class="metric-card">
+                    <span class="kicker">Estado</span>
+                    <span class="kpi-value" style="font-size: 10px;"><span class="badge {{ $stateClass($estadoGeneral) }}">{{ $estadoGeneral }}</span></span>
+                    <span class="kpi-note">{{ $lineEvidenceCount($lineaReporte) }} evidencias</span>
+                </td>
                 </tr>
             </table>
 
             <div class="conclusion-box">
-                <strong>Conclusion tecnica:</strong> {{ $lineConclusion($resumen, $analisisPlanos) }}
+                <strong>Conclusion:</strong> {{ $lineConclusion($resumen, $analisisPlanos) }}
                 @if($observacionesCount > 0)
                     <br><span class="muted">Observaciones documentadas en {{ $observacionesCount }} registro(s).</span>
                 @endif
@@ -1376,90 +1492,114 @@
 
                     $componenteNombre = data_get($registro, 'componente.nombre', $componentNameMap->get($componenteCodigo, $componenteCodigo));
                     $responsableRegistro = data_get($registro, 'responsable', data_get($registro, 'usuario.name', 'Sin dato'));
+                    $analysisFacts = [];
+
+                    if ($esPasteurizadora) {
+                        $ubicacion = collect([
+                            data_get($registro, 'modulo'),
+                            data_get($registro, 'nivel'),
+                            data_get($registro, 'lado'),
+                        ])
+                            ->filter(fn ($value) => $hasUsefulValue($value))
+                            ->map(fn ($value) => $formatValue($value))
+                            ->implode(' / ');
+
+                        $resolucion = collect([
+                            'Fecha' => data_get($registro, 'fecha_resolucion'),
+                            'Nota' => data_get($registro, 'nota_resolucion'),
+                        ])
+                            ->filter(fn ($value) => $hasUsefulValue($value))
+                            ->map(fn ($value, $label) => $label . ': ' . $formatValue($value))
+                            ->implode(' | ');
+
+                        $planesPcm = collect([
+                            'PCM1' => data_get($registro, 'plan_accion_pcm1'),
+                            'PCM2' => data_get($registro, 'plan_accion_pcm2'),
+                            'PCM3' => data_get($registro, 'plan_accion_pcm3'),
+                            'PCM4' => data_get($registro, 'plan_accion_pcm4'),
+                        ])
+                            ->filter(fn ($value) => $hasUsefulValue($value))
+                            ->map(fn ($value, $label) => $label . ': ' . $formatValue($value))
+                            ->implode(' | ');
+
+                        $analysisFacts = array_values(array_filter([
+                            $makeFact('Componente', trim($componenteNombre . ' (' . $componenteCodigo . ')')),
+                            $makeFact('Ubicacion', $ubicacion),
+                            $makeFact('Orden', data_get($registro, 'numero_orden')),
+                            $makeFact('Responsable', $responsableRegistro),
+                            $makeFact('Cantidad revisada', data_get($registro, 'cantidad_componentes_revisados')),
+                            $makeFact('Resuelto por cambio', data_get($registro, 'resuelto_por_cambio')),
+                            $makeFact('Actividad', data_get($registro, 'actividad'), true),
+                            $makeFact('Observaciones', data_get($registro, 'observaciones'), true),
+                            $makeFact('Resolucion', $resolucion, true),
+                            $makeFact('Planes PCM', $planesPcm, true),
+                        ]));
+                    } else {
+                        $analysisFacts = array_values(array_filter([
+                            $makeFact('Componente', trim($componenteNombre . ' (' . ($componenteCodigo ?: 'N/A') . ')')),
+                            $makeFact('Reductor', data_get($registro, 'reductor')),
+                            $makeFact('Lado', data_get($registro, 'lado')),
+                            $makeFact('Orden', data_get($registro, 'numero_orden')),
+                            $makeFact('Responsable', $responsableRegistro),
+                            $makeFact('Registrado', data_get($registro, 'created_at')),
+                            $makeFact('Actividad', data_get($registro, 'actividad'), true),
+                        ]));
+                    }
                 @endphp
                 <div class="analysis-card">
                     <div class="analysis-head">
-                        Analisis #{{ data_get($registro, 'id', 'N/A') }}
-                        | {{ $formatDate(data_get($registro, 'fecha_analisis')) }}
-                        | <span class="badge {{ $stateClass($estado) }}">{{ $estado }}</span>
+                        <div class="analysis-title">
+                            Analisis #{{ data_get($registro, 'id', 'N/A') }}
+                            | {{ $formatDate(data_get($registro, 'fecha_analisis')) }}
+                            | <span class="badge {{ $stateClass($estado) }}">{{ $estado }}</span>
+                        </div>
                     </div>
                     <div class="analysis-body">
                         <div class="analysis-core">
-                            @if($esPasteurizadora)
-                                <table class="detail-table">
-                                    <tr>
-                                        <td class="label">Componente</td>
-                                        <td>{{ $componenteNombre }} <span class="muted">({{ $componenteCodigo }})</span></td>
-                                        <td class="label">Modulo / nivel / lado</td>
-                                        <td>{{ $formatValue(data_get($registro, 'modulo')) }} / {{ $formatValue(data_get($registro, 'nivel')) }} / {{ $formatValue(data_get($registro, 'lado')) }}</td>
-                                    </tr>
-                                    <tr>
-                                        <td class="label">Orden</td>
-                                        <td>{{ $formatValue(data_get($registro, 'numero_orden')) }}</td>
-                                        <td class="label">Responsable</td>
-                                        <td>{{ $formatValue($responsableRegistro) }}</td>
-                                    </tr>
-                                    <tr>
-                                        <td class="label">Cantidad revisada</td>
-                                        <td>{{ $formatValue(data_get($registro, 'cantidad_componentes_revisados')) }}</td>
-                                        <td class="label">Resuelto por cambio</td>
-                                        <td>{{ $formatValue(data_get($registro, 'resuelto_por_cambio')) }}</td>
-                                    </tr>
-                                    <tr>
-                                        <td class="label">Actividad</td>
-                                        <td colspan="3">{{ $formatValue(data_get($registro, 'actividad')) }}</td>
-                                    </tr>
-                                    <tr>
-                                        <td class="label">Observaciones</td>
-                                        <td colspan="3">{{ $formatValue(data_get($registro, 'observaciones')) }}</td>
-                                    </tr>
-                                    <tr>
-                                        <td class="label">Resolucion</td>
-                                        <td colspan="3">
-                                            Fecha: {{ $formatDate(data_get($registro, 'fecha_resolucion')) }}
-                                            | Nota: {{ $formatValue(data_get($registro, 'nota_resolucion')) }}
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td class="label">Planes PCM</td>
-                                        <td colspan="3">
-                                            PCM1: {{ $formatValue(data_get($registro, 'plan_accion_pcm1')) }}
-                                            | PCM2: {{ $formatValue(data_get($registro, 'plan_accion_pcm2')) }}
-                                            | PCM3: {{ $formatValue(data_get($registro, 'plan_accion_pcm3')) }}
-                                            | PCM4: {{ $formatValue(data_get($registro, 'plan_accion_pcm4')) }}
-                                        </td>
-                                    </tr>
+                            @if(count($analysisFacts) > 0)
+                                @php $factsList = collect($analysisFacts)->values(); @endphp
+                                <table class="fact-table">
+                                    @for($factIndex = 0; $factIndex < $factsList->count(); $factIndex++)
+                                        @php
+                                            $fact = $factsList->get($factIndex);
+                                            $nextFact = null;
+
+                                            if (!$fact['wide'] && $factIndex + 1 < $factsList->count()) {
+                                                $candidateFact = $factsList->get($factIndex + 1);
+
+                                                if (!$candidateFact['wide']) {
+                                                    $nextFact = $candidateFact;
+                                                    $factIndex++;
+                                                }
+                                            }
+                                        @endphp
+                                        @if($fact['wide'])
+                                            <tr>
+                                                <td class="fact-label-cell">{{ $fact['label'] }}</td>
+                                                <td class="fact-value-cell" colspan="3">{{ $fact['value'] }}</td>
+                                            </tr>
+                                        @else
+                                            <tr>
+                                                <td class="fact-label-cell">{{ $fact['label'] }}</td>
+                                                <td class="fact-value-cell">{{ $fact['value'] }}</td>
+                                                @if($nextFact)
+                                                    <td class="fact-label-cell">{{ $nextFact['label'] }}</td>
+                                                    <td class="fact-value-cell">{{ $nextFact['value'] }}</td>
+                                                @else
+                                                    <td class="fact-empty-cell"></td>
+                                                    <td class="fact-empty-cell"></td>
+                                                @endif
+                                            </tr>
+                                        @endif
+                                    @endfor
                                 </table>
                             @else
-                                <table class="detail-table">
-                                    <tr>
-                                        <td class="label">Componente</td>
-                                        <td>{{ $componenteNombre }} <span class="muted">({{ $componenteCodigo ?: 'N/A' }})</span></td>
-                                        <td class="label">Reductor</td>
-                                        <td>{{ $formatValue(data_get($registro, 'reductor')) }}</td>
-                                    </tr>
-                                    <tr>
-                                        <td class="label">Lado</td>
-                                        <td>{{ $formatValue(data_get($registro, 'lado')) }}</td>
-                                        <td class="label">Orden</td>
-                                        <td>{{ $formatValue(data_get($registro, 'numero_orden')) }}</td>
-                                    </tr>
-                                    <tr>
-                                        <td class="label">Responsable</td>
-                                        <td>{{ $formatValue($responsableRegistro) }}</td>
-                                        <td class="label">Registrado</td>
-                                        <td>{{ $formatDateTime(data_get($registro, 'created_at')) }}</td>
-                                    </tr>
-                                    <tr>
-                                        <td class="label">Actividad</td>
-                                        <td colspan="3">{{ $formatValue(data_get($registro, 'actividad')) }}</td>
-                                    </tr>
-                                </table>
+                                <div class="empty small">El registro solo contiene fecha y estado.</div>
                             @endif
                         </div>
 
                         <div class="evidence-grid">
-                            <div class="evidence-title">Evidencias fotograficas</div>
+                            <div class="evidence-title">Evidencias fotograficas{{ count($imagenes) > 0 ? ' (' . count($imagenes) . ')' : '' }}</div>
                             @if(count($imagenes) > 0)
                                 @foreach($imagenes as $index => $foto)
                                     @php $src = $imageDataUri($foto); @endphp

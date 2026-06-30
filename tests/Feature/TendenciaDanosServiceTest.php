@@ -65,6 +65,43 @@ class TendenciaDanosServiceTest extends TestCase
         $this->assertSame('Reductor 1', $ventana4Semanas['current_eventos'][0]['reductor']);
     }
 
+    public function test_monthly_rows_can_be_limited_to_a_date_range(): void
+    {
+        $linea = Linea::create([
+            'nombre' => 'L-04',
+            'descripcion' => 'Lavadora de prueba',
+            'activo' => true,
+        ]);
+
+        $componente = Componente::create([
+            'linea' => 'L-04',
+            'nombre' => 'Guia inferior',
+            'codigo' => 'GUI_INF_TANQUE_RANGE_TEST',
+            'reductor' => 'Reductor 1',
+            'ubicacion' => 'Lavadora',
+            'cantidad_total' => 1,
+            'activo' => true,
+        ]);
+
+        $this->crearAnalisis($linea, $componente, 'Desgaste severo', '2026-01-15');
+        $this->crearAnalisis($linea, $componente, 'Desgaste severo', '2026-02-10');
+        $this->crearAnalisis($linea, $componente, 'Desgaste severo', '2026-03-05');
+        $this->crearAnalisis($linea, $componente, 'Desgaste severo', '2026-03-20');
+        $this->crearAnalisis($linea, $componente, 'Desgaste severo', '2026-04-10');
+
+        $rows = app(TendenciaDanosService::class)->construirFilasMensuales(
+            $linea,
+            TendenciaDanosService::TIPO_LAVADORAS,
+            12,
+            Carbon::parse('2026-03-15'),
+            Carbon::parse('2026-02-01')
+        );
+
+        $this->assertSame(['Marzo 2026', 'Febrero 2026'], $rows->pluck('periodo')->all());
+        $this->assertSame(2, $rows->firstWhere('periodo', 'Marzo 2026')->total_danos_52_semanas);
+        $this->assertSame(1, $rows->firstWhere('periodo', 'Febrero 2026')->total_danos_52_semanas);
+    }
+
     private function crearAnalisis(
         Linea $linea,
         Componente $componente,

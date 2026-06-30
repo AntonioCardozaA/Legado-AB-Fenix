@@ -497,10 +497,9 @@
 
                             <div id="notifications-list" class="max-h-96 overflow-y-auto">
                                 @forelse($notificationItems as $notification)
-                                    @php($notificationOpenUrl = route('notifications.open', $notification->id))
+                                    @php($notificationOpenUrl = route('notifications.open', $notification->id, false))
                                     <a href="{{ $notificationOpenUrl }}"
-                                       class="block px-4 py-3 hover:bg-gray-50 border-b border-gray-100 {{ $notification->read_at ? '' : 'bg-blue-50' }}"
-                                       onclick="event.preventDefault(); markAsRead('{{ $notification->id }}', @js($notificationOpenUrl))">
+                                       class="block px-4 py-3 hover:bg-gray-50 border-b border-gray-100 {{ $notification->read_at ? '' : 'bg-blue-50' }}">
                                         <div class="flex items-start space-x-3">
                                             <div class="flex-shrink-0">
                                                 @if(($notification->data['prioridad'] ?? 'baja') == 'alta')
@@ -617,8 +616,11 @@
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <script>
+const notificationReadUrlTemplate = @json(route('notifications.read', ['id' => '__ID__'], false));
+const notificationsUnreadCountUrl = @json(route('notifications.unread-count', [], false));
+
 function markAsRead(notificationId, url) {
-    fetch(`/notifications/${notificationId}/read`, {
+    fetch(notificationReadUrlTemplate.replace('__ID__', encodeURIComponent(notificationId)), {
         method: 'POST',
         headers: {
             'X-CSRF-TOKEN': '{{ csrf_token() }}',
@@ -679,10 +681,6 @@ function notificationItemNode(item) {
     const link = document.createElement('a');
     link.href = targetUrl;
     link.className = 'block px-4 py-3 hover:bg-gray-50 border-b border-gray-100 ' + (item.is_read ? '' : 'bg-blue-50');
-    link.addEventListener('click', function(event) {
-        event.preventDefault();
-        markAsRead(item.id, targetUrl);
-    });
 
     const row = document.createElement('div');
     row.className = 'flex items-start space-x-3';
@@ -783,7 +781,7 @@ function refreshNotifications() {
         return;
     }
 
-    fetch('/notifications/unread-count', {
+    fetch(notificationsUnreadCountUrl, {
         headers: {
             'X-CSRF-TOKEN': '{{ csrf_token() }}',
             'Accept': 'application/json'

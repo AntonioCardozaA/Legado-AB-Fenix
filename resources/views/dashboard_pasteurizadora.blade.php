@@ -865,6 +865,72 @@
         .chart-card {
             padding: 16px;
         }
+
+        .historico-dashboard-card .overflow-x-auto {
+            overflow: visible;
+            border: 0;
+            box-shadow: none;
+        }
+
+        .historico-dashboard-card table {
+            min-width: 0;
+            border-collapse: separate;
+            border-spacing: 0 10px;
+            background: transparent;
+        }
+
+        .historico-dashboard-card table thead {
+            display: none;
+        }
+
+        .historico-dashboard-card table tbody,
+        .historico-dashboard-card table tr,
+        .historico-dashboard-card table td {
+            display: block;
+            width: 100%;
+        }
+
+        .historico-dashboard-card table tr {
+            overflow: hidden;
+            border: 1px solid rgba(148, 163, 184, 0.18);
+            border-radius: 14px;
+            background: #ffffff;
+            box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06);
+        }
+
+        .historico-dashboard-card table td {
+            display: grid;
+            grid-template-columns: minmax(100px, 0.42fr) minmax(0, 1fr);
+            gap: 12px;
+            align-items: start;
+            padding: 10px 12px;
+            border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+            text-align: left !important;
+            font-size: 12px;
+            color: var(--text-primary);
+        }
+
+        .historico-dashboard-card table td:last-child {
+            border-bottom: 0;
+        }
+
+        .historico-dashboard-card table td::before {
+            content: attr(data-label);
+            font-size: 10px;
+            font-weight: 800;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+
+        .historico-dashboard-card table td[colspan] {
+            display: block;
+            text-align: center !important;
+        }
+
+        .historico-dashboard-card table td[colspan]::before {
+            display: none;
+        }
     }
 
     @media (max-width: 480px) {
@@ -875,6 +941,11 @@
         .lavadora-metricas {
             flex-direction: column;
             gap: 8px;
+        }
+
+        .historico-dashboard-card table td {
+            grid-template-columns: 1fr;
+            gap: 4px;
         }
     }
 </style>
@@ -1186,7 +1257,7 @@
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-        <div class="chart-card">
+        <div class="chart-card historico-dashboard-card">
             <h3>
                 <i class="fas fa-history"></i>
                 <span>Histórico de Revisiones</span>
@@ -1203,9 +1274,9 @@
                     <tbody>
                         @forelse($historicoRevisionesPasteurizadora as $item)
                             <tr>
-                                <td><i class="fas fa-microchip mr-2 text-gray-400"></i>{{ $item['componente'] }}</td>
-                                <td>{{ $item['ultimo_analisis'] }}</td>
-                                <td>{{ $item['total_analisis'] }}</td>
+                                <td data-label="Componente"><i class="fas fa-microchip mr-2 text-gray-400"></i>{{ $item['componente'] }}</td>
+                                <td data-label="Último análisis">{{ $item['ultimo_analisis'] }}</td>
+                                <td data-label="Análisis">{{ $item['total_analisis'] }}</td>
                             </tr>
                         @empty
                             <tr>

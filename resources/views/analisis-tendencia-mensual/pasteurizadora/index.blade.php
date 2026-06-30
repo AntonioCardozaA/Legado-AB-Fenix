@@ -2,11 +2,19 @@
 @php
     $analisisTipo = $analisisTipo ?? '52124';
     $lineaSeleccionada = $lineaSeleccionada ?? null;
+    $fechaInicio = $fechaInicio ?? request('fecha_inicio');
+    $fechaFin = $fechaFin ?? request('fecha_fin');
     $isAnalisis30147 = $analisisTipo === '30147';
     $rutaAnalisisActiva = $isAnalisis30147
         ? 'analisis-tendencia-mensual.pasteurizadora.analisis-30-14-7'
         : 'analisis-tendencia-mensual.pasteurizadora.analisis-52-12-4';
-    $parametrosLinea = $lineaSeleccionada ? ['linea_id' => $lineaSeleccionada] : [];
+    $parametrosFecha = array_filter([
+        'fecha_inicio' => $fechaInicio,
+        'fecha_fin' => $fechaFin,
+    ], fn ($value) => filled($value));
+    $parametrosLinea = array_filter([
+        'linea_id' => $lineaSeleccionada,
+    ], fn ($value) => filled($value)) + $parametrosFecha;
     $tituloAnalisis = $isAnalisis30147 ? 'Analisis 30-14-7' : 'Analisis 52-12-4';
 @endphp
 @extends('layouts.app')
@@ -829,13 +837,58 @@
         
         <div class="machine-grid">
             @foreach($lineas as $linea)
-                <a href="{{ route($rutaAnalisisActiva, ['linea_id' => $linea->id]) }}" 
+                <a href="{{ route($rutaAnalisisActiva, ['linea_id' => $linea->id] + $parametrosFecha) }}" 
                    class="machine-pill {{ $lineaSeleccionada == $linea->id ? 'machine-pill-active' : 'machine-pill-inactive' }}">
                     <i class="fas fa-industry"></i>
                     {{ $linea->nombre }}
                 </a>
             @endforeach
         </div>
+
+        <form method="GET" action="{{ route($rutaAnalisisActiva) }}" class="mt-6 grid gap-4 border-t border-gray-200 pt-5 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] md:items-end">
+            @if($lineaSeleccionada)
+                <input type="hidden" name="linea_id" value="{{ $lineaSeleccionada }}">
+            @endif
+
+            <div>
+                <label for="fecha_inicio" class="mb-2 block text-xs font-bold uppercase tracking-wide text-gray-500">Fecha inicial</label>
+                <input type="date"
+                       id="fecha_inicio"
+                       name="fecha_inicio"
+                       value="{{ $fechaInicio }}"
+                       class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-800 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                @error('fecha_inicio')
+                    <p class="mt-1 text-xs font-semibold text-red-600">{{ $message }}</p>
+                @enderror
+            </div>
+
+            <div>
+                <label for="fecha_fin" class="mb-2 block text-xs font-bold uppercase tracking-wide text-gray-500">Fecha final</label>
+                <input type="date"
+                       id="fecha_fin"
+                       name="fecha_fin"
+                       value="{{ $fechaFin }}"
+                       class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-800 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                @error('fecha_fin')
+                    <p class="mt-1 text-xs font-semibold text-red-600">{{ $message }}</p>
+                @enderror
+            </div>
+
+            <div class="flex flex-wrap gap-2">
+                <button type="submit" class="create-action create-action--compact">
+                    <i class="fas fa-filter"></i>
+                    Filtrar
+                </button>
+
+                @if($fechaInicio || $fechaFin)
+                    <a href="{{ route($rutaAnalisisActiva, array_filter(['linea_id' => $lineaSeleccionada], fn ($value) => filled($value))) }}"
+                       class="create-action create-action--compact create-action--secondary">
+                        <i class="fas fa-rotate-left"></i>
+                        Limpiar
+                    </a>
+                @endif
+            </div>
+        </form>
     </div>
 
     {{-- Tabla de Tendencias --}}
@@ -1076,7 +1129,7 @@
                 </div>
                 <h3>SIN DATOS DISPONIBLES</h3>
                 <p>No se encontraron análisis para {{ $lineas->find($lineaSeleccionada)?->nombre }}</p>
-                <a href="{{ route($rutaAnalisisActiva, ['linea_id' => $lineaSeleccionada]) }}" 
+                <a href="{{ route($rutaAnalisisActiva, $parametrosLinea) }}" 
                    class="btn-industrial">
                     <i class="fas fa-sync-alt"></i>
                     VER TENDENCIA AUTOMATICA
@@ -1345,10 +1398,9 @@ document.addEventListener('DOMContentLoaded', function() {
                             display: false
                         },
                         ticks: {
-                            autoSkip: true,
-                            maxTicksLimit: isSmallScreen ? 4 : 8,
-                            maxRotation: isSmallScreen ? 0 : 45,
-                            minRotation: isSmallScreen ? 0 : 45,
+                            autoSkip: false,
+                            maxRotation: isSmallScreen ? 60 : 45,
+                            minRotation: isSmallScreen ? 60 : 45,
                             font: {
                                 size: isSmallScreen ? 10 : 11,
                                 family: 'Inter'

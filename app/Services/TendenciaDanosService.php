@@ -165,10 +165,21 @@ class TendenciaDanosService
         ];
     }
 
-    public function construirFilasMensuales(Linea $linea, string $tipoEquipo, int $meses = 12, ?Carbon $fin = null): Collection
+    public function construirFilasMensuales(
+        Linea $linea,
+        string $tipoEquipo,
+        int $meses = 12,
+        ?Carbon $fin = null,
+        ?Carbon $inicioFiltro = null
+    ): Collection
     {
-        $fin = ($fin ?: now())->copy()->endOfMonth()->endOfDay();
-        $inicio = $fin->copy()->subMonthsNoOverflow(max($meses - 1, 0))->startOfMonth();
+        $inicioFiltro = $inicioFiltro?->copy()->startOfDay();
+        $fin = $fin
+            ? $fin->copy()->endOfDay()
+            : now()->copy()->endOfMonth()->endOfDay();
+        $inicio = $inicioFiltro
+            ? $inicioFiltro->copy()->startOfMonth()
+            : $fin->copy()->subMonthsNoOverflow(max($meses - 1, 0))->startOfMonth();
         $inicioFuente = collect($this->ventanas52124())
             ->merge($this->ventanas30147())
             ->map(fn (array $ventana) => $this->resolverRangoActual($ventana, $inicio->copy()->endOfMonth())['current_start'])
@@ -176,7 +187,7 @@ class TendenciaDanosService
             ->first();
 
         $eventos = $this->obtenerEventos(collect([$linea]), $tipoEquipo, [
-            'from' => $inicioFuente,
+            'from' => $inicioFiltro ?: $inicioFuente,
             'to' => $fin,
         ])->where('linea_id', $linea->id)->values();
 
@@ -184,7 +195,9 @@ class TendenciaDanosService
         $cursor = $inicio->copy();
 
         while ($cursor->lte($fin)) {
-            $corte = $cursor->copy()->endOfMonth()->endOfDay();
+            $corte = $cursor->isSameMonth($fin)
+                ? $fin->copy()->endOfDay()
+                : $cursor->copy()->endOfMonth()->endOfDay();
             $rango52 = $this->resolverRangoActual($this->ventanas52124()[0], $corte);
             $rango12 = $this->resolverRangoActual($this->ventanas52124()[1], $corte);
             $rango4 = $this->resolverRangoActual($this->ventanas52124()[2], $corte);

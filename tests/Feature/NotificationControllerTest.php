@@ -75,6 +75,27 @@ class NotificationControllerTest extends TestCase
         $this->assertSame(0, $user->fresh()->unreadNotifications()->count());
     }
 
+    public function test_notification_open_links_are_relative_to_current_app(): void
+    {
+        $user = User::factory()->create();
+        $notificationId = $this->notifyDatabase($user, [
+            'message' => 'Notificacion de prueba',
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('notifications.index'))
+            ->assertOk()
+            ->assertSee('href="/notifications/' . $notificationId . '/open"', false)
+            ->assertDontSee('href="http://localhost/notifications/' . $notificationId . '/open"', false);
+
+        $response = $this->actingAs($user)
+            ->getJson(route('notifications.unread-count'))
+            ->assertOk()
+            ->json();
+
+        $this->assertSame('/notifications/' . $notificationId . '/open', $response['items'][0]['open_url']);
+    }
+
     public function test_manager_feed_hides_analysis_audit_notifications_only(): void
     {
         $user = $this->userWithRole(User::ROLE_GERENTE_MANTENIMIENTO);
@@ -351,6 +372,48 @@ class NotificationControllerTest extends TestCase
             'record_class' => AnalisisLavadora::class,
             'record_id' => $analisis->id,
             'url' => $detailUrl,
+            'message' => 'Nuevo analisis',
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('notifications.open', $notificationId))
+            ->assertRedirect(route('analisis-lavadora.show', ['analisislavadora' => $analisis->id], false));
+    }
+
+    public function test_admin_open_rebuilds_analysis_url_when_saved_url_points_to_login(): void
+    {
+        $user = $this->userWithRole(User::ROLE_ADMIN);
+        $linea = Linea::create([
+            'nombre' => 'L-04',
+            'descripcion' => 'Lavadora de prueba',
+            'tipo' => 'lavadora',
+            'activo' => true,
+        ]);
+        $componente = Componente::create([
+            'nombre' => 'Servo chico',
+            'codigo' => 'L04_ADMIN_LOGIN_FALLBACK_SERVO',
+            'linea' => 'L-04',
+            'reductor' => 'Reductor 1',
+            'ubicacion' => 'Reductor 1',
+            'cantidad_total' => 1,
+            'activo' => true,
+        ]);
+        $analisis = AnalisisLavadora::withoutEvents(fn () => AnalisisLavadora::create([
+            'linea_id' => $linea->id,
+            'componente_id' => $componente->id,
+            'reductor' => 'Reductor 1',
+            'fecha_analisis' => '2026-06-24',
+            'numero_orden' => 'OT-ADMIN-LOGIN-001',
+            'estado' => 'Desgaste moderado',
+            'actividad' => 'Revision con fallback a login',
+            'usuario_id' => $user->id,
+        ]));
+
+        $notificationId = $this->notifyDatabase($user, [
+            'type' => 'admin_record_created',
+            'record_class' => AnalisisLavadora::class,
+            'record_id' => $analisis->id,
+            'url' => route('login', [], false),
             'message' => 'Nuevo analisis',
         ]);
 

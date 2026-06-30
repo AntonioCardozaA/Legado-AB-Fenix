@@ -24,18 +24,19 @@ class NotificationRedirectService
             return $planActionTarget;
         }
 
-        if (!$this->shouldResolveAnalysisTarget($user)) {
-            return [
-                'url' => $this->fallbackUrl($notification),
-                'message' => null,
-            ];
-        }
-
+        $fallbackUrl = $this->fallbackUrl($notification);
         $target = $this->analysisTargetFromNotification($notification);
 
         if ($target === null) {
             return [
-                'url' => $this->fallbackUrl($notification),
+                'url' => $fallbackUrl,
+                'message' => null,
+            ];
+        }
+
+        if (!$this->shouldResolveAnalysisTarget($user) && filled($fallbackUrl)) {
+            return [
+                'url' => $fallbackUrl,
                 'message' => null,
             ];
         }
@@ -57,7 +58,9 @@ class NotificationRedirectService
         }
 
         return [
-            'url' => $this->urlForRecord($record),
+            'url' => $this->shouldResolveAnalysisTarget($user)
+                ? $this->urlForRecord($record)
+                : ($this->directUrlForRecord($record) ?? $this->urlForRecord($record)),
             'message' => null,
         ];
     }
@@ -207,12 +210,45 @@ class NotificationRedirectService
         return null;
     }
 
+    private function directUrlForRecord(Model $record): ?string
+    {
+        if ($record instanceof Analisis) {
+            return $this->routeIfExists('analisis.show', [
+                'analisis' => $record->getKey(),
+            ]);
+        }
+
+        if ($record instanceof AnalisisLavadora) {
+            return $this->routeIfExists('analisis-lavadora.show', [
+                'analisislavadora' => $record->getKey(),
+            ]);
+        }
+
+        if ($record instanceof AnalisisPasteurizadora) {
+            $route = $record->area === AnalisisPasteurizadora::AREA_CENTRAL_HIDRAULICA
+                ? 'pasteurizadora.central-hidraulica.show'
+                : 'pasteurizadora.analisis-pasteurizadora.show';
+
+            return $this->routeIfExists($route, [
+                'analisispasteurizadora' => $record->getKey(),
+            ]);
+        }
+
+        return null;
+    }
+
     private function fallbackUrl(DatabaseNotification $notification): ?string
     {
         $data = $notification->data ?? [];
         $url = $data['url'] ?? null;
 
-        return filled($url) ? $this->normalizeInternalUrl((string) $url) : null;
+        if (blank($url)) {
+            return null;
+        }
+
+        $normalizedUrl = $this->normalizeInternalUrl((string) $url);
+
+        return $this->isAuthenticationUrl($normalizedUrl) ? null : $normalizedUrl;
     }
 
     private function routeIfExists(string $name, array $parameters = []): ?string
@@ -422,5 +458,17 @@ class NotificationRedirectService
         $query = parse_url($url, PHP_URL_QUERY);
 
         return $query ? $path . '?' . $query : $path;
+    }
+
+    private function isAuthenticationUrl(string $url): bool
+    {
+        $path = parse_url($url, PHP_URL_PATH) ?: $url;
+        $path = '/' . ltrim($path, '/');
+        $path = rtrim($path, '/') ?: '/';
+        $loginPath = Route::has('login')
+            ? rtrim(route('login', [], false), '/')
+            : '/login';
+
+        return $path === ($loginPath ?: '/login');
     }
 }

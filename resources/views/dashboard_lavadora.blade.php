@@ -1356,13 +1356,60 @@
             width: 100%;
             min-width: 0;
         }
-        .historico-card table {
-            min-width: 640px;
+        .historico-card .overflow-x-auto {
+            overflow: visible;
+            border: 0;
+            box-shadow: none;
         }
-        .historico-card table th,
+        .historico-card table {
+            min-width: 0;
+            border-collapse: separate;
+            border-spacing: 0 10px;
+            background: transparent;
+        }
+        .historico-card table thead {
+            display: none;
+        }
+        .historico-card table tbody,
+        .historico-card table tr,
         .historico-card table td {
-            padding-left: 12px;
-            padding-right: 12px;
+            display: block;
+            width: 100%;
+        }
+        .historico-card table tr {
+            border: 1px solid rgba(148, 163, 184, 0.18);
+            border-radius: 14px;
+            background: #ffffff;
+            box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06);
+            overflow: hidden;
+        }
+        .historico-card table td {
+            display: grid;
+            grid-template-columns: minmax(92px, 0.42fr) minmax(0, 1fr);
+            gap: 12px;
+            align-items: start;
+            padding: 10px 12px;
+            border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+            text-align: left !important;
+            font-size: 12px;
+        }
+        .historico-card table td:last-child {
+            border-bottom: 0;
+        }
+        .historico-card table td::before {
+            content: attr(data-label);
+            font-size: 10px;
+            font-weight: 800;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+        .historico-card table td[colspan] {
+            display: block;
+            text-align: center !important;
+        }
+        .historico-card table td[colspan]::before {
+            display: none;
         }
         .elongaciones-card,
         .trend-card-side {
@@ -1419,8 +1466,9 @@
             min-height: 264px;
             height: 264px;
         }
-        .historico-card table {
-            min-width: 580px;
+        .historico-card table td {
+            grid-template-columns: 1fr;
+            gap: 4px;
         }
     }
 
@@ -2296,8 +2344,8 @@
                     <tbody id="historicoTableBody">
                         @foreach([] as $item)
                             <tr>
-                                <td><i class="fas fa-microchip mr-2 text-gray-400"></i>{{ $item['componente'] }}</td>
-                                <td>{{ $item['total_analisis'] }}</td>
+                                <td data-label="Componente"><i class="fas fa-microchip mr-2 text-gray-400"></i>{{ $item['componente'] }}</td>
+                                <td data-label="Análisis">{{ $item['total_analisis'] }}</td>
                             </tr>
                         @endforeach
                     </tbody>
@@ -3917,12 +3965,12 @@
             body.innerHTML = registros.length
                 ? registros.map((item) => `
                     <tr>
-                        <td>${escapeHtml(item.fecha_humana || '-')}</td>
-                        <td>${escapeHtml(item.linea || '-')}</td>
-                        <td>${escapeHtml(item.componente || '-')}</td>
-                        <td>${escapeHtml(item.reductor || '-')}${item.lado ? ` · ${escapeHtml(item.lado)}` : ''}</td>
-                        <td><span class="severity-pill ${severityFromEstado(item.estado)}">${escapeHtml(item.estado || 'Sin estado')}</span></td>
-                        <td>${escapeHtml(item.usuario || 'Sin usuario')}${item.actividad ? `<div class="text-xs text-gray-500 mt-1">${escapeHtml(item.actividad)}</div>` : ''}</td>
+                        <td data-label="Fecha">${escapeHtml(item.fecha_humana || '-')}</td>
+                        <td data-label="Lavadora">${escapeHtml(item.linea || '-')}</td>
+                        <td data-label="Componente">${escapeHtml(item.componente || '-')}</td>
+                        <td data-label="Ubicación">${escapeHtml(item.reductor || '-')}${item.lado ? ` · ${escapeHtml(item.lado)}` : ''}</td>
+                        <td data-label="Estado"><span class="severity-pill ${severityFromEstado(item.estado)}">${escapeHtml(item.estado || 'Sin estado')}</span></td>
+                        <td data-label="Revisión">${escapeHtml(item.usuario || 'Sin usuario')}${item.actividad ? `<div class="text-xs text-gray-500 mt-1">${escapeHtml(item.actividad)}</div>` : ''}</td>
                     </tr>
                 `).join('')
                 : `<tr><td colspan="6" class="text-center text-gray-500 py-6">No hay registros recientes para este alcance.</td></tr>`;

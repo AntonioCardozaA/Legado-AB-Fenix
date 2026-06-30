@@ -119,7 +119,7 @@ class NotificationController extends Controller
                 'title' => $notification->data['title'] ?? 'Notificacion interna',
                 'message' => $notification->data['message'] ?? $notification->data['mensaje'] ?? 'Nueva notificacion.',
                 'url' => $notification->data['url'] ?? null,
-                'open_url' => route('notifications.open', $notification->id),
+                'open_url' => route('notifications.open', $notification->id, false),
                 'prioridad' => $notification->data['prioridad'] ?? 'baja',
                 'read_at' => $notification->read_at?->toIso8601String(),
                 'is_read' => !is_null($notification->read_at),

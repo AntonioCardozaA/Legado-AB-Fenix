@@ -4,7 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\Linea;
 use App\Services\TendenciaDanosService;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 
 class AnalisisTendenciaMensualPasteurizadoraController extends Controller
 {
@@ -38,8 +40,18 @@ class AnalisisTendenciaMensualPasteurizadoraController extends Controller
 
     private function renderIndex(Request $request, TendenciaDanosService $tendenciaDanos, string $view)
     {
+        $validated = $request->validate([
+            'linea_id' => ['nullable', 'integer'],
+            'fecha_inicio' => ['nullable', 'date_format:Y-m-d'],
+            'fecha_fin' => ['nullable', 'date_format:Y-m-d'],
+        ]);
         $lineas = $this->getLineasPasteurizadora();
-        $lineaSeleccionada = $request->get('linea_id', $lineas->first()?->id);
+        $lineaSeleccionada = $validated['linea_id'] ?? $lineas->first()?->id;
+        $fechaInicio = $validated['fecha_inicio'] ?? null;
+        $fechaFin = $validated['fecha_fin'] ?? null;
+        $this->validarOrdenRangoFechas($fechaInicio, $fechaFin);
+        $fechaInicioCarbon = $fechaInicio ? Carbon::createFromFormat('Y-m-d', $fechaInicio)->startOfDay() : null;
+        $fechaFinCarbon = $fechaFin ? Carbon::createFromFormat('Y-m-d', $fechaFin)->endOfDay() : null;
         $analisis = collect();
         $meses = [];
 
@@ -49,7 +61,10 @@ class AnalisisTendenciaMensualPasteurizadoraController extends Controller
             if ($linea) {
                 $analisis = $tendenciaDanos->construirFilasMensuales(
                     $linea,
-                    TendenciaDanosService::TIPO_PASTEURIZADORAS
+                    TendenciaDanosService::TIPO_PASTEURIZADORAS,
+                    12,
+                    $fechaFinCarbon,
+                    $fechaInicioCarbon
                 );
 
                 foreach ($analisis as $item) {
@@ -61,6 +76,8 @@ class AnalisisTendenciaMensualPasteurizadoraController extends Controller
         return view($view, compact(
             'lineas',
             'lineaSeleccionada',
+            'fechaInicio',
+            'fechaFin',
             'analisis',
             'meses'
         ));
@@ -91,16 +108,25 @@ class AnalisisTendenciaMensualPasteurizadoraController extends Controller
     {
         $request->validate([
             'linea_id' => 'required|exists:lineas,id',
+            'fecha_inicio' => ['nullable', 'date_format:Y-m-d'],
+            'fecha_fin' => ['nullable', 'date_format:Y-m-d'],
         ]);
+        $this->validarOrdenRangoFechas($request->input('fecha_inicio'), $request->input('fecha_fin'));
 
         $linea = $this->getLineasPasteurizadora()->firstWhere('id', (int) $request->linea_id);
+        $fechaInicio = $request->filled('fecha_inicio')
+            ? Carbon::createFromFormat('Y-m-d', $request->fecha_inicio)->startOfDay()
+            : null;
+        $fechaFin = $request->filled('fecha_fin')
+            ? Carbon::createFromFormat('Y-m-d', $request->fecha_fin)->endOfDay()
+            : null;
 
         if (!$linea) {
             return response()->json(['success' => false, 'message' => 'Pasteurizadora invalida.'], 422);
         }
 
         $datos = $tendenciaDanos
-            ->construirFilasMensuales($linea, TendenciaDanosService::TIPO_PASTEURIZADORAS)
+            ->construirFilasMensuales($linea, TendenciaDanosService::TIPO_PASTEURIZADORAS, 12, $fechaFin, $fechaInicio)
             ->sortBy(fn ($item) => sprintf('%04d%02d', $item->anio, $item->mes))
             ->values()
             ->map(fn ($item) => [
@@ -145,5 +171,14 @@ class AnalisisTendenciaMensualPasteurizadoraController extends Controller
             'diferencia' => $variacion['diferencia'],
             'tendencia' => $variacion['tendencia'],
         ];
+    }
+
+    private function validarOrdenRangoFechas(?string $fechaInicio, ?string $fechaFin): void
+    {
+        if ($fechaInicio && $fechaFin && $fechaInicio > $fechaFin) {
+            throw ValidationException::withMessages([
+                'fecha_fin' => 'La fecha final debe ser igual o posterior a la fecha inicial.',
+            ]);
+        }
     }
 }

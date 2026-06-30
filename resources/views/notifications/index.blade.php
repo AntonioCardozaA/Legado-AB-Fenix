@@ -258,7 +258,7 @@
 
                         <div class="flex w-full shrink-0 flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap lg:justify-end">
                             <a
-                                href="{{ route('notifications.open', $notification->id) }}"
+                                href="{{ route('notifications.open', $notification->id, false) }}"
                                 class="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-3.5 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-blue-700 sm:w-auto">
                                 <i class="fas fa-arrow-up-right-from-square"></i>
                                 Abrir
