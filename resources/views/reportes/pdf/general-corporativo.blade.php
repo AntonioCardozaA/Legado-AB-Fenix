@@ -29,8 +29,8 @@
         ? 'Reporte tecnico de ' . $tipoSingular . ' ' . $nombreLineaUnica
         : 'Reporte tecnico general de ' . $tipoTitulo;
     $subtituloDocumento = $esReporteLinea
-        ? 'Detalle operativo por linea'
-        : 'Resumen y detalle operativo por lineas';
+        ? 'Detalle por linea'
+        : 'Resumen y detalle por lineas';
 
     $logoCandidates = [
         public_path('images/logo.png'),
@@ -433,7 +433,7 @@
         $paros = (int) data_get($resumen, 'total_paros', data_get($resumen, 'paros_count', 0));
 
         if ($total === 0) {
-            return 'No se registraron analisis en el periodo. Se recomienda validar programa de inspeccion y disponibilidad de evidencias.';
+            return 'No se registraron analisis en el periodo.';
         }
 
         if ($criticos > 0) {
@@ -899,7 +899,7 @@
     <div class="page-footer">
         <table>
             <tr>
-                <td>{{ $platformName }} | Reporte generado automaticamente para uso interno</td>
+                <td>{{ $platformName }}</td>
                 <td style="text-align: right;">Pagina <span class="page-number"></span></td>
             </tr>
         </table>
@@ -952,10 +952,6 @@
                 <span class="kicker">Lineas con datos</span>
                 <span class="meta-value">{{ $lineasConAnalisis }} / {{ $lineasReporte->count() }}</span>
             </td>
-            <td class="meta-card">
-                <span class="kicker">Uso</span>
-                <span class="meta-value">Interno</span>
-            </td>
             </tr>
         </table>
 
@@ -964,32 +960,18 @@
             <td class="metric-card">
                 <span class="kicker">Analisis</span>
                 <span class="kpi-value">{{ $totalAnalisisDocumento }}</span>
-                <span class="kpi-note">Registros del periodo</span>
             </td>
             <td class="metric-card">
                 <span class="kicker">Criticos</span>
                 <span class="kpi-value">{{ $totalCriticosDocumento }}</span>
-                <span class="kpi-note">Requieren accion</span>
             </td>
             <td class="metric-card">
                 <span class="kicker">Revision</span>
                 <span class="kpi-value">{{ $totalRevisionDocumento }}</span>
-                <span class="kpi-note">Seguimiento tecnico</span>
             </td>
             <td class="metric-card">
                 <span class="kicker">Desgaste</span>
                 <span class="kpi-value">{{ $totalDesgasteDocumento }}</span>
-                <span class="kpi-note">Moderado / severo</span>
-            </td>
-            <td class="metric-card">
-                <span class="kicker">Paros</span>
-                <span class="kpi-value">{{ $totalParosDocumento }}</span>
-                <span class="kpi-note">Cruzan el periodo</span>
-            </td>
-            <td class="metric-card">
-                <span class="kicker">Evidencias</span>
-                <span class="kpi-value">{{ $totalEvidenciasDocumento }}</span>
-                <span class="kpi-note">Fotografias vinculadas</span>
             </td>
             </tr>
         </table>
@@ -1011,7 +993,6 @@
     <div class="section">
         <div class="section-header">
             <div class="section-title">{{ $esReporteLinea ? 'Resumen de la linea' : 'Resumen por linea' }}</div>
-            <div class="section-subtitle">Indicadores consolidados generados con los registros cargados desde la base de datos.</div>
         </div>
         <table class="data-table">
             <thead>
@@ -1022,8 +1003,6 @@
                     <th>Componentes</th>
                     <th>Criticos</th>
                     <th>Revision / desgaste</th>
-                    <th>Paros / h</th>
-                    <th>Evidencias</th>
                     <th>Estado</th>
                 </tr>
             </thead>
@@ -1045,8 +1024,6 @@
                         </td>
                         <td>{{ data_get($resumen, 'componentes_criticos', 0) }}</td>
                         <td>{{ data_get($resumen, 'componentes_revision', 0) }} / {{ data_get($resumen, 'componentes_severos_moderados', 0) }}</td>
-                        <td>{{ data_get($resumen, 'total_paros', data_get($resumen, 'paros_count', 0)) }} / {{ data_get($resumen, 'horas_paro', 0) }}</td>
-                        <td>{{ $lineEvidenceCount($lineaReporte) }}</td>
                         <td><span class="badge {{ $stateClass($estadoGeneral) }}">{{ $estadoGeneral }}</span></td>
                     </tr>
                 @empty
@@ -1090,7 +1067,6 @@
         <div class="section">
             <div class="section-header">
                 <div class="section-title">Indicadores principales</div>
-                <div class="section-subtitle">Lectura rapida del estado tecnico y cobertura documental.</div>
             </div>
             <table class="metric-grid">
                 <tr>
@@ -1128,7 +1104,6 @@
                 <td class="metric-card">
                     <span class="kicker">Estado</span>
                     <span class="kpi-value" style="font-size: 10px;"><span class="badge {{ $stateClass($estadoGeneral) }}">{{ $estadoGeneral }}</span></span>
-                    <span class="kpi-note">{{ $lineEvidenceCount($lineaReporte) }} evidencias</span>
                 </td>
                 </tr>
             </table>
@@ -1144,7 +1119,7 @@
         <div class="section">
             <div class="section-header">
                 <div class="section-title">Informacion de componentes</div>
-                <div class="section-subtitle">Estado, avance y ultimo registro disponible por componente configurado.</div>
+                <div class="section-subtitle">Estado y avance por componente.</div>
             </div>
 
             @if($esPasteurizadora)
@@ -1267,7 +1242,6 @@
             <div class="section">
                 <div class="section-header">
                     <div class="section-title">Resumen por reductor</div>
-                    <div class="section-subtitle">Agrupacion de analisis mecanicos por ubicacion de lavadora.</div>
                 </div>
                 <table class="data-table">
                     <thead>
@@ -1380,7 +1354,7 @@
             <div class="section">
                 <div class="section-header">
                     <div class="section-title">Seguimiento automatico de tendencia</div>
-                    <div class="section-subtitle">Comparativos 52-12-4 y 30-14-7 generados por el servicio de tendencia.</div>
+                    <div class="section-subtitle">Comparativos 52-12-4 y 30-14-7 tendencia de daños.</div>
                 </div>
 
                 @if($ventanas52124Pdf->isNotEmpty() || $ventanas30147Pdf->isNotEmpty())
@@ -1475,7 +1449,6 @@
         <div class="section">
             <div class="section-header">
                 <div class="section-title">Detalle de analisis y evidencias</div>
-                <div class="section-subtitle">Registro completo de hallazgos, actividades, responsables y evidencia fotografica disponible.</div>
             </div>
 
             @forelse($analisisPlanos as $registro)
@@ -1613,7 +1586,7 @@
                                     </div>
                                 @endforeach
                             @else
-                                <span class="muted">Sin evidencias registradas.</span>
+                                <span class="muted">Sin evidencias.</span>
                             @endif
                         </div>
                     </div>
