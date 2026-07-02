@@ -1322,150 +1322,6 @@
     @endif
 
     {{-- SECCIÓN PRINCIPAL - TABLA DE ANÁLISIS --}}
-    <div class="mb-6 rounded-xl border border-slate-200 bg-white shadow-sm">
-        <div class="flex flex-col gap-2 border-b border-slate-200 px-5 py-4 md:flex-row md:items-center md:justify-between">
-            <div>
-                <h2 class="text-lg font-semibold text-slate-800">Registros de analisis</h2>
-                <p class="text-sm text-slate-500">
-                    Los registros rapidos de bitacora se resaltan en verde. Los analisis normales usan el color del estado reportado.
-                </p>
-            </div>
-            <span class="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
-                {{ $analisisCollection->count() }} registro{{ $analisisCollection->count() === 1 ? '' : 's' }}
-            </span>
-        </div>
-
-        @if($analisisCollection->isEmpty())
-            <div class="px-5 py-10 text-center text-sm text-slate-500">
-                No hay registros para los filtros seleccionados.
-            </div>
-        @else
-            @php
-                $analisisOrdenados = $analisisCollection->sortByDesc(function ($item) {
-                    return ($item->fecha_analisis?->timestamp ?? 0) . '-' . ($item->created_at?->timestamp ?? 0) . '-' . str_pad((string) $item->id, 10, '0', STR_PAD_LEFT);
-                })->values();
-            @endphp
-
-            <div class="overflow-auto">
-                <table class="min-w-full divide-y divide-slate-200 text-sm">
-                    <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                        <tr>
-                            <th class="px-4 py-3">Tipo</th>
-                            <th class="px-4 py-3">Linea</th>
-                            <th class="px-4 py-3">Modulo</th>
-                            <th class="px-4 py-3">Componente</th>
-                            <th class="px-4 py-3">Numero</th>
-                            <th class="px-4 py-3">Lado</th>
-                            <th class="px-4 py-3">Nivel</th>
-                            <th class="px-4 py-3">Estado</th>
-                            <th class="px-4 py-3">Fecha</th>
-                            <th class="px-4 py-3">Orden</th>
-                            <th class="px-4 py-3">Actividad / Observaciones</th>
-                            <th class="px-4 py-3">Evidencias</th>
-                            <th class="px-4 py-3">Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-slate-100">
-                        @foreach($analisisOrdenados as $item)
-                            @php
-                                $componentesRevisadosFila = collect(\App\Models\AnalisisPasteurizadora::normalizarComponentesRevisados(
-                                    $item->componentes_revisados,
-                                    $item->total_componentes
-                                ));
-                                $numeroPiezaTexto = 'N/A';
-
-                                if ($componentesRevisadosFila->isNotEmpty()) {
-                                    $numeroPiezaTexto = \App\Models\AnalisisPasteurizadora::esBrazoTorsion($item->componente)
-                                        ? $componentesRevisadosFila->map(fn ($numero) => 'Modulo ' . $numero)->implode(', ')
-                                        : $componentesRevisadosFila->map(fn ($numero) => '#' . $numero)->implode(', ');
-                                }
-
-                                if ($item->es_registro_quick) {
-                                    $rowClass = 'bg-green-50';
-                                    $tipoBadgeClass = 'bg-green-100 text-green-700 border-green-200';
-                                } elseif (\App\Models\AnalisisPasteurizadora::esEstadoDanado($item->estado)) {
-                                    $rowClass = 'bg-red-50';
-                                    $tipoBadgeClass = 'bg-red-100 text-red-700 border-red-200';
-                                } elseif (\App\Models\AnalisisPasteurizadora::esEstadoRequiereRevision($item->estado)) {
-                                    $rowClass = 'bg-yellow-50';
-                                    $tipoBadgeClass = 'bg-yellow-100 text-yellow-700 border-yellow-200';
-                                } elseif (\App\Models\AnalisisPasteurizadora::esEstadoDesgaste($item->estado)) {
-                                    $rowClass = 'bg-orange-50';
-                                    $tipoBadgeClass = 'bg-orange-100 text-orange-700 border-orange-200';
-                                } elseif (\App\Models\AnalisisPasteurizadora::esEstadoCambiado($item->estado)) {
-                                    $rowClass = 'bg-sky-50';
-                                    $tipoBadgeClass = 'bg-sky-100 text-sky-700 border-sky-200';
-                                } else {
-                                    $rowClass = 'bg-white';
-                                    $tipoBadgeClass = 'bg-slate-100 text-slate-700 border-slate-200';
-                                }
-                            @endphp
-                            <tr class="{{ $rowClass }}">
-                                <td class="px-4 py-3 align-top">
-                                    <span class="inline-flex rounded-full border px-3 py-1 text-xs font-semibold {{ $tipoBadgeClass }}">
-                                        {{ $item->es_registro_quick ? 'Bitacora rapida' : 'Analisis normal' }}
-                                    </span>
-                                </td>
-                                <td class="px-4 py-3 align-top font-semibold text-slate-700">{{ $item->linea->nombre ?? 'N/A' }}</td>
-                                <td class="px-4 py-3 align-top">Modulo {{ $item->modulo }}</td>
-                                <td class="px-4 py-3 align-top">
-                                    <div class="font-medium text-slate-700">{{ $item->componente_nombre }}</div>
-                                </td>
-                                <td class="px-4 py-3 align-top text-slate-600">{{ $numeroPiezaTexto }}</td>
-                                <td class="px-4 py-3 align-top">{{ $item->lado ?: 'N/A' }}</td>
-                                <td class="px-4 py-3 align-top">{{ $item->nivel ?: 'N/A' }}</td>
-                                <td class="px-4 py-3 align-top">
-                                    <span class="inline-flex rounded-full px-3 py-1 text-xs font-semibold {{ $item->estado_badge['class'] }}">
-                                        {{ $item->estado }}
-                                    </span>
-                                </td>
-                                <td class="px-4 py-3 align-top whitespace-nowrap">
-                                    {{ $item->fecha_analisis?->format('d/m/Y') ?? optional($item->created_at)->format('d/m/Y') }}
-                                </td>
-                                <td class="px-4 py-3 align-top whitespace-nowrap">
-                                    {{ $item->numero_orden ?: 'Sin orden' }}
-                                </td>
-                                <td class="px-4 py-3 align-top">
-                                    <div class="max-w-xs whitespace-pre-line text-slate-600" title="{{ $item->actividad }}">
-                                        {{ \Illuminate\Support\Str::limit($item->actividad, 120) }}
-                                    </div>
-                                </td>
-                                <td class="px-4 py-3 align-top">
-                                    @php
-                                        $totalEvidencias = is_array($item->evidencia_fotos) ? count($item->evidencia_fotos) : 0;
-                                    @endphp
-                                    @if($totalEvidencias > 0)
-                                        <span class="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
-                                            {{ $totalEvidencias }} foto{{ $totalEvidencias === 1 ? '' : 's' }}
-                                        </span>
-                                    @else
-                                        <span class="text-xs text-slate-400">Sin evidencia</span>
-                                    @endif
-                                </td>
-                                <td class="px-4 py-3 align-top">
-                                    <a href="{{ $analisisRoute('show', $item->id) }}"
-                                       class="responsive-action responsive-action--compact whitespace-nowrap">
-                                        Ver detalle
-                                    </a>
-                                </td>
-                            </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-            </div>
-        @endif
-    </div>
-
-    <div class="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-4 text-sm text-emerald-800">
-        <div class="flex items-start gap-3">
-            <i class="fas fa-clipboard-check mt-0.5"></i>
-            <div>
-                <p class="font-semibold">Bitacora de revisiones rapidas</p>
-                <p>El tablero por linea, modulo y componente muestra el avance operativo de revisiones rapidas.</p>
-            </div>
-        </div>
-    </div>
-
     <div class="pasteurizadoras-section">
         @php
             $lineasToShow = $mostrarTodas ? $lineasFiltradas : collect([$lineaSeleccionada ?? null])->filter();
@@ -1563,35 +1419,51 @@
                                         @foreach($componentesLinea as $codigo => $compData)
                                             @php
                                                 $celdaSeguimiento = $seguimientoLinea['celdas'][$moduloNumero][$codigo] ?? null;
-                                                $registros = collect($celdaSeguimiento['registros_visibles'] ?? []);
-                                                $registro = $registros->sortByDesc(function ($item) {
+                                                $registrosQuick = collect($celdaSeguimiento['registros_visibles'] ?? []);
+                                                $registroQuick = $registrosQuick->sortByDesc(function ($item) {
                                                     return ($item->created_at?->timestamp ?? 0) . '-' . str_pad((string) $item->id, 10, '0', STR_PAD_LEFT);
                                                 })->first();
+                                                $registrosNormales = collect($analisisAgrupadosLinea[$moduloNumero][$codigo] ?? collect())
+                                                    ->filter(fn ($item) => $item->es_registro_normal)
+                                                    ->sortByDesc(function ($item) {
+                                                        return ($item->created_at?->timestamp ?? 0) . '-' . str_pad((string) $item->id, 10, '0', STR_PAD_LEFT);
+                                                    })
+                                                    ->values();
+                                                $registroNormal = $registrosNormales->first();
+                                                $hasNormalAnalysis = $registroNormal !== null;
+                                                $registro = $registroNormal ?: $registroQuick;
+                                                $hasQuickData = $registroQuick !== null;
                                                 $hasData = $registro !== null;
                                                 $totalComponentesComponente = $compData['cantidad'] ?? 0;
                                                 $esBrazoTorsion = \App\Models\AnalisisPasteurizadora::esBrazoTorsion($codigo);
                                                 $brazoAplicaModulo = !$esBrazoTorsion || $moduloNumero <= \App\Models\AnalisisPasteurizadora::getCantidadBrazosTorsionPorLinea($linea->nombre);
                                                 
-                                                $componentesRevisadosAcumulados = $registros
-                                                    ->flatMap(function ($item) {
-                                                        if (is_array($item->componentes_revisados)) {
-                                                            return $item->componentes_revisados;
-                                                        }
-                                                        if (is_string($item->componentes_revisados)) {
-                                                            $decoded = json_decode($item->componentes_revisados, true);
-                                                            return is_array($decoded) ? $decoded : [];
-                                                        }
-                                                        return [];
-                                                    })
-                                                    ->filter(fn($numeroComponente) => is_numeric($numeroComponente))
-                                                    ->map(fn($numeroComponente) => (int) $numeroComponente)
-                                                    ->unique()
-                                                    ->sort()
-                                                    ->values();
+                                                $componentesRevisadosAcumulados = $hasNormalAnalysis
+                                                    ? collect(\App\Models\AnalisisPasteurizadora::normalizarComponentesRevisados(
+                                                        $registroNormal->componentes_revisados,
+                                                        $totalComponentesComponente
+                                                    ))->values()
+                                                    : $registrosQuick
+                                                        ->flatMap(function ($item) {
+                                                            if (is_array($item->componentes_revisados)) {
+                                                                return $item->componentes_revisados;
+                                                            }
+                                                            if (is_string($item->componentes_revisados)) {
+                                                                $decoded = json_decode($item->componentes_revisados, true);
+                                                                return is_array($decoded) ? $decoded : [];
+                                                            }
+                                                            return [];
+                                                        })
+                                                        ->filter(fn($numeroComponente) => is_numeric($numeroComponente))
+                                                        ->map(fn($numeroComponente) => (int) $numeroComponente)
+                                                        ->unique()
+                                                        ->sort()
+                                                        ->values();
                                                 $revisadasAcumuladas = $componentesRevisadosAcumulados->count();
                                                 $pendientesAcumulados = max(0, $totalComponentesComponente - $revisadasAcumuladas);
                                                 $estadoPorNivel = [];
                                                 $siguienteRevision = null;
+                                                $actualizacionesFuente = $hasNormalAnalysis ? $registrosNormales : $registrosQuick;
 
                                                 $bgColor = 'cell-empty';
                                                 $borderColor = '';
@@ -1600,10 +1472,31 @@
                                                     $estadoPorNivel = $celdaSeguimiento['estado_por_nivel'];
                                                     $siguienteRevision = $celdaSeguimiento['siguiente_revision'];
                                                 }
-                                                $procesoCompletado = (bool) ($celdaSeguimiento['completado'] ?? ($hasData && !$siguienteRevision));
-                                                $moduloCompletado = (bool) ($seguimientoLinea['modulos'][$moduloNumero]['completado'] ?? false);
+                                                $procesoCompletado = (bool) ($celdaSeguimiento['completado'] ?? ($hasQuickData && !$siguienteRevision));
+                                                $mostrarProcesoCompletado = !$hasNormalAnalysis && $procesoCompletado;
+                                                $quickActionLabel = !$hasQuickData
+                                                    ? 'Crear bitacora'
+                                                    : ($procesoCompletado ? 'Nuevo analisis rapido' : 'Continuar bitacora');
+                                                $quickActionClass = $procesoCompletado
+                                                    ? 'create-action create-action--compact create-action--success'
+                                                    : 'create-action create-action--compact';
 
-                                                if($hasData){
+                                                if($hasNormalAnalysis){
+                                                    $estadoActual = $registroNormal->estado ?? 'Buen estado';
+                                                    if (\App\Models\AnalisisPasteurizadora::esEstadoCambiado($estadoActual)) {
+                                                        $bgColor = 'cell-changed';
+                                                    } elseif (\App\Models\AnalisisPasteurizadora::esEstadoDanado($estadoActual)) {
+                                                        $bgColor = 'cell-danger';
+                                                    } elseif (\App\Models\AnalisisPasteurizadora::esEstadoRequiereRevision($estadoActual)) {
+                                                        $bgColor = 'bg-orange-50';
+                                                        $borderColor = 'border-l-4 border-orange-500';
+                                                    } elseif (\App\Models\AnalisisPasteurizadora::esEstadoDesgaste($estadoActual)) {
+                                                        $bgColor = 'bg-yellow-50';
+                                                        $borderColor = 'border-l-4 border-yellow-500';
+                                                    } else {
+                                                        $bgColor = 'cell-ok';
+                                                    }
+                                                } elseif($hasData){
                                                     $estadoActual = $registro->estado ?? 'Buen estado';
                                                     if (\App\Models\AnalisisPasteurizadora::esEstadoCambiado($estadoActual)) {
                                                         $bgColor = 'cell-changed';
@@ -1622,7 +1515,7 @@
                                                         $borderColor = '';
                                                     }
 
-                                                    if ($procesoCompletado) {
+                                                    if ($mostrarProcesoCompletado) {
                                                         $bgColor = 'cell-ok';
                                                         $borderColor = 'ring-1 ring-green-200';
                                                     }
@@ -1641,6 +1534,8 @@
                                                         'linea' => $linea->nombre,
                                                         'modulo' => $moduloNumero,
                                                         'componente' => $compData['nombre'],
+                                                        'tipo_registro' => $hasNormalAnalysis ? 'normal' : 'quick',
+                                                        'tipo_registro_label' => $hasNormalAnalysis ? 'Analisis normal' : 'Bitacora rapida',
                                                         'lado' => $registro->lado,
                                                         'nivel' => $registro->nivel,
                                                         'fecha_analisis' => $registro->fecha_analisis ? $registro->fecha_analisis->format('d/m/Y') : $registro->created_at->format('d/m/Y'),
@@ -1651,16 +1546,16 @@
                                                         'imagenes' => $registro->evidencia_fotos ?? [],
                                                         'componentes_revisados' => $componentesRevisadosAcumulados,
                                                         'total_componentes' => $totalComponentesComponente ?: $registro->total_componentes,
-                                                        'estado_por_nivel' => $estadoPorNivel,
+                                                        'estado_por_nivel' => $hasNormalAnalysis ? null : $estadoPorNivel,
                                                         'pendientes_por_nivel' => [
-                                                            'SUPERIOR' => isset($estadoPorNivel['SUPERIOR']) && !$estadoPorNivel['SUPERIOR']['completado'] 
+                                                            'SUPERIOR' => !$hasNormalAnalysis && isset($estadoPorNivel['SUPERIOR']) && !$estadoPorNivel['SUPERIOR']['completado'] 
                                                                 ? $estadoPorNivel['SUPERIOR']['lados_pendientes'] 
                                                                 : [],
-                                                            'INFERIOR' => isset($estadoPorNivel['INFERIOR']) && !$estadoPorNivel['INFERIOR']['completado'] 
+                                                            'INFERIOR' => !$hasNormalAnalysis && isset($estadoPorNivel['INFERIOR']) && !$estadoPorNivel['INFERIOR']['completado'] 
                                                                 ? $estadoPorNivel['INFERIOR']['lados_pendientes'] 
                                                                 : [],
                                                         ],
-                                                        'actualizaciones' => $registros
+                                                        'actualizaciones' => $actualizacionesFuente
                                                             ->sortByDesc(function ($item) {
                                                                 return ($item->created_at?->timestamp ?? 0) . '-' . str_pad((string) $item->id, 10, '0', STR_PAD_LEFT);
                                                             })
@@ -1676,6 +1571,8 @@
 
                                                                 return [
                                                                     'id' => $item->id,
+                                                                    'tipo_registro' => $item->tipo_registro,
+                                                                    'tipo_registro_label' => $item->es_registro_normal ? 'Analisis normal' : 'Bitacora rapida',
                                                                     'fecha' => $item->fecha_analisis ? $item->fecha_analisis->format('d/m/Y') : $item->created_at?->format('d/m/Y'),
                                                                     'hora' => $item->created_at?->format('H:i'),
                                                                     'orden' => $item->numero_orden,
@@ -1698,39 +1595,72 @@
                                                 @endif>
                                                 @if($hasData)
                                                     <div class="space-y-2">
-                                                        @if($procesoCompletado)
-                                                            <div class="flex items-center justify-between gap-2 rounded-lg border border-green-200 bg-green-100 px-2 py-1.5 text-green-800">
-                                                                <span class="inline-flex items-center gap-1 text-xs font-bold">
-                                                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <div class="flex flex-wrap items-center gap-2">
+                                                            @if($hasNormalAnalysis)
+                                                                <span class="inline-flex items-center gap-1 rounded-full border border-slate-300 bg-white/80 px-2 py-1 text-[11px] font-semibold text-slate-700">
+                                                                    <i class="fas fa-file-medical-alt text-[10px]"></i>
+                                                                    Analisis normal
+                                                                </span>
+                                                            @elseif($mostrarProcesoCompletado)
+                                                                <span class="inline-flex items-center gap-1 rounded-full border border-green-200 bg-green-100 px-2 py-1 text-[11px] font-semibold text-green-800">
+                                                                    <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                                                                     </svg>
                                                                     Proceso terminado
                                                                 </span>
-                                                            </div>
-                                                        @endif
+                                                            @else
+                                                                <span class="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-100/80 px-2 py-1 text-[11px] font-semibold text-emerald-800">
+                                                                    <i class="fas fa-clipboard-check text-[10px]"></i>
+                                                                    Bitacora rapida
+                                                                </span>
+                                                            @endif
+
+                                                            @if($registro->lado)
+                                                                <span class="inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-medium {{ $registro->lado === 'VAPOR' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700' }}">
+                                                                    <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                                                                    </svg>
+                                                                    {{ $registro->lado }}
+                                                                </span>
+                                                            @endif
+
+                                                            @if($registro->nivel)
+                                                                <span class="inline-flex items-center gap-1 rounded-full bg-violet-100 px-2 py-1 text-[11px] font-medium text-violet-700">
+                                                                    <i class="fas fa-layer-group text-[10px]"></i>
+                                                                    {{ $registro->nivel }}
+                                                                </span>
+                                                            @endif
+                                                        </div>
                                                         
-                                                        <div class="flex items-center justify-between text-xs text-gray-600">
+                                                        <div class="flex items-center justify-between gap-2 text-xs text-gray-600">
                                                             <span class="flex items-center gap-1">
-                                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                                                                 </svg>
                                                                 {{ $registro->fecha_analisis ? $registro->fecha_analisis->format('d/m/Y') : $registro->created_at->format('d/m/Y') }}
                                                             </span>
-                                                            <span class="flex items-center gap-1">
-                                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <span class="flex items-center gap-1 text-right">
+                                                                <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14"/>
                                                                 </svg>
-                                                                #{{ $registro->numero_orden }}
+                                                                {{ $registro->numero_orden ? '#' . $registro->numero_orden : 'Sin orden' }}
                                                             </span>
                                                         </div>
 
-                                                        @if($registro->lado)
-                                                            <span class="inline-flex items-center gap-1 px-2 py-1 rounded text-xs {{ $registro->lado === 'VAPOR' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700' }}">
-                                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
-                                                                </svg>
-                                                                {{ $registro->lado }}
-                                                            </span>
+                                                        @if($componentesRevisadosAcumulados->isNotEmpty())
+                                                            <div class="flex flex-wrap items-center gap-1">
+                                                                <span class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Comp.</span>
+                                                                @foreach($componentesRevisadosAcumulados->take(4) as $numeroComponente)
+                                                                    <span class="inline-flex items-center rounded-md border border-indigo-200 bg-indigo-100 px-2 py-0.5 text-[11px] font-semibold text-indigo-700">
+                                                                        #{{ $numeroComponente }}
+                                                                    </span>
+                                                                @endforeach
+                                                                @if($componentesRevisadosAcumulados->count() > 4)
+                                                                    <span class="inline-flex items-center rounded-md border border-slate-200 bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600">
+                                                                        +{{ $componentesRevisadosAcumulados->count() - 4 }}
+                                                                    </span>
+                                                                @endif
+                                                            </div>
                                                         @endif
 
                                                         <div>
@@ -1764,17 +1694,11 @@
                                                             </span>
                                                         </div>
 
-                                                        <div>
-                                                            <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200">
-                                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.121 17.804A9.004 9.004 0 0112 15c2.21 0 4.234.797 5.879 2.119M15 11a3 3 0 10-6 0 3 3 0 006 0z"/>
-                                                                </svg>
-                                                                Realizado por: {{ $registro->usuario?->name ?? $registro->responsable ?? 'Usuario no registrado' }}
-                                                            </span>
-                                                        </div>
-
-                                                        {{-- Resumen simple de progreso --}}
-                                                 
+                                                        @if(filled($registro->actividad))
+                                                            <p class="rounded-lg bg-white/70 px-2 py-2 text-xs leading-relaxed text-gray-700">
+                                                                {{ \Illuminate\Support\Str::limit(trim($registro->actividad), 110) }}
+                                                            </p>
+                                                        @endif
 
                                                         <div class="flex flex-wrap gap-2 pt-1">
                                                             @if(count($registro->evidencia_fotos ?? []) > 0)
@@ -1786,7 +1710,7 @@
                                                                     {{ count($registro->evidencia_fotos) }}
                                                                 </button>
                                                             @endif
-                                                            @if($procesoCompletado)
+                                                            @if($mostrarProcesoCompletado)
                                                                 <span class="inline-flex items-center gap-1 px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-semibold">
                                                                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
@@ -1800,12 +1724,12 @@
                                                                     'lado' => $siguienteRevision['lado'] ?? '',
                                                                     'nivel' => $siguienteRevision['nivel'] ?? ''
                                                                 ]) }}"
-                                                                   class="create-action create-action--compact create-action--success"
+                                                                   class="{{ $quickActionClass }}"
                                                                    onclick="event.stopPropagation();">
                                                                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
                                                                     </svg>
-                                                                    Nuevo análisis
+                                                                    {{ $quickActionLabel }}
                                                                 </a>
                                                             @else
                                                                     <a href="{{ $analisisRoute('create-quick', [
@@ -1815,12 +1739,12 @@
                                                                     'lado' => $siguienteRevision['lado'] ?? '',
                                                                     'nivel' => $siguienteRevision['nivel'] ?? ''
                                                                 ]) }}"
-                                                                   class="create-action create-action--compact"
+                                                                   class="{{ $quickActionClass }}"
                                                                    onclick="event.stopPropagation();">
                                                                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
                                                                     </svg>
-                                                                    Continuar
+                                                                    {{ $quickActionLabel }}
                                                                 </a>
                                                             @endif
                                                         </div>
@@ -1838,7 +1762,7 @@
                                                             <div class="empty-cell-icon">
                                                                 <i class="fas fa-clipboard"></i>
                                                             </div>
-                                                            <p class="text-xs text-gray-400 mb-2">Sin análisis</p>
+                                                            <p class="text-xs text-gray-400 mb-2">Sin analisis</p>
                                                             <a href="{{ $analisisRoute('create-quick', [
                                                                 'linea_id' => $linea->id,
                                                                 'modulo' => $moduloNumero,
@@ -1851,7 +1775,7 @@
                                                                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
                                                                 </svg>
-                                                                Crear análisis
+                                                                Crear bitacora
                                                             </a>
                                                         @endif
                                                     </div>
@@ -2289,7 +2213,7 @@ function openAnalysisDetail(data) {
     document.getElementById('detail-modulo').textContent = data.modulo ? `Modulo ${data.modulo}` : 'N/A';
     document.getElementById('detail-componente').textContent = data.componente || 'N/A';
     document.getElementById('detail-fecha').textContent = data.fecha_analisis || 'N/A';
-    document.getElementById('detail-orden').textContent = data.numero_orden || 'N/A';
+    document.getElementById('detail-orden').textContent = data.numero_orden ? `#${data.numero_orden}` : 'Sin orden';
     document.getElementById('detail-actividad').textContent = data.actividad || 'No especificada';
     document.getElementById('detail-usuario').textContent = `Realizado por: ${data.usuario_nombre || 'Usuario no registrado'}`;
 

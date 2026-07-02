@@ -357,8 +357,11 @@
             </div>
             <div class="image-gallery" id="imageGallery">
                 @foreach($analisis->evidencia_fotos as $index => $foto)
-                <div class="gallery-item" onclick="abrirImagen('{{ Storage::url($foto) }}', {{ $index }})">
-                    <img src="{{ Storage::url($foto) }}"
+                @php
+                    $fotoUrl = asset('storage/' . ltrim(str_replace('\\', '/', $foto), '/'));
+                @endphp
+                <div class="gallery-item" onclick="abrirImagen('{{ $fotoUrl }}', {{ $index }})">
+                    <img src="{{ $fotoUrl }}"
                          alt="Evidencia {{ $index + 1 }}"
                          class="gallery-img">
                     <div class="absolute bottom-2 right-2 bg-black/70 text-white text-xs w-6 h-6 rounded-full flex items-center justify-center">
@@ -567,8 +570,13 @@
 
 <script>
     let imagenes = @json($analisis->evidencia_fotos ?? []);
-    let imagenesUrls = imagenes.map(img => '{{ Storage::url('') }}' + img);
+    let imagenesUrls = imagenes.map(img => buildEvidenceUrl(img));
     let currentImgIndex = 0;
+
+    function buildEvidenceUrl(path) {
+        const cleanPath = String(path || '').replace(/\\/g, '/').replace(/^\/+/, '');
+        return `{{ asset('storage') }}/${cleanPath}`;
+    }
 
     function abrirImagen(url, index) {
         currentImgIndex = index;

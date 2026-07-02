@@ -559,7 +559,7 @@
                                         <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                                             @foreach($imagenes as $imgIndex => $imagen)
                                                 @php
-                                                    $rutaImagen = asset('storage/' . $imagen);
+                                                    $rutaImagen = asset('storage/' . ltrim(str_replace('\\', '/', $imagen), '/'));
                                                 @endphp
                                                 <div class="relative group cursor-pointer" onclick="openImageModal('{{ $rutaImagen }}', 'Evidencia {{ $imgIndex + 1 }} - Orden #{{ $item->numero_orden }}', {{ $imgIndex + 1 }}, {{ $totalImagenes }})">
                                                     <div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-lg z-10"></div>
@@ -739,7 +739,7 @@ function navigateImage(direction) {
     if (!currentImages || currentImages.length === 0) return;
 
     currentImageIndex = (currentImageIndex + direction + currentImages.length) % currentImages.length;
-    const newSrc = `{{ Storage::url('') }}${currentImages[currentImageIndex]}`;
+    const newSrc = buildEvidenceUrl(currentImages[currentImageIndex]);
     const modalImg = document.getElementById('modalImage');
     const modalCaption = document.getElementById('modalCaption');
     const currentIndexSpan = document.getElementById('currentImageIndex');
@@ -762,7 +762,7 @@ function openAllImages(imagenes, orden) {
     grid.innerHTML = '';
 
     currentImages.forEach((path, index) => {
-        const rutaImagen = `{{ Storage::url('') }}${path}`;
+        const rutaImagen = buildEvidenceUrl(path);
         const item = document.createElement('div');
         item.className = 'relative group cursor-pointer';
         item.innerHTML = `
@@ -787,6 +787,11 @@ function openAllImages(imagenes, orden) {
     modal.classList.remove('hidden');
     modal.classList.add('flex');
     document.body.style.overflow = 'hidden';
+}
+
+function buildEvidenceUrl(path) {
+    const cleanPath = String(path || '').replace(/\\/g, '/').replace(/^\/+/, '');
+    return `{{ asset('storage') }}/${cleanPath}`;
 }
 
 function closeImageModal() {
