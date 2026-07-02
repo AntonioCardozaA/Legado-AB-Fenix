@@ -209,39 +209,6 @@
         </div>
     </div>
 
-    <!-- Paros -->
-    <div class="section">
-        <h2 class="section-title">PAROS DE MANTENIMIENTO</h2>
-        <table>
-            <thead>
-                <tr>
-                    <th>Fecha Inicio</th>
-                    <th>Tipo</th>
-                    <th>Duración (h)</th>
-                    <th>Motivo</th>
-                    <th>Estado</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach($reporte['paros'] as $paro)
-                <tr>
-                    <td>{{ $paro->fecha_inicio->format('d/m/Y H:i') }}</td>
-                    <td>{{ $paro->tipo }}</td>
-                    <td>{{ $paro->duracion_horas }}</td>
-                    <td>{{ $paro->motivo }}</td>
-                    <td>
-                        @if($paro->planesAccion->where('estado', 'COMPLETADA')->count() > 0)
-                            <span style="color: #16a34a;">Completado</span>
-                        @else
-                            <span style="color: #ca8a04;">En proceso</span>
-                        @endif
-                    </td>
-                </tr>
-                @endforeach
-            </tbody>
-        </table>
-    </div>
-
     <div class="footer">
         <p>Este reporte es generado automáticamente por el sistema de mantenimiento.</p>
         <p>Documento confidencial - Solo para uso interno</p>

@@ -37,6 +37,52 @@
         padding: clamp(14px, 2vw, 20px);
         background: #f8fafc;
         box-sizing: border-box;
+        overflow-x: hidden;
+        overflow-x: clip;
+    }
+
+    .dashboard-container *,
+    .dashboard-container *::before,
+    .dashboard-container *::after {
+        box-sizing: border-box;
+    }
+
+    .dashboard-container :where(
+        .stat-label,
+        .stat-value,
+        .lavadora-nombre,
+        .lavadora-mensaje,
+        .status-tag,
+        .carousel-slide-title,
+        .carousel-slide-subtitle,
+        .carousel-slide-detail,
+        .carousel-slide-meta,
+        .metric-label,
+        .metric-value,
+        .chart-card h3 span,
+        .chart-description,
+        .ranking-linea,
+        .ranking-puntaje,
+        .ranking-meta,
+        .ranking-badge,
+        .severity-pill,
+        .table-footer,
+        .panel-copy,
+        .subpanel-copy,
+        .breakdown-title,
+        .breakdown-meta,
+        .priority-title,
+        .priority-meta,
+        .work-title,
+        .work-meta,
+        .mini-stat-label,
+        .mini-stat-value,
+        .mini-stat-meta,
+        .status-banner,
+        .legend-item
+    ) {
+        overflow-wrap: anywhere;
+        word-break: normal;
     }
 
     /* Animación de parpadeo para alertas críticas */
@@ -62,7 +108,24 @@
     .dashboard-actions {
         display: flex;
         gap: 12px;
+        flex-wrap: wrap;
         flex-shrink: 0;
+    }
+
+    .dashboard-header > div {
+        min-width: 0;
+    }
+
+    .dashboard-header h1 {
+        flex-wrap: wrap;
+        line-height: 1.25;
+    }
+
+    .dashboard-actions button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 0;
     }
 
     .stats-grid {
@@ -195,6 +258,7 @@
     .status-tag {
         display: inline-flex;
         align-items: center;
+        justify-content: center;
         gap: 4px;
         padding: 3px 8px;
         border-radius: 16px;
@@ -203,6 +267,9 @@
         text-transform: uppercase;
         white-space: normal;
         text-align: center;
+        flex-wrap: wrap;
+        max-width: 100%;
+        line-height: 1.2;
     }
 
     .status-tag.bueno { background: var(--success-light); color: #065f46; }
@@ -252,6 +319,7 @@
         display: flex;
         align-items: flex-start;
         gap: 10px;
+        min-width: 0;
     }
 
     .carousel-slide-image,
@@ -557,6 +625,9 @@
         align-items: center;
         justify-content: center;
         gap: 6px;
+        flex-wrap: wrap;
+        min-width: 0;
+        line-height: 1.35;
         border: 1px solid rgba(59, 130, 246, 0.1);
         font-weight: 500;
     }
@@ -669,6 +740,7 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
+        gap: 10px;
         padding: 16px 18px;
         border: 1px solid rgba(148, 163, 184, 0.16);
         background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 250, 252, 0.92) 100%);
@@ -677,6 +749,7 @@
         border-radius: 14px;
         margin-bottom: 0;
         box-shadow: var(--shadow-sm);
+        min-width: 0;
     }
 
     .ranking-item::before {
@@ -782,6 +855,7 @@
         display: flex;
         flex-direction: column;
         gap: 4px;
+        min-width: 0;
     }
 
     .ranking-linea {
@@ -798,6 +872,9 @@
         display: flex;
         align-items: center;
         gap: 6px;
+        flex-wrap: wrap;
+        min-width: 0;
+        line-height: 1.35;
     }
 
     .ranking-puntaje i {
@@ -819,8 +896,11 @@
         border: 1px solid rgba(153, 27, 27, 0.2);
         display: flex;
         align-items: center;
+        justify-content: center;
         gap: 6px;
         transition: var(--transition);
+        max-width: 100%;
+        min-width: 0;
     }
 
     .ranking-badge i {
@@ -841,10 +921,22 @@
         border: 1px solid rgba(59, 130, 246, 0.1);
         display: flex;
         justify-content: center;
+        flex-wrap: wrap;
         align-items: center;
         font-size: 13px;
         color: var(--text-secondary);
         font-weight: 500;
+        line-height: 1.35;
+    }
+
+    .ranking-status-stack {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 8px;
+        flex: 0 0 auto;
+        max-width: 100%;
+        min-width: 0;
     }
 
     .ranking-footer i {
@@ -1057,7 +1149,9 @@
 
     .chart-card .overflow-x-auto {
         border-radius: 14px;
-        overflow: hidden;
+        overflow-x: auto;
+        overflow-y: hidden;
+        -webkit-overflow-scrolling: touch;
         border: 1px solid rgba(59, 130, 246, 0.08);
         box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.02);
     }
@@ -1114,6 +1208,7 @@
         color: var(--text-primary);
         vertical-align: middle;
         font-weight: 500;
+        overflow-wrap: anywhere;
     }
 
     .chart-card table td:last-child {
@@ -1174,6 +1269,7 @@
         border-radius: 24px;
         max-width: 600px;
         width: 100%;
+        min-width: 0;
         max-height: 80vh;
         overflow: hidden;
         box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
@@ -1198,6 +1294,7 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
+        gap: 12px;
     }
 
     .modal-header h3 {
@@ -1205,12 +1302,20 @@
         font-weight: 700;
         color: var(--text-primary);
         margin: 0;
+        min-width: 0;
+        overflow-wrap: anywhere;
     }
 
     .modal-body {
         padding: 24px;
         overflow-y: auto;
         max-height: calc(80vh - 80px);
+        overflow-wrap: anywhere;
+    }
+
+    .modal-body .flex,
+    .modal-body .flex > * {
+        min-width: 0;
     }
 
     .modal-close {
@@ -1240,6 +1345,7 @@
         align-items: center;
         gap: 10px;
         margin-bottom: 8px;
+        min-width: 0;
     }
 
     .componente-icono {
@@ -1262,6 +1368,7 @@
     .componente-nombre {
         font-weight: 600;
         color: var(--text-primary);
+        overflow-wrap: anywhere;
     }
 
     /* Responsive */
@@ -1499,6 +1606,7 @@
         gap: 8px;
         flex-wrap: wrap;
         justify-content: flex-end;
+        min-width: 0;
     }
 
     .panel-link,
@@ -1520,6 +1628,8 @@
         padding: 10px 14px;
         text-decoration: none;
         box-shadow: var(--shadow-sm);
+        max-width: 100%;
+        min-width: 0;
     }
 
     .panel-link:hover {
@@ -1530,6 +1640,7 @@
 
     .panel-select {
         min-width: 150px;
+        max-width: 100%;
         padding: 10px 12px;
         box-shadow: var(--shadow-sm);
         outline: none;
@@ -1544,6 +1655,7 @@
         flex-direction: column;
         gap: 6px;
         min-width: 148px;
+        max-width: 100%;
     }
 
     .trend-date-field span {
@@ -1568,6 +1680,7 @@
 
     .panel-date-input {
         min-width: 148px;
+        max-width: 100%;
         padding: 10px 12px;
         outline: none;
     }
@@ -1579,6 +1692,8 @@
         gap: 8px;
         padding: 10px 14px;
         cursor: pointer;
+        max-width: 100%;
+        min-width: 0;
     }
 
     .panel-button:hover {
@@ -1603,12 +1718,15 @@
         display: flex;
         flex-wrap: wrap;
         gap: 8px;
+        min-width: 0;
+        max-width: 100%;
     }
 
     .filter-chip {
         padding: 9px 12px;
         cursor: pointer;
         box-shadow: var(--shadow-sm);
+        max-width: 100%;
     }
 
     .filter-chip:hover {
@@ -1675,12 +1793,15 @@
         display: flex;
         align-items: center;
         gap: 12px;
+        flex-wrap: wrap;
         padding: 14px 16px;
         border-radius: 14px;
         margin-bottom: 18px;
         font-size: 13px;
         font-weight: 700;
         border: 1px solid transparent;
+        min-width: 0;
+        line-height: 1.4;
     }
 
     .status-banner.critico {
@@ -1801,6 +1922,7 @@
     .severity-pill {
         display: inline-flex;
         align-items: center;
+        justify-content: center;
         gap: 6px;
         padding: 6px 12px;
         border-radius: 999px;
@@ -1808,6 +1930,10 @@
         font-weight: 800;
         text-transform: uppercase;
         letter-spacing: 0.3px;
+        max-width: 100%;
+        white-space: normal;
+        text-align: center;
+        line-height: 1.2;
     }
 
     .severity-pill.critico {
@@ -1856,6 +1982,15 @@
         justify-content: space-between;
         align-items: center;
         gap: 12px;
+        flex-wrap: wrap;
+        min-width: 0;
+    }
+
+    .breakdown-item-top > div,
+    .priority-row-top > div,
+    .work-item-top > div {
+        min-width: min(100%, 180px);
+        flex: 1 1 180px;
     }
 
     .breakdown-title,
@@ -1901,6 +2036,11 @@
         color: var(--text-secondary);
         margin-top: -4px;
         margin-bottom: 10px;
+    }
+
+    .panel-copy:empty,
+    .subpanel-copy:empty {
+        display: none;
     }
 
     .asset-media {
@@ -1968,6 +2108,38 @@
         border-radius: 999px;
     }
 
+    .trend-window-legend {
+        margin-top: 20px;
+        padding-top: 20px;
+        border-top: 1px solid var(--border-light);
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+        gap: 12px;
+        text-align: center;
+    }
+
+    .trend-window-legend-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+        min-width: 0;
+    }
+
+    .trend-window-legend-swatch {
+        width: 24px;
+        height: 24px;
+        border-radius: 6px;
+        flex: 0 0 auto;
+    }
+
+    .trend-window-legend-label {
+        font-size: 12px;
+        color: var(--text-secondary);
+        font-weight: 600;
+        overflow-wrap: anywhere;
+    }
+
     @media (max-width: 1024px) {
         .mini-stats-grid {
             grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -2022,6 +2194,139 @@
         .ranking-badge {
             width: 100%;
             justify-content: center;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .stat-card .stat-icon {
+            float: none;
+            margin-bottom: 4px;
+        }
+
+        .lavadora-card-header {
+            align-items: stretch;
+        }
+
+        .status-tag {
+            max-width: 100%;
+        }
+
+        .trend-window-legend {
+            grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+            gap: 10px;
+        }
+
+        .modal-content {
+            max-height: calc(100vh - 24px);
+        }
+
+        .modal-body {
+            max-height: calc(100vh - 104px);
+        }
+    }
+
+    @media (max-width: 640px) {
+        .dashboard-container {
+            padding: 12px;
+        }
+
+        .dashboard-actions,
+        .dashboard-actions button {
+            width: 100%;
+        }
+
+        .dashboard-actions button {
+            justify-content: center;
+        }
+
+        .ranking-card .ranking-item,
+        .ranking-item {
+            align-items: flex-start;
+            gap: 10px;
+        }
+
+        .ranking-asset {
+            flex: 1 1 calc(100% - 52px);
+            margin-left: 0;
+        }
+
+        .ranking-status-stack {
+            width: 100%;
+            align-items: stretch;
+        }
+
+        .ranking-status-stack .severity-pill,
+        .ranking-status-stack .ranking-badge {
+            width: 100%;
+        }
+
+        .breakdown-item-top,
+        .priority-row-top,
+        .work-item-top {
+            align-items: flex-start;
+        }
+
+        .trend-window-legend {
+            grid-template-columns: 1fr;
+        }
+
+        .modal-body .grid {
+            grid-template-columns: 1fr !important;
+        }
+
+        .modal-body .justify-end {
+            flex-wrap: wrap;
+        }
+
+        .modal-body .justify-between {
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .carousel-slide-content {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .carousel-slide-image,
+        .carousel-slide-icon {
+            width: 42px;
+            height: 42px;
+        }
+
+        .carousel-controls {
+            align-items: center;
+        }
+
+        .carousel-dots {
+            justify-content: center;
+        }
+
+        .chart-card {
+            padding: 12px;
+        }
+
+        .modal {
+            padding: 10px;
+        }
+
+        .modal-content {
+            border-radius: 18px;
+        }
+
+        .modal-header,
+        .modal-body {
+            padding: 16px;
+        }
+
+        .modal-body .justify-end > * {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            text-align: center;
         }
     }
 </style>
@@ -2240,7 +2545,7 @@
             </div>
             <div class="chart-description">
                 <i class="fas fa-info-circle"></i>
-                Detección y análisis de fallas por línea de producción
+                Fallas activas
             </div>
         </div>
 
@@ -2255,7 +2560,7 @@
             </div>
             <div class="chart-description">
                 <i class="fas fa-info-circle"></i>
-                Distribución de daños según tipo de componente
+                Planes activos
             </div>
         </div>
     </div>
@@ -2288,7 +2593,7 @@
                                 </div>
                             </div>
                         </div>
-                        <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 8px;">
+                        <div class="ranking-status-stack">
                             <span class="severity-pill {{ $item['prioridad'] ?? 'estable' }}">{{ $item['prioridad_label'] ?? 'Estable' }}</span>
                             <div class="ranking-badge">
                                 <i class="fas fa-bolt"></i>
@@ -2301,7 +2606,7 @@
             <div class="ranking-footer" id="rankingFooter">
                 <div>
                     <i class="fas fa-info-circle"></i>
-                    Ordenado por danos activos y criticidad
+                    Daños activos
                 </div>
             </div>
         </div>
@@ -2317,7 +2622,7 @@
             </div>
             <div class="chart-description">
                 <i class="fas fa-info-circle"></i>
-                Comparativa de tendencias: Bombas vs Vapor
+                Bombas vs Vapor
             </div>
         </div>
     </div>
@@ -2368,7 +2673,7 @@
             </div>
             <div class="chart-description">
                 <i class="fas fa-info-circle"></i>
-                Comparativa de tendencias en 3 períodos cortos de tiempo
+                30-14-7
             </div>
         </div>
     </div>
@@ -2382,23 +2687,23 @@
         <div class="chart-container">
             <canvas id="analisis52124Chart"></canvas>
         </div>
-        <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border-light); display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; text-align: center;">
-            <div style="display: flex; flex-direction: column; align-items: center; gap: 8px;">
-                <div style="width: 24px; height: 24px; background: linear-gradient(135deg, rgba(59, 130, 246, 0.85), rgba(59, 130, 246, 1)); border-radius: 6px; box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);"></div>
-                <span style="font-size: 12px; color: var(--text-secondary); font-weight: 600;">52 semanas</span>
+        <div class="trend-window-legend">
+            <div class="trend-window-legend-item">
+                <div class="trend-window-legend-swatch" style="background: linear-gradient(135deg, rgba(59, 130, 246, 0.85), rgba(59, 130, 246, 1)); box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);"></div>
+                <span class="trend-window-legend-label">52 semanas</span>
             </div>
-            <div style="display: flex; flex-direction: column; align-items: center; gap: 8px;">
-                <div style="width: 24px; height: 24px; background: linear-gradient(135deg, rgba(245, 158, 11, 0.85), rgba(245, 158, 11, 1)); border-radius: 6px; box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);"></div>
-                <span style="font-size: 12px; color: var(--text-secondary); font-weight: 600;">12 semanas</span>
+            <div class="trend-window-legend-item">
+                <div class="trend-window-legend-swatch" style="background: linear-gradient(135deg, rgba(245, 158, 11, 0.85), rgba(245, 158, 11, 1)); box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);"></div>
+                <span class="trend-window-legend-label">12 semanas</span>
             </div>
-            <div style="display: flex; flex-direction: column; align-items: center; gap: 8px;">
-                <div style="width: 24px; height: 24px; background: linear-gradient(135deg, rgba(16, 185, 129, 0.85), rgba(16, 185, 129, 1)); border-radius: 6px; box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);"></div>
-                <span style="font-size: 12px; color: var(--text-secondary); font-weight: 600;">4 semanas</span>
+            <div class="trend-window-legend-item">
+                <div class="trend-window-legend-swatch" style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.85), rgba(16, 185, 129, 1)); box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);"></div>
+                <span class="trend-window-legend-label">4 semanas</span>
             </div>
         </div>
         <div class="chart-description">
             <i class="fas fa-info-circle"></i>
-            Comparativa de tendencias en 3 períodos de tiempo
+            52-12-4
         </div>
         </div>
     </div>
@@ -3241,7 +3546,6 @@
             `);
             description.insertAdjacentHTML('afterend', `
                 <div class="subpanel-title" style="margin-top: 18px;">Lavadoras con mayor impacto</div>
-                <p class="subpanel-copy">Ordenadas automaticamente segun el filtro activo y el porcentaje de afectacion.</p>
                 <div class="linea-breakdown" id="fallasBreakdown"></div>
             `);
         }
@@ -3277,16 +3581,14 @@
 
         const description = card.querySelector('.chart-description');
         if (description) {
-            description.innerHTML = '<i class="fas fa-info-circle"></i> Seguimiento de planes activos, pendientes y completados por lavadora';
+            description.innerHTML = '<i class="fas fa-info-circle"></i> Planes activos';
         }
 
         if (description && !document.getElementById('planesPriorityList')) {
             description.insertAdjacentHTML('afterend', `
                 <div class="subpanel-title" style="margin-top: 18px;">Carga por lavadora</div>
-                <p class="subpanel-copy">Balance de apertura, cierre y avance por linea.</p>
                 <div class="priority-list" id="planesPriorityList"></div>
                 <div class="subpanel-title" style="margin-top: 18px;">Planes activos prioritarios</div>
-                <p class="subpanel-copy">Actividades abiertas con mayor urgencia o sin fecha definida.</p>
                 <div class="worklist" id="planesWorkList"></div>
             `);
         }
@@ -3356,7 +3658,6 @@
                     </div>
                 </div>
                 <div class="subpanel-title" style="margin-top: 18px;">Ultimas revisiones registradas</div>
-                <p class="subpanel-copy">Se muestran las ultimas 5 revisiones registradas segun el alcance seleccionado.</p>
             `);
         }
 
@@ -3486,7 +3787,7 @@
                 ]);
             }
             if (breakdown) breakdown.innerHTML = infoBox('No hay datos disponibles para construir la matriz de fallas por linea.');
-            if (description) description.innerHTML = '<i class="fas fa-info-circle"></i> La grafica se activara cuando existan analisis vigentes por lavadora';
+            if (description) description.innerHTML = '<i class="fas fa-info-circle"></i> Sin datos vigentes';
             destroy(charts.fallas);
             setChartState('fallas', true, 'Sin datos de fallas', 'No existen componentes evaluados para mostrar la distribucion por linea.', 'fa-database');
             return;
@@ -3548,14 +3849,14 @@
         }
 
         if (description) {
-            const copy = state.fallasFilter === 'criticas'
-                    ? 'Vista enfocada solo en fallas críticas que requieren cambio inmediato.'
-                    : (state.fallasFilter === 'requiere_revision'
-                        ? 'Vista enfocada en componentes con alerta operativa para revisión.'
-                        : (state.fallasFilter === 'severas_moderadas'
-                            ? 'Vista enfocada en desgaste severo y moderado para seguimiento preventivo.'
-                            : 'Vista integral con criticidad, revisión y desgaste por cada lavadora.'));
-            description.innerHTML = `<i class="fas fa-info-circle"></i> ${copy}`;
+            const datoClave = state.fallasFilter === 'criticas'
+                ? `Críticas: ${criticas}`
+                : (state.fallasFilter === 'requiere_revision'
+                    ? `Revisión: ${revisiones}`
+                    : (state.fallasFilter === 'severas_moderadas'
+                        ? `Severo / Moderado: ${warnings}`
+                        : `Impactadas: ${impactadas}`));
+            description.innerHTML = `<i class="fas fa-info-circle"></i> ${datoClave} · Impacto promedio: ${percent(promedio, 1)}`;
         }
 
         const singleDatasetMeta = {
@@ -3644,7 +3945,7 @@
 
         if (banner) {
             banner.className = `status-banner ${status.nivel || 'estable'}`;
-            banner.innerHTML = `<i class="fas fa-shield-heart"></i><span>${escapeHtml(status.label || 'Controlado')}: ${escapeHtml(status.mensaje || 'Sin alertas activas')}</span>`;
+            banner.innerHTML = `<i class="fas fa-shield-heart"></i><span>${escapeHtml(status.label || 'Controlado')} · Pendientes: ${Number(summary.pendientes || 0)} · Vencidos: ${Number(summary.vencidos || 0)}</span>`;
         }
 
         if (stats) {
@@ -3657,12 +3958,12 @@
         }
 
         if (description) {
-            description.innerHTML = `<i class="fas fa-info-circle"></i> Avance global: ${Number(summary.avance || 0)}% · Total de planes registrados: ${Number(summary.total || 0)}`;
+            description.innerHTML = `<i class="fas fa-info-circle"></i> Avance: ${Number(summary.avance || 0)}% · Planes: ${Number(summary.total || 0)}`;
         }
 
         if (!Number(summary.total || 0)) {
             if (priority) priority.innerHTML = infoBox('No hay planes registrados para las lavadoras seleccionadas.');
-            if (work) work.innerHTML = infoBox('Cuando existan actividades abiertas se mostraran aqui.');
+            if (work) work.innerHTML = infoBox('Sin actividades abiertas.');
             destroy(charts.planes);
             setChartState('planes', true, 'Sin planes registrados', 'No existen planes de accion para construir el seguimiento operativo.', 'fa-clipboard');
             return;
@@ -3794,7 +4095,8 @@
         list.hidden = false;
         if (footer) {
             footer.hidden = false;
-            footer.innerHTML = '<div><i class="fas fa-info-circle"></i> Ordenado por danos activos y criticidad</div>';
+            const totalDanos = rows.reduce((sum, item) => sum + Number(item.total_danos || 0), 0);
+            footer.innerHTML = `<div><i class="fas fa-info-circle"></i> Daños activos: ${number(totalDanos, 0)} · Lavadoras: ${rows.length}</div>`;
         }
 
         list.innerHTML = rows.slice(0, 10).map((item, index) => `
@@ -3810,7 +4112,7 @@
                         <div class="ranking-meta">Total con dano: ${Number(item.total_danos || 0)} de ${Number(item.total_componentes || 0)} componentes · Impacto ${percent(item.porcentaje_impacto || 0, 1)} · ${elapsedDaysLabel(item.dias_desde_revision)}</div>
                     </div>
                 </div>
-                <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 8px;">
+                <div class="ranking-status-stack">
                     <span class="severity-pill ${severityClass(item.prioridad)}">${escapeHtml(item.prioridad_label || 'Estable')}</span>
                     <div class="ranking-badge"><i class="fas fa-bolt"></i> ${number(item.total_danos || 0, 0)} danos</div>
                 </div>
@@ -3977,7 +4279,7 @@
         }
 
         if (footer) {
-            footer.innerHTML = `<i class="fas fa-info-circle"></i> Historial dinamico de revisiones para ${escapeHtml(state.historicoScope === 'Todas' ? 'todas las lavadoras' : state.historicoScope)}.`;
+            footer.innerHTML = `<i class="fas fa-info-circle"></i> Revisiones visibles: ${registros.length} · ${escapeHtml(state.historicoScope === 'Todas' ? 'Todas las lavadoras' : state.historicoScope)}`;
         }
 
         destroy(charts.historico);
@@ -4035,7 +4337,7 @@
                     ['4 semanas', 0, 'Sin datos', 'success']
                 ]);
             }
-            if (description) description.innerHTML = '<i class="fas fa-info-circle"></i> La tendencia 52-12-4 se activara cuando exista historial suficiente';
+            if (description) description.innerHTML = '<i class="fas fa-info-circle"></i> Sin tendencia';
             destroy(charts.tendencia);
             setChartState('analisis52124', true, 'Sin tendencia disponible', 'Aun no existe historial para calcular las ventanas 52-12-4.', 'fa-wave-square');
             return;
