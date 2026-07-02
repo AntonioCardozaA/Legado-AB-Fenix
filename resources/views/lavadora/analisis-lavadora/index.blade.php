@@ -3233,7 +3233,17 @@
             <i class="fas fa-times group-hover:rotate-90 transition-transform"></i>
         </button>
         <div class="relative">
+            <button id="prevImageBtn"
+                    onclick="event.stopPropagation(); changeSingleImage(-1)"
+                    class="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-gray-800/60 hover:bg-gray-700/80 text-white text-2xl flex items-center justify-center backdrop-blur-sm border border-gray-600 transition-all z-10 hidden">
+                <i class="fas fa-chevron-left"></i>
+            </button>
             <img id="singleModalImg" class="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl border-4 border-gray-700">
+            <button id="nextImageBtn"
+                    onclick="event.stopPropagation(); changeSingleImage(1)"
+                    class="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-gray-800/60 hover:bg-gray-700/80 text-white text-2xl flex items-center justify-center backdrop-blur-sm border border-gray-600 transition-all z-10 hidden">
+                <i class="fas fa-chevron-right"></i>
+            </button>
             <div class="absolute bottom-6 left-1/2 transform -translate-x-1/2 bg-gray-900/80 backdrop-blur-sm text-white px-4 py-2 rounded-lg text-sm font-mono border border-gray-700">
                 <span id="currentImageCounter"></span>
             </div>
@@ -3841,10 +3851,11 @@ function setEvidenceImageFallback(img, originalPath) {
 }
 
 function buildDetailImageGridEnhanced(imagenes) {
+    currentImages = normalizeEvidenceImages(imagenes);
     const grid = document.getElementById('detail-image-grid');
     grid.innerHTML = '';
     
-    imagenes.forEach((path, index) => {
+    currentImages.forEach((path, index) => {
         const item = document.createElement('div');
         item.className = 'image-item';
         const safePath = String(path).replace(/'/g, "\\'");
@@ -3908,21 +3919,47 @@ function openAllImages(imagenes, fecha, orden, estado) {
     hideLoading();
 }
 
+function updateSingleImageModal() {
+    const img = document.getElementById('singleModalImg');
+    const counter = document.getElementById('currentImageCounter');
+    const prevBtn = document.getElementById('prevImageBtn');
+    const nextBtn = document.getElementById('nextImageBtn');
+    const imagePath = currentImages[currentImageIndex] ?? '';
+    const hasMultipleImages = currentImages.length > 1;
+
+    img.src = resolveEvidenceImageUrl(imagePath);
+    setEvidenceImageFallback(img, imagePath);
+    counter.textContent = currentImages.length > 0
+        ? `${currentImageIndex + 1} / ${currentImages.length}`
+        : '';
+
+    prevBtn.classList.toggle('hidden', !hasMultipleImages);
+    nextBtn.classList.toggle('hidden', !hasMultipleImages);
+}
+
 function openSingleImage(imagePath, index) {
     currentImageIndex = index;
     const modal = document.getElementById('singleImageModal');
-    const img = document.getElementById('singleModalImg');
-    const counter = document.getElementById('currentImageCounter');
-    
-    img.src = resolveEvidenceImageUrl(imagePath);
-    
-    if (currentImages.length > 0) {
-        counter.textContent = `${index + 1} / ${currentImages.length}`;
+
+    if (currentImages.length === 0) {
+        currentImages = [imagePath];
+        currentImageIndex = 0;
     }
+
+    updateSingleImageModal();
     
     modal.classList.remove('hidden');
     modal.classList.add('flex');
     document.body.style.overflow = 'hidden';
+}
+
+function changeSingleImage(direction) {
+    if (currentImages.length <= 1) {
+        return;
+    }
+
+    currentImageIndex = (currentImageIndex + direction + currentImages.length) % currentImages.length;
+    updateSingleImageModal();
 }
 
 function downloadSingleImage(imagePath, index) {

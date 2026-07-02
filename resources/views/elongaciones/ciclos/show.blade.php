@@ -31,7 +31,7 @@
             <p class="text-2xl font-bold text-gray-900">{{ \App\Support\HodometroHoras::formatear($resumen['vida_util_horas']) ?? '-' }}</p>
         </div>
         <div class="bg-white rounded-xl p-4 shadow border border-gray-200">
-            <p class="text-sm text-gray-600">Máx. bombas / vapor</p>
+            <p class="text-sm text-gray-600">Máx. L bombas / L vapor</p>
             <p class="text-2xl font-bold text-gray-900">{{ number_format($resumen['max_bombas'] ?? 0, 2) }}% / {{ number_format($resumen['max_vapor'] ?? 0, 2) }}%</p>
         </div>
         <div class="bg-white rounded-xl p-4 shadow border border-gray-200">
@@ -54,8 +54,8 @@
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fecha</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Hodómetro</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Horas ciclo</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Bombas</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Vapor</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Lado Bombas</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Lado Vapor</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Estado</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Detalle</th>
                     </tr>
