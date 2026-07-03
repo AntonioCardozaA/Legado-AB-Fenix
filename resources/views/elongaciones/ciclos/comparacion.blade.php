@@ -79,11 +79,11 @@
                             <p class="font-semibold text-gray-900">{{ $item['vida_util_horas'] !== null ? \App\Support\HodometroHoras::formatear($item['vida_util_horas']) : '-' }}</p>
                         </div>
                         <div>
-                            <p class="text-gray-500">Promedio bombas / vapor</p>
+                            <p class="text-gray-500">Promedio L bombas / L vapor</p>
                             <p class="font-semibold text-gray-900">{{ number_format($item['promedio_bombas'], 2) }}% / {{ number_format($item['promedio_vapor'], 2) }}%</p>
                         </div>
                         <div>
-                            <p class="text-gray-500">Máximo bombas / vapor</p>
+                            <p class="text-gray-500">Máximo L bombas / L vapor</p>
                             <p class="font-semibold text-gray-900">{{ number_format($item['max_bombas'] ?? 0, 2) }}% / {{ number_format($item['max_vapor'] ?? 0, 2) }}%</p>
                         </div>
                         <div>

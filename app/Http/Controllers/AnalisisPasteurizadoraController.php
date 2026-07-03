@@ -86,6 +86,60 @@ class AnalisisPasteurizadoraController extends Controller
         return view($view, $this->sharedViewData($data));
     }
 
+    private function positiveIntegerRule(string $message): \Closure
+    {
+        return function (string $attribute, mixed $value, \Closure $fail) use ($message): void {
+            if ($value === null || $value === '') {
+                return;
+            }
+
+            if (filter_var($value, FILTER_VALIDATE_INT) === false || (int) $value < 1) {
+                $fail($message);
+            }
+        };
+    }
+
+    private function zeroOrPositiveIntegerRule(string $message): \Closure
+    {
+        return function (string $attribute, mixed $value, \Closure $fail) use ($message): void {
+            if ($value === null || $value === '') {
+                return;
+            }
+
+            if (filter_var($value, FILTER_VALIDATE_INT) === false || (int) $value < 0) {
+                $fail($message);
+            }
+        };
+    }
+
+    private function maxStringLengthRule(int $maxLength, string $message): \Closure
+    {
+        return function (string $attribute, mixed $value, \Closure $fail) use ($maxLength, $message): void {
+            if ($value === null || $value === '') {
+                return;
+            }
+
+            if (mb_strlen((string) $value) > $maxLength) {
+                $fail($message);
+            }
+        };
+    }
+
+    private function maxUploadedFileKilobytesRule(int $maxKilobytes, string $message): \Closure
+    {
+        return function (string $attribute, mixed $value, \Closure $fail) use ($maxKilobytes, $message): void {
+            if (!$value || !method_exists($value, 'getSize')) {
+                return;
+            }
+
+            $sizeInKilobytes = (int) ceil(((int) $value->getSize()) / 1024);
+
+            if ($sizeInKilobytes > $maxKilobytes) {
+                $fail($message);
+            }
+        };
+    }
+
     private function getRevisionesAgrupadasHistorico($lineas): array
     {
         if ($lineas->isEmpty()) {
@@ -525,21 +579,20 @@ class AnalisisPasteurizadoraController extends Controller
 
         $validated = $request->validate([
             'linea_id' => 'required|exists:lineas,id',
-            'modulo' => 'required|integer|min:1',
+            'modulo' => ['required', 'integer', $this->positiveIntegerRule('El modulo debe ser un numero entero mayor a 0.')],
             'nivel' => 'required|in:SUPERIOR,INFERIOR',
             'componente' => 'required|string',
             'lado' => 'required|in:VAPOR,PASILLO',
             'fecha_analisis' => 'required|date',
-            'numero_orden' => ['nullable', 'regex:/^\d+$/', 'max:50'],
+            'numero_orden' => ['nullable', 'regex:/^\d+$/', $this->maxStringLengthRule(50, 'El numero de orden no puede tener mas de 50 digitos.')],
             'estado' => 'required|in:' . implode(',', AnalisisPasteurizadora::ESTADOS),
             'actividad' => 'required|string',
             'evidencia_fotos' => 'nullable|array',
-            'evidencia_fotos.*' => 'nullable|image|max:5120',
+            'evidencia_fotos.*' => ['nullable', 'image', $this->maxUploadedFileKilobytesRule(5120, 'Cada imagen no puede superar los 5 MB.')],
             'componentes_revisados' => 'nullable',
-            'numero_componente' => 'nullable|integer|min:1',
+            'numero_componente' => ['nullable', 'integer', $this->positiveIntegerRule('Seleccione un numero de componente valido.')],
         ], [
             'numero_orden.regex' => 'El numero de orden solo puede contener numeros.',
-            'numero_orden.max' => 'El numero de orden no puede tener mas de 50 digitos.',
         ]);
 
         // Obtener la linea y validar la seleccion de componentes
@@ -727,24 +780,23 @@ class AnalisisPasteurizadoraController extends Controller
         $esQuick = $analisis->es_registro_quick;
 
         $validated = $request->validate([
-            'modulo' => 'nullable|integer|min:1',
+            'modulo' => ['nullable', 'integer', $this->positiveIntegerRule('El modulo debe ser un numero entero mayor a 0.')],
             'componente' => 'nullable|string',
             'nivel' => 'nullable|in:SUPERIOR,INFERIOR',
             'fecha_analisis' => 'nullable|date',
-            'numero_orden' => ['nullable', 'regex:/^\d+$/', 'max:50'],
+            'numero_orden' => ['nullable', 'regex:/^\d+$/', $this->maxStringLengthRule(50, 'El numero de orden no puede tener mas de 50 digitos.')],
             'actividad' => 'nullable|string',
             'estado' => 'nullable|string|in:' . implode(',', AnalisisPasteurizadora::ESTADOS),
             'lado' => 'nullable|in:VAPOR,PASILLO',
             'observaciones' => 'nullable|string',
             'componentes_revisados' => 'nullable|array',
-            'numero_componente' => 'nullable|integer|min:1',
+            'numero_componente' => ['nullable', 'integer', $this->positiveIntegerRule('Seleccione un numero de componente valido.')],
             'evidencia_fotos' => 'nullable|array',
-            'evidencia_fotos.*' => 'nullable|image|max:5120',
+            'evidencia_fotos.*' => ['nullable', 'image', $this->maxUploadedFileKilobytesRule(5120, 'Cada imagen no puede superar los 5 MB.')],
             'eliminar_fotos' => 'nullable|array',
-            'eliminar_fotos.*' => 'integer|min:0',
+            'eliminar_fotos.*' => ['integer', $this->zeroOrPositiveIntegerRule('El indice de la foto a eliminar no es valido.')],
         ], [
             'numero_orden.regex' => 'El numero de orden solo puede contener numeros.',
-            'numero_orden.max' => 'El numero de orden no puede tener mas de 50 digitos.',
         ]);
 
         unset($validated['eliminar_fotos'], $validated['responsable']);
@@ -1146,7 +1198,7 @@ class AnalisisPasteurizadoraController extends Controller
     {
         $request->validate([
             'linea_id' => 'required|exists:lineas,id',
-            'modulo' => 'required|integer|min:1',
+            'modulo' => ['required', 'integer', $this->positiveIntegerRule('El modulo debe ser un numero entero mayor a 0.')],
             'componente' => 'required|string',
             'lado' => 'nullable|in:VAPOR,PASILLO',
             'nivel' => 'nullable|in:SUPERIOR,INFERIOR',
@@ -1183,7 +1235,7 @@ class AnalisisPasteurizadoraController extends Controller
     {
         $request->validate([
             'linea_id' => 'required|exists:lineas,id',
-            'modulo' => 'required|integer|min:1',
+            'modulo' => ['required', 'integer', $this->positiveIntegerRule('El modulo debe ser un numero entero mayor a 0.')],
             'componente' => 'required|string',
             'lado' => 'nullable|in:VAPOR,PASILLO',
             'nivel' => 'nullable|in:SUPERIOR,INFERIOR',

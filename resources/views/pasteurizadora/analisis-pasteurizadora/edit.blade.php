@@ -345,13 +345,16 @@
                     </label>
                     <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
                         @foreach($evidencias as $index => $foto)
+                            @php
+                                $fotoUrl = asset('storage/' . ltrim(str_replace('\\', '/', $foto), '/'));
+                            @endphp
                             <div class="relative group border border-gray-200 rounded-lg p-2 bg-gray-50 hover:bg-gray-100 transition">
-                                <img src="{{ Storage::url($foto) }}"
+                                <img src="{{ $fotoUrl }}"
                                      alt="Evidencia {{ $loop->iteration }}"
                                      class="w-full h-32 object-cover rounded-md border border-gray-300 mb-2">
 
                                 <div class="flex items-center justify-between gap-2">
-                                    <a href="{{ Storage::url($foto) }}"
+                                    <a href="{{ $fotoUrl }}"
                                        target="_blank"
                                        class="inline-flex min-h-10 items-center justify-center gap-1 rounded-lg px-3 text-sm font-semibold text-blue-600 transition hover:bg-blue-50 hover:text-blue-800">
                                         <i class="fas fa-expand text-xs"></i>

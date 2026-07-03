@@ -976,6 +976,12 @@
         gap: 10px;
     }
 
+    .ranking-card .asset-media,
+    .ranking-card .ranking-meta,
+    .ranking-card .severity-pill {
+        display: none;
+    }
+
     .ranking-card .ranking-info {
         margin-left: 0;
         gap: 2px;
