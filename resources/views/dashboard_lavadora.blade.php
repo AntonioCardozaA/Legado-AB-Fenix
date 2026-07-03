@@ -2038,6 +2038,104 @@
         margin-bottom: 10px;
     }
 
+    .trend-summary-grid {
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr));
+    }
+
+    .trend-detail-panel {
+        margin-top: 16px;
+        min-width: 0;
+    }
+
+    .trend-insight-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+        align-items: start;
+    }
+
+    .trend-chart-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+        gap: 12px;
+        margin-top: 18px;
+    }
+
+    .trend-chart-grid.two-up {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        margin-top: 0;
+    }
+
+    .trend-mini-chart {
+        background: white;
+        border: 1px solid rgba(148, 163, 184, 0.18);
+        border-radius: 14px;
+        padding: 12px;
+        min-width: 0;
+    }
+
+    .trend-mini-chart.wide {
+        grid-column: 1 / -1;
+    }
+
+    .trend-mini-chart-container {
+        position: relative;
+        height: 230px;
+        width: 100%;
+        min-width: 0;
+    }
+
+    .trend-mini-chart-container.horizontal {
+        height: 260px;
+    }
+
+    .trend-mini-chart-container.horizontal.tall {
+        height: 320px;
+    }
+
+    .trend-mini-chart-container.horizontal.wide {
+        height: 380px;
+    }
+
+    .trend-detail-table-wrap {
+        margin-top: 8px;
+    }
+
+    .trend-detail-table {
+        min-width: 860px;
+    }
+
+    .trend-detail-table td:last-child {
+        text-align: left;
+        color: var(--text-primary);
+    }
+
+    .trend-damage-chips,
+    .trend-location-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 6px;
+    }
+
+    .trend-location-list {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .trend-muted {
+        color: var(--text-secondary);
+        font-size: 11px;
+        line-height: 1.35;
+    }
+
+    .trend-value-stack {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        align-items: flex-start;
+    }
+
     .panel-copy:empty,
     .subpanel-copy:empty {
         display: none;
@@ -2158,8 +2256,15 @@
     @media (max-width: 640px) {
         .mini-stats-grid,
         .mini-stats-grid.compact,
-        .info-grid {
+        .info-grid,
+        .trend-insight-grid,
+        .trend-chart-grid,
+        .trend-chart-grid.two-up {
             grid-template-columns: 1fr;
+        }
+
+        .trend-mini-chart-container {
+            height: 220px;
         }
 
         .chart-container,
@@ -3117,39 +3222,39 @@
                     {
                         label: '52 Semanas',
                         data: data52,
-                        backgroundColor: 'rgba(59, 130, 246, 0.9)',
-                        borderColor: '#1e40af',
-                        borderWidth: 2,
-                        borderRadius: 10,
-                        borderSkipped: false,
-                        hoverBackgroundColor: 'rgba(29, 78, 216, 1)',
-                        hoverBorderColor: '#1e3a8a',
-                        hoverBorderWidth: 3,
-                        hoverOffset: 6
-                    },
-                    {
-                        label: '12 Semanas',
-                        data: data12,
-                        backgroundColor: 'rgba(245, 158, 11, 0.9)',
-                        borderColor: '#b45309',
-                        borderWidth: 2,
-                        borderRadius: 10,
-                        borderSkipped: false,
-                        hoverBackgroundColor: 'rgba(217, 119, 6, 1)',
-                        hoverBorderColor: '#92400e',
-                        hoverBorderWidth: 3,
-                        hoverOffset: 6
-                    },
-                    {
-                        label: '4 Semanas',
-                        data: data4,
-                        backgroundColor: 'rgba(16, 185, 129, 0.9)',
+                        backgroundColor: 'rgba(16, 185, 129, 0.88)',
                         borderColor: '#047857',
                         borderWidth: 2,
                         borderRadius: 10,
                         borderSkipped: false,
                         hoverBackgroundColor: 'rgba(5, 150, 105, 1)',
                         hoverBorderColor: '#065f46',
+                        hoverBorderWidth: 3,
+                        hoverOffset: 6
+                    },
+                    {
+                        label: '12 Semanas',
+                        data: data12,
+                        backgroundColor: 'rgba(239, 68, 68, 0.88)',
+                        borderColor: '#dc2626',
+                        borderWidth: 2,
+                        borderRadius: 10,
+                        borderSkipped: false,
+                        hoverBackgroundColor: 'rgba(220, 38, 38, 1)',
+                        hoverBorderColor: '#991b1b',
+                        hoverBorderWidth: 3,
+                        hoverOffset: 6
+                    },
+                    {
+                        label: '4 Semanas',
+                        data: data4,
+                        backgroundColor: 'rgba(245, 158, 11, 0.9)',
+                        borderColor: '#d97706',
+                        borderWidth: 2,
+                        borderRadius: 10,
+                        borderSkipped: false,
+                        hoverBackgroundColor: 'rgba(217, 119, 6, 1)',
+                        hoverBorderColor: '#92400e',
                         hoverBorderWidth: 3,
                         hoverOffset: 6
                     }
@@ -3686,6 +3791,7 @@
     function setupTendenciaCard() {
         setupDamageTrendCard({
             cardId: 'analisis52124Chart',
+            analysisLabel: 'Analisis 52-12-4',
             title: 'Analisis 52-12-4 | Tendencia de daños',
             icon: 'fas fa-wave-square',
             prefix: 'analisis52124',
@@ -3707,6 +3813,7 @@
     function setupTendencia30147Card() {
         setupDamageTrendCard({
             cardId: 'analisis30147Chart',
+            analysisLabel: 'Analisis 30-14-7',
             title: 'Analisis 30-14-7 | Tendencia de daños',
             icon: 'fas fa-chart-line',
             prefix: 'analisis30147',
@@ -3758,7 +3865,53 @@
                 </button>
             </form>
         `);
+        ensureAfterElement(config.actionsId, `${config.prefix}Stats`, `<div id="${config.prefix}Stats" class="mini-stats-grid trend-summary-grid"></div>`);
+        ensureAfterElement(`${config.prefix}Stats`, `${config.prefix}Copy`, `<p id="${config.prefix}Copy" class="panel-copy"></p>`);
         ensureChartShell(config.cardId, config.prefix, { tall: true });
+
+        const shell = document.querySelector(`[data-chart-container="${config.prefix}"]`)?.closest('.chart-shell');
+        if (shell && !document.getElementById(`${config.prefix}Details`)) {
+            shell.insertAdjacentHTML('afterend', `
+                <div id="${config.prefix}Details" class="trend-detail-panel">
+                    <div class="trend-chart-grid two-up">
+                        <div class="trend-mini-chart">
+                            <div class="subpanel-title">${escapeHtml(config.analysisLabel || 'Analisis')} - componentes criticos</div>
+                            <div class="subpanel-copy">Barras: total acumulado por componente; el tooltip muestra participacion, dano principal, ubicaciones y ultima falla.</div>
+                            <div class="trend-mini-chart-container horizontal tall">
+                                <canvas id="${config.prefix}ComponentBar"></canvas>
+                            </div>
+                        </div>
+                        <div class="trend-mini-chart">
+                            <div class="subpanel-title">${escapeHtml(config.analysisLabel || 'Analisis')} - tipos de dano frecuentes</div>
+                            <div class="subpanel-copy">Barras: ultimo registro por componente/ubicacion; el tooltip conserva el historial del periodo, componentes afectados y ultima falla.</div>
+                            <div class="trend-mini-chart-container horizontal tall">
+                                <canvas id="${config.prefix}DamageBar"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="subpanel-title" style="display: none; margin-top: 18px;">Detalle por componente y dano</div>
+                    <div class="overflow-x-auto trend-detail-table-wrap" style="display: none;">
+                        <table class="trend-detail-table">
+                            <thead>
+                                <tr>
+                                    <th>Componente</th>
+                                    <th>Total</th>
+                                    <th>Participacion</th>
+                                    <th>Dano principal</th>
+                                    <th>Ubicacion</th>
+                                    <th>Mes actual</th>
+                                    <th>Ultima falla</th>
+                                </tr>
+                            </thead>
+                            <tbody id="${config.prefix}DetailTable"></tbody>
+                        </table>
+                    </div>
+                    <div class="subpanel-title" style="display: none; margin-top: 18px;">Ultimos danos registrados</div>
+                    <div class="worklist" id="${config.prefix}RecentEvents" style="display: none;"></div>
+                    <div class="legend-inline" id="${config.prefix}Criteria"></div>
+                </div>
+            `);
+        }
 
         const select = document.getElementById(config.selectId);
         if (select && select.dataset.bound !== 'true') {
@@ -4368,9 +4521,9 @@
             data: {
                 labels: item.labels,
                 datasets: [
-                    { label: '52 semanas', data: (item.semanas_52 || []).map((value) => Number(value || 0)), borderColor: '#2563eb', backgroundColor: 'rgba(37, 99, 235, 0.82)', borderWidth: 2, borderRadius: 8, borderSkipped: false },
-                    { label: '12 semanas', data: (item.semanas_12 || []).map((value) => Number(value || 0)), borderColor: '#f59e0b', backgroundColor: 'rgba(245, 158, 11, 0.82)', borderWidth: 2, borderRadius: 8, borderSkipped: false },
-                    { label: '4 semanas', data: (item.semanas_4 || []).map((value) => Number(value || 0)), borderColor: '#10b981', backgroundColor: 'rgba(16, 185, 129, 0.82)', borderWidth: 2, borderRadius: 8, borderSkipped: false }
+                    { label: '52 semanas', data: (item.semanas_52 || []).map((value) => Number(value || 0)), borderColor: '#047857', backgroundColor: 'rgba(16, 185, 129, 0.88)', borderWidth: 2, borderRadius: 8, borderSkipped: false },
+                    { label: '12 semanas', data: (item.semanas_12 || []).map((value) => Number(value || 0)), borderColor: '#dc2626', backgroundColor: 'rgba(239, 68, 68, 0.88)', borderWidth: 2, borderRadius: 8, borderSkipped: false },
+                    { label: '4 semanas', data: (item.semanas_4 || []).map((value) => Number(value || 0)), borderColor: '#d97706', backgroundColor: 'rgba(245, 158, 11, 0.9)', borderWidth: 2, borderRadius: 8, borderSkipped: false }
                 ]
             },
             options: {
@@ -4393,6 +4546,7 @@
         renderDamageTrendCardCompact({
             dataKey: 'tendencia',
             chartKey: 'tendencia',
+            analysisLabel: 'Analisis 52-12-4',
             cardId: 'analisis52124Chart',
             prefix: 'analisis52124',
             selectId: 'analisis52124LineaSelect',
@@ -4410,6 +4564,7 @@
         renderDamageTrendCardCompact({
             dataKey: 'tendencia30147',
             chartKey: 'tendencia30147',
+            analysisLabel: 'Analisis 30-14-7',
             cardId: 'analisis30147Chart',
             prefix: 'analisis30147',
             selectId: 'analisis30147LineaSelect',
@@ -4458,9 +4613,10 @@
             description.innerHTML = `<i class="fas fa-info-circle"></i> ${escapeHtml(item.linea || 'Sin linea')} · ${escapeHtml(resumen.estado || 'Sin fallas')} · Ultima falla ${escapeHtml(resumen.ultima_falla || 'Sin registro')} · Fuente ${escapeHtml(formatTrendCriteriaLabel(resumen.ultima_fuente || 'Sin registro'))}`;
         }
 
-        const borderColors = ['#2563eb', '#f59e0b', '#10b981'];
-        const currentColors = ['rgba(37, 99, 235, 0.82)', 'rgba(245, 158, 11, 0.82)', 'rgba(16, 185, 129, 0.82)'];
-        const previousColors = ['rgba(37, 99, 235, 0.22)', 'rgba(245, 158, 11, 0.22)', 'rgba(16, 185, 129, 0.22)'];
+        const windowColors = (item.labels || []).map((label) => trendWindowColorForLabel(label));
+        const borderColors = windowColors.map((color) => color.border);
+        const currentColors = windowColors.map((color) => color.fill);
+        const previousColors = windowColors.map((color) => color.soft);
 
         destroy(charts[config.chartKey]);
         setChartState(config.prefix, false);
@@ -4608,12 +4764,647 @@
         });
     }
 
+    function renderDamageTrendCardCompact(config) {
+        const dataset = data[config.dataKey] || {};
+        const rows = Array.isArray(dataset.lineas) ? dataset.lineas : [];
+        const select = document.getElementById(config.selectId);
+        const item = rows.find((row) => Number(row.linea_id) === Number(state[config.stateKey])) || rows[0];
+        const global = dataset.global || {};
+        const periodo = dataset.periodo || item?.resumen?.periodo || {};
+        const stats = document.getElementById(config.statsId);
+        const copy = document.getElementById(`${config.prefix}Copy`);
+        const tableBody = document.getElementById(`${config.prefix}DetailTable`);
+        const recentEvents = document.getElementById(`${config.prefix}RecentEvents`);
+        const criteria = document.getElementById(config.criteriaId);
+
+        if (select) select.value = String(item?.linea_id ?? state[config.stateKey] ?? '');
+
+        if (!item || item.sin_datos || !Array.isArray(item.labels) || !item.labels.length) {
+            const emptyPeriod = periodo.label || 'Historico disponible';
+            if (stats) {
+                stats.innerHTML = miniStats([
+                    ['Total danos', 0, emptyPeriod, 'info'],
+                    ['Componentes', 0, 'Sin fallas registradas', 'success'],
+                    ['Dano frecuente', 'N/A', 'Sin registros', 'warning'],
+                    ['Participacion', '0%', 'Sin incidencia global', 'info']
+                ]);
+            }
+            if (copy) copy.textContent = 'No hay danos historicos para la lavadora seleccionada en el periodo visible.';
+            if (tableBody) tableBody.innerHTML = `<tr><td colspan="7" class="text-center text-gray-500 py-6">No hay detalle por componente para este periodo.</td></tr>`;
+            if (recentEvents) recentEvents.innerHTML = infoBox('Sin eventos recientes para mostrar.');
+            if (criteria) criteria.innerHTML = trendCriteriaMarkup(dataset.criterios || [], periodo);
+            destroy(charts[config.chartKey]);
+            destroy(charts[`${config.chartKey}DamageBar`]);
+            destroy(charts[`${config.chartKey}ComponentBar`]);
+            destroy(charts[`${config.chartKey}DamageComponentBar`]);
+            setChartState(config.prefix, true, config.emptyTitle, config.emptyMessage, config.emptyIcon);
+            return;
+        }
+
+        const resumen = item.resumen || {};
+        const componentes = Array.isArray(item.componentes) ? item.componentes : [];
+        const danos = Array.isArray(item.danos) ? item.danos : [];
+        const matriz = Array.isArray(item.matriz_componentes_danos) ? item.matriz_componentes_danos : componentes;
+        const eventos = Array.isArray(item.eventos) ? item.eventos : [];
+        const graphData = item.graficas || {};
+        const componentSeries = Array.isArray(graphData.barras_componentes?.series)
+            ? graphData.barras_componentes.series
+            : (Array.isArray(item.componentes_series) ? item.componentes_series : []);
+        const totalMensual = Array.isArray(graphData.barras_componentes?.total_mensual)
+            ? graphData.barras_componentes.total_mensual.map((value) => Number(value || 0))
+            : (Array.isArray(item.total_mensual) ? item.total_mensual.map((value) => Number(value || 0)) : []);
+        const componentStackTotals = (item.labels || []).map((label, index) => componentSeries.reduce((sum, serie) => {
+            const value = Array.isArray(serie.data) ? Number(serie.data[index] || 0) : 0;
+
+            return sum + value;
+        }, 0));
+        const maxComponentStack = Math.max(0, ...componentStackTotals);
+        const totalPeriodo = Number(resumen.total_periodo ?? resumen.total_fallas ?? 0);
+        const describeWindowLabel = (label) => {
+            const normalized = normalizeTrendLabel(label || '').toLowerCase();
+
+            if (normalized.includes('52')) return '52 semanas = 1 ano hacia atras';
+            if (normalized.includes('12')) return '12 semanas = 3 meses hacia atras';
+            if (normalized.includes('30')) return '30 dias hacia atras desde el dia actual';
+            if (normalized.includes('14')) return '14 dias hacia atras desde el dia actual';
+            if (normalized.includes('7')) return '7 dias hacia atras desde el dia actual';
+            if (normalized.includes('4')) return '4 semanas = 1 mes hacia atras';
+
+            return 'Lapso acumulado hacia atras';
+        };
+        const serviceWindowMeta = Array.isArray(graphData.barras_ventanas?.meta) ? graphData.barras_ventanas.meta : [];
+        const windowSeries = Array.isArray(graphData.barras_ventanas?.series)
+            ? graphData.barras_ventanas.series
+            : (Array.isArray(item.series) ? item.series : []);
+        const damagePercent = (value) => Math.min(Math.max(Number(value || 0), 0), 100);
+        const windowSummary = serviceWindowMeta.length
+            ? serviceWindowMeta.map((serie) => ({
+                label: normalizeTrendLabel(serie.label || 'Ventana'),
+                value: Number(serie.porcentaje || 0),
+                total: Number(serie.total || 0),
+                desde: serie.desde || null,
+                hasta: serie.hasta || null,
+                description: serie.descripcion || describeWindowLabel(serie.label || ''),
+                scale: serie.escala || '1 dano = 1%'
+            }))
+            : windowSeries
+                .map((serie, index) => {
+                    const serieData = Array.isArray(serie.data) ? serie.data.map((value) => Number(value || 0)) : [];
+                    const label = normalizeTrendLabel(serie.label || 'Ventana');
+                    const total = serieData.length ? Number(serieData[serieData.length - 1] || 0) : 0;
+
+                    return {
+                        label,
+                        value: damagePercent(total),
+                        total,
+                        description: describeWindowLabel(label),
+                        scale: '1 dano = 1%'
+                    };
+                })
+                .filter((serie) => serie.label);
+        const chartWindows = windowSummary.length
+            ? windowSummary
+            : [{ label: 'Total periodo', value: damagePercent(totalPeriodo), total: totalPeriodo, description: 'Total de fallas en el periodo visible', scale: '1 dano = 1%' }];
+        const totalGlobal = Number(global.total_fallas || 0);
+        const componenteCritico = resumen.componente_critico || componentes[0]?.componente || 'Sin componente';
+        const danoFrecuente = resumen.dano_mas_frecuente || danos[0]?.estado || 'Sin dano';
+        const participacion = Number(resumen.participacion_global ?? resumen.porcentaje_total_global ?? 0);
+        const periodoLabel = periodo.label || resumen.periodo?.label || 'Historico disponible';
+        const variacion = resumen.variacion_mensual || null;
+
+        if (stats) {
+            stats.innerHTML = miniStats([
+                ['Total danos', number(totalPeriodo), periodoLabel, totalPeriodo > 0 ? 'danger' : 'success'],
+                ['Componente critico', componenteCritico, `${number(resumen.componente_critico_total || componentes[0]?.total || 0)} incidencias`, 'warning'],
+                ['Dano frecuente', formatTrendCriteriaLabel(danoFrecuente), `${number(resumen.dano_mas_frecuente_total || danos[0]?.total || 0)} veces`, 'severo'],
+                ['Participacion', percent(participacion, 1), `${number(totalGlobal)} danos globales`, 'info'],
+                ['Mes actual', number(resumen.ultimo_mes_total || 0), trendDeltaText(variacion), trendDeltaClass(variacion)]
+            ]);
+        }
+
+        if (copy) {
+            const topLavadora = global.lavadora_mas_fallas?.linea || 'sin lider global';
+            const mesPico = resumen.mes_pico?.periodo ? `${resumen.mes_pico.periodo} (${number(resumen.mes_pico.total || 0)})` : 'sin pico definido';
+            const analysisLabel = config.analysisLabel || 'Analisis de danos';
+            copy.textContent = `${analysisLabel}: ${item.linea || 'Lavadora'} concentra ${number(totalPeriodo)} danos del periodo (${percent(participacion, 1)} del total). La grafica principal usa escala directa: 1 dano equivale a 1% hasta un maximo visual de 100%; el tooltip muestra rango y total real. Componente mas afectado: ${componenteCritico}. Lavadora con mayor incidencia global: ${topLavadora}. Mes pico: ${mesPico}.`;
+        }
+
+        if (tableBody) {
+            tableBody.innerHTML = matriz.length
+                ? matriz.slice(0, 10).map((row) => {
+                    const danosChips = (row.danos || []).slice(0, 3).map((damage) => `<span class="severity-pill ${trendCriteriaPillClass(damage.estado || '')}">${escapeHtml(formatTrendCriteriaLabel(damage.estado || 'Sin estado'))}: ${number(damage.total || 0)}</span>`).join('');
+                    const ubicaciones = (row.ubicaciones || []).slice(0, 3).map((location) => `<span>${escapeHtml(location.ubicacion || 'Sin ubicacion')} (${number(location.total || 0)})</span>`).join('');
+
+                    return `
+                        <tr>
+                            <td data-label="Componente">
+                                <div class="trend-value-stack">
+                                    <strong>${escapeHtml(row.componente || 'Sin componente')}</strong>
+                                    ${row.codigo ? `<span class="trend-muted">${escapeHtml(row.codigo)}</span>` : ''}
+                                    <div class="trend-damage-chips">${danosChips}</div>
+                                </div>
+                            </td>
+                            <td data-label="Total">${number(row.total || 0)}</td>
+                            <td data-label="Participacion">${percent(row.porcentaje || 0, 1)}</td>
+                            <td data-label="Dano principal">${escapeHtml(formatTrendCriteriaLabel(row.dano_principal || 'Sin dato'))}<div class="trend-muted">${number(row.dano_principal_total || 0)} veces</div></td>
+                            <td data-label="Ubicacion"><div class="trend-location-list">${ubicaciones || '<span>Sin ubicacion</span>'}</div></td>
+                            <td data-label="Mes actual"><span class="severity-pill ${Number(row.delta_mes || 0) > 0 ? 'critico' : (Number(row.delta_mes || 0) < 0 ? 'estable' : 'revision')}">${Number(row.delta_mes || 0) > 0 ? '+' : ''}${number(row.delta_mes || 0)}</span></td>
+                            <td data-label="Ultima falla">${escapeHtml(row.ultima_falla || 'Sin fecha')}</td>
+                        </tr>
+                    `;
+                }).join('')
+                : `<tr><td colspan="7" class="text-center text-gray-500 py-6">No hay detalle por componente para este periodo.</td></tr>`;
+        }
+
+        if (recentEvents) {
+            recentEvents.innerHTML = eventos.length
+                ? eventos.slice(0, 6).map((event) => `
+                    <div class="work-item">
+                        <div class="work-item-top">
+                            <div>
+                                <div class="work-title">${escapeHtml(event.fecha || 'Sin fecha')} - ${escapeHtml(event.componente || 'Sin componente')}</div>
+                                <div class="work-meta">${escapeHtml(event.ubicacion || event.reductor || event.lado || 'Sin ubicacion')}</div>
+                            </div>
+                            <span class="severity-pill ${trendCriteriaPillClass(event.estado || '')}">${escapeHtml(formatTrendCriteriaLabel(event.estado || 'Sin estado'))}</span>
+                        </div>
+                    </div>
+                `).join('')
+                : infoBox('Sin eventos recientes para mostrar.');
+        }
+
+        if (criteria) {
+            criteria.innerHTML = trendCriteriaMarkup(dataset.criterios || [], periodo);
+        }
+
+        renderTrendDetailCharts(config, item);
+
+        const visibleBarDatasets = [{
+            type: 'bar',
+            label: config.analysisLabel || 'Analisis',
+            data: chartWindows.map((serie) => Number(serie.value || 0)),
+            borderColor: chartWindows.map((serie) => trendWindowColorForLabel(serie.label).border),
+            backgroundColor: chartWindows.map((serie) => trendWindowColorForLabel(serie.label).fill),
+            borderWidth: 2,
+            borderRadius: 10,
+            borderSkipped: false,
+            minBarLength: 8,
+            maxBarThickness: 74,
+            order: 2
+        }];
+
+        destroy(charts[config.chartKey]);
+        setChartState(config.prefix, false);
+        charts[config.chartKey] = new Chart(document.getElementById(config.cardId).getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: chartWindows.map((serie) => serie.label),
+                datasets: visibleBarDatasets
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(15, 23, 42, 0.96)',
+                        titleColor: '#fff',
+                        bodyColor: '#e2e8f0',
+                        callbacks: {
+                            title: (context) => `${normalizeTrendLabel(context[0]?.label || '')} - ${periodoLabel}`,
+                            label: (context) => `Incidencia: ${percent(context.raw || 0, 1)}`,
+                            afterBody: (contexts) => {
+                                const window = chartWindows[contexts[0]?.dataIndex ?? -1];
+
+                                if (!window) return [];
+
+                                return [
+                                    `Total real: ${number(window.total || 0)} danos`,
+                                    window.desde && window.hasta ? `Rango: ${window.desde} al ${window.hasta}` : null,
+                                    `Escala: ${window.scale || '1 dano = 1%'}`,
+                                    window.description || null
+                                ].filter(Boolean);
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: { display: false },
+                        ticks: {
+                            color: '#334155',
+                            font: { size: 11, weight: 800 },
+                            maxRotation: 0,
+                            minRotation: 0
+                        }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        suggestedMax: 100,
+                        max: 100,
+                        grid: { color: 'rgba(148, 163, 184, 0.16)' },
+                        title: {
+                            display: true,
+                            text: 'Incidencia por cantidad de danos (%)',
+                            color: '#64748b',
+                            font: { size: 12, weight: 700 }
+                        },
+                        ticks: {
+                            precision: 0,
+                            color: '#64748b',
+                            callback: (value) => `${value}%`
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    function renderTrendDetailCharts(config, item) {
+        const graphData = item?.graficas || {};
+
+        destroy(charts[`${config.chartKey}ComponentBar`]);
+        destroy(charts[`${config.chartKey}DamageBar`]);
+        destroy(charts[`${config.chartKey}DamageComponentBar`]);
+
+        charts[`${config.chartKey}ComponentBar`] = createTrendHorizontalBarChart(
+            `${config.prefix}ComponentBar`,
+            graphData.barras_componentes_totales || {},
+            'Componentes con mayor incidencia',
+            { datasetLabel: 'Danos por componente' }
+        );
+        charts[`${config.chartKey}DamageBar`] = createTrendHorizontalBarChart(
+            `${config.prefix}DamageBar`,
+            graphData.pastel_danos || {},
+            'Tipos de dano frecuentes',
+            { datasetLabel: 'Danos por tipo de dano', damageMode: true }
+        );
+    }
+
+    function trendMetaList(items, labelKey, limit = 3) {
+        if (!Array.isArray(items) || !items.length) {
+            return null;
+        }
+
+        return items
+            .slice(0, limit)
+            .map((item) => `${item[labelKey] || 'Sin dato'} (${number(item.total || 0)})`)
+            .join(', ');
+    }
+
+    function trendComponentTooltipLines(meta) {
+        const lines = [];
+
+        if (!meta) return lines;
+        if (meta.codigo) lines.push(`Codigo: ${meta.codigo}`);
+        if (meta.porcentaje !== undefined) lines.push(`Participacion: ${percent(meta.porcentaje || 0, 1)}`);
+        if (meta.dano_principal) lines.push(`Dano principal: ${formatTrendCriteriaLabel(meta.dano_principal)}`);
+        if (meta.ultima_falla) lines.push(`Ultima falla: ${meta.ultima_falla}`);
+
+        const locations = trendMetaList(meta.ubicaciones, 'ubicacion');
+        if (locations) lines.push(`Ubicaciones: ${locations}`);
+
+        const damages = trendMetaList(meta.danos, 'estado');
+        if (damages) lines.push(`Danos: ${damages}`);
+
+        return lines;
+    }
+
+    function trendDamageTooltipLines(meta) {
+        const lines = [];
+
+        if (!meta) return lines;
+        if (meta.porcentaje !== undefined) lines.push(`Participacion: ${percent(meta.porcentaje || 0, 1)}`);
+        if (meta.ultima_falla) lines.push(`Ultima falla: ${meta.ultima_falla}`);
+        if (meta.historial_total !== undefined) {
+            lines.push(`Historial del periodo: ${number(meta.historial_total || 0)} registros`);
+        }
+        if (meta.componentes_afectados !== undefined) {
+            lines.push(`Componentes afectados: ${number(meta.componentes_afectados || 0)}`);
+        }
+
+        const components = trendMetaList(meta.componentes, 'componente', 4);
+        if (components) lines.push(`Componentes: ${components}`);
+
+        return lines;
+    }
+
+    function trendLocationTooltipLines(meta) {
+        const lines = [];
+
+        if (!meta) return lines;
+
+        const components = trendMetaList(meta.componentes, 'componente', 4);
+        if (components) lines.push(`Componentes: ${components}`);
+
+        const damages = trendMetaList(meta.danos, 'estado', 3);
+        if (damages) lines.push(`Danos principales: ${damages}`);
+
+        return lines;
+    }
+
+    function createTrendDoughnutChart(canvasId, chartData, title) {
+        const canvas = document.getElementById(canvasId);
+        const values = Array.isArray(chartData?.data) ? chartData.data.map((value) => Number(value || 0)) : [];
+
+        if (!canvas || !values.some((value) => value > 0)) {
+            return null;
+        }
+
+        const colors = ['#2563eb', '#ef4444', '#10b981', '#f59e0b', '#7c3aed', '#0f766e', '#db2777', '#64748b'];
+
+        return new Chart(canvas.getContext('2d'), {
+            type: 'doughnut',
+            data: {
+                labels: chartData.labels || [],
+                datasets: [{
+                    data: values,
+                    backgroundColor: colors,
+                    borderColor: '#ffffff',
+                    borderWidth: 2,
+                    hoverOffset: 8
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '62%',
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            usePointStyle: true,
+                            pointStyle: 'circle',
+                            boxWidth: 8,
+                            color: '#334155',
+                            font: { size: 10, weight: 700 }
+                        }
+                    },
+                    title: {
+                        display: true,
+                        text: title,
+                        color: '#0f172a',
+                        font: { size: 11, weight: 800 }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(15, 23, 42, 0.96)',
+                        titleColor: '#fff',
+                        bodyColor: '#e2e8f0',
+                        callbacks: {
+                            label: (context) => {
+                                const total = context.dataset.data.reduce((sum, value) => sum + Number(value || 0), 0);
+                                const value = Number(context.raw || 0);
+                                const pct = total ? ((value / total) * 100).toFixed(1) : '0.0';
+
+                                return `${context.label}: ${number(value)} (${pct}%)`;
+                            },
+                            afterLabel: (context) => {
+                                const meta = chartData.meta?.[context.dataIndex] || null;
+
+                                return canvasId.toLowerCase().includes('damage')
+                                    ? trendDamageTooltipLines(meta)
+                                    : trendComponentTooltipLines(meta);
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    function createTrendHorizontalBarChart(canvasId, chartData, title, options = {}) {
+        const canvas = document.getElementById(canvasId);
+        const values = Array.isArray(chartData?.data) ? chartData.data.map((value) => Number(value || 0)) : [];
+
+        if (!canvas || !values.some((value) => value > 0)) {
+            return null;
+        }
+
+        const colors = ['rgba(37, 99, 235, 0.95)', 'rgba(239, 68, 68, 0.95)', 'rgba(16, 185, 129, 0.95)', 'rgba(245, 158, 11, 0.95)', 'rgba(124, 58, 237, 0.92)', 'rgba(14, 165, 233, 0.92)', 'rgba(219, 39, 119, 0.92)', 'rgba(100, 116, 139, 0.9)'];
+        const borders = ['#1d4ed8', '#dc2626', '#059669', '#d97706', '#6d28d9', '#0e7490', '#be185d', '#475569'];
+        const isDamageChart = Boolean(options.damageMode) || canvasId.toLowerCase().includes('damagebar');
+
+        return new Chart(canvas.getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: chartData.labels || [],
+                datasets: [{
+                    label: options.datasetLabel || (isDamageChart ? 'Danos por tipo de dano' : 'Danos por componente'),
+                    data: values,
+                    backgroundColor: values.map((value, index) => colors[index % colors.length]),
+                    borderColor: values.map((value, index) => borders[index % borders.length]),
+                    borderWidth: 2,
+                    borderRadius: 8,
+                    borderSkipped: false,
+                    minBarLength: 6,
+                    maxBarThickness: 30
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                indexAxis: 'y',
+                plugins: {
+                    legend: { display: false },
+                    title: {
+                        display: true,
+                        text: title,
+                        color: '#0f172a',
+                        font: { size: 11, weight: 800 }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(15, 23, 42, 0.96)',
+                        titleColor: '#fff',
+                        bodyColor: '#e2e8f0',
+                        callbacks: {
+                            label: (context) => {
+                                const meta = chartData.meta?.[context.dataIndex] || null;
+                                const pct = chartData.porcentajes?.[context.dataIndex] ?? meta?.porcentaje ?? null;
+                                const principal = chartData.principal?.[context.dataIndex] || null;
+
+                                if (isDamageChart) {
+                                    return pct !== null
+                                        ? `${number(context.raw || 0)} componentes/ubicaciones con este ultimo dano (${percent(pct, 1)})`
+                                        : `${number(context.raw || 0)} componentes/ubicaciones con este ultimo dano`;
+                                }
+
+                                return principal
+                                    ? `${number(context.raw || 0)} danos - ${formatTrendCriteriaLabel(principal)}`
+                                    : `${number(context.raw || 0)} danos`;
+                            },
+                            afterLabel: (context) => {
+                                const meta = chartData.meta?.[context.dataIndex] || null;
+
+                                if (isDamageChart) {
+                                    return trendDamageTooltipLines(meta);
+                                }
+
+                                return canvasId.toLowerCase().includes('location')
+                                    ? trendLocationTooltipLines(meta)
+                                    : trendComponentTooltipLines(meta);
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        grid: { color: 'rgba(148, 163, 184, 0.16)' },
+                        ticks: { precision: 0, color: '#64748b' }
+                    },
+                    y: {
+                        grid: { display: false },
+                        ticks: {
+                            color: '#334155',
+                            font: { size: 10, weight: 700 }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    function createTrendStackedHorizontalBarChart(canvasId, chartData, title) {
+        const canvas = document.getElementById(canvasId);
+        const componentLabels = Array.isArray(chartData?.labels) ? chartData.labels : [];
+        const series = Array.isArray(chartData?.series) ? chartData.series : [];
+        const hasData = series.some((serie) => Array.isArray(serie.data) && serie.data.some((value) => Number(value || 0) > 0));
+
+        if (!canvas || !componentLabels.length || !hasData) {
+            return null;
+        }
+
+        const colors = ['rgba(37, 99, 235, 0.95)', 'rgba(239, 68, 68, 0.95)', 'rgba(16, 185, 129, 0.95)', 'rgba(245, 158, 11, 0.95)', 'rgba(124, 58, 237, 0.92)', 'rgba(14, 165, 233, 0.92)', 'rgba(219, 39, 119, 0.92)', 'rgba(100, 116, 139, 0.9)'];
+        const borders = ['#1d4ed8', '#dc2626', '#059669', '#d97706', '#6d28d9', '#0e7490', '#be185d', '#475569'];
+        const reducerLabels = series.map((serie, index) => serie.label || `Reductor ${index + 1}`);
+        const datasets = componentLabels
+            .map((componentLabel, componentIndex) => {
+                const data = series.map((serie) => Number(serie.data?.[componentIndex] || 0));
+
+                return {
+                    label: componentLabel || `Componente ${componentIndex + 1}`,
+                    data,
+                    backgroundColor: colors[componentIndex % colors.length],
+                    borderColor: borders[componentIndex % borders.length],
+                    borderWidth: 2,
+                    borderRadius: 7,
+                    borderSkipped: false,
+                    stack: 'fallas',
+                    componentIndex,
+                    segmentMeta: series.map((serie) => serie.meta?.[componentIndex] || null)
+                };
+            })
+            .filter((dataset) => dataset.data.some((value) => value > 0));
+
+        return new Chart(canvas.getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: reducerLabels,
+                datasets
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                indexAxis: 'y',
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            usePointStyle: true,
+                            pointStyle: 'rectRounded',
+                            boxWidth: 10,
+                            color: '#334155',
+                            font: { size: 10, weight: 700 }
+                        }
+                    },
+                    title: {
+                        display: true,
+                        text: title,
+                        color: '#0f172a',
+                        font: { size: 11, weight: 800 }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(15, 23, 42, 0.96)',
+                        titleColor: '#fff',
+                        bodyColor: '#e2e8f0',
+                        callbacks: {
+                            title: (context) => {
+                                return context[0]?.label || 'Sin reductor';
+                            },
+                            label: (context) => `${context.dataset.label || 'Sin componente'}: ${number(context.raw || 0)} danos`,
+                            afterLabel: (context) => {
+                                const componentIndex = context.dataset.componentIndex;
+                                const componentMeta = chartData.meta?.componentes?.[componentIndex] || null;
+                                const segmentMeta = context.dataset.segmentMeta?.[context.dataIndex] || null;
+                                const lines = [];
+
+                                if (segmentMeta?.ubicacion) lines.push(`Reductor/ubicacion: ${segmentMeta.ubicacion}`);
+                                if (segmentMeta?.ultimo_dano) lines.push(`Ultimo dano: ${formatTrendCriteriaLabel(segmentMeta.ultimo_dano)}`);
+                                if (segmentMeta?.ultima_falla) lines.push(`Ultimo registro: ${segmentMeta.ultima_falla}`);
+
+                                const damages = trendMetaList(segmentMeta?.danos, 'estado', 4);
+                                if (damages) lines.push(`Danos en este reductor: ${damages}`);
+
+                                return [...lines, ...trendComponentTooltipLines(componentMeta)];
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        stacked: true,
+                        grid: { color: 'rgba(148, 163, 184, 0.14)' },
+                        title: {
+                            display: true,
+                            text: 'Total de danos',
+                            color: '#64748b',
+                            font: { size: 11, weight: 800 }
+                        },
+                        ticks: {
+                            precision: 0,
+                            color: '#334155',
+                            font: { size: 10, weight: 700 }
+                        }
+                    },
+                    y: {
+                        stacked: true,
+                        grid: { color: 'rgba(148, 163, 184, 0.14)' },
+                        title: {
+                            display: true,
+                            text: 'Reductores / ubicaciones',
+                            color: '#64748b',
+                            font: { size: 11, weight: 800 }
+                        },
+                        ticks: {
+                            color: '#334155',
+                            font: { size: 10, weight: 700 }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
     function renderTrendCriteria(node, criteria) {
         if (!node) return;
 
         node.innerHTML = (criteria || [])
             .map((label) => `<span class="severity-pill ${trendCriteriaPillClass(label)}">${escapeHtml(formatTrendCriteriaLabel(label))}</span>`)
             .join('');
+    }
+
+    function trendCriteriaMarkup(criteria, periodo = {}) {
+        const periodChip = periodo?.label
+            ? `<span class="severity-pill revision">Periodo: ${escapeHtml(periodo.label)}</span>`
+            : '';
+        const criteriaChips = (criteria || [])
+            .map((label) => `<span class="severity-pill ${trendCriteriaPillClass(label)}">${escapeHtml(formatTrendCriteriaLabel(label))}</span>`)
+            .join('');
+
+        return `${periodChip}${criteriaChips}`;
     }
 
     function formatTrendCriteriaLabel(label) {
@@ -4624,6 +5415,22 @@
         if (lower.includes('desgaste sever')) return 'Desgaste severo';
         if (lower.includes('desgaste moder')) return 'Desgaste moderado';
         if (lower.includes('elong')) return 'Elongación fuera de límite (> 1.46%)';
+
+        return raw;
+    }
+
+    function formatTrendCriteriaLabel(label) {
+        const raw = String(label || '');
+        const normalized = raw
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .toLowerCase();
+
+        if (normalized.includes('requiere cambio')) return 'Danado - Requiere cambio';
+        if (normalized.includes('cambiado')) return 'Danado - Cambiado';
+        if (normalized.includes('desgaste sever')) return 'Desgaste severo';
+        if (normalized.includes('desgaste moder')) return 'Desgaste moderado';
+        if (normalized.includes('elong')) return 'Elongacion fuera de limite (> 1.46%)';
 
         return raw;
     }
@@ -4642,6 +5449,40 @@
         const raw = String(label || '');
 
         return raw.replace(/dias/gi, 'días');
+    }
+
+    function trendWindowColorForLabel(label) {
+        const normalized = String(label || '').toLowerCase();
+
+        if (normalized.includes('52') || normalized.includes('30')) {
+            return {
+                border: '#047857',
+                fill: 'rgba(16, 185, 129, 0.88)',
+                soft: 'rgba(16, 185, 129, 0.22)'
+            };
+        }
+
+        if (normalized.includes('12') || normalized.includes('14')) {
+            return {
+                border: '#dc2626',
+                fill: 'rgba(239, 68, 68, 0.88)',
+                soft: 'rgba(239, 68, 68, 0.22)'
+            };
+        }
+
+        if (normalized.includes('4') || normalized.includes('7')) {
+            return {
+                border: '#d97706',
+                fill: 'rgba(245, 158, 11, 0.9)',
+                soft: 'rgba(245, 158, 11, 0.24)'
+            };
+        }
+
+        return {
+            border: '#475569',
+            fill: 'rgba(100, 116, 139, 0.85)',
+            soft: 'rgba(100, 116, 139, 0.2)'
+        };
     }
 
     function toneToMiniStat(tone) {
@@ -4671,6 +5512,26 @@
         if (trendName === 'down') return `Baja ${signed}`;
 
         return delta === 0 ? 'Estable' : signed;
+    }
+
+    function trendDeltaText(variation) {
+        if (!variation) return 'Sin comparativo';
+
+        const difference = Number(variation.diferencia || 0);
+        const percentage = Number(variation.porcentaje || 0);
+
+        if (!difference) return 'Sin cambio vs mes anterior';
+
+        return `${difference > 0 ? '+' : ''}${number(difference)} vs mes anterior (${percent(percentage, 1)})`;
+    }
+
+    function trendDeltaClass(variation) {
+        if (!variation) return 'info';
+
+        if (variation.tendencia === 'up') return 'danger';
+        if (variation.tendencia === 'down') return 'success';
+
+        return 'info';
     }
 
     function ensureChartShell(canvasId, prefix, options = {}) {

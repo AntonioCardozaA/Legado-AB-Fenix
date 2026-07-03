@@ -22,7 +22,8 @@ class AnalisisTendenciaMensualLavadoraController extends Controller
         return $this->renderIndex(
             $request,
             $tendenciaDanos,
-            'analisis-tendencia-mensual.lavadora.index'
+            'analisis-tendencia-mensual.lavadora.index',
+            '52124'
         );
     }
 
@@ -31,11 +32,12 @@ class AnalisisTendenciaMensualLavadoraController extends Controller
         return $this->renderIndex(
             $request,
             $tendenciaDanos,
-            'analisis-tendencia-mensual.lavadora.index-30-14-7'
+            'analisis-tendencia-mensual.lavadora.index-30-14-7',
+            '30147'
         );
     }
 
-    private function renderIndex(Request $request, TendenciaDanosService $tendenciaDanos, string $view)
+    private function renderIndex(Request $request, TendenciaDanosService $tendenciaDanos, string $view, string $analisisTipo)
     {
         $validated = $request->validate([
             'linea_id' => ['nullable', 'integer'],
@@ -51,18 +53,39 @@ class AnalisisTendenciaMensualLavadoraController extends Controller
         $fechaFinCarbon = $fechaFin ? Carbon::createFromFormat('Y-m-d', $fechaFin)->endOfDay() : null;
         $analisis = collect();
         $meses = [];
+        $ventanas = $analisisTipo === '30147'
+            ? $tendenciaDanos->ventanas30147()
+            : $tendenciaDanos->ventanas52124();
+        $rangoTendencia = [
+            'from' => $fechaInicioCarbon,
+            'to' => $fechaFinCarbon ?: now()->copy()->endOfDay(),
+        ];
+        $analisisDetalle = $tendenciaDanos->construirDashboard(
+            $lineas,
+            TendenciaDanosService::TIPO_LAVADORAS,
+            $ventanas,
+            $rangoTendencia
+        );
+        $detalleLinea = null;
 
         if ($lineaSeleccionada) {
             $linea = $lineas->firstWhere('id', (int) $lineaSeleccionada);
 
             if ($linea) {
+                $eventosLinea = $tendenciaDanos
+                    ->obtenerEventos(collect([$linea]), TendenciaDanosService::TIPO_LAVADORAS, $rangoTendencia)
+                    ->sortBy(fn (array $item) => $item['occurred_at']->getTimestamp())
+                    ->values();
+                $fechaInicioHistorica = $fechaInicioCarbon ?: ($eventosLinea->first()['occurred_at'] ?? null);
                 $analisis = $tendenciaDanos->construirFilasMensuales(
                     $linea,
                     TendenciaDanosService::TIPO_LAVADORAS,
                     12,
                     $fechaFinCarbon,
-                    $fechaInicioCarbon
+                    $fechaInicioHistorica ? $fechaInicioHistorica->copy()->startOfMonth() : null
                 );
+                $detalleLinea = collect($analisisDetalle['lineas'] ?? [])
+                    ->firstWhere('linea_id', (int) $lineaSeleccionada);
 
                 foreach ($analisis as $item) {
                     $meses[$item->anio][$item->mes] = $item;
@@ -76,7 +99,10 @@ class AnalisisTendenciaMensualLavadoraController extends Controller
             'fechaInicio',
             'fechaFin',
             'analisis',
-            'meses'
+            'meses',
+            'analisisTipo',
+            'analisisDetalle',
+            'detalleLinea'
         ));
     }
 

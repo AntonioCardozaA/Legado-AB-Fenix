@@ -118,8 +118,10 @@ class DashboardController extends Controller
     private function resolveLavadoraTrendDateRange(Request $request, string $fromKey, string $toKey): array
     {
         $defaultRange = $this->getLavadoraTrendDefaultDateRange();
-        $from = $this->parseLavadoraTrendDate($request->query($fromKey)) ?: $defaultRange['from']->copy();
-        $to = $this->parseLavadoraTrendDate($request->query($toKey)) ?: $defaultRange['to']->copy();
+        $from = $this->parseLavadoraTrendDate($request->query($fromKey))
+            ?: (($defaultRange['from'] ?? null) instanceof Carbon ? $defaultRange['from']->copy() : null);
+        $to = $this->parseLavadoraTrendDate($request->query($toKey))
+            ?: (($defaultRange['to'] ?? null) instanceof Carbon ? $defaultRange['to']->copy() : null);
 
         if ($from && $to && $from->gt($to)) {
             [$from, $to] = [$to, $from];
@@ -139,7 +141,7 @@ class DashboardController extends Controller
     private function getLavadoraTrendDefaultDateRange(): array
     {
         return [
-            'from' => now()->copy()->startOfMonth()->subMonth()->startOfDay(),
+            'from' => null,
             'to' => now()->copy()->endOfDay(),
         ];
     }
