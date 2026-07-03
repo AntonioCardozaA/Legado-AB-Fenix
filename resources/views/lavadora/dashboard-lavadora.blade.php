@@ -205,6 +205,37 @@
                     </div>
                 </div>
             </a>
+
+                 {{-- COSTOS --}}
+            <a href="{{ route('historico-revisados.index') }}" 
+               class="group relative bg-white rounded-3xl shadow-lg hover:shadow-2xl transition-all duration-500 overflow-hidden hover:-translate-y-2">
+                
+                <div class="absolute top-0 left-0 right-0 h-2" style="background-color: rgb(31, 35, 72);"></div>
+                <div class="absolute inset-0 bg-gradient-to-r from-transparent via-[rgba(31,35,72,0.1)] to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
+                
+                <div class="relative z-10 p-5 sm:p-8">
+                    <div class="flex flex-col items-center text-center">
+                        <div class="relative mb-6">
+                            <div class="absolute inset-0 rounded-full blur-lg opacity-50 group-hover:opacity-75 transition-opacity" style="background-color: rgba(31, 35, 72, 0.5);"></div>
+                            <div class="relative text-white p-5 rounded-2xl shadow-lg group-hover:scale-110 transition-transform duration-300 group-hover:rotate-3" style="background: linear-gradient(135deg, rgb(31, 35, 72), rgb(51, 55, 92));">
+                                <i class="fas fa-history text-2xl sm:text-3xl"></i>
+                            </div>
+                        </div>
+                        
+                        <h3 class="text-xl font-bold text-gray-800 mb-3 group-hover" style="group-hover:color: rgb(31, 35, 72); transition: color 0.3s;">
+                            COSTOS
+                        </h3>
+                        <p class="text-gray-500 text-sm leading-relaxed">
+                            Visualiza registros de costos asociados a componentes
+                        </p>
+                        
+                        <div class="mt-6 flex items-center gap-2 transition-opacity sm:opacity-0 sm:group-hover:opacity-100" style="color: rgb(31, 35, 72);">
+                            <span class="text-sm font-medium">Acceder</span>
+                            <i class="fas fa-arrow-right transform group-hover:translate-x-1 transition-transform"></i>
+                        </div>
+                    </div>
+                </div>
+            </a>
         </div>
 
         {{-- FOOTER CON ESTADÍSTICAS RÁPIDAS (OPCIONAL) --}}
