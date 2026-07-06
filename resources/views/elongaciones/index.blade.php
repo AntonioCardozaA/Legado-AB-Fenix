@@ -3,6 +3,119 @@
 @section('title', 'Historial de Elongaciones')
 
 @section('content')
+<style>
+    .elongacion-date-alert {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        padding: 0.45rem 0.7rem;
+        border-radius: 0.85rem;
+        font-weight: 700;
+        line-height: 1.1;
+        cursor: help;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .elongacion-date-alert:hover {
+        transform: translateY(-1px);
+    }
+
+    .elongacion-date-alert--upcoming,
+    .elongacion-date-alert--due-today {
+        color: #c2410c;
+        background: linear-gradient(135deg, #fff7ed, #ffedd5);
+        box-shadow: inset 0 0 0 1px rgba(249, 115, 22, 0.28), 0 10px 18px rgba(249, 115, 22, 0.12);
+    }
+
+    .elongacion-date-alert--overdue {
+        color: #b91c1c;
+        background: linear-gradient(135deg, #fef2f2, #fee2e2);
+        box-shadow: inset 0 0 0 1px rgba(239, 68, 68, 0.32), 0 12px 22px rgba(239, 68, 68, 0.16);
+    }
+
+    .elongacion-date-alert--pulse-soft {
+        animation: elongacionPulseSoft 1.8s ease-in-out infinite;
+    }
+
+    .elongacion-date-alert--pulse-strong {
+        animation: elongacionPulseStrong 1.05s ease-in-out infinite;
+    }
+
+    .elongacion-date-alert[data-tooltip]::before,
+    .elongacion-date-alert[data-tooltip]::after {
+        position: absolute;
+        left: 50%;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.18s ease, transform 0.18s ease;
+        z-index: 20;
+    }
+
+    .elongacion-date-alert[data-tooltip]::before {
+        content: "";
+        bottom: calc(100% + 4px);
+        transform: translateX(-50%) translateY(4px);
+        border-width: 6px;
+        border-style: solid;
+        border-color: #0f172a transparent transparent transparent;
+    }
+
+    .elongacion-date-alert[data-tooltip]::after {
+        content: attr(data-tooltip);
+        bottom: calc(100% + 14px);
+        transform: translateX(-50%) translateY(4px);
+        min-width: 12rem;
+        max-width: 16rem;
+        padding: 0.55rem 0.7rem;
+        border-radius: 0.75rem;
+        background: #0f172a;
+        color: #f8fafc;
+        font-size: 0.72rem;
+        font-weight: 600;
+        text-align: center;
+        white-space: normal;
+        box-shadow: 0 14px 28px rgba(15, 23, 42, 0.22);
+    }
+
+    .elongacion-date-alert[data-tooltip]:hover::before,
+    .elongacion-date-alert[data-tooltip]:hover::after,
+    .elongacion-date-alert[data-tooltip]:focus-visible::before,
+    .elongacion-date-alert[data-tooltip]:focus-visible::after {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+    }
+
+    .elongacion-date-note {
+        font-size: 0.68rem;
+        font-weight: 700;
+        letter-spacing: 0.01em;
+    }
+
+    @keyframes elongacionPulseSoft {
+        0%, 100% {
+            transform: scale(1);
+            box-shadow: inset 0 0 0 1px rgba(249, 115, 22, 0.28), 0 10px 18px rgba(249, 115, 22, 0.12);
+        }
+
+        50% {
+            transform: scale(1.025);
+            box-shadow: inset 0 0 0 1px rgba(249, 115, 22, 0.4), 0 14px 24px rgba(249, 115, 22, 0.2);
+        }
+    }
+
+    @keyframes elongacionPulseStrong {
+        0%, 100% {
+            transform: scale(1);
+            box-shadow: inset 0 0 0 1px rgba(239, 68, 68, 0.32), 0 12px 22px rgba(239, 68, 68, 0.16);
+        }
+
+        50% {
+            transform: scale(1.045);
+            box-shadow: inset 0 0 0 1px rgba(220, 38, 38, 0.46), 0 16px 28px rgba(220, 38, 38, 0.26);
+        }
+    }
+</style>
 <div class="max-w-7xl mx-auto py-8 px-4">
     <div class="mb-8">
         <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between mb-6">
@@ -154,9 +267,45 @@
                                 $vaporVariacionTexto = $vaporVariacion === null ? '1ra revisión' : (($vaporVariacion > 0 ? '+' : '') . number_format($vaporVariacion, 2) . ' mm');
                                 $bombasVariacionColor = $bombasVariacion === null ? 'text-gray-400' : ($bombasVariacion > 0 ? 'text-red-500' : ($bombasVariacion < 0 ? 'text-emerald-600' : 'text-slate-500'));
                                 $vaporVariacionColor = $vaporVariacion === null ? 'text-gray-400' : ($vaporVariacion > 0 ? 'text-red-500' : ($vaporVariacion < 0 ? 'text-emerald-600' : 'text-slate-500'));
+                                $isLatestAlertableRecord = in_array($registro->id, $latestAlertableRecordIds ?? [], true);
+                                $fechaAlertStatus = $isLatestAlertableRecord ? $registro->revision_status : 'normal';
+                                $hasFechaAlert = $isLatestAlertableRecord && $registro->revision_needs_alert;
+                                $fechaAlertClasses = match ($fechaAlertStatus) {
+                                    'upcoming' => 'elongacion-date-alert elongacion-date-alert--upcoming elongacion-date-alert--pulse-soft',
+                                    'due_today' => 'elongacion-date-alert elongacion-date-alert--due-today elongacion-date-alert--pulse-soft',
+                                    'overdue' => 'elongacion-date-alert elongacion-date-alert--overdue elongacion-date-alert--pulse-strong',
+                                    default => 'text-sm text-gray-900',
+                                };
+                                $fechaNoteColor = match ($fechaAlertStatus) {
+                                    'upcoming', 'due_today' => 'text-orange-600',
+                                    'overdue' => 'text-red-600',
+                                    default => 'text-transparent',
+                                };
                             @endphp
                             <tr class="hover:bg-gray-50 transition">
-                                <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{{ $registro->created_at->format('d/m/Y H:i') }}</td>
+                                <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                                    <div class="flex flex-col items-start gap-1">
+                                        <span
+                                            @if($hasFechaAlert)
+                                                data-elongacion-alert="{{ $fechaAlertStatus }}"
+                                                data-tooltip="Se necesita nuevo registro de elongaci&oacute;n"
+                                                title="Se necesita nuevo registro de elongaci&oacute;n"
+                                                tabindex="0"
+                                            @else
+                                                data-elongacion-alert="none"
+                                            @endif
+                                            class="{{ $fechaAlertClasses }}"
+                                        >
+                                            @if($hasFechaAlert)
+                                                <i class="fas fa-triangle-exclamation text-xs" aria-hidden="true"></i>
+                                            @endif
+                                            <span>{{ $registro->created_at->format('d/m/Y H:i') }}</span>
+                                        </span>
+                                        @if($hasFechaAlert && $registro->revision_status_label)
+                                            <span class="elongacion-date-note {{ $fechaNoteColor }}">{{ $registro->revision_status_label }}</span>
+                                        @endif
+                                    </div>
+                                </td>
                                 <td class="px-4 py-3 whitespace-nowrap">
                                     <span class="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">{{ $registro->linea }}</span>
                                 </td>

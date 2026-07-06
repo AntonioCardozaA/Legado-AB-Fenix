@@ -50,6 +50,63 @@ class ElongacionCycleTest extends TestCase
         $this->assertTrue($ids->contains($ultimoL05->id));
     }
 
+    public function test_index_highlights_only_the_latest_visible_record_when_revision_is_close_to_due(): void
+    {
+        $this->travelTo(now()->setDate(2026, 7, 6)->setTime(9, 0));
+
+        $linea = $this->crearLinea('L-04');
+        $ciclo = $this->crearCiclo('L-04', 1, 'Proveedor A', [
+            'linea_id' => $linea->id,
+        ]);
+
+        $registroAnterior = $this->crearElongacion($ciclo, [
+            'created_at' => '2026-05-01 18:00:00',
+            'updated_at' => '2026-05-01 18:00:00',
+        ]);
+        $registroVigente = $this->crearElongacion($ciclo, [
+            'created_at' => '2026-05-09 18:00:00',
+            'updated_at' => '2026-05-09 18:00:00',
+        ]);
+
+        $response = $this->get(route('elongaciones.index', ['linea' => 'L-04']));
+
+        $response->assertOk();
+        $response->assertViewHas('latestAlertableRecordIds', function (array $ids) use ($registroAnterior, $registroVigente): bool {
+            return in_array($registroVigente->id, $ids, true)
+                && !in_array($registroAnterior->id, $ids, true);
+        });
+
+        $html = $response->getContent();
+
+        $this->assertSame(1, substr_count($html, 'data-elongacion-alert="upcoming"'));
+        $this->assertSame(0, substr_count($html, 'data-elongacion-alert="overdue"'));
+        $this->assertStringContainsString('Se necesita nuevo registro de elongaci&oacute;n', $html);
+    }
+
+    public function test_index_highlights_latest_visible_record_as_overdue_when_two_months_have_passed(): void
+    {
+        $this->travelTo(now()->setDate(2026, 7, 6)->setTime(9, 0));
+
+        $linea = $this->crearLinea('L-05');
+        $ciclo = $this->crearCiclo('L-05', 1, 'Proveedor B', [
+            'linea_id' => $linea->id,
+        ]);
+
+        $this->crearElongacion($ciclo, [
+            'created_at' => '2026-05-01 18:00:00',
+            'updated_at' => '2026-05-01 18:00:00',
+        ]);
+
+        $response = $this->get(route('elongaciones.index', ['linea' => 'L-05']));
+
+        $response->assertOk();
+
+        $html = $response->getContent();
+
+        $this->assertSame(1, substr_count($html, 'data-elongacion-alert="overdue"'));
+        $this->assertStringContainsString('Vencida por 5 dias', $html);
+    }
+
     public function test_store_creates_new_cycle_and_closes_previous_active_cycle(): void
     {
         $linea = $this->crearLinea('L-04');

@@ -24,7 +24,7 @@ class ElongacionController extends Controller
 
     public function index(Request $request)
     {
-        $query = Elongacion::with('cadenaCiclo');
+        $query = Elongacion::query();
 
         $hasLineaFilter = $request->filled('linea');
         $hasEstadoFilter = $request->filled('estado');
@@ -55,7 +55,25 @@ class ElongacionController extends Controller
             $query->whereIn('id', $ultimosIds);
         }
 
-        $elongaciones = $query->orderBy('created_at', 'desc')
+        $latestAlertableRecordIds = (clone $query)
+            ->select(['id', 'linea', 'cadena_ciclo_id', 'created_at'])
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->get()
+            ->unique(static function (Elongacion $elongacion): string {
+                return $elongacion->cadena_ciclo_id
+                    ? 'ciclo:' . $elongacion->cadena_ciclo_id
+                    : 'linea:' . $elongacion->linea;
+            })
+            ->pluck('id')
+            ->map(static fn ($id): int => (int) $id)
+            ->values()
+            ->all();
+
+        $elongaciones = (clone $query)
+            ->with('cadenaCiclo')
+            ->orderBy('created_at', 'desc')
+            ->orderBy('id', 'desc')
             ->paginate(15)
             ->withQueryString();
 
@@ -70,6 +88,7 @@ class ElongacionController extends Controller
         return view('elongaciones.index', [
             'elongaciones' => $elongaciones,
             'ciclos' => $ciclos,
+            'latestAlertableRecordIds' => $latestAlertableRecordIds,
             'lineas' => array_keys(Elongacion::PASOS_INICIALES),
         ]);
     }

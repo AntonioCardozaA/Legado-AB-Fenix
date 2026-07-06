@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Support\HodometroHoras;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -321,6 +322,68 @@ class Elongacion extends Model
             : null;
     }
 
+    public function getRevisionDueAtAttribute(): ?CarbonImmutable
+    {
+        if (!$this->created_at) {
+            return null;
+        }
+
+        return CarbonImmutable::instance($this->created_at)
+            ->setTimezone($this->revisionTimezone())
+            ->addMonthsNoOverflow($this->revisionIntervalMonths())
+            ->startOfDay();
+    }
+
+    public function getRevisionDaysRemainingAttribute(): ?int
+    {
+        if (!$this->revision_due_at) {
+            return null;
+        }
+
+        $today = CarbonImmutable::now($this->revisionTimezone())->startOfDay();
+
+        return $today->diffInDays($this->revision_due_at, false);
+    }
+
+    public function getRevisionNeedsAlertAttribute(): bool
+    {
+        $daysRemaining = $this->revision_days_remaining;
+
+        return $daysRemaining !== null && $daysRemaining <= $this->revisionLeadDays();
+    }
+
+    public function getRevisionStatusAttribute(): string
+    {
+        $daysRemaining = $this->revision_days_remaining;
+
+        if ($daysRemaining === null || $daysRemaining > $this->revisionLeadDays()) {
+            return 'normal';
+        }
+
+        return match (true) {
+            $daysRemaining > 0 => 'upcoming',
+            $daysRemaining === 0 => 'due_today',
+            default => 'overdue',
+        };
+    }
+
+    public function getRevisionStatusLabelAttribute(): ?string
+    {
+        if (!$this->revision_needs_alert) {
+            return null;
+        }
+
+        $daysRemaining = $this->revision_days_remaining;
+
+        return match (true) {
+            $daysRemaining > 1 => "Faltan {$daysRemaining} dias",
+            $daysRemaining === 1 => 'Falta 1 dia',
+            $daysRemaining === 0 => 'Vence hoy',
+            $daysRemaining === -1 => 'Vencida por 1 dia',
+            default => 'Vencida por ' . abs((int) $daysRemaining) . ' dias',
+        };
+    }
+
     private function getEstadoDetallado($porcentaje)
     {
         if ($porcentaje < self::LIMITE_COMPRAR) {
@@ -374,5 +437,20 @@ class Elongacion extends Model
         $this->revisionAnteriorResuelta = true;
 
         return $this->revisionAnteriorCache;
+    }
+
+    private function revisionTimezone(): string
+    {
+        return (string) config('elongacion-alerts.timezone', config('app.timezone', 'UTC'));
+    }
+
+    private function revisionIntervalMonths(): int
+    {
+        return max(1, (int) config('elongacion-alerts.interval_months', 2));
+    }
+
+    private function revisionLeadDays(): int
+    {
+        return max(0, (int) config('elongacion-alerts.lead_days', 3));
     }
 }
