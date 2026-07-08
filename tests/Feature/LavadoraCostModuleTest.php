@@ -1,0 +1,165 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Models\AnalisisLavadora;
+use App\Models\Componente;
+use App\Models\CostAutomationRule;
+use App\Models\CostCatalogItem;
+use App\Models\Linea;
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Spatie\Permission\Models\Role;
+use Tests\TestCase;
+
+class LavadoraCostModuleTest extends TestCase
+{
+    use RefreshDatabase;
+
+    public function test_changed_state_generates_automatic_cost_entry(): void
+    {
+        $user = $this->userWithRole(User::ROLE_TECNICO);
+        $linea = $this->createLavadoraLinea();
+        $componente = $this->createComponente($linea, 'ZZ_TEST_COMPONENT', 'Componente ZZ');
+        $catalogItem = $this->createCatalogItem('CAT-ZZ-001', 'Costo de prueba por cambio', 1250.50, 'Pieza');
+
+        CostAutomationRule::query()->create([
+            'cost_catalog_item_id' => $catalogItem->id,
+            'component_code' => 'ZZ_TEST_COMPONENT',
+            'trigger_type' => CostAutomationRule::TRIGGER_ESTADO_CAMBIADO,
+            'quantity' => 1,
+            'priority' => 1,
+            'activo' => true,
+        ]);
+
+        $response = $this->actingAs($user)->post(route('analisis-lavadora.store'), [
+            'linea_id' => $linea->id,
+            'componente_id' => $componente->id,
+            'reductor' => 'Reductor 1',
+            'fecha_analisis' => '2026-07-06',
+            'numero_orden' => 'OT-COST-001',
+            'estado' => AnalisisLavadora::ESTADO_CAMBIADO,
+            'actividad' => 'REEMPLAZO TOTAL DEL COMPONENTE',
+        ]);
+
+        $response->assertRedirect(route('analisis-lavadora.index', ['linea_id' => $linea->id]));
+
+        $analysis = AnalisisLavadora::query()->where('numero_orden', 'OT-COST-001')->firstOrFail();
+
+        $this->assertDatabaseHas('lavadora_cost_entries', [
+            'analisis_lavadora_id' => $analysis->id,
+            'catalog_item_id' => $catalogItem->id,
+            'source_type' => CostAutomationRule::TRIGGER_ESTADO_CAMBIADO,
+            'component_snapshot' => 'Componente ZZ',
+            'total_cost' => 1250.50,
+        ]);
+    }
+
+    public function test_activity_keyword_generates_cost_entry_and_extracts_quantity(): void
+    {
+        $user = $this->userWithRole(User::ROLE_TECNICO);
+        $linea = $this->createLavadoraLinea();
+        $componente = $this->createComponente($linea, 'ZZ_ACTIVITY_COMPONENT', 'Componente Actividad');
+        $catalogItem = $this->createCatalogItem('CAT-ZZ-ACEITE', 'Aceite de prueba', 300.00, 'Litro');
+
+        CostAutomationRule::query()->create([
+            'cost_catalog_item_id' => $catalogItem->id,
+            'component_code' => 'ZZ_ACTIVITY_COMPONENT',
+            'trigger_type' => CostAutomationRule::TRIGGER_ACTIVIDAD_KEYWORD,
+            'trigger_keyword' => 'ACEITE',
+            'quantity' => 1,
+            'priority' => 1,
+            'activo' => true,
+        ]);
+
+        $this->actingAs($user)->post(route('analisis-lavadora.store'), [
+            'linea_id' => $linea->id,
+            'componente_id' => $componente->id,
+            'reductor' => 'Reductor 1',
+            'fecha_analisis' => '2026-07-06',
+            'numero_orden' => 'OT-COST-002',
+            'estado' => AnalisisLavadora::ESTADO_BUENO,
+            'actividad' => 'CAMBIO DE ACEITE 2 LITROS EN REDUCTOR',
+        ])->assertRedirect(route('analisis-lavadora.index', ['linea_id' => $linea->id]));
+
+        $entry = \App\Models\LavadoraCostEntry::query()
+            ->where('catalog_item_id', $catalogItem->id)
+            ->firstOrFail();
+
+        $this->assertSame(2.0, (float) $entry->quantity);
+        $this->assertSame(600.0, (float) $entry->total_cost);
+    }
+
+    public function test_technician_can_open_lavadora_costs_dashboard(): void
+    {
+        $user = $this->userWithRole(User::ROLE_TECNICO);
+
+        $this->actingAs($user)
+            ->get(route('lavadora.costos.index'))
+            ->assertOk()
+            ->assertSee('Costos de Lavadoras');
+    }
+
+    public function test_only_admin_can_access_control_gastos(): void
+    {
+        $admin = $this->userWithRole(User::ROLE_ADMIN);
+        $technician = $this->userWithRole(User::ROLE_TECNICO);
+
+        $this->actingAs($admin)
+            ->get(route('admin.costos.index'))
+            ->assertOk()
+            ->assertSee('Control de Gastos');
+
+        $this->actingAs($technician)
+            ->get(route('admin.costos.index'))
+            ->assertForbidden();
+    }
+
+    private function createLavadoraLinea(): Linea
+    {
+        return Linea::query()->create([
+            'nombre' => 'L-04',
+            'descripcion' => 'Lavadora de prueba',
+            'activo' => true,
+        ]);
+    }
+
+    private function createComponente(Linea $linea, string $codigo, string $nombre): Componente
+    {
+        return Componente::query()->create([
+            'codigo' => $codigo,
+            'nombre' => $nombre,
+            'linea' => $linea->nombre,
+            'reductor' => 'Reductor 1',
+            'ubicacion' => 'Reductor 1',
+            'cantidad_total' => 1,
+            'activo' => true,
+        ]);
+    }
+
+    private function createCatalogItem(string $sku, string $nombre, float $costo, string $unidad): CostCatalogItem
+    {
+        return CostCatalogItem::query()->create([
+            'sku' => $sku,
+            'nombre' => $nombre,
+            'categoria' => 'Pruebas',
+            'unidad_medida' => $unidad,
+            'costo_unitario' => $costo,
+            'activo' => true,
+            'fecha_actualizacion' => now()->toDateString(),
+        ]);
+    }
+
+    private function userWithRole(string $role): User
+    {
+        Role::firstOrCreate([
+            'name' => $role,
+            'guard_name' => 'web',
+        ]);
+
+        $user = User::factory()->create();
+        $user->assignRole($role);
+
+        return $user;
+    }
+}

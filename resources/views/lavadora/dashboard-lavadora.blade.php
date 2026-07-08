@@ -207,7 +207,7 @@
             </a>
 
                  {{-- COSTOS --}}
-            <a href="{{ route('historico-revisados.index') }}" 
+            <a href="{{ route('lavadora.costos.index') }}" 
                class="group relative bg-white rounded-3xl shadow-lg hover:shadow-2xl transition-all duration-500 overflow-hidden hover:-translate-y-2">
                 
                 <div class="absolute top-0 left-0 right-0 h-2" style="background-color: rgb(31, 35, 72);"></div>
@@ -218,7 +218,7 @@
                         <div class="relative mb-6">
                             <div class="absolute inset-0 rounded-full blur-lg opacity-50 group-hover:opacity-75 transition-opacity" style="background-color: rgba(31, 35, 72, 0.5);"></div>
                             <div class="relative text-white p-5 rounded-2xl shadow-lg group-hover:scale-110 transition-transform duration-300 group-hover:rotate-3" style="background: linear-gradient(135deg, rgb(31, 35, 72), rgb(51, 55, 92));">
-                                <i class="fas fa-history text-2xl sm:text-3xl"></i>
+                                <i class="fas fa-coins text-2xl sm:text-3xl"></i>
                             </div>
                         </div>
                         
@@ -226,7 +226,7 @@
                             COSTOS
                         </h3>
                         <p class="text-gray-500 text-sm leading-relaxed">
-                            Visualiza registros de costos asociados a componentes
+                            Visualiza gastos, presupuestos y tendencias por componente y lavadora
                         </p>
                         
                         <div class="mt-6 flex items-center gap-2 transition-opacity sm:opacity-0 sm:group-hover:opacity-100" style="color: rgb(31, 35, 72);">

@@ -562,6 +562,14 @@
                         <i class="fas fa-user-shield w-5 mr-3 text-gray-500"></i>
                         Gestion de usuarios
                     </a>
+
+                    <a href="{{ route('admin.costos.index') }}"
+                       @click="if (!isDesktop) sidebarOpen = false"
+                       aria-label="Control de gastos"
+                       class="nav-link flex items-center px-4 py-3 rounded-lg {{ request()->routeIs('admin.costos.*') ? 'nav-active' : '' }}">
+                        <i class="fas fa-coins w-5 mr-3 text-gray-500"></i>
+                        Control de gastos
+                    </a>
                 @endif
             @endauth
         </nav>
