@@ -2505,6 +2505,58 @@
         </div>
     </div>
 
+    <div class="dashboard-panels-grid">
+        <div class="chart-card">
+            <h3>
+                <i class="fas fa-coins"></i>
+                <span>Costos por Lavadora</span>
+            </h3>
+            <div class="chart-container">
+                <canvas id="lavadoraCostSummaryChart"></canvas>
+            </div>
+            <div class="chart-description">
+                <i class="fas fa-info-circle"></i>
+                Resumen anual de gastos calculados automáticamente.
+            </div>
+        </div>
+
+        <div class="chart-card">
+            <h3>
+                <i class="fas fa-wallet"></i>
+                <span>Resumen de Costos</span>
+            </h3>
+            <div class="space-y-3">
+                <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                    <div class="text-xs font-extrabold uppercase tracking-[0.18em] text-slate-500">Gasto anual</div>
+                    <div class="mt-2 text-3xl font-black text-slate-900">${{ number_format((float) ($lavadoraCostSummary['summary']['year_total'] ?? 0), 2) }}</div>
+                    <div class="mt-2 text-sm text-slate-500">Basado en cambios y actividades registradas en análisis de lavadora.</div>
+                </div>
+
+                <div class="grid gap-3 md:grid-cols-2">
+                    <div class="rounded-2xl border border-slate-200 bg-white p-4">
+                        <div class="text-xs font-extrabold uppercase tracking-[0.18em] text-slate-500">Mayor costo</div>
+                        <div class="mt-2 text-lg font-extrabold text-slate-900">{{ $lavadoraCostSummary['summary']['top_component']['label'] ?? 'Sin datos' }}</div>
+                        <div class="mt-1 text-sm text-slate-500">
+                            {{ isset($lavadoraCostSummary['summary']['top_component']['total']) ? '$' . number_format((float) $lavadoraCostSummary['summary']['top_component']['total'], 2) : 'Aún sin acumulado.' }}
+                        </div>
+                    </div>
+                    <div class="rounded-2xl border border-slate-200 bg-white p-4">
+                        <div class="text-xs font-extrabold uppercase tracking-[0.18em] text-slate-500">Más reemplazado</div>
+                        <div class="mt-2 text-lg font-extrabold text-slate-900">{{ $lavadoraCostSummary['summary']['top_replacement']['label'] ?? 'Sin datos' }}</div>
+                        <div class="mt-1 text-sm text-slate-500">
+                            {{ isset($lavadoraCostSummary['summary']['top_replacement']['total']) ? $lavadoraCostSummary['summary']['top_replacement']['total'] . ' eventos' : 'Sin reemplazos detectados.' }}
+                        </div>
+                    </div>
+                </div>
+
+                <a href="{{ route('lavadora.costos.index') }}" class="create-action">
+                    <i class="fas fa-arrow-right"></i>
+                    Abrir módulo completo de costos
+                </a>
+            </div>
+        </div>
+    </div>
+
     {{-- ESTADO GENERAL DE LAVADORAS en Tarjetas --}}
     <div class="section-title">
         <i class="fas fa-washing-machine"></i>
@@ -5765,5 +5817,74 @@
             .replace(/'/g, '&#039;');
     }
 })();
+</script>
+<script>
+window.addEventListener('load', function () {
+    const canvas = document.getElementById('lavadoraCostSummaryChart');
+    const rows = @json($lavadoraCostSummary['by_lavadora'] ?? []);
+
+    if (!canvas || !window.Chart) {
+        return;
+    }
+
+    if (!Array.isArray(rows) || !rows.length || !rows.some((row) => Number(row.total || 0) > 0)) {
+        const container = canvas.parentElement;
+        if (container) {
+            container.innerHTML = '<div class="flex h-full items-center justify-center text-sm text-slate-500">Sin costos acumulados todavía para el resumen global.</div>';
+        }
+        return;
+    }
+
+    new Chart(canvas.getContext('2d'), {
+        type: 'bar',
+        data: {
+            labels: rows.map((row) => row.label),
+            datasets: [{
+                label: 'Costo acumulado',
+                data: rows.map((row) => Number(row.total || 0)),
+                backgroundColor: 'rgba(14, 165, 233, 0.85)',
+                borderColor: '#0284c7',
+                borderWidth: 2,
+                borderRadius: 10,
+                borderSkipped: false,
+            }],
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: (context) => new Intl.NumberFormat('es-MX', {
+                            style: 'currency',
+                            currency: 'MXN',
+                            minimumFractionDigits: 2,
+                        }).format(Number(context.raw || 0)),
+                    },
+                },
+            },
+            scales: {
+                x: {
+                    grid: { display: false },
+                    ticks: { color: '#475569' },
+                },
+                y: {
+                    beginAtZero: true,
+                    grid: { color: 'rgba(148, 163, 184, 0.16)' },
+                    ticks: {
+                        color: '#64748b',
+                        callback: (value) => new Intl.NumberFormat('es-MX', {
+                            style: 'currency',
+                            currency: 'MXN',
+                            notation: 'compact',
+                            maximumFractionDigits: 1,
+                        }).format(Number(value || 0)),
+                    },
+                },
+            },
+        },
+    });
+});
 </script>
 @endsection

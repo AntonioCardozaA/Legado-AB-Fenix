@@ -39,6 +39,7 @@ class EnsureTechnicianAccess
 
             'dashboard_lavadora',
             'lavadora.dashboard',
+            'lavadora.costos.index',
 
             'profile.edit',
             'profile.update',

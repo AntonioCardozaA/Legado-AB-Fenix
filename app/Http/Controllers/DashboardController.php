@@ -9,6 +9,7 @@ use App\Models\PlanAccion;
 use App\Models\AnalisisPasteurizadora;
 use App\Models\User;
 use App\Services\TendenciaDanosService;
+use App\Services\LavadoraCostAnalyticsService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Collection;
@@ -244,6 +245,10 @@ class DashboardController extends Controller
         $rankingDanos = $this->getRankingDanosPorLavadora($lineasLavadora, $analisisActuales);
         $evolucionElongaciones = $this->getEvolucionElongaciones($lineasLavadora);
         $historicoRevisiones = $this->getHistoricoRevisiones($lineasLavadora, $analisisHistoricos);
+        $lavadoraCostSummary = app(LavadoraCostAnalyticsService::class)->dashboardData([
+            'preset' => 'anual',
+            'budget_year' => now()->year,
+        ]);
         $tendenciaDanos = app(TendenciaDanosService::class);
         $analisis52124 = $tendenciaDanos->construirDashboard(
             $lineasLavadora,
@@ -282,6 +287,7 @@ class DashboardController extends Controller
             'planesAccionDashboard',
             'evolucionElongaciones',
             'historicoRevisiones',
+            'lavadoraCostSummary',
             'analisis52124',
             'analisis30147',
             'trendFilters'

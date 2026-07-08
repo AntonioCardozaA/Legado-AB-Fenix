@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\DB;
 use App\Exports\AnalisisComponentesExport;
 use App\Exports\AnalisisLavadoraExport;
 use App\Services\AnalysisDeletionLogger;
+use App\Services\LavadoraCostSyncService;
 use Maatwebsite\Excel\Facades\Excel;
 use Barryvdh\DomPDF\Facade\Pdf;
 use App\Services\WhatsAppService;
@@ -770,6 +771,8 @@ $componente = Componente::firstOrCreate(
         ]);
     }
 
+    app(LavadoraCostSyncService::class)->syncForAnalysis($analisis->fresh(['linea', 'componente']));
+
     /**
      * ==================
      * 6️⃣ REDIRECCIÓN 
@@ -942,6 +945,8 @@ public function update(Request $request, $id)
             ]);
         }
     });
+
+    app(LavadoraCostSyncService::class)->syncForAnalysis($analisis->fresh(['linea', 'componente']));
 
     /* =====================================================
      | REDIRECCIÓN - CORREGIDA

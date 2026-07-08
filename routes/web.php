@@ -19,6 +19,8 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\NotificationSettingsController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\AdminUserController;
+use App\Http\Controllers\LavadoraCostController;
+use App\Http\Controllers\ControlGastosController;
 
 /*
 |--------------------------------------------------------------------------
@@ -92,6 +94,8 @@ Route::middleware(['auth', 'pasteurizadora.access', 'technician.access'])->group
     Route::prefix('lavadora')->group(function () {
         Route::get('/dashboard', [DashboardController::class, 'lavadora'])
             ->name('lavadora.dashboard');
+        Route::get('/costos', [LavadoraCostController::class, 'index'])
+            ->name('lavadora.costos.index');
 });
 
 Route::prefix('pasteurizadora')->group(function () {
@@ -130,6 +134,22 @@ Route::prefix('pasteurizadora')->group(function () {
             Route::post('/', 'store')->name('store');
             Route::get('/{user}/editar', 'edit')->name('edit');
             Route::put('/{user}', 'update')->name('update');
+        });
+
+    Route::middleware(['role:admin'])
+        ->prefix('admin/control-gastos')
+        ->name('admin.costos.')
+        ->controller(ControlGastosController::class)
+        ->group(function () {
+            Route::get('/', 'index')->name('index');
+            Route::post('/catalogo', 'storeCatalogItem')->name('catalog.store');
+            Route::put('/catalogo/{item}', 'updateCatalogItem')->name('catalog.update');
+            Route::patch('/catalogo/{item}/toggle', 'toggleCatalogItem')->name('catalog.toggle');
+            Route::delete('/catalogo/{item}', 'destroyCatalogItem')->name('catalog.destroy');
+            Route::post('/reglas', 'storeRule')->name('rules.store');
+            Route::put('/reglas/{rule}', 'updateRule')->name('rules.update');
+            Route::delete('/reglas/{rule}', 'destroyRule')->name('rules.destroy');
+            Route::post('/presupuestos', 'upsertBudget')->name('budgets.upsert');
         });
 
     /*
