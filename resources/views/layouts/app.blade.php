@@ -87,6 +87,171 @@
             color: #f59e0b;
         }
 
+        /* === Animacion de fuego del logo === */
+        .phoenix-logo-block {
+            position: relative;
+        }
+
+        .phoenix-logo-shell {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            overflow: visible;
+            padding: 0.2rem 0 0.1rem;
+            isolation: isolate;
+        }
+
+        .phoenix-logo-wing-fire,
+        .phoenix-logo-wing-embers {
+            position: absolute;
+            pointer-events: none;
+            will-change: transform, opacity, filter;
+        }
+
+        .phoenix-logo-wing-fire {
+            top: 19%;
+            width: 45%;
+            height: 31%;
+            z-index: 1;
+            opacity: 0.88;
+            filter: blur(9px) saturate(1.18);
+        }
+
+        .phoenix-logo-wing-fire::before,
+        .phoenix-logo-wing-fire::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 9999px;
+            pointer-events: none;
+        }
+
+        .phoenix-logo-wing-fire--left {
+            left: 0;
+            transform-origin: right center;
+            animation: phoenix-wing-fire-left 3.2s ease-in-out infinite;
+        }
+
+        .phoenix-logo-wing-fire--right {
+            right: 0;
+            transform-origin: left center;
+            animation: phoenix-wing-fire-right 3.2s ease-in-out infinite;
+        }
+
+        .phoenix-logo-wing-fire--left::before {
+            background:
+                radial-gradient(circle at 72% 50%, rgba(255, 248, 214, 0.9) 0 7%, rgba(255, 206, 82, 0.84) 12%, rgba(255, 134, 18, 0.78) 26%, rgba(255, 92, 0, 0.34) 44%, rgba(255, 92, 0, 0) 68%),
+                radial-gradient(circle at 46% 34%, rgba(255, 176, 44, 0.52) 0 15%, rgba(255, 92, 0, 0) 42%),
+                radial-gradient(circle at 22% 66%, rgba(255, 116, 0, 0.38) 0 18%, rgba(255, 116, 0, 0) 50%);
+            clip-path: polygon(100% 44%, 88% 25%, 67% 13%, 44% 12%, 24% 23%, 11% 42%, 0% 61%, 15% 71%, 39% 76%, 64% 74%, 84% 66%, 100% 55%);
+        }
+
+        .phoenix-logo-wing-fire--left::after {
+            background:
+                radial-gradient(circle at 80% 48%, rgba(255, 250, 230, 0.62) 0 5%, rgba(255, 210, 92, 0.42) 10%, rgba(255, 112, 0, 0) 28%),
+                linear-gradient(180deg, rgba(255, 200, 76, 0) 0%, rgba(255, 151, 26, 0.6) 38%, rgba(255, 86, 0, 0) 100%);
+            clip-path: polygon(100% 42%, 89% 31%, 74% 22%, 56% 18%, 36% 24%, 20% 38%, 7% 55%, 0% 70%, 18% 68%, 39% 60%, 60% 55%, 82% 50%);
+            transform: translate(-6%, -12%) scale(1.16);
+            opacity: 0.82;
+        }
+
+        .phoenix-logo-wing-fire--right::before {
+            background:
+                radial-gradient(circle at 28% 50%, rgba(255, 248, 214, 0.9) 0 7%, rgba(255, 206, 82, 0.84) 12%, rgba(255, 134, 18, 0.78) 26%, rgba(255, 92, 0, 0.34) 44%, rgba(255, 92, 0, 0) 68%),
+                radial-gradient(circle at 54% 34%, rgba(255, 176, 44, 0.52) 0 15%, rgba(255, 92, 0, 0) 42%),
+                radial-gradient(circle at 78% 66%, rgba(255, 116, 0, 0.38) 0 18%, rgba(255, 116, 0, 0) 50%);
+            clip-path: polygon(0% 44%, 12% 25%, 33% 13%, 56% 12%, 76% 23%, 89% 42%, 100% 61%, 85% 71%, 61% 76%, 36% 74%, 16% 66%, 0% 55%);
+        }
+
+        .phoenix-logo-wing-fire--right::after {
+            background:
+                radial-gradient(circle at 20% 48%, rgba(255, 250, 230, 0.62) 0 5%, rgba(255, 210, 92, 0.42) 10%, rgba(255, 112, 0, 0) 28%),
+                linear-gradient(180deg, rgba(255, 200, 76, 0) 0%, rgba(255, 151, 26, 0.6) 38%, rgba(255, 86, 0, 0) 100%);
+            clip-path: polygon(0% 42%, 11% 31%, 26% 22%, 44% 18%, 64% 24%, 80% 38%, 93% 55%, 100% 70%, 82% 68%, 61% 60%, 40% 55%, 18% 50%);
+            transform: translate(6%, -12%) scale(1.16);
+            opacity: 0.82;
+        }
+
+        .phoenix-logo-wing-embers {
+            inset: 12% -4% 30%;
+            z-index: 2;
+            background:
+                radial-gradient(circle at 14% 42%, rgba(255, 209, 74, 0.22) 0 0.9%, rgba(255, 209, 74, 0) 3%),
+                radial-gradient(circle at 23% 36%, rgba(255, 127, 36, 0.2) 0 1.1%, rgba(255, 127, 36, 0) 3.2%),
+                radial-gradient(circle at 78% 38%, rgba(255, 209, 74, 0.22) 0 0.9%, rgba(255, 209, 74, 0) 3%),
+                radial-gradient(circle at 88% 44%, rgba(255, 127, 36, 0.2) 0 1.1%, rgba(255, 127, 36, 0) 3.2%),
+                radial-gradient(circle at 18% 58%, rgba(255, 235, 160, 0.18) 0 1%, rgba(255, 235, 160, 0) 3.1%),
+                radial-gradient(circle at 82% 59%, rgba(255, 235, 160, 0.18) 0 1%, rgba(255, 235, 160, 0) 3.1%);
+            filter: blur(0.8px);
+            opacity: 0.74;
+            animation: phoenix-wing-embers 3.8s ease-in-out infinite;
+        }
+
+        .phoenix-logo-image {
+            position: relative;
+            z-index: 3;
+            display: block;
+            max-width: 100%;
+            height: auto;
+            filter: none;
+            animation: none;
+        }
+
+        @keyframes phoenix-wing-fire-left {
+            0%, 100% {
+                opacity: 0.74;
+                transform: translate(-4%, 3px) scaleX(0.96) scaleY(0.94) rotate(-4deg);
+            }
+
+            50% {
+                opacity: 0.96;
+                transform: translate(-10%, -3px) scaleX(1.08) scaleY(1.06) rotate(-8deg);
+            }
+
+            75% {
+                opacity: 0.84;
+                transform: translate(-7%, -1px) scaleX(1.02) scaleY(1.01) rotate(-6deg);
+            }
+        }
+
+        @keyframes phoenix-wing-fire-right {
+            0%, 100% {
+                opacity: 0.74;
+                transform: translate(4%, 3px) scaleX(0.96) scaleY(0.94) rotate(4deg);
+            }
+
+            50% {
+                opacity: 0.96;
+                transform: translate(10%, -3px) scaleX(1.08) scaleY(1.06) rotate(8deg);
+            }
+
+            75% {
+                opacity: 0.84;
+                transform: translate(7%, -1px) scaleX(1.02) scaleY(1.01) rotate(6deg);
+            }
+        }
+
+        @keyframes phoenix-wing-embers {
+            0%, 100% {
+                opacity: 0.48;
+                transform: translateY(3px) scale(0.98);
+            }
+
+            50% {
+                opacity: 0.82;
+                transform: translateY(-5px) scale(1.04);
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .phoenix-logo-wing-fire,
+            .phoenix-logo-wing-embers {
+                animation: none !important;
+            }
+        }
+
         textarea[name="actividad"],
         input[name="actividad"] {
             text-transform: uppercase;
@@ -302,12 +467,18 @@
 
         <!-- Logo -->
         <div class="px-6 py-6 border-b border-gray-200">
-            <div class="flex flex-col items-center text-center">
-                <img
-                    src="{{ asset('images/logo.png') }}"
-                    alt="Logo Legado Ave Fénix"
-                    class="w-30 h-30 mb-0 drop-shadow-lg"
-                >
+            <div class="flex flex-col items-center text-center phoenix-logo-block">
+                <!-- Animacion de fuego del logo -->
+                <div class="phoenix-logo-shell">
+                    <span class="phoenix-logo-wing-fire phoenix-logo-wing-fire--left" aria-hidden="true"></span>
+                    <span class="phoenix-logo-wing-fire phoenix-logo-wing-fire--right" aria-hidden="true"></span>
+                    <span class="phoenix-logo-wing-embers" aria-hidden="true"></span>
+                    <img
+                        src="{{ asset('images/logo.png') }}"
+                        alt="Logo Legado Ave Fénix"
+                        class="w-30 h-30 mb-0 phoenix-logo-image"
+                    >
+                </div>
                 <h1 class="text-sm font-semibold tracking-wide leading-tight logo-text">
                     LEGADO AB<br>
                     <span class="text-yellow-500 font-bold">FÉNIX</span>
