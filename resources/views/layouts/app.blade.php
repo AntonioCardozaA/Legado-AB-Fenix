@@ -111,81 +111,42 @@
         }
 
         .phoenix-logo-wing-fire {
-            top: 19%;
-            width: 45%;
-            height: 31%;
+            top: 8%;
+            width: 62%;
+            height: auto;
             z-index: 1;
-            opacity: 0.88;
-            filter: blur(9px) saturate(1.18);
-        }
-
-        .phoenix-logo-wing-fire::before,
-        .phoenix-logo-wing-fire::after {
-            content: '';
-            position: absolute;
-            inset: 0;
-            border-radius: 9999px;
-            pointer-events: none;
+            max-width: none;
+            opacity: 0.92;
+            filter:
+                saturate(1.08)
+                brightness(1.04);
+            mix-blend-mode: screen;
         }
 
         .phoenix-logo-wing-fire--left {
-            left: 0;
-            transform-origin: right center;
-            animation: phoenix-wing-fire-left 3.2s ease-in-out infinite;
+            left: -13%;
+            transform-origin: right 52%;
+            animation: phoenix-wing-fire-left 3.4s ease-in-out infinite;
         }
 
         .phoenix-logo-wing-fire--right {
-            right: 0;
-            transform-origin: left center;
-            animation: phoenix-wing-fire-right 3.2s ease-in-out infinite;
-        }
-
-        .phoenix-logo-wing-fire--left::before {
-            background:
-                radial-gradient(circle at 72% 50%, rgba(255, 248, 214, 0.9) 0 7%, rgba(255, 206, 82, 0.84) 12%, rgba(255, 134, 18, 0.78) 26%, rgba(255, 92, 0, 0.34) 44%, rgba(255, 92, 0, 0) 68%),
-                radial-gradient(circle at 46% 34%, rgba(255, 176, 44, 0.52) 0 15%, rgba(255, 92, 0, 0) 42%),
-                radial-gradient(circle at 22% 66%, rgba(255, 116, 0, 0.38) 0 18%, rgba(255, 116, 0, 0) 50%);
-            clip-path: polygon(100% 44%, 88% 25%, 67% 13%, 44% 12%, 24% 23%, 11% 42%, 0% 61%, 15% 71%, 39% 76%, 64% 74%, 84% 66%, 100% 55%);
-        }
-
-        .phoenix-logo-wing-fire--left::after {
-            background:
-                radial-gradient(circle at 80% 48%, rgba(255, 250, 230, 0.62) 0 5%, rgba(255, 210, 92, 0.42) 10%, rgba(255, 112, 0, 0) 28%),
-                linear-gradient(180deg, rgba(255, 200, 76, 0) 0%, rgba(255, 151, 26, 0.6) 38%, rgba(255, 86, 0, 0) 100%);
-            clip-path: polygon(100% 42%, 89% 31%, 74% 22%, 56% 18%, 36% 24%, 20% 38%, 7% 55%, 0% 70%, 18% 68%, 39% 60%, 60% 55%, 82% 50%);
-            transform: translate(-6%, -12%) scale(1.16);
-            opacity: 0.82;
-        }
-
-        .phoenix-logo-wing-fire--right::before {
-            background:
-                radial-gradient(circle at 28% 50%, rgba(255, 248, 214, 0.9) 0 7%, rgba(255, 206, 82, 0.84) 12%, rgba(255, 134, 18, 0.78) 26%, rgba(255, 92, 0, 0.34) 44%, rgba(255, 92, 0, 0) 68%),
-                radial-gradient(circle at 54% 34%, rgba(255, 176, 44, 0.52) 0 15%, rgba(255, 92, 0, 0) 42%),
-                radial-gradient(circle at 78% 66%, rgba(255, 116, 0, 0.38) 0 18%, rgba(255, 116, 0, 0) 50%);
-            clip-path: polygon(0% 44%, 12% 25%, 33% 13%, 56% 12%, 76% 23%, 89% 42%, 100% 61%, 85% 71%, 61% 76%, 36% 74%, 16% 66%, 0% 55%);
-        }
-
-        .phoenix-logo-wing-fire--right::after {
-            background:
-                radial-gradient(circle at 20% 48%, rgba(255, 250, 230, 0.62) 0 5%, rgba(255, 210, 92, 0.42) 10%, rgba(255, 112, 0, 0) 28%),
-                linear-gradient(180deg, rgba(255, 200, 76, 0) 0%, rgba(255, 151, 26, 0.6) 38%, rgba(255, 86, 0, 0) 100%);
-            clip-path: polygon(0% 42%, 11% 31%, 26% 22%, 44% 18%, 64% 24%, 80% 38%, 93% 55%, 100% 70%, 82% 68%, 61% 60%, 40% 55%, 18% 50%);
-            transform: translate(6%, -12%) scale(1.16);
-            opacity: 0.82;
+            right: -13%;
+            transform-origin: left 52%;
+            animation: phoenix-wing-fire-right 3.4s ease-in-out infinite;
         }
 
         .phoenix-logo-wing-embers {
-            inset: 12% -4% 30%;
+            inset: 10% -6% 28%;
             z-index: 2;
             background:
-                radial-gradient(circle at 14% 42%, rgba(255, 209, 74, 0.22) 0 0.9%, rgba(255, 209, 74, 0) 3%),
-                radial-gradient(circle at 23% 36%, rgba(255, 127, 36, 0.2) 0 1.1%, rgba(255, 127, 36, 0) 3.2%),
-                radial-gradient(circle at 78% 38%, rgba(255, 209, 74, 0.22) 0 0.9%, rgba(255, 209, 74, 0) 3%),
-                radial-gradient(circle at 88% 44%, rgba(255, 127, 36, 0.2) 0 1.1%, rgba(255, 127, 36, 0) 3.2%),
-                radial-gradient(circle at 18% 58%, rgba(255, 235, 160, 0.18) 0 1%, rgba(255, 235, 160, 0) 3.1%),
-                radial-gradient(circle at 82% 59%, rgba(255, 235, 160, 0.18) 0 1%, rgba(255, 235, 160, 0) 3.1%);
+                radial-gradient(circle at 15% 40%, rgba(255, 209, 74, 0.18) 0 0.9%, rgba(255, 209, 74, 0) 2.8%),
+                radial-gradient(circle at 22% 31%, rgba(255, 127, 36, 0.18) 0 1%, rgba(255, 127, 36, 0) 3%),
+                radial-gradient(circle at 79% 33%, rgba(255, 209, 74, 0.18) 0 0.9%, rgba(255, 209, 74, 0) 2.8%),
+                radial-gradient(circle at 86% 42%, rgba(255, 127, 36, 0.18) 0 1%, rgba(255, 127, 36, 0) 3%),
+                radial-gradient(circle at 18% 56%, rgba(255, 235, 160, 0.14) 0 0.9%, rgba(255, 235, 160, 0) 2.8%),
+                radial-gradient(circle at 82% 57%, rgba(255, 235, 160, 0.14) 0 0.9%, rgba(255, 235, 160, 0) 2.8%);
             filter: blur(0.8px);
-            opacity: 0.74;
+            opacity: 0.66;
             animation: phoenix-wing-embers 3.8s ease-in-out infinite;
         }
 
@@ -201,35 +162,35 @@
 
         @keyframes phoenix-wing-fire-left {
             0%, 100% {
-                opacity: 0.74;
-                transform: translate(-4%, 3px) scaleX(0.96) scaleY(0.94) rotate(-4deg);
+                opacity: 0.82;
+                transform: scaleX(-1) translateX(0) translateY(5px) rotate(-3deg) scale(0.94);
             }
 
             50% {
-                opacity: 0.96;
-                transform: translate(-10%, -3px) scaleX(1.08) scaleY(1.06) rotate(-8deg);
+                opacity: 1;
+                transform: scaleX(-1) translateX(5%) translateY(-4px) rotate(-8deg) scale(1.03);
             }
 
             75% {
-                opacity: 0.84;
-                transform: translate(-7%, -1px) scaleX(1.02) scaleY(1.01) rotate(-6deg);
+                opacity: 0.9;
+                transform: scaleX(-1) translateX(2%) translateY(-1px) rotate(-6deg) scale(0.99);
             }
         }
 
         @keyframes phoenix-wing-fire-right {
             0%, 100% {
-                opacity: 0.74;
-                transform: translate(4%, 3px) scaleX(0.96) scaleY(0.94) rotate(4deg);
+                opacity: 0.82;
+                transform: translateX(0) translateY(5px) rotate(3deg) scale(0.94);
             }
 
             50% {
-                opacity: 0.96;
-                transform: translate(10%, -3px) scaleX(1.08) scaleY(1.06) rotate(8deg);
+                opacity: 1;
+                transform: translateX(5%) translateY(-4px) rotate(8deg) scale(1.03);
             }
 
             75% {
-                opacity: 0.84;
-                transform: translate(7%, -1px) scaleX(1.02) scaleY(1.01) rotate(6deg);
+                opacity: 0.9;
+                transform: translateX(2%) translateY(-1px) rotate(6deg) scale(0.99);
             }
         }
 
@@ -470,8 +431,18 @@
             <div class="flex flex-col items-center text-center phoenix-logo-block">
                 <!-- Animacion de fuego del logo -->
                 <div class="phoenix-logo-shell">
-                    <span class="phoenix-logo-wing-fire phoenix-logo-wing-fire--left" aria-hidden="true"></span>
-                    <span class="phoenix-logo-wing-fire phoenix-logo-wing-fire--right" aria-hidden="true"></span>
+                    <img
+                        src="{{ asset('images/logo-wing-fire.png') }}"
+                        alt=""
+                        aria-hidden="true"
+                        class="phoenix-logo-wing-fire phoenix-logo-wing-fire--left"
+                    >
+                    <img
+                        src="{{ asset('images/logo-wing-fire.png') }}"
+                        alt=""
+                        aria-hidden="true"
+                        class="phoenix-logo-wing-fire phoenix-logo-wing-fire--right"
+                    >
                     <span class="phoenix-logo-wing-embers" aria-hidden="true"></span>
                     <img
                         src="{{ asset('images/logo.png') }}"
