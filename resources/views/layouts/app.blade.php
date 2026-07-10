@@ -87,129 +87,79 @@
             color: #f59e0b;
         }
 
-        /* === Animacion de fuego del logo === */
-        .phoenix-logo-block {
+        .logo-sequence {
             position: relative;
+            display: inline-block;
+            line-height: 0;
         }
 
-        .phoenix-logo-shell {
-            position: relative;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 100%;
-            overflow: visible;
-            padding: 0.2rem 0 0.1rem;
-            isolation: isolate;
-        }
-
-        .phoenix-logo-wing-fire,
-        .phoenix-logo-wing-embers {
-            position: absolute;
-            pointer-events: none;
-            will-change: transform, opacity, filter;
-        }
-
-        .phoenix-logo-wing-fire {
-            top: 8%;
-            width: 62%;
-            height: auto;
-            z-index: 1;
-            max-width: none;
-            opacity: 0.92;
-            filter:
-                saturate(1.08)
-                brightness(1.04);
-            mix-blend-mode: screen;
-        }
-
-        .phoenix-logo-wing-fire--left {
-            left: -13%;
-            transform-origin: right 52%;
-            animation: phoenix-wing-fire-left 3.4s ease-in-out infinite;
-        }
-
-        .phoenix-logo-wing-fire--right {
-            right: -13%;
-            transform-origin: left 52%;
-            animation: phoenix-wing-fire-right 3.4s ease-in-out infinite;
-        }
-
-        .phoenix-logo-wing-embers {
-            inset: 10% -6% 28%;
-            z-index: 2;
-            background:
-                radial-gradient(circle at 15% 40%, rgba(255, 209, 74, 0.18) 0 0.9%, rgba(255, 209, 74, 0) 2.8%),
-                radial-gradient(circle at 22% 31%, rgba(255, 127, 36, 0.18) 0 1%, rgba(255, 127, 36, 0) 3%),
-                radial-gradient(circle at 79% 33%, rgba(255, 209, 74, 0.18) 0 0.9%, rgba(255, 209, 74, 0) 2.8%),
-                radial-gradient(circle at 86% 42%, rgba(255, 127, 36, 0.18) 0 1%, rgba(255, 127, 36, 0) 3%),
-                radial-gradient(circle at 18% 56%, rgba(255, 235, 160, 0.14) 0 0.9%, rgba(255, 235, 160, 0) 2.8%),
-                radial-gradient(circle at 82% 57%, rgba(255, 235, 160, 0.14) 0 0.9%, rgba(255, 235, 160, 0) 2.8%);
-            filter: blur(0.8px);
-            opacity: 0.66;
-            animation: phoenix-wing-embers 3.8s ease-in-out infinite;
-        }
-
-        .phoenix-logo-image {
-            position: relative;
-            z-index: 3;
+        .logo-sequence-base {
             display: block;
-            max-width: 100%;
-            height: auto;
-            filter: none;
-            animation: none;
         }
 
-        @keyframes phoenix-wing-fire-left {
-            0%, 100% {
-                opacity: 0.82;
-                transform: scaleX(-1) translateX(0) translateY(5px) rotate(-3deg) scale(0.94);
+        .logo-sequence-frame {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            opacity: 0;
+            pointer-events: none;
+            user-select: none;
+            backface-visibility: hidden;
+            transform: translateZ(0);
+            will-change: opacity;
+            animation-duration: 480ms;
+            animation-iteration-count: infinite;
+            animation-timing-function: steps(1, end);
+            animation-fill-mode: both;
+        }
+
+        .logo-sequence-frame--2 {
+            animation-name: logo-sequence-frame-2;
+        }
+
+        .logo-sequence-frame--3 {
+            animation-name: logo-sequence-frame-3;
+        }
+
+        .logo-sequence-frame--4 {
+            animation-name: logo-sequence-frame-4;
+        }
+
+        @keyframes logo-sequence-frame-2 {
+            0%, 24.99%, 50%, 100% {
+                opacity: 0;
             }
 
-            50% {
+            25%, 49.99% {
                 opacity: 1;
-                transform: scaleX(-1) translateX(5%) translateY(-4px) rotate(-8deg) scale(1.03);
-            }
-
-            75% {
-                opacity: 0.9;
-                transform: scaleX(-1) translateX(2%) translateY(-1px) rotate(-6deg) scale(0.99);
             }
         }
 
-        @keyframes phoenix-wing-fire-right {
-            0%, 100% {
-                opacity: 0.82;
-                transform: translateX(0) translateY(5px) rotate(3deg) scale(0.94);
+        @keyframes logo-sequence-frame-3 {
+            0%, 49.99%, 75%, 100% {
+                opacity: 0;
             }
 
-            50% {
+            50%, 74.99% {
                 opacity: 1;
-                transform: translateX(5%) translateY(-4px) rotate(8deg) scale(1.03);
-            }
-
-            75% {
-                opacity: 0.9;
-                transform: translateX(2%) translateY(-1px) rotate(6deg) scale(0.99);
             }
         }
 
-        @keyframes phoenix-wing-embers {
-            0%, 100% {
-                opacity: 0.48;
-                transform: translateY(3px) scale(0.98);
+        @keyframes logo-sequence-frame-4 {
+            0%, 74.99%, 100% {
+                opacity: 0;
             }
 
-            50% {
-                opacity: 0.82;
-                transform: translateY(-5px) scale(1.04);
+            75%, 99.99% {
+                opacity: 1;
             }
         }
 
         @media (prefers-reduced-motion: reduce) {
-            .phoenix-logo-wing-fire,
-            .phoenix-logo-wing-embers {
-                animation: none !important;
+            .logo-sequence-frame {
+                animation: none;
             }
         }
 
@@ -428,26 +378,35 @@
 
         <!-- Logo -->
         <div class="px-6 py-6 border-b border-gray-200">
-            <div class="flex flex-col items-center text-center phoenix-logo-block">
-                <!-- Animacion de fuego del logo -->
-                <div class="phoenix-logo-shell">
+            <div class="flex flex-col items-center text-center">
+                <div
+                    class="logo-sequence mb-0 drop-shadow-lg"
+                    role="img"
+                    aria-label="Logo Legado Ave Fenix"
+                >
+                <img
+                    src="{{ asset('images/logo1.png') }}"
+                    alt=""
+                    aria-hidden="true"
+                    class="logo-sequence-base w-30 h-30"
+                >
                     <img
-                        src="{{ asset('images/logo-wing-fire.png') }}"
+                        src="{{ asset('images/logo2.png') }}"
                         alt=""
                         aria-hidden="true"
-                        class="phoenix-logo-wing-fire phoenix-logo-wing-fire--left"
+                        class="logo-sequence-frame logo-sequence-frame--2"
                     >
                     <img
-                        src="{{ asset('images/logo-wing-fire.png') }}"
+                        src="{{ asset('images/logo3.png') }}"
                         alt=""
                         aria-hidden="true"
-                        class="phoenix-logo-wing-fire phoenix-logo-wing-fire--right"
+                        class="logo-sequence-frame logo-sequence-frame--3"
                     >
-                    <span class="phoenix-logo-wing-embers" aria-hidden="true"></span>
                     <img
-                        src="{{ asset('images/logo.png') }}"
-                        alt="Logo Legado Ave Fénix"
-                        class="w-30 h-30 mb-0 phoenix-logo-image"
+                        src="{{ asset('images/logo4.png') }}"
+                        alt=""
+                        aria-hidden="true"
+                        class="logo-sequence-frame logo-sequence-frame--4"
                     >
                 </div>
                 <h1 class="text-sm font-semibold tracking-wide leading-tight logo-text">

@@ -480,13 +480,11 @@
         <article class="stat-card">
             <div class="stat-label">Gasto del mes</div>
             <div class="stat-value">${{ number_format((float) $summary['month_total'], 2) }}</div>
-            <div class="stat-meta">Comparativa automática contra el mes anterior disponible abajo.</div>
         </article>
 
         <article class="stat-card">
             <div class="stat-label">Gasto del año</div>
             <div class="stat-value">${{ number_format((float) $summary['year_total'], 2) }}</div>
-            <div class="stat-meta">Incluye todos los gastos del año calendario actual.</div>
         </article>
 
         <article class="stat-card">
