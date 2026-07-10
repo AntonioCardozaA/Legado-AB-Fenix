@@ -3135,7 +3135,6 @@
     </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
 <script>
     let fallasChart, componentesChart, elongacionesChart, analisis52124Chart;
@@ -4101,7 +4100,7 @@
         ensureAfterHeading(card, 'elongacionesCopy', `<p id="elongacionesCopy" class="panel-copy"></p>`);
         ensureAfterElement('elongacionesCopy', 'elongacionesActions', `
             <div id="elongacionesActions" class="panel-actions" style="margin-bottom: 18px; justify-content: flex-start;">
-                <select id="elongacionesLineaSelect" class="panel-select">${lineaOptions(state.elongacionLineaId)}</select>
+                <select id="elongacionesLineaSelect" class="panel-select">${elongacionLineaOptions(state.elongacionLineaId)}</select>
             </div>
         `);
         ensureChartShell('elongacionesChart', 'elongaciones', { tall: true });
@@ -4471,6 +4470,7 @@
                     y: { beginAtZero: true, stacked: state.fallasFilter === 'all', grid: { color: 'rgba(148, 163, 184, 0.16)' }, ticks: { precision: 0, color: '#64748b' } }
                 },
                 plugins: {
+                    datalabels: { display: false },
                     legend: { display: state.fallasFilter === 'all', labels: { usePointStyle: true, padding: 16, color: '#334155', font: { size: 11, weight: 700 } } },
                     tooltip: {
                         backgroundColor: 'rgba(15, 23, 42, 0.96)',
@@ -4628,8 +4628,7 @@
                 total_componentes: Number(item.total_componentes || 0),
                 porcentaje_impacto: Number(item.porcentaje_impacto || 0),
                 puntaje: Number(item.puntaje || item.total_danos || 0),
-            }))
-            .filter((item) => item.total_danos > 0);
+            }));
 
         rows.sort((a, b) => Number(b.total_danos || 0)
             - Number(a.total_danos || 0)
@@ -4662,7 +4661,7 @@
             footer.innerHTML = `<div><i class="fas fa-info-circle"></i> Daños activos: ${number(totalDanos, 0)} · Lavadoras: ${rows.length}</div>`;
         }
 
-        list.innerHTML = rows.slice(0, 10).map((item, index) => `
+        list.innerHTML = rows.map((item, index) => `
             <li class="ranking-item">
                 <div class="ranking-position ${index === 0 ? 'top-1' : (index === 1 ? 'top-2' : (index === 2 ? 'top-3' : ''))}">${index + 1}</div>
                 <div class="ranking-asset">
@@ -4688,7 +4687,10 @@
         const description = cardFromCanvas('elongacionesChart')?.querySelector('.chart-description');
         const select = document.getElementById('elongacionesLineaSelect');
         const rows = Array.isArray(data.elongaciones?.lineas) ? data.elongaciones.lineas : [];
-        const item = rows.find((row) => Number(row.linea_id) === Number(state.elongacionLineaId)) || rows[0];
+        const lineasConDatos = rows.filter((row) => !row.sin_datos && Array.isArray(row.labels) && row.labels.length);
+        const item = lineasConDatos.find((row) => Number(row.linea_id) === Number(state.elongacionLineaId)) || lineasConDatos[0];
+
+        if (item) state.elongacionLineaId = Number(item.linea_id);
 
         if (select) select.value = String(item?.linea_id ?? state.elongacionLineaId ?? '');
 
@@ -4729,69 +4731,209 @@
         const maxTicksLimit = compactViewport ? 4 : (narrowViewport ? 6 : 8);
 
         const canvas = document.getElementById('elongacionesChart');
-        if (!canvas || typeof Chart === 'undefined') {
-            throw new Error('Chart.js o el canvas de elongaciones no estan disponibles.');
+        if (!canvas) {
+            throw new Error('El canvas de elongaciones no esta disponible.');
         }
 
         charts.elongaciones = destroyChartForCanvas('elongacionesChart', charts.elongaciones);
         setChartState('elongaciones', false);
-        charts.elongaciones = new Chart(canvas, {
-            type: 'line',
-            data: {
-                labels: item.labels,
-                datasets: [
-                    { label: 'Bombas', data: (item.bombas || []).map((value) => Number(value || 0)), borderColor: '#2563eb', backgroundColor: 'rgba(37, 99, 235, 0.12)', borderWidth: compactViewport ? 2 : 3, pointRadius, pointHoverRadius, tension: 0.35, fill: true },
-                    { label: 'Vapor', data: (item.vapor || []).map((value) => Number(value || 0)), borderColor: '#ef4444', backgroundColor: 'rgba(239, 68, 68, 0.08)', borderWidth: compactViewport ? 2 : 3, pointRadius, pointHoverRadius, tension: 0.35, fill: true },
-                    { label: 'Umbral compra', data: new Array(item.labels.length).fill(Number(item.threshold_compra || 0)), borderColor: '#f97316', borderWidth: 2, pointRadius: 0, borderDash: [8, 4] },
-                    { label: 'Umbral cambio', data: new Array(item.labels.length).fill(Number(item.threshold_cambio || 0)), borderColor: '#ef4444', borderWidth: 2, pointRadius: 0, borderDash: [8, 4] }
-                ]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                resizeDelay: 120,
-                interaction: { mode: 'index', intersect: false },
-                layout: {
-                    padding: {
-                        top: 8,
-                        right: compactViewport ? 6 : 12,
-                        bottom: compactViewport ? 6 : 10,
-                        left: 0
-                    }
+        if (typeof Chart === 'undefined') {
+            drawElongacionesCanvas(canvas, item);
+            return;
+        }
+
+        try {
+            charts.elongaciones = new Chart(canvas, {
+                type: 'line',
+                data: {
+                    labels: item.labels,
+                    datasets: [
+                        { label: 'Bombas', data: (item.bombas || []).map((value) => Number(value || 0)), borderColor: '#2563eb', backgroundColor: 'rgba(37, 99, 235, 0.12)', borderWidth: compactViewport ? 2 : 3, pointRadius, pointHoverRadius, tension: 0.35, fill: true },
+                        { label: 'Vapor', data: (item.vapor || []).map((value) => Number(value || 0)), borderColor: '#ef4444', backgroundColor: 'rgba(239, 68, 68, 0.08)', borderWidth: compactViewport ? 2 : 3, pointRadius, pointHoverRadius, tension: 0.35, fill: true },
+                        { label: 'Umbral compra', data: new Array(item.labels.length).fill(Number(item.threshold_compra || 0)), borderColor: '#f97316', borderWidth: 2, pointRadius: 0, borderDash: [8, 4] },
+                        { label: 'Umbral cambio', data: new Array(item.labels.length).fill(Number(item.threshold_cambio || 0)), borderColor: '#ef4444', borderWidth: 2, pointRadius: 0, borderDash: [8, 4] }
+                    ]
                 },
-                plugins: {
-                    legend: { display: false },
-                    datalabels: { display: false },
-                    tooltip: {
-                        backgroundColor: 'rgba(15, 23, 42, 0.96)',
-                        titleColor: '#fff',
-                        bodyColor: '#e2e8f0',
-                        callbacks: { label: (context) => `${context.dataset.label}: ${percent(context.raw || 0, 2)}` }
-                    }
-                },
-                scales: {
-                    x: {
-                        grid: { display: false },
-                        ticks: {
-                            color: '#64748b',
-                            autoSkip: true,
-                            maxTicksLimit,
-                            maxRotation: narrowViewport ? 0 : 45,
-                            minRotation: narrowViewport ? 0 : 45
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    resizeDelay: 120,
+                    interaction: { mode: 'index', intersect: false },
+                    layout: {
+                        padding: {
+                            top: 8,
+                            right: compactViewport ? 6 : 12,
+                            bottom: compactViewport ? 6 : 10,
+                            left: 0
                         }
                     },
-                    y: {
-                        beginAtZero: true,
-                        grace: '8%',
-                        grid: { color: 'rgba(148, 163, 184, 0.16)' },
-                        ticks: {
-                            color: '#64748b',
-                            padding: 8,
-                            callback: (value) => `${value}%`
+                    plugins: {
+                        legend: { display: false },
+                        datalabels: { display: false },
+                        tooltip: {
+                            backgroundColor: 'rgba(15, 23, 42, 0.96)',
+                            titleColor: '#fff',
+                            bodyColor: '#e2e8f0',
+                            callbacks: { label: (context) => `${context.dataset.label}: ${percent(context.raw || 0, 2)}` }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { display: false },
+                            ticks: {
+                                color: '#64748b',
+                                autoSkip: true,
+                                maxTicksLimit,
+                                maxRotation: narrowViewport ? 0 : 45,
+                                minRotation: narrowViewport ? 0 : 45
+                            }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            grace: '8%',
+                            grid: { color: 'rgba(148, 163, 184, 0.16)' },
+                            ticks: {
+                                color: '#64748b',
+                                padding: 8,
+                                callback: (value) => `${value}%`
+                            }
                         }
                     }
                 }
+            });
+        } catch (error) {
+            console.warn('No se pudo renderizar elongaciones con Chart.js. Se usa canvas nativo.', error);
+            charts.elongaciones = destroyChartForCanvas('elongacionesChart', charts.elongaciones);
+            setChartState('elongaciones', false);
+            drawElongacionesCanvas(canvas, item);
+        }
+    }
+
+    function drawElongacionesCanvas(canvas, item) {
+        const shell = canvas.closest('.chart-shell');
+        const parent = canvas.parentElement;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+
+        const width = Math.max(320, Math.floor((parent?.clientWidth || shell?.clientWidth || 720)));
+        const height = Math.max(240, Math.floor((parent?.clientHeight || shell?.clientHeight || 280)));
+        const dpr = window.devicePixelRatio || 1;
+        canvas.width = Math.floor(width * dpr);
+        canvas.height = Math.floor(height * dpr);
+        canvas.style.width = `${width}px`;
+        canvas.style.height = `${height}px`;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.clearRect(0, 0, width, height);
+
+        const labels = Array.isArray(item.labels) ? item.labels : [];
+        const bombas = (item.bombas || []).map((value) => Number(value || 0));
+        const vapor = (item.vapor || []).map((value) => Number(value || 0));
+        const compra = Number(item.threshold_compra || 0);
+        const cambio = Number(item.threshold_cambio || 0);
+        const values = [...bombas, ...vapor, compra, cambio].filter((value) => Number.isFinite(value));
+        const maxValue = Math.max(2, ...values) * 1.12;
+        const padding = { top: 22, right: 22, bottom: 42, left: 48 };
+        const plotWidth = width - padding.left - padding.right;
+        const plotHeight = height - padding.top - padding.bottom;
+        const xFor = (index) => padding.left + (labels.length <= 1 ? plotWidth / 2 : (plotWidth * index) / (labels.length - 1));
+        const yFor = (value) => padding.top + plotHeight - ((Number(value || 0) / maxValue) * plotHeight);
+
+        ctx.font = '600 11px sans-serif';
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'middle';
+        ctx.strokeStyle = 'rgba(148, 163, 184, 0.18)';
+        ctx.fillStyle = '#64748b';
+        ctx.lineWidth = 1;
+        for (let i = 0; i <= 4; i += 1) {
+            const value = (maxValue / 4) * i;
+            const y = yFor(value);
+            ctx.beginPath();
+            ctx.moveTo(padding.left, y);
+            ctx.lineTo(width - padding.right, y);
+            ctx.stroke();
+            ctx.fillText(`${value.toFixed(value >= 10 ? 0 : 1)}%`, padding.left - 8, y);
+        }
+
+        ctx.strokeStyle = 'rgba(15, 23, 42, 0.22)';
+        ctx.beginPath();
+        ctx.moveTo(padding.left, padding.top);
+        ctx.lineTo(padding.left, height - padding.bottom);
+        ctx.lineTo(width - padding.right, height - padding.bottom);
+        ctx.stroke();
+
+        const drawSeries = (series, color, fillColor) => {
+            if (!series.length) return;
+            ctx.beginPath();
+            series.forEach((value, index) => {
+                const x = xFor(index);
+                const y = yFor(value);
+                if (index === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            });
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 3;
+            ctx.setLineDash([]);
+            ctx.stroke();
+
+            if (series.length > 1) {
+                ctx.lineTo(xFor(series.length - 1), height - padding.bottom);
+                ctx.lineTo(xFor(0), height - padding.bottom);
+                ctx.closePath();
+                ctx.fillStyle = fillColor;
+                ctx.fill();
             }
+
+            series.forEach((value, index) => {
+                ctx.beginPath();
+                ctx.arc(xFor(index), yFor(value), 4, 0, Math.PI * 2);
+                ctx.fillStyle = '#ffffff';
+                ctx.fill();
+                ctx.lineWidth = 2;
+                ctx.strokeStyle = color;
+                ctx.stroke();
+            });
+        };
+
+        const drawThreshold = (value, color, label) => {
+            const y = yFor(value);
+            ctx.setLineDash([8, 5]);
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(padding.left, y);
+            ctx.lineTo(width - padding.right, y);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            ctx.fillStyle = color;
+            ctx.textAlign = 'left';
+            ctx.fillText(label, padding.left + 8, y - 10);
+        };
+
+        drawSeries(bombas, '#2563eb', 'rgba(37, 99, 235, 0.10)');
+        drawSeries(vapor, '#ef4444', 'rgba(239, 68, 68, 0.08)');
+        drawThreshold(compra, '#f97316', 'Compra');
+        drawThreshold(cambio, '#ef4444', 'Cambio');
+
+        ctx.fillStyle = '#64748b';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+        labels.forEach((label, index) => {
+            if (labels.length > 6 && index % Math.ceil(labels.length / 6) !== 0 && index !== labels.length - 1) return;
+            ctx.fillText(String(label), xFor(index), height - padding.bottom + 14);
+        });
+
+        const legend = [
+            ['Bombas', '#2563eb'],
+            ['Vapor', '#ef4444'],
+        ];
+        ctx.textBaseline = 'middle';
+        legend.forEach(([label, color], index) => {
+            const x = width - padding.right - 150 + (index * 78);
+            ctx.fillStyle = color;
+            ctx.fillRect(x, 14, 10, 10);
+            ctx.fillStyle = '#334155';
+            ctx.textAlign = 'left';
+            ctx.fillText(label, x + 16, 19);
         });
     }
 
@@ -6302,6 +6444,14 @@
 
     function lineaOptions(selectedId) {
         return (data.lineas || []).map((linea) => `<option value="${linea.id}" ${Number(linea.id) === Number(selectedId) ? 'selected' : ''}>${escapeHtml(linea.nombre)}</option>`).join('');
+    }
+
+    function elongacionLineaOptions(selectedId) {
+        const lineas = Array.isArray(data.elongaciones?.lineas)
+            ? data.elongaciones.lineas.filter((linea) => !linea.sin_datos && Array.isArray(linea.labels) && linea.labels.length)
+            : [];
+
+        return lineas.map((linea) => `<option value="${linea.linea_id}" ${Number(linea.linea_id) === Number(selectedId) ? 'selected' : ''}>${escapeHtml(linea.linea)}</option>`).join('');
     }
 
     function bindResponsiveChartResize() {

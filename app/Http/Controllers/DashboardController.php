@@ -231,6 +231,10 @@ class DashboardController extends Controller
             ->orderBy('nombre')
             ->get();
 
+        $todasLasLineasLavadora = Linea::whereIn('nombre', self::LAVADORA_NOMBRES)
+            ->orderBy('nombre')
+            ->get();
+
         $trend52124Range = $this->resolveLavadoraTrendDateRange($request, 'trend_52124_desde', 'trend_52124_hasta');
         $trend30147Range = $this->resolveLavadoraTrendDateRange($request, 'trend_30147_desde', 'trend_30147_hasta');
 
@@ -242,7 +246,7 @@ class DashboardController extends Controller
         $fallasPorLinea = $this->getFallasPorLinea($lineasLavadora, $analisisActuales);
         $planesAccionDashboard = $this->getPlanesAccionDashboard($lineasLavadora);
         $componentesDanados = [];
-        $rankingDanos = $this->getRankingDanosPorLavadora($lineasLavadora, $analisisActuales);
+        $rankingDanos = $this->getRankingDanosPorLavadora($todasLasLineasLavadora);
         $evolucionElongaciones = $this->getEvolucionElongaciones($lineasLavadora);
         $historicoRevisiones = $this->getHistoricoRevisiones($lineasLavadora, $analisisHistoricos);
         $lavadoraCostSummary = app(LavadoraCostAnalyticsService::class)->dashboardData([
@@ -1118,10 +1122,8 @@ public function pasteurizadoraOperativo(Request $request)
                     'requiere_cambio' => $criticas > 0,
                 ];
             })
-            ->filter(fn ($item) => $item['total_danos'] > 0)
             ->sortByDesc(fn ($item) => ($item['total_danos'] * 1000) + ($item['criticas'] * 100) + ($item['severos'] * 10) + $item['moderados'] + (($item['dias_desde_revision'] ?? 0) / 100))
             ->values()
-            ->take(10)
             ->all();
     }
 

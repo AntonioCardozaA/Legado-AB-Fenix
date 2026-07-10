@@ -246,65 +246,6 @@
             ];
         @endphp
 
-        <section class="dashboard-trend-suite">
-            <div class="dashboard-trend-suite-header">
-                <div>
-                    <span class="dashboard-trend-kicker">Tendencia de daños</span>
-                    <h2>Control visual por lavadora</h2>
-                </div>
-                <a href="{{ route('analisis-tendencia-mensual.lavadora.index') }}" class="dashboard-trend-link">
-                    Ver analisis completo
-                </a>
-            </div>
-
-            <div class="dashboard-trend-grid">
-                @foreach($trendModules as $module)
-                    <article class="dashboard-trend-panel">
-                        <div class="dashboard-trend-toolbar">
-                            <div class="dashboard-trend-heading">
-                                <h3>{{ $module['title'] }}</h3>
-                            </div>
-                            <div class="dashboard-trend-actions">
-                                <label class="dashboard-trend-select-wrap" for="dashboardTrendSelect{{ $module['key'] }}">
-                                    <span>Lavadora</span>
-                                    <select id="dashboardTrendSelect{{ $module['key'] }}" class="dashboard-trend-select">
-                                        @foreach($lineasLavadora as $linea)
-                                            <option value="{{ $linea->id }}">{{ $linea->nombre }}</option>
-                                        @endforeach
-                                    </select>
-                                </label>
-                                <div class="dashboard-trend-view-selector">
-                                    <button type="button" class="dashboard-trend-view-btn active" data-dashboard-trend-module="{{ $module['key'] }}" data-dashboard-trend-type="bar">Barras</button>
-                                    <button type="button" class="dashboard-trend-view-btn" data-dashboard-trend-module="{{ $module['key'] }}" data-dashboard-trend-type="line">Linea</button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="dashboard-trend-brief">
-                            <div id="dashboardTrendStatusCard{{ $module['key'] }}" class="dashboard-trend-status dashboard-trend-status--neutral">
-                                <div class="dashboard-trend-eyebrow">Control inmediato</div>
-                                <div id="dashboardTrendStatusTitle{{ $module['key'] }}" class="dashboard-trend-status-title">Leyendo tendencia reciente...</div>
-                                <p id="dashboardTrendStatusCopy{{ $module['key'] }}" class="dashboard-trend-status-copy">
-                                    Estamos preparando el comportamiento de esta lavadora para mostrar si la implementacion ya se refleja en la baja de daños.
-                                </p>
-                            </div>
-                            <div id="dashboardTrendCards{{ $module['key'] }}" class="dashboard-trend-window-grid"></div>
-                        </div>
-
-                        <div class="dashboard-trend-chart-card">
-                            <div class="dashboard-trend-chart-header">
-                                <div class="dashboard-trend-chart-title">Comportamiento mensual</div>
-                                <div id="dashboardTrendCaption{{ $module['key'] }}" class="dashboard-trend-caption"></div>
-                            </div>
-                            <div class="dashboard-trend-chart-wrap">
-                                <div id="dashboardTrendEmpty{{ $module['key'] }}" class="dashboard-trend-empty" hidden></div>
-                                <canvas id="dashboardTrendChart{{ $module['key'] }}"></canvas>
-                            </div>
-                        </div>
-                    </article>
-                @endforeach
-            </div>
-        </section>
     </div>
 </div>
 
