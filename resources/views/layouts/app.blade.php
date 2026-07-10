@@ -87,6 +87,82 @@
             color: #f59e0b;
         }
 
+        .logo-sequence {
+            position: relative;
+            display: inline-block;
+            line-height: 0;
+        }
+
+        .logo-sequence-base {
+            display: block;
+        }
+
+        .logo-sequence-frame {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            opacity: 0;
+            pointer-events: none;
+            user-select: none;
+            backface-visibility: hidden;
+            transform: translateZ(0);
+            will-change: opacity;
+            animation-duration: 480ms;
+            animation-iteration-count: infinite;
+            animation-timing-function: steps(1, end);
+            animation-fill-mode: both;
+        }
+
+        .logo-sequence-frame--2 {
+            animation-name: logo-sequence-frame-2;
+        }
+
+        .logo-sequence-frame--3 {
+            animation-name: logo-sequence-frame-3;
+        }
+
+        .logo-sequence-frame--4 {
+            animation-name: logo-sequence-frame-4;
+        }
+
+        @keyframes logo-sequence-frame-2 {
+            0%, 24.99%, 50%, 100% {
+                opacity: 0;
+            }
+
+            25%, 49.99% {
+                opacity: 1;
+            }
+        }
+
+        @keyframes logo-sequence-frame-3 {
+            0%, 49.99%, 75%, 100% {
+                opacity: 0;
+            }
+
+            50%, 74.99% {
+                opacity: 1;
+            }
+        }
+
+        @keyframes logo-sequence-frame-4 {
+            0%, 74.99%, 100% {
+                opacity: 0;
+            }
+
+            75%, 99.99% {
+                opacity: 1;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .logo-sequence-frame {
+                animation: none;
+            }
+        }
+
         textarea[name="actividad"],
         input[name="actividad"] {
             text-transform: uppercase;
@@ -303,11 +379,36 @@
         <!-- Logo -->
         <div class="px-6 py-6 border-b border-gray-200">
             <div class="flex flex-col items-center text-center">
-                <img
-                    src="{{ asset('images/logo.png') }}"
-                    alt="Logo Legado Ave Fénix"
-                    class="w-30 h-30 mb-0 drop-shadow-lg"
+                <div
+                    class="logo-sequence mb-0 drop-shadow-lg"
+                    role="img"
+                    aria-label="Logo Legado Ave Fenix"
                 >
+                <img
+                    src="{{ asset('images/logo1.png') }}"
+                    alt=""
+                    aria-hidden="true"
+                    class="logo-sequence-base w-30 h-30"
+                >
+                    <img
+                        src="{{ asset('images/logo2.png') }}"
+                        alt=""
+                        aria-hidden="true"
+                        class="logo-sequence-frame logo-sequence-frame--2"
+                    >
+                    <img
+                        src="{{ asset('images/logo3.png') }}"
+                        alt=""
+                        aria-hidden="true"
+                        class="logo-sequence-frame logo-sequence-frame--3"
+                    >
+                    <img
+                        src="{{ asset('images/logo4.png') }}"
+                        alt=""
+                        aria-hidden="true"
+                        class="logo-sequence-frame logo-sequence-frame--4"
+                    >
+                </div>
                 <h1 class="text-sm font-semibold tracking-wide leading-tight logo-text">
                     LEGADO AB<br>
                     <span class="text-yellow-500 font-bold">FÉNIX</span>

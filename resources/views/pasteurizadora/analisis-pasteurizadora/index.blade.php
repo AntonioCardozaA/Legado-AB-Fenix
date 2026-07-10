@@ -343,6 +343,32 @@
         padding: 2px 4px;
         border-radius: 3px;
     }
+
+    .reductor-header {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        padding: 8px 4px;
+        min-width: 120px;
+    }
+
+    .reductor-name {
+        font-weight: 600;
+        color: #1e40af;
+        font-size: 11px;
+        line-height: 1.2;
+        margin-bottom: 4px;
+    }
+
+    .reductor-label {
+        font-size: 9px;
+        color: var(--dark-gray);
+        background: #f3f4f6;
+        padding: 2px 4px;
+        border-radius: 3px;
+    }
     
     .table-wrapper {
         position: relative;
@@ -719,6 +745,7 @@
             font-size: 0.7rem !important;
             padding: 6px !important;
         }
+
     }
 
     @media (max-width: 480px) {
@@ -731,6 +758,7 @@
             width: 100%;
             justify-content: center;
         }
+
     }
 
     /* ESTILOS PARA SECCION DE TODAS LAS PASTEURIZADORAS */
@@ -777,6 +805,100 @@
         border-radius: 0;
         border: none;
         border-top: 1px solid #e2e8f0;
+    }
+
+    .pasteurizadora-card .component-header {
+        min-width: 120px;
+        min-height: 142px;
+        gap: 8px;
+        height: 100%;
+    }
+
+    .pasteurizadora-card .component-header img {
+        width: 4.75rem;
+        height: 4.75rem;
+        flex-shrink: 0;
+    }
+
+    .pasteur-analysis-table .pasteur-module-cell {
+        min-width: 132px;
+        width: 132px;
+    }
+
+    .pasteur-analysis-table .analysis-cell,
+    .pasteur-analysis-table .empty-cell {
+        min-height: 220px;
+    }
+
+    .pasteur-cell-content {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        height: 100%;
+    }
+
+    .pasteur-cell-date-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.5rem;
+    }
+
+    .pasteur-cell-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        margin-top: auto;
+    }
+
+    .pasteur-cell-actions > .create-action,
+    .pasteur-cell-actions > .responsive-action,
+    .pasteur-cell-actions > .pasteur-cell-status {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .pasteur-cell-status {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.38rem;
+        min-height: 2.25rem;
+        padding: 0.48rem 0.78rem;
+        border: 1px solid #86efac;
+        border-radius: 0.5rem;
+        background: #dcfce7;
+        color: #166534;
+        font-size: 0.75rem;
+        font-weight: 700;
+        line-height: 1.2;
+        text-align: center;
+    }
+
+    .pasteurizadora-card .empty-cell {
+        gap: 0.75rem;
+    }
+
+    @media (max-width: 768px) {
+        .pasteurizadora-card-header {
+            padding: 16px 18px;
+        }
+
+        .pasteurizadora-card .component-header {
+            min-height: 124px;
+        }
+
+        .pasteur-cell-date-row {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .pasteur-analysis-table .pasteur-module-cell {
+            min-width: 116px;
+            width: 116px;
+        }
     }
 
     /* ESTILOS PARA MODALES */
@@ -1232,7 +1354,7 @@
             </button>
             
             {{-- REQUIERE REVISIÓN (BOTÓN CLICKEABLE) --}}
-            <button onclick="openEstadoModal('requiere_revision', '🔧 Requiere revisión', {{ json_encode($registrosPorEstado['requiere_revision']->map(fn($item) => [
+            <button onclick="openEstadoModal('requiere_revision', 'Requiere revisión', {{ json_encode($registrosPorEstado['requiere_revision']->map(fn($item) => [
                 'id' => $item->id,
                 'linea' => $item->linea->nombre ?? 'N/A',
                 'modulo' => $item->modulo,
@@ -1245,7 +1367,7 @@
                     class="stat-action-card bg-white rounded-xl shadow-sm p-4 border-t-4 border-yellow-500 hover:shadow-lg hover:bg-yellow-50 transition-all text-left w-full cursor-pointer group">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-xs font-semibold text-yellow-600 uppercase tracking-wide">🔧 Requiere revisión</p>
+                        <p class="text-xs font-semibold text-yellow-600 uppercase tracking-wide">Requiere revisión</p>
                         <h3 class="text-2xl font-bold text-yellow-600 mt-1">{{ $estadisticas['requiere_revision'] ?? 0 }}</h3>
                         <p class="text-xs text-yellow-500 group-hover:text-yellow-700 mt-1"><i class="fas fa-eye text-xs"></i> Ver detalles</p>
                     </div>
@@ -1375,10 +1497,10 @@
                         <div class="scroll-indicator">
                             <i class="fas fa-arrows-alt-h mr-1"></i> Desplazate para ver mas
                         </div>
-                        <table class="w-full compact-table border-collapse">
+                        <table class="w-full compact-table border-collapse pasteur-analysis-table">
                             <thead>
                                 <tr class="bg-gray-50 border-b border-gray-200">
-                                    <th class="sticky-left cell-header text-blue-900 font-bold px-3 py-2 border text-center whitespace-nowrap text-sm">
+                                    <th class="sticky-left cell-header text-blue-900 font-bold px-3 py-2 border text-center whitespace-nowrap text-sm pasteur-module-cell">
                                         <div class="reductor-header">
                                             <div class="reductor-name">MÓDULO</div>
                                             <div class="reductor-label">COMPONENTE</div>
@@ -1403,7 +1525,7 @@
                             <tbody>
                                 @foreach($modulosLinea as $moduloNumero)
                                     <tr>
-                                        <td class="sticky-left cell-header text-blue-900 font-bold px-3 py-2 border text-center whitespace-nowrap text-sm align-top">
+                                        <td class="sticky-left cell-header text-blue-900 font-bold px-3 py-2 border text-center whitespace-nowrap text-sm align-top pasteur-module-cell">
                                             <div class="reductor-header">
                                                 <div class="reductor-name">Módulo {{ $moduloNumero }}</div>
                                             </div>
@@ -1475,8 +1597,8 @@
                                                 $procesoCompletado = (bool) ($celdaSeguimiento['completado'] ?? ($hasQuickData && !$siguienteRevision));
                                                 $mostrarProcesoCompletado = !$hasNormalAnalysis && $procesoCompletado;
                                                 $quickActionLabel = !$hasQuickData
-                                                    ? 'Crear bitacora'
-                                                    : ($procesoCompletado ? 'Nuevo analisis rapido' : 'Continuar bitacora');
+                                                    ? 'Crear'
+                                                    : ($procesoCompletado ? 'Nuevo analisis rapido' : 'Continuar');
                                                 $quickActionClass = $procesoCompletado
                                                     ? 'create-action create-action--compact create-action--success'
                                                     : 'create-action create-action--compact';
@@ -1594,7 +1716,7 @@
                                                     ]) }})"
                                                 @endif>
                                                 @if($hasData)
-                                                    <div class="space-y-2">
+                                                    <div class="pasteur-cell-content">
                                                         <div class="flex flex-wrap items-center gap-2">
                                                             @if($hasNormalAnalysis)
                                                                 <span class="inline-flex items-center gap-1 rounded-full border border-slate-300 bg-white/80 px-2 py-1 text-[11px] font-semibold text-slate-700">
@@ -1632,7 +1754,7 @@
                                                             @endif
                                                         </div>
                                                         
-                                                        <div class="flex items-center justify-between gap-2 text-xs text-gray-600">
+                                                        <div class="pasteur-cell-date-row text-xs text-gray-600">
                                                             <span class="flex items-center gap-1">
                                                                 <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
@@ -1700,18 +1822,18 @@
                                                             </p>
                                                         @endif
 
-                                                        <div class="flex flex-wrap gap-2 pt-1">
+                                                        <div class="pasteur-cell-actions">
                                                             @if(count($registro->evidencia_fotos ?? []) > 0)
                                                                 <button onclick="event.stopPropagation(); openAllImages({{ Illuminate\Support\Js::from($registro->evidencia_fotos ?? []) }}, {{ Illuminate\Support\Js::from($registro->numero_orden) }})"
-                                                                        class="responsive-action responsive-action--compact responsive-action--secondary">
+                                                                        class="create-action create-action--compact create-action--secondary">
                                                                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                                                                     </svg>
-                                                                    {{ count($registro->evidencia_fotos) }}
+                                                                    {{ count($registro->evidencia_fotos) }} imagenes
                                                                 </button>
                                                             @endif
                                                             @if($mostrarProcesoCompletado)
-                                                                <span class="inline-flex items-center gap-1 px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-semibold">
+                                                                <span class="pasteur-cell-status">
                                                                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                                                                     </svg>
@@ -1763,27 +1885,29 @@
                                                                 <i class="fas fa-clipboard"></i>
                                                             </div>
                                                             <p class="text-xs text-gray-400 mb-2">Sin analisis</p>
-                                                            <a href="{{ $analisisRoute('create-quick', [
-                                                                'linea_id' => $linea->id,
-                                                                'modulo' => $moduloNumero,
-                                                                'componente' => $codigo,
-                                                                'lado' => '',
-                                                                'nivel' => ''
-                                                            ]) }}"
-                                                               class="create-action create-action--compact"
-                                                               onclick="event.stopPropagation();">
-                                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                                                                </svg>
-                                                                Crear bitacora
-                                                            </a>
+                                                            <div class="pasteur-cell-actions">
+                                                                <a href="{{ $analisisRoute('create-quick', [
+                                                                    'linea_id' => $linea->id,
+                                                                    'modulo' => $moduloNumero,
+                                                                    'componente' => $codigo,
+                                                                    'lado' => '',
+                                                                    'nivel' => ''
+                                                                ]) }}"
+                                                                   class="create-action create-action--compact"
+                                                                   onclick="event.stopPropagation();">
+                                                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                                                                    </svg>
+                                                                    Crear
+                                                                </a>
+                                                            </div>
                                                         @endif
                                                     </div>
                                                 @endif
                                             </td>
                                             @endif
                                         @endforeach
-                                    </td>
+                                    </tr>
                                 @endforeach
                             </tbody>
                         </table>
