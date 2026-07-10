@@ -711,7 +711,7 @@
             </div>
             <div class="stat-value">{{ $ventanaPrincipal52124['current'] ?? 0 }}</div>
             <div class="text-sm text-gray-500 mt-2">
-                Danos en {{ $ventanaPrincipal52124['label'] ?? '52 semanas' }}
+                Daños en {{ $ventanaPrincipal52124['label'] ?? '52 semanas' }}
             </div>
             @if($ventanas52124Reporte->isNotEmpty())
                 <div class="stat-window-grid">
@@ -734,7 +734,7 @@
             </div>
             <div class="stat-value">{{ $ventanaPrincipal30147['current'] ?? 0 }}</div>
             <div class="text-sm text-gray-500 mt-2">
-                Danos en {{ $ventanaPrincipal30147['label'] ?? '30 dias' }}
+                Daños en {{ $ventanaPrincipal30147['label'] ?? '30 dias' }}
             </div>
             @if($ventanas30147Reporte->isNotEmpty())
                 <div class="stat-window-grid">
@@ -962,7 +962,7 @@
                     </div>
                     <div>
                         <div class="modulo-titulo">ANALISIS 52-12-4</div>
-                        <div class="modulo-subtitulo">Tendencias de danos por periodo</div>
+                        <div class="modulo-subtitulo">Tendencias de daños por periodo</div>
                     </div>
                 </div>
                 <div class="modulo-badge">
@@ -1004,7 +1004,7 @@
                 @if($eventosHistorial52124->isNotEmpty())
                     <div class="mb-6 overflow-x-auto">
                         <div class="text-sm font-semibold text-gray-700 mb-2">
-                            Danos detectados en {{ $ventanaHistorial52124['label'] ?? 'el periodo' }}
+                            Daños detectados en {{ $ventanaHistorial52124['label'] ?? 'el periodo' }}
                         </div>
                         <table class="industrial-table">
                             <thead>
@@ -1038,17 +1038,17 @@
                         <div class="bg-white p-4 rounded-lg border border-gray-200 text-center">
                             <div class="text-sm text-gray-500 mb-1">52 Semanas</div>
                             <div class="text-2xl font-bold text-gray-800">{{ number_format($totalDanos52, 2) }}</div>
-                            <div class="text-xs text-gray-500">Total danos</div>
+                            <div class="text-xs text-gray-500">Total daños</div>
                         </div>
                         <div class="bg-white p-4 rounded-lg border border-gray-200 text-center">
                             <div class="text-sm text-gray-500 mb-1">12 Semanas</div>
                             <div class="text-2xl font-bold text-gray-800">{{ number_format($totalDanos12, 2) }}</div>
-                            <div class="text-xs text-gray-500">Total danos</div>
+                            <div class="text-xs text-gray-500">Total daños</div>
                         </div>
                         <div class="bg-white p-4 rounded-lg border border-gray-200 text-center">
                             <div class="text-sm text-gray-500 mb-1">4 Semanas</div>
                             <div class="text-2xl font-bold text-gray-800">{{ number_format($totalDanos4, 2) }}</div>
-                            <div class="text-xs text-gray-500">Total danos</div>
+                            <div class="text-xs text-gray-500">Total daños</div>
                         </div>
                     </div>
 
@@ -1147,7 +1147,7 @@
                 @if($eventosHistorial30147->isNotEmpty())
                     <div class="mb-6 overflow-x-auto">
                         <div class="text-sm font-semibold text-gray-700 mb-2">
-                            Danos detectados en {{ $ventanaHistorial30147['label'] ?? 'el periodo' }}
+                            Daños detectados en {{ $ventanaHistorial30147['label'] ?? 'el periodo' }}
                         </div>
                         <table class="industrial-table">
                             <thead>

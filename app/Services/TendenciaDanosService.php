@@ -47,8 +47,8 @@ class TendenciaDanosService
     public function criteriosDano(): array
     {
         return [
-            'Danado - Requiere cambio',
-            'Danado - Cambiado',
+            'Dañado - Requiere cambio',
+            'Dañado - Cambiado',
             'Desgaste severo',
             'Desgaste moderado',
         ];
@@ -967,7 +967,7 @@ class TendenciaDanosService
                     'desde' => $rango ? $rango['current_start']->format('d/m/Y') : null,
                     'hasta' => $rango ? $rango['current_end']->format('d/m/Y') : null,
                     'descripcion' => $this->descripcionVentana($label),
-                    'escala' => '1 dano = 1%',
+                    'escala' => '1 daño = 1%',
                 ];
             })
             ->values();
@@ -1070,12 +1070,12 @@ class TendenciaDanosService
                         ->all(),
                     'danos' => $grupo
                         ->filter(fn (array $item) => filled($item['dano_principal'] ?? null))
-                        ->groupBy(fn (array $item) => $this->claveAgrupacion($item['dano_principal'] ?? 'Sin dano'))
+                        ->groupBy(fn (array $item) => $this->claveAgrupacion($item['dano_principal'] ?? 'Sin daño'))
                         ->map(function (Collection $danosGrupo) {
                             $primeroDano = $danosGrupo->first();
 
                             return [
-                                'estado' => $primeroDano['dano_principal'] ?? 'Sin dano',
+                                'estado' => $primeroDano['dano_principal'] ?? 'Sin daño',
                                 'total' => $danosGrupo->sum('total'),
                             ];
                         })
@@ -1094,7 +1094,7 @@ class TendenciaDanosService
                 'labels' => $labels,
                 'series' => $seriesComponentes,
                 'total_mensual' => $totalMensual,
-                'descripcion' => 'Barras apiladas por mes: cada color representa un componente y la altura total muestra los danos del periodo.',
+                'descripcion' => 'Barras apiladas por mes: cada color representa un componente y la altura total muestra los daños del periodo.',
                 'ventana_corta' => [
                     'label' => $ventanaCorta['label'] ?? null,
                     'data' => $ventanaCorta['data'] ?? [],
@@ -1121,7 +1121,7 @@ class TendenciaDanosService
                 'labels' => collect($danos)->take(6)->pluck('estado')->values()->all(),
                 'data' => collect($danos)->take(6)->pluck('total')->map(fn ($value) => (int) $value)->values()->all(),
                 'porcentajes' => collect($danos)->take(6)->pluck('porcentaje')->values()->all(),
-                'descripcion' => 'Distribucion de los tipos de dano para identificar el patron dominante de falla.',
+                'descripcion' => 'Distribucion de los tipos de daño para identificar el patron dominante de falla.',
                 'meta' => collect($danos)->take(6)->map(fn (array $item) => [
                     'estado' => $item['estado'] ?? 'Sin estado',
                     'total' => (int) ($item['total'] ?? 0),
@@ -1146,7 +1146,7 @@ class TendenciaDanosService
                     'ubicaciones' => $item['ubicaciones'] ?? [],
                     'danos' => $item['danos'] ?? [],
                 ])->values()->all(),
-                'descripcion' => 'Ranking de componentes por cantidad acumulada de danos en el periodo analizado.',
+                'descripcion' => 'Ranking de componentes por cantidad acumulada de daños en el periodo analizado.',
             ],
             'barras_danos_componentes' => [
                 'labels' => $componentesTop->pluck('componente')->values()->all(),
@@ -1167,7 +1167,7 @@ class TendenciaDanosService
                     'data' => $serie['data'] ?? [],
                     'meta' => $serie['meta'] ?? [],
                 ])->values()->all(),
-                'descripcion' => 'Barras apiladas de fallas: reductores o ubicaciones al lateral, componentes abajo por color y conteo de danos en cada cruce con detalle en el tooltip.',
+                'descripcion' => 'Barras apiladas de fallas: reductores o ubicaciones al lateral, componentes abajo por color y conteo de daños en cada cruce con detalle en el tooltip.',
             ],
             'barras_ubicaciones' => [
                 'labels' => $ubicaciones->pluck('ubicacion')->values()->all(),
@@ -1189,7 +1189,7 @@ class TendenciaDanosService
                     'label' => $serie['label'] ?? 'Ventana',
                     'data' => collect($serie['data'] ?? [])->map(fn ($value) => (float) $value)->values()->all(),
                 ])->values()->all(),
-                'descripcion' => 'Compara las ventanas acumuladas hacia atras usando escala directa: 1 dano equivale a 1% y el maximo visual es 100%.',
+                'descripcion' => 'Compara las ventanas acumuladas hacia atras usando escala directa: 1 daño equivale a 1% y el maximo visual es 100%.',
             ],
         ];
     }
@@ -1213,7 +1213,7 @@ class TendenciaDanosService
                 'labels' => collect($global['top_danos'] ?? [])->take(8)->pluck('estado')->values()->all(),
                 'data' => collect($global['top_danos'] ?? [])->take(8)->pluck('total')->map(fn ($value) => (int) $value)->values()->all(),
                 'porcentajes' => collect($global['top_danos'] ?? [])->take(8)->pluck('porcentaje')->values()->all(),
-                'descripcion' => 'Distribucion global de los tipos de dano mas frecuentes.',
+                'descripcion' => 'Distribucion global de los tipos de daño mas frecuentes.',
             ],
         ];
     }

@@ -616,7 +616,7 @@ function mostrarGrafica(datos) {
         data: {
             labels: datos.meses,
             datasets: [{
-                label: 'Danos',
+                label: 'Daños',
                 data: datos.valores,
                 borderColor: '#ef4444',
                 backgroundColor: 'rgba(239,68,68,0.2)',

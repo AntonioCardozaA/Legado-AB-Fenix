@@ -119,7 +119,7 @@
                 <i class="fas fa-info-circle mt-0.5"></i>
                 <div>
                     <p class="font-semibold">Este formulario registra analisis normales.</p>
-                    <p>Usalo para fallas, ordenes de revision, reportes de dano y condiciones especiales de componentes.</p>
+                    <p>Usalo para fallas, ordenes de revision, reportes de daño y condiciones especiales de componentes.</p>
                 </div>
             </div>
         </div>

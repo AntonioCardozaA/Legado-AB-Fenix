@@ -422,6 +422,248 @@
         width: 100%;
     }
 
+    .executive-brief {
+        display: grid;
+        grid-template-columns: minmax(280px, 1.1fr) minmax(0, 1.9fr);
+        gap: 18px;
+        margin: 32px 0 24px;
+        align-items: stretch;
+    }
+
+    .executive-status {
+        position: relative;
+        overflow: hidden;
+        border-radius: 22px;
+        padding: 22px;
+        border: 1px solid var(--border);
+        background: linear-gradient(145deg, #ffffff, #f8fafc);
+        box-shadow: 0 18px 32px rgba(15, 23, 42, 0.08);
+    }
+
+    .executive-status::after {
+        content: '';
+        position: absolute;
+        right: -40px;
+        bottom: -60px;
+        width: 170px;
+        height: 170px;
+        border-radius: 999px;
+        background: rgba(148, 163, 184, 0.12);
+    }
+
+    .executive-status--positive {
+        border-color: rgba(16, 185, 129, 0.24);
+        background: linear-gradient(145deg, #ecfdf5, #f8fafc);
+    }
+
+    .executive-status--positive::after {
+        background: rgba(16, 185, 129, 0.16);
+    }
+
+    .executive-status--alert {
+        border-color: rgba(239, 68, 68, 0.22);
+        background: linear-gradient(145deg, #fef2f2, #fff7ed);
+    }
+
+    .executive-status--alert::after {
+        background: rgba(239, 68, 68, 0.14);
+    }
+
+    .executive-status--neutral {
+        border-color: rgba(245, 158, 11, 0.22);
+        background: linear-gradient(145deg, #fffbeb, #f8fafc);
+    }
+
+    .executive-status--neutral::after {
+        background: rgba(245, 158, 11, 0.14);
+    }
+
+    .executive-eyebrow,
+    .executive-window-label {
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--text-secondary);
+    }
+
+    .executive-status-title {
+        position: relative;
+        z-index: 1;
+        color: var(--text-primary);
+        font-size: 28px;
+        font-weight: 800;
+        line-height: 1.1;
+        margin-top: 10px;
+    }
+
+    .executive-status-copy {
+        position: relative;
+        z-index: 1;
+        margin-top: 12px;
+        max-width: 42ch;
+        color: var(--text-secondary);
+        font-size: 14px;
+        line-height: 1.55;
+    }
+
+    .executive-status-note {
+        position: relative;
+        z-index: 1;
+        margin-top: 16px;
+        padding: 10px 12px;
+        border-radius: 14px;
+        border: 1px solid rgba(148, 163, 184, 0.18);
+        background: rgba(255, 255, 255, 0.72);
+        color: var(--text-secondary);
+        font-size: 12px;
+        font-weight: 700;
+        line-height: 1.45;
+    }
+
+    .executive-window-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 210px), 1fr));
+        gap: 16px;
+        align-content: start;
+    }
+
+    .executive-window-card {
+        position: relative;
+        overflow: hidden;
+        min-width: 0;
+        border-radius: 20px;
+        border: 1px solid var(--border);
+        background: white;
+        padding: 20px 18px 18px;
+        box-shadow: 0 14px 24px rgba(15, 23, 42, 0.06);
+    }
+
+    .executive-window-card::before {
+        content: '';
+        position: absolute;
+        inset: 0 0 auto 0;
+        height: 4px;
+        background: var(--window-accent, var(--primary));
+    }
+
+    .executive-window-value {
+        color: var(--text-primary);
+        font-family: 'JetBrains Mono', 'Courier New', monospace;
+        font-size: 30px;
+        font-weight: 800;
+        line-height: 1.1;
+        margin-top: 12px;
+    }
+
+    .executive-window-role {
+        margin-top: 8px;
+        color: var(--text-secondary);
+        font-size: 12px;
+        font-weight: 700;
+        line-height: 1.4;
+        max-width: 18ch;
+    }
+
+    .executive-window-delta {
+        display: inline-flex;
+        align-items: flex-start;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 14px;
+        border-radius: 999px;
+        padding: 10px 12px;
+        font-size: 12px;
+        font-weight: 800;
+        line-height: 1.35;
+        max-width: 100%;
+    }
+
+    .executive-window-delta--positive {
+        background: #d1fae5;
+        color: #065f46;
+    }
+
+    .executive-window-delta--alert {
+        background: #fee2e2;
+        color: #991b1b;
+    }
+
+    .executive-window-delta--neutral {
+        background: #fef3c7;
+        color: #92400e;
+    }
+
+    .chart-caption {
+        margin-left: auto;
+        color: var(--text-secondary);
+        font-size: 12px;
+        font-weight: 700;
+        line-height: 1.4;
+    }
+
+    .chart-header--executive {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        grid-template-areas:
+            'title controls'
+            'caption caption';
+        column-gap: 16px;
+        row-gap: 14px;
+        align-items: start;
+    }
+
+    .chart-title-block {
+        grid-area: title;
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        min-width: 0;
+    }
+
+    .chart-title-block i {
+        flex: 0 0 auto;
+    }
+
+    .chart-title-copy {
+        min-width: 0;
+    }
+
+    .chart-title-copy h3 {
+        margin: 0;
+        line-height: 1.25;
+    }
+
+    .chart-subcopy {
+        margin-top: 6px;
+        max-width: 56ch;
+        color: var(--text-secondary);
+        font-size: 12px;
+        font-weight: 700;
+        line-height: 1.45;
+    }
+
+    .chart-header--executive .chart-view-selector {
+        grid-area: controls;
+        margin-left: 0;
+        justify-content: flex-end;
+    }
+
+    .chart-header--executive .chart-caption {
+        grid-area: caption;
+        margin-left: 0;
+        padding: 12px 14px;
+        border-radius: 14px;
+        border: 1px solid var(--border);
+        background: #f8fafc;
+        max-width: 100%;
+    }
+
+    .chart-container--executive {
+        height: clamp(320px, 46vh, 420px);
+        margin-top: 6px;
+    }
+
     /* Selector de vista para la gráfica */
     .chart-view-selector {
         display: flex;
@@ -565,6 +807,14 @@
     }
 
     @media (max-width: 1024px) {
+        .executive-brief {
+            grid-template-columns: 1fr;
+        }
+
+        .executive-window-grid {
+            grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+        }
+
         .industrial-table {
             min-width: 880px;
         }
@@ -604,6 +854,32 @@
             border-radius: 16px;
             padding: 16px;
             margin-bottom: 20px;
+        }
+
+        .executive-brief {
+            margin: 24px 0 20px;
+            gap: 14px;
+        }
+
+        .executive-status {
+            border-radius: 18px;
+            padding: 18px;
+        }
+
+        .executive-status-title {
+            font-size: 23px;
+        }
+
+        .executive-window-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .chart-header--executive {
+            grid-template-columns: 1fr;
+            grid-template-areas:
+                'title'
+                'controls'
+                'caption';
         }
 
         .filters-header,
@@ -755,8 +1031,25 @@
             padding: 10px 12px;
         }
 
+        .chart-caption {
+            width: 100%;
+            margin-left: 0;
+        }
+
+        .chart-title-block {
+            gap: 10px;
+        }
+
+        .chart-subcopy {
+            font-size: 11px;
+        }
+
         .chart-container {
             height: 320px;
+        }
+
+        .chart-container--executive {
+            height: 300px;
         }
 
         .industrial-empty {
@@ -899,6 +1192,38 @@
                     return $item->anio . '-' . str_pad($item->mes, 2, '0', STR_PAD_LEFT);
                 });
             @endphp
+            <div class="executive-brief">
+                <div id="implementationStatusCard" class="executive-status executive-status--neutral">
+                    <div class="executive-eyebrow">Control inmediato</div>
+                    <div id="implementationStatusTitle" class="executive-status-title">Leyendo tendencia reciente...</div>
+                    <p id="implementationStatusCopy" class="executive-status-copy">
+                        Estamos comparando las ventanas recientes para mostrar si los daños van bajando y si la implementacion ya se refleja en la operacion.
+                    </p>
+                    <div id="implementationStatusNote" class="executive-status-note">
+                        La lectura rapida debe enfocarse en las ventanas cortas; el historico tarda mas en bajar porque conserva memoria de meses anteriores.
+                    </div>
+                </div>
+                <div id="executiveWindowCards" class="executive-window-grid"></div>
+            </div>
+            <div class="industrial-chart">
+                <div class="chart-header chart-header--executive">
+                    <div class="chart-title-block">
+                        <i class="fas fa-chart-line"></i>
+                        <div class="chart-title-copy">
+                            <h3>{{ strtoupper($tituloAnalisis) }} - CONTROL EJECUTIVO</h3>
+                            <p class="chart-subcopy">Resumen visual para revisar si la baja de daños se sostiene sin entrar al detalle tecnico.</p>
+                        </div>
+                    </div>
+                    <div class="chart-view-selector">
+                        <button class="view-btn active" data-executive-chart-type="bar" onclick="changeExecutiveChartType('bar')">Barras</button>
+                        <button class="view-btn" data-executive-chart-type="line" onclick="changeExecutiveChartType('line')">Línea</button>
+                    </div>
+                    <div id="executiveChartCaption" class="chart-caption"></div>
+                </div>
+                <div class="chart-container chart-container--executive">
+                    <canvas id="executiveTrendChart"></canvas>
+                </div>
+            </div>
             @if(!$isAnalisis30147)
             <div class="industrial-table-container">
                 <table class="industrial-table">
@@ -1151,7 +1476,7 @@
 @if($lineaSeleccionada && $analisis->isNotEmpty())
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-let chart;
+let chart, executiveTrendChart;
 
 document.addEventListener('DOMContentLoaded', function() {
     if (window.ChartDataLabels) {
@@ -1161,6 +1486,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const analisisData = @json($analisis);
     const mobileQuery = window.matchMedia('(max-width: 640px)');
     let currentChartType = 'bar';
+    let currentExecutiveChartType = 'bar';
     
     const datosOrdenados = [...analisisData].sort((a, b) => {
         if (a.anio !== b.anio) return a.anio - b.anio;
@@ -1176,6 +1502,307 @@ document.addEventListener('DOMContentLoaded', function() {
     const data30 = datosOrdenados.map(item => parseFloat(item.total_danos_30_dias) || 0);
     const data14 = datosOrdenados.map(item => parseFloat(item.total_danos_14_dias) || 0);
     const data7 = datosOrdenados.map(item => parseFloat(item.total_danos_7_dias) || 0);
+    const executiveWindows = @json($isAnalisis30147)
+        ? [
+            { label: '30 dias', data: data30, role: 'referencia operativa', color: '#16a34a', fill: 'rgba(34, 197, 94, 0.18)', dashed: true },
+            { label: '14 dias', data: data14, role: 'respuesta reciente', color: '#dc2626', fill: 'rgba(239, 68, 68, 0.16)' },
+            { label: '7 dias', data: data7, role: 'control inmediato', color: '#f97316', fill: 'rgba(249, 115, 22, 0.18)' }
+        ]
+        : [
+            { label: '52 semanas', data: data52, role: 'historico acumulado', color: '#16a34a', fill: 'rgba(34, 197, 94, 0.18)', dashed: true },
+            { label: '12 semanas', data: data12, role: 'impacto trimestral', color: '#dc2626', fill: 'rgba(239, 68, 68, 0.16)' },
+            { label: '4 semanas', data: data4, role: 'control inmediato', color: '#f97316', fill: 'rgba(249, 115, 22, 0.18)' }
+        ];
+
+    function formatMetric(value) {
+        return new Intl.NumberFormat('es-MX', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        }).format(Number(value || 0));
+    }
+
+    function compareSeries(series) {
+        const current = Number(series[series.length - 1] || 0);
+        const previous = Number(series[series.length - 2] || 0);
+        const diff = current - previous;
+        const percentage = previous === 0 ? null : (diff / previous) * 100;
+
+        return {
+            current,
+            previous,
+            diff,
+            percentage,
+            trend: diff < 0 ? 'down' : (diff > 0 ? 'up' : 'stable')
+        };
+    }
+
+    function zeroStreak(series) {
+        let streak = 0;
+
+        for (let index = series.length - 1; index >= 0; index -= 1) {
+            if (Number(series[index] || 0) !== 0) {
+                break;
+            }
+
+            streak += 1;
+        }
+
+        return streak;
+    }
+
+    function deltaChipCopy(delta) {
+        if (delta.diff < 0) {
+            const pct = delta.percentage === null ? '' : ` (${Math.abs(delta.percentage).toFixed(1)}%)`;
+            return `Bajo ${formatMetric(Math.abs(delta.diff))}${pct}`;
+        }
+
+        if (delta.diff > 0) {
+            const pct = delta.percentage === null ? '' : ` (${Math.abs(delta.percentage).toFixed(1)}%)`;
+            return `Subio ${formatMetric(delta.diff)}${pct}`;
+        }
+
+        return 'Sin cambio';
+    }
+
+    function renderExecutiveCards() {
+        const cardsHost = document.getElementById('executiveWindowCards');
+
+        if (!cardsHost) {
+            return;
+        }
+
+        cardsHost.innerHTML = executiveWindows.map((windowItem) => {
+            const delta = compareSeries(windowItem.data);
+            const deltaClass = delta.diff < 0
+                ? 'executive-window-delta--positive'
+                : (delta.diff > 0 ? 'executive-window-delta--alert' : 'executive-window-delta--neutral');
+            const deltaIcon = delta.diff < 0
+                ? 'fa-arrow-down'
+                : (delta.diff > 0 ? 'fa-arrow-up' : 'fa-minus');
+
+            return `
+                <article class="executive-window-card" style="--window-accent: ${windowItem.color}">
+                    <div class="executive-window-label">${windowItem.label}</div>
+                    <div class="executive-window-value">${formatMetric(delta.current)}</div>
+                    <div class="executive-window-role">${windowItem.role}</div>
+                    <div class="executive-window-delta ${deltaClass}">
+                        <i class="fas ${deltaIcon}"></i>
+                        <span>${deltaChipCopy(delta)} vs mes anterior</span>
+                    </div>
+                </article>
+            `;
+        }).join('');
+    }
+
+    function renderExecutiveStatus() {
+        const statusCard = document.getElementById('implementationStatusCard');
+        const titleNode = document.getElementById('implementationStatusTitle');
+        const copyNode = document.getElementById('implementationStatusCopy');
+        const noteNode = document.getElementById('implementationStatusNote');
+        const captionNode = document.getElementById('executiveChartCaption');
+
+        if (!statusCard || !titleNode || !copyNode || !noteNode || !captionNode) {
+            return;
+        }
+
+        const baseWindow = executiveWindows[0];
+        const midWindow = executiveWindows[1];
+        const recentWindow = executiveWindows[2];
+        const midDelta = compareSeries(midWindow.data);
+        const recentDelta = compareSeries(recentWindow.data);
+        const recentZeroRun = zeroStreak(recentWindow.data);
+        const latestLabel = labels[labels.length - 1] || 'periodo actual';
+
+        let tone = 'neutral';
+        let title = 'Monitoreo en curso';
+        let copy = `${recentWindow.label} no presenta repunte, pero todavia se requiere continuidad para que ${baseWindow.label} refleje una mejora mas amplia.`;
+
+        if ((recentWindow.data.length > 1 && recentDelta.diff <= 0 && midDelta.diff < 0) || (recentDelta.current === 0 && recentZeroRun >= 2 && midDelta.diff <= 0)) {
+            tone = 'positive';
+
+            if (recentDelta.current === 0 && recentZeroRun >= 2) {
+                title = 'Implementacion funcionando';
+                copy = `${recentWindow.label} se mantiene en 0 daños durante ${recentZeroRun} periodos y ${midWindow.label} sigue bajando frente al mes anterior.`;
+            } else {
+                title = 'Tendencia de baja confirmada';
+                copy = `${recentWindow.label} ${deltaChipCopy(recentDelta).toLowerCase()} y ${midWindow.label} tambien viene a la baja.`;
+            }
+        } else if (recentDelta.diff > 0 || midDelta.diff > 0) {
+            tone = 'alert';
+            title = 'Repunte reciente';
+            copy = `${recentWindow.label} o ${midWindow.label} subieron frente al mes anterior. Conviene revisar la ejecucion antes de que el historico vuelva a crecer.`;
+        }
+
+        statusCard.className = `executive-status executive-status--${tone}`;
+        titleNode.textContent = title;
+        copyNode.textContent = copy;
+        noteNode.textContent = @json($isAnalisis30147)
+            ? 'Lectura rapida: 7 y 14 dias muestran si la operacion diaria ya cambio; 30 dias funciona como respaldo del mes.'
+            : 'Lectura rapida: 4 y 12 semanas muestran el impacto reciente; 52 semanas tarda mas en reflejar la mejora completa.';
+        captionNode.textContent = `Corte actual: ${latestLabel}. Verde = 52/30, rojo = 12/14, naranja = 4/7.`;
+    }
+
+    function createExecutiveTrendChart(type = currentExecutiveChartType) {
+        const executiveCanvas = document.getElementById('executiveTrendChart');
+        const executiveIsBar = type === 'bar';
+        const executiveIsSmallScreen = mobileQuery.matches;
+
+        if (!executiveCanvas || !labels.length) {
+            return;
+        }
+
+        renderExecutiveCards();
+        renderExecutiveStatus();
+
+        if (executiveTrendChart) {
+            executiveTrendChart.destroy();
+        }
+
+        executiveTrendChart = new Chart(executiveCanvas.getContext('2d'), {
+            type,
+            data: {
+                labels,
+                datasets: executiveWindows.map((windowItem, datasetIndex) => ({
+                    label: windowItem.label,
+                    data: windowItem.data.map((value) => Number(value || 0)),
+                    borderColor: windowItem.color,
+                    backgroundColor: windowItem.fill,
+                    borderWidth: executiveIsBar ? 0 : (datasetIndex === executiveWindows.length - 1 ? 4 : 3),
+                    borderDash: executiveIsBar ? [] : (windowItem.dashed ? [8, 6] : []),
+                    pointBackgroundColor: windowItem.color,
+                    pointBorderColor: '#ffffff',
+                    pointBorderWidth: 2,
+                    pointRadius: executiveIsBar ? 0 : ((context) => context.dataIndex === labels.length - 1 ? 5 : 3),
+                    pointHoverRadius: 7,
+                    tension: 0.32,
+                    fill: executiveIsBar ? false : datasetIndex === executiveWindows.length - 1,
+                    order: datasetIndex,
+                    borderRadius: executiveIsBar ? 10 : 0,
+                    borderSkipped: executiveIsBar ? false : undefined,
+                    barPercentage: executiveIsBar ? 0.72 : undefined,
+                    categoryPercentage: executiveIsBar ? 0.74 : undefined,
+                    maxBarThickness: executiveIsBar ? 28 : undefined
+                }))
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    mode: 'index',
+                    intersect: false
+                },
+                plugins: {
+                    legend: {
+                        position: executiveIsBar ? 'bottom' : (executiveIsSmallScreen ? 'bottom' : 'top'),
+                        labels: {
+                            usePointStyle: true,
+                            pointStyle: 'circle',
+                            boxWidth: 10,
+                            padding: executiveIsBar ? 14 : (executiveIsSmallScreen ? 12 : 18),
+                            color: '#334155',
+                            font: {
+                                size: executiveIsSmallScreen ? 10 : 12,
+                                weight: '700'
+                            }
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(15, 23, 42, 0.96)',
+                        titleColor: '#fff',
+                        bodyColor: '#e2e8f0',
+                        callbacks: {
+                            label: (context) => {
+                                const currentValue = Number(context.parsed.y || 0);
+                                const previousValue = Number(context.dataset.data?.[context.dataIndex - 1] || 0);
+                                const diff = currentValue - previousValue;
+                                const change = context.dataIndex === 0
+                                    ? 'Sin comparativo anterior'
+                                    : (diff < 0
+                                        ? `Bajo ${formatMetric(Math.abs(diff))}`
+                                        : (diff > 0 ? `Subio ${formatMetric(diff)}` : 'Sin cambio'));
+
+                                return `${context.dataset.label}: ${formatMetric(currentValue)} daños. ${change}.`;
+                            }
+                        }
+                    },
+                    datalabels: {
+                        display: (context) => {
+                            if (executiveIsSmallScreen) {
+                                return false;
+                            }
+
+                            if (executiveIsBar) {
+                                return Number(context.raw || 0) > 0;
+                            }
+
+                            return context.dataIndex === labels.length - 1 && Number(context.raw || 0) > 0;
+                        },
+                        align: 'top',
+                        anchor: 'end',
+                        offset: executiveIsBar ? 4 : 6,
+                        clamp: true,
+                        color: executiveIsBar ? '#0f172a' : ((context) => context.dataset.borderColor),
+                        backgroundColor: executiveIsBar ? 'rgba(255, 255, 255, 0.94)' : null,
+                        borderRadius: executiveIsBar ? 6 : 0,
+                        padding: executiveIsBar ? {
+                            top: 3,
+                            right: 5,
+                            bottom: 3,
+                            left: 5
+                        } : 0,
+                        formatter: (value) => formatMetric(value),
+                        font: {
+                            size: executiveIsBar ? 9 : 10,
+                            weight: '800'
+                        }
+                    }
+                },
+                layout: {
+                    padding: {
+                        top: executiveIsBar ? 16 : 14,
+                        right: 8,
+                        bottom: executiveIsBar ? 10 : 4,
+                        left: 4
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: {
+                            display: false
+                        },
+                        ticks: {
+                            color: '#475569',
+                            maxRotation: executiveIsSmallScreen ? 50 : 0,
+                            minRotation: executiveIsSmallScreen ? 50 : 0,
+                            font: {
+                                size: executiveIsSmallScreen ? 10 : 11,
+                                weight: '700'
+                            }
+                        }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            color: 'rgba(148, 163, 184, 0.18)'
+                        },
+                        title: {
+                            display: true,
+                            text: 'Daños registrados',
+                            color: '#64748b',
+                            font: {
+                                size: 12,
+                                weight: '800'
+                            }
+                        },
+                        ticks: {
+                            color: '#64748b',
+                            callback: (value) => formatMetric(value)
+                        }
+                    }
+                }
+            }
+        });
+    }
     
     const ctx = document.getElementById('trendChart').getContext('2d');
     
@@ -1197,13 +1824,13 @@ document.addEventListener('DOMContentLoaded', function() {
                     {
                         label: '52 Semanas',
                         data: data52,
-                        backgroundColor: 'rgba(14, 180, 66, 0.8)',
-                        borderColor: '#8b5cf6',
+                        backgroundColor: 'rgba(34, 197, 94, 0.78)',
+                        borderColor: '#16a34a',
                         borderWidth: type === 'bar' ? 0 : 3,
                         borderRadius: type === 'bar' ? 8 : 0,
                         barPercentage: 0.7,
                         categoryPercentage: 0.8,
-                        pointBackgroundColor: '#8b5cf6',
+                        pointBackgroundColor: '#16a34a',
                         pointBorderColor: 'white',
                         pointBorderWidth: 2,
                         pointRadius: type === 'bar' ? 0 : 4,
@@ -1214,7 +1841,24 @@ document.addEventListener('DOMContentLoaded', function() {
                     {
                         label: '12 Semanas',
                         data: data12,
-                        backgroundColor: 'rgba(224, 9, 9, 0.8)',
+                        backgroundColor: 'rgba(239, 68, 68, 0.78)',
+                        borderColor: '#dc2626',
+                        borderWidth: type === 'bar' ? 0 : 3,
+                        borderRadius: type === 'bar' ? 8 : 0,
+                        barPercentage: 0.7,
+                        categoryPercentage: 0.8,
+                        pointBackgroundColor: '#dc2626',
+                        pointBorderColor: 'white',
+                        pointBorderWidth: 2,
+                        pointRadius: type === 'bar' ? 0 : 4,
+                        pointHoverRadius: 6,
+                        tension: 0.3,
+                        fill: type === 'line' ? true : false
+                    },
+                    {
+                        label: '4 Semanas',
+                        data: data4,
+                        backgroundColor: 'rgba(249, 115, 22, 0.8)',
                         borderColor: '#f97316',
                         borderWidth: type === 'bar' ? 0 : 3,
                         borderRadius: type === 'bar' ? 8 : 0,
@@ -1228,34 +1872,17 @@ document.addEventListener('DOMContentLoaded', function() {
                         tension: 0.3,
                         fill: type === 'line' ? true : false
                     },
-                    {
-                        label: '4 Semanas',
-                        data: data4,
-                        backgroundColor: 'rgba(222, 96, 12, 0.8)',
-                        borderColor: '#10b981',
-                        borderWidth: type === 'bar' ? 0 : 3,
-                        borderRadius: type === 'bar' ? 8 : 0,
-                        barPercentage: 0.7,
-                        categoryPercentage: 0.8,
-                        pointBackgroundColor: '#10b981',
-                        pointBorderColor: 'white',
-                        pointBorderWidth: 2,
-                        pointRadius: type === 'bar' ? 0 : 4,
-                        pointHoverRadius: 6,
-                        tension: 0.3,
-                        fill: type === 'line' ? true : false
-                    },
                     @else
                     {
                         label: '30 Dias',
                         data: data30,
-                        backgroundColor: 'rgba(14, 165, 233, 0.62)',
-                        borderColor: '#0284c7',
+                        backgroundColor: 'rgba(34, 197, 94, 0.72)',
+                        borderColor: '#16a34a',
                         borderWidth: type === 'bar' ? 0 : 3,
                         borderRadius: type === 'bar' ? 8 : 0,
                         barPercentage: 0.7,
                         categoryPercentage: 0.8,
-                        pointBackgroundColor: '#0284c7',
+                        pointBackgroundColor: '#16a34a',
                         pointBorderColor: 'white',
                         pointBorderWidth: 2,
                         pointRadius: type === 'bar' ? 0 : 4,
@@ -1266,13 +1893,13 @@ document.addEventListener('DOMContentLoaded', function() {
                     {
                         label: '14 Dias',
                         data: data14,
-                        backgroundColor: 'rgba(99, 102, 241, 0.62)',
-                        borderColor: '#4f46e5',
+                        backgroundColor: 'rgba(239, 68, 68, 0.72)',
+                        borderColor: '#dc2626',
                         borderWidth: type === 'bar' ? 0 : 3,
                         borderRadius: type === 'bar' ? 8 : 0,
                         barPercentage: 0.7,
                         categoryPercentage: 0.8,
-                        pointBackgroundColor: '#4f46e5',
+                        pointBackgroundColor: '#dc2626',
                         pointBorderColor: 'white',
                         pointBorderWidth: 2,
                         pointRadius: type === 'bar' ? 0 : 4,
@@ -1283,13 +1910,13 @@ document.addEventListener('DOMContentLoaded', function() {
                     {
                         label: '7 Dias',
                         data: data7,
-                        backgroundColor: 'rgba(236, 72, 153, 0.62)',
-                        borderColor: '#db2777',
+                        backgroundColor: 'rgba(249, 115, 22, 0.72)',
+                        borderColor: '#f97316',
                         borderWidth: type === 'bar' ? 0 : 3,
                         borderRadius: type === 'bar' ? 8 : 0,
                         barPercentage: 0.7,
                         categoryPercentage: 0.8,
-                        pointBackgroundColor: '#db2777',
+                        pointBackgroundColor: '#f97316',
                         pointBorderColor: 'white',
                         pointBorderWidth: 2,
                         pointRadius: type === 'bar' ? 0 : 4,
@@ -1348,8 +1975,18 @@ document.addEventListener('DOMContentLoaded', function() {
                         }
                     },
                     datalabels: type === 'bar' ? {
-                        display: !isSmallScreen,
-                        color: 'white',
+                        display: (context) => !isSmallScreen && Number(context.raw || 0) > 0,
+                        color: '#0f172a',
+                        backgroundColor: 'rgba(255, 255, 255, 0.94)',
+                        borderRadius: 6,
+                        padding: {
+                            top: 3,
+                            right: 5,
+                            bottom: 3,
+                            left: 5
+                        },
+                        clamp: true,
+                        clip: false,
                         font: {
                             weight: 'bold',
                             size: isMediumScreen ? 10 : 11,
@@ -1368,6 +2005,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 scales: {
                     y: {
                         beginAtZero: true,
+                        grace: type === 'bar' ? '18%' : '10%',
                         grid: {
                             color: 'rgba(0, 0, 0, 0.05)',
                             drawBorder: false
@@ -1417,7 +2055,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     padding: {
                         left: isSmallScreen ? 4 : 10,
                         right: isSmallScreen ? 4 : 10,
-                        top: type === 'bar' && !isSmallScreen ? 30 : 16,
+                        top: type === 'bar' && !isSmallScreen ? 48 : 16,
                         bottom: 10
                     }
                 }
@@ -1425,15 +2063,27 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
+    createExecutiveTrendChart();
+
     // Crear gráfica inicial de barras
     createChart(currentChartType);
+
+    window.changeExecutiveChartType = function(type) {
+        currentExecutiveChartType = type;
+
+        document.querySelectorAll('[data-executive-chart-type]').forEach((button) => {
+            button.classList.toggle('active', button.dataset.executiveChartType === type);
+        });
+
+        createExecutiveTrendChart();
+    };
     
     // Función para cambiar el tipo de gráfica
     window.changeChartType = function(type) {
         currentChartType = type;
 
         // Actualizar botones
-        document.querySelectorAll('.view-btn').forEach(btn => {
+        document.querySelectorAll('[data-chart-type]').forEach(btn => {
             btn.classList.toggle('active', btn.dataset.chartType === type);
         });
         
@@ -1455,6 +2105,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         if (isSmallScreen !== wasSmallScreen) {
             wasSmallScreen = isSmallScreen;
+            createExecutiveTrendChart();
             createChart(currentChartType);
         }
     });

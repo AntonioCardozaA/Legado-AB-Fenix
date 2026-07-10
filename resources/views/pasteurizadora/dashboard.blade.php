@@ -229,7 +229,7 @@
                             ANÁLISIS 52 - 12 - 4 / 30 - 14 - 7
                         </h3>
                         <p class="text-gray-500 text-sm leading-relaxed">
-                            Visualizacion automatica de tendencia de danos
+                            Visualizacion automatica de tendencia de daños
                         </p>
                         <div class="mt-6 flex items-center gap-2 transition-opacity sm:opacity-0 sm:group-hover:opacity-100" style="color: rgb(31, 35, 72);">
                             <span class="text-sm font-medium">Acceder</span>

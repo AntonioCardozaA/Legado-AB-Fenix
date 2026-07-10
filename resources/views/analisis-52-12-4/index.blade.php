@@ -25,7 +25,7 @@
     <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
             <h1 class="text-2xl font-bold text-gray-900">Analisis 52-12-4</h1>
-            <p class="text-sm text-gray-500">Resumen historico de danos por lavadora, componente y tipo de falla.</p>
+            <p class="text-sm text-gray-500">Resumen historico de daños por lavadora, componente y tipo de falla.</p>
         </div>
         <a href="{{ route('analisis-tendencia-mensual.lavadora.analisis-52-12-4') }}"
            class="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-blue-700">
@@ -35,7 +35,7 @@
 
     <div class="grid gap-4 md:grid-cols-4">
         <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-            <p class="text-xs font-bold uppercase tracking-wide text-gray-500">Total danos</p>
+            <p class="text-xs font-bold uppercase tracking-wide text-gray-500">Total daños</p>
             <p class="mt-2 text-3xl font-black text-gray-900">{{ number_format($total) }}</p>
         </div>
         <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
@@ -47,7 +47,7 @@
             <p class="mt-2 text-3xl font-black text-gray-900">{{ number_format($componentes) }}</p>
         </div>
         <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-            <p class="text-xs font-bold uppercase tracking-wide text-gray-500">Dano frecuente</p>
+            <p class="text-xs font-bold uppercase tracking-wide text-gray-500">Daño frecuente</p>
             <p class="mt-2 text-lg font-black text-gray-900">{{ $danos->keys()->first() ?? 'Sin dato' }}</p>
         </div>
     </div>
@@ -62,7 +62,7 @@
                             <div>
                                 <p class="font-bold text-gray-900">{{ $componente['componente'] }}</p>
                                 <p class="mt-1 text-xs text-gray-500">
-                                    Dano principal: {{ $componente['estado'] ?? 'Sin estado' }} · Ultima falla: {{ $componente['ultima'] ?? 'Sin fecha' }}
+                                    Daño principal: {{ $componente['estado'] ?? 'Sin estado' }} · Ultima falla: {{ $componente['ultima'] ?? 'Sin fecha' }}
                                 </p>
                             </div>
                             <span class="rounded-full bg-red-100 px-3 py-1 text-xs font-black text-red-700">{{ number_format($componente['total']) }}</span>
