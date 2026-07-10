@@ -3033,7 +3033,7 @@
             </div>
             <div class="chart-description">
                 <i class="fas fa-info-circle"></i>
-                Bombas vs Vapor
+                Lado Bombas vs Lado Vapor
             </div>
         </div>
     </div>
@@ -3365,7 +3365,7 @@
                 labels: elongacionesData.map(item => item.fecha),
                 datasets: [
                     {
-                        label: 'Bombas (%)',
+                        label: 'Lado Bombas (%)',
                         data: elongacionesData.map(item => item.bombas),
                         borderColor: '#3b82f6',
                         backgroundColor: 'rgba(59, 130, 246, 0.1)',
@@ -3381,7 +3381,7 @@
                         hoverBorderWidth: 4
                     },
                     {
-                        label: 'Vapor (%)',
+                        label: 'Lado Vapor (%)',
                         data: elongacionesData.map(item => item.vapor),
                         borderColor: '#ef4444',
                         backgroundColor: 'rgba(239, 68, 68, 0.1)',
@@ -3800,13 +3800,13 @@
                     <div class="bg-white rounded-lg p-3 border border-gray-200">
                         <div class="grid grid-cols-2 gap-2">
                             <div>
-                                <p class="text-sm text-gray-600">Bombas:</p>
+                                <p class="text-sm text-gray-600">Lado Bombas:</p>
                                 <p class="font-semibold ${lavadora.estado.ultima_elongacion.bombas_porcentaje >= 1.8 ? 'text-red-600' : (lavadora.estado.ultima_elongacion.bombas_porcentaje >= 1.46 ? 'text-yellow-600' : 'text-green-600')}">
                                     ${lavadora.estado.ultima_elongacion.bombas_porcentaje}%
                                 </p>
                             </div>
                             <div>
-                                <p class="text-sm text-gray-600">Vapor:</p>
+                                <p class="text-sm text-gray-600">Lado Vapor:</p>
                                 <p class="font-semibold ${lavadora.estado.ultima_elongacion.vapor_porcentaje >= 1.8 ? 'text-red-600' : (lavadora.estado.ultima_elongacion.vapor_porcentaje >= 1.46 ? 'text-yellow-600' : 'text-green-600')}">
                                     ${lavadora.estado.ultima_elongacion.vapor_porcentaje}%
                                 </p>
@@ -4748,8 +4748,8 @@
                 data: {
                     labels: item.labels,
                     datasets: [
-                        { label: 'Bombas', data: (item.bombas || []).map((value) => Number(value || 0)), borderColor: '#2563eb', backgroundColor: 'rgba(37, 99, 235, 0.12)', borderWidth: compactViewport ? 2 : 3, pointRadius, pointHoverRadius, tension: 0.35, fill: true },
-                        { label: 'Vapor', data: (item.vapor || []).map((value) => Number(value || 0)), borderColor: '#ef4444', backgroundColor: 'rgba(239, 68, 68, 0.08)', borderWidth: compactViewport ? 2 : 3, pointRadius, pointHoverRadius, tension: 0.35, fill: true },
+                        { label: 'Lado Bombas', data: (item.bombas || []).map((value) => Number(value || 0)), borderColor: '#2563eb', backgroundColor: 'rgba(37, 99, 235, 0.12)', borderWidth: compactViewport ? 2 : 3, pointRadius, pointHoverRadius, tension: 0.35, fill: true },
+                        { label: 'Lado Vapor', data: (item.vapor || []).map((value) => Number(value || 0)), borderColor: '#ef4444', backgroundColor: 'rgba(239, 68, 68, 0.08)', borderWidth: compactViewport ? 2 : 3, pointRadius, pointHoverRadius, tension: 0.35, fill: true },
                         { label: 'Umbral compra', data: new Array(item.labels.length).fill(Number(item.threshold_compra || 0)), borderColor: '#f97316', borderWidth: 2, pointRadius: 0, borderDash: [8, 4] },
                         { label: 'Umbral cambio', data: new Array(item.labels.length).fill(Number(item.threshold_cambio || 0)), borderColor: '#ef4444', borderWidth: 2, pointRadius: 0, borderDash: [8, 4] }
                     ]
@@ -4923,18 +4923,131 @@
         });
 
         const legend = [
-            ['Bombas', '#2563eb'],
-            ['Vapor', '#ef4444'],
+            ['Lado Bombas', '#2563eb'],
+            ['Lado Vapor', '#ef4444'],
         ];
+        ctx.font = '700 12px sans-serif';
         ctx.textBaseline = 'middle';
-        legend.forEach(([label, color], index) => {
-            const x = width - padding.right - 150 + (index * 78);
-            ctx.fillStyle = color;
-            ctx.fillRect(x, 14, 10, 10);
+        const legendGap = 24;
+        const legendItems = legend.map(([label, color]) => ({
+            label,
+            color,
+            width: 12 + 8 + ctx.measureText(label).width,
+        }));
+        const legendWidth = legendItems.reduce((sum, item) => sum + item.width, 0) + (legendGap * (legendItems.length - 1));
+        let legendX = Math.max(padding.left, width - padding.right - legendWidth);
+
+        legendItems.forEach((item) => {
+            ctx.fillStyle = item.color;
+            ctx.fillRect(legendX, 14, 11, 11);
             ctx.fillStyle = '#334155';
             ctx.textAlign = 'left';
-            ctx.fillText(label, x + 16, 19);
+            ctx.fillText(item.label, legendX + 19, 20);
+            legendX += item.width + legendGap;
         });
+
+        bindElongacionesCanvasTooltip(canvas, {
+            points: labels.map((label, index) => ({
+                label,
+                x: xFor(index),
+                "Lado Bombas": bombas[index] ?? 0,
+                "Lado Vapor": vapor[index] ?? 0,
+                yLadoBombas: yFor(bombas[index] ?? 0),
+                yLadoVapor: yFor(vapor[index] ?? 0),
+            })),
+            padding,
+            plotWidth,
+            width,
+            height,
+        });
+    }
+
+    function bindElongacionesCanvasTooltip(canvas, payload) {
+        canvas.__elongacionTooltipPayload = payload;
+
+        if (canvas.__elongacionTooltipBound) return;
+        canvas.__elongacionTooltipBound = true;
+
+        const tooltip = getElongacionesCanvasTooltip();
+        const hideTooltip = () => {
+            tooltip.style.opacity = '0';
+            tooltip.style.pointerEvents = 'none';
+        };
+
+        canvas.addEventListener('mouseleave', hideTooltip);
+        canvas.addEventListener('mousemove', (event) => {
+            const current = canvas.__elongacionTooltipPayload;
+            const points = current?.points || [];
+            if (!points.length) {
+                hideTooltip();
+                return;
+            }
+
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = current.width / rect.width;
+            const scaleY = current.height / rect.height;
+            const mouseX = (event.clientX - rect.left) * scaleX;
+            const mouseY = (event.clientY - rect.top) * scaleY;
+            const nearest = points
+                .map((point) => ({
+                    ...point,
+                    distance: Math.min(
+                        Math.hypot(mouseX - point.x, mouseY - point.yLadoBombas),
+                        Math.hypot(mouseX - point.x, mouseY - point.yLadoVapor)
+                    ),
+                    xDistance: Math.abs(mouseX - point.x),
+                }))
+                .sort((a, b) => a.distance - b.distance || a.xDistance - b.xDistance)[0];
+
+            if (!nearest || (nearest.distance > 28 && nearest.xDistance > 16)) {
+                hideTooltip();
+                return;
+            }
+
+            tooltip.innerHTML = `
+                <div style="font-weight: 800; margin-bottom: 6px;">${escapeHtml(nearest.label)}</div>
+                <div style="display: flex; align-items: center; gap: 7px; margin-bottom: 4px;">
+                    <span style="width: 9px; height: 9px; border-radius: 999px; background: #2563eb; display: inline-block;"></span>
+                    <span>Lado Bombas: <strong>${percent(nearest["Lado Bombas"], 2)}</strong></span>
+                </div>
+                
+                <div style="display: flex; align-items: center; gap: 7px;">
+                    <span style="width: 9px; height: 9px; border-radius: 999px; background: #ef4444; display: inline-block;"></span>
+                    <span>Lado Vapor: <strong>${percent(nearest["Lado Vapor"], 2)}</strong></span>
+                </div>
+            `;
+
+            const tooltipWidth = tooltip.offsetWidth || 170;
+            const tooltipHeight = tooltip.offsetHeight || 84;
+            const left = Math.min(window.innerWidth - tooltipWidth - 12, event.clientX + 14);
+            const top = Math.max(12, event.clientY - tooltipHeight - 12);
+            tooltip.style.left = `${left}px`;
+            tooltip.style.top = `${top}px`;
+            tooltip.style.opacity = '1';
+            tooltip.style.pointerEvents = 'auto';
+        });
+    }
+
+    function getElongacionesCanvasTooltip() {
+        let tooltip = document.getElementById('elongacionesCanvasTooltip');
+        if (tooltip) return tooltip;
+
+        tooltip = document.createElement('div');
+        tooltip.id = 'elongacionesCanvasTooltip';
+        tooltip.style.position = 'fixed';
+        tooltip.style.zIndex = '9999';
+        tooltip.style.minWidth = '160px';
+        tooltip.style.padding = '10px 12px';
+        tooltip.style.borderRadius = '12px';
+        tooltip.style.background = 'rgba(15, 23, 42, 0.96)';
+        tooltip.style.color = '#ffffff';
+        tooltip.style.font = '700 12px/1.35 sans-serif';
+        tooltip.style.boxShadow = '0 16px 35px rgba(15, 23, 42, 0.25)';
+        tooltip.style.opacity = '0';
+        tooltip.style.transition = 'opacity 120ms ease, transform 120ms ease';
+        tooltip.style.pointerEvents = 'none';
+        document.body.appendChild(tooltip);
+        return tooltip;
     }
 
     function renderHistorico() {
