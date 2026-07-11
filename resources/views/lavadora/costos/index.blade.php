@@ -415,7 +415,6 @@
     <section class="cost-panel panel-pad">
         <div class="panel-title">
             <h2><i class="fas fa-filter text-blue-600 mr-2"></i>Filtros</h2>
-            <span class="panel-subtle">Rangos mensual, trimestral, semestral, anual o personalizados.</span>
         </div>
 
         <form method="GET" class="filter-grid">
@@ -508,7 +507,6 @@
         <article class="cost-panel panel-pad">
             <div class="panel-title">
                 <h3><i class="fas fa-coins text-amber-500 mr-2"></i>Costos por componente</h3>
-                <span class="panel-subtle">Dónde se está concentrando la inversión.</span>
             </div>
             <div class="chart-wrap">
                 <canvas id="costByComponentChart"></canvas>
@@ -518,7 +516,7 @@
         <article class="cost-panel panel-pad">
             <div class="panel-title">
                 <h3><i class="fas fa-industry text-cyan-600 mr-2"></i>Costos por lavadora</h3>
-                <span class="panel-subtle">Distribución del gasto entre líneas.</span>
+                <span class="panel-subtle">Gastos entre líneas.</span>
             </div>
             <div class="chart-wrap">
                 <canvas id="costByLavadoraChart"></canvas>
@@ -530,7 +528,6 @@
         <article class="cost-panel panel-pad">
             <div class="panel-title">
                 <h3><i class="fas fa-wave-square text-indigo-600 mr-2"></i>Evolución del gasto</h3>
-                <span class="panel-subtle">Tendencia histórica del rango visible.</span>
             </div>
             <div class="chart-wrap compact">
                 <canvas id="costTrendChart"></canvas>
@@ -540,7 +537,6 @@
         <article class="cost-panel panel-pad">
             <div class="panel-title">
                 <h3><i class="fas fa-wallet text-emerald-600 mr-2"></i>Presupuesto anual</h3>
-                <span class="panel-subtle">Seguimiento por lavadora para {{ $filters['budget_year'] }}.</span>
             </div>
 
             <div class="budget-list">
@@ -572,7 +568,6 @@
         <article class="cost-panel panel-pad">
             <div class="panel-title">
                 <h3><i class="fas fa-repeat text-sky-600 mr-2"></i>Estadísticas generales</h3>
-                <span class="panel-subtle">Comparativas y componentes más reemplazados.</span>
             </div>
 
             <div class="comparison-list">
@@ -624,7 +619,6 @@
         <article class="cost-panel panel-pad">
             <div class="panel-title">
                 <h3><i class="fas fa-clock-rotate-left text-violet-600 mr-2"></i>Historial reciente de gastos</h3>
-                <span class="panel-subtle">Últimos movimientos calculados por el sistema.</span>
             </div>
 
             <div class="table-shell">
