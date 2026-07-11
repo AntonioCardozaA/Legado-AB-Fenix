@@ -1960,7 +1960,45 @@ document.addEventListener('DOMContentLoaded', function() {
             .join(', ');
     }
 
-    function componentTooltipLines(meta) {
+    function responsiveTooltipOptions() {
+        const isMobile = window.innerWidth < 640;
+
+        return {
+            titleFont: { size: isMobile ? 15 : 17, weight: '700', family: 'Inter' },
+            bodyFont: { size: isMobile ? 14 : 16, weight: '500', family: 'Inter' },
+            padding: isMobile ? 10 : 14,
+            cornerRadius: 10,
+            titleSpacing: 4,
+            titleMarginBottom: isMobile ? 5 : 7,
+            bodySpacing: isMobile ? 3 : 5
+        };
+    }
+
+    function wrapTooltipLines(lines) {
+        const maxCharacters = window.innerWidth < 480 ? 32 : (window.innerWidth < 768 ? 46 : 72);
+        const sourceLines = Array.isArray(lines) ? lines : [lines];
+
+        return sourceLines.flatMap((line) => {
+            const words = String(line ?? '').split(/\s+/);
+            const wrapped = [];
+            let currentLine = '';
+
+            words.forEach((word) => {
+                const candidate = currentLine ? `${currentLine} ${word}` : word;
+                if (candidate.length > maxCharacters && currentLine) {
+                    wrapped.push(currentLine);
+                    currentLine = word;
+                } else {
+                    currentLine = candidate;
+                }
+            });
+
+            if (currentLine) wrapped.push(currentLine);
+            return wrapped;
+        });
+    }
+
+    function componentTooltipLines(meta, options = {}) {
         const lines = [];
 
         if (!meta) {
@@ -1972,7 +2010,9 @@ document.addEventListener('DOMContentLoaded', function() {
         if (meta.dano_principal) lines.push(`Daño principal: ${meta.dano_principal}`);
         if (meta.ultima_falla) lines.push(`Ultima falla: ${meta.ultima_falla}`);
 
-        const ubicaciones = formatList(meta.ubicaciones, 'ubicacion');
+        const ubicaciones = options.currentUbicacion
+            ? options.currentUbicacion
+            : formatList(meta.ubicaciones, 'ubicacion');
         if (ubicaciones) lines.push(`Ubicaciones: ${ubicaciones}`);
 
         const danos = formatList(meta.danos, 'estado');
@@ -2089,6 +2129,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         backgroundColor: 'rgba(15, 23, 42, 0.96)',
                         titleColor: '#fff',
                         bodyColor: '#e2e8f0',
+                        ...responsiveTooltipOptions(),
                         callbacks: {
                             label: (context) => {
                                 const meta = chartData.meta?.[context.dataIndex] || null;
@@ -2096,23 +2137,23 @@ document.addEventListener('DOMContentLoaded', function() {
                                 const principal = chartData.principal?.[context.dataIndex] || null;
 
                                 if (isDamageChart) {
-                                    return pct !== null
+                                    return wrapTooltipLines(pct !== null
                                         ? `${context.raw} componentes/ubicaciones con este ultimo daño (${Number(pct || 0).toFixed(1)}%)`
-                                        : `${context.raw} componentes/ubicaciones con este ultimo daño`;
+                                        : `${context.raw} componentes/ubicaciones con este ultimo daño`);
                                 }
 
-                                return principal ? `${context.raw} daños - ${principal}` : `${context.raw} daños`;
+                                return wrapTooltipLines(principal ? `${context.raw} daños - ${principal}` : `${context.raw} daños`);
                             },
                             afterLabel: (context) => {
                                 const meta = chartData.meta?.[context.dataIndex] || null;
 
                                 if (isDamageChart) {
-                                    return damageTooltipLines(meta);
+                                    return wrapTooltipLines(damageTooltipLines(meta));
                                 }
 
-                                return canvasId.toLowerCase().includes('location')
+                                return wrapTooltipLines(canvasId.toLowerCase().includes('location')
                                     ? locationTooltipLines(meta)
-                                    : componentTooltipLines(meta);
+                                    : componentTooltipLines(meta));
                             }
                         }
                     },
@@ -2211,25 +2252,30 @@ document.addEventListener('DOMContentLoaded', function() {
                         backgroundColor: 'rgba(15, 23, 42, 0.96)',
                         titleColor: '#fff',
                         bodyColor: '#e2e8f0',
+                        ...responsiveTooltipOptions(),
                         callbacks: {
                             title: (context) => {
                                 return context[0]?.label || 'Sin reductor';
                             },
-                            label: (context) => `${context.dataset.label || 'Sin componente'}: ${Number(context.raw || 0)} daños`,
+                            label: (context) => wrapTooltipLines(`${context.dataset.label || 'Sin componente'}: ${Number(context.raw || 0)} daños`),
                             afterLabel: (context) => {
                                 const componentIndex = context.dataset.componentIndex;
                                 const componentMeta = chartData.meta?.componentes?.[componentIndex] || null;
                                 const segmentMeta = context.dataset.segmentMeta?.[context.dataIndex] || null;
                                 const lines = [];
 
-                                if (segmentMeta?.ubicacion) lines.push(`Reductor/ubicacion: ${segmentMeta.ubicacion}`);
                                 if (segmentMeta?.ultimo_dano) lines.push(`Ultimo daño: ${segmentMeta.ultimo_dano}`);
                                 if (segmentMeta?.ultima_falla) lines.push(`Ultimo registro: ${segmentMeta.ultima_falla}`);
 
                                 const danos = formatList(segmentMeta?.danos, 'estado');
                                 if (danos) lines.push(`Daños en este reductor: ${danos}`);
 
-                                return [...lines, ...componentTooltipLines(componentMeta)];
+                                return wrapTooltipLines([
+                                    ...lines,
+                                    ...componentTooltipLines(componentMeta, {
+                                        currentUbicacion: segmentMeta?.ubicacion || null
+                                    })
+                                ]);
                             }
                         }
                     },
