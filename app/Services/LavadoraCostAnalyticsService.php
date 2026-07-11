@@ -161,7 +161,7 @@ class LavadoraCostAnalyticsService
                 $today->copy()->startOfYear(),
                 $today->copy()->endOfYear(),
                 'anual',
-                'Anio actual',
+                'Año actual',
             ],
         };
     }
