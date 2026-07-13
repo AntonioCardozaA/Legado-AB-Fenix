@@ -7,8 +7,7 @@
 
     <title>{{ config('app.name', 'LEGADO AB FÉNIX') }}</title>
 
-    <link rel="icon" type="image/png" href="{{ asset('images/logo1.png') }}?v={{ filemtime(public_path('images/logo1.png')) }}">
-    <link rel="apple-touch-icon" href="{{ asset('images/logo1.png') }}?v={{ filemtime(public_path('images/logo1.png')) }}">
+    @include('layouts.partials.site-icons')
 
     {{-- Tailwind CDN --}}
     <script src="https://cdn.tailwindcss.com"></script>

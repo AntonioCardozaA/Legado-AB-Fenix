@@ -5,8 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LEGADO AB FÉNIX - Sistema de Gestión</title>
 
-    <link rel="icon" type="image/png" href="{{ asset('images/logo1.png') }}?v={{ filemtime(public_path('images/logo1.png')) }}">
-    <link rel="apple-touch-icon" href="{{ asset('images/logo1.png') }}?v={{ filemtime(public_path('images/logo1.png')) }}">
+    @include('layouts.partials.site-icons')
 
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>

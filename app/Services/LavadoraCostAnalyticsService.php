@@ -69,7 +69,7 @@ class LavadoraCostAnalyticsService
                     'lavadora' => $entry->linea?->nombre ?? '-',
                     'componente' => $entry->component_snapshot,
                     'concepto' => $entry->catalog_name_snapshot,
-                    'tipo' => $entry->source_type === 'estado_cambiado' ? 'Cambio completo' : 'Actividad',
+                    'tipo' => LavadoraCostEntry::sourceLabel($entry->source_type),
                     'cantidad' => $entry->quantity,
                     'unidad' => $entry->unidad_medida_snapshot ?? '-',
                     'total' => $entry->total_cost,
@@ -269,7 +269,7 @@ class LavadoraCostAnalyticsService
                 'fecha' => optional($entry->cost_date)->format('d/m/Y') ?? '-',
                 'componente' => $entry->component_snapshot,
                 'concepto' => $entry->catalog_name_snapshot,
-                'tipo' => $entry->source_type === 'estado_cambiado' ? 'Cambio completo' : 'Actividad',
+                'tipo' => LavadoraCostEntry::sourceLabel($entry->source_type),
                 'total' => $entry->total_cost,
             ])
             ->values();
