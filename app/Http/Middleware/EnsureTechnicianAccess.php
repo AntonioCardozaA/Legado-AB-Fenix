@@ -35,11 +35,14 @@ class EnsureTechnicianAccess
             'tecnico.dashboard',
 
             'dashboard.global.lavadoras',
+            'dashboard.global.etiquetadoras',
             'dashboard.operativo.lavadora',
 
             'dashboard_lavadora',
+            'dashboard_etiquetadora',
             'lavadora.dashboard',
             'lavadora.costos.index',
+            'etiquetadora.dashboard',
 
             'profile.edit',
             'profile.update',
@@ -69,6 +72,10 @@ class EnsureTechnicianAccess
             'analisis-lavadora.',
             'analisis-tendencia-mensual.lavadora.',
 
+            // Etiquetadora
+            'analisis-etiquetadora.',
+            'api.etiquetadora.',
+
             // Histórico revisados
             'historico-revisados.',
 
@@ -86,7 +93,7 @@ class EnsureTechnicianAccess
             }
         }
 
-        abort(403, 'Este rol solo puede acceder a Lavadora, Historico Revisados y Plan de Accion.');
+        abort(403, 'Este rol solo puede acceder a Lavadora, Etiquetadora, Historico Revisados y Plan de Accion.');
     }
 
     private function denyReportesAccess(Request $request): Response

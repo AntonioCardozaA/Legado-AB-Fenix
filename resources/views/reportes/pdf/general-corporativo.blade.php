@@ -9,8 +9,9 @@
     $primerReporte = $lineasReporte->first() ?? [];
     $tipoEquipo = $tipoEquipo ?? data_get($primerReporte, 'tipo_equipo', 'lavadoras');
     $esPasteurizadora = $tipoEquipo === 'pasteurizadoras';
-    $tipoTitulo = $esPasteurizadora ? 'Pasteurizadoras' : 'Lavadoras';
-    $tipoSingular = $esPasteurizadora ? 'Pasteurizadora' : 'Lavadora';
+    $esEtiquetadora = $tipoEquipo === 'etiquetadoras';
+    $tipoTitulo = $esPasteurizadora ? 'Pasteurizadoras' : ($esEtiquetadora ? 'Etiquetadoras' : 'Lavadoras');
+    $tipoSingular = $esPasteurizadora ? 'Pasteurizadora' : ($esEtiquetadora ? 'Etiquetadora' : 'Lavadora');
     $esReporteLinea = ($modoReporte ?? null) === 'linea' || $lineasReporte->count() === 1;
     $lineaUnica = $esReporteLinea ? data_get($primerReporte, 'linea') : null;
     $nombreLineaUnica = optional($lineaUnica)->nombre;
@@ -24,7 +25,7 @@
         : \Carbon\Carbon::parse($fechaFinPdf);
     $companyName = 'Departamento de Envasado';
     $platformName = 'Legado AB Fenix';
-    $documentCode = 'MNT-' . ($esPasteurizadora ? 'PAS' : 'LAV') . '-' . $fechaFinPdf->format('Ymd');
+    $documentCode = 'MNT-' . ($esPasteurizadora ? 'PAS' : ($esEtiquetadora ? 'ETQ' : 'LAV')) . '-' . $fechaFinPdf->format('Ymd');
     $tituloDocumento = $esReporteLinea && $nombreLineaUnica
         ? 'Reporte tecnico de ' . $tipoSingular . ' ' . $nombreLineaUnica
         : 'Reporte tecnico general de ' . $tipoTitulo;
@@ -425,7 +426,7 @@
         return min(100, round(((float) $revisados / $total) * 100, 1));
     };
 
-    $lineConclusion = function ($resumen, $analisisPlanos) use ($esPasteurizadora) {
+    $lineConclusion = function ($resumen, $analisisPlanos) use ($esPasteurizadora, $esEtiquetadora) {
         $total = collect($analisisPlanos)->count();
         $criticos = (int) data_get($resumen, 'componentes_criticos', 0);
         $revision = (int) data_get($resumen, 'componentes_revision', 0);
@@ -448,8 +449,12 @@
             return 'Condicion operativa estable con paros registrados. Revisar causas y cierre de acciones para sostener disponibilidad del equipo.';
         }
 
-        return $esPasteurizadora
-            ? 'Condicion general estable para la pasteurizadora en el periodo evaluado.'
+        if ($esPasteurizadora) {
+            return 'Condicion general estable para la pasteurizadora en el periodo evaluado.';
+        }
+
+        return $esEtiquetadora
+            ? 'Condicion general estable para la etiquetadora en el periodo evaluado.'
             : 'Condicion general estable para la lavadora en el periodo evaluado.';
     };
 
@@ -1091,15 +1096,17 @@
                     <span class="kpi-note">Hallazgos no criticos</span>
                 </td>
                 <td class="metric-card">
-                    <span class="kicker">{{ $esPasteurizadora ? 'Modulos' : 'Elongaciones' }}</span>
+                    <span class="kicker">{{ $esPasteurizadora ? 'Modulos' : ($esEtiquetadora ? 'Maquinas' : 'Elongaciones') }}</span>
                     <span class="kpi-value" style="font-size: 14px;">
                         @if($esPasteurizadora)
                             {{ data_get($resumen, 'modulos_con_analisis', 0) }} / {{ data_get($resumen, 'total_modulos', 0) }}
+                        @elseif($esEtiquetadora)
+                            {{ data_get($resumen, 'maquinas_count', $reductoresLinea->count()) }}
                         @else
                             {{ $elongacionesLinea->count() }}
                         @endif
                     </span>
-                    <span class="kpi-note">{{ $esPasteurizadora ? 'Avance por modulo' : 'Mediciones cadena' }}</span>
+                    <span class="kpi-note">{{ $esPasteurizadora ? 'Avance por modulo' : ($esEtiquetadora ? 'A, B y C por linea' : 'Mediciones cadena') }}</span>
                 </td>
                 <td class="metric-card">
                     <span class="kicker">Estado</span>
@@ -1241,24 +1248,24 @@
         @if(!$esPasteurizadora && $reductoresLinea->isNotEmpty())
             <div class="section">
                 <div class="section-header">
-                    <div class="section-title">Resumen por reductor</div>
+                    <div class="section-title">{{ $esEtiquetadora ? 'Resumen por maquina' : 'Resumen por reductor' }}</div>
                 </div>
                 <table class="data-table">
                     <thead>
                         <tr>
-                            <th>Reductor</th>
+                            <th>{{ $esEtiquetadora ? 'Maquina' : 'Reductor' }}</th>
                             <th>Analisis</th>
                             <th>Ultima revision</th>
-                            <th>Referencia elongacion</th>
+                            <th>{{ $esEtiquetadora ? 'Unidades' : 'Referencia elongacion' }}</th>
                         </tr>
                     </thead>
                     <tbody>
                         @foreach($reductoresLinea as $reductor)
                             <tr>
-                                <td><span class="strong">{{ data_get($reductor, 'nombre', 'Sin reductor') }}</span></td>
+                                <td><span class="strong">{{ data_get($reductor, 'nombre', $esEtiquetadora ? 'Sin maquina' : 'Sin reductor') }}</span></td>
                                 <td>{{ data_get($reductor, 'total_analisis', 0) }}</td>
                                 <td>{{ $formatDate(data_get($reductor, 'ultima_fecha')) }}</td>
-                                <td>{{ $formatValue(data_get($reductor, 'ultima_elongacion')) }}</td>
+                                <td>{{ $esEtiquetadora ? $formatValue(data_get($reductor, 'total_unidades')) : $formatValue(data_get($reductor, 'ultima_elongacion')) }}</td>
                             </tr>
                         @endforeach
                     </tbody>

@@ -454,7 +454,6 @@ class AnalisisPasteurizadora extends Model
         $totalComponentes = self::getTotalComponentesPorLineaYComponente($linea?->nombre, $componente);
 
         $registros = self::queryForArea($area)
-            ->quick()
             ->where('linea_id', $lineaId)
             ->where('modulo', $modulo)
             ->where('componente', $componente)

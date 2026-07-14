@@ -49,6 +49,11 @@ class NumeroR extends Model
         return $this->hasMany(AnalisisComponente::class);
     }
 
+    public function analisisEtiquetadora()
+    {
+        return $this->hasMany(AnalisisEtiquetadora::class);
+    }
+
     /* =======================
        Scopes
     ======================= */

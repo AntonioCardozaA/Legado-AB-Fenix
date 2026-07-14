@@ -36,6 +36,11 @@ class Linea extends Model
         return $this->hasMany(AnalisisLavadora::class);
     }
 
+    public function analisisEtiquetadora()
+    {
+        return $this->hasMany(AnalisisEtiquetadora::class);
+    }
+
     public function cadenaCiclos()
     {
         return $this->hasMany(CadenaCiclo::class, 'linea_id');
@@ -48,6 +53,13 @@ class Linea extends Model
     {
         return $this->belongsToMany(Componente::class, 'analisis_componentes')
                     ->withPivot('actividad', 'reductor', 'numero_orden', 'evidencia_fotos')
+                    ->withTimestamps();
+    }
+
+    public function componentesEtiquetadora()
+    {
+        return $this->belongsToMany(Componente::class, 'analisis_etiquetadora')
+                    ->withPivot('estado', 'actividad', 'reductor', 'maquina', 'numero_orden', 'evidencia_fotos')
                     ->withTimestamps();
     }
 

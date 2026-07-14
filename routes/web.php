@@ -5,7 +5,6 @@ use App\Models\User;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\AnalisisController;
 use App\Http\Controllers\AnalisisLavadoraController;
-use App\Http\Controllers\AnalisisLavadoraCostController;
 use App\Http\Controllers\AnalisisPasteurizadoraController;
 use App\Http\Controllers\AnalisisPasteurizadoraCentralHidraulicaController;
 use App\Http\Controllers\ElongacionController;
@@ -79,6 +78,9 @@ Route::middleware(['auth', 'pasteurizadora.access', 'technician.access'])->group
         Route::get('/pasteurizadoras', [DashboardController::class, 'pasteurizadoraGlobal'])
             ->name('dashboard.global.pasteurizadoras');
 
+        Route::get('/etiquetadoras', [DashboardController::class, 'etiquetadoraGlobal'])
+            ->name('dashboard.global.etiquetadoras');
+
         Route::get('/lavadora/operativo', [DashboardController::class, 'lavadoraOperativo'])
             ->name('dashboard.operativo.lavadora');
 
@@ -88,8 +90,11 @@ Route::middleware(['auth', 'pasteurizadora.access', 'technician.access'])->group
         Route::get('/lavadora', [DashboardController::class, 'lavadora'])
             ->name('dashboard_lavadora');
 
-    Route::get('/pasteurizadora', [DashboardController::class, 'pasteurizadora'])
+        Route::get('/pasteurizadora', [DashboardController::class, 'pasteurizadora'])
     ->name('dashboard_pasteurizadora');
+
+        Route::get('/etiquetadora', [DashboardController::class, 'etiquetadora'])
+            ->name('dashboard_etiquetadora');
   });  
 
     Route::prefix('lavadora')->group(function () {
@@ -105,6 +110,11 @@ Route::prefix('pasteurizadora')->group(function () {
         ->name('pasteurizadora.dashboard');
 
 });
+
+    Route::prefix('etiquetadora')->group(function () {
+        Route::get('/dashboard', [DashboardController::class, 'etiquetadora'])
+            ->name('etiquetadora.dashboard');
+    });
 
     Route::get('/dashboard-alias', [DashboardController::class, 'index'])
         ->name('dashboard.alias');
@@ -232,6 +242,43 @@ Route::prefix('pasteurizadora')->group(function () {
 
             Route::get('/{analisislavadora}', 'show')
                 ->where('analisislavadora', '[0-9]+')
+                ->name('show');
+        });
+
+    /*
+    |--------------------------------------------------------------------------
+    | ANALISIS ETIQUETADORA
+    |--------------------------------------------------------------------------
+    */
+    Route::prefix('analisis-etiquetadora')
+        ->name('analisis-etiquetadora.')
+        ->controller(AnalisisEtiquetadoraController::class)
+        ->group(function () {
+            Route::get('/', 'index')->name('index');
+            Route::get('/seleccionar-linea', 'selectLinea')->name('select-linea');
+            Route::get('/crear/{linea}', 'createWithLinea')->where('linea', '[0-9]+')->name('create');
+            Route::post('/', 'store')->name('store');
+            Route::get('/historial', 'historial')->name('historial');
+
+            Route::get('/{analisisetiquetadora}/editar', 'edit')
+                ->where('analisisetiquetadora', '[0-9]+')
+                ->name('edit');
+
+            Route::put('/{analisisetiquetadora}', 'update')
+                ->where('analisisetiquetadora', '[0-9]+')
+                ->name('update');
+
+            Route::delete('/{analisisetiquetadora}/foto/{fotoIndex}', 'deleteFoto')
+                ->where('analisisetiquetadora', '[0-9]+')
+                ->where('fotoIndex', '[0-9]+')
+                ->name('delete-foto');
+
+            Route::delete('/{analisisetiquetadora}', 'destroy')
+                ->where('analisisetiquetadora', '[0-9]+')
+                ->name('destroy');
+
+            Route::get('/{analisisetiquetadora}', 'show')
+                ->where('analisisetiquetadora', '[0-9]+')
                 ->name('show');
         });
 
@@ -462,6 +509,13 @@ Route::prefix('pasteurizadora')->group(function () {
                 ->name('estadisticas');
             Route::get('analisis-52-12-4', [AnalisisPasteurizadoraController::class, 'apiGetAnalisis52124'])
                 ->name('analisis-52-12-4');
+        });
+
+        Route::prefix('etiquetadora')->name('etiquetadora.')->group(function () {
+            Route::get('componentes/{linea}', [AnalisisEtiquetadoraController::class, 'apiGetComponentes'])
+                ->name('componentes');
+            Route::get('estadisticas/{linea}', [AnalisisEtiquetadoraController::class, 'apiGetEstadisticas'])
+                ->name('estadisticas');
         });
     });
 

@@ -89,6 +89,16 @@
         --machine-title-glow: rgba(234, 88, 12, 0.32);
     }
 
+    .modulo-card.modulo-card-machine.modulo-card-etiquetadora {
+        --machine-cover-scale: 1;
+        --machine-cover-hover-scale: 1.03;
+        --machine-cover-position: center 44%;
+        --machine-tint: rgba(16, 185, 129, 0.15);
+        --machine-title-accent-start: #059669;
+        --machine-title-accent-end: #10b981;
+        --machine-title-glow: rgba(5, 150, 105, 0.28);
+    }
+
     .modulo-card.modulo-card-machine::before {
         content: '';
         position: absolute;
@@ -244,7 +254,7 @@
         transition: all 0.3s ease;
     }
 
-    .modulo-card.modulo-card-machine .modulo-icon.has-image img {
+    .modulo-card.modulo-card-machine .modulo-icon.has-image > img {
         width: 100%;
         height: 100%;
         border-radius: 0;
@@ -257,12 +267,41 @@
         z-index: 1;
     }
     
-    .modulo-card:hover .modulo-icon.has-image img {
+    .modulo-card:hover .modulo-icon.has-image > img {
         transform: scale(1.1);
     }
 
-    .modulo-card.modulo-card-machine:hover .modulo-icon.has-image img {
+    .modulo-card.modulo-card-machine:hover .modulo-icon.has-image > img {
         transform: scale(var(--machine-cover-hover-scale));
+    }
+
+    .modulo-label-collage {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        align-items: flex-end;
+        justify-content: center;
+        gap: clamp(10px, 2vw, 18px);
+        width: 100%;
+        height: 100%;
+        padding: 30px 28px 54px;
+        background: linear-gradient(180deg, #ffffff 0%, #eefdf6 100%);
+    }
+
+    .modulo-label-collage img {
+        width: auto;
+        height: clamp(118px, 13vw, 174px);
+        max-width: 23%;
+        object-fit: contain;
+        filter: drop-shadow(0 16px 18px rgba(15, 23, 42, 0.18));
+        transform: rotate(var(--label-tilt, 0deg)) translateY(var(--label-lift, 0));
+        transform-origin: center bottom;
+        transition: transform 0.3s ease, filter 0.3s ease;
+    }
+
+    .modulo-card-etiquetadora:hover .modulo-label-collage img {
+        filter: drop-shadow(0 20px 22px rgba(15, 23, 42, 0.22));
+        transform: rotate(var(--label-tilt, 0deg)) translateY(calc(var(--label-lift, 0px) - 6px)) scale(1.04);
     }
 
     .modulo-card.modulo-card-machine .modulo-stats {
@@ -528,21 +567,31 @@
     @if($modulo['activo'])
         @php
             $hasCriticos = $modulo['estadisticas']['alertas_criticas'] > 0;
-            $tieneImagen = isset($modulo['imagen_personalizada']) && $modulo['imagen_personalizada'] && !empty($modulo['icono_imagen']);
+            $usaIconoEtiquetas = ($modulo['id'] ?? '') === 'etiquetadora';
+            $tieneImagen = !$usaIconoEtiquetas && isset($modulo['imagen_personalizada']) && $modulo['imagen_personalizada'] && !empty($modulo['icono_imagen']);
+            $tieneVisual = $tieneImagen || $usaIconoEtiquetas;
             $bloqueado = $modulo['bloqueado'] ?? false;
             $mensajeBloqueo = $modulo['mensaje_bloqueo'] ?? 'Estamos trabajando en ello, estara disponible muy pronto.';
             // La ruta está definida en el controlador dentro de cada módulo
             $rutaModulo = $modulo['ruta'] ?? route('dashboard');
         @endphp
-                <div class="modulo-card {{ in_array($modulo['id'] ?? '', ['lavadora', 'pasteurizadora'], true) ? 'modulo-card-machine modulo-card-' . ($modulo['id'] ?? '') : '' }}"
+                <div class="modulo-card {{ in_array($modulo['id'] ?? '', ['lavadora', 'pasteurizadora', 'etiquetadora'], true) ? 'modulo-card-machine modulo-card-' . ($modulo['id'] ?? '') : '' }}"
                      @if($bloqueado)
                          data-coming-soon-message="{{ $mensajeBloqueo }}"
                      @else
                          onclick="window.location.href='{{ $rutaModulo }}'"
                      @endif>
                     <div class="modulo-header">
-                        <div class="modulo-icon {{ $modulo['color'] }} {{ $tieneImagen ? 'has-image' : '' }}">
-                            @if($tieneImagen)
+                        <div class="modulo-icon {{ $modulo['color'] }} {{ $tieneVisual ? 'has-image' : '' }} {{ $usaIconoEtiquetas ? 'has-label-collage' : '' }}">
+                            @if($usaIconoEtiquetas)
+                                <div class="modulo-label-collage" aria-label="Presentaciones de Etiquetadora">
+                                    <img src="{{ asset('images/Etiquetas/coronamega.png') }}" alt="Corona Mega" style="--label-tilt: -7deg; --label-lift: 12px;">
+                                    <img src="{{ asset('images/Etiquetas/victoria1-cuarto.png') }}" alt="Victoria" style="--label-tilt: 5deg; --label-lift: -2px;">
+                                    <img src="{{ asset('images/Etiquetas/Modelo especial.png') }}" alt="Modelo Especial" style="--label-tilt: -2deg; --label-lift: -14px;">
+                                    <img src="{{ asset('images/Etiquetas/Barrilito.png') }}" alt="Barrilito" style="--label-tilt: 4deg; --label-lift: 6px;">
+                                    <img src="{{ asset('images/Etiquetas/Pacifico-clara.png') }}" alt="Pacifico Clara" style="--label-tilt: 8deg; --label-lift: 18px;">
+                                </div>
+                            @elseif($tieneImagen)
                                 <img src="{{ asset($modulo['icono_imagen']) }}" alt="{{ $modulo['nombre'] }}">
                             @else
                                 <i class="fas {{ $modulo['icono'] }}"></i>
@@ -606,7 +655,7 @@
                     </div>
                 </div>
             @else
-                <div class="modulo-card disabled {{ in_array($modulo['id'] ?? '', ['lavadora', 'pasteurizadora'], true) ? 'modulo-card-machine modulo-card-' . ($modulo['id'] ?? '') : '' }}">
+                <div class="modulo-card disabled {{ in_array($modulo['id'] ?? '', ['lavadora', 'pasteurizadora', 'etiquetadora'], true) ? 'modulo-card-machine modulo-card-' . ($modulo['id'] ?? '') : '' }}">
                     <div class="modulo-header">
                         <div class="modulo-icon {{ $modulo['color'] }}" style="opacity: 0.5;">
                             <i class="fas {{ $modulo['icono'] }}"></i>
@@ -687,7 +736,7 @@
 
     
     document.addEventListener('DOMContentLoaded', function() {
-        const images = document.querySelectorAll('.modulo-icon img');
+        const images = document.querySelectorAll('.modulo-icon > img');
         images.forEach(img => {
             img.addEventListener('error', function() {
                 console.error('Error loading image:', this.src);

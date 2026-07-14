@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Analisis;
+use App\Models\AnalisisEtiquetadora;
 use App\Models\AnalisisLavadora;
 use App\Models\AnalisisPasteurizadora;
 use App\Models\PlanAccion;
@@ -21,9 +22,11 @@ class NotificationVisibilityService
     private const ANALYSIS_RECORD_TYPES = [
         'analisis',
         'analisis_general',
+        'analisis_etiquetadora',
         'analisis_lavadora',
         'analisis_pasteurizadora',
         'inspeccion_central_hidraulica',
+        'etiquetadora',
         'lavadora',
         'pasteurizadora',
     ];
@@ -260,6 +263,7 @@ class NotificationVisibilityService
     {
         return [
             'analisis_general_id' => Analisis::class,
+            'analisis_etiquetadora_id' => AnalisisEtiquetadora::class,
             'analisis_lavadora_id' => AnalisisLavadora::class,
             'analisis_pasteurizadora_id' => AnalisisPasteurizadora::class,
         ];
@@ -273,6 +277,8 @@ class NotificationVisibilityService
         return match ((string) $recordType) {
             'analisis',
             'analisis_general' => Analisis::class,
+            'etiquetadora',
+            'analisis_etiquetadora' => AnalisisEtiquetadora::class,
             'lavadora',
             'analisis_lavadora' => AnalisisLavadora::class,
             'pasteurizadora',
@@ -286,6 +292,7 @@ class NotificationVisibilityService
     {
         return in_array($class, [
             Analisis::class,
+            AnalisisEtiquetadora::class,
             AnalisisLavadora::class,
             AnalisisPasteurizadora::class,
         ], true);

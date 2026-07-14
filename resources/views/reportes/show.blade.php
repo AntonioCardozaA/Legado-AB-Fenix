@@ -2,10 +2,14 @@
 
 @php
     $esPasteurizadora = ($tipoEquipo ?? 'lavadoras') === 'pasteurizadoras';
-    $nombreEquipoPlural = $esPasteurizadora ? 'Pasteurizadoras' : 'Lavadoras';
-    $iconoEquipo = $esPasteurizadora ? 'fa-temperature-half' : 'fa-droplet';
+    $esEtiquetadora = ($tipoEquipo ?? 'lavadoras') === 'etiquetadoras';
+    $nombreEquipoPlural = $esPasteurizadora ? 'Pasteurizadoras' : ($esEtiquetadora ? 'Etiquetadoras' : 'Lavadoras');
+    $iconoEquipo = $esPasteurizadora ? 'fa-temperature-half' : ($esEtiquetadora ? 'fa-tags' : 'fa-droplet');
     $logoEquipo = $esPasteurizadora ? asset('images/icono_pas.png') : asset('images/icono-maquina.png');
-    $claseEquipo = $esPasteurizadora ? 'pasteurizadora' : 'lavadora';
+    $claseEquipo = $esPasteurizadora ? 'pasteurizadora' : ($esEtiquetadora ? 'etiquetadora' : 'lavadora');
+    $partialReporte = $esPasteurizadora
+        ? 'reportes.partials.reporte-linea-pasteurizadora'
+        : ($esEtiquetadora ? 'reportes.partials.reporte-linea-etiquetadora' : 'reportes.partials.reporte-linea-lavadora');
     $lineaActual = $lineaId ? ($reporte['linea'] ?? null) : null;
     $tituloReporte = $lineaActual
         ? 'Reporte Detallado - ' . $lineaActual->nombre
@@ -151,6 +155,11 @@
     }
 
     .report-logo.pasteurizadora {
+        background: var(--report-green-soft);
+        border-color: var(--report-green-border);
+    }
+
+    .report-logo.etiquetadora {
         background: var(--report-green-soft);
         border-color: var(--report-green-border);
     }
@@ -498,7 +507,7 @@
     <div class="report-section-stack">
         @if($lineaId)
             <div class="report-line-shell">
-                @include($esPasteurizadora ? 'reportes.partials.reporte-linea-pasteurizadora' : 'reportes.partials.reporte-linea-lavadora', ['reporte' => $reporte])
+                @include($partialReporte, ['reporte' => $reporte])
             </div>
         @else
             @foreach($reporte['lineas'] as $reporteLinea)
@@ -510,7 +519,7 @@
                         </span>
                     </div>
 
-                    @include($esPasteurizadora ? 'reportes.partials.reporte-linea-pasteurizadora' : 'reportes.partials.reporte-linea-lavadora', ['reporte' => $reporteLinea])
+                    @include($partialReporte, ['reporte' => $reporteLinea])
                 </section>
             @endforeach
         @endif

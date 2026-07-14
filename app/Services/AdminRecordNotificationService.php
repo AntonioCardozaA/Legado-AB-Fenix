@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Analisis;
+use App\Models\AnalisisEtiquetadora;
 use App\Models\AnalisisLavadora;
 use App\Models\AnalisisPasteurizadora;
 use App\Models\AnalysisDeletionLog;
@@ -25,6 +26,7 @@ class AdminRecordNotificationService
      */
     private array $watchedModels = [
         Analisis::class,
+        AnalisisEtiquetadora::class,
         AnalisisLavadora::class,
         AnalisisPasteurizadora::class,
         Elongacion::class,
@@ -322,7 +324,7 @@ class AdminRecordNotificationService
             return $record->registradoPor ?: auth()->user();
         }
 
-        if ($record instanceof Analisis || $record instanceof AnalisisLavadora || $record instanceof AnalisisPasteurizadora) {
+        if ($record instanceof Analisis || $record instanceof AnalisisEtiquetadora || $record instanceof AnalisisLavadora || $record instanceof AnalisisPasteurizadora) {
             $record->loadMissing('usuario');
 
             return $record->usuario ?: auth()->user();
@@ -365,6 +367,7 @@ class AdminRecordNotificationService
     {
         return match (true) {
             $record instanceof Analisis => 'analisis_general',
+            $record instanceof AnalisisEtiquetadora => 'analisis_etiquetadora',
             $record instanceof AnalisisLavadora => 'analisis_lavadora',
             $record instanceof AnalisisPasteurizadora => $record->area === AnalisisPasteurizadora::AREA_CENTRAL_HIDRAULICA
                 ? 'inspeccion_central_hidraulica'
@@ -379,6 +382,7 @@ class AdminRecordNotificationService
     {
         return match (true) {
             $record instanceof Analisis => 'Analisis general',
+            $record instanceof AnalisisEtiquetadora => 'Analisis de etiquetadora',
             $record instanceof AnalisisLavadora => 'Analisis de lavadora',
             $record instanceof AnalisisPasteurizadora => $record->area === AnalisisPasteurizadora::AREA_CENTRAL_HIDRAULICA
                 ? 'Inspeccion de central hidraulica'
@@ -391,6 +395,19 @@ class AdminRecordNotificationService
 
     private function resolveDetail(Model $record): ?string
     {
+        if ($record instanceof AnalisisEtiquetadora) {
+            $record->loadMissing('componente');
+
+            return $this->joinDetails([
+                'Componente: ' . ($record->componente?->nombre ?? 'Sin componente'),
+                $record->reductor ? 'Maquina: ' . $record->reductor : null,
+                $record->componente?->grupo ? 'Grupo: ' . $record->componente->grupo : null,
+                $record->componente?->mecanismo ? 'Mecanismo: ' . $record->componente->mecanismo : null,
+                $record->estado ? 'Estado: ' . $record->estado : null,
+                $record->numero_orden ? 'Orden: ' . $record->numero_orden : null,
+            ]);
+        }
+
         if ($record instanceof AnalisisLavadora) {
             $record->loadMissing('componente');
 
@@ -447,6 +464,12 @@ class AdminRecordNotificationService
 
     private function resolveComponentName(Model $record): string
     {
+        if ($record instanceof AnalisisEtiquetadora) {
+            $record->loadMissing('componente');
+
+            return $record->componente?->nombre ?? 'Componente sin nombre';
+        }
+
         if ($record instanceof AnalisisLavadora) {
             $record->loadMissing('componente');
 
@@ -462,6 +485,15 @@ class AdminRecordNotificationService
 
     private function resolveComponentAlertDetail(Model $record): ?string
     {
+        if ($record instanceof AnalisisEtiquetadora) {
+            return $this->joinDetails([
+                $record->reductor ? 'Maquina: ' . $record->reductor : null,
+                $record->componente?->grupo ? 'Grupo: ' . $record->componente->grupo : null,
+                $record->numero_orden ? 'Orden: ' . $record->numero_orden : null,
+                $this->formatDate($record->fecha_analisis) ? 'Fecha analisis: ' . $this->formatDate($record->fecha_analisis) : null,
+            ]);
+        }
+
         if ($record instanceof AnalisisLavadora) {
             return $this->joinDetails([
                 $record->reductor ? 'Reductor: ' . $record->reductor : null,
@@ -487,6 +519,12 @@ class AdminRecordNotificationService
 
     private function shouldSendComponentAlert(Model $record): bool
     {
+        if ($record instanceof AnalisisEtiquetadora) {
+            return AnalisisLavadora::esEstadoDanado($record->estado)
+                || AnalisisLavadora::esEstadoDesgaste($record->estado)
+                || AnalisisLavadora::esEstadoRequiereRevision($record->estado);
+        }
+
         if ($record instanceof AnalisisLavadora) {
             return AnalisisLavadora::esEstadoDanado($record->estado)
                 || AnalisisLavadora::esEstadoDesgaste($record->estado)
@@ -505,7 +543,8 @@ class AdminRecordNotificationService
     private function componentAlertPriority(Model $record): string
     {
         if (
-            ($record instanceof AnalisisLavadora && AnalisisLavadora::esEstadoDanado($record->estado))
+            ($record instanceof AnalisisEtiquetadora && AnalisisLavadora::esEstadoDanado($record->estado))
+            || ($record instanceof AnalisisLavadora && AnalisisLavadora::esEstadoDanado($record->estado))
             || ($record instanceof AnalisisPasteurizadora && AnalisisPasteurizadora::esEstadoDanado($record->estado))
             || $record->estado === 'Desgaste severo'
         ) {
@@ -551,6 +590,7 @@ class AdminRecordNotificationService
     {
         return match (true) {
             $record instanceof Analisis => $this->routeIfExists('analisis.show', ['analisis' => $record->getKey()]),
+            $record instanceof AnalisisEtiquetadora => $this->routeIfExists('analisis-etiquetadora.show', ['analisisetiquetadora' => $record->getKey()]),
             $record instanceof AnalisisLavadora => $this->routeIfExists('analisis-lavadora.show', ['analisislavadora' => $record->getKey()]),
             $record instanceof AnalisisPasteurizadora => $this->routeIfExists(
                 $record->area === AnalisisPasteurizadora::AREA_CENTRAL_HIDRAULICA
@@ -570,6 +610,16 @@ class AdminRecordNotificationService
 
     private function resolvePlanActionType(PlanAccion $record): string
     {
+        $type = strtolower(trim((string) $record->tipo_equipo));
+
+        if (in_array($type, [
+            User::MODULE_LAVADORA,
+            User::MODULE_PASTEURIZADORA,
+            User::MODULE_ETIQUETADORA,
+        ], true)) {
+            return $type;
+        }
+
         $record->loadMissing('linea');
         $lineName = strtoupper((string) $record->linea?->nombre);
 
@@ -591,11 +641,7 @@ class AdminRecordNotificationService
             return User::MODULE_LAVADORA;
         }
 
-        $type = strtolower(trim((string) $record->tipo_equipo));
-
-        return str_contains($type, User::MODULE_PASTEURIZADORA)
-            ? User::MODULE_PASTEURIZADORA
-            : User::MODULE_LAVADORA;
+        return User::MODULE_LAVADORA;
     }
 
     private function resolveDeletionUrl(AnalysisDeletionLog $deletionLog, ?Model $record = null): ?string
@@ -611,10 +657,15 @@ class AdminRecordNotificationService
             );
         }
 
+        if ($record instanceof AnalisisEtiquetadora) {
+            return $this->routeIfExists('analisis-etiquetadora.index', $parameters);
+        }
+
         $metadata = $deletionLog->metadata ?? [];
 
         return match ($deletionLog->analysis_type) {
             'lavadora' => $this->routeIfExists('analisis-lavadora.index', $parameters),
+            'etiquetadora' => $this->routeIfExists('analisis-etiquetadora.index', $parameters),
             'pasteurizadora' => $this->routeIfExists(
                 ($metadata['area'] ?? null) === AnalisisPasteurizadora::AREA_CENTRAL_HIDRAULICA
                     ? 'pasteurizadora.central-hidraulica.index'
@@ -644,6 +695,7 @@ class AdminRecordNotificationService
         return match ($analysisType) {
             'analisis' => 'Analisis general',
             'lavadora' => 'Analisis Lavadora',
+            'etiquetadora' => 'Analisis Etiquetadora',
             'pasteurizadora' => 'Analisis de pasteurizadora',
             default => 'Analisis',
         };
