@@ -16,6 +16,7 @@ class LavadoraCostSyncService
 
         LavadoraCostEntry::query()
             ->where('analisis_lavadora_id', $analysis->id)
+            ->where('source_type', '!=', LavadoraCostEntry::SOURCE_MANUAL)
             ->delete();
 
         $entries = $this->buildEntries($analysis);
@@ -37,13 +38,103 @@ class LavadoraCostSyncService
     /**
      * @return Collection<int, array<string, mixed>>
      */
-    private function buildEntries(AnalisisLavadora $analysis): Collection
+    public function automaticPreview(AnalisisLavadora $analysis): Collection
     {
+        $analysis->loadMissing(['linea', 'componente', 'costRuleExclusions']);
+
         $componentCode = LavadoraCostSupport::normalizeComponentCode($analysis->componente?->codigo);
         $normalizedActivity = LavadoraCostSupport::normalizeText($analysis->actividad);
         $lineaNombre = $analysis->linea?->nombre;
-        $now = now();
+        $excludedRuleIds = $analysis->costRuleExclusions
+            ->pluck('cost_automation_rule_id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
 
+        return $this->matchingRules($analysis, $componentCode, $normalizedActivity, $lineaNombre)
+            ->map(function (CostAutomationRule $rule) use ($analysis, $componentCode, $lineaNombre, $excludedRuleIds) {
+                $catalogItem = $rule->catalogItem;
+                $quantity = LavadoraCostSupport::extractQuantity(
+                    $analysis->actividad,
+                    $catalogItem?->unidad_medida,
+                    (float) ($rule->quantity ?: 1)
+                );
+                $unitCost = (float) ($catalogItem?->costo_unitario ?: 0);
+
+                return [
+                    'rule_id' => $rule->id,
+                    'trigger_type' => $rule->trigger_type,
+                    'trigger_label' => CostAutomationRule::triggerOptions()[$rule->trigger_type] ?? 'Regla automatica',
+                    'trigger_reference' => $rule->trigger_keyword ?: $rule->component_code,
+                    'catalog_item_id' => $catalogItem?->id,
+                    'catalog_name' => $catalogItem?->nombre ?? 'Concepto sin catalogo',
+                    'catalog_sku' => $catalogItem?->sku,
+                    'catalog_category' => $catalogItem?->categoria,
+                    'unit' => $catalogItem?->unidad_medida,
+                    'quantity' => $quantity,
+                    'unit_cost' => $unitCost,
+                    'total_cost' => round($quantity * $unitCost, 2),
+                    'excluded' => in_array($rule->id, $excludedRuleIds, true),
+                    'notes' => $rule->notas,
+                    'metadata' => [
+                        'linea_nombre' => $lineaNombre,
+                        'component_code' => $componentCode,
+                        'estado' => $analysis->estado,
+                        'actividad' => $analysis->actividad,
+                        'rule_id' => $rule->id,
+                    ],
+                ];
+            })
+            ->values();
+    }
+
+    /**
+     * @return Collection<int, array<string, mixed>>
+     */
+    private function buildEntries(AnalisisLavadora $analysis): Collection
+    {
+        $now = now();
+        $componentCode = LavadoraCostSupport::normalizeComponentCode($analysis->componente?->codigo);
+
+        return $this->automaticPreview($analysis)
+            ->reject(fn (array $preview) => $preview['excluded'] === true)
+            ->map(function (array $preview) use ($analysis, $componentCode, $now) {
+                return [
+                    'linea_id' => $analysis->linea_id,
+                    'analisis_lavadora_id' => $analysis->id,
+                    'componente_id' => $analysis->componente_id,
+                    'catalog_item_id' => $preview['catalog_item_id'],
+                    'source_type' => $preview['trigger_type'],
+                    'source_reference' => $preview['trigger_reference'],
+                    'cost_date' => $analysis->fecha_analisis?->toDateString() ?? now()->toDateString(),
+                    'quantity' => $preview['quantity'],
+                    'unit_cost' => $preview['unit_cost'],
+                    'total_cost' => $preview['total_cost'],
+                    'component_snapshot' => $analysis->componente?->nombre ?? ($componentCode ?: 'Componente no identificado'),
+                    'catalog_name_snapshot' => $preview['catalog_name'],
+                    'catalog_sku_snapshot' => $preview['catalog_sku'],
+                    'catalog_category_snapshot' => $preview['catalog_category'],
+                    'unidad_medida_snapshot' => $preview['unit'],
+                    'notas' => $preview['notes'],
+                    'metadata' => json_encode($preview['metadata']),
+                    'sync_key' => sha1(implode('|', [
+                        $analysis->id,
+                        $preview['rule_id'],
+                        $preview['trigger_type'],
+                        $preview['trigger_reference'],
+                    ])),
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ];
+            })
+            ->values();
+    }
+
+    private function matchingRules(
+        AnalisisLavadora $analysis,
+        string $componentCode,
+        string $normalizedActivity,
+        ?string $lineaNombre
+    ): Collection {
         return CostAutomationRule::query()
             ->with('catalogItem')
             ->active()
@@ -68,50 +159,6 @@ class LavadoraCostSyncService
                 }
 
                 return false;
-            })
-            ->map(function (CostAutomationRule $rule) use ($analysis, $componentCode, $lineaNombre, $now) {
-                $catalogItem = $rule->catalogItem;
-                $quantity = LavadoraCostSupport::extractQuantity(
-                    $analysis->actividad,
-                    $catalogItem?->unidad_medida,
-                    (float) ($rule->quantity ?: 1)
-                );
-                $unitCost = (float) ($catalogItem?->costo_unitario ?: 0);
-
-                return [
-                    'linea_id' => $analysis->linea_id,
-                    'analisis_lavadora_id' => $analysis->id,
-                    'componente_id' => $analysis->componente_id,
-                    'catalog_item_id' => $catalogItem?->id,
-                    'source_type' => $rule->trigger_type,
-                    'source_reference' => $rule->trigger_keyword ?: $rule->component_code,
-                    'cost_date' => $analysis->fecha_analisis?->toDateString() ?? now()->toDateString(),
-                    'quantity' => $quantity,
-                    'unit_cost' => $unitCost,
-                    'total_cost' => round($quantity * $unitCost, 2),
-                    'component_snapshot' => $analysis->componente?->nombre ?? ($componentCode ?: 'Componente no identificado'),
-                    'catalog_name_snapshot' => $catalogItem?->nombre ?? 'Concepto sin catalogo',
-                    'catalog_sku_snapshot' => $catalogItem?->sku,
-                    'catalog_category_snapshot' => $catalogItem?->categoria,
-                    'unidad_medida_snapshot' => $catalogItem?->unidad_medida,
-                    'notas' => $rule->notas,
-                    'metadata' => json_encode([
-                        'linea_nombre' => $lineaNombre,
-                        'component_code' => $componentCode,
-                        'estado' => $analysis->estado,
-                        'actividad' => $analysis->actividad,
-                        'rule_id' => $rule->id,
-                    ]),
-                    'sync_key' => sha1(implode('|', [
-                        $analysis->id,
-                        $rule->id,
-                        $rule->trigger_type,
-                        $rule->trigger_keyword,
-                        $rule->component_code,
-                    ])),
-                    'created_at' => $now,
-                    'updated_at' => $now,
-                ];
             })
             ->values();
     }

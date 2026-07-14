@@ -91,6 +91,11 @@
                 </div>
 
                 <div class="flex flex-wrap gap-3">
+                    <a href="{{ route('analisis-lavadora.costos.manage', ['analisislavadora' => $analisislavadora->id]) }}"
+                       class="inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700">
+                        <i class="fas fa-sack-dollar"></i>
+                        Administrar costos
+                    </a>
                     <a href="{{ route('analisis-lavadora.edit', ['analisislavadora' => $analisislavadora->id]) }}"
                        class="inline-flex items-center justify-center gap-2 rounded-lg bg-white px-4 py-2.5 text-sm font-semibold {{ $estadoStyles['buttonText'] }} shadow-sm transition">
                         <i class="fas fa-edit"></i>

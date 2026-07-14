@@ -234,6 +234,7 @@ public function index(Request $request)
             'is_new' => $registro->created_at ? $registro->created_at->gt(now()->subDays(3)) : false,
             'total_historial' => $totalHistorial,
             'edit_url' => route('analisis-lavadora.edit', ['analisislavadora' => $registro->id], false),
+            'costs_url' => route('analisis-lavadora.costos.manage', ['analisislavadora' => $registro->id], false),
             'delete_url' => $canDeleteAnalysis ? route('analisis-lavadora.destroy', ['analisislavadora' => $registro->id], false) : null,
             'historial_url' => route('analisis-lavadora.historial', [
                 'linea_id' => $registro->linea_id,

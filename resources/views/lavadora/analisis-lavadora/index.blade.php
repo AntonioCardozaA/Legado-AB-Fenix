@@ -2109,6 +2109,7 @@
                                                         'updated_at' => isset($registro->updated_at) ? $registro->updated_at->format('d/m/Y H:i') : '',
                                                         'is_new' => $isNew,
                                                         'total_historial' => $totalHistorial,
+                                                        'costs_url' => route('analisis-lavadora.costos.manage', ['analisislavadora' => $registro->id]),
                                                         'edit_url' => route('analisis-lavadora.edit', ['analisislavadora' => $registro->id]),
                                                         'delete_url' => $canDeleteAnalysis ? route('analisis-lavadora.destroy', ['analisislavadora' => $registro->id]) : null,
                                                         'historial_url' => route('analisis-lavadora.historial', [
@@ -2649,6 +2650,7 @@
                                                     'updated_at' => isset($registro->updated_at) ? $registro->updated_at->format('d/m/Y H:i') : '',
                                                     'is_new' => $isNew,
                                                     'total_historial' => $totalHistorial,
+                                                    'costs_url' => route('analisis-lavadora.costos.manage', ['analisislavadora' => $registro->id]),
                                                     'edit_url' => route('analisis-lavadora.edit', [
                                                         'analisislavadora' => $registro->id
                                                     ]),
@@ -3007,10 +3009,18 @@
                         Detalle del Análisis
                     </h3>
                 </div>
-                <button onclick="closeAnalysisDetailModal()" 
-                        class="w-8 h-8 rounded-lg hover:bg-gray-100 flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors">
-                    <i class="fas fa-times"></i>
-                </button>
+                <div class="flex items-center gap-2">
+                    <a id="detail-costs-shortcut-btn"
+                       href="#"
+                       class="hidden sm:inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-emerald-700">
+                        <i class="fas fa-sack-dollar"></i>
+                        Administrar costos
+                    </a>
+                    <button onclick="closeAnalysisDetailModal()" 
+                            class="w-8 h-8 rounded-lg hover:bg-gray-100 flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
             </div>
         </div>
         
@@ -3146,6 +3156,7 @@
             </div>
 
             <div class="flex flex-col sm:flex-row sm:justify-end gap-3 mt-8 pt-4 border-t border-gray-200">
+
                 <a id="detail-edit-btn" 
                 href="#" 
                 class="w-full sm:w-auto justify-center px-6 py-3 bg-gray-800 text-white rounded-lg hover:bg-gray-900 transition-all shadow-md hover:shadow-lg flex items-center gap-2 font-medium border border-gray-700">
@@ -3645,6 +3656,7 @@ function openAnalysisDetail(analysisData) {
     estadoElement.className = `px-6 py-3 ${bgClass} text-white rounded-lg font-mono text-sm tracking-wider w-full text-center`;
     estadoElement.innerHTML = analysisData.estado;
     
+    document.getElementById('detail-costs-shortcut-btn').href = analysisData.costs_url;
     document.getElementById('detail-edit-btn').href = analysisData.edit_url;
     const historialBtn = document.getElementById('detail-historial-btn');
     const historialText = document.getElementById('detail-historial-text');

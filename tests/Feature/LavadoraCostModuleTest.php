@@ -6,6 +6,7 @@ use App\Models\AnalisisLavadora;
 use App\Models\Componente;
 use App\Models\CostAutomationRule;
 use App\Models\CostCatalogItem;
+use App\Models\LavadoraCostEntry;
 use App\Models\Linea;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -113,6 +114,170 @@ class LavadoraCostModuleTest extends TestCase
         $this->actingAs($technician)
             ->get(route('admin.costos.index'))
             ->assertForbidden();
+    }
+
+    public function test_manual_cost_can_be_added_and_persist_after_analysis_update(): void
+    {
+        $user = $this->userWithRole(User::ROLE_TECNICO);
+        $linea = $this->createLavadoraLinea();
+        $componente = $this->createComponente($linea, 'ZZ_MANUAL_COMPONENT', 'Componente Manual');
+        $catalogItem = $this->createCatalogItem('CAT-ZZ-MAN-001', 'Gasto manual de prueba', 450.25, 'Pieza');
+
+        $this->actingAs($user)->post(route('analisis-lavadora.store'), [
+            'linea_id' => $linea->id,
+            'componente_id' => $componente->id,
+            'reductor' => 'Reductor 1',
+            'fecha_analisis' => '2026-07-06',
+            'numero_orden' => 'OT-COST-003',
+            'estado' => AnalisisLavadora::ESTADO_BUENO,
+            'actividad' => 'INSPECCION GENERAL',
+        ])->assertRedirect(route('analisis-lavadora.index', ['linea_id' => $linea->id]));
+
+        $analysis = AnalisisLavadora::query()->where('numero_orden', 'OT-COST-003')->firstOrFail();
+
+        $this->actingAs($user)->post(route('analisis-lavadora.costos.manual.store', ['analisislavadora' => $analysis->id]), [
+            'items' => [
+                $catalogItem->id => [
+                    'selected' => 1,
+                    'catalog_item_id' => $catalogItem->id,
+                    'quantity' => 2,
+                    'notas' => 'Carga manual para historico',
+                ],
+            ],
+        ])->assertSessionHas('success');
+
+        $manualEntry = LavadoraCostEntry::query()
+            ->where('analisis_lavadora_id', $analysis->id)
+            ->where('source_type', LavadoraCostEntry::SOURCE_MANUAL)
+            ->firstOrFail();
+
+        $this->assertSame(900.5, (float) $manualEntry->total_cost);
+
+        $this->actingAs($user)->put(route('analisis-lavadora.update', $analysis->id), [
+            'fecha_analisis' => '2026-07-06',
+            'numero_orden' => 'OT-COST-003',
+            'estado' => AnalisisLavadora::ESTADO_BUENO,
+            'actividad' => 'INSPECCION GENERAL AJUSTADA',
+        ])->assertRedirect(route('analisis-lavadora.index'));
+
+        $this->assertDatabaseHas('lavadora_cost_entries', [
+            'id' => $manualEntry->id,
+            'analisis_lavadora_id' => $analysis->id,
+            'source_type' => LavadoraCostEntry::SOURCE_MANUAL,
+            'total_cost' => 900.50,
+        ]);
+    }
+
+    public function test_automatic_rule_can_be_disabled_and_restored_per_analysis(): void
+    {
+        $user = $this->userWithRole(User::ROLE_TECNICO);
+        $linea = $this->createLavadoraLinea();
+        $componente = $this->createComponente($linea, 'ZZ_RULE_COMPONENT', 'Componente Regla');
+        $catalogItem = $this->createCatalogItem('CAT-ZZ-RULE-001', 'Costo automatico reversible', 999.99, 'Pieza');
+
+        $rule = CostAutomationRule::query()->create([
+            'cost_catalog_item_id' => $catalogItem->id,
+            'component_code' => 'ZZ_RULE_COMPONENT',
+            'trigger_type' => CostAutomationRule::TRIGGER_ESTADO_CAMBIADO,
+            'quantity' => 1,
+            'priority' => 1,
+            'activo' => true,
+        ]);
+
+        $this->actingAs($user)->post(route('analisis-lavadora.store'), [
+            'linea_id' => $linea->id,
+            'componente_id' => $componente->id,
+            'reductor' => 'Reductor 1',
+            'fecha_analisis' => '2026-07-06',
+            'numero_orden' => 'OT-COST-004',
+            'estado' => AnalisisLavadora::ESTADO_CAMBIADO,
+            'actividad' => 'REEMPLAZO TOTAL DEL COMPONENTE',
+        ])->assertRedirect(route('analisis-lavadora.index', ['linea_id' => $linea->id]));
+
+        $analysis = AnalisisLavadora::query()->where('numero_orden', 'OT-COST-004')->firstOrFail();
+
+        $this->assertDatabaseHas('lavadora_cost_entries', [
+            'analisis_lavadora_id' => $analysis->id,
+            'catalog_item_id' => $catalogItem->id,
+            'source_type' => CostAutomationRule::TRIGGER_ESTADO_CAMBIADO,
+        ]);
+
+        $this->actingAs($user)->post(route('analisis-lavadora.costos.automatic.disable', [
+            'analisislavadora' => $analysis->id,
+            'rule' => $rule->id,
+        ]))->assertSessionHas('success');
+
+        $this->assertDatabaseHas('lavadora_cost_rule_exclusions', [
+            'analisis_lavadora_id' => $analysis->id,
+            'cost_automation_rule_id' => $rule->id,
+        ]);
+
+        $this->assertDatabaseMissing('lavadora_cost_entries', [
+            'analisis_lavadora_id' => $analysis->id,
+            'catalog_item_id' => $catalogItem->id,
+            'source_type' => CostAutomationRule::TRIGGER_ESTADO_CAMBIADO,
+        ]);
+
+        $this->actingAs($user)->delete(route('analisis-lavadora.costos.automatic.enable', [
+            'analisislavadora' => $analysis->id,
+            'rule' => $rule->id,
+        ]))->assertSessionHas('success');
+
+        $this->assertDatabaseMissing('lavadora_cost_rule_exclusions', [
+            'analisis_lavadora_id' => $analysis->id,
+            'cost_automation_rule_id' => $rule->id,
+        ]);
+
+        $this->assertDatabaseHas('lavadora_cost_entries', [
+            'analisis_lavadora_id' => $analysis->id,
+            'catalog_item_id' => $catalogItem->id,
+            'source_type' => CostAutomationRule::TRIGGER_ESTADO_CAMBIADO,
+            'total_cost' => 999.99,
+        ]);
+    }
+
+    public function test_historical_analysis_can_sync_missing_automatic_costs(): void
+    {
+        $user = $this->userWithRole(User::ROLE_TECNICO);
+        $linea = $this->createLavadoraLinea();
+        $componente = $this->createComponente($linea, 'ZZ_SYNC_COMPONENT', 'Componente Historico');
+        $catalogItem = $this->createCatalogItem('CAT-ZZ-SYNC-001', 'Costo historico recuperable', 777.77, 'Pieza');
+
+        CostAutomationRule::query()->create([
+            'cost_catalog_item_id' => $catalogItem->id,
+            'component_code' => 'ZZ_SYNC_COMPONENT',
+            'trigger_type' => CostAutomationRule::TRIGGER_ESTADO_CAMBIADO,
+            'quantity' => 1,
+            'priority' => 1,
+            'activo' => true,
+        ]);
+
+        $analysis = AnalisisLavadora::query()->create([
+            'linea_id' => $linea->id,
+            'componente_id' => $componente->id,
+            'reductor' => 'Reductor 1',
+            'fecha_analisis' => '2026-07-01',
+            'numero_orden' => 'OT-COST-005',
+            'estado' => AnalisisLavadora::ESTADO_CAMBIADO,
+            'actividad' => 'ANALISIS HISTORICO SIN COSTOS',
+            'usuario_id' => $user->id,
+        ]);
+
+        $this->assertDatabaseMissing('lavadora_cost_entries', [
+            'analisis_lavadora_id' => $analysis->id,
+            'catalog_item_id' => $catalogItem->id,
+        ]);
+
+        $this->actingAs($user)->post(route('analisis-lavadora.costos.automatic.sync', [
+            'analisislavadora' => $analysis->id,
+        ]))->assertSessionHas('success');
+
+        $this->assertDatabaseHas('lavadora_cost_entries', [
+            'analisis_lavadora_id' => $analysis->id,
+            'catalog_item_id' => $catalogItem->id,
+            'source_type' => CostAutomationRule::TRIGGER_ESTADO_CAMBIADO,
+            'total_cost' => 777.77,
+        ]);
     }
 
     private function createLavadoraLinea(): Linea

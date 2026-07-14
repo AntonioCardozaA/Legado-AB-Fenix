@@ -5,10 +5,13 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Str;
 
 class LavadoraCostEntry extends Model
 {
     use HasFactory;
+
+    public const SOURCE_MANUAL = 'manual';
 
     protected $table = 'lavadora_cost_entries';
 
@@ -59,5 +62,30 @@ class LavadoraCostEntry extends Model
     public function catalogItem(): BelongsTo
     {
         return $this->belongsTo(CostCatalogItem::class, 'catalog_item_id');
+    }
+
+    public function isManual(): bool
+    {
+        return $this->source_type === self::SOURCE_MANUAL;
+    }
+
+    public function isAutomatic(): bool
+    {
+        return !$this->isManual();
+    }
+
+    public static function sourceLabel(?string $sourceType): string
+    {
+        return match ($sourceType) {
+            self::SOURCE_MANUAL => 'Manual',
+            CostAutomationRule::TRIGGER_ESTADO_CAMBIADO => 'Cambio completo',
+            CostAutomationRule::TRIGGER_ACTIVIDAD_KEYWORD => 'Actividad',
+            default => Str::headline(str_replace('_', ' ', (string) $sourceType)),
+        };
+    }
+
+    public static function originLabel(?string $sourceType): string
+    {
+        return $sourceType === self::SOURCE_MANUAL ? 'Manual' : 'Automatico';
     }
 }

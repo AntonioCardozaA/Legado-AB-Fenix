@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class CostAutomationRule extends Model
 {
@@ -46,6 +47,11 @@ class CostAutomationRule extends Model
     public function catalogItem(): BelongsTo
     {
         return $this->belongsTo(CostCatalogItem::class, 'cost_catalog_item_id');
+    }
+
+    public function exclusions(): HasMany
+    {
+        return $this->hasMany(LavadoraCostRuleExclusion::class, 'cost_automation_rule_id');
     }
 
     public function scopeActive($query)

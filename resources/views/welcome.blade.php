@@ -8,7 +8,8 @@
     <meta name="description" content="Legado AB Fénix - Soluciones industriales en lavado y pasteurización.">
     <meta name="author" content="Legado AB Fénix">
     <meta name="robots" content="index, follow">
-    
+    @include('layouts.partials.site-icons')
+
     <meta property="og:title" content="Legado AB Fénix">
     <meta property="og:description" content="Soluciones industriales en lavado y pasteurización.">
     <meta property="og:type" content="website">

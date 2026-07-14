@@ -291,4 +291,14 @@ class AnalisisLavadora extends Model
     {
         return $this->hasMany(AnalisisLavadoraFechaCambio::class, 'analisis_lavadora_id');
     }
+
+    public function costEntries(): HasMany
+    {
+        return $this->hasMany(LavadoraCostEntry::class, 'analisis_lavadora_id');
+    }
+
+    public function costRuleExclusions(): HasMany
+    {
+        return $this->hasMany(LavadoraCostRuleExclusion::class, 'analisis_lavadora_id');
+    }
 }

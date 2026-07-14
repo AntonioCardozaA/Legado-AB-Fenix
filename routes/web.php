@@ -5,7 +5,6 @@ use App\Models\User;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\AnalisisController;
 use App\Http\Controllers\AnalisisLavadoraController;
-use App\Http\Controllers\AnalisisEtiquetadoraController;
 use App\Http\Controllers\AnalisisPasteurizadoraController;
 use App\Http\Controllers\AnalisisPasteurizadoraCentralHidraulicaController;
 use App\Http\Controllers\ElongacionController;
@@ -220,6 +219,26 @@ Route::prefix('pasteurizadora')->group(function () {
             Route::delete('/{analisislavadora}', 'destroy')
                 ->where('analisislavadora', '[0-9]+')
                 ->name('destroy');
+
+            Route::prefix('/{analisislavadora}/costos')
+                ->where(['analisislavadora' => '[0-9]+'])
+                ->name('costos.')
+                ->controller(AnalisisLavadoraCostController::class)
+                ->group(function () {
+                    Route::get('/', 'manage')->name('manage');
+                    Route::post('/manuales', 'storeManual')->name('manual.store');
+                    Route::delete('/manuales/{costEntry}', 'destroyManual')
+                        ->where('costEntry', '[0-9]+')
+                        ->name('manual.destroy');
+                    Route::post('/automaticos/sincronizar', 'syncAutomaticCosts')
+                        ->name('automatic.sync');
+                    Route::post('/automaticos/{rule}/desactivar', 'disableAutomaticRule')
+                        ->where('rule', '[0-9]+')
+                        ->name('automatic.disable');
+                    Route::delete('/automaticos/{rule}/desactivar', 'enableAutomaticRule')
+                        ->where('rule', '[0-9]+')
+                        ->name('automatic.enable');
+                });
 
             Route::get('/{analisislavadora}', 'show')
                 ->where('analisislavadora', '[0-9]+')
