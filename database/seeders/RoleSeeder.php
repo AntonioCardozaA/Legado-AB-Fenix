@@ -18,6 +18,7 @@ class RoleSeeder extends Seeder
         // Lista de permisos
         $permisos = [
             User::PERMISSION_ACCESS_LAVADORA,
+            User::PERMISSION_ACCESS_ETIQUETADORA,
             User::PERMISSION_ACCESS_PASTEURIZADORA,
             User::PERMISSION_ACCESS_PASTEURIZADORA_MECANICA,
             User::PERMISSION_ACCESS_PASTEURIZADORA_CENTRAL_HIDRAULICA,
@@ -65,6 +66,7 @@ class RoleSeeder extends Seeder
         $permisosSupervisor = Permission::whereNotIn('name', array_merge($permisosPasteurizadora, $permisosEspecialesUsuario))->get();
         $permisosTecnico = [
             User::PERMISSION_ACCESS_LAVADORA,
+            User::PERMISSION_ACCESS_ETIQUETADORA,
             'ver analisis', 'crear analisis', 'editar analisis',
             User::PERMISSION_EDIT_ANALYSIS_DATE,
         ];

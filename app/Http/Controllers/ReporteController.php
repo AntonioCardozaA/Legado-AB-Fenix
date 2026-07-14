@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Linea;
 use App\Models\Componente;
 use App\Models\AnalisisLavadora;
+use App\Models\AnalisisEtiquetadora;
 use App\Models\AnalisisPasteurizadora;
 use App\Models\Paro;
 use App\Models\PlanAccion;
@@ -18,6 +19,7 @@ use App\Models\Elongacion;
 use App\Models\HistorialRestablecimiento;
 use App\Services\AdminRecordNotificationService;
 use App\Services\TendenciaDanosService;
+use App\Support\EtiquetadoraCatalog;
 use Illuminate\Support\Facades\DB;
 
 class ReporteController extends Controller
@@ -27,6 +29,8 @@ class ReporteController extends Controller
 
     // Líneas pasteurizadoras
     protected $pasteurizadoras = ['P-03','P-04','P-05','P-06','P-07','P-08','P-09','P-10','P-11','P-12','P-13','P-14'];
+
+    protected $etiquetadoras = ['L-04','L-05','L-06','L-10','L-12','L-13'];
 
     // Componentes por línea
     protected $componentesPorLinea = [
@@ -147,6 +151,7 @@ class ReporteController extends Controller
                 ->all(),
         ];
         $canAccessPasteurizadora = auth()->user()?->canAccessModule(User::MODULE_PASTEURIZADORA) ?? false;
+        $canAccessEtiquetadora = auth()->user()?->canAccessModule(User::MODULE_ETIQUETADORA) ?? false;
 
         return view('reportes.index', compact(
             'lineas', 
@@ -155,6 +160,7 @@ class ReporteController extends Controller
             'fechaFin', 
             'reporteGeneral',
             'canAccessPasteurizadora',
+            'canAccessEtiquetadora',
             'lineaId',
             'lineasFiltro',
             'reporteDetallado'
@@ -692,6 +698,10 @@ class ReporteController extends Controller
             return $this->generarReporteIndexPasteurizadora($fechaInicio, $fechaFin);
         }
 
+        if ($tipoEquipo === 'etiquetadoras') {
+            return $this->generarReporteIndexEtiquetadora($fechaInicio, $fechaFin);
+        }
+
         $nombresLineas = $this->getLineasPorTipo($tipoEquipo);
         $lineas = Linea::whereIn('nombre', $nombresLineas)->get();
         $lineaIds = $lineas->pluck('id');
@@ -707,6 +717,10 @@ class ReporteController extends Controller
         $estadisticasAnalisis = DB::table('analisis_componentes')
             ->whereIn('linea_id', $lineaIds)
             ->whereBetween('fecha_analisis', [$fechaInicio, $fechaFin])
+            ->where(function ($query) {
+                $query->where('tipo_equipo', 'lavadora')
+                    ->orWhereNull('tipo_equipo');
+            })
             ->select(
                 'linea_id',
                 DB::raw('COUNT(*) as total_analisis'),
@@ -876,7 +890,7 @@ class ReporteController extends Controller
     private function mostrarReporteLinea($lineaId, $tipoEquipo, $fechaInicio, $fechaFin)
     {
         $linea = Linea::findOrFail($lineaId);
-        $tipoEquipo = $this->tipoEquipoDeLinea($linea) ?? $this->normalizarTipoEquipo($tipoEquipo);
+        $tipoEquipo = $this->normalizarTipoEquipo($tipoEquipo);
 
         $this->ensureCanAccessTipoEquipo($tipoEquipo);
         $this->ensureCanAccessLinea($linea);
@@ -1141,6 +1155,10 @@ class ReporteController extends Controller
             return $this->getReporteDetalladoPasteurizadora($linea, $fechaInicio, $fechaFin);
         }
 
+        if ($tipoEquipo === 'etiquetadoras') {
+            return $this->getReporteDetalladoEtiquetadora($linea, $fechaInicio, $fechaFin);
+        }
+
         // 1. Obtener análisis del período (optimizado)
         $componentesLista = $this->getComponentesListaLavadora($linea);
         $reductoresLista = collect($this->reductoresPorLinea[$linea->nombre] ?? []);
@@ -1288,6 +1306,258 @@ class ReporteController extends Controller
             'componentes' => $componentes,
             'reductores' => $reductores
         ];
+    }
+
+    private function generarReporteIndexEtiquetadora($fechaInicio, $fechaFin): array
+    {
+        $lineas = Linea::whereIn('nombre', $this->etiquetadoras)
+            ->orderBy('nombre')
+            ->get();
+        $lineaIds = $lineas->pluck('id');
+
+        $catalogoPorLinea = Componente::query()
+            ->where('tipo_equipo', EtiquetadoraCatalog::TIPO_EQUIPO)
+            ->whereIn('linea', $this->etiquetadoras)
+            ->where('activo', true)
+            ->get()
+            ->groupBy('linea');
+
+        $estadoActual = AnalisisEtiquetadora::ultimosPorComponente()
+            ->with('componente:id,nombre,codigo,grupo,mecanismo,cantidad_total')
+            ->whereIn('linea_id', $lineaIds)
+            ->get()
+            ->groupBy('linea_id');
+
+        $analisisPeriodo = AnalisisEtiquetadora::with('componente:id,nombre,codigo,grupo,mecanismo')
+            ->whereIn('linea_id', $lineaIds)
+            ->whereBetween('fecha_analisis', [$fechaInicio, $fechaFin])
+            ->get()
+            ->groupBy('linea_id');
+
+        $planesPendientes = PlanAccion::whereIn('linea_id', $lineaIds)
+            ->where('completado', false)
+            ->where('tipo_equipo', User::MODULE_ETIQUETADORA)
+            ->get(['linea_id'])
+            ->groupBy('linea_id');
+
+        $parosPorLinea = Paro::whereIn('linea_id', $lineaIds)
+            ->whereDate('fecha_inicio', '<=', $fechaFin)
+            ->whereDate('fecha_fin', '>=', $fechaInicio)
+            ->get(['linea_id'])
+            ->groupBy('linea_id');
+
+        $reporteGeneral = [];
+
+        foreach ($lineas as $linea) {
+            $catalogoLinea = $catalogoPorLinea->get($linea->nombre, collect());
+            $actualesLinea = $estadoActual->get($linea->id, collect());
+            $periodoLinea = $analisisPeriodo->get($linea->id, collect());
+            $planesLinea = $planesPendientes->get($linea->id, collect());
+            $parosLinea = $parosPorLinea->get($linea->id, collect());
+            $ultimaRevision = $actualesLinea
+                ->sortByDesc(fn ($registro) => (string) ($registro->fecha_analisis ?? $registro->created_at ?? ''))
+                ->first();
+
+            $reporteGeneral[$linea->id] = [
+                'total_analisis' => $periodoLinea->count(),
+                'componentes_revisados' => $actualesLinea->pluck('componente_id')->filter()->unique()->count(),
+                'total_componentes' => $catalogoLinea->count(),
+                'total_unidades' => $catalogoLinea->sum(fn ($componente) => (int) ($componente->cantidad_total ?? 0)),
+                'componentes_criticos' => $actualesLinea->filter(fn ($registro) => $this->esEstadoDanadoReporte($registro->estado))->count(),
+                'componentes_severos_moderados' => $actualesLinea->filter(fn ($registro) => $this->esEstadoDesgasteReporte($registro->estado))->count(),
+                'componentes_revision' => $actualesLinea->filter(fn ($registro) => $this->esEstadoRevisionReporte($registro->estado))->count(),
+                'estado_general' => $this->determinarEstadoGeneralDesdeRegistros($actualesLinea),
+                'ultima_revision' => $ultimaRevision?->fecha_analisis
+                    ? Carbon::parse($ultimaRevision->fecha_analisis)->format('d/m/Y')
+                    : null,
+                'planes_pendientes' => $planesLinea->count(),
+                'paros_count' => $parosLinea->count(),
+                'maquinas_count' => $catalogoLinea->pluck('reductor')->filter()->unique()->count(),
+                'grupos_count' => $catalogoLinea->pluck('grupo')->filter()->unique()->count(),
+                'historico_revisados' => $actualesLinea->pluck('componente_id')->filter()->unique()->count(),
+                'historico_total' => $catalogoLinea->count(),
+                'historico_porcentaje' => $catalogoLinea->count() > 0
+                    ? round(($actualesLinea->pluck('componente_id')->filter()->unique()->count() / $catalogoLinea->count()) * 100, 1)
+                    : 0,
+            ];
+        }
+
+        return $reporteGeneral;
+    }
+
+    private function getReporteDetalladoEtiquetadora(Linea $linea, $fechaInicio, $fechaFin): array
+    {
+        $componentesLista = $this->getComponentesListaEtiquetadora($linea);
+        $reductoresLista = collect(EtiquetadoraCatalog::maquinas())
+            ->map(fn ($maquina) => EtiquetadoraCatalog::maquinaLabel($maquina));
+
+        $analisis = AnalisisEtiquetadora::where('linea_id', $linea->id)
+            ->whereBetween('fecha_analisis', [$fechaInicio, $fechaFin])
+            ->with(['componente:id,nombre,codigo,grupo,mecanismo,cantidad_total', 'usuario:id,name'])
+            ->orderByDesc('fecha_analisis')
+            ->orderByDesc('created_at')
+            ->get();
+
+        $analisisHistorico = AnalisisEtiquetadora::where('linea_id', $linea->id)
+            ->with(['componente:id,nombre,codigo,grupo,mecanismo,cantidad_total', 'usuario:id,name'])
+            ->orderByDesc('fecha_analisis')
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->get();
+
+        $paros = Paro::with(['supervisor:id,name'])
+            ->where('linea_id', $linea->id)
+            ->whereDate('fecha_inicio', '<=', $fechaFin)
+            ->whereDate('fecha_fin', '>=', $fechaInicio)
+            ->orderByDesc('fecha_inicio')
+            ->get();
+
+        $planesPendientes = PlanAccion::where('linea_id', $linea->id)
+            ->where('completado', false)
+            ->where('tipo_equipo', User::MODULE_ETIQUETADORA)
+            ->count();
+
+        $componentes = $this->procesarComponentesEtiquetadora($componentesLista, $analisisHistorico, $analisis);
+        $maquinas = $this->procesarMaquinasEtiquetadora($analisisHistorico, $componentesLista);
+        $analisisAgrupados = $this->agruparAnalisisEtiquetadora($analisis);
+        $componentesRevisados = $analisis->pluck('componente_id')->filter()->unique()->count();
+
+        return [
+            'tipo_equipo' => 'etiquetadoras',
+            'linea' => $linea,
+            'fecha_inicio' => $fechaInicio,
+            'fecha_fin' => $fechaFin,
+            'resumen' => [
+                'total_analisis' => $analisis->count(),
+                'componentes_revisados' => $componentesRevisados,
+                'total_componentes' => $componentesLista->count(),
+                'total_unidades' => $componentesLista->sum(fn ($componente) => (int) ($componente->cantidad_total ?? 0)),
+                'componentes_criticos' => $analisis->filter(fn ($registro) => $this->esEstadoDanadoReporte($registro->estado))->count(),
+                'componentes_severos_moderados' => $analisis->filter(fn ($registro) => $this->esEstadoDesgasteReporte($registro->estado))->count(),
+                'componentes_revision' => $analisis->filter(fn ($registro) => $this->esEstadoRevisionReporte($registro->estado))->count(),
+                'total_paros' => $paros->count(),
+                'horas_paro' => $paros->sum(fn ($paro) => $this->calcularHorasParo($paro)),
+                'planes_pendientes' => $planesPendientes,
+                'maquinas_count' => $reductoresLista->count(),
+                'grupos_count' => $componentesLista->pluck('grupo')->filter()->unique()->count(),
+                'componentes_definidos' => $this->getComponentesDefinidos('etiquetadoras'),
+                'estado_general' => $this->determinarEstadoGeneralDesdeRegistros($analisis),
+            ],
+            'analisis' => $analisis,
+            'analisis_historico' => $analisisHistorico,
+            'paros' => $paros,
+            'componentes' => $componentes,
+            'reductores' => $maquinas,
+            'maquinas' => $maquinas,
+            'componentes_lista' => $componentesLista,
+            'reductores_lista' => $reductoresLista,
+            'analisis_agrupados' => $analisisAgrupados,
+            'componentes_definidos' => $this->getComponentesDefinidos('etiquetadoras'),
+        ];
+    }
+
+    private function getComponentesListaEtiquetadora(Linea $linea)
+    {
+        return Componente::query()
+            ->where('tipo_equipo', EtiquetadoraCatalog::TIPO_EQUIPO)
+            ->where('linea', $linea->nombre)
+            ->where('activo', true)
+            ->orderBy('reductor')
+            ->orderBy('grupo')
+            ->orderBy('mecanismo')
+            ->orderBy('nombre')
+            ->get();
+    }
+
+    private function procesarComponentesEtiquetadora($componentesLista, $analisisHistorico, $analisisPeriodo): array
+    {
+        $historicoPorComponente = collect($analisisHistorico)->groupBy('componente_id');
+        $periodoPorComponente = collect($analisisPeriodo)->groupBy('componente_id');
+
+        return collect($componentesLista)->map(function (Componente $componente) use ($historicoPorComponente, $periodoPorComponente) {
+            $historico = $historicoPorComponente->get($componente->id, collect());
+            $periodo = $periodoPorComponente->get($componente->id, collect());
+            $ultimo = $historico->first();
+
+            return [
+                'codigo' => $componente->codigo,
+                'nombre' => $componente->nombre,
+                'grupo' => $componente->grupo,
+                'mecanismo' => $componente->mecanismo,
+                'maquina' => $componente->reductor,
+                'cantidad_total' => (int) ($componente->cantidad_total ?? 0),
+                'cantidad_original' => $componente->cantidad_original,
+                'componente_id' => $componente->id,
+                'total_analisis' => $historico->count(),
+                'total_analisis_periodo' => $periodo->count(),
+                'criticos' => $periodo->filter(fn ($registro) => $this->esEstadoDanadoReporte($registro->estado))->count(),
+                'ultimo_analisis' => $ultimo,
+                'ultimo_estado' => $ultimo?->estado,
+                'ultima_fecha' => $ultimo?->fecha_analisis,
+                'ultimo_reductor' => $componente->reductor,
+            ];
+        })->values()->all();
+    }
+
+    private function procesarMaquinasEtiquetadora($analisisHistorico, $componentesLista): array
+    {
+        $analisisPorMaquina = collect($analisisHistorico)->groupBy('reductor');
+        $componentesPorMaquina = collect($componentesLista)->groupBy('reductor');
+
+        return collect(EtiquetadoraCatalog::maquinas())
+            ->map(fn ($maquina) => EtiquetadoraCatalog::maquinaLabel($maquina))
+            ->map(function (string $maquina) use ($analisisPorMaquina, $componentesPorMaquina) {
+                $analisis = $analisisPorMaquina->get($maquina, collect());
+                $componentes = $componentesPorMaquina->get($maquina, collect());
+                $ultimo = $analisis->sortByDesc(fn ($registro) => (string) ($registro->fecha_analisis ?? $registro->created_at ?? ''))->first();
+
+                return [
+                    'nombre' => $maquina,
+                    'total_componentes' => $componentes->count(),
+                    'total_unidades' => $componentes->sum(fn ($componente) => (int) ($componente->cantidad_total ?? 0)),
+                    'total_analisis' => $analisis->count(),
+                    'ultima_fecha' => $ultimo?->fecha_analisis,
+                    'ultimo_estado' => $ultimo?->estado,
+                ];
+            })
+            ->values()
+            ->all();
+    }
+
+    private function agruparAnalisisEtiquetadora($analisis): array
+    {
+        return collect($analisis)
+            ->groupBy('reductor')
+            ->map(function ($porMaquina) {
+                return collect($porMaquina)
+                    ->groupBy(fn ($item) => $item->componente?->codigo ?? $item->componente_id)
+                    ->map(function ($registros) {
+                        return collect($registros)->map(function (AnalisisEtiquetadora $item) {
+                            return [
+                                'id' => $item->id,
+                                'fecha_analisis' => $item->fecha_analisis?->format('Y-m-d'),
+                                'fecha_analisis_formateada' => $item->fecha_analisis?->format('d/m/Y'),
+                                'estado' => $item->estado,
+                                'reductor' => $item->reductor,
+                                'maquina' => $item->maquina,
+                                'actividad' => $item->actividad,
+                                'numero_orden' => $item->numero_orden,
+                                'responsable' => $item->usuario?->name,
+                                'imagenes' => $item->evidencia_fotos ?? [],
+                                'componente' => [
+                                    'nombre' => $item->componente?->nombre,
+                                    'codigo' => $item->componente?->codigo,
+                                    'grupo' => $item->componente?->grupo,
+                                    'mecanismo' => $item->componente?->mecanismo,
+                                ],
+                                'created_at' => $item->created_at,
+                                'edit_url' => route('analisis-etiquetadora.edit', ['analisisetiquetadora' => $item->id]),
+                                'is_new' => $item->created_at && Carbon::parse($item->created_at)->gt(now()->subDays(3)),
+                            ];
+                        })->values()->all();
+                    })->all();
+            })
+            ->all();
     }
 
     private function calcularSeguimientoActualPasteurizadora($lineas): array
@@ -1949,6 +2219,16 @@ class ReporteController extends Controller
             }
             return $todos;
         }
+
+        if ($tipoEquipo === 'etiquetadoras') {
+            return collect(EtiquetadoraCatalog::componentes())
+                ->pluck('nombre')
+                ->filter()
+                ->unique()
+                ->values()
+                ->all();
+        }
+
         $todos = [];
         foreach ($this->pasteurizadoras as $lineaNombre) {
             foreach (AnalisisPasteurizadora::getComponentesPorLinea($lineaNombre) as $componente) {
@@ -1961,7 +2241,11 @@ class ReporteController extends Controller
 
     private function getLineasPorTipo($tipo)
     {
-        return $this->normalizarTipoEquipo($tipo) === 'lavadoras' ? $this->lavadoras : $this->pasteurizadoras;
+        return match ($this->normalizarTipoEquipo($tipo)) {
+            'pasteurizadoras' => $this->pasteurizadoras,
+            'etiquetadoras' => $this->etiquetadoras,
+            default => $this->lavadoras,
+        };
     }
 
     private function tipoEquipoDeLinea(Linea $linea): ?string
@@ -1979,16 +2263,23 @@ class ReporteController extends Controller
 
     private function normalizarTipoEquipo(?string $tipo): string
     {
-        return $tipo === 'pasteurizadoras' ? 'pasteurizadoras' : 'lavadoras';
+        return match ($tipo) {
+            'pasteurizadoras' => 'pasteurizadoras',
+            'etiquetadoras' => 'etiquetadoras',
+            default => 'lavadoras',
+        };
     }
 
     private function ensureCanAccessTipoEquipo(string $tipoEquipo): void
     {
-        if (
-            $this->normalizarTipoEquipo($tipoEquipo) === 'pasteurizadoras'
-            && !auth()->user()?->canAccessModule(User::MODULE_PASTEURIZADORA)
-        ) {
+        $tipoEquipo = $this->normalizarTipoEquipo($tipoEquipo);
+
+        if ($tipoEquipo === 'pasteurizadoras' && !auth()->user()?->canAccessModule(User::MODULE_PASTEURIZADORA)) {
             abort(403, 'No tienes permiso para acceder al modulo de Pasteurizadora.');
+        }
+
+        if ($tipoEquipo === 'etiquetadoras' && !auth()->user()?->canAccessModule(User::MODULE_ETIQUETADORA)) {
+            abort(403, 'No tienes permiso para acceder al modulo de Etiquetadora.');
         }
     }
 
@@ -2008,13 +2299,21 @@ class ReporteController extends Controller
         $registros = DB::table('analisis_componentes')
             ->where('linea_id', $lineaId)
             ->whereBetween('fecha_analisis', [$fechaInicio, $fechaFin])
+            ->where(function ($query) {
+                $query->where('tipo_equipo', 'lavadora')
+                    ->orWhereNull('tipo_equipo');
+            })
             ->get(['estado']);
 
         return $this->determinarEstadoGeneralDesdeRegistros($registros);
 
         $consulta = DB::table('analisis_componentes')
             ->where('linea_id', $lineaId)
-            ->whereBetween('fecha_analisis', [$fechaInicio, $fechaFin]);
+            ->whereBetween('fecha_analisis', [$fechaInicio, $fechaFin])
+            ->where(function ($query) {
+                $query->where('tipo_equipo', 'lavadora')
+                    ->orWhereNull('tipo_equipo');
+            });
 
         $criticos = (clone $consulta)
             ->where('estado', 'Dañado - Requiere cambio')
@@ -2085,7 +2384,7 @@ class ReporteController extends Controller
     if ($tipo === 'linea' && $lineaId) {
 
         $linea = Linea::findOrFail($lineaId);
-        $tipoEquipo = $this->tipoEquipoDeLinea($linea) ?? $this->normalizarTipoEquipo($tipoEquipo);
+        $tipoEquipo = $this->normalizarTipoEquipo($tipoEquipo);
 
         $this->ensureCanAccessTipoEquipo($tipoEquipo);
         $this->ensureCanAccessLinea($linea);
@@ -2136,6 +2435,17 @@ class ReporteController extends Controller
             'fecha_inicio' => $fechaInicio->format('Y-m-d'),
             'fecha_fin' => $fechaFin->format('Y-m-d'),
         ]));
+    }
+
+    if ($tipoEquipo === 'etiquetadoras') {
+        return redirect()
+            ->route('reportes.index', array_filter([
+                'tipo' => 'etiquetadoras',
+                'linea_id' => $lineaId,
+                'fecha_inicio' => $fechaInicio->format('Y-m-d'),
+                'fecha_fin' => $fechaFin->format('Y-m-d'),
+            ]))
+            ->with('warning', 'La exportacion Excel de Etiquetadora aun no esta disponible. Usa el PDF del reporte.');
     }
 
     if ($tipo === 'linea' && $lineaId) {

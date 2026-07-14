@@ -1827,6 +1827,17 @@ class AnalisisPasteurizadoraController extends Controller
         $numeroComponente = $contexto['numero_componente'] ?? $request->input('numero_componente');
         $numeroComponente = is_numeric($numeroComponente) ? (int) $numeroComponente : null;
 
+        if (!$numeroComponente) {
+            $componentesCompatibles = AnalisisPasteurizadora::normalizarComponentesRevisados(
+                $request->input('componentes_revisados'),
+                $totalComponentes
+            );
+
+            if (count($componentesCompatibles) === 1) {
+                $numeroComponente = (int) $componentesCompatibles[0];
+            }
+        }
+
         if (AnalisisPasteurizadora::esBrazoTorsion($componente) || $totalComponentes === 1) {
             $componentesSeleccionados = [1];
         } else {

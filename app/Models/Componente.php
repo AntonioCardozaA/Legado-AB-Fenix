@@ -17,7 +17,11 @@ class Componente extends Model
         'linea',
         'reductor',
         'ubicacion',
+        'grupo',
+        'mecanismo',
         'cantidad_total',
+        'cantidad_original',
+        'tipo_equipo',
         'numero_r_id',
         'activo',
     ];
@@ -32,6 +36,13 @@ class Componente extends Model
     {
         return $this->belongsToMany(Linea::class, 'analisis_componentes')
                     ->withPivot('estado', 'actividad', 'observaciones')
+                    ->withTimestamps();
+    }
+
+    public function lineasEtiquetadora()
+    {
+        return $this->belongsToMany(Linea::class, 'analisis_etiquetadora')
+                    ->withPivot('estado', 'actividad', 'reductor', 'maquina', 'numero_orden', 'evidencia_fotos')
                     ->withTimestamps();
     }
 
@@ -56,6 +67,11 @@ class Componente extends Model
         return $query->where('activo', true);
     }
 
+    public function scopeTipoEquipo($query, string $tipoEquipo)
+    {
+        return $query->where('tipo_equipo', $tipoEquipo);
+    }
+
     public function scopePorLinea($query, $lineaId)
     {
         return $query->whereHas('analisis', function($q) use ($lineaId) {
@@ -69,5 +85,10 @@ class Componente extends Model
     public function analisisLavadora()
     {
         return $this->hasMany(\App\Models\AnalisisLavadora::class, 'componente_id');
+    }
+
+    public function analisisEtiquetadora()
+    {
+        return $this->hasMany(\App\Models\AnalisisEtiquetadora::class, 'componente_id');
     }
 }

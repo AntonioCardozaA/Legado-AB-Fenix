@@ -15,6 +15,7 @@ class AnalisisLavadora extends Model
 {
     use HasFactory, UppercasesActividad;
 
+    public const TIPO_EQUIPO = 'lavadora';
     public const ESTADO_BUENO = 'Buen estado';
     public const ESTADO_REQUIERE_REVISION = 'Requiere revisión';
     public const ESTADOS_DESGASTE = ['Desgaste moderado', 'Desgaste severo'];
@@ -42,12 +43,28 @@ class AnalisisLavadora extends Model
         'actividad',
         'usuario_id',
         'evidencia_fotos',
+        'tipo_equipo',
+        'maquina',
     ];
 
     protected $casts = [
         'evidencia_fotos' => 'array',
         'fecha_analisis' => 'date',
     ];
+
+    protected static function booted(): void
+    {
+        static::addGlobalScope('tipo_equipo_lavadora', function (Builder $query): void {
+            $query->where(function (Builder $query): void {
+                $query->where($query->getModel()->qualifyColumn('tipo_equipo'), self::TIPO_EQUIPO)
+                    ->orWhereNull($query->getModel()->qualifyColumn('tipo_equipo'));
+            });
+        });
+
+        static::creating(function (self $analisis): void {
+            $analisis->tipo_equipo ??= self::TIPO_EQUIPO;
+        });
+    }
 
     public static function getEstadoOpciones(): array
     {
@@ -198,6 +215,10 @@ class AnalisisLavadora extends Model
                     ->on('actual.componente_id', '=', 'mas_reciente.componente_id')
                     ->on('actual.reductor', '=', 'mas_reciente.reductor')
                     ->whereRaw("COALESCE(actual.lado, '') = COALESCE(mas_reciente.lado, '')")
+                    ->where(function ($query) {
+                        $query->where('mas_reciente.tipo_equipo', self::TIPO_EQUIPO)
+                            ->orWhereNull('mas_reciente.tipo_equipo');
+                    })
                     ->where(function ($subQuery) {
                         $subQuery->whereColumn('mas_reciente.fecha_analisis', '>', 'actual.fecha_analisis')
                             ->orWhere(function ($tieBreaker) {
@@ -205,6 +226,10 @@ class AnalisisLavadora extends Model
                                     ->whereColumn('mas_reciente.id', '>', 'actual.id');
                             });
                     });
+            })
+            ->where(function ($query) {
+                $query->where('actual.tipo_equipo', self::TIPO_EQUIPO)
+                    ->orWhereNull('actual.tipo_equipo');
             })
             ->whereNull('mas_reciente.id')
             ->select('actual.id');

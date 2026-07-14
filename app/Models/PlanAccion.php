@@ -99,6 +99,7 @@ class PlanAccion extends Model
 
         $iconos = [
             'lavadora' => ['icon' => 'fa-tshirt', 'color' => 'blue'],
+            'etiquetadora' => ['icon' => 'fa-tags', 'color' => 'green'],
             'pasteurizadora' => ['icon' => 'fa-temperature-high', 'color' => 'red'],
             'enjuagadora' => ['icon' => 'fa-wind', 'color' => 'cyan'],
             'otros' => ['icon' => 'fa-cog', 'color' => 'gray'],

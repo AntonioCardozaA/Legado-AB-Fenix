@@ -1,0 +1,301 @@
+@extends('layouts.app')
+
+@section('title', 'Detalle Analisis Etiquetadora')
+
+@section('content')
+@include('etiquetadora.partials.styles')
+
+@php
+    $evidencias = collect($analisis->evidencia_fotos ?? [])->filter()->values();
+    $estado = $analisis->estado;
+    $estadoStyles = match (true) {
+        \App\Models\AnalisisEtiquetadora::esEstadoDanado($estado) => [
+            'class' => 'bg-red-50 text-red-700 border-red-200',
+            'icon' => 'fa-exclamation-circle',
+            'header' => 'from-red-700 via-red-600 to-rose-500',
+            'surface' => 'bg-red-50/70 border-red-100',
+            'card' => 'border-red-100 bg-red-50/70',
+            'iconBox' => 'bg-red-50 text-red-600',
+            'activity' => 'border-red-200 bg-red-50/80',
+            'buttonText' => 'text-red-700 hover:bg-red-50',
+        ],
+        \App\Models\AnalisisEtiquetadora::esEstadoDesgaste($estado) => [
+            'class' => 'bg-orange-50 text-orange-700 border-orange-200',
+            'icon' => 'fa-triangle-exclamation',
+            'header' => 'from-orange-700 via-orange-600 to-amber-500',
+            'surface' => 'bg-orange-50/70 border-orange-100',
+            'card' => 'border-orange-100 bg-orange-50/70',
+            'iconBox' => 'bg-orange-50 text-orange-600',
+            'activity' => 'border-orange-200 bg-orange-50/80',
+            'buttonText' => 'text-orange-700 hover:bg-orange-50',
+        ],
+        \App\Models\AnalisisEtiquetadora::esEstadoRequiereRevision($estado) => [
+            'class' => 'bg-amber-50 text-amber-700 border-amber-200',
+            'icon' => 'fa-screwdriver-wrench',
+            'header' => 'from-amber-700 via-amber-600 to-yellow-500',
+            'surface' => 'bg-amber-50/70 border-amber-100',
+            'card' => 'border-amber-100 bg-amber-50/70',
+            'iconBox' => 'bg-amber-50 text-amber-600',
+            'activity' => 'border-amber-200 bg-amber-50/80',
+            'buttonText' => 'text-amber-700 hover:bg-amber-50',
+        ],
+        \App\Models\AnalisisEtiquetadora::esEstadoCambiado($estado) => [
+            'class' => 'bg-blue-50 text-blue-700 border-blue-200',
+            'icon' => 'fa-arrows-rotate',
+            'header' => 'from-blue-700 via-blue-600 to-sky-500',
+            'surface' => 'bg-blue-50/70 border-blue-100',
+            'card' => 'border-blue-100 bg-blue-50/70',
+            'iconBox' => 'bg-blue-50 text-blue-600',
+            'activity' => 'border-blue-200 bg-blue-50/80',
+            'buttonText' => 'text-blue-700 hover:bg-blue-50',
+        ],
+        default => [
+            'class' => 'bg-emerald-50 text-emerald-700 border-emerald-200',
+            'icon' => 'fa-circle-check',
+            'header' => 'from-emerald-700 via-emerald-600 to-teal-500',
+            'surface' => 'bg-emerald-50/70 border-emerald-100',
+            'card' => 'border-emerald-100 bg-emerald-50/70',
+            'iconBox' => 'bg-emerald-50 text-emerald-600',
+            'activity' => 'border-emerald-200 bg-emerald-50/80',
+            'buttonText' => 'text-emerald-700 hover:bg-emerald-50',
+        ],
+    };
+@endphp
+
+<div class="etq-page">
+    <div class="mx-auto max-w-7xl space-y-6 px-4 py-6">
+        <section class="overflow-hidden rounded-2xl border {{ $estadoStyles['surface'] }} bg-white shadow-sm">
+            <div class="bg-gradient-to-r {{ $estadoStyles['header'] }} px-6 py-7 text-white sm:px-8">
+                <div class="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+                    <div class="flex items-center gap-4">
+                        <div class="hidden h-20 w-20 flex-shrink-0 items-center justify-center rounded-2xl bg-white/15 p-3 sm:flex">
+                            @include('etiquetadora.partials.presentation-icons', ['linea' => $analisis->linea ?? $analisis->linea_id, 'size' => 'sm'])
+                        </div>
+                        <div class="min-w-0">
+                            <div class="mb-2 flex flex-wrap items-center gap-2 text-sm text-blue-100">
+                                <span class="inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 font-semibold">
+                                    Analisis #{{ $analisis->id }}
+                                </span>
+                                <span class="inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 font-semibold">
+                                    <i class="far fa-calendar-alt"></i>
+                                    {{ optional($analisis->fecha_analisis)->format('d/m/Y') ?? 'Sin fecha' }}
+                                </span>
+                            </div>
+                            <h1 class="text-2xl font-bold leading-tight sm:text-3xl">
+                                {{ $analisis->linea->nombre ?? 'Sin linea' }} | Maquina {{ $analisis->maquina }}
+                            </h1>
+                            <p class="mt-2 max-w-3xl text-sm text-blue-50">
+                                {{ $analisis->componente->nombre ?? 'Componente no asignado' }}
+                                @if($analisis->componente?->grupo)
+                                    <span class="mx-2 text-blue-200">|</span>{{ $analisis->componente->grupo }}
+                                @endif
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-wrap gap-3">
+                        <a href="{{ route('analisis-etiquetadora.edit', $analisis) }}"
+                           class="inline-flex items-center justify-center gap-2 rounded-lg bg-white px-4 py-2.5 text-sm font-semibold {{ $estadoStyles['buttonText'] }} shadow-sm transition">
+                            <i class="fas fa-edit"></i>
+                            Editar
+                        </a>
+                        @if($canDeleteAnalysis ?? false)
+                            <form method="POST" action="{{ route('analisis-etiquetadora.destroy', $analisis) }}">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit"
+                                        class="inline-flex items-center justify-center gap-2 rounded-lg bg-red-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-red-700"
+                                        onclick="return confirm('¿Eliminar este analisis?')">
+                                    <i class="fas fa-trash"></i>
+                                    Eliminar
+                                </button>
+                            </form>
+                        @endif
+                        <a href="{{ route('analisis-etiquetadora.index', ['linea_id' => $analisis->linea_id, 'maquina' => $analisis->maquina]) }}"
+                           class="inline-flex items-center justify-center gap-2 rounded-lg border border-white/40 bg-white/10 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-white/20">
+                            <i class="fas fa-arrow-left"></i>
+                            Volver
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid gap-4 border-t px-6 py-5 sm:grid-cols-2 lg:grid-cols-4 sm:px-8 {{ $estadoStyles['surface'] }}">
+                <div class="rounded-xl border bg-white/85 p-4 shadow-sm {{ $estadoStyles['card'] }}">
+                    <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Estado</p>
+                    <span class="mt-2 inline-flex items-center gap-2 rounded-full border px-3 py-1 text-sm font-semibold {{ $estadoStyles['class'] }}">
+                        <i class="fas {{ $estadoStyles['icon'] }}"></i>
+                        {{ $estado ?? 'Sin estado' }}
+                    </span>
+                </div>
+                <div class="rounded-xl border bg-white/85 p-4 shadow-sm {{ $estadoStyles['card'] }}">
+                    <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Orden</p>
+                    <p class="mt-2 text-lg font-bold text-gray-900">{{ $analisis->numero_orden ?: 'Sin orden' }}</p>
+                </div>
+                <div class="rounded-xl border bg-white/85 p-4 shadow-sm {{ $estadoStyles['card'] }}">
+                    <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Grupo</p>
+                    <p class="mt-2 text-lg font-bold text-gray-900">{{ $analisis->componente->grupo ?? 'No aplica' }}</p>
+                </div>
+                <div class="rounded-xl border bg-white/85 p-4 shadow-sm {{ $estadoStyles['card'] }}">
+                    <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Cantidad por maquina</p>
+                    <p class="mt-2 text-lg font-bold text-gray-900">
+                        {{ $analisis->componente->cantidad_total ?? 0 }}
+                        @if($analisis->componente?->cantidad_original)
+                            <span class="text-sm font-semibold text-gray-500">({{ $analisis->componente->cantidad_original }})</span>
+                        @endif
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <section class="grid gap-6 lg:grid-cols-3">
+            <div class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm lg:col-span-2">
+                <div class="mb-5 flex items-center gap-3">
+                    <span class="flex h-10 w-10 items-center justify-center rounded-xl {{ $estadoStyles['iconBox'] }}">
+                        <i class="fas fa-info-circle"></i>
+                    </span>
+                    <h2 class="text-lg font-bold text-gray-900">Informacion General</h2>
+                </div>
+
+                <div class="grid gap-4 md:grid-cols-2">
+                    <div class="rounded-xl border p-4 {{ $estadoStyles['card'] }}">
+                        <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Etiquetadora</p>
+                        <p class="mt-2 text-base font-semibold text-gray-900">{{ $analisis->linea->nombre ?? 'Linea ' . $analisis->linea_id }}</p>
+                    </div>
+                    <div class="rounded-xl border p-4 {{ $estadoStyles['card'] }}">
+                        <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Componente</p>
+                        <p class="mt-2 text-base font-semibold text-gray-900">{{ $analisis->componente->nombre ?? 'N/A' }}</p>
+                    </div>
+                    <div class="rounded-xl border p-4 {{ $estadoStyles['card'] }}">
+                        <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Mecanismo</p>
+                        <p class="mt-2 text-base font-semibold text-gray-900">{{ $analisis->componente->mecanismo ?? 'Sin mecanismo' }}</p>
+                    </div>
+                    <div class="rounded-xl border p-4 {{ $estadoStyles['card'] }}">
+                        <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Registrado por</p>
+                        <p class="mt-2 text-base font-semibold text-gray-900">{{ $analisis->usuario->name ?? 'Sin usuario asignado' }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+                <div class="mb-5 flex items-center gap-3">
+                    <span class="flex h-10 w-10 items-center justify-center rounded-xl {{ $estadoStyles['iconBox'] }}">
+                        <i class="fas fa-clipboard-check"></i>
+                    </span>
+                    <h2 class="text-lg font-bold text-gray-900">Actividad</h2>
+                </div>
+                <div class="min-h-40 rounded-xl border p-4 text-sm leading-6 text-gray-800 {{ $estadoStyles['activity'] }}">
+                    {{ $analisis->actividad ?: 'Sin actividad registrada.' }}
+                </div>
+            </div>
+        </section>
+
+        <section class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+            <div class="mb-5 flex items-center gap-3">
+                <span class="flex h-10 w-10 items-center justify-center rounded-xl {{ $estadoStyles['iconBox'] }}">
+                    <i class="fas fa-camera"></i>
+                </span>
+                <h2 class="text-lg font-bold text-gray-900">Evidencia Fotografica</h2>
+            </div>
+
+            @if($evidencias->isNotEmpty())
+                <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                    @foreach($evidencias as $index => $foto)
+                        @php($fotoUrl = asset('storage/' . $foto))
+                        <article class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+                            <button type="button"
+                                    class="group relative block aspect-[4/3] w-full overflow-hidden bg-gray-100"
+                                    data-photo-url="{{ $fotoUrl }}"
+                                    data-photo-title="Evidencia #{{ $index + 1 }}">
+                                <img src="{{ $fotoUrl }}" alt="Evidencia {{ $index + 1 }}" class="h-full w-full object-cover transition duration-300 group-hover:scale-105">
+                                <span class="absolute left-3 top-3 rounded-full bg-black/70 px-3 py-1 text-xs font-semibold text-white">
+                                    #{{ $index + 1 }}
+                                </span>
+                                <span class="absolute inset-0 flex items-center justify-center bg-black/0 text-white opacity-0 transition group-hover:bg-black/35 group-hover:opacity-100">
+                                    <i class="fas fa-search-plus text-2xl"></i>
+                                </span>
+                            </button>
+                            <div class="flex items-center justify-between gap-3 p-3">
+                                <a href="{{ $fotoUrl }}" target="_blank" class="inline-flex items-center gap-2 text-sm font-semibold text-blue-600 hover:text-blue-800">
+                                    <i class="fas fa-up-right-from-square"></i>
+                                    Abrir
+                                </a>
+                                <form action="{{ route('analisis-etiquetadora.delete-foto', ['analisisetiquetadora' => $analisis->id, 'fotoIndex' => $index]) }}" method="POST">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="inline-flex items-center gap-2 rounded-lg bg-red-50 px-3 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-100">
+                                        <i class="fas fa-trash"></i>
+                                        Eliminar
+                                    </button>
+                                </form>
+                            </div>
+                        </article>
+                    @endforeach
+                </div>
+            @else
+                <div class="rounded-xl border border-dashed px-6 py-12 text-center {{ $estadoStyles['card'] }}">
+                    <i class="fas fa-image mb-3 text-3xl text-gray-300"></i>
+                    <p class="text-sm font-semibold text-gray-700">No hay evidencia fotografica registrada.</p>
+                </div>
+            @endif
+        </section>
+    </div>
+</div>
+
+<div id="photoPreviewModal" class="fixed inset-0 z-[80] hidden items-center justify-center bg-black/75 p-4">
+    <div class="w-full max-w-5xl overflow-hidden rounded-2xl bg-white shadow-2xl">
+        <div class="flex items-center justify-between border-b border-gray-200 px-5 py-4">
+            <h3 id="photoPreviewTitle" class="text-base font-bold text-gray-900">Evidencia</h3>
+            <button type="button" id="photoPreviewClose" class="flex h-9 w-9 items-center justify-center rounded-full bg-gray-100 text-gray-600 transition hover:bg-gray-200">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="bg-gray-950 p-3">
+            <img id="photoPreviewImage" src="" alt="Evidencia" class="mx-auto max-h-[75vh] w-auto rounded-lg object-contain">
+        </div>
+    </div>
+</div>
+@endsection
+
+@section('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const modal = document.getElementById('photoPreviewModal');
+    const image = document.getElementById('photoPreviewImage');
+    const title = document.getElementById('photoPreviewTitle');
+    const close = document.getElementById('photoPreviewClose');
+
+    if (!modal || !image || !title || !close) {
+        return;
+    }
+
+    function closeModal() {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+        image.src = '';
+    }
+
+    document.querySelectorAll('[data-photo-url]').forEach(function(button) {
+        button.addEventListener('click', function() {
+            image.src = this.dataset.photoUrl;
+            title.textContent = this.dataset.photoTitle || 'Evidencia';
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        });
+    });
+
+    close.addEventListener('click', closeModal);
+    modal.addEventListener('click', function(event) {
+        if (event.target === modal) {
+            closeModal();
+        }
+    });
+
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape') {
+            closeModal();
+        }
+    });
+});
+</script>
+@endsection

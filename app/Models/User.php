@@ -38,9 +38,11 @@ class User extends Authenticatable
     public const ROLE_PROGRAMADOR_DE_MANTENIMIENTO = 'programador_de_mantenimiento';
 
     public const MODULE_LAVADORA = 'lavadora';
+    public const MODULE_ETIQUETADORA = 'etiquetadora';
     public const MODULE_PASTEURIZADORA = 'pasteurizadora';
 
     public const PERMISSION_ACCESS_LAVADORA = 'acceder modulo lavadora';
+    public const PERMISSION_ACCESS_ETIQUETADORA = 'acceder modulo etiquetadora';
     public const PERMISSION_ACCESS_PASTEURIZADORA = 'acceder modulo pasteurizadora';
     public const PERMISSION_ACCESS_PASTEURIZADORA_MECANICA = 'acceder pasteurizadora mecanica';
     public const PERMISSION_ACCESS_PASTEURIZADORA_CENTRAL_HIDRAULICA = 'acceder pasteurizadora central hidraulica';
@@ -113,6 +115,7 @@ public static function modulePermissionMap(): array
 {
     return [
         self::MODULE_LAVADORA => self::PERMISSION_ACCESS_LAVADORA,
+        self::MODULE_ETIQUETADORA => self::PERMISSION_ACCESS_ETIQUETADORA,
         self::MODULE_PASTEURIZADORA => self::PERMISSION_ACCESS_PASTEURIZADORA,
     ];
 }
@@ -222,7 +225,7 @@ public function canAccessModule(string $module): bool
     }
 
     if ($this->usesTechnicianAccessProfile()) {
-        return $module === self::MODULE_LAVADORA;
+        return in_array($module, [self::MODULE_LAVADORA, self::MODULE_ETIQUETADORA], true);
     }
 
     $permission = self::modulePermissionMap()[$module] ?? null;
@@ -277,6 +280,10 @@ public function canViewPlanActionType(string $type): bool
 
     if ($type === self::MODULE_LAVADORA) {
         return $this->canAccessModule(self::MODULE_LAVADORA);
+    }
+
+    if ($type === self::MODULE_ETIQUETADORA) {
+        return $this->canAccessModule(self::MODULE_ETIQUETADORA);
     }
 
     if ($type === self::MODULE_PASTEURIZADORA) {

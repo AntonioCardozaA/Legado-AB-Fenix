@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Analisis;
+use App\Models\AnalisisEtiquetadora;
 use App\Models\AnalisisLavadora;
 use App\Models\AnalisisPasteurizadora;
 use App\Models\PlanAccion;
@@ -118,6 +119,7 @@ class NotificationRedirectService
     {
         return [
             'analisis_general_id' => Analisis::class,
+            'analisis_etiquetadora_id' => AnalisisEtiquetadora::class,
             'analisis_lavadora_id' => AnalisisLavadora::class,
             'analisis_pasteurizadora_id' => AnalisisPasteurizadora::class,
         ];
@@ -131,6 +133,8 @@ class NotificationRedirectService
         return match ((string) $recordType) {
             'analisis',
             'analisis_general' => Analisis::class,
+            'etiquetadora',
+            'analisis_etiquetadora' => AnalisisEtiquetadora::class,
             'lavadora',
             'analisis_lavadora' => AnalisisLavadora::class,
             'pasteurizadora',
@@ -144,6 +148,7 @@ class NotificationRedirectService
     {
         return in_array($class, [
             Analisis::class,
+            AnalisisEtiquetadora::class,
             AnalisisLavadora::class,
             AnalisisPasteurizadora::class,
         ], true);
@@ -163,6 +168,10 @@ class NotificationRedirectService
     {
         if ($record instanceof AnalisisLavadora) {
             return $user->canAccessModule(User::MODULE_LAVADORA);
+        }
+
+        if ($record instanceof AnalisisEtiquetadora) {
+            return $user->canAccessModule(User::MODULE_ETIQUETADORA);
         }
 
         if ($record instanceof AnalisisPasteurizadora) {
@@ -189,6 +198,14 @@ class NotificationRedirectService
         if ($record instanceof AnalisisLavadora) {
             return $this->routeIfExists('analisis-lavadora.index', array_filter([
                 'linea_id' => $record->linea_id,
+                'open_analysis_id' => $record->getKey(),
+            ], fn ($value) => filled($value)));
+        }
+
+        if ($record instanceof AnalisisEtiquetadora) {
+            return $this->routeIfExists('analisis-etiquetadora.index', array_filter([
+                'linea_id' => $record->linea_id,
+                'maquina' => $record->maquina,
                 'open_analysis_id' => $record->getKey(),
             ], fn ($value) => filled($value)));
         }
@@ -221,6 +238,12 @@ class NotificationRedirectService
         if ($record instanceof AnalisisLavadora) {
             return $this->routeIfExists('analisis-lavadora.show', [
                 'analisislavadora' => $record->getKey(),
+            ]);
+        }
+
+        if ($record instanceof AnalisisEtiquetadora) {
+            return $this->routeIfExists('analisis-etiquetadora.show', [
+                'analisisetiquetadora' => $record->getKey(),
             ]);
         }
 
@@ -402,6 +425,10 @@ class NotificationRedirectService
 
         if (str_contains($type, User::MODULE_LAVADORA)) {
             return User::MODULE_LAVADORA;
+        }
+
+        if (str_contains($type, User::MODULE_ETIQUETADORA)) {
+            return User::MODULE_ETIQUETADORA;
         }
 
         return null;

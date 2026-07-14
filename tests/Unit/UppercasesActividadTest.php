@@ -3,6 +3,7 @@
 namespace Tests\Unit;
 
 use App\Models\Analisis;
+use App\Models\AnalisisEtiquetadora;
 use App\Models\AnalisisLavadora;
 use App\Models\AnalisisPasteurizadora;
 use App\Models\PlanAccion;
@@ -25,6 +26,7 @@ class UppercasesActividadTest extends TestCase
     {
         return [
             'analisis' => [Analisis::class],
+            'analisis etiquetadora' => [AnalisisEtiquetadora::class],
             'analisis lavadora' => [AnalisisLavadora::class],
             'analisis pasteurizadora' => [AnalisisPasteurizadora::class],
             'plan accion' => [PlanAccion::class],

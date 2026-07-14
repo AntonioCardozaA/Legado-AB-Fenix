@@ -22,6 +22,9 @@
                         @if($canAccessPasteurizadora ?? false)
                         <option value="pasteurizadoras" {{ request('tipo') == 'pasteurizadoras' ? 'selected' : '' }}>Pasteurizadoras</option>
                         @endif
+                        @if($canAccessEtiquetadora ?? false)
+                        <option value="etiquetadoras" {{ request('tipo') == 'etiquetadoras' ? 'selected' : '' }}>Etiquetadoras</option>
+                        @endif
                     </select>
                 </div>
 
@@ -78,6 +81,7 @@
                 $reporteLinea = $reporteGeneral[$linea->id] ?? [];
                 $estado = $reporteLinea['estado_general'] ?? ['texto' => 'SIN DATOS', 'color' => 'gray'];
                 $esPasteurizadora = $tipoEquipo == 'pasteurizadoras';
+                $esEtiquetadora = $tipoEquipo == 'etiquetadoras';
                 
                 // Datos de elongación - Usar datos del reporte en lugar de consulta adicional
                 $promedioBombas = $reporteLinea['promedio_bombas'] ?? 0;
@@ -87,6 +91,9 @@
                 $avanceHistorico = $reporteLinea['avance_historico_porcentaje'] ?? 0;
                 $nivelesCount = $reporteLinea['niveles_count'] ?? 0;
                 $ladosCount = $reporteLinea['lados_count'] ?? 0;
+                $maquinasCount = $reporteLinea['maquinas_count'] ?? 0;
+                $gruposCount = $reporteLinea['grupos_count'] ?? 0;
+                $totalUnidades = $reporteLinea['total_unidades'] ?? 0;
                 
                 // Datos de análisis 52-12-4 - Usar datos del reporte
                 $analisisTendenciaCount = $reporteLinea['analisis_tendencia_count'] ?? 0;
@@ -115,8 +122,8 @@
                 
                 // Icono según el tipo
                 $iconoMaquina = $esPasteurizadora ? 'images/icono_pas.png' : 'images/icono-maquina.png';
-                $bgIcono = $tipoEquipo == 'lavadoras' ? 'bg-blue-50' : 'bg-green-50';
-                $textoTipo = $tipoEquipo == 'lavadoras' ? 'Lavadora' : 'Pasteurizadora';
+                $bgIcono = $esEtiquetadora ? 'bg-emerald-50' : ($tipoEquipo == 'lavadoras' ? 'bg-blue-50' : 'bg-green-50');
+                $textoTipo = $esEtiquetadora ? 'Etiquetadora' : ($tipoEquipo == 'lavadoras' ? 'Lavadora' : 'Pasteurizadora');
                 
                 // Determinar color de estado
                 $estadoColor = $estado['color'] ?? 'gray';
@@ -181,6 +188,16 @@
                                     {{ $modulosConAnalisis }}/{{ $modulosConfigurados }}
                                 </p>
                                 <p class="text-xs text-emerald-700">Avance: {{ number_format($avanceHistorico, 1) }}%</p>
+                            </div>
+                        @elseif($esEtiquetadora)
+                            <!-- 3. MAQUINAS ETIQUETADORA -->
+                            <div class="bg-emerald-50 rounded-lg p-3 border border-emerald-100">
+                                <div class="flex items-center gap-2 mb-1">
+                                    <i class="fas fa-tags text-emerald-600 text-sm"></i>
+                                    <span class="text-xs font-semibold text-emerald-800 uppercase tracking-wider">MAQUINAS</span>
+                                </div>
+                                <p class="text-lg font-bold text-emerald-900">{{ $maquinasCount }}</p>
+                                <p class="text-xs text-emerald-700">Grupos: {{ $gruposCount }}</p>
                             </div>
                         @else
                             <!-- 3. ELONGACION LAVADORA -->
@@ -274,6 +291,15 @@
                                     <i class="fas fa-sitemap text-indigo-600 text-sm"></i>
                                     <span class="text-xs font-semibold text-indigo-800">NIVELES / LADOS</span>
                                     <span class="ml-auto text-sm font-bold text-indigo-900">{{ $nivelesCount }}/{{ $ladosCount }}</span>
+                                </div>
+                            </div>
+                        @elseif($esEtiquetadora)
+                            <!-- 6. UNIDADES ETIQUETADORA -->
+                            <div class="bg-indigo-50 rounded-lg p-3 border border-indigo-200">
+                                <div class="flex items-center gap-2">
+                                    <i class="fas fa-cubes text-indigo-600 text-sm"></i>
+                                    <span class="text-xs font-semibold text-indigo-800">UNIDADES</span>
+                                    <span class="ml-auto text-sm font-bold text-indigo-900">{{ $totalUnidades }}</span>
                                 </div>
                             </div>
                         @elseif(($reporteLinea['reductores_count'] ?? 0) > 0)

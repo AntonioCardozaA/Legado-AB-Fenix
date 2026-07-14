@@ -436,6 +436,18 @@
             </a>
 
             @auth
+                @if(auth()->user()->canAccessModule(\App\Models\User::MODULE_ETIQUETADORA))
+                    <a href="{{ route('etiquetadora.dashboard') }}"
+                       @click="if (!isDesktop) sidebarOpen = false"
+                       aria-label="Dashboard de Etiquetadora"
+                       class="nav-link flex items-center px-4 py-3 rounded-lg {{ request()->routeIs('etiquetadora.*') || request()->routeIs('analisis-etiquetadora.*') || request()->routeIs('dashboard_etiquetadora') ? 'nav-active' : '' }}">
+                        <i class="fas fa-tags w-5 mr-3 text-gray-500"></i>
+                        Etiquetadora
+                    </a>
+                @endif
+            @endauth
+
+            @auth
                 @php
                     $mostrarPasteurizadora = $canSeePasteurizadora ?? ($canAccessPasteurizadora ?? false);
                     $pasteurizadoraEnConstruccion = $pasteurizadoraComingSoon ?? false;
