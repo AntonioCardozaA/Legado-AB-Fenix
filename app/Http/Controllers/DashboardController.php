@@ -700,14 +700,11 @@ public function pasteurizadoraOperativo(Request $request)
             ->orderBy('created_at', 'desc')
             ->first();
 
-        $analisisCriticos = AnalisisLavadora::ultimosPorComponente()
-            ->where('linea_id', $lineaId)
-            ->where('estado', 'Dañado - Requiere cambio')
-            ->with('componente')
-            ->orderBy('fecha_analisis', 'desc')
-            ->get()
-            ->map(fn ($analisis) => $this->attachLavadoraComponentIcon($analisis))
-            ->toArray();
+        $analisisPorEstado = $this->getLavadoraDashboardAnalysesByState($lineaId);
+        $analisisCriticos = $analisisPorEstado['critico'];
+        $analisisSeveros = $analisisPorEstado['severo'];
+        $analisisModerados = $analisisPorEstado['moderado'];
+        $analisisRevision = $analisisPorEstado['revision'];
 
         $accionesPendientes = PlanAccion::where('linea_id', $lineaId)
             ->where(function ($query) {
@@ -717,19 +714,14 @@ public function pasteurizadoraOperativo(Request $request)
             ->where('completado', false)
             ->count();
 
-        $analisisDesgaste = AnalisisLavadora::ultimosPorComponente()
-            ->where('linea_id', $lineaId)
-            ->whereIn('estado', self::LAVADORA_SEVERE_STATES)
-            ->count();
+        $analisisDesgaste = count($analisisSeveros) + count($analisisModerados);
 
-        $analisisRevision = AnalisisLavadora::ultimosPorComponente()
-            ->where('linea_id', $lineaId)
-            ->whereIn('estado', self::LAVADORA_REVIEW_STATES)
-            ->with('componente')
-            ->orderBy('fecha_analisis', 'desc')
-            ->get()
-            ->map(fn ($analisis) => $this->attachLavadoraComponentIcon($analisis))
-            ->toArray();
+        $conteoAlertas = [
+            'critico' => count($analisisCriticos),
+            'severo' => count($analisisSeveros),
+            'moderado' => count($analisisModerados),
+            'revision' => count($analisisRevision),
+        ];
 
         $elongacionCritica = $ultimaElongacion
             && ($ultimaElongacion->vapor_porcentaje >= 1.46 || $ultimaElongacion->bombas_porcentaje >= 1.46);
@@ -770,16 +762,15 @@ public function pasteurizadoraOperativo(Request $request)
             'nivel' => $nivel,
             'color' => $color,
             'mensaje' => $mensaje,
-            'analisis_criticos' => $analisisCriticos,
-            'analisis_revision' => $analisisRevision,
+            'analisis_por_estado' => $analisisPorEstado,
             'ultima_elongacion' => $ultimaElongacion,
             'acciones_pendientes' => $accionesPendientes,
             'analisis_desgaste' => $analisisDesgaste,
             'requiere_revision' => count($analisisRevision),
+            'conteo_alertas' => $conteoAlertas,
+            'total_alertas_componentes' => array_sum($conteoAlertas),
             'alert_carousel' => $this->buildLavadoraAlertCarousel(
-                $analisisCriticos,
-                $analisisRevision,
-                $analisisDesgaste,
+                $analisisPorEstado,
                 $nivel
             ),
         ];
@@ -788,55 +779,35 @@ public function pasteurizadoraOperativo(Request $request)
     /**
      * Construye los items del carrusel para la tarjeta de estado.
      */
-    private function buildLavadoraAlertCarousel(array $analisisCriticos, array $analisisRevision, int $analisisDesgaste, string $nivel)
+    private function buildLavadoraAlertCarousel(array $analisisPorEstado, string $nivel)
     {
         $items = [];
 
-        // El carrusel de estado muestra solo alertas asociadas a componentes.
-        if (count($analisisCriticos) > 0) {
-            foreach ($analisisCriticos as $analisis) {
+        foreach (['critico', 'severo', 'moderado', 'revision'] as $estadoKey) {
+            foreach ($analisisPorEstado[$estadoKey] ?? [] as $analisis) {
                 $subtitleParts = [];
-                if (!empty($analisis['modulo'])) {
-                    $subtitleParts[] = "Módulo {$analisis['modulo']}";
+
+                if (!empty($analisis['reductor'])) {
+                    $subtitleParts[] = "{$analisis['reductor']}";
                 }
+
                 if (!empty($analisis['lado'])) {
                     $subtitleParts[] = $analisis['lado'];
                 }
 
                 $items[] = [
                     'type' => 'componente',
-                    'title' => $analisis['componente']['nombre'] ?? 'Componente dañado',
-                    'subtitle' => count($subtitleParts) ? implode(' · ', $subtitleParts) : 'Componente dañado',
+                    'title' => $analisis['componente']['nombre'] ?? 'Componente con alerta',
+                    'subtitle' => count($subtitleParts) ? implode(' · ', $subtitleParts) : ($analisis['componente']['codigo'] ?? 'Sin ubicación'),
                     'image' => $analisis['componente']['icono'] ?? asset('images/componentes-lavadora/default.png'),
                     'detail' => $analisis['actividad'] ?? 'Problema detectado en el componente.',
                     'reductor' => $analisis['reductor'] ?? null,
-                    'fecha' => isset($analisis['fecha_analisis']) ? Carbon::parse($analisis['fecha_analisis'])->format('d/m/Y') : null,
+                    'meta' => $analisis['componente']['codigo'] ?? null,
+                    'fecha' => $analisis['fecha_formateada'] ?? null,
+                    'estado_label' => $analisis['estado_label'] ?? null,
+                    'estado_key' => $analisis['estado_key'] ?? null,
                 ];
             }
-        }
-
-        if (count($analisisRevision) > 0) {
-            $cantidadRevision = count($analisisRevision);
-
-            $items[] = [
-                'type' => 'alert',
-                'title' => 'Componentes que Requieren Revisión',
-                'subtitle' => $cantidadRevision === 1
-                    ? '1 componente en este estado'
-                    : "{$cantidadRevision} componentes en este estado",
-                'icon' => 'fa-tools',
-            ];
-        }
-
-        if ($analisisDesgaste > 0) {
-            $items[] = [
-                'type' => 'alert',
-                'title' => 'Componentes Severo / Moderado',
-                'subtitle' => $analisisDesgaste === 1
-                    ? '1 componente en este estado'
-                    : "{$analisisDesgaste} componentes en este estado",
-                'icon' => 'fa-cog',
-            ];
         }
 
         if (!empty($items)) {
@@ -854,6 +825,72 @@ public function pasteurizadoraOperativo(Request $request)
         }
 
         return [];
+    }
+
+    /**
+     * Agrupa los análisis vigentes de la lavadora por severidad para el dashboard.
+     */
+    private function getLavadoraDashboardAnalysesByState(int $lineaId): array
+    {
+        $analisisLinea = AnalisisLavadora::ultimosPorComponente()
+            ->where('linea_id', $lineaId)
+            ->with('componente')
+            ->orderBy('fecha_analisis', 'desc')
+            ->get()
+            ->map(fn (AnalisisLavadora $analisis) => $this->attachLavadoraComponentIcon($analisis))
+            ->values();
+
+        return [
+            'critico' => $this->formatLavadoraDashboardAnalyses(
+                $analisisLinea->filter(fn (AnalisisLavadora $analisis) => $this->isLavadoraCriticalState($analisis->estado)),
+                'Requiere cambio',
+                'critico'
+            ),
+            'severo' => $this->formatLavadoraDashboardAnalyses(
+                $analisisLinea->filter(fn (AnalisisLavadora $analisis) => $this->normalizeLavadoraState($analisis->estado) === 'desgaste severo'),
+                'Daño severo',
+                'severo'
+            ),
+            'moderado' => $this->formatLavadoraDashboardAnalyses(
+                $analisisLinea->filter(fn (AnalisisLavadora $analisis) => $this->normalizeLavadoraState($analisis->estado) === 'desgaste moderado'),
+                'Daño moderado',
+                'moderado'
+            ),
+            'revision' => $this->formatLavadoraDashboardAnalyses(
+                $analisisLinea->filter(fn (AnalisisLavadora $analisis) => $this->isLavadoraReviewState($analisis->estado)),
+                'Requiere revisión',
+                'revision'
+            ),
+        ];
+    }
+
+    /**
+     * Prepara un bloque de análisis para consumo directo en las tarjetas y el modal.
+     */
+    private function formatLavadoraDashboardAnalyses(Collection $analisis, string $estadoLabel, string $estadoKey): array
+    {
+        return $analisis
+            ->values()
+            ->map(function (AnalisisLavadora $item) use ($estadoLabel, $estadoKey) {
+                return [
+                    'id' => $item->id,
+                    'estado' => $item->estado,
+                    'estado_label' => $estadoLabel,
+                    'estado_key' => $estadoKey,
+                    'actividad' => $item->actividad,
+                    'reductor' => $item->reductor,
+                    'lado' => $item->lado,
+                    'fecha_analisis' => $item->fecha_analisis?->format('Y-m-d'),
+                    'fecha_formateada' => $item->fecha_analisis?->format('d/m/Y'),
+                    'componente' => [
+                        'id' => $item->componente?->id,
+                        'nombre' => $item->componente?->nombre,
+                        'codigo' => $item->componente?->codigo,
+                        'icono' => $item->componente?->icono ?? $this->getLavadoraComponentIcon($item->componente?->codigo),
+                    ],
+                ];
+            })
+            ->all();
     }
 
     /**
