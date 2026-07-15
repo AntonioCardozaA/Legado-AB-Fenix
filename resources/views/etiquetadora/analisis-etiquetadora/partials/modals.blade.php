@@ -102,6 +102,19 @@
                     </div>
                 </div>
 
+                <div id="detail-piezas-container" class="hidden bg-white rounded-lg p-5 border-l-4 border-gray-700 shadow-sm hover:shadow-md transition-all">
+                    <div class="flex items-start gap-3">
+                        <div class="bg-gray-100 p-3 rounded-lg">
+                            <i class="fas fa-clipboard-check text-gray-700 text-xl"></i>
+                        </div>
+                        <div class="flex-1">
+                            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider font-mono">Piezas</p>
+                            <p id="detail-piezas-resumen" class="font-bold text-gray-800 text-lg mt-1"></p>
+                            <div id="detail-piezas" class="mt-2 flex flex-wrap gap-1"></div>
+                        </div>
+                    </div>
+                </div>
+
                 <div id="detail-lado-container" class="bg-white rounded-lg p-5 border-l-4 border-gray-700 shadow-sm hover:shadow-md transition-all">
                     <div class="flex items-start gap-3">
                         <div class="bg-gray-100 p-3 rounded-lg">

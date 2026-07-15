@@ -3,6 +3,14 @@
     $selectedMaquina = old('maquina', $maquinaSeleccionada ?: ($analisis->maquina ?? ''));
     $selectedComponente = old('componente_id', $componenteSeleccionado ?: ($analisis->componente_id ?? ''));
     $componentesPlanos = $componentesPorMaquina->flatten(1);
+    $componentesRevisadosSeleccionados = old('componentes_revisados');
+    if ($componentesRevisadosSeleccionados === null && $isEdit) {
+        $componentesRevisadosSeleccionados = $analisis->componentes_revisados_lista;
+    }
+    $componentesRevisadosSeleccionados = \App\Models\AnalisisEtiquetadora::normalizarComponentesRevisados(
+        $componentesRevisadosSeleccionados ?? [],
+        null
+    );
     $action = $isEdit
         ? route('analisis-etiquetadora.update', $analisis)
         : route('analisis-etiquetadora.store');
@@ -85,6 +93,24 @@
                 <span id="context-cantidad" class="font-semibold"></span>
             </div>
         </div>
+    </div>
+
+    <div id="componentes-checklist-wrapper" class="hidden rounded-xl border border-indigo-200 bg-indigo-50 p-5">
+        <div class="mb-4 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+                <h3 class="text-sm font-semibold text-indigo-900">
+                    <i class="fas fa-clipboard-check mr-1 text-indigo-600"></i>
+                    Piezas revisadas
+                </h3>
+                <p id="componentes-checklist-help" class="mt-1 text-xs font-medium text-indigo-700"></p>
+            </div>
+            <p id="componentes-checklist-counter" class="text-xs font-semibold text-indigo-700"></p>
+        </div>
+
+        <input type="hidden" name="componentes_revisados[]" value="">
+        <div id="componentes-checklist" class="grid grid-cols-2 gap-3 md:grid-cols-3"></div>
+        @error('componentes_revisados') <p class="mt-3 text-sm text-red-600">{{ $message }}</p> @enderror
+        @error('componentes_revisados.*') <p class="mt-3 text-sm text-red-600">{{ $message }}</p> @enderror
     </div>
 
     <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
@@ -240,6 +266,10 @@ document.addEventListener('DOMContentLoaded', function () {
     const componenteNombre = document.getElementById('componente-nombre');
     const maquinaInfo = document.getElementById('maquina-info');
     const maquinaNombre = document.getElementById('maquina-nombre');
+    const checklistWrapper = document.getElementById('componentes-checklist-wrapper');
+    const checklist = document.getElementById('componentes-checklist');
+    const checklistHelp = document.getElementById('componentes-checklist-help');
+    const checklistCounter = document.getElementById('componentes-checklist-counter');
     const inputFotos = document.getElementById('evidencia_fotos');
     const previewFotos = document.getElementById('preview_fotos');
     const fotosResumen = document.getElementById('fotos_resumen');
@@ -250,6 +280,13 @@ document.addEventListener('DOMContentLoaded', function () {
     const soportaDataTransfer = typeof DataTransfer !== 'undefined';
     const extensionesPermitidas = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'];
     const maxFotoSize = 12 * 1024 * 1024;
+    const initialComponentesRevisados = @json($componentesRevisadosSeleccionados);
+    let selectedComponentesRevisados = new Set(
+        (Array.isArray(initialComponentesRevisados) ? initialComponentesRevisados : [])
+            .map((item) => parseInt(item, 10))
+            .filter((item) => item > 0)
+    );
+    let checklistComponentValue = @json((string) $selectedComponente);
 
     function updateComponents() {
         const selectedMachine = maquina.value;
@@ -295,6 +332,7 @@ document.addEventListener('DOMContentLoaded', function () {
             if (componenteInfo) {
                 componenteInfo.classList.add('hidden');
             }
+            updateChecklist();
             return;
         }
 
@@ -307,6 +345,83 @@ document.addEventListener('DOMContentLoaded', function () {
             componenteNombre.textContent = option.dataset.nombre || option.textContent.trim();
             componenteInfo.classList.remove('hidden');
         }
+
+        updateChecklist();
+    }
+
+    function syncChecklistCounter(total) {
+        if (!checklistCounter) {
+            return;
+        }
+
+        checklistCounter.textContent = `${selectedComponentesRevisados.size} de ${total} seleccionadas`;
+    }
+
+    function updateSelectedFromChecklist(total) {
+        selectedComponentesRevisados = new Set(
+            Array.from(checklist.querySelectorAll('input[type="checkbox"]:checked'))
+                .map((input) => parseInt(input.value, 10))
+                .filter((item) => item > 0 && item <= total)
+        );
+
+        syncChecklistCounter(total);
+    }
+
+    function appendChecklistItem(numero, nombre, total) {
+        const label = document.createElement('label');
+        label.className = 'flex cursor-pointer items-center gap-3 rounded-lg border border-indigo-200 bg-white p-3 transition hover:border-indigo-400 hover:shadow-sm';
+
+        const input = document.createElement('input');
+        input.type = 'checkbox';
+        input.name = 'componentes_revisados[]';
+        input.value = String(numero);
+        input.checked = selectedComponentesRevisados.has(numero);
+        input.className = 'h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500';
+        input.addEventListener('change', () => updateSelectedFromChecklist(total));
+
+        const text = document.createElement('span');
+        text.className = 'text-sm font-medium text-gray-700';
+        text.textContent = `${nombre} #${numero}`;
+
+        label.appendChild(input);
+        label.appendChild(text);
+        checklist.appendChild(label);
+    }
+
+    function updateChecklist() {
+        const option = componente.selectedOptions[0];
+
+        if (!checklistWrapper || !checklist || !option || !option.value) {
+            checklistWrapper?.classList.add('hidden');
+            return;
+        }
+
+        if (checklistComponentValue !== option.value) {
+            selectedComponentesRevisados = new Set();
+            checklistComponentValue = option.value;
+        }
+
+        const total = parseInt(option.dataset.cantidad || '0', 10) || 0;
+        const nombre = option.dataset.nombre || option.textContent.trim() || 'Pieza';
+
+        checklist.innerHTML = '';
+
+        if (total <= 1) {
+            checklistWrapper.classList.add('hidden');
+            return;
+        }
+
+        checklistWrapper.classList.remove('hidden');
+
+        if (checklistHelp) {
+            checklistHelp.textContent = `Selecciona una o varias de las ${total} piezas configuradas para este componente.`;
+        }
+
+        for (let numero = 1; numero <= total; numero++) {
+            appendChecklistItem(numero, nombre, total);
+        }
+
+        syncChecklistCounter(total);
     }
 
     function updateFileSummary(total) {

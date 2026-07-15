@@ -316,6 +316,28 @@ function openAnalysisDetail(analysisData) {
     document.getElementById('detail-componente-codigo').textContent = analysisData.componente_codigo || '';
     document.getElementById('detail-reductor').textContent = analysisData.reductor || analysisData.maquina || '';
 
+    const piezasContainer = document.getElementById('detail-piezas-container');
+    const piezasResumen = document.getElementById('detail-piezas-resumen');
+    const piezasList = document.getElementById('detail-piezas');
+    const totalPiezas = parseInt(analysisData.total_componentes || '0', 10) || 0;
+    const piezasRevisadas = Array.isArray(analysisData.componentes_revisados)
+        ? analysisData.componentes_revisados
+            .map((item) => parseInt(item, 10))
+            .filter((item) => item > 0)
+        : [];
+
+    if (piezasContainer && piezasResumen && piezasList && totalPiezas > 1 && piezasRevisadas.length > 0) {
+        piezasContainer.classList.remove('hidden');
+        piezasResumen.textContent = `${piezasRevisadas.length} de ${totalPiezas}`;
+        piezasList.innerHTML = piezasRevisadas
+            .map((numero) => `<span class="rounded bg-indigo-50 px-2 py-1 text-xs font-semibold text-indigo-700 border border-indigo-100">#${numero}</span>`)
+            .join('');
+    } else if (piezasContainer && piezasResumen && piezasList) {
+        piezasContainer.classList.add('hidden');
+        piezasResumen.textContent = '';
+        piezasList.innerHTML = '';
+    }
+
     const ladoContainer = document.getElementById('detail-lado-container');
     const ladoElement = document.getElementById('detail-lado');
     const ladoBadgeContainer = document.getElementById('detail-lado-badge-container');

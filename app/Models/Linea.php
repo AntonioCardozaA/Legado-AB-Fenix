@@ -59,7 +59,7 @@ class Linea extends Model
     public function componentesEtiquetadora()
     {
         return $this->belongsToMany(Componente::class, 'analisis_etiquetadora')
-                    ->withPivot('estado', 'actividad', 'reductor', 'maquina', 'numero_orden', 'evidencia_fotos')
+                    ->withPivot('estado', 'actividad', 'reductor', 'maquina', 'numero_orden', 'evidencia_fotos', 'total_componentes', 'cantidad_componentes_revisados', 'componentes_revisados')
                     ->withTimestamps();
     }
 

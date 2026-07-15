@@ -7,6 +7,8 @@
 
 @php
     $evidencias = collect($analisis->evidencia_fotos ?? [])->filter()->values();
+    $componentesRevisados = $analisis->componentes_revisados_lista;
+    $totalComponentesAnalisis = $analisis->total_componentes ?: (int) ($analisis->componente?->cantidad_total ?? 0);
     $estado = $analisis->estado;
     $estadoStyles = match (true) {
         \App\Models\AnalisisEtiquetadora::esEstadoDanado($estado) => [
@@ -175,6 +177,28 @@
                         <p class="mt-2 text-base font-semibold text-gray-900">{{ $analisis->usuario->name ?? 'Sin usuario asignado' }}</p>
                     </div>
                 </div>
+
+                @if($totalComponentesAnalisis > 1 && !empty($componentesRevisados))
+                    <div class="mt-5 rounded-xl border border-indigo-200 bg-indigo-50 p-4">
+                        <div class="mb-3 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                            <h3 class="text-sm font-semibold text-indigo-900">
+                                <i class="fas fa-clipboard-check mr-1"></i>
+                                Piezas revisadas
+                            </h3>
+                            <span class="text-xs font-semibold text-indigo-700">
+                                {{ count($componentesRevisados) }} de {{ $totalComponentesAnalisis }}
+                            </span>
+                        </div>
+                        <div class="flex flex-wrap gap-2">
+                            @foreach($componentesRevisados as $numeroPieza)
+                                <span class="inline-flex items-center gap-2 rounded-lg border border-indigo-200 bg-white px-3 py-2 text-sm font-semibold text-indigo-800">
+                                    <i class="fas fa-check text-indigo-600"></i>
+                                    Pieza #{{ (int) $numeroPieza }}
+                                </span>
+                            @endforeach
+                        </div>
+                    </div>
+                @endif
             </div>
 
             <div class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">

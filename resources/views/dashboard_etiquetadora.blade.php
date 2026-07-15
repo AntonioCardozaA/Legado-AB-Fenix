@@ -13,6 +13,35 @@
     $planesPendientesEtiquetadora = collect($planesPendientesEtiquetadora ?? []);
     $historicoRevisionesEtiquetadora = collect($historicoRevisionesEtiquetadora ?? []);
     $ultimosAnalisisEtiquetadora = collect($ultimosAnalisisEtiquetadora ?? []);
+    $todasLasLineasEtiquetadora = collect($todasLasLineasEtiquetadora ?? $lineasEtiquetadora ?? []);
+    $maquinasEtiquetadora = collect($maquinasEtiquetadora ?? \App\Support\EtiquetadoraCatalog::maquinas());
+    $filtrosEtiquetadora = $filtrosEtiquetadora ?? [];
+    $dashboardLinksEtiquetadora = $dashboardLinksEtiquetadora ?? [];
+    $evidenciasEtiquetadora = $evidenciasEtiquetadora ?? ['registros_con_evidencia' => 0, 'total_fotos' => 0, 'ultimas' => collect()];
+    $evidenciasEtiquetadora['ultimas'] = collect($evidenciasEtiquetadora['ultimas'] ?? []);
+    $notificacionesEtiquetadora = $notificacionesEtiquetadora ?? ['total' => 0, 'no_leidas' => 0, 'ultimas' => collect()];
+    $notificacionesEtiquetadora['ultimas'] = collect($notificacionesEtiquetadora['ultimas'] ?? []);
+    $catalogoEtiquetadoraResumen = $catalogoEtiquetadoraResumen ?? ['componentes' => 0, 'equipos' => 0, 'grupos' => 0, 'maquinas' => 0, 'unidades' => 0];
+    $resumenEtiquetadora = $resumenEtiquetadora ?? [
+        'total_etiquetadoras' => 0,
+        'componentes_catalogo' => 0,
+        'total_unidades' => 0,
+        'unidades_revisadas' => 0,
+        'total_analisis' => 0,
+        'alertas_criticas' => 0,
+        'en_riesgo' => 0,
+        'requiere_revision' => 0,
+        'buen_estado' => 0,
+        'cambiados' => 0,
+        'pendientes_accion' => 0,
+        'avance' => 0,
+        'avance_unidades' => 0,
+        'registros_con_evidencia' => 0,
+        'fotos_evidencia' => 0,
+        'filtros_activos' => false,
+        'ultima_actualizacion' => now()->format('d/m/Y H:i'),
+    ];
+    $queryFiltros = $filtrosEtiquetadora['query'] ?? [];
 @endphp
 
 <style>
@@ -57,9 +86,106 @@
         flex-wrap: wrap;
     }
 
+    .dashboard-filter-card,
+    .quick-access-card {
+        background: #fff;
+        border: 1px solid var(--medium-gray);
+        border-radius: 16px;
+        box-shadow: var(--shadow-sm);
+        padding: 16px;
+        margin-bottom: 16px;
+    }
+
+    .dashboard-filter-grid {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 12px;
+        align-items: end;
+    }
+
+    .filter-field label {
+        display: block;
+        color: #475569;
+        font-size: 11px;
+        font-weight: 900;
+        letter-spacing: 0.04em;
+        margin-bottom: 6px;
+        text-transform: uppercase;
+    }
+
+    .filter-field select,
+    .filter-field input {
+        width: 100%;
+        border: 1px solid #cbd5e1;
+        border-radius: 10px;
+        color: #0f172a;
+        font-size: 13px;
+        font-weight: 700;
+        padding: 9px 10px;
+    }
+
+    .filter-actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .quick-actions-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 10px;
+    }
+
+    .quick-action {
+        display: flex;
+        min-width: 0;
+        align-items: center;
+        gap: 10px;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        background: #f8fafc;
+        padding: 12px;
+        transition: var(--transition);
+    }
+
+    .quick-action:hover {
+        background: #fff;
+        box-shadow: var(--shadow-md);
+        transform: translateY(-1px);
+    }
+
+    .quick-action.disabled {
+        opacity: 0.62;
+        pointer-events: none;
+    }
+
+    .quick-action-icon {
+        display: inline-flex;
+        width: 38px;
+        height: 38px;
+        flex: 0 0 38px;
+        align-items: center;
+        justify-content: center;
+        border-radius: 10px;
+        background: #e0f2fe;
+        color: #075985;
+    }
+
+    .quick-action-title {
+        color: var(--text-primary);
+        font-size: 13px;
+        font-weight: 900;
+    }
+
+    .quick-action-meta {
+        color: var(--text-secondary);
+        font-size: 11px;
+        font-weight: 700;
+    }
+
     .stats-grid {
         display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
+        grid-template-columns: repeat(4, minmax(0, 1fr));
         gap: 12px;
         margin-bottom: 16px;
         align-items: stretch;
@@ -422,14 +548,18 @@
 
     @media (max-width: 1024px) {
         .stats-grid,
-        .dashboard-panels-grid {
+        .dashboard-panels-grid,
+        .dashboard-filter-grid,
+        .quick-actions-grid {
             grid-template-columns: repeat(2, minmax(0, 1fr));
         }
     }
 
     @media (max-width: 768px) {
         .stats-grid,
-        .dashboard-panels-grid {
+        .dashboard-panels-grid,
+        .dashboard-filter-grid,
+        .quick-actions-grid {
             grid-template-columns: 1fr;
         }
 
@@ -470,8 +600,11 @@
                 @endauth
             </div>
             <div class="dashboard-actions">
-                <a href="{{ route('etiquetadora.dashboard') }}" class="px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-800 transition">
-                    <i class="fas fa-layer-group mr-2"></i>Menu
+                <a href="{{ $dashboardLinksEtiquetadora['nuevo_analisis'] ?? route('analisis-etiquetadora.select-linea') }}" class="px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-800 transition">
+                    <i class="fas fa-plus-circle mr-2"></i>Nuevo Analisis
+                </a>
+                <a href="{{ $dashboardLinksEtiquetadora['reportes'] ?? route('reportes.index', ['tipo' => 'etiquetadoras']) }}" class="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition">
+                    <i class="fas fa-file-lines mr-2"></i>Reportes
                 </a>
                 <button onclick="refreshData()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
                     <i class="fas fa-sync-alt mr-2"></i>Actualizar
@@ -480,11 +613,130 @@
         </div>
     </div>
 
+    <form method="GET" action="{{ route('dashboard.global.etiquetadoras') }}" class="dashboard-filter-card">
+        <div class="dashboard-filter-grid">
+            <div class="filter-field">
+                <label for="linea_id">Linea</label>
+                <select id="linea_id" name="linea_id">
+                    <option value="todas">Todas</option>
+                    @foreach($todasLasLineasEtiquetadora as $linea)
+                        <option value="{{ $linea->id }}" @selected((string) ($filtrosEtiquetadora['linea_id'] ?? '') === (string) $linea->id)>
+                            {{ $linea->nombre }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="filter-field">
+                <label for="maquina">Maquina</label>
+                <select id="maquina" name="maquina">
+                    <option value="">Todas</option>
+                    @foreach($maquinasEtiquetadora as $maquina)
+                        <option value="{{ $maquina }}" @selected(($filtrosEtiquetadora['maquina'] ?? null) === $maquina)>
+                            Maquina {{ $maquina }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="filter-field">
+                <label for="fecha_desde">Desde</label>
+                <input id="fecha_desde" type="date" name="fecha_desde" value="{{ $filtrosEtiquetadora['fecha_desde_input'] ?? '' }}">
+            </div>
+            <div class="filter-field">
+                <label for="fecha_hasta">Hasta</label>
+                <input id="fecha_hasta" type="date" name="fecha_hasta" value="{{ $filtrosEtiquetadora['fecha_hasta_input'] ?? '' }}">
+            </div>
+            <div class="filter-actions">
+                <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
+                    <i class="fas fa-filter mr-2"></i>Aplicar
+                </button>
+                <a href="{{ route('dashboard.global.etiquetadoras') }}" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition">
+                    <i class="fas fa-xmark mr-2"></i>Limpiar
+                </a>
+            </div>
+        </div>
+    </form>
+
+    <div class="quick-access-card">
+        <div class="quick-actions-grid">
+            <a class="quick-action" href="{{ $dashboardLinksEtiquetadora['analisis'] ?? route('analisis-etiquetadora.index') }}">
+                <span class="quick-action-icon"><i class="fas fa-chart-pie"></i></span>
+                <span>
+                    <span class="quick-action-title">Analisis</span>
+                    <span class="quick-action-meta block">{{ $resumenEtiquetadora['total_analisis'] ?? 0 }} registros</span>
+                </span>
+            </a>
+            <a class="quick-action" href="{{ $dashboardLinksEtiquetadora['historico'] ?? route('analisis-etiquetadora.historial') }}">
+                <span class="quick-action-icon"><i class="fas fa-history"></i></span>
+                <span>
+                    <span class="quick-action-title">Historico</span>
+                    <span class="quick-action-meta block">{{ $resumenEtiquetadora['avance'] ?? 0 }}% componentes</span>
+                </span>
+            </a>
+            <a class="quick-action" href="{{ $dashboardLinksEtiquetadora['catalogo'] ?? route('analisis-etiquetadora.index') }}">
+                <span class="quick-action-icon"><i class="fas fa-sitemap"></i></span>
+                <span>
+                    <span class="quick-action-title">Catalogo</span>
+                    <span class="quick-action-meta block">{{ $catalogoEtiquetadoraResumen['componentes'] ?? 0 }} componentes</span>
+                </span>
+            </a>
+            <a class="quick-action" href="{{ $dashboardLinksEtiquetadora['evidencias'] ?? route('analisis-etiquetadora.historial') }}">
+                <span class="quick-action-icon"><i class="fas fa-images"></i></span>
+                <span>
+                    <span class="quick-action-title">Evidencias</span>
+                    <span class="quick-action-meta block">{{ $evidenciasEtiquetadora['total_fotos'] ?? 0 }} fotos</span>
+                </span>
+            </a>
+            <a class="quick-action" href="{{ $dashboardLinksEtiquetadora['plan_accion'] ?? route('plan-accion.index', ['tipo' => 'etiquetadora']) }}">
+                <span class="quick-action-icon"><i class="fas fa-tasks"></i></span>
+                <span>
+                    <span class="quick-action-title">Plan de accion</span>
+                    <span class="quick-action-meta block">{{ $resumenEtiquetadora['pendientes_accion'] ?? 0 }} pendientes</span>
+                </span>
+            </a>
+            <a class="quick-action" href="{{ $dashboardLinksEtiquetadora['reportes'] ?? route('reportes.index', ['tipo' => 'etiquetadoras']) }}">
+                <span class="quick-action-icon"><i class="fas fa-file-lines"></i></span>
+                <span>
+                    <span class="quick-action-title">Reportes</span>
+                    <span class="quick-action-meta block">{{ $catalogoEtiquetadoraResumen['equipos'] ?? 0 }} equipos</span>
+                </span>
+            </a>
+            <a class="quick-action" href="{{ $dashboardLinksEtiquetadora['notificaciones'] ?? route('notifications.index') }}">
+                <span class="quick-action-icon"><i class="fas fa-bell"></i></span>
+                <span>
+                    <span class="quick-action-title">Notificaciones</span>
+                    <span class="quick-action-meta block">{{ $notificacionesEtiquetadora['no_leidas'] ?? 0 }} nuevas</span>
+                </span>
+            </a>
+            <span class="quick-action disabled">
+                <span class="quick-action-icon"><i class="fas fa-wallet"></i></span>
+                <span>
+                    <span class="quick-action-title">Costos</span>
+                    <span class="quick-action-meta block">No aplica</span>
+                </span>
+            </span>
+        </div>
+    </div>
+
     <div class="stats-grid">
         <div class="stat-card">
             <div class="stat-icon"><i class="fas fa-industry"></i></div>
             <div class="stat-label">Total Etiquetadoras</div>
             <div class="stat-value">{{ $resumenEtiquetadora['total_etiquetadoras'] }}</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon"><i class="fas fa-clipboard-list"></i></div>
+            <div class="stat-label">Analisis</div>
+            <div class="stat-value">{{ $resumenEtiquetadora['total_analisis'] ?? 0 }}</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon"><i class="fas fa-sitemap"></i></div>
+            <div class="stat-label">Componentes Catalogo</div>
+            <div class="stat-value">{{ $resumenEtiquetadora['componentes_catalogo'] ?? 0 }}</div>
+        </div>
+        <div class="stat-card" style="border-top: 4px solid var(--primary-blue);">
+            <div class="stat-icon"><i class="fas fa-percent"></i></div>
+            <div class="stat-label">Avance Componentes</div>
+            <div class="stat-value" style="color: var(--primary-blue);">{{ number_format((float) ($resumenEtiquetadora['avance'] ?? 0), 1) }}%</div>
         </div>
         <div class="stat-card" style="border-top: 4px solid var(--danger-red);">
             <div class="stat-icon"><i class="fas fa-exclamation-triangle"></i></div>
@@ -511,6 +763,16 @@
             <div class="stat-label">Pendientes Accion</div>
             <div class="stat-value">{{ $resumenEtiquetadora['pendientes_accion'] }}</div>
         </div>
+        <div class="stat-card">
+            <div class="stat-icon"><i class="fas fa-images"></i></div>
+            <div class="stat-label">Evidencias</div>
+            <div class="stat-value">{{ $resumenEtiquetadora['fotos_evidencia'] ?? 0 }}</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon"><i class="fas fa-bell"></i></div>
+            <div class="stat-label">Notificaciones</div>
+            <div class="stat-value">{{ $notificacionesEtiquetadora['no_leidas'] ?? 0 }}</div>
+        </div>
     </div>
 
     <div class="section-title">
@@ -530,7 +792,7 @@
                 $estadoLabel = $nivel === 'bueno'
                     ? 'Buen estado'
                     : ($nivel === 'operativo' ? 'Requiere revision' : ($nivel === 'riesgo' ? 'Severo / Moderado' : 'Critico'));
-            @endphp
+                @endphp
             <div class="lavadora-card {{ $cardClass }}">
                 <div class="lavadora-card-header">
                     <div class="lavadora-nombre">
@@ -563,9 +825,14 @@
                     </div>
                 </div>
                 <div class="lavadora-card-footer">
-                    <button onclick='showEtiquetadoraDetail(@json($etiquetadora))' class="lavadora-card-action">
-                        <i class="fas fa-chart-simple mr-1"></i> Ver Detalle Completo
-                    </button>
+                    <div class="grid grid-cols-2 gap-2">
+                        <a href="{{ route('analisis-etiquetadora.index', ['linea_id' => $etiquetadora['linea_id'], 'maquina' => $etiquetadora['maquina']]) }}" class="lavadora-card-action">
+                            <i class="fas fa-chart-simple mr-1"></i> Analisis
+                        </a>
+                        <a href="{{ route('analisis-etiquetadora.historial', ['linea_id' => $etiquetadora['linea_id'], 'maquina' => $etiquetadora['maquina']]) }}" class="lavadora-card-action">
+                            <i class="fas fa-history mr-1"></i> Historico
+                        </a>
+                    </div>
                 </div>
             </div>
         @endforeach
@@ -806,6 +1073,14 @@
 
     document.addEventListener('DOMContentLoaded', function() {
         initEtiquetadoraCharts();
+        window.setInterval(function() {
+            const activeElement = document.activeElement;
+            const editingFilters = activeElement && activeElement.closest && activeElement.closest('.dashboard-filter-card');
+
+            if (!document.hidden && !editingFilters && !document.querySelector('.modal.open')) {
+                window.location.reload();
+            }
+        }, 60000);
     });
 
     function refreshData() {

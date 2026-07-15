@@ -37,12 +37,18 @@ class AnalisisEtiquetadora extends Model
         'actividad',
         'usuario_id',
         'evidencia_fotos',
+        'total_componentes',
+        'cantidad_componentes_revisados',
+        'componentes_revisados',
         'categoria_id',
         'numero_r_id',
     ];
 
     protected $casts = [
         'evidencia_fotos' => 'array',
+        'componentes_revisados' => 'array',
+        'total_componentes' => 'integer',
+        'cantidad_componentes_revisados' => 'integer',
         'fecha_analisis' => 'date',
     ];
 
@@ -67,6 +73,28 @@ class AnalisisEtiquetadora extends Model
     public static function estados(): array
     {
         return AnalisisLavadora::ESTADOS;
+    }
+
+    public static function normalizarComponentesRevisados($value, ?int $totalComponentes = null): array
+    {
+        $componentes = $value;
+
+        if (is_string($componentes) && trim($componentes) !== '') {
+            $decoded = json_decode($componentes, true);
+            $componentes = is_array($decoded) ? $decoded : [];
+        }
+
+        if (!is_array($componentes)) {
+            return [];
+        }
+
+        return collect($componentes)
+            ->map(fn ($item) => is_numeric($item) ? (int) $item : null)
+            ->filter(fn ($item) => $item !== null && $item > 0 && ($totalComponentes === null || $item <= $totalComponentes))
+            ->unique()
+            ->sort()
+            ->values()
+            ->all();
     }
 
     public static function esEstadoBueno(?string $estado): bool
@@ -107,6 +135,40 @@ class AnalisisEtiquetadora extends Model
     public function usuario(): BelongsTo
     {
         return $this->belongsTo(User::class, 'usuario_id');
+    }
+
+    public function getComponentesRevisadosListaAttribute(): array
+    {
+        $totalComponentes = $this->total_componentes ?: (int) ($this->componente?->cantidad_total ?? 0);
+
+        return $this->piezasRevisadasParaTotal($totalComponentes ?: null);
+    }
+
+    public function piezasRevisadasParaTotal(?int $totalComponentes = null): array
+    {
+        $totalComponentes = (int) ($totalComponentes ?: $this->total_componentes ?: (int) ($this->componente?->cantidad_total ?? 0));
+        $totalComponentes = max(0, $totalComponentes);
+
+        $componentes = self::normalizarComponentesRevisados(
+            $this->componentes_revisados,
+            $totalComponentes > 0 ? $totalComponentes : null
+        );
+
+        if (!empty($componentes)) {
+            return $componentes;
+        }
+
+        $cantidadRevisada = (int) ($this->cantidad_componentes_revisados ?? 0);
+
+        if ($cantidadRevisada > 0 && $totalComponentes > 0) {
+            return range(1, min($cantidadRevisada, $totalComponentes));
+        }
+
+        if ($totalComponentes === 1 && $this->exists) {
+            return [1];
+        }
+
+        return [];
     }
 
     public function scopeUltimosPorComponente(Builder $query): Builder

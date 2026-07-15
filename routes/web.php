@@ -4,6 +4,8 @@ use Illuminate\Support\Facades\Route;
 use App\Models\User;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\AnalisisController;
+use App\Http\Controllers\AnalisisEtiquetadoraController;
+use App\Http\Controllers\AnalisisLavadoraCostController;
 use App\Http\Controllers\AnalisisLavadoraController;
 use App\Http\Controllers\AnalisisPasteurizadoraController;
 use App\Http\Controllers\AnalisisPasteurizadoraCentralHidraulicaController;
@@ -93,7 +95,7 @@ Route::middleware(['auth', 'pasteurizadora.access', 'technician.access'])->group
         Route::get('/pasteurizadora', [DashboardController::class, 'pasteurizadora'])
     ->name('dashboard_pasteurizadora');
 
-        Route::get('/etiquetadora', [DashboardController::class, 'etiquetadora'])
+        Route::get('/etiquetadora', [DashboardController::class, 'etiquetadoraGlobal'])
             ->name('dashboard_etiquetadora');
   });  
 
@@ -112,7 +114,7 @@ Route::prefix('pasteurizadora')->group(function () {
 });
 
     Route::prefix('etiquetadora')->group(function () {
-        Route::get('/dashboard', [DashboardController::class, 'etiquetadora'])
+        Route::get('/dashboard', [DashboardController::class, 'etiquetadoraGlobal'])
             ->name('etiquetadora.dashboard');
     });
 

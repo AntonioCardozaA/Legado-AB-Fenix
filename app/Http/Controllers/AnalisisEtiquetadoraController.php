@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class AnalisisEtiquetadoraController extends Controller
 {
@@ -161,7 +162,9 @@ class AnalisisEtiquetadoraController extends Controller
                 ->withInput();
         }
 
-        $analisis = DB::transaction(function () use ($request, $linea, $componente) {
+        $seleccionComponentes = $this->resolverSeleccionComponentesRevisados($request, $componente);
+
+        $analisis = DB::transaction(function () use ($request, $linea, $componente, $seleccionComponentes) {
             $analisis = AnalisisEtiquetadora::create([
                 'linea_id' => $linea->id,
                 'componente_id' => $componente->id,
@@ -173,6 +176,9 @@ class AnalisisEtiquetadoraController extends Controller
                 'actividad' => $request->actividad,
                 'usuario_id' => $request->user()?->id,
                 'evidencia_fotos' => [],
+                'total_componentes' => $seleccionComponentes['total_componentes'],
+                'cantidad_componentes_revisados' => count($seleccionComponentes['componentes_revisados']),
+                'componentes_revisados' => $seleccionComponentes['componentes_revisados'],
             ]);
 
             if ($request->hasFile('evidencia_fotos')) {
@@ -233,6 +239,7 @@ class AnalisisEtiquetadoraController extends Controller
 
         $fechaAnterior = $analisisetiquetadora->fecha_analisis?->toDateString();
         $fechaNueva = Carbon::createFromFormat('Y-m-d', $request->input('fecha_analisis'))->toDateString();
+        $seleccionComponentes = $this->resolverSeleccionComponentesRevisados($request, $componente);
 
         if ($fechaAnterior !== $fechaNueva && !$this->puedeEditarFechaAnalisis($request->user())) {
             abort(403, 'No tienes permiso para modificar la fecha del analisis.');
@@ -275,6 +282,9 @@ class AnalisisEtiquetadoraController extends Controller
             'estado' => $request->estado,
             'actividad' => $request->actividad,
             'evidencia_fotos' => $fotos,
+            'total_componentes' => $seleccionComponentes['total_componentes'],
+            'cantidad_componentes_revisados' => count($seleccionComponentes['componentes_revisados']),
+            'componentes_revisados' => $seleccionComponentes['componentes_revisados'],
         ]);
 
         return redirect()
@@ -299,24 +309,55 @@ class AnalisisEtiquetadoraController extends Controller
             'maquina' => ['nullable', Rule::in(EtiquetadoraCatalog::maquinas())],
         ]);
 
+        $lineasEtiquetadora = $this->lineasEtiquetadora();
+        $lineaSeleccionada = $request->filled('linea_id')
+            ? $lineasEtiquetadora->firstWhere('id', (int) $request->linea_id)
+            : null;
+
+        abort_if($request->filled('linea_id') && !$lineaSeleccionada, 404);
+
+        $catalogoQuery = $this->catalogoBase()
+            ->whereIn('linea', $lineasEtiquetadora->pluck('nombre'));
+
+        $historicoQuery = AnalisisEtiquetadora::with(['linea', 'componente', 'usuario'])
+            ->whereIn('linea_id', $lineasEtiquetadora->pluck('id'));
+
         $query = AnalisisEtiquetadora::with(['linea', 'componente', 'usuario'])
+            ->whereIn('linea_id', $lineasEtiquetadora->pluck('id'))
             ->orderByDesc('fecha_analisis')
             ->orderByDesc('created_at');
 
-        if ($request->filled('linea_id')) {
+        if ($lineaSeleccionada) {
             $query->where('linea_id', $request->linea_id);
+            $catalogoQuery->where('linea', $lineaSeleccionada->nombre);
+            $historicoQuery->where('linea_id', $lineaSeleccionada->id);
         }
 
         if ($request->filled('componente_id')) {
             $query->where('componente_id', $request->componente_id);
+            $catalogoQuery->whereKey($request->componente_id);
+            $historicoQuery->where('componente_id', $request->componente_id);
         }
 
         if ($request->filled('maquina')) {
-            $query->where('maquina', strtoupper($request->maquina));
+            $maquina = strtoupper($request->maquina);
+
+            $query->where('maquina', $maquina);
+            $catalogoQuery->where('reductor', EtiquetadoraCatalog::maquinaLabel($maquina));
+            $historicoQuery->where('maquina', $maquina);
         }
+
+        $historico = $this->historicoRevisadosEtiquetadora(
+            $catalogoQuery->get(),
+            $historicoQuery->get()
+        );
 
         return view('etiquetadora.analisis-etiquetadora.historial', [
             'analisis' => $query->paginate(20)->withQueryString(),
+            'lineasEtiquetadora' => $lineasEtiquetadora,
+            'maquinasEtiquetadora' => EtiquetadoraCatalog::maquinas(),
+            'estadisticasHistorico' => $historico['estadisticas'],
+            'resumenHistorico' => $historico['resumen'],
         ]);
     }
 
@@ -335,6 +376,7 @@ class AnalisisEtiquetadoraController extends Controller
             'estado' => $analisisetiquetadora->estado,
             'numero_orden' => $analisisetiquetadora->numero_orden,
             'fecha_analisis' => $analisisetiquetadora->fecha_analisis?->toDateString(),
+            'componentes_revisados' => $analisisetiquetadora->componentes_revisados_lista,
         ]);
 
         foreach (($analisisetiquetadora->evidencia_fotos ?? []) as $foto) {
@@ -410,6 +452,7 @@ class AnalisisEtiquetadoraController extends Controller
             ->get();
 
         $ultimos = AnalisisEtiquetadora::ultimosPorComponente()
+            ->with(['linea', 'componente', 'usuario'])
             ->where('linea_id', $linea->id)
             ->when($maquina, fn ($query) => $query->where('maquina', $maquina))
             ->get()
@@ -467,6 +510,9 @@ class AnalisisEtiquetadoraController extends Controller
             'usuario_nombre' => $registro->usuario?->name ?? 'Usuario no registrado',
             'actividad' => $registro->actividad,
             'imagenes' => $imagenes,
+            'componentes_revisados' => $registro->componentes_revisados_lista,
+            'cantidad_componentes_revisados' => $registro->cantidad_componentes_revisados,
+            'total_componentes' => $registro->total_componentes ?: (int) ($registro->componente?->cantidad_total ?? 0),
             'color' => $this->analysisCellColor($registro->estado ?? null),
             'created_at' => $registro->created_at ? $registro->created_at->format('d/m/Y H:i') : '',
             'updated_at' => $registro->updated_at ? $registro->updated_at->format('d/m/Y H:i') : '',
@@ -750,10 +796,40 @@ class AnalisisEtiquetadoraController extends Controller
             'numero_orden' => ['required', 'string', 'max:20'],
             'estado' => ['required', Rule::in(AnalisisEtiquetadora::estados())],
             'actividad' => ['required', 'string'],
+            'componentes_revisados' => ['nullable', 'array'],
+            'componentes_revisados.*' => ['nullable', 'integer', 'min:1'],
             'evidencia_fotos' => ['nullable', 'array'],
             'evidencia_fotos.*' => $this->evidenciaFotoRules(),
             'eliminar_fotos' => ['nullable', 'array'],
             'eliminar_fotos.*' => ['integer'],
+        ];
+    }
+
+    private function resolverSeleccionComponentesRevisados(Request $request, Componente $componente): array
+    {
+        $totalComponentes = max(1, (int) ($componente->cantidad_total ?? 1));
+
+        if ($totalComponentes === 1) {
+            return [
+                'total_componentes' => $totalComponentes,
+                'componentes_revisados' => [1],
+            ];
+        }
+
+        $componentesSeleccionados = AnalisisEtiquetadora::normalizarComponentesRevisados(
+            $request->input('componentes_revisados'),
+            $totalComponentes
+        );
+
+        if (empty($componentesSeleccionados)) {
+            throw ValidationException::withMessages([
+                'componentes_revisados' => 'Debe seleccionar al menos una pieza revisada.',
+            ]);
+        }
+
+        return [
+            'total_componentes' => $totalComponentes,
+            'componentes_revisados' => $componentesSeleccionados,
         ];
     }
 
@@ -839,6 +915,151 @@ class AnalisisEtiquetadoraController extends Controller
             'cambiados' => $registros->where('estado', AnalisisEtiquetadora::ESTADO_CAMBIADO)->count(),
             'cambiado' => $registros->where('estado', AnalisisEtiquetadora::ESTADO_CAMBIADO)->count(),
         ];
+    }
+
+    private function historicoRevisadosEtiquetadora($catalogo, $analisis): array
+    {
+        $analisisPorComponente = collect($analisis)
+            ->filter(fn (AnalisisEtiquetadora $registro) => filled($registro->componente_id))
+            ->groupBy('componente_id');
+
+        $estadisticas = collect($catalogo)
+            ->groupBy(fn (Componente $componente) => $this->componenteTablaKey($componente))
+            ->map(function ($componentes) use ($analisisPorComponente): array {
+                $componentes = collect($componentes);
+                /** @var Componente $primerComponente */
+                $primerComponente = $componentes->first();
+
+                $detalleComponentes = $componentes
+                    ->map(fn (Componente $componente): array => $this->historicoDetalleComponenteEtiquetadora(
+                        $componente,
+                        collect($analisisPorComponente->get($componente->id, collect()))
+                    ))
+                    ->values();
+
+                $cantidadTotal = (int) $detalleComponentes->sum('cantidad_total');
+                $cantidadRevisada = (int) $detalleComponentes->sum('cantidad_revisada');
+                $cantidadPendiente = max($cantidadTotal - $cantidadRevisada, 0);
+                $porcentaje = $cantidadTotal > 0 ? round(($cantidadRevisada / $cantidadTotal) * 100, 1) : 0;
+                $ultimoRegistro = $this->ultimoAnalisisEtiquetadora(
+                    $detalleComponentes->pluck('ultimo_registro')->filter()
+                );
+
+                return [
+                    'nombre' => $primerComponente->nombre,
+                    'grupo' => $primerComponente->grupo,
+                    'mecanismo' => $primerComponente->mecanismo,
+                    'cantidad_total' => $cantidadTotal,
+                    'cantidad_revisada' => $cantidadRevisada,
+                    'cantidad_pendiente' => $cantidadPendiente,
+                    'porcentaje' => $porcentaje,
+                    'color' => $this->colorPorcentajeHistorico($porcentaje),
+                    'componentes_total' => $detalleComponentes->count(),
+                    'componentes_revisados' => $detalleComponentes->where('cantidad_revisada', '>', 0)->count(),
+                    'componentes_completos' => $detalleComponentes
+                        ->filter(fn (array $detalle) => $detalle['cantidad_total'] > 0 && $detalle['cantidad_revisada'] >= $detalle['cantidad_total'])
+                        ->count(),
+                    'componentes_pendientes' => $detalleComponentes
+                        ->filter(fn (array $detalle) => $detalle['cantidad_revisada'] < $detalle['cantidad_total'])
+                        ->count(),
+                    'lineas' => $detalleComponentes->pluck('linea')->filter()->unique()->values(),
+                    'maquinas' => $detalleComponentes->pluck('maquina')->filter()->unique()->values(),
+                    'ultima_revision' => $ultimoRegistro?->fecha_analisis?->format('d/m/Y'),
+                    'usuario_ultima_revision' => $ultimoRegistro?->usuario?->name,
+                    'estado_actual' => $ultimoRegistro?->estado,
+                    'numero_orden_ultima_revision' => $ultimoRegistro?->numero_orden,
+                    'detalle_componentes' => $detalleComponentes->map(fn (array $detalle) => array_diff_key($detalle, ['ultimo_registro' => true]))->values(),
+                ];
+            })
+            ->sortBy(fn (array $grupo) => ($grupo['grupo'] ?? '') . ' ' . ($grupo['nombre'] ?? ''))
+            ->values();
+
+        $totalGeneral = (int) $estadisticas->sum('cantidad_total');
+        $revisadoGeneral = (int) $estadisticas->sum('cantidad_revisada');
+        $pendienteGeneral = max($totalGeneral - $revisadoGeneral, 0);
+        $ultimoDetalleGeneral = $estadisticas->pluck('detalle_componentes')
+            ->flatten(1)
+            ->filter(fn (array $detalle) => filled($detalle['ultima_revision_sortable'] ?? null))
+            ->sortByDesc('ultima_revision_sortable')
+            ->first();
+
+        return [
+            'estadisticas' => $estadisticas,
+            'resumen' => [
+                'total_general' => $totalGeneral,
+                'revisado_general' => $revisadoGeneral,
+                'pendiente_general' => $pendienteGeneral,
+                'porcentaje_general' => $totalGeneral > 0
+                    ? round(($revisadoGeneral / $totalGeneral) * 100, 1)
+                    : 0,
+                'componentes_total' => (int) $estadisticas->sum('componentes_total'),
+                'componentes_revisados' => (int) $estadisticas->sum('componentes_revisados'),
+                'componentes_completos' => (int) $estadisticas->sum('componentes_completos'),
+                'componentes_pendientes' => (int) $estadisticas->sum('componentes_pendientes'),
+                'ultima_revision' => $ultimoDetalleGeneral['ultima_revision'] ?? null,
+            ],
+        ];
+    }
+
+    private function historicoDetalleComponenteEtiquetadora(Componente $componente, $registros): array
+    {
+        $totalComponentes = max(1, (int) ($componente->cantidad_total ?? 1));
+        $registros = collect($registros);
+        $piezasRevisadas = $registros
+            ->flatMap(fn (AnalisisEtiquetadora $registro) => $registro->piezasRevisadasParaTotal($totalComponentes))
+            ->map(fn ($pieza) => (int) $pieza)
+            ->filter(fn (int $pieza) => $pieza > 0 && $pieza <= $totalComponentes)
+            ->unique()
+            ->sort()
+            ->values();
+        $piezasPendientes = collect(range(1, $totalComponentes))
+            ->diff($piezasRevisadas)
+            ->values();
+        $ultimoRegistro = $this->ultimoAnalisisEtiquetadora($registros);
+
+        return [
+            'componente_id' => $componente->id,
+            'linea' => $componente->linea,
+            'maquina' => $this->maquinaDesdeEtiqueta($componente->reductor),
+            'cantidad_total' => $totalComponentes,
+            'cantidad_revisada' => $piezasRevisadas->count(),
+            'cantidad_pendiente' => $piezasPendientes->count(),
+            'piezas_revisadas' => $piezasRevisadas->all(),
+            'piezas_pendientes' => $piezasPendientes->all(),
+            'ultima_revision' => $ultimoRegistro?->fecha_analisis?->format('d/m/Y'),
+            'ultima_revision_sortable' => $ultimoRegistro ? $this->analisisEtiquetadoraSortKey($ultimoRegistro) : null,
+            'usuario_ultima_revision' => $ultimoRegistro?->usuario?->name,
+            'estado_actual' => $ultimoRegistro?->estado,
+            'numero_orden_ultima_revision' => $ultimoRegistro?->numero_orden,
+            'ultimo_registro' => $ultimoRegistro,
+        ];
+    }
+
+    private function ultimoAnalisisEtiquetadora($registros): ?AnalisisEtiquetadora
+    {
+        return collect($registros)
+            ->filter(fn ($registro) => $registro instanceof AnalisisEtiquetadora)
+            ->sortByDesc(fn (AnalisisEtiquetadora $registro) => $this->analisisEtiquetadoraSortKey($registro))
+            ->first();
+    }
+
+    private function analisisEtiquetadoraSortKey(AnalisisEtiquetadora $registro): string
+    {
+        $fechaAnalisis = $registro->fecha_analisis?->format('Ymd') ?? '00000000';
+        $createdAt = str_pad((string) ($registro->created_at?->timestamp ?? 0), 12, '0', STR_PAD_LEFT);
+        $id = str_pad((string) ($registro->id ?? 0), 10, '0', STR_PAD_LEFT);
+
+        return $fechaAnalisis . '-' . $createdAt . '-' . $id;
+    }
+
+    private function colorPorcentajeHistorico(float|int $porcentaje): string
+    {
+        return match (true) {
+            $porcentaje >= 80 => 'success',
+            $porcentaje >= 50 => 'info',
+            $porcentaje >= 20 => 'warning',
+            default => 'danger',
+        };
     }
 
     private function evidenciaFotoRules(): array

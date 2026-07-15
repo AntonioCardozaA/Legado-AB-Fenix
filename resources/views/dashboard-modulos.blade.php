@@ -391,24 +391,24 @@
     }
 
     .stat-value.critico {
-        color: #ef4444;
+        color: #dc2626;
     }
 
     /* ANIMACIÓN DE PARPADEO PARA ALERTAS CRÍTICAS */
     @keyframes criticalPulse {
         0% {
-            color: #ef4444;
-            text-shadow: 0 0 0 rgba(239, 68, 68, 0);
+            color: #dc2626;
+            text-shadow: 0 0 0 rgba(220, 38, 38, 0);
             transform: scale(1);
         }
         50% {
-            color: #dc2626;
-            text-shadow: 0 0 8px rgba(239, 68, 68, 0.8), 0 0 12px rgba(239, 68, 68, 0.4);
+            color: #b91c1c;
+            text-shadow: 0 0 10px rgba(220, 38, 38, 0.85), 0 0 16px rgba(185, 28, 28, 0.5);
             transform: scale(1.08);
         }
         100% {
-            color: #ef4444;
-            text-shadow: 0 0 0 rgba(239, 68, 68, 0);
+            color: #dc2626;
+            text-shadow: 0 0 0 rgba(220, 38, 38, 0);
             transform: scale(1);
         }
     }
@@ -416,15 +416,15 @@
     @keyframes criticalBlink {
         0% {
             opacity: 1;
-            background-color: transparent;
+            background-color: rgba(254, 226, 226, 0.95);
         }
         50% {
-            opacity: 0.7;
-            background-color: rgba(239, 68, 68, 0.15);
+            opacity: 0.82;
+            background-color: rgba(248, 113, 113, 0.35);
         }
         100% {
             opacity: 1;
-            background-color: transparent;
+            background-color: rgba(254, 226, 226, 0.95);
         }
     }
 
@@ -434,10 +434,17 @@
     }
 
     .stat-item.has-critics {
+        background: rgba(254, 226, 226, 0.95);
+        border: 1px solid rgba(220, 38, 38, 0.18);
         animation: criticalBlink 1.2s ease-in-out infinite;
         border-radius: 12px;
         padding: 4px 0;
         margin: -4px 0;
+    }
+
+    .stat-item.has-critics .stat-label,
+    .stat-item.has-critics .stat-label i {
+        color: #b91c1c;
     }
 
     /* Contenedor para el número con efecto de pulso */
