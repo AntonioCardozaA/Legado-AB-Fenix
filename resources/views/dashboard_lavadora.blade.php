@@ -2864,16 +2864,19 @@
                                                 </div>
                                             @endif
                                             <div class="carousel-slide-info">
+                                                @if(!empty($item['estado_label']))
+                                                    <div class="mb-1">
+                                                        <span class="severity-pill {{ $item['estado_key'] ?? 'estable' }}">
+                                                            {{ $item['estado_label'] }}
+                                                        </span>
+                                                    </div>
+                                                @endif
                                                 <div class="carousel-slide-title">{{ $item['title'] }}</div>
-                                                <div class="carousel-slide-subtitle">{{ $item['subtitle'] }}</div>
+                                                @if(!empty($item['subtitle']) && $item['subtitle'] !== ($item['meta'] ?? null))
+                                                    <div class="carousel-slide-subtitle">{{ $item['subtitle'] }}</div>
+                                                @endif
                                                 @if(!empty($item['detail']) || !empty($item['description']))
                                                     <div class="carousel-slide-detail">{{ $item['detail'] ?? $item['description'] }}</div>
-                                                @endif
-                                                @if(!empty($item['reductor']))
-                                                    <div class="carousel-slide-meta">Reductor: {{ $item['reductor'] }}</div>
-                                                @endif
-                                                @if(!empty($item['meta']))
-                                                    <div class="carousel-slide-meta">Código: {{ $item['meta'] }}</div>
                                                 @endif
                                                 @if(!empty($item['fecha']))
                                                     <div class="carousel-slide-meta">Fecha: {{ $item['fecha'] }}</div>
@@ -2902,6 +2905,28 @@
                         </div>
                     @endif
 
+                    @php
+                        $conteoAlertas = $estado['conteo_alertas'] ?? [];
+                        $totalAlertas = array_sum($conteoAlertas);
+                    @endphp
+
+                    @if($totalAlertas > 0)
+                        <div class="flex flex-wrap gap-2 mb-3">
+                            @if(($conteoAlertas['critico'] ?? 0) > 0)
+                                <span class="severity-pill critico">{{ $conteoAlertas['critico'] }} requiere cambio</span>
+                            @endif
+                            @if(($conteoAlertas['severo'] ?? 0) > 0)
+                                <span class="severity-pill severo">{{ $conteoAlertas['severo'] }} severo</span>
+                            @endif
+                            @if(($conteoAlertas['moderado'] ?? 0) > 0)
+                                <span class="severity-pill moderado">{{ $conteoAlertas['moderado'] }} moderado</span>
+                            @endif
+                            @if(($conteoAlertas['revision'] ?? 0) > 0)
+                                <span class="severity-pill revision">{{ $conteoAlertas['revision'] }} revisión</span>
+                            @endif
+                        </div>
+                    @endif
+
                     @if(isset($estado['ultima_elongacion']))
                     <div class="lavadora-metricas">
                         <div class="metric-item">
@@ -2916,11 +2941,11 @@
                                 {{ $estado['ultima_elongacion']['vapor_porcentaje'] }}%
                             </div>
                         </div>
-                        @if(isset($estado['analisis_criticos']))
+                        @if($totalAlertas > 0)
                         <div class="metric-item">
-                            <div class="metric-label">Daños Críticos</div>
-                            <div class="metric-value" style="color: var(--danger-red);">
-                                {{ count($estado['analisis_criticos']) }}
+                            <div class="metric-label">Alertas Activas</div>
+                            <div class="metric-value" style="color: {{ $estado['nivel'] === 'critico' ? 'var(--danger-red)' : ($estado['nivel'] === 'riesgo' ? 'var(--operational-orange)' : 'var(--warning-yellow)') }};">
+                                {{ $totalAlertas }}
                             </div>
                         </div>
                         @endif
@@ -3740,60 +3765,131 @@
         }, 300000); // 5 minutos
     }
 
+    function modalEscapeHtml(value) {
+        return String(value ?? '').replace(/[&<>"']/g, function(char) {
+            return {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            }[char];
+        });
+    }
+
+    function formatModalDate(value) {
+        if (!value) {
+            return 'Sin fecha';
+        }
+
+        const date = new Date(value);
+
+        if (Number.isNaN(date.getTime())) {
+            return modalEscapeHtml(value);
+        }
+
+        return date.toLocaleDateString('es-MX');
+    }
+
+    function renderLavadoraAnalisisSection(title, tone, analyses) {
+        if (!Array.isArray(analyses) || analyses.length === 0) {
+            return '';
+        }
+
+        const toneClasses = {
+            critico: 'bg-red-100 text-red-700',
+            severo: 'bg-orange-100 text-orange-700',
+            moderado: 'bg-amber-100 text-amber-700',
+            revision: 'bg-yellow-100 text-yellow-700'
+        };
+
+        const badgeClass = toneClasses[tone] || 'bg-slate-100 text-slate-700';
+
+        const cards = analyses.map((analisis) => {
+            const iconoUrl = analisis.componente?.icono || '/images/componentes-lavadora/default.png';
+            const ubicacion = [analisis.reductor ? `Reductor: ${analisis.reductor}` : null, analisis.lado || null]
+                .filter(Boolean)
+                .join(' · ');
+
+            return `
+                <div class="bg-white rounded-lg p-3 border border-gray-200">
+                    <div class="flex justify-between items-start gap-3">
+                        <div class="min-w-0 flex-1">
+                            <div class="componente-header">
+                                <div class="componente-icono">
+                                    <img src="${iconoUrl}" class="w-8 h-8 object-contain" onerror="this.src='/images/componentes-lavadora/default.png'">
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <div class="componente-nombre">${modalEscapeHtml(analisis.componente?.nombre || 'N/A')}</div>
+                                </div>
+                            </div>
+                            ${ubicacion ? `<p class="text-sm text-gray-600 mt-2">${modalEscapeHtml(ubicacion)}</p>` : ''}
+                            <p class="text-xs text-gray-500 mt-1">Fecha: ${modalEscapeHtml(analisis.fecha_formateada || formatModalDate(analisis.fecha_analisis))}</p>
+                        </div>
+                        <span class="px-2 py-1 rounded text-xs font-semibold ${badgeClass}">
+                            ${modalEscapeHtml(analisis.estado_label || title)}
+                        </span>
+                    </div>
+                    <p class="text-sm text-gray-700 mt-2">
+                        ${modalEscapeHtml(analisis.actividad || 'Sin descripción')}
+                    </p>
+                </div>
+            `;
+        }).join('');
+
+        return `
+            <div class="mb-4">
+                <div class="flex items-center justify-between gap-3 mb-2">
+                    <h4 class="font-bold text-gray-800">${modalEscapeHtml(title)}</h4>
+                    <span class="severity-pill ${tone}">${analyses.length}</span>
+                </div>
+                <div class="space-y-3">
+                    ${cards}
+                </div>
+            </div>
+        `;
+    }
+
     function showAlertDetail(lavadora) {
         const modal = document.getElementById('alertModal');
         const modalTitle = document.getElementById('modalTitle');
         const modalBody = document.getElementById('modalBody');
+        const estado = lavadora.estado || {};
+        const analisisPorEstado = estado.analisis_por_estado || {};
+        const secciones = [
+            { key: 'critico', title: 'Requiere cambio', tone: 'critico' },
+            { key: 'severo', title: 'Daño severo', tone: 'severo' },
+            { key: 'moderado', title: 'Daño moderado', tone: 'moderado' },
+            { key: 'revision', title: 'Requiere revisión', tone: 'revision' }
+        ].filter((seccion) => Array.isArray(analisisPorEstado[seccion.key]) && analisisPorEstado[seccion.key].length > 0);
+        const conteoAlertas = estado.conteo_alertas || {};
+        const totalAlertas = Object.values(conteoAlertas).reduce((sum, value) => sum + Number(value || 0), 0);
 
-        modalTitle.innerHTML = `Detalle - ${lavadora.nombre}`;
+        modalTitle.innerHTML = `Detalle - ${modalEscapeHtml(lavadora.nombre)}`;
 
         let html = `
-            <div class="mb-4 p-4 rounded-lg ${lavadora.estado.nivel === 'critico' ? 'bg-red-50 border-l-4 border-red-500' : (lavadora.estado.nivel === 'riesgo' ? 'bg-orange-50 border-l-4 border-orange-500' : (lavadora.estado.nivel === 'operativo' ? 'bg-yellow-50 border-l-4 border-yellow-500' : 'bg-green-50 border-l-4 border-green-500'))}">
-                <h4 class="font-bold text-lg mb-2">Estado: ${lavadora.estado.nivel.toUpperCase()}</h4>
-                <p class="text-gray-700">${lavadora.estado.mensaje}</p>
+            <div class="mb-4 p-4 rounded-lg ${estado.nivel === 'critico' ? 'bg-red-50 border-l-4 border-red-500' : (estado.nivel === 'riesgo' ? 'bg-orange-50 border-l-4 border-orange-500' : (estado.nivel === 'operativo' ? 'bg-yellow-50 border-l-4 border-yellow-500' : 'bg-green-50 border-l-4 border-green-500'))}">
+                <h4 class="font-bold text-lg mb-2">Estado: ${modalEscapeHtml((estado.nivel || 'bueno').toUpperCase())}</h4>
+                <p class="text-gray-700">${modalEscapeHtml(estado.mensaje || 'Sin mensaje de estado')}</p>
             </div>
         `;
 
-        if (lavadora.estado.analisis_criticos && lavadora.estado.analisis_criticos.length > 0) {
+        if (totalAlertas > 0) {
             html += `
-                <div class="mb-4">
-                    <h4 class="font-bold text-gray-800 mb-2">Componentes Dañados</h4>
-                    <div class="space-y-3">
+                <div class="mb-4 flex flex-wrap gap-2">
+                    ${Number(conteoAlertas.critico || 0) > 0 ? `<span class="severity-pill critico">${Number(conteoAlertas.critico || 0)} requiere cambio</span>` : ''}
+                    ${Number(conteoAlertas.severo || 0) > 0 ? `<span class="severity-pill severo">${Number(conteoAlertas.severo || 0)} severo</span>` : ''}
+                    ${Number(conteoAlertas.moderado || 0) > 0 ? `<span class="severity-pill moderado">${Number(conteoAlertas.moderado || 0)} moderado</span>` : ''}
+                    ${Number(conteoAlertas.revision || 0) > 0 ? `<span class="severity-pill revision">${Number(conteoAlertas.revision || 0)} revisión</span>` : ''}
+                </div>
             `;
-            lavadora.estado.analisis_criticos.forEach(analisis => {
-                const iconoUrl = analisis.componente?.icono || '/images/componentes-lavadora/default.png';
-                html += `
-                        <div class="bg-white rounded-lg p-3 border border-gray-200">
-                            <div class="flex justify-between items-start">
-                                <div>
-                                    <div class="componente-header">
-                                        <div class="componente-icono">
-                                            <img src="${iconoUrl}" class="w-8 h-8 object-contain" onerror="this.src='/images/componentes-lavadora/default.png'">
-                                        </div>
-                                        <div class="flex-1">
-                                            <div class="componente-nombre">${analisis.componente?.nombre || 'N/A'}</div>
-                                            <div class="text-xs text-gray-500">${analisis.componente?.codigo || ''}</div>
-                                        </div>
-                                    </div>
-                                    <p class="text-sm text-gray-600 mt-2">Reductor: ${analisis.reductor}</p>
-                                    <p class="text-xs text-gray-500 mt-1">
-                                        Fecha: ${new Date(analisis.fecha_analisis).toLocaleDateString()}
-                                    </p>
-                                </div>
-                                <span class="px-2 py-1 bg-red-100 text-red-700 rounded text-xs font-semibold">
-                                    Crítico
-                                </span>
-                            </div>
-                            <p class="text-sm text-gray-700 mt-2">
-                                ${analisis.actividad || 'Sin descripción'}
-                            </p>
-                        </div>
-                    `;
+
+            secciones.forEach((seccion) => {
+                html += renderLavadoraAnalisisSection(seccion.title, seccion.tone, analisisPorEstado[seccion.key] || []);
             });
-            html += `</div></div>`;
         }
 
-        if (lavadora.estado.ultima_elongacion) {
+        if (estado.ultima_elongacion) {
             html += `
                 <div class="mb-4">
                     <h4 class="font-bold text-gray-800 mb-2">Última Medición de Elongación</h4>
@@ -3801,33 +3897,41 @@
                         <div class="grid grid-cols-2 gap-2">
                             <div>
                                 <p class="text-sm text-gray-600">Lado Bombas:</p>
-                                <p class="font-semibold ${lavadora.estado.ultima_elongacion.bombas_porcentaje >= 1.8 ? 'text-red-600' : (lavadora.estado.ultima_elongacion.bombas_porcentaje >= 1.46 ? 'text-yellow-600' : 'text-green-600')}">
-                                    ${lavadora.estado.ultima_elongacion.bombas_porcentaje}%
+                                <p class="font-semibold ${estado.ultima_elongacion.bombas_porcentaje >= 1.8 ? 'text-red-600' : (estado.ultima_elongacion.bombas_porcentaje >= 1.46 ? 'text-yellow-600' : 'text-green-600')}">
+                                    ${modalEscapeHtml(estado.ultima_elongacion.bombas_porcentaje)}%
                                 </p>
                             </div>
                             <div>
                                 <p class="text-sm text-gray-600">Lado Vapor:</p>
-                                <p class="font-semibold ${lavadora.estado.ultima_elongacion.vapor_porcentaje >= 1.8 ? 'text-red-600' : (lavadora.estado.ultima_elongacion.vapor_porcentaje >= 1.46 ? 'text-yellow-600' : 'text-green-600')}">
-                                    ${lavadora.estado.ultima_elongacion.vapor_porcentaje}%
+                                <p class="font-semibold ${estado.ultima_elongacion.vapor_porcentaje >= 1.8 ? 'text-red-600' : (estado.ultima_elongacion.vapor_porcentaje >= 1.46 ? 'text-yellow-600' : 'text-green-600')}">
+                                    ${modalEscapeHtml(estado.ultima_elongacion.vapor_porcentaje)}%
                                 </p>
                             </div>
                         </div>
-                        <p class="text-xs text-gray-500 mt-2">Fecha: ${new Date(lavadora.estado.ultima_elongacion.created_at).toLocaleDateString()}</p>
+                        <p class="text-xs text-gray-500 mt-2">Fecha: ${formatModalDate(estado.ultima_elongacion.created_at)}</p>
                     </div>
                 </div>
             `;
         }
 
-        if (lavadora.estado.acciones_pendientes > 0) {
+        if (estado.acciones_pendientes > 0) {
             html += `
                 <div class="mb-4">
                     <h4 class="font-bold text-gray-800 mb-2">Acciones Pendientes</h4>
                     <div class="bg-yellow-50 rounded-lg p-3 border border-yellow-200">
-                        <p class="text-yellow-800">Esta lavadora tiene ${lavadora.estado.acciones_pendientes} acción(es) pendiente(s) en el plan de acción.</p>
+                        <p class="text-yellow-800">Esta lavadora tiene ${modalEscapeHtml(estado.acciones_pendientes)} acción(es) pendiente(s) en el plan de acción.</p>
                         <a href="{{ route('plan-accion.lavadora.index') }}?linea_id=${lavadora.id}" class="mt-2 inline-block text-blue-600 text-sm hover:underline">
                             <i class="fas fa-arrow-right mr-1"></i> Ver Plan de Acción
                         </a>
                     </div>
+                </div>
+            `;
+        }
+
+        if (secciones.length === 0 && !estado.ultima_elongacion && !(estado.acciones_pendientes > 0)) {
+            html += `
+                <div class="bg-slate-50 rounded-lg p-4 border border-slate-200 text-sm text-slate-600">
+                    No hay componentes con alertas activas para esta lavadora.
                 </div>
             `;
         }
