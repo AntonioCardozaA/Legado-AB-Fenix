@@ -549,7 +549,9 @@ public function pasteurizadoraOperativo(Request $request)
 
     public function etiquetadora(Request $request)
     {
-        return $this->etiquetadoraGlobal($request);
+        abort_unless(auth()->user()?->canAccessModule(User::MODULE_ETIQUETADORA), 403, 'No tienes permiso para acceder al modulo de Etiquetadora.');
+
+        return view('etiquetadora.dashboard');
     }
 
     /**
@@ -940,6 +942,12 @@ public function pasteurizadoraOperativo(Request $request)
             ->count();
 
         $catalogoTotal = $catalogo->count();
+        $totalEquipos = $this->countEtiquetadoraEquiposFromCatalogo($catalogo);
+        $equiposConAnalisis = $ultimos
+            ->filter(fn (AnalisisEtiquetadora $analisis): bool => filled($analisis->linea_id) && filled($analisis->maquina))
+            ->map(fn (AnalisisEtiquetadora $analisis): string => (string) $analisis->linea_id . '|' . strtoupper((string) $analisis->maquina))
+            ->unique()
+            ->count();
         $componentesRevisados = $ultimos->pluck('componente_id')->filter()->unique()->count();
         $totalUnidades = $catalogo->sum(fn (Componente $componente) => (int) ($componente->cantidad_total ?? 0));
         $unidadesRevisadas = $ultimos->sum(function (AnalisisEtiquetadora $analisis): int {
@@ -950,7 +958,7 @@ public function pasteurizadoraOperativo(Request $request)
         $evidencias = $this->countEtiquetadoraEvidence($analisisPeriodo);
 
         return [
-            'total_etiquetadoras' => $this->countEtiquetadoraEquiposFromCatalogo($catalogo),
+            'total_etiquetadoras' => $totalEquipos,
             'componentes_catalogo' => $catalogoTotal,
             'total_unidades' => $totalUnidades,
             'unidades_revisadas' => $unidadesRevisadas,
@@ -961,6 +969,8 @@ public function pasteurizadoraOperativo(Request $request)
             'buen_estado' => $ultimos->filter(fn ($analisis) => AnalisisEtiquetadora::esEstadoBueno($analisis->estado))->count(),
             'cambiados' => $ultimos->filter(fn ($analisis) => AnalisisEtiquetadora::esEstadoCambiado($analisis->estado))->count(),
             'pendientes_accion' => $pendientesAccion,
+            'equipos_con_analisis' => $equiposConAnalisis,
+            'equipos_sin_analisis' => max($totalEquipos - $equiposConAnalisis, 0),
             'avance' => $catalogoTotal > 0 ? round(($componentesRevisados / $catalogoTotal) * 100, 1) : 0,
             'avance_unidades' => $totalUnidades > 0 ? round(($unidadesRevisadas / $totalUnidades) * 100, 1) : 0,
             'registros_con_evidencia' => $evidencias['registros_con_evidencia'],
@@ -1007,7 +1017,7 @@ public function pasteurizadoraOperativo(Request $request)
                     $avance = $totalComponentes > 0 ? round(($revisados / $totalComponentes) * 100, 1) : 0;
                     $pendientesAccion = ($pendientesPorLinea->get($linea->id) ?? collect())->count();
 
-                    $nivel = $this->resolverNivelEtiquetadora($criticos, $desgaste, $requiereRevision, $pendientesAccion, $avance, $totalComponentes);
+                    $nivel = $this->resolverNivelEtiquetadora($criticos, $desgaste, $requiereRevision, $pendientesAccion, $avance, $totalComponentes, $analisisMaquina->isEmpty());
                     $alertas = $analisisMaquina
                         ->filter(fn ($analisis) => !AnalisisEtiquetadora::esEstadoBueno($analisis->estado) && !AnalisisEtiquetadora::esEstadoCambiado($analisis->estado))
                         ->sortByDesc('fecha_analisis')
@@ -1061,8 +1071,13 @@ public function pasteurizadoraOperativo(Request $request)
         int $requiereRevision,
         int $pendientesAccion,
         float $avance,
-        int $totalComponentes
+        int $totalComponentes,
+        bool $sinAnalisis = false
     ): string {
+        if ($sinAnalisis) {
+            return 'sin_datos';
+        }
+
         if ($criticos > 0) {
             return 'critico';
         }
@@ -1083,7 +1098,10 @@ public function pasteurizadoraOperativo(Request $request)
         return match ($nivel) {
             'critico' => $criticos . ' componente(s) critico(s) requieren atencion.',
             'riesgo' => $desgaste . ' componente(s) con desgaste severo o moderado.',
-            'operativo' => $requiereRevision . ' componente(s) requieren revision; avance ' . number_format($avance, 1) . '%.',
+            'operativo' => $requiereRevision > 0
+                ? $requiereRevision . ' componente(s) requieren revision; avance ' . number_format($avance, 1) . '%.'
+                : 'Revision incompleta; avance ' . number_format($avance, 1) . '%.',
+            'sin_datos' => 'Sin analisis registrados para esta etiquetadora.',
             default => 'Sin alertas activas. Avance de revision ' . number_format($avance, 1) . '%.',
         } . ($pendientesAccion > 0 ? ' Planes pendientes: ' . $pendientesAccion . '.' : '');
     }
@@ -1170,6 +1188,7 @@ public function pasteurizadoraOperativo(Request $request)
             'critico' => 'Critico',
             'riesgo' => 'Severo / Moderado',
             'operativo' => 'Requiere revision',
+            'sin_datos' => 'Sin analisis',
             default => 'Estable',
         };
     }

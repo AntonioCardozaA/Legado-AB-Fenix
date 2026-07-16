@@ -580,7 +580,7 @@
             $bloqueado = $modulo['bloqueado'] ?? false;
             $mensajeBloqueo = $modulo['mensaje_bloqueo'] ?? 'Estamos trabajando en ello, estara disponible muy pronto.';
             // La ruta está definida en el controlador dentro de cada módulo
-            $rutaModulo = $modulo['ruta'] ?? route('dashboard');
+            $rutaModulo = $modulo['ruta'] ?? route('dashboard_etiquetadora');
         @endphp
                 <div class="modulo-card {{ in_array($modulo['id'] ?? '', ['lavadora', 'pasteurizadora', 'etiquetadora'], true) ? 'modulo-card-machine modulo-card-' . ($modulo['id'] ?? '') : '' }}"
                      @if($bloqueado)

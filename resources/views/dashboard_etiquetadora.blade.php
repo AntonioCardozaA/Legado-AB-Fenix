@@ -34,6 +34,8 @@
         'buen_estado' => 0,
         'cambiados' => 0,
         'pendientes_accion' => 0,
+        'equipos_con_analisis' => 0,
+        'equipos_sin_analisis' => 0,
         'avance' => 0,
         'avance_unidades' => 0,
         'registros_con_evidencia' => 0,
@@ -284,6 +286,11 @@
         border-left: 6px solid var(--danger-red);
     }
 
+    .lavadora-card.sin-datos-estado {
+        background-color: #f8fafc;
+        border-left: 6px solid #94a3b8;
+    }
+
     .lavadora-card-header {
         padding: 10px 12px;
         border-bottom: 1px solid rgba(0,0,0,0.05);
@@ -359,6 +366,7 @@
     .status-tag.operativo { background: #fef3c7; color: #92400e; }
     .status-tag.riesgo { background: #ffedd5; color: #9a3412; }
     .status-tag.critico { background: #fee2e2; color: #991b1b; }
+    .status-tag.sin_datos { background: #e2e8f0; color: #475569; }
 
     .lavadora-card-footer {
         padding: 10px 12px 12px;
@@ -763,6 +771,11 @@
             <div class="stat-label">Pendientes Accion</div>
             <div class="stat-value">{{ $resumenEtiquetadora['pendientes_accion'] }}</div>
         </div>
+        <div class="stat-card" style="border-top: 4px solid #94a3b8;">
+            <div class="stat-icon"><i class="fas fa-circle-question"></i></div>
+            <div class="stat-label">Equipos Sin Analisis</div>
+            <div class="stat-value" style="color: #475569;">{{ $resumenEtiquetadora['equipos_sin_analisis'] ?? 0 }}</div>
+        </div>
         <div class="stat-card">
             <div class="stat-icon"><i class="fas fa-images"></i></div>
             <div class="stat-label">Evidencias</div>
@@ -787,11 +800,14 @@
                 $nivel = $estado['nivel'] ?? 'bueno';
                 $cardClass = $nivel === 'bueno'
                     ? 'buen-estado'
-                    : ($nivel === 'operativo' ? 'operativo-estado' : ($nivel === 'riesgo' ? 'riesgo-estado' : 'critico-estado'));
+                    : ($nivel === 'operativo' ? 'operativo-estado' : ($nivel === 'riesgo' ? 'riesgo-estado' : ($nivel === 'sin_datos' ? 'sin-datos-estado' : 'critico-estado')));
                 $progreso = $estado['progreso_revision'] ?? ['porcentaje' => 0, 'revisados' => 0, 'pendientes' => 0];
                 $estadoLabel = $nivel === 'bueno'
                     ? 'Buen estado'
-                    : ($nivel === 'operativo' ? 'Requiere revision' : ($nivel === 'riesgo' ? 'Severo / Moderado' : 'Critico'));
+                    : ($nivel === 'operativo' ? 'Requiere revision' : ($nivel === 'riesgo' ? 'Severo / Moderado' : ($nivel === 'sin_datos' ? 'Sin analisis' : 'Critico')));
+                $estadoIcon = $nivel === 'bueno'
+                    ? 'fa-check-circle'
+                    : ($nivel === 'operativo' ? 'fa-tools' : ($nivel === 'riesgo' ? 'fa-exclamation-triangle' : ($nivel === 'sin_datos' ? 'fa-circle-question' : 'fa-times-circle')));
                 @endphp
             <div class="lavadora-card {{ $cardClass }}">
                 <div class="lavadora-card-header">
@@ -800,7 +816,7 @@
                         {{ $etiquetadora['nombre'] }}
                     </div>
                     <span class="status-tag {{ $nivel }}">
-                        <i class="fas {{ $nivel === 'bueno' ? 'fa-check-circle' : ($nivel === 'operativo' ? 'fa-tools' : ($nivel === 'riesgo' ? 'fa-exclamation-triangle' : 'fa-times-circle')) }}"></i>
+                        <i class="fas {{ $estadoIcon }}"></i>
                         {{ $estadoLabel }}
                     </span>
                 </div>

@@ -95,7 +95,7 @@ Route::middleware(['auth', 'pasteurizadora.access', 'technician.access'])->group
         Route::get('/pasteurizadora', [DashboardController::class, 'pasteurizadora'])
     ->name('dashboard_pasteurizadora');
 
-        Route::get('/etiquetadora', [DashboardController::class, 'etiquetadoraGlobal'])
+        Route::get('/etiquetadora', [DashboardController::class, 'etiquetadora'])
             ->name('dashboard_etiquetadora');
   });  
 
@@ -114,7 +114,7 @@ Route::prefix('pasteurizadora')->group(function () {
 });
 
     Route::prefix('etiquetadora')->group(function () {
-        Route::get('/dashboard', [DashboardController::class, 'etiquetadoraGlobal'])
+        Route::get('/dashboard', [DashboardController::class, 'etiquetadora'])
             ->name('etiquetadora.dashboard');
     });
 
