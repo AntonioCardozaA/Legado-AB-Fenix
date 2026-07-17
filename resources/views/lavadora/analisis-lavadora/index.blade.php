@@ -6,7 +6,10 @@
 <link rel="stylesheet" href="{{ asset('css/diagramas-lavadoras.css') }}">
 
 @php
-    $canDeleteAnalysis = $canDeleteAnalysis ?? (auth()->user()?->canDeleteAnalysis() ?? false);
+    $canDeleteAnalysis = $canDeleteAnalysis ?? (auth()->user()?->canDeleteLavadoraAnalysis() ?? false);
+    $canCloseLavadoraDamage = $canCloseLavadoraDamage ?? (auth()->user()?->canCloseLavadoraDamage() ?? false);
+    $canAccessLavadoraCosts = $canAccessLavadoraCosts ?? (auth()->user()?->canAccessLavadoraCosts() ?? false);
+    $estadoCorreccionOpciones = \App\Models\AnalisisLavadora::getEstadoCorreccionOpciones();
 @endphp
 
 <style>
@@ -367,6 +370,16 @@
         overflow: auto;
         border: 1px solid var(--medium-gray);
         border-radius: 8px;
+        width: 100%;
+        max-width: 100%;
+        overscroll-behavior-x: contain;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .table-wrapper > table,
+    .compact-table {
+        width: max-content;
+        min-width: 100%;
     }
     
     .table-corner {
@@ -453,6 +466,8 @@
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
         margin-bottom: 24px;
         border: 1px solid #e2e8f0;
+        width: 100%;
+        max-width: 100%;
     }
     
     .lineas-title {
@@ -477,11 +492,14 @@
         flex-wrap: wrap;
         align-items: center;
         gap: 12px;
+        min-width: 0;
     }
     
     .linea-item {
         display: inline-flex;
         align-items: center;
+        min-width: 0;
+        max-width: 100%;
         padding: 8px 20px;
         background: #f8fafc;
         border: 2px solid #e2e8f0;
@@ -492,6 +510,8 @@
         transition: all 0.2s ease;
         cursor: pointer;
         text-decoration: none;
+        overflow-wrap: anywhere;
+        text-align: center;
     }
     
     .linea-item i {
@@ -546,6 +566,7 @@
         flex-wrap: wrap;
         align-items: center;
         gap: 16px;
+        min-width: 0;
     }
     
     .filter-link {
@@ -642,6 +663,7 @@
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
         gap: 16px;
+        min-width: 0;
     }
     
     .filter-group {
@@ -799,6 +821,11 @@
     }
     
     @media (max-width: 768px) {
+        .filters-section {
+            padding: 16px;
+            border-radius: 12px;
+        }
+
         .lineas-grid {
             gap: 8px;
         }
@@ -813,7 +840,10 @@
             align-items: stretch;
         }
         
-        .btn-apply {
+        .filter-link,
+        .btn-apply,
+        .btn-clear {
+            width: 100%;
             margin-left: 0;
             justify-content: center;
         }
@@ -1012,6 +1042,8 @@
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
         margin-bottom: 30px;
         border: 1px solid #e2e8f0;
+        width: 100%;
+        max-width: 100%;
     }
     
     .lavadora-card-header {
@@ -1021,12 +1053,18 @@
         display: flex;
         align-items: center;
         gap: 15px;
+        flex-wrap: wrap;
+    }
+
+    .lavadora-card-header > * {
+        min-width: 0;
     }
     
     .lavadora-card-header h3 {
         font-size: 20px;
         font-weight: 700;
         margin: 0;
+        overflow-wrap: anywhere;
     }
     
     .lavadora-card-header .badge {
@@ -1040,6 +1078,17 @@
         border-radius: 0;
         border: none;
         border-top: 1px solid #e2e8f0;
+    }
+
+    @media (max-width: 768px) {
+        .lavadora-card-header {
+            align-items: stretch;
+            padding: 14px;
+        }
+
+        .lavadora-card-header > div {
+            width: 100%;
+        }
     }
 
     /* ESTILOS PARA TACÓMETROS PEQUEÑOS */
@@ -1430,7 +1479,7 @@
                         }
 
                         $nombreComponente = $componentesDiagrama[$codigoBase] ?? ($item->componente->nombre ?? $codigoBase);
-                        $estadoActual = $item->estado ?? \App\Models\AnalisisLavadora::ESTADO_BUENO;
+                        $estadoActual = $item->estado_operativo ?? \App\Models\AnalisisLavadora::ESTADO_BUENO;
                         $metaEstado = $monitorEstadoMeta($estadoActual);
                         $fechaTs = isset($item->fecha_analisis) && $item->fecha_analisis ? $item->fecha_analisis->getTimestamp() : 0;
                         $itemId = $item->id ?? 0;
@@ -1510,15 +1559,25 @@
             // Agrupar por componente+reductor y tomar solo el más reciente
             $ultimosPorComponente = [];
             foreach ($analisisCollection as $item) {
-                $key = $item->componente_id . '_' . ($item->reductor ?? '');
-                if (!isset($ultimosPorComponente[$key]) || 
-                    $ultimosPorComponente[$key]->fecha_analisis < $item->fecha_analisis) {
+                $key = implode('|', [
+                    $item->linea_id ?? '',
+                    \App\Models\AnalisisLavadora::codigoBaseComponente($item->componente->codigo ?? null),
+                    $item->reductor ?? '',
+                    $item->lado ?? '',
+                ]);
+                $fechaItem = isset($item->fecha_analisis) && $item->fecha_analisis ? $item->fecha_analisis->getTimestamp() : 0;
+                $idItem = $item->id ?? 0;
+                $registroActual = $ultimosPorComponente[$key] ?? null;
+                $fechaActual = $registroActual && isset($registroActual->fecha_analisis) && $registroActual->fecha_analisis ? $registroActual->fecha_analisis->getTimestamp() : 0;
+                $idActual = $registroActual->id ?? 0;
+
+                if (!$registroActual || $fechaActual < $fechaItem || ($fechaActual === $fechaItem && $idActual < $idItem)) {
                     $ultimosPorComponente[$key] = $item;
                 }
             }
             
             foreach ($ultimosPorComponente as $item) {
-                $estado = $item->estado ?? '';
+                $estado = $item->estado_operativo ?? '';
                 $lineaNombre = $item->linea->nombre ?? 'Sin línea';
                 $componenteNombre = $item->componente->nombre ?? 'Sin componente';
                 $reductor = is_numeric($item->reductor) ? "Reductor {$item->reductor}" : $item->reductor;
@@ -1676,15 +1735,25 @@
                 // Agrupar por componente+reductor y tomar solo el más reciente
                 $ultimosPorComponenteGlobal = [];
                 foreach ($analisisCollection as $item) {
-                    $key = $item->componente_id . '_' . ($item->reductor ?? '');
-                    if (!isset($ultimosPorComponenteGlobal[$key]) || 
-                        $ultimosPorComponenteGlobal[$key]->fecha_analisis < $item->fecha_analisis) {
+                    $key = implode('|', [
+                        $item->linea_id ?? '',
+                        \App\Models\AnalisisLavadora::codigoBaseComponente($item->componente->codigo ?? null),
+                        $item->reductor ?? '',
+                        $item->lado ?? '',
+                    ]);
+                    $fechaItem = isset($item->fecha_analisis) && $item->fecha_analisis ? $item->fecha_analisis->getTimestamp() : 0;
+                    $idItem = $item->id ?? 0;
+                    $registroActual = $ultimosPorComponenteGlobal[$key] ?? null;
+                    $fechaActual = $registroActual && isset($registroActual->fecha_analisis) && $registroActual->fecha_analisis ? $registroActual->fecha_analisis->getTimestamp() : 0;
+                    $idActual = $registroActual->id ?? 0;
+
+                    if (!$registroActual || $fechaActual < $fechaItem || ($fechaActual === $fechaItem && $idActual < $idItem)) {
                         $ultimosPorComponenteGlobal[$key] = $item;
                     }
                 }
                 
                 foreach ($ultimosPorComponenteGlobal as $item) {
-                    $estado = $item->estado ?? '';
+                $estado = $item->estado_operativo ?? '';
                     $lineaNombre = $item->linea->nombre ?? 'Sin línea';
                     $componenteNombre = $item->componente->nombre ?? 'Sin componente';
                     $reductor = is_numeric($item->reductor) ? "Reductor {$item->reductor}" : $item->reductor;
@@ -1912,7 +1981,7 @@
                         
                         // Actualizar conteo de estados
                         if (isset($conteoEstadosComponente[$claveComponente])) {
-                            $estado = $item->estado ?? 'Buen estado';
+                            $estado = $item->estado_operativo ?? 'Buen estado';
                             
                             if (\App\Models\AnalisisLavadora::esEstadoCambiado($estado)) {
                                 $conteoEstadosComponente[$claveComponente]['changed']++;
@@ -2010,8 +2079,10 @@
                                             foreach($componentesLinea as $c) {
                                                 if(isset($analisisAgrupadosLinea[$r][$c->id])) {
                                                     $conteoReductor['total']++;
-                                                    $primerRegistro = $analisisAgrupadosLinea[$r][$c->id]->sortByDesc('fecha_analisis')->first();
-                                                    $estado = $primerRegistro->estado ?? 'Buen estado';
+                                                    $primerRegistro = $analisisAgrupadosLinea[$r][$c->id]
+                                                        ->sortByDesc(fn ($registro) => sprintf('%010d-%010d', isset($registro->fecha_analisis) && $registro->fecha_analisis ? $registro->fecha_analisis->getTimestamp() : 0, $registro->id ?? 0))
+                                                        ->first();
+                                                    $estado = $primerRegistro->estado_operativo ?? 'Buen estado';
                                                     
                                                     if (\App\Models\AnalisisLavadora::esEstadoCambiado($estado)) {
                                                         $conteoReductor['changed']++;
@@ -2045,15 +2116,17 @@
                                             @foreach($componentesLinea as $c)
                                                 @php
                                                     $registros = $analisisAgrupadosLinea[$r][$c->id] ?? collect();
-                                                    $registro = $registros->sortByDesc('fecha_analisis')->first();
-                                                    $totalHistorial = $registros->count();
+                                                    $registro = $registros
+                                                        ->sortByDesc(fn ($registro) => sprintf('%010d-%010d', isset($registro->fecha_analisis) && $registro->fecha_analisis ? $registro->fecha_analisis->getTimestamp() : 0, $registro->id ?? 0))
+                                                        ->first();
+                                                    $totalHistorial = $registro ? ($registro->total_historial ?? $registros->count()) : $registros->count();
                                                     $hasData = $registros->isNotEmpty() && !empty($registro);
                                                     $color = '';
                                                     $isNew = false;
                                                     $imagenes = [];
                                                     
                                                     if($hasData && $registro){
-                                                        $estadoActual = $registro->estado ?? 'Buen estado';
+                                                        $estadoActual = $registro->estado_operativo ?? 'Buen estado';
                                                         
                                                         if (\App\Models\AnalisisLavadora::esEstadoCambiado($estadoActual)) {
                                                             $color = 'cell-changed';
@@ -2101,6 +2174,9 @@
                                                         'fecha_analisis' => isset($registro->fecha_analisis) ? $registro->fecha_analisis->format('d/m/Y') : '',
                                                         'numero_orden' => $registro->numero_orden,
                                                         'estado' => $registro->estado ?? 'Buen estado',
+                                                        'estado_operativo' => $registro->estado_operativo ?? ($registro->estado ?? 'Buen estado'),
+                                                        'estado_operativo_label' => $registro->estado_operativo_label ?? ($registro->estado ?? 'Buen estado'),
+                                                        'can_show_correction_actions' => $canCloseLavadoraDamage && \App\Models\AnalisisLavadora::requiereCierreAdministrativo($registro->estado_operativo ?? ($registro->estado ?? 'Buen estado')),
                                                         'usuario_nombre' => $registro->usuario?->name ?? 'Usuario no registrado',
                                                         'actividad' => $registro->actividad,
                                                         'imagenes' => $imagenes ?? [],
@@ -2109,7 +2185,29 @@
                                                         'updated_at' => isset($registro->updated_at) ? $registro->updated_at->format('d/m/Y H:i') : '',
                                                         'is_new' => $isNew,
                                                         'total_historial' => $totalHistorial,
-                                                        'costs_url' => route('analisis-lavadora.costos.manage', ['analisislavadora' => $registro->id]),
+                                                        'estado_correccion' => $canCloseLavadoraDamage ? $registro->estado_correccion : null,
+                                                        'estado_correccion_label' => $canCloseLavadoraDamage ? $registro->estado_correccion_label : null,
+                                                        'fecha_correccion' => $canCloseLavadoraDamage ? $registro->fecha_correccion?->format('Y-m-d\TH:i') : null,
+                                                        'fecha_correccion_humana' => $canCloseLavadoraDamage ? $registro->fecha_correccion?->format('d/m/Y H:i') : null,
+                                                        'corregido_por_nombre' => $canCloseLavadoraDamage ? $registro->usuarioCorreccion?->name : null,
+                                                        'observaciones_reparacion' => $canCloseLavadoraDamage ? $registro->observaciones_reparacion : null,
+                                                        'evidencias_reparacion' => $canCloseLavadoraDamage ? $registro->evidencias_reparacion : [],
+                                                        'tipo_intervencion' => $canCloseLavadoraDamage ? $registro->tipo_intervencion : null,
+                                                        'componente_instalado' => $canCloseLavadoraDamage ? $registro->componente_instalado : null,
+                                                        'numero_parte' => $canCloseLavadoraDamage ? $registro->numero_parte : null,
+                                                        'proveedor' => $canCloseLavadoraDamage ? $registro->proveedor : null,
+                                                        'garantia' => $canCloseLavadoraDamage ? $registro->garantia : null,
+                                                        'fecha_cambio' => $canCloseLavadoraDamage ? $registro->fecha_cambio?->format('Y-m-d') : null,
+                                                        'costo_refacciones' => $canCloseLavadoraDamage ? $registro->costo_refacciones : null,
+                                                        'costo_mano_obra' => $canCloseLavadoraDamage ? $registro->costo_mano_obra : null,
+                                                        'costo_servicios_externos' => $canCloseLavadoraDamage ? $registro->costo_servicios_externos : null,
+                                                        'costo_total_intervencion' => $canCloseLavadoraDamage ? $registro->costo_total_intervencion : null,
+                                                        'tiempo_reparacion_horas' => $canCloseLavadoraDamage ? $registro->tiempo_reparacion_horas : null,
+                                                        'responsable_trabajo' => $canCloseLavadoraDamage ? $registro->responsable_trabajo : null,
+                                                        'comentarios_costos' => $canCloseLavadoraDamage ? $registro->comentarios_costos : null,
+                                                        'can_close_damage' => $canCloseLavadoraDamage,
+                                                        'costs_url' => $canAccessLavadoraCosts ? route('analisis-lavadora.costos.manage', ['analisislavadora' => $registro->id]) : null,
+                                                        'correction_url' => $canCloseLavadoraDamage ? route('analisis-lavadora.correccion.update', ['analisislavadora' => $registro->id]) : null,
                                                         'edit_url' => route('analisis-lavadora.edit', ['analisislavadora' => $registro->id]),
                                                         'delete_url' => $canDeleteAnalysis ? route('analisis-lavadora.destroy', ['analisislavadora' => $registro->id]) : null,
                                                         'historial_url' => route('analisis-lavadora.historial', [
@@ -2142,7 +2240,7 @@
                                                             
                                                             <div class="mb-2">
                                                                 @php
-                                                                    $estadoActual = $registro->estado ?? 'Buen estado';
+                                                                    $estadoActual = $registro->estado_operativo ?? 'Buen estado';
                                                                     
                                                                     if (\App\Models\AnalisisLavadora::esEstadoCambiado($estadoActual)) {
                                                                         $statusClass = 'bg-blue-100 text-blue-800 border-blue-200';
@@ -2489,8 +2587,10 @@
                                         @foreach($reductoresParaTabla as $r)
                                             @if(isset($analisisAgrupados[$r][$c->id]))
                                                 @php
-                                                    $primerRegistro = $analisisAgrupados[$r][$c->id]->sortByDesc('fecha_analisis')->first();
-                                                    $estado = $primerRegistro->estado ?? 'Buen estado';
+                                                    $primerRegistro = $analisisAgrupados[$r][$c->id]
+                                                        ->sortByDesc(fn ($registro) => sprintf('%010d-%010d', isset($registro->fecha_analisis) && $registro->fecha_analisis ? $registro->fecha_analisis->getTimestamp() : 0, $registro->id ?? 0))
+                                                        ->first();
+                                                    $estado = $primerRegistro->estado_operativo ?? 'Buen estado';
                                                     
                                                     if (str_contains($estado, 'Dañado - Cambiado')) {
                                                         $conteoEstado['changed']++;
@@ -2559,8 +2659,10 @@
                                         foreach($componentesParaTabla as $c) {
                                             if(isset($analisisAgrupados[$r][$c->id])) {
                                                 $conteoReductor['total']++;
-                                                $primerRegistro = $analisisAgrupados[$r][$c->id]->sortByDesc('fecha_analisis')->first();
-                                                $estado = $primerRegistro->estado ?? 'Buen estado';
+                                                $primerRegistro = $analisisAgrupados[$r][$c->id]
+                                                    ->sortByDesc(fn ($registro) => sprintf('%010d-%010d', isset($registro->fecha_analisis) && $registro->fecha_analisis ? $registro->fecha_analisis->getTimestamp() : 0, $registro->id ?? 0))
+                                                    ->first();
+                                                $estado = $primerRegistro->estado_operativo ?? 'Buen estado';
                                                 
                                                 if (str_contains($estado, 'Dañado - Cambiado')) {
                                                     $conteoReductor['changed']++;
@@ -2590,15 +2692,17 @@
                                         @foreach($componentesParaTabla as $c)
                                             @php
                                                 $registros = $analisisAgrupados[$r][$c->id] ?? collect();
-                                                $registro = $registros->sortByDesc('fecha_analisis')->first();
-                                                $totalHistorial = $registros->count();
+                                                $registro = $registros
+                                                    ->sortByDesc(fn ($registro) => sprintf('%010d-%010d', isset($registro->fecha_analisis) && $registro->fecha_analisis ? $registro->fecha_analisis->getTimestamp() : 0, $registro->id ?? 0))
+                                                    ->first();
+                                                $totalHistorial = $registro ? ($registro->total_historial ?? $registros->count()) : $registros->count();
                                                 $hasData = $registros->isNotEmpty() && !empty($registro);
                                                 $color = '';
                                                 $isNew = false;
                                                 $imagenes = [];
                                                 
                                                 if($hasData){
-                                                    $estadoActual = $registro->estado ?? 'Buen estado';
+                                                    $estadoActual = $registro->estado_operativo ?? 'Buen estado';
                                                     
                                                     if (str_contains($estadoActual, 'Dañado - Cambiado')) {
                                                         $color = 'cell-changed';
@@ -2642,6 +2746,9 @@
                                                     'fecha_analisis' => isset($registro->fecha_analisis) ? $registro->fecha_analisis->format('d/m/Y') : '',
                                                     'numero_orden' => $registro->numero_orden,
                                                     'estado' => $registro->estado ?? 'Buen estado',
+                                                    'estado_operativo' => $registro->estado_operativo ?? ($registro->estado ?? 'Buen estado'),
+                                                    'estado_operativo_label' => $registro->estado_operativo_label ?? ($registro->estado ?? 'Buen estado'),
+                                                    'can_show_correction_actions' => $canCloseLavadoraDamage && \App\Models\AnalisisLavadora::requiereCierreAdministrativo($registro->estado_operativo ?? ($registro->estado ?? 'Buen estado')),
                                                     'usuario_nombre' => $registro->usuario?->name ?? 'Usuario no registrado',
                                                     'actividad' => $registro->actividad,
                                                     'imagenes' => $imagenes ?? [],
@@ -2650,7 +2757,29 @@
                                                     'updated_at' => isset($registro->updated_at) ? $registro->updated_at->format('d/m/Y H:i') : '',
                                                     'is_new' => $isNew,
                                                     'total_historial' => $totalHistorial,
-                                                    'costs_url' => route('analisis-lavadora.costos.manage', ['analisislavadora' => $registro->id]),
+                                                    'estado_correccion' => $canCloseLavadoraDamage ? $registro->estado_correccion : null,
+                                                    'estado_correccion_label' => $canCloseLavadoraDamage ? $registro->estado_correccion_label : null,
+                                                    'fecha_correccion' => $canCloseLavadoraDamage ? $registro->fecha_correccion?->format('Y-m-d\TH:i') : null,
+                                                    'fecha_correccion_humana' => $canCloseLavadoraDamage ? $registro->fecha_correccion?->format('d/m/Y H:i') : null,
+                                                    'corregido_por_nombre' => $canCloseLavadoraDamage ? $registro->usuarioCorreccion?->name : null,
+                                                    'observaciones_reparacion' => $canCloseLavadoraDamage ? $registro->observaciones_reparacion : null,
+                                                    'evidencias_reparacion' => $canCloseLavadoraDamage ? $registro->evidencias_reparacion : [],
+                                                    'tipo_intervencion' => $canCloseLavadoraDamage ? $registro->tipo_intervencion : null,
+                                                    'componente_instalado' => $canCloseLavadoraDamage ? $registro->componente_instalado : null,
+                                                    'numero_parte' => $canCloseLavadoraDamage ? $registro->numero_parte : null,
+                                                    'proveedor' => $canCloseLavadoraDamage ? $registro->proveedor : null,
+                                                    'garantia' => $canCloseLavadoraDamage ? $registro->garantia : null,
+                                                    'fecha_cambio' => $canCloseLavadoraDamage ? $registro->fecha_cambio?->format('Y-m-d') : null,
+                                                    'costo_refacciones' => $canCloseLavadoraDamage ? $registro->costo_refacciones : null,
+                                                    'costo_mano_obra' => $canCloseLavadoraDamage ? $registro->costo_mano_obra : null,
+                                                    'costo_servicios_externos' => $canCloseLavadoraDamage ? $registro->costo_servicios_externos : null,
+                                                    'costo_total_intervencion' => $canCloseLavadoraDamage ? $registro->costo_total_intervencion : null,
+                                                    'tiempo_reparacion_horas' => $canCloseLavadoraDamage ? $registro->tiempo_reparacion_horas : null,
+                                                    'responsable_trabajo' => $canCloseLavadoraDamage ? $registro->responsable_trabajo : null,
+                                                    'comentarios_costos' => $canCloseLavadoraDamage ? $registro->comentarios_costos : null,
+                                                    'can_close_damage' => $canCloseLavadoraDamage,
+                                                    'costs_url' => $canAccessLavadoraCosts ? route('analisis-lavadora.costos.manage', ['analisislavadora' => $registro->id]) : null,
+                                                    'correction_url' => $canCloseLavadoraDamage ? route('analisis-lavadora.correccion.update', ['analisislavadora' => $registro->id]) : null,
                                                     'edit_url' => route('analisis-lavadora.edit', [
                                                         'analisislavadora' => $registro->id
                                                     ]),
@@ -2692,7 +2821,7 @@
                                                         
                                                         <div class="mb-2">
                                                             @php
-                                                                $estadoActual = $registro->estado ?? 'Buen estado';
+                                                                $estadoActual = $registro->estado_operativo ?? 'Buen estado';
                                                                 
                                                                 if (str_contains($estadoActual, 'Dañado - Cambiado')) {
                                                                     $statusClass = 'bg-blue-100 text-blue-800 border-blue-200';
@@ -3010,12 +3139,14 @@
                     </h3>
                 </div>
                 <div class="flex items-center gap-2">
-                    <a id="detail-costs-shortcut-btn"
-                       href="#"
-                       class="hidden sm:inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-emerald-700">
-                        <i class="fas fa-sack-dollar"></i>
-                        Administrar costos
-                    </a>
+                    @if($canAccessLavadoraCosts)
+                        <a id="detail-costs-shortcut-btn"
+                           href="#"
+                           class="hidden sm:inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-emerald-700">
+                            <i class="fas fa-sack-dollar"></i>
+                            Administrar costos
+                        </a>
+                    @endif
                     <button onclick="closeAnalysisDetailModal()" 
                             class="w-8 h-8 rounded-lg hover:bg-gray-100 flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors">
                         <i class="fas fa-times"></i>
@@ -3125,6 +3256,169 @@
                         <div id="detail-estado" class="px-6 py-3 bg-green-100 text-green-700 rounded-lg text-sm w-full text-center"></div>
                     </div>
                 </div>
+
+                @if($canCloseLavadoraDamage)
+                <div id="correction-actions-card" class="hidden bg-white rounded-lg p-5 border border-sky-200 shadow-sm md:col-span-2">
+                    <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                        <div class="flex items-start gap-3">
+                            <div class="bg-sky-100 p-2 rounded-lg">
+                                <i class="fas fa-screwdriver-wrench text-sky-600"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold text-gray-700 border-sky-200 border-b-2 uppercase tracking-wider text-sm">Estado de corrección</h4>
+                                <p id="correction-action-help" class="mt-2 text-sm text-gray-600"></p>
+                            </div>
+                        </div>
+                        <span id="detail-correction-badge-compact" class="self-start px-3 py-1 rounded-full bg-slate-100 text-slate-700 text-xs font-semibold"></span>
+                    </div>
+
+                    @if($canCloseLavadoraDamage)
+                        <div id="correction-action-buttons" class="mt-5 flex flex-col gap-3 sm:flex-row">
+                            <form id="correction-good-form" method="POST" class="flex-1">
+                                @csrf
+                                @method('PATCH')
+                                <input type="hidden" name="estado_correccion" value="{{ \App\Models\AnalisisLavadora::CORRECCION_CORREGIDO }}">
+                                <button type="submit" class="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700">
+                                    <i class="fas fa-check-circle"></i>
+                                    Corregido (Buen Estado)
+                                </button>
+                            </form>
+                            <form id="correction-changed-form" method="POST" class="flex-1">
+                                @csrf
+                                @method('PATCH')
+                                <input type="hidden" name="estado_correccion" value="{{ \App\Models\AnalisisLavadora::CORRECCION_COMPONENTE_CAMBIADO }}">
+                                <button type="submit" class="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-700">
+                                    <i class="fas fa-rotate"></i>
+                                    Componente Cambiado
+                                </button>
+                            </form>
+                        </div>
+                    @else
+                        <p class="mt-4 rounded-lg bg-slate-50 px-4 py-3 text-sm text-slate-600 border border-slate-200">Solo Supervisor o Administrador puede cambiar este estado.</p>
+                    @endif
+                </div>
+
+                <div class="hidden">
+                    <div class="flex items-center justify-between gap-3 mb-4">
+                        <div class="flex items-center gap-3">
+                            <div class="bg-sky-100 p-2 rounded-lg">
+                                <i class="fas fa-screwdriver-wrench text-sky-600"></i>
+                            </div>
+                            <h4 class="font-semibold text-gray-700 border-sky-200 border-b-2 uppercase tracking-wider text-sm">Estado de Corrección</h4>
+                        </div>
+                        <span id="detail-correction-badge" class="px-3 py-1 rounded-full bg-slate-100 text-slate-700 text-xs font-semibold"></span>
+                    </div>
+
+                    <form id="correction-status-form" method="POST" enctype="multipart/form-data" class="space-y-4">
+                        @csrf
+                        @method('PATCH')
+
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Estado</label>
+                                <select id="correction-estado" name="estado_correccion" class="correction-field w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
+                                    @foreach($estadoCorreccionOpciones as $value => $label)
+                                        <option value="{{ $value }}">{{ $label }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Fecha de correcciÃ³n</label>
+                                <input id="correction-fecha" name="fecha_correccion" type="datetime-local" class="correction-field w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Tipo de intervenciÃ³n</label>
+                                <input id="correction-tipo" name="tipo_intervencion" type="text" maxlength="255" class="correction-field w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" placeholder="ReparaciÃ³n, ajuste, cambio">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Observaciones de reparaciÃ³n</label>
+                            <textarea id="correction-observaciones" name="observaciones_reparacion" rows="3" maxlength="3000" class="correction-field w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"></textarea>
+                        </div>
+
+                        <div id="component-change-fields" class="hidden rounded-lg border border-blue-100 bg-blue-50 p-4">
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                <div>
+                                    <label class="block text-xs font-semibold text-blue-700 uppercase tracking-wide mb-1">Componente instalado</label>
+                                    <input id="correction-componente-instalado" name="componente_instalado" type="text" maxlength="255" class="correction-field w-full rounded-lg border border-blue-200 px-3 py-2 text-sm">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-blue-700 uppercase tracking-wide mb-1">NÃºmero de parte</label>
+                                    <input id="correction-numero-parte" name="numero_parte" type="text" maxlength="255" class="correction-field w-full rounded-lg border border-blue-200 px-3 py-2 text-sm">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-blue-700 uppercase tracking-wide mb-1">Fecha del cambio</label>
+                                    <input id="correction-fecha-cambio" name="fecha_cambio" type="date" class="correction-field w-full rounded-lg border border-blue-200 px-3 py-2 text-sm">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-blue-700 uppercase tracking-wide mb-1">Proveedor</label>
+                                    <input id="correction-proveedor" name="proveedor" type="text" maxlength="255" class="correction-field w-full rounded-lg border border-blue-200 px-3 py-2 text-sm">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-blue-700 uppercase tracking-wide mb-1">GarantÃ­a</label>
+                                    <input id="correction-garantia" name="garantia" type="text" maxlength="255" class="correction-field w-full rounded-lg border border-blue-200 px-3 py-2 text-sm">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="rounded-lg border border-emerald-100 bg-emerald-50 p-4">
+                            <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+                                <div>
+                                    <label class="block text-xs font-semibold text-emerald-700 uppercase tracking-wide mb-1">Refacciones</label>
+                                    <input id="correction-costo-refacciones" name="costo_refacciones" type="number" min="0" step="0.01" class="correction-field correction-cost-field w-full rounded-lg border border-emerald-200 px-3 py-2 text-sm">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-emerald-700 uppercase tracking-wide mb-1">Mano de obra</label>
+                                    <input id="correction-costo-mano-obra" name="costo_mano_obra" type="number" min="0" step="0.01" class="correction-field correction-cost-field w-full rounded-lg border border-emerald-200 px-3 py-2 text-sm">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-emerald-700 uppercase tracking-wide mb-1">Servicios externos</label>
+                                    <input id="correction-costo-servicios" name="costo_servicios_externos" type="number" min="0" step="0.01" class="correction-field correction-cost-field w-full rounded-lg border border-emerald-200 px-3 py-2 text-sm">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-emerald-700 uppercase tracking-wide mb-1">Total</label>
+                                    <input id="correction-costo-total" name="costo_total_intervencion" type="number" min="0" step="0.01" class="correction-field w-full rounded-lg border border-emerald-200 px-3 py-2 text-sm font-semibold">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-emerald-700 uppercase tracking-wide mb-1">Horas</label>
+                                    <input id="correction-tiempo" name="tiempo_reparacion_horas" type="number" min="0" step="0.01" class="correction-field w-full rounded-lg border border-emerald-200 px-3 py-2 text-sm">
+                                </div>
+                                <div class="md:col-span-3">
+                                    <label class="block text-xs font-semibold text-emerald-700 uppercase tracking-wide mb-1">Responsable del trabajo</label>
+                                    <input id="correction-responsable" name="responsable_trabajo" type="text" maxlength="255" class="correction-field w-full rounded-lg border border-emerald-200 px-3 py-2 text-sm">
+                                </div>
+                            </div>
+                            <div class="mt-3">
+                                <label class="block text-xs font-semibold text-emerald-700 uppercase tracking-wide mb-1">Comentarios adicionales</label>
+                                <textarea id="correction-comentarios" name="comentarios_costos" rows="2" maxlength="3000" class="correction-field w-full rounded-lg border border-emerald-200 px-3 py-2 text-sm"></textarea>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 items-end">
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Evidencias de reparaciÃ³n</label>
+                                <input id="correction-evidencias" name="evidencias_reparacion[]" type="file" multiple accept="image/*" class="correction-field w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
+                            </div>
+                            <div id="correction-readonly-meta" class="text-sm text-gray-600"></div>
+                        </div>
+
+                        <div id="correction-evidence-list" class="hidden flex flex-wrap gap-2"></div>
+
+                        @if($canCloseLavadoraDamage)
+                            <div class="flex justify-end">
+                                <button type="submit" class="inline-flex items-center justify-center gap-2 rounded-lg bg-sky-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-sky-700">
+                                    <i class="fas fa-save"></i>
+                                    Guardar correcciÃ³n
+                                </button>
+                            </div>
+                        @else
+                            <p class="rounded-lg bg-slate-50 px-4 py-3 text-sm text-slate-600 border border-slate-200">Solo Supervisor o Administrador puede modificar esta informaciÃ³n.</p>
+                        @endif
+                    </form>
+                </div>
+
+                @endif
 
                 <div class="bg-white rounded-lg p-5 border border-gray-200 shadow-sm">
                     <div class="flex items-center gap-3 mb-4">
@@ -3276,6 +3570,9 @@ let currentAnalysisData = null;
 let currentImageIndex = 0;
 const SEARCH_COMPONENT_CODE = @json($componenteBuscado ?? null);
 const OPEN_ANALYSIS_DATA = @json($openAnalysisData ?? null);
+const CAN_CLOSE_LAVADORA_DAMAGE = @json($canCloseLavadoraDamage);
+const CORRECTION_PENDING = @json(\App\Models\AnalisisLavadora::CORRECCION_PENDIENTE);
+const CORRECTION_COMPONENT_CHANGED = @json(\App\Models\AnalisisLavadora::CORRECCION_COMPONENTE_CAMBIADO);
 
 /*
 |--------------------------------------------------------------------------
@@ -3638,7 +3935,8 @@ function openAnalysisDetail(analysisData) {
     document.getElementById('detail-usuario').textContent = `Realizado por: ${analysisData.usuario_nombre || 'Usuario no registrado'}`;
     
     const estadoElement = document.getElementById('detail-estado');
-    estadoElement.textContent = analysisData.estado;
+    const estadoOperativo = analysisData.estado_operativo_label || analysisData.estado_operativo || analysisData.estado || 'Sin estado';
+    const estadoOriginal = analysisData.estado || '';
     
     let bgClass = 'bg-gray-800';
     if (analysisData.color === 'cell-ok') {
@@ -3654,10 +3952,22 @@ function openAnalysisDetail(analysisData) {
     }
     
     estadoElement.className = `px-6 py-3 ${bgClass} text-white rounded-lg font-mono text-sm tracking-wider w-full text-center`;
-    estadoElement.innerHTML = analysisData.estado;
+    estadoElement.innerHTML = escapeHtml(estadoOperativo)
+        + (estadoOriginal && estadoOriginal !== analysisData.estado_operativo
+            ? `<div class="mt-1 text-[11px] opacity-90">Original: ${escapeHtml(estadoOriginal)}</div>`
+            : '');
     
-    document.getElementById('detail-costs-shortcut-btn').href = analysisData.costs_url;
+    const costsShortcutBtn = document.getElementById('detail-costs-shortcut-btn');
+    if (costsShortcutBtn) {
+        if (analysisData.costs_url) {
+            costsShortcutBtn.href = analysisData.costs_url;
+            costsShortcutBtn.classList.remove('hidden');
+        } else {
+            costsShortcutBtn.classList.add('hidden');
+        }
+    }
     document.getElementById('detail-edit-btn').href = analysisData.edit_url;
+    populateCorrectionForm(analysisData);
     const historialBtn = document.getElementById('detail-historial-btn');
     const historialText = document.getElementById('detail-historial-text');
 
@@ -3679,8 +3989,121 @@ function openAnalysisDetail(analysisData) {
     }
     
     document.getElementById('analysisDetailModal').classList.remove('hidden');
+    document.getElementById('analysisDetailModal').classList.add('flex');
     document.body.style.overflow = 'hidden';
     hideLoading();
+}
+
+function setCorrectionValue(id, value) {
+    const element = document.getElementById(id);
+
+    if (!element) {
+        return;
+    }
+
+    element.value = value ?? '';
+}
+
+function setCorrectionMoney(id, value) {
+    const number = Number(value || 0);
+    setCorrectionValue(id, number > 0 ? number.toFixed(2) : '');
+}
+
+function toggleComponentChangeFields() {
+    const estado = document.getElementById('correction-estado')?.value || CORRECTION_PENDING;
+    const section = document.getElementById('component-change-fields');
+
+    if (!section) {
+        return;
+    }
+
+    section.classList.toggle('hidden', estado !== CORRECTION_COMPONENT_CHANGED);
+}
+
+function updateCorrectionTotalFromBreakdown() {
+    const totalField = document.getElementById('correction-costo-total');
+
+    if (!totalField || totalField.disabled) {
+        return;
+    }
+
+    const ids = ['correction-costo-refacciones', 'correction-costo-mano-obra', 'correction-costo-servicios'];
+    const total = ids.reduce((sum, id) => sum + Number(document.getElementById(id)?.value || 0), 0);
+
+    totalField.value = total > 0 ? total.toFixed(2) : '';
+}
+
+function buildCorrectionEvidenceList(paths) {
+    const list = document.getElementById('correction-evidence-list');
+    const evidencias = normalizeEvidenceImages(paths);
+
+    if (!list) {
+        return;
+    }
+
+    if (evidencias.length === 0) {
+        list.classList.add('hidden');
+        list.innerHTML = '';
+        return;
+    }
+
+    list.classList.remove('hidden');
+    list.innerHTML = evidencias.map((path, index) => {
+        const url = resolveEvidenceImageUrl(path);
+        return `
+            <a href="${url}" target="_blank" rel="noopener" class="inline-flex items-center gap-2 rounded-lg bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-200">
+                <i class="fas fa-paperclip"></i>
+                Evidencia ${index + 1}
+            </a>
+        `;
+    }).join('');
+}
+
+function populateCorrectionForm(analysisData) {
+    const card = document.getElementById('correction-actions-card');
+
+    if (!card) {
+        return;
+    }
+
+    const shouldShowActions = Boolean(analysisData.can_show_correction_actions);
+    card.classList.toggle('hidden', !shouldShowActions);
+
+    if (!shouldShowActions) {
+        return;
+    }
+
+    const actionUrl = analysisData.correction_url || '#';
+    const goodForm = document.getElementById('correction-good-form');
+    const changedForm = document.getElementById('correction-changed-form');
+
+    if (goodForm) {
+        goodForm.action = actionUrl;
+    }
+
+    if (changedForm) {
+        changedForm.action = actionUrl;
+    }
+
+    const estadoCorreccion = analysisData.estado_correccion || CORRECTION_PENDING;
+    const badge = document.getElementById('detail-correction-badge-compact');
+    const badgeLabel = analysisData.estado_correccion_label || 'Pendiente de corregir';
+    const badgeClass = estadoCorreccion === CORRECTION_PENDING
+        ? 'bg-amber-100 text-amber-800'
+        : (estadoCorreccion === CORRECTION_COMPONENT_CHANGED ? 'bg-blue-100 text-blue-800' : 'bg-emerald-100 text-emerald-800');
+
+    if (badge) {
+        badge.className = `px-3 py-1 rounded-full ${badgeClass} text-xs font-semibold`;
+        badge.textContent = badgeLabel;
+    }
+
+    const help = document.getElementById('correction-action-help');
+
+    if (help) {
+        help.textContent = CAN_CLOSE_LAVADORA_DAMAGE && analysisData.can_close_damage
+            ? ''
+            : 'Este componente tiene una alerta vigente. Solo perfiles autorizados pueden cerrarla administrativamente.';
+    }
 }
 
 function confirmDeleteAnalysis() {
@@ -3983,6 +4406,7 @@ function downloadSingleImage(imagePath, index) {
 
 function closeAnalysisDetailModal() {
     document.getElementById('analysisDetailModal').classList.add('hidden');
+    document.getElementById('analysisDetailModal').classList.remove('flex');
     document.body.style.overflow = '';
 }
 
@@ -4056,6 +4480,11 @@ document.addEventListener('keydown', function(e) {
 });
 
 document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('correction-estado')?.addEventListener('change', toggleComponentChangeFields);
+    document.querySelectorAll('.correction-cost-field').forEach((field) => {
+        field.addEventListener('input', updateCorrectionTotalFromBreakdown);
+    });
+
     if (window.location.hash === '#new') {
         const newCell = document.querySelector('.badge-new');
         if (newCell) {

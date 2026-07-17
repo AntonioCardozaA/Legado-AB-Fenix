@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\Linea;
-use App\Models\User;
 use Illuminate\Http\Request;
 
 class LineaController extends Controller
@@ -11,11 +10,6 @@ class LineaController extends Controller
     /**
      * Constructor: aplica middleware de autenticación y roles
      */
-    public function __construct()
-    {
-        $this->middleware(['auth', 'role:' . implode('|', User::elevatedMaintenanceRoles())]);
-    }
-
     /**
      * Listar todas las líneas
      */

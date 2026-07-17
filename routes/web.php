@@ -63,7 +63,7 @@ Route::prefix('lavadoras/diagramas')->name('lavadoras.diagramas.')->group(functi
 | RUTAS PROTEGIDAS
 |--------------------------------------------------------------------------
 */
-Route::middleware(['auth', 'pasteurizadora.access', 'technician.access'])->group(function () {
+Route::middleware(['auth', 'pasteurizadora.access', 'technician.access', 'custom.permission.access'])->group(function () {
 
     /*
     |--------------------------------------------------------------------------
@@ -138,8 +138,7 @@ Route::prefix('pasteurizadora')->group(function () {
     | ADMINISTRACION DE USUARIOS
     |--------------------------------------------------------------------------
     */
-    Route::middleware(['role:admin'])
-        ->prefix('admin/usuarios')
+    Route::prefix('admin/usuarios')
         ->name('admin.users.')
         ->controller(AdminUserController::class)
         ->group(function () {
@@ -147,10 +146,10 @@ Route::prefix('pasteurizadora')->group(function () {
             Route::post('/', 'store')->name('store');
             Route::get('/{user}/editar', 'edit')->name('edit');
             Route::put('/{user}', 'update')->name('update');
+            Route::patch('/{user}/permisos', 'updatePermissions')->name('permissions.update');
         });
 
-    Route::middleware(['role:admin'])
-        ->prefix('admin/control-gastos')
+    Route::prefix('admin/control-gastos')
         ->name('admin.costos.')
         ->controller(ControlGastosController::class)
         ->group(function () {
@@ -176,10 +175,8 @@ Route::prefix('pasteurizadora')->group(function () {
         ->group(function () {
             Route::get('/', 'index')->name('index');
 
-            Route::middleware(['role:' . implode('|', User::elevatedMaintenanceRoles())])->group(function () {
-                Route::post('/reset-estadisticas', 'resetEstadisticas')->name('reset-estadisticas');
-                Route::get('/check-reset-status', 'checkResetStatus')->name('check-reset-status');
-            });
+            Route::post('/reset-estadisticas', 'resetEstadisticas')->name('reset-estadisticas');
+            Route::get('/check-reset-status', 'checkResetStatus')->name('check-reset-status');
         });
 
     /*
@@ -217,6 +214,10 @@ Route::prefix('pasteurizadora')->group(function () {
             Route::put('/{analisislavadora}', 'update')
                 ->where('analisislavadora', '[0-9]+')
                 ->name('update');
+
+            Route::patch('/{analisislavadora}/correccion', 'updateCorrectionStatus')
+                ->where('analisislavadora', '[0-9]+')
+                ->name('correccion.update');
 
             Route::delete('/{analisislavadora}', 'destroy')
                 ->where('analisislavadora', '[0-9]+')
@@ -553,7 +554,8 @@ Route::prefix('pasteurizadora')->group(function () {
     Route::post('/plan-accion/lavadora/destroy', [PlanAccionController::class, 'destroyPlanAccion'])
         ->name('plan-accion.lavadora.destroy');
 
-    Route::post('/plan-accion/{id}/checklist', [PlanAccionController::class, 'checklist']);
+    Route::post('/plan-accion/{id}/checklist', [PlanAccionController::class, 'checklist'])
+        ->name('plan-accion.checklist');
 
     Route::resource('plan-accion', PlanAccionController::class);
 
@@ -602,12 +604,10 @@ Route::prefix('pasteurizadora')->group(function () {
     | LÍNEAS
     |--------------------------------------------------------------------------
     */
-    Route::middleware(['role:' . implode('|', User::elevatedMaintenanceRoles())])->group(function () {
-        Route::resource('lineas', LineaController::class);
+    Route::resource('lineas', LineaController::class);
 
-        Route::patch('/lineas/{linea}/toggle', [LineaController::class, 'toggleActivo'])
-            ->name('lineas.toggle');
-    });
+    Route::patch('/lineas/{linea}/toggle', [LineaController::class, 'toggleActivo'])
+        ->name('lineas.toggle');
 
     /*
     |--------------------------------------------------------------------------
@@ -641,7 +641,7 @@ Route::prefix('pasteurizadora')->group(function () {
 | ELONGACIONES SIN AUTH
 |--------------------------------------------------------------------------
 */
-Route::middleware(['web'])
+Route::middleware(['web', 'auth', 'custom.permission.access'])
     ->prefix('elongaciones')
     ->name('elongaciones.')
     ->controller(ElongacionController::class)

@@ -8,7 +8,7 @@
 @include('etiquetadora.analisis-etiquetadora.partials.industrial-styles')
 
 @php
-    $canDeleteAnalysis = $canDeleteAnalysis ?? (auth()->user()?->canDeleteAnalysis() ?? false);
+    $canDeleteAnalysis = $canDeleteAnalysis ?? (auth()->user()?->canDeleteEtiquetadoraAnalysis() ?? false);
     $lineas = $lineas ?? collect();
     $maquinas = collect($maquinas ?? ['A', 'B', 'C']);
     $grupos = collect($grupos ?? []);

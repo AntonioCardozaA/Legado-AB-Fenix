@@ -37,7 +37,8 @@ class ElongacionCycleTest extends TestCase
             'created_at' => now(),
         ]);
 
-        $response = $this->get(route('elongaciones.index'));
+        $response = $this->actingAs(User::factory()->create())
+            ->get(route('elongaciones.index'));
 
         $response->assertOk();
 
@@ -68,7 +69,8 @@ class ElongacionCycleTest extends TestCase
             'updated_at' => '2026-05-09 18:00:00',
         ]);
 
-        $response = $this->get(route('elongaciones.index', ['linea' => 'L-04']));
+        $response = $this->actingAs(User::factory()->create())
+            ->get(route('elongaciones.index', ['linea' => 'L-04']));
 
         $response->assertOk();
         $response->assertViewHas('latestAlertableRecordIds', function (array $ids) use ($registroAnterior, $registroVigente): bool {
@@ -97,7 +99,8 @@ class ElongacionCycleTest extends TestCase
             'updated_at' => '2026-05-01 18:00:00',
         ]);
 
-        $response = $this->get(route('elongaciones.index', ['linea' => 'L-05']));
+        $response = $this->actingAs(User::factory()->create())
+            ->get(route('elongaciones.index', ['linea' => 'L-05']));
 
         $response->assertOk();
 
@@ -116,7 +119,8 @@ class ElongacionCycleTest extends TestCase
             'instalada_en' => now()->subDays(10),
         ]);
 
-        $response = $this->post(route('elongaciones.store'), $this->payloadBase('L-04', [
+        $response = $this->actingAs(User::factory()->create())
+            ->post(route('elongaciones.store'), $this->payloadBase('L-04', [
             'linea' => 'L-04',
             'nueva_cadena' => 1,
             'proveedor' => 'Proveedor nuevo',
@@ -155,7 +159,8 @@ class ElongacionCycleTest extends TestCase
             'hodometro_inicial' => 1000,
         ]);
 
-        $response = $this->post(route('elongaciones.store'), $this->payloadBase('L-05', [
+        $response = $this->actingAs(User::factory()->create())
+            ->post(route('elongaciones.store'), $this->payloadBase('L-05', [
             'linea' => 'L-05',
             'hodometro' => 1300,
         ]));
@@ -185,7 +190,7 @@ class ElongacionCycleTest extends TestCase
             $payload["vapor_{$i}"] = 175.3;
         }
 
-        $response = $this->post(route('elongaciones.store'), $payload);
+        $response = $this->actingAs($user)->post(route('elongaciones.store'), $payload);
 
         $response->assertRedirect(route('elongaciones.index', ['linea' => 'L-04']));
 
@@ -214,7 +219,7 @@ class ElongacionCycleTest extends TestCase
             $payload["vapor_{$i}"] = 175.6;
         }
 
-        $response = $this->post(route('elongaciones.store'), $payload);
+        $response = $this->actingAs($user)->post(route('elongaciones.store'), $payload);
 
         $response->assertRedirect(route('elongaciones.index', ['linea' => 'L-04']));
 

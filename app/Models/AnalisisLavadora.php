@@ -16,6 +16,17 @@ class AnalisisLavadora extends Model
     use HasFactory, UppercasesActividad;
 
     public const TIPO_EQUIPO = 'lavadora';
+    public const COMPONENTE_CODIGOS_BASE = [
+        'RV200_SIN_FIN',
+        'SERVO_CHICO',
+        'SERVO_GRANDE',
+        'BUJE_ESPIGA',
+        'GUI_INF_TANQUE',
+        'GUI_INT_TANQUE',
+        'GUI_SUP_TANQUE',
+        'CATARINAS',
+        'RV200',
+    ];
     public const ESTADO_BUENO = 'Buen estado';
     public const ESTADO_REQUIERE_REVISION = 'Requiere revisión';
     public const ESTADOS_DESGASTE = ['Desgaste moderado', 'Desgaste severo'];
@@ -29,6 +40,14 @@ class AnalisisLavadora extends Model
         self::ESTADO_DANADO,
         self::ESTADO_CAMBIADO,
     ];
+    public const CORRECCION_PENDIENTE = 'pendiente_corregir';
+    public const CORRECCION_CORREGIDO = 'corregido_buen_estado';
+    public const CORRECCION_COMPONENTE_CAMBIADO = 'componente_cambiado';
+    public const ESTADOS_CORRECCION = [
+        self::CORRECCION_PENDIENTE,
+        self::CORRECCION_CORREGIDO,
+        self::CORRECCION_COMPONENTE_CAMBIADO,
+    ];
 
     protected $table = 'analisis_componentes';
 
@@ -40,6 +59,24 @@ class AnalisisLavadora extends Model
         'fecha_analisis',
         'numero_orden',
         'estado',
+        'estado_correccion',
+        'fecha_correccion',
+        'corregido_por',
+        'observaciones_reparacion',
+        'evidencias_reparacion',
+        'tipo_intervencion',
+        'componente_instalado',
+        'numero_parte',
+        'proveedor',
+        'garantia',
+        'fecha_cambio',
+        'costo_refacciones',
+        'costo_mano_obra',
+        'costo_servicios_externos',
+        'costo_total_intervencion',
+        'tiempo_reparacion_horas',
+        'responsable_trabajo',
+        'comentarios_costos',
         'actividad',
         'usuario_id',
         'evidencia_fotos',
@@ -49,7 +86,15 @@ class AnalisisLavadora extends Model
 
     protected $casts = [
         'evidencia_fotos' => 'array',
+        'evidencias_reparacion' => 'array',
         'fecha_analisis' => 'date',
+        'fecha_correccion' => 'datetime',
+        'fecha_cambio' => 'date',
+        'costo_refacciones' => 'float',
+        'costo_mano_obra' => 'float',
+        'costo_servicios_externos' => 'float',
+        'costo_total_intervencion' => 'float',
+        'tiempo_reparacion_horas' => 'float',
     ];
 
     protected static function booted(): void
@@ -78,6 +123,15 @@ class AnalisisLavadora extends Model
         ];
     }
 
+    public static function getEstadoCorreccionOpciones(): array
+    {
+        return [
+            self::CORRECCION_PENDIENTE => 'Pendiente de corregir',
+            self::CORRECCION_CORREGIDO => 'Corregido (Buen Estado)',
+            self::CORRECCION_COMPONENTE_CAMBIADO => 'Componente Cambiado',
+        ];
+    }
+
     public static function esEstadoBueno(?string $estado): bool
     {
         return $estado === self::ESTADO_BUENO;
@@ -101,6 +155,41 @@ class AnalisisLavadora extends Model
     public static function esEstadoCambiado(?string $estado): bool
     {
         return $estado === self::ESTADO_CAMBIADO;
+    }
+
+    public static function requiereCierreAdministrativo(?string $estado): bool
+    {
+        return self::esEstadoDanado($estado)
+            || self::esEstadoDesgaste($estado)
+            || self::esEstadoRequiereRevision($estado);
+    }
+
+    public function getEstadoCorreccionAttribute($value): string
+    {
+        return $value ?: self::CORRECCION_PENDIENTE;
+    }
+
+    public function getEstadoCorreccionLabelAttribute(): string
+    {
+        return self::getEstadoCorreccionOpciones()[$this->estado_correccion] ?? 'Pendiente de corregir';
+    }
+
+    public function getEstadoOperativoAttribute(): string
+    {
+        return match ($this->estado_correccion) {
+            self::CORRECCION_CORREGIDO => self::ESTADO_BUENO,
+            self::CORRECCION_COMPONENTE_CAMBIADO => self::ESTADO_CAMBIADO,
+            default => $this->estado ?: self::ESTADO_BUENO,
+        };
+    }
+
+    public function getEstadoOperativoLabelAttribute(): string
+    {
+        if ($this->estado_operativo === $this->estado) {
+            return $this->estado_operativo;
+        }
+
+        return $this->estado_operativo . ' (por cierre administrativo)';
     }
 
     /**
@@ -150,6 +239,47 @@ class AnalisisLavadora extends Model
         $this->attributes['evidencia_fotos'] = json_encode([$value]);
     }
 
+    public function getEvidenciasReparacionAttribute($value): array
+    {
+        if (is_array($value)) {
+            return $value;
+        }
+
+        if (is_null($value) || $value === '') {
+            return [];
+        }
+
+        $decoded = json_decode($value, true);
+
+        if (is_array($decoded)) {
+            return $decoded;
+        }
+
+        return [$value];
+    }
+
+    public function setEvidenciasReparacionAttribute($value): void
+    {
+        if (is_null($value) || $value === '') {
+            $this->attributes['evidencias_reparacion'] = json_encode([]);
+            return;
+        }
+
+        if (is_array($value)) {
+            $this->attributes['evidencias_reparacion'] = json_encode(array_values($value));
+            return;
+        }
+
+        $decoded = json_decode($value, true);
+
+        if (is_array($decoded)) {
+            $this->attributes['evidencias_reparacion'] = json_encode(array_values($decoded));
+            return;
+        }
+
+        $this->attributes['evidencias_reparacion'] = json_encode([$value]);
+    }
+
     public function linea(): BelongsTo
     {
         return $this->belongsTo(Linea::class);
@@ -163,6 +293,11 @@ class AnalisisLavadora extends Model
     public function usuario(): BelongsTo
     {
         return $this->belongsTo(User::class, 'usuario_id');
+    }
+
+    public function usuarioCorreccion(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'corregido_por');
     }
 
     public function analisisGeneral(): BelongsTo
@@ -207,22 +342,65 @@ class AnalisisLavadora extends Model
         return $query;
     }
 
+    public function scopeOrdenVigente(Builder $query): Builder
+    {
+        return $query
+            ->orderByRaw("COALESCE(" . $this->qualifyColumn('fecha_analisis') . ", " . $this->qualifyColumn('created_at') . ", '1000-01-01') DESC")
+            ->orderByDesc($this->qualifyColumn('id'));
+    }
+
+    public function scopeEstadoOperativo(Builder $query, mixed $estado): Builder
+    {
+        if (!$estado) {
+            return $query;
+        }
+
+        $estadoCorreccion = $this->qualifyColumn('estado_correccion');
+        $estadoOriginal = $this->qualifyColumn('estado');
+
+        return $query->whereRaw(
+            "CASE
+                WHEN COALESCE({$estadoCorreccion}, ?) = ? THEN ?
+                WHEN COALESCE({$estadoCorreccion}, ?) = ? THEN ?
+                ELSE {$estadoOriginal}
+            END = ?",
+            [
+                self::CORRECCION_PENDIENTE,
+                self::CORRECCION_CORREGIDO,
+                self::ESTADO_BUENO,
+                self::CORRECCION_PENDIENTE,
+                self::CORRECCION_COMPONENTE_CAMBIADO,
+                self::ESTADO_CAMBIADO,
+                $estado,
+            ]
+        );
+    }
+
     public function scopeUltimosPorComponente(Builder $query): Builder
     {
+        $fechaActual = "COALESCE(actual.fecha_analisis, actual.created_at, '1000-01-01')";
+        $fechaMasReciente = "COALESCE(mas_reciente.fecha_analisis, mas_reciente.created_at, '1000-01-01')";
+        $codigoActual = self::sqlCodigoBaseComponente('componente_actual');
+        $codigoMasReciente = self::sqlCodigoBaseComponente('componente_mas_reciente');
+
         $latestIds = DB::table('analisis_componentes as actual')
-            ->leftJoin('analisis_componentes as mas_reciente', function ($join) {
-                $join->on('actual.linea_id', '=', 'mas_reciente.linea_id')
-                    ->on('actual.componente_id', '=', 'mas_reciente.componente_id')
-                    ->on('actual.reductor', '=', 'mas_reciente.reductor')
-                    ->whereRaw("COALESCE(actual.lado, '') = COALESCE(mas_reciente.lado, '')")
+            ->leftJoin('componentes as componente_actual', 'actual.componente_id', '=', 'componente_actual.id')
+            ->whereNotExists(function ($subQuery) use ($fechaActual, $fechaMasReciente, $codigoActual, $codigoMasReciente): void {
+                $subQuery->selectRaw('1')
+                    ->from('analisis_componentes as mas_reciente')
+                    ->leftJoin('componentes as componente_mas_reciente', 'mas_reciente.componente_id', '=', 'componente_mas_reciente.id')
+                    ->whereColumn('mas_reciente.linea_id', 'actual.linea_id')
+                    ->whereRaw("COALESCE(mas_reciente.reductor, '') = COALESCE(actual.reductor, '')")
+                    ->whereRaw("COALESCE(mas_reciente.lado, '') = COALESCE(actual.lado, '')")
+                    ->whereRaw($codigoMasReciente . ' = ' . $codigoActual)
                     ->where(function ($query) {
                         $query->where('mas_reciente.tipo_equipo', self::TIPO_EQUIPO)
                             ->orWhereNull('mas_reciente.tipo_equipo');
                     })
-                    ->where(function ($subQuery) {
-                        $subQuery->whereColumn('mas_reciente.fecha_analisis', '>', 'actual.fecha_analisis')
-                            ->orWhere(function ($tieBreaker) {
-                                $tieBreaker->whereColumn('mas_reciente.fecha_analisis', '=', 'actual.fecha_analisis')
+                    ->where(function ($dateQuery) use ($fechaActual, $fechaMasReciente) {
+                        $dateQuery->whereRaw($fechaMasReciente . ' > ' . $fechaActual)
+                            ->orWhere(function ($tieBreaker) use ($fechaActual, $fechaMasReciente) {
+                                $tieBreaker->whereRaw($fechaMasReciente . ' = ' . $fechaActual)
                                     ->whereColumn('mas_reciente.id', '>', 'actual.id');
                             });
                     });
@@ -231,10 +409,40 @@ class AnalisisLavadora extends Model
                 $query->where('actual.tipo_equipo', self::TIPO_EQUIPO)
                     ->orWhereNull('actual.tipo_equipo');
             })
-            ->whereNull('mas_reciente.id')
             ->select('actual.id');
 
         return $query->whereIn($this->qualifyColumn('id'), $latestIds);
+    }
+
+    public static function codigoBaseComponente(?string $codigo): string
+    {
+        $codigo = strtoupper(trim((string) $codigo));
+
+        foreach (self::COMPONENTE_CODIGOS_BASE as $codigoBase) {
+            if (
+                $codigo === $codigoBase
+                || str_starts_with($codigo, $codigoBase . '_')
+                || str_ends_with($codigo, '_' . $codigoBase)
+                || str_contains($codigo, '_' . $codigoBase . '_')
+                || str_contains($codigo, $codigoBase)
+            ) {
+                return $codigoBase;
+            }
+        }
+
+        return $codigo;
+    }
+
+    private static function sqlCodigoBaseComponente(string $alias): string
+    {
+        $codigo = 'UPPER(COALESCE(' . $alias . ".codigo, ''))";
+        $cases = [];
+
+        foreach (self::COMPONENTE_CODIGOS_BASE as $codigoBase) {
+            $cases[] = "WHEN {$codigo} = '{$codigoBase}' OR {$codigo} LIKE '%{$codigoBase}%' THEN '{$codigoBase}'";
+        }
+
+        return 'CASE ' . implode(' ', $cases) . ' ELSE ' . $codigo . ' END';
     }
 
     public function planAccion(): HasMany

@@ -60,6 +60,7 @@ use Spatie\Permission\Middleware\PermissionMiddleware;
 use Spatie\Permission\Middleware\RoleOrPermissionMiddleware;
 use App\Http\Middleware\EnsureTechnicianAccess;
 use App\Http\Middleware\EnsurePasteurizadoraAccess;
+use App\Http\Middleware\EnsureCustomPermissionAccess;
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
         web: __DIR__.'/../routes/web.php',
@@ -73,6 +74,7 @@ return Application::configure(basePath: dirname(__DIR__))
         'role_or_permission' => RoleOrPermissionMiddleware::class,
         'technician.access' => EnsureTechnicianAccess::class,
         'pasteurizadora.access' => EnsurePasteurizadoraAccess::class,
+        'custom.permission.access' => EnsureCustomPermissionAccess::class,
          ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

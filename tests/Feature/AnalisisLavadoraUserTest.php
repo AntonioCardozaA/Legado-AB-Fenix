@@ -87,6 +87,71 @@ class AnalisisLavadoraUserTest extends TestCase
         $response->assertSee('search-target-cell', false);
     }
 
+    public function test_index_visual_data_uses_latest_analysis_only(): void
+    {
+        $user = User::factory()->create();
+        $linea = Linea::create([
+            'nombre' => 'L-04',
+            'descripcion' => 'Lavadora de prueba',
+            'activo' => true,
+        ]);
+        $componenteHistorico = Componente::create([
+            'codigo' => 'L04_reductor_1_GUI_INT_TANQUE',
+            'nombre' => 'Guia Intermedia',
+            'linea' => 'L-04',
+            'reductor' => 'Reductor 1',
+            'ubicacion' => 'Reductor 1',
+            'cantidad_total' => 1,
+            'activo' => true,
+        ]);
+        $componenteVigente = Componente::create([
+            'codigo' => 'GUI_INT_TANQUE_L_04',
+            'nombre' => 'Guia Intermedia',
+            'linea' => 'L-04',
+            'reductor' => 'Reductor 1',
+            'ubicacion' => 'Reductor 1',
+            'cantidad_total' => 1,
+            'activo' => true,
+        ]);
+
+        AnalisisLavadora::create([
+            'linea_id' => $linea->id,
+            'componente_id' => $componenteHistorico->id,
+            'reductor' => 'Reductor 1',
+            'fecha_analisis' => '2026-07-10',
+            'numero_orden' => 'OT-LAV-OLD',
+            'estado' => AnalisisLavadora::ESTADO_DANADO,
+            'actividad' => 'Registro historico danado',
+            'usuario_id' => $user->id,
+        ]);
+
+        $vigente = AnalisisLavadora::create([
+            'linea_id' => $linea->id,
+            'componente_id' => $componenteVigente->id,
+            'reductor' => 'Reductor 1',
+            'fecha_analisis' => '2026-07-11',
+            'numero_orden' => 'OT-LAV-NEW',
+            'estado' => AnalisisLavadora::ESTADO_BUENO,
+            'actividad' => 'Registro vigente bueno',
+            'usuario_id' => $user->id,
+        ]);
+
+        $response = $this->actingAs($user)->get(route('analisis-lavadora.index', [
+            'linea_id' => $linea->id,
+        ]));
+
+        $response->assertOk();
+
+        $analisis = collect($response->viewData('analisis'));
+        $estadisticas = $response->viewData('estadisticas');
+
+        $this->assertSame([$vigente->id], $analisis->pluck('id')->all());
+        $this->assertSame(2, (int) $analisis->first()->total_historial);
+        $this->assertSame(1, $estadisticas['total']);
+        $this->assertSame(1, $estadisticas['buen_estado']);
+        $this->assertSame(0, $estadisticas['danado_requiere']);
+    }
+
     public function test_authorized_role_can_update_analysis_date_and_creates_audit_record(): void
     {
         $user = User::factory()->create();

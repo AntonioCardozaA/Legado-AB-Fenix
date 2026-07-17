@@ -26,6 +26,7 @@ class RoleSeeder extends Seeder
             'crear analisis',
             'editar analisis',
             User::PERMISSION_DELETE_ANALYSIS,
+            User::PERMISSION_CLOSE_LAVADORA_DAMAGE,
             'exportar analisis',
             'ver paros',
             'crear paros',
@@ -40,6 +41,14 @@ class RoleSeeder extends Seeder
             'gestionar usuarios',
             'gestionar configuracion',
             User::PERMISSION_EDIT_ANALYSIS_DATE,
+            User::PERMISSION_VIEW_LAVADORA_COST_MODULE,
+            User::PERMISSION_ACCESS_LAVADORA_COSTS,
+            User::PERMISSION_CREATE_LAVADORA_COSTS,
+            User::PERMISSION_EDIT_LAVADORA_COSTS,
+            User::PERMISSION_DELETE_LAVADORA_COSTS,
+            User::PERMISSION_MANAGE_LAVADORA_COSTS,
+            User::customAccessControlPermissionName(),
+            ...User::configurablePermissionNames(),
         ];
 
         // Crear permisos con guard web
@@ -60,9 +69,14 @@ class RoleSeeder extends Seeder
             User::PERMISSION_EDIT_ANALYSIS_DATE,
         ];
         $permisosEspecialesUsuario = [
-            User::PERMISSION_DELETE_ANALYSIS,
+            ...User::configurablePermissionNames(),
         ];
-        $permisosSinPasteurizadora = Permission::whereNotIn('name', array_merge($permisosPasteurizadora, $permisosFechaAnalisis, $permisosEspecialesUsuario))->get();
+        $permisosGerenteExcluidos = array_merge(
+            $permisosPasteurizadora,
+            $permisosFechaAnalisis,
+            $permisosEspecialesUsuario
+        );
+        $permisosSinPasteurizadora = Permission::whereNotIn('name', $permisosGerenteExcluidos)->get();
         $permisosSupervisor = Permission::whereNotIn('name', array_merge($permisosPasteurizadora, $permisosEspecialesUsuario))->get();
         $permisosTecnico = [
             User::PERMISSION_ACCESS_LAVADORA,

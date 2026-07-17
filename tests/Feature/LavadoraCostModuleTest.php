@@ -10,6 +10,7 @@ use App\Models\LavadoraCostEntry;
 use App\Models\Linea;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
@@ -94,6 +95,7 @@ class LavadoraCostModuleTest extends TestCase
     public function test_technician_can_open_lavadora_costs_dashboard(): void
     {
         $user = $this->userWithRole(User::ROLE_TECNICO);
+        $this->enableCustomPermissions($user, [User::PERMISSION_ACCESS_LAVADORA_COSTS]);
 
         $this->actingAs($user)
             ->get(route('lavadora.costos.index'))
@@ -119,6 +121,12 @@ class LavadoraCostModuleTest extends TestCase
     public function test_manual_cost_can_be_added_and_persist_after_analysis_update(): void
     {
         $user = $this->userWithRole(User::ROLE_TECNICO);
+        $this->enableCustomPermissions($user, [
+            'crear analisis lavadora',
+            'editar analisis lavadora',
+            User::PERMISSION_ACCESS_LAVADORA_COSTS,
+            User::PERMISSION_CREATE_LAVADORA_COSTS,
+        ]);
         $linea = $this->createLavadoraLinea();
         $componente = $this->createComponente($linea, 'ZZ_MANUAL_COMPONENT', 'Componente Manual');
         $catalogItem = $this->createCatalogItem('CAT-ZZ-MAN-001', 'Gasto manual de prueba', 450.25, 'Pieza');
@@ -171,6 +179,11 @@ class LavadoraCostModuleTest extends TestCase
     public function test_automatic_rule_can_be_disabled_and_restored_per_analysis(): void
     {
         $user = $this->userWithRole(User::ROLE_TECNICO);
+        $this->enableCustomPermissions($user, [
+            'crear analisis lavadora',
+            User::PERMISSION_ACCESS_LAVADORA_COSTS,
+            User::PERMISSION_EDIT_LAVADORA_COSTS,
+        ]);
         $linea = $this->createLavadoraLinea();
         $componente = $this->createComponente($linea, 'ZZ_RULE_COMPONENT', 'Componente Regla');
         $catalogItem = $this->createCatalogItem('CAT-ZZ-RULE-001', 'Costo automatico reversible', 999.99, 'Pieza');
@@ -239,6 +252,10 @@ class LavadoraCostModuleTest extends TestCase
     public function test_historical_analysis_can_sync_missing_automatic_costs(): void
     {
         $user = $this->userWithRole(User::ROLE_TECNICO);
+        $this->enableCustomPermissions($user, [
+            User::PERMISSION_ACCESS_LAVADORA_COSTS,
+            User::PERMISSION_EDIT_LAVADORA_COSTS,
+        ]);
         $linea = $this->createLavadoraLinea();
         $componente = $this->createComponente($linea, 'ZZ_SYNC_COMPONENT', 'Componente Historico');
         $catalogItem = $this->createCatalogItem('CAT-ZZ-SYNC-001', 'Costo historico recuperable', 777.77, 'Pieza');
@@ -278,6 +295,68 @@ class LavadoraCostModuleTest extends TestCase
             'source_type' => CostAutomationRule::TRIGGER_ESTADO_CAMBIADO,
             'total_cost' => 777.77,
         ]);
+    }
+
+    public function test_supervisor_can_close_damage_without_registering_cost_from_modal(): void
+    {
+        $supervisor = $this->userWithRole(User::ROLE_SUPERVISOR);
+        $this->enableCustomPermissions($supervisor, [User::PERMISSION_CLOSE_LAVADORA_DAMAGE]);
+        $linea = $this->createLavadoraLinea();
+        $componente = $this->createComponente($linea, 'ZZ_DAMAGE_COMPONENT', 'Componente Danado');
+        $analysis = AnalisisLavadora::query()->create([
+            'linea_id' => $linea->id,
+            'componente_id' => $componente->id,
+            'reductor' => 'Reductor 1',
+            'fecha_analisis' => '2026-07-10',
+            'numero_orden' => 'OT-CLOSE-001',
+            'estado' => AnalisisLavadora::ESTADO_DANADO,
+            'actividad' => 'DANO DETECTADO EN COMPONENTE',
+            'usuario_id' => $supervisor->id,
+        ]);
+
+        $this->actingAs($supervisor)->patch(route('analisis-lavadora.correccion.update', ['analisislavadora' => $analysis->id]), [
+            'estado_correccion' => AnalisisLavadora::CORRECCION_CORREGIDO,
+        ])->assertSessionHas('success');
+
+        $analysis->refresh();
+
+        $this->assertSame(AnalisisLavadora::CORRECCION_CORREGIDO, $analysis->estado_correccion);
+        $this->assertSame(AnalisisLavadora::ESTADO_DANADO, $analysis->estado);
+        $this->assertSame(AnalisisLavadora::ESTADO_BUENO, $analysis->estado_operativo);
+        $this->assertSame($supervisor->id, $analysis->corregido_por);
+        $this->assertNotNull($analysis->fecha_correccion);
+        $this->assertSame(0.0, (float) $analysis->costo_total_intervencion);
+
+        $this->assertDatabaseMissing('lavadora_cost_entries', [
+            'analisis_lavadora_id' => $analysis->id,
+            'componente_id' => $componente->id,
+            'source_type' => LavadoraCostEntry::SOURCE_DAMAGE_CLOSURE,
+        ]);
+    }
+
+    public function test_technician_cannot_close_damage_administratively(): void
+    {
+        $technician = $this->userWithRole(User::ROLE_TECNICO);
+        $linea = $this->createLavadoraLinea();
+        $componente = $this->createComponente($linea, 'ZZ_FORBIDDEN_COMPONENT', 'Componente Bloqueado');
+        $analysis = AnalisisLavadora::query()->create([
+            'linea_id' => $linea->id,
+            'componente_id' => $componente->id,
+            'reductor' => 'Reductor 1',
+            'fecha_analisis' => '2026-07-10',
+            'numero_orden' => 'OT-CLOSE-002',
+            'estado' => AnalisisLavadora::ESTADO_DANADO,
+            'actividad' => 'DANO DETECTADO EN COMPONENTE',
+            'usuario_id' => $technician->id,
+        ]);
+
+        $this->actingAs($technician)->patch(route('analisis-lavadora.correccion.update', ['analisislavadora' => $analysis->id]), [
+            'estado_correccion' => AnalisisLavadora::CORRECCION_CORREGIDO,
+            'fecha_correccion' => '2026-07-12 10:30:00',
+            'tipo_intervencion' => 'Reparacion mecanica',
+        ])->assertForbidden();
+
+        $this->assertSame(AnalisisLavadora::CORRECCION_PENDIENTE, $analysis->refresh()->estado_correccion);
     }
 
     private function createLavadoraLinea(): Linea
@@ -326,5 +405,17 @@ class LavadoraCostModuleTest extends TestCase
         $user->assignRole($role);
 
         return $user;
+    }
+
+    private function enableCustomPermissions(User $user, array $permissions): void
+    {
+        foreach ([User::customAccessControlPermissionName(), ...$permissions] as $permission) {
+            Permission::firstOrCreate([
+                'name' => $permission,
+                'guard_name' => 'web',
+            ]);
+        }
+
+        $user->givePermissionTo([User::customAccessControlPermissionName(), ...$permissions]);
     }
 }

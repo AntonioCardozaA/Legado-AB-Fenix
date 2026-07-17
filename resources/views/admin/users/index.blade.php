@@ -181,6 +181,7 @@
                 @include('admin.users.partials.create-form', [
                     'isCreateSubmission' => $isCreateSubmission,
                     'roleOptions' => $roleOptions,
+                    'permissionGroups' => $permissionGroups,
                 ])
             </div>
         </div>

@@ -266,10 +266,13 @@ class DashboardController extends Controller
         $rankingDanos = $this->getRankingDanosPorLavadora($todasLasLineasLavadora);
         $evolucionElongaciones = $this->getEvolucionElongaciones($lineasLavadora);
         $historicoRevisiones = $this->getHistoricoRevisiones($lineasLavadora, $analisisHistoricos);
-        $lavadoraCostSummary = app(LavadoraCostAnalyticsService::class)->dashboardData([
-            'preset' => 'anual',
-            'budget_year' => now()->year,
-        ]);
+        $canViewLavadoraCostsModule = $request->user()?->canViewLavadoraCostModule() ?? false;
+        $lavadoraCostSummary = $canViewLavadoraCostsModule
+            ? app(LavadoraCostAnalyticsService::class)->dashboardData([
+                'preset' => 'anual',
+                'budget_year' => now()->year,
+            ])
+            : null;
         $tendenciaDanos = app(TendenciaDanosService::class);
         $analisis52124 = $tendenciaDanos->construirDashboard(
             $lineasLavadora,
@@ -309,6 +312,7 @@ class DashboardController extends Controller
             'evolucionElongaciones',
             'historicoRevisiones',
             'lavadoraCostSummary',
+            'canViewLavadoraCostsModule',
             'analisis52124',
             'analisis30147',
             'trendFilters'
@@ -457,6 +461,7 @@ class DashboardController extends Controller
             TendenciaDanosService::TIPO_LAVADORAS,
             $tendenciaDanos->ventanas30147()
         );
+        $canViewLavadoraCostsModule = $request->user()?->canViewLavadoraCostModule() ?? false;
 
         return view('lavadora.dashboard-lavadora', compact(
             'lineasLavadora',
@@ -468,7 +473,8 @@ class DashboardController extends Controller
             'evolucionElongaciones',
             'historicoRevisiones',
             'analisis52124',
-            'analisis30147'
+            'analisis30147',
+            'canViewLavadoraCostsModule'
         ));
     }
 
@@ -1552,29 +1558,29 @@ public function pasteurizadoraOperativo(Request $request)
         $analisisLinea = AnalisisLavadora::ultimosPorComponente()
             ->where('linea_id', $lineaId)
             ->with('componente')
-            ->orderBy('fecha_analisis', 'desc')
+            ->ordenVigente()
             ->get()
             ->map(fn (AnalisisLavadora $analisis) => $this->attachLavadoraComponentIcon($analisis))
             ->values();
 
         return [
             'critico' => $this->formatLavadoraDashboardAnalyses(
-                $analisisLinea->filter(fn (AnalisisLavadora $analisis) => $this->isLavadoraCriticalState($analisis->estado)),
+                $analisisLinea->filter(fn (AnalisisLavadora $analisis) => $this->isLavadoraCriticalState($analisis->estado_operativo)),
                 'Requiere cambio',
                 'critico'
             ),
             'severo' => $this->formatLavadoraDashboardAnalyses(
-                $analisisLinea->filter(fn (AnalisisLavadora $analisis) => $this->normalizeLavadoraState($analisis->estado) === 'desgaste severo'),
+                $analisisLinea->filter(fn (AnalisisLavadora $analisis) => $this->normalizeLavadoraState($analisis->estado_operativo) === 'desgaste severo'),
                 'Daño severo',
                 'severo'
             ),
             'moderado' => $this->formatLavadoraDashboardAnalyses(
-                $analisisLinea->filter(fn (AnalisisLavadora $analisis) => $this->normalizeLavadoraState($analisis->estado) === 'desgaste moderado'),
+                $analisisLinea->filter(fn (AnalisisLavadora $analisis) => $this->normalizeLavadoraState($analisis->estado_operativo) === 'desgaste moderado'),
                 'Daño moderado',
                 'moderado'
             ),
             'revision' => $this->formatLavadoraDashboardAnalyses(
-                $analisisLinea->filter(fn (AnalisisLavadora $analisis) => $this->isLavadoraReviewState($analisis->estado)),
+                $analisisLinea->filter(fn (AnalisisLavadora $analisis) => $this->isLavadoraReviewState($analisis->estado_operativo)),
                 'Requiere revisión',
                 'revision'
             ),
@@ -1591,7 +1597,8 @@ public function pasteurizadoraOperativo(Request $request)
             ->map(function (AnalisisLavadora $item) use ($estadoLabel, $estadoKey) {
                 return [
                     'id' => $item->id,
-                    'estado' => $item->estado,
+                    'estado' => $item->estado_operativo,
+                    'estado_original' => $item->estado,
                     'estado_label' => $estadoLabel,
                     'estado_key' => $estadoKey,
                     'actividad' => $item->actividad,
@@ -1622,9 +1629,17 @@ public function pasteurizadoraOperativo(Request $request)
         return AnalisisLavadora::ultimosPorComponente()
             ->whereIn('linea_id', $lineasLavadora->pluck('id'))
             ->with(['linea:id,nombre', 'componente:id,nombre,codigo', 'usuario:id,name'])
-            ->orderByDesc('fecha_analisis')
-            ->orderByDesc('id')
-            ->get();
+            ->ordenVigente()
+            ->get()
+            ->map(function (AnalisisLavadora $analisis) {
+                $estadoOriginal = $analisis->estado;
+                $estadoOperativo = $analisis->estado_operativo;
+
+                $analisis->setAttribute('estado_original', $estadoOriginal);
+                $analisis->setAttribute('estado', $estadoOperativo);
+
+                return $analisis;
+            });
     }
 
     /**
@@ -1800,9 +1815,9 @@ public function pasteurizadoraOperativo(Request $request)
         $analisisActuales = $analisisActuales ?: $this->getAnalisisActualesLavadoras($lineasLavadora);
 
         return $analisisActuales
-            ->filter(fn ($analisis) => $this->isLavadoraDamageState($analisis->estado))
+            ->filter(fn ($analisis) => $this->isLavadoraDamageState($analisis->estado_operativo))
             ->map(function ($analisis) {
-                $meta = $this->getLavadoraSeverityMeta($analisis->estado);
+                $meta = $this->getLavadoraSeverityMeta($analisis->estado_operativo);
                 $diasDesdeRevision = $analisis->fecha_analisis
                     ? $analisis->fecha_analisis->copy()->startOfDay()->diffInDays(now()->copy()->startOfDay())
                     : null;
@@ -1814,7 +1829,8 @@ public function pasteurizadoraOperativo(Request $request)
                     'codigo' => optional($analisis->componente)->codigo,
                     'reductor' => $analisis->reductor,
                     'lado' => $analisis->lado,
-                    'estado' => $analisis->estado,
+                    'estado' => $analisis->estado_operativo,
+                    'estado_original' => $analisis->estado,
                     'fecha_analisis' => $analisis->fecha_analisis?->format('Y-m-d'),
                     'fecha_analisis_humana' => $analisis->fecha_analisis?->format('d/m/Y'),
                     'dias_desde_revision' => $diasDesdeRevision,
@@ -1823,7 +1839,7 @@ public function pasteurizadoraOperativo(Request $request)
                     'color' => $meta['color'],
                     'puntaje' => round($meta['score'] + min((int) ($diasDesdeRevision ?? 0), 90) / 30, 2),
                     'icono' => $this->getLavadoraComponentIcon(optional($analisis->componente)->codigo),
-                    'requiere_cambio' => $this->isLavadoraCriticalState($analisis->estado),
+                    'requiere_cambio' => $this->isLavadoraCriticalState($analisis->estado_operativo),
                 ];
             })
             ->sortByDesc(fn ($item) => ($item['puntaje'] * 100) + (($item['dias_desde_revision'] ?? 0) / 10))
@@ -1843,9 +1859,9 @@ public function pasteurizadoraOperativo(Request $request)
         return $lineasLavadora
             ->map(function ($linea) use ($agrupados) {
                 $analisisLinea = $agrupados->get($linea->id, collect());
-                $criticas = $analisisLinea->filter(fn ($item) => $this->isLavadoraCriticalState($item->estado))->count();
-                $severos = $analisisLinea->filter(fn ($item) => $this->normalizeLavadoraState($item->estado) === 'desgaste severo')->count();
-                $moderados = $analisisLinea->filter(fn ($item) => $this->normalizeLavadoraState($item->estado) === 'desgaste moderado')->count();
+                $criticas = $analisisLinea->filter(fn ($item) => $this->isLavadoraCriticalState($item->estado_operativo))->count();
+                $severos = $analisisLinea->filter(fn ($item) => $this->normalizeLavadoraState($item->estado_operativo) === 'desgaste severo')->count();
+                $moderados = $analisisLinea->filter(fn ($item) => $this->normalizeLavadoraState($item->estado_operativo) === 'desgaste moderado')->count();
                 $totalDanos = $criticas + $severos + $moderados;
                 $ultimaRevision = $analisisLinea
                     ->filter(fn ($item) => $item->fecha_analisis)
@@ -1892,10 +1908,10 @@ public function pasteurizadoraOperativo(Request $request)
         return $lineasLavadora
             ->map(function ($linea) use ($agrupados) {
                 $componentes = $agrupados->get($linea->id, collect());
-                $criticas = $componentes->filter(fn ($item) => $this->isLavadoraCriticalState($item->estado))->count();
-                $severasModeradas = $componentes->filter(fn ($item) => $this->isLavadoraSevereState($item->estado))->count();
-                $requiereRevision = $componentes->filter(fn ($item) => $this->isLavadoraReviewState($item->estado))->count();
-                $estables = $componentes->filter(fn ($item) => in_array($this->normalizeLavadoraState($item->estado), ['buen estado', 'cambiado'], true))->count();
+                $criticas = $componentes->filter(fn ($item) => $this->isLavadoraCriticalState($item->estado_operativo))->count();
+                $severasModeradas = $componentes->filter(fn ($item) => $this->isLavadoraSevereState($item->estado_operativo))->count();
+                $requiereRevision = $componentes->filter(fn ($item) => $this->isLavadoraReviewState($item->estado_operativo))->count();
+                $estables = $componentes->filter(fn ($item) => in_array($this->normalizeLavadoraState($item->estado_operativo), ['buen estado', 'cambiado'], true))->count();
                 $impactados = $criticas + $severasModeradas + $requiereRevision;
                 $ultimaRevision = $componentes
                     ->filter(fn ($item) => $item->fecha_analisis)

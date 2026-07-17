@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Models\User;
+use App\Support\AccessPermissionCatalog;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -25,9 +26,28 @@ class EnsureTechnicianAccess
         }
 
         $routeName = $request->route()?->getName();
+        $customPermission = AccessPermissionCatalog::permissionForRoute($routeName, $request->method());
+
+        if (
+            $customPermission
+            && $user->usesCustomPermissionAccess()
+            && $user->canUseCustomPermission($customPermission)
+        ) {
+            return $next($request);
+        }
 
         if ($routeName && Str::startsWith($routeName, 'reportes.')) {
             return $this->denyReportesAccess($request);
+        }
+
+        if ($routeName && Str::startsWith($routeName, 'admin.costos.')) {
+            abort_unless(
+                $user->canAccessLavadoraCosts(),
+                403,
+                'No tienes permiso para acceder al modulo de Costos.'
+            );
+
+            return $next($request);
         }
 
         $allowedExactRoutes = [

@@ -16,6 +16,12 @@ class ControlGastosController extends Controller
 {
     public function index(Request $request)
     {
+        abort_unless(
+            $request->user()?->canAccessLavadoraCosts(),
+            403,
+            'No tienes permiso para acceder al modulo de Costos.'
+        );
+
         $filters = $request->validate([
             'q' => 'nullable|string|max:255',
             'categoria' => 'nullable|string|max:100',
@@ -115,6 +121,12 @@ class ControlGastosController extends Controller
 
     public function storeCatalogItem(Request $request): RedirectResponse
     {
+        abort_unless(
+            $request->user()?->canCreateLavadoraCosts(),
+            403,
+            'No tienes permiso para crear costos de Lavadora.'
+        );
+
         $payload = $this->catalogItemPayload($request);
         $item = CostCatalogItem::query()->create($payload);
 
@@ -125,6 +137,12 @@ class ControlGastosController extends Controller
 
     public function updateCatalogItem(Request $request, CostCatalogItem $item): RedirectResponse
     {
+        abort_unless(
+            $request->user()?->canEditLavadoraCosts(),
+            403,
+            'No tienes permiso para editar costos de Lavadora.'
+        );
+
         $before = $item->only([
             'sku',
             'nombre',
@@ -144,6 +162,12 @@ class ControlGastosController extends Controller
 
     public function toggleCatalogItem(CostCatalogItem $item): RedirectResponse
     {
+        abort_unless(
+            auth()->user()?->canEditLavadoraCosts(),
+            403,
+            'No tienes permiso para editar costos de Lavadora.'
+        );
+
         $before = $item->only([
             'sku',
             'nombre',
@@ -168,6 +192,12 @@ class ControlGastosController extends Controller
 
     public function destroyCatalogItem(CostCatalogItem $item): RedirectResponse
     {
+        abort_unless(
+            auth()->user()?->canDeleteLavadoraCosts(),
+            403,
+            'No tienes permiso para eliminar costos de Lavadora.'
+        );
+
         if ($item->automationRules()->exists() || $item->costEntries()->exists()) {
             return back()->with('error', 'El concepto ya tiene reglas o gastos asociados. Desactivalo en lugar de eliminarlo.');
         }
@@ -191,6 +221,12 @@ class ControlGastosController extends Controller
 
     public function storeRule(Request $request): RedirectResponse
     {
+        abort_unless(
+            $request->user()?->canCreateLavadoraCosts(),
+            403,
+            'No tienes permiso para crear costos de Lavadora.'
+        );
+
         CostAutomationRule::query()->create($this->rulePayload($request));
 
         return back()->with('success', 'Regla de automatizacion creada.');
@@ -198,6 +234,12 @@ class ControlGastosController extends Controller
 
     public function updateRule(Request $request, CostAutomationRule $rule): RedirectResponse
     {
+        abort_unless(
+            $request->user()?->canEditLavadoraCosts(),
+            403,
+            'No tienes permiso para editar costos de Lavadora.'
+        );
+
         $rule->update($this->rulePayload($request, $rule));
 
         return back()->with('success', 'Regla de automatizacion actualizada.');
@@ -205,6 +247,12 @@ class ControlGastosController extends Controller
 
     public function destroyRule(CostAutomationRule $rule): RedirectResponse
     {
+        abort_unless(
+            auth()->user()?->canDeleteLavadoraCosts(),
+            403,
+            'No tienes permiso para eliminar costos de Lavadora.'
+        );
+
         $rule->delete();
 
         return back()->with('success', 'Regla de automatizacion eliminada.');
@@ -212,6 +260,12 @@ class ControlGastosController extends Controller
 
     public function upsertBudget(Request $request): RedirectResponse
     {
+        abort_unless(
+            ($request->user()?->canCreateLavadoraCosts() || $request->user()?->canEditLavadoraCosts()),
+            403,
+            'No tienes permiso para modificar presupuestos de Costos.'
+        );
+
         $validated = $request->validate([
             'linea_id' => 'required|exists:lineas,id',
             'year' => 'required|integer|min:2024|max:2100',

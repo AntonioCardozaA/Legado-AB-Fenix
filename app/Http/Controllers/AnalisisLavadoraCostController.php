@@ -18,8 +18,14 @@ use Illuminate\View\View;
 
 class AnalisisLavadoraCostController extends Controller
 {
-    public function manage(AnalisisLavadora $analisislavadora, LavadoraCostSyncService $costSync): View
+    public function manage(Request $request, AnalisisLavadora $analisislavadora, LavadoraCostSyncService $costSync): View
     {
+        abort_unless(
+            $request->user()?->canAccessLavadoraCosts(),
+            403,
+            'No tienes permiso para acceder al modulo de Costos.'
+        );
+
         $analisislavadora->load(['linea', 'componente', 'usuario']);
 
         $costEntries = LavadoraCostEntry::query()
@@ -55,13 +61,23 @@ class AnalisisLavadoraCostController extends Controller
             'activeAutomaticSuggestionsCount' => $activeAutomaticSuggestionsCount,
             'missingAutomaticEntriesCount' => $missingAutomaticEntriesCount,
             'canSyncAutomaticCosts' => $canSyncAutomaticCosts,
+            'canCreateLavadoraCosts' => $request->user()?->canCreateLavadoraCosts() ?? false,
+            'canEditLavadoraCosts' => $request->user()?->canEditLavadoraCosts() ?? false,
+            'canDeleteLavadoraCosts' => $request->user()?->canDeleteLavadoraCosts() ?? false,
         ]);
     }
 
     public function syncAutomaticCosts(
+        Request $request,
         AnalisisLavadora $analisislavadora,
         LavadoraCostSyncService $costSync
     ): RedirectResponse {
+        abort_unless(
+            $request->user()?->canEditLavadoraCosts(),
+            403,
+            'No tienes permiso para editar costos de Lavadora.'
+        );
+
         $analisislavadora->loadMissing(['linea', 'componente', 'costRuleExclusions']);
 
         $existingAutomaticEntries = LavadoraCostEntry::query()
@@ -93,6 +109,12 @@ class AnalisisLavadoraCostController extends Controller
 
     public function storeManual(Request $request, AnalisisLavadora $analisislavadora): RedirectResponse
     {
+        abort_unless(
+            $request->user()?->canCreateLavadoraCosts(),
+            403,
+            'No tienes permiso para crear costos de Lavadora.'
+        );
+
         $validated = $request->validate([
             'items' => 'required|array',
             'items.*.selected' => 'nullable|boolean',
@@ -185,6 +207,12 @@ class AnalisisLavadoraCostController extends Controller
 
     public function destroyManual(AnalisisLavadora $analisislavadora, LavadoraCostEntry $costEntry): RedirectResponse
     {
+        abort_unless(
+            auth()->user()?->canDeleteLavadoraCosts(),
+            403,
+            'No tienes permiso para eliminar costos de Lavadora.'
+        );
+
         abort_unless($costEntry->analisis_lavadora_id === $analisislavadora->id, 404);
 
         if (!$costEntry->isManual()) {
@@ -202,6 +230,12 @@ class AnalisisLavadoraCostController extends Controller
         CostAutomationRule $rule,
         LavadoraCostSyncService $costSync
     ): RedirectResponse {
+        abort_unless(
+            $request->user()?->canEditLavadoraCosts(),
+            403,
+            'No tienes permiso para editar costos de Lavadora.'
+        );
+
         $validated = $request->validate([
             'motivo' => 'nullable|string|max:500',
         ]);
@@ -227,10 +261,17 @@ class AnalisisLavadoraCostController extends Controller
     }
 
     public function enableAutomaticRule(
+        Request $request,
         AnalisisLavadora $analisislavadora,
         CostAutomationRule $rule,
         LavadoraCostSyncService $costSync
     ): RedirectResponse {
+        abort_unless(
+            $request->user()?->canEditLavadoraCosts(),
+            403,
+            'No tienes permiso para editar costos de Lavadora.'
+        );
+
         LavadoraCostRuleExclusion::query()
             ->where('analisis_lavadora_id', $analisislavadora->id)
             ->where('cost_automation_rule_id', $rule->id)

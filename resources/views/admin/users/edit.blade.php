@@ -67,6 +67,7 @@
             @include('admin.users.partials.edit-form', [
                 'managedUser' => $managedUser,
                 'roleOptions' => $roleOptions,
+                'permissionGroups' => $permissionGroups,
                 'filters' => $filters,
             ])
         </div>

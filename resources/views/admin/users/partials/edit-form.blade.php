@@ -9,10 +9,11 @@
     $managedPuesto = old('puesto', $managedUser->puesto);
     $managedRole = old('role', $managedUser->primary_role);
     $managedActivo = old('activo', $managedUser->activo ? '1' : '0') == '1';
-    $managedCanDeleteAnalysis = old('can_delete_analysis', $managedUser->hasDirectAnalysisDeletionPermission() ? '1' : '0') == '1';
+    $managedCustomPermissions = old('custom_permissions', $managedUser->getDirectPermissions()->pluck('name')->all());
+    $managedCustomPermissionsEnabled = old('custom_permissions_enabled', $managedUser->usesCustomPermissionAccess() ? '1' : '0') == '1';
 @endphp
 
-<form action="{{ route('admin.users.update', array_merge(['user' => $managedUser], $activeFilters)) }}" method="POST" class="space-y-5" x-data="{ selectedRole: @js($managedRole), supervisorRoles: @js(\App\Models\User::supervisorEquivalentRoles()) }">
+<form action="{{ route('admin.users.update', array_merge(['user' => $managedUser], $activeFilters)) }}" method="POST" class="space-y-5">
     @csrf
     @method('PUT')
     <input type="hidden" name="form_context" value="update">
@@ -54,7 +55,7 @@
                     Tu cuenta conserva el rol de administrador para evitar que pierdas acceso al panel.
                 </div>
             @else
-                <select id="role_{{ $managedUser->id }}" name="role" class="w-full rounded border-gray-300 text-sm" required x-model="selectedRole">
+                <select id="role_{{ $managedUser->id }}" name="role" class="w-full rounded border-gray-300 text-sm" required>
                     @foreach($roleOptions as $roleName => $roleLabel)
                         <option value="{{ $roleName }}" @selected($managedRole === $roleName)>
                             {{ $roleLabel }}
@@ -80,15 +81,14 @@
             @endif
         </div>
 
-        <div x-show="supervisorRoles.includes(selectedRole)" x-cloak class="rounded border border-red-100 bg-red-50 px-4 py-3 lg:col-span-2">
-            <input type="hidden" name="can_delete_analysis" value="0">
-            <label class="flex items-start gap-3 text-sm text-gray-700">
-                <input type="checkbox" name="can_delete_analysis" value="1" class="mt-1 rounded border-gray-300 text-red-600" @checked($managedCanDeleteAnalysis)>
-                <span>
-                    <span class="block font-semibold text-red-800">Eliminar Analisis</span>
-                    <span class="block text-xs text-red-700">Permiso especial asignado directamente a este usuario.</span>
-                </span>
-            </label>
+        <div class="lg:col-span-2">
+            @include('admin.users.partials.permission-groups', [
+                'permissionGroups' => $permissionGroups ?? \App\Models\User::configurablePermissionGroups(),
+                'selectedPermissions' => $managedCustomPermissions,
+                'customPermissionsEnabled' => $managedCustomPermissionsEnabled,
+                'idSuffix' => 'edit_' . $managedUser->id,
+                'autoSaveUrl' => route('admin.users.permissions.update', ['user' => $managedUser]),
+            ])
         </div>
 
         <div>
@@ -113,3 +113,73 @@
         </button>
     </div>
 </form>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('[data-permission-auto-save-url]').forEach(function (panel) {
+        const form = panel.closest('form');
+        const status = panel.querySelector('[data-permission-save-status]');
+        const token = form?.querySelector('input[name="_token"]')?.value;
+        const url = panel.dataset.permissionAutoSaveUrl;
+        let timer = null;
+
+        function setStatus(message, className) {
+            if (!status) {
+                return;
+            }
+
+            status.textContent = message;
+            status.className = 'mt-2 text-xs font-semibold ' + className;
+        }
+
+        function payload() {
+            return {
+                custom_permissions_enabled: panel.querySelector('input[name="custom_permissions_enabled"][type="checkbox"]')?.checked ? 1 : 0,
+                custom_permissions: Array.from(panel.querySelectorAll('input[name="custom_permissions[]"]:checked')).map(function (input) {
+                    return input.value;
+                }),
+            };
+        }
+
+        function savePermissions() {
+            if (!url || !token) {
+                return;
+            }
+
+            setStatus('Guardando permisos...', 'text-slate-500');
+
+            fetch(url, {
+                method: 'PATCH',
+                headers: {
+                    'X-CSRF-TOKEN': token,
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(payload()),
+            })
+                .then(function (response) {
+                    if (!response.ok) {
+                        throw new Error('No se pudieron guardar los permisos.');
+                    }
+
+                    return response.json();
+                })
+                .then(function (data) {
+                    setStatus(data.message || 'Permisos guardados.', 'text-green-700');
+                })
+                .catch(function () {
+                    setStatus('No se pudieron guardar los permisos.', 'text-red-700');
+                });
+        }
+
+        panel.addEventListener('change', function (event) {
+            if (!event.target.matches('input[name="custom_permissions_enabled"], input[name="custom_permissions[]"]')) {
+                return;
+            }
+
+            window.clearTimeout(timer);
+            timer = window.setTimeout(savePermissions, 250);
+        });
+    });
+});
+</script>

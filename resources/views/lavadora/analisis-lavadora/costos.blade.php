@@ -7,6 +7,9 @@
     $automaticTotal = round($costEntries->filter(fn ($entry) => $entry->isAutomatic())->sum('total_cost'), 2);
     $manualTotal = round($costEntries->filter(fn ($entry) => $entry->isManual())->sum('total_cost'), 2);
     $registeredTotal = round($costEntries->sum('total_cost'), 2);
+    $canCreateLavadoraCosts = $canCreateLavadoraCosts ?? (auth()->user()?->canCreateLavadoraCosts() ?? false);
+    $canEditLavadoraCosts = $canEditLavadoraCosts ?? (auth()->user()?->canEditLavadoraCosts() ?? false);
+    $canDeleteLavadoraCosts = $canDeleteLavadoraCosts ?? (auth()->user()?->canDeleteLavadoraCosts() ?? false);
     $automaticSyncLabel = $missingAutomaticEntriesCount > 0
         ? ($automaticEntryCount > 0 ? 'Completar costos automaticos' : 'Aplicar costos automaticos')
         : 'Reconstruir costos automaticos';
@@ -95,7 +98,7 @@
                 </div>
             </div>
 
-            @if($canSyncAutomaticCosts)
+            @if($canEditLavadoraCosts && $canSyncAutomaticCosts)
                 <form method="POST" action="{{ route('analisis-lavadora.costos.automatic.sync', ['analisislavadora' => $analisislavadora->id]) }}">
                     @csrf
                     <button type="submit" class="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-sky-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-sky-700 lg:w-auto">
@@ -157,26 +160,28 @@
                                 @endif
                             </div>
 
-                            <div class="sm:min-w-[180px]">
-                                @if($suggestion['excluded'])
-                                    <form method="POST" action="{{ route('analisis-lavadora.costos.automatic.enable', ['analisislavadora' => $analisislavadora->id, 'rule' => $suggestion['rule_id']]) }}">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700">
-                                            <i class="fas fa-rotate-left"></i>
-                                            Reactivar costo
-                                        </button>
-                                    </form>
-                                @else
-                                    <form method="POST" action="{{ route('analisis-lavadora.costos.automatic.disable', ['analisislavadora' => $analisislavadora->id, 'rule' => $suggestion['rule_id']]) }}">
-                                        @csrf
-                                        <button type="submit" class="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-amber-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-amber-700">
-                                            <i class="fas fa-ban"></i>
-                                            Quitar automatico
-                                        </button>
-                                    </form>
-                                @endif
-                            </div>
+                            @if($canEditLavadoraCosts)
+                                <div class="sm:min-w-[180px]">
+                                    @if($suggestion['excluded'])
+                                        <form method="POST" action="{{ route('analisis-lavadora.costos.automatic.enable', ['analisislavadora' => $analisislavadora->id, 'rule' => $suggestion['rule_id']]) }}">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700">
+                                                <i class="fas fa-rotate-left"></i>
+                                                Reactivar costo
+                                            </button>
+                                        </form>
+                                    @else
+                                        <form method="POST" action="{{ route('analisis-lavadora.costos.automatic.disable', ['analisislavadora' => $analisislavadora->id, 'rule' => $suggestion['rule_id']]) }}">
+                                            @csrf
+                                            <button type="submit" class="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-amber-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-amber-700">
+                                                <i class="fas fa-ban"></i>
+                                                Quitar automatico
+                                            </button>
+                                        </form>
+                                    @endif
+                                </div>
+                            @endif
                         </div>
                     </article>
                 @endforeach
@@ -245,7 +250,7 @@
                                 <td class="px-4 py-4 align-top font-semibold text-slate-900">${{ number_format((float) $entry->total_cost, 2) }}</td>
                                 <td class="px-4 py-4 align-top text-slate-600">{{ $entry->notas ?: 'Sin notas' }}</td>
                                 <td class="px-4 py-4 align-top text-right">
-                                    @if($entry->isManual())
+                                    @if($entry->isManual() && $canDeleteLavadoraCosts)
                                         <form method="POST" action="{{ route('analisis-lavadora.costos.manual.destroy', ['analisislavadora' => $analisislavadora->id, 'costEntry' => $entry->id]) }}">
                                             @csrf
                                             @method('DELETE')
@@ -270,6 +275,7 @@
         @endif
     </section>
 
+    @if($canCreateLavadoraCosts)
     <section class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         <div class="mb-5 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
             <div class="flex items-center gap-3">
@@ -363,6 +369,7 @@
             </div>
         </form>
     </section>
+    @endif
 </div>
 @endsection
 

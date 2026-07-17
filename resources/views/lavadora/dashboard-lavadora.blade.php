@@ -206,6 +206,7 @@
                 </div>
             </a>
 
+            @if($canViewLavadoraCostsModule ?? (auth()->user()?->canViewLavadoraCostModule() ?? false))
                  {{-- COSTOS --}}
             <a href="{{ route('lavadora.costos.index') }}" 
                class="group relative bg-white rounded-3xl shadow-lg hover:shadow-2xl transition-all duration-500 overflow-hidden hover:-translate-y-2">
@@ -236,6 +237,7 @@
                     </div>
                 </div>
             </a>
+            @endif
         </div>
 
         {{-- FOOTER CON ESTADÍSTICAS RÁPIDAS (OPCIONAL) --}}

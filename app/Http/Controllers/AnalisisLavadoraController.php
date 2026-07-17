@@ -5,13 +5,16 @@ namespace App\Http\Controllers;
 use App\Models\AnalisisLavadora;
 use App\Models\Linea;
 use App\Models\Componente;
+use App\Models\LavadoraCostEntry;
 use App\Models\User;
 use Carbon\Carbon;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use App\Exports\AnalisisComponentesExport;
 use App\Exports\AnalisisLavadoraExport;
 use App\Services\AnalysisDeletionLogger;
@@ -24,15 +27,16 @@ class AnalisisLavadoraController extends Controller
 {
     private const EVIDENCIA_FOTOS_DISK = 'public';
     private const EVIDENCIA_FOTOS_PATH = 'analisis-evidencias';
+    private const CORRECCION_EVIDENCIAS_PATH = 'analisis-correcciones';
 
     /**
      * LISTADO + FILTROS
      */
 public function index(Request $request)
 {
-    $query = AnalisisLavadora::with(['linea', 'componente', 'usuario'])
-        ->orderBy('fecha_analisis', 'desc')
-        ->orderBy('created_at', 'desc');
+    $query = AnalisisLavadora::ultimosPorComponente()
+        ->with(['linea', 'componente', 'usuario', 'usuarioCorreccion'])
+        ->ordenVigente();
 
     // FILTROS
     if ($request->filled('linea_id') && $request->linea_id !== 'todas') {
@@ -67,7 +71,7 @@ public function index(Request $request)
     }
 
     if ($request->filled('estado')) {
-        $query->where('estado', $request->estado);
+        $query->estadoOperativo($request->estado);
     }
 
     if ($request->filled('fecha')) {
@@ -76,10 +80,11 @@ public function index(Request $request)
     }
 
     $analisis = $query->get();
+    $this->attachHistorialCountsToCurrentAnalyses($analisis);
     
     // Calcular estadísticas basadas en los últimos registros por componente (estado actual)
     $queryEstadisticas = AnalisisLavadora::ultimosPorComponente()
-        ->with(['linea', 'componente', 'usuario']);
+        ->with(['linea', 'componente', 'usuario', 'usuarioCorreccion']);
     
     // Aplicar los mismos filtros que al listado
     if ($request->filled('linea_id') && $request->linea_id !== 'todas') {
@@ -115,11 +120,11 @@ public function index(Request $request)
     
     $estadisticas = [
         'total' => $analisisParaEstadisticas->count(),
-        'buen_estado' => $analisisParaEstadisticas->where('estado', AnalisisLavadora::ESTADO_BUENO)->count(),
-        'requiere_revision' => $analisisParaEstadisticas->where('estado', AnalisisLavadora::ESTADO_REQUIERE_REVISION)->count(),
-        'desgaste' => $analisisParaEstadisticas->whereIn('estado', AnalisisLavadora::ESTADOS_DESGASTE)->count(),
-        'danado_requiere' => $analisisParaEstadisticas->where('estado', AnalisisLavadora::ESTADO_DANADO)->count(),
-        'cambiado' => $analisisParaEstadisticas->where('estado', AnalisisLavadora::ESTADO_CAMBIADO)->count(),
+        'buen_estado' => $analisisParaEstadisticas->filter(fn (AnalisisLavadora $item) => AnalisisLavadora::esEstadoBueno($item->estado_operativo))->count(),
+        'requiere_revision' => $analisisParaEstadisticas->filter(fn (AnalisisLavadora $item) => AnalisisLavadora::esEstadoRequiereRevision($item->estado_operativo))->count(),
+        'desgaste' => $analisisParaEstadisticas->filter(fn (AnalisisLavadora $item) => AnalisisLavadora::esEstadoDesgaste($item->estado_operativo))->count(),
+        'danado_requiere' => $analisisParaEstadisticas->filter(fn (AnalisisLavadora $item) => AnalisisLavadora::esEstadoDanado($item->estado_operativo))->count(),
+        'cambiado' => $analisisParaEstadisticas->filter(fn (AnalisisLavadora $item) => AnalisisLavadora::esEstadoCambiado($item->estado_operativo))->count(),
     ];
     $diagramasPorLinea = [
     'L-04' => 'linea4.png',
@@ -152,10 +157,9 @@ public function index(Request $request)
 
     if ($lineaSeleccionadaParaDiagrama) {
         $analisisMonitorDiagrama = AnalisisLavadora::ultimosPorComponente()
-            ->with(['linea', 'componente', 'usuario'])
+            ->with(['linea', 'componente', 'usuario', 'usuarioCorreccion'])
             ->where('linea_id', $lineaSeleccionadaParaDiagrama->id)
-            ->orderBy('fecha_analisis', 'desc')
-            ->orderBy('created_at', 'desc')
+            ->ordenVigente()
             ->get();
     }
 
@@ -178,8 +182,92 @@ public function index(Request $request)
         'filtros' => $request->all(),
         'estadisticas' => $estadisticas,
         'openAnalysisData' => $openAnalysisData,
+        'canDeleteAnalysis' => $request->user()?->canDeleteLavadoraAnalysis() ?? false,
+        'canCloseLavadoraDamage' => $request->user()?->canCloseLavadoraDamage() ?? false,
     ]);
 }
+
+    private function attachHistorialCountsToCurrentAnalyses($analisis): void
+    {
+        if ($analisis->isEmpty()) {
+            return;
+        }
+
+        $identidades = $analisis
+            ->map(fn (AnalisisLavadora $item) => [
+                'linea_id' => $item->linea_id,
+                'codigo_base' => AnalisisLavadora::codigoBaseComponente($item->componente?->codigo),
+                'reductor' => $item->reductor,
+                'lado' => $item->lado,
+                'key' => $this->historialIdentityKey(
+                    $item->linea_id,
+                    AnalisisLavadora::codigoBaseComponente($item->componente?->codigo),
+                    $item->reductor,
+                    $item->lado
+                ),
+            ])
+            ->unique('key')
+            ->values();
+
+        $identityKeys = $identidades->pluck('key')->flip();
+
+        $historiales = AnalisisLavadora::query()
+            ->with('componente:id,codigo')
+            ->select('id', 'linea_id', 'componente_id', 'reductor', 'lado')
+            ->where(function ($query) use ($identidades): void {
+                foreach ($identidades as $identidad) {
+                    $query->orWhere(function ($subQuery) use ($identidad): void {
+                        $subQuery->where('linea_id', $identidad['linea_id'])
+                            ->where('reductor', $identidad['reductor']);
+
+                        if (blank($identidad['lado'])) {
+                            $subQuery->where(function ($ladoQuery): void {
+                                $ladoQuery->whereNull('lado')->orWhere('lado', '');
+                            });
+                        } else {
+                            $subQuery->where('lado', $identidad['lado']);
+                        }
+                    });
+                }
+            })
+            ->get()
+            ->reduce(function (array $counts, AnalisisLavadora $item) use ($identityKeys): array {
+                $key = $this->historialIdentityKey(
+                    $item->linea_id,
+                    AnalisisLavadora::codigoBaseComponente($item->componente?->codigo),
+                    $item->reductor,
+                    $item->lado
+                );
+
+                if (!isset($identityKeys[$key])) {
+                    return $counts;
+                }
+
+                $counts[$key] = ($counts[$key] ?? 0) + 1;
+
+                return $counts;
+            }, []);
+
+        $analisis->each(function (AnalisisLavadora $item) use ($historiales): void {
+            $key = $this->historialIdentityKey(
+                $item->linea_id,
+                AnalisisLavadora::codigoBaseComponente($item->componente?->codigo),
+                $item->reductor,
+                $item->lado
+            );
+            $item->setAttribute('total_historial', $historiales[$key] ?? 1);
+        });
+    }
+
+    private function historialIdentityKey($lineaId, $codigoBase, $reductor, $lado): string
+    {
+        return implode('|', [
+            $lineaId ?? '',
+            $codigoBase ?? '',
+            $reductor ?? '',
+            $lado ?: '',
+        ]);
+    }
 
     /**
      * @return array<string, mixed>|null
@@ -190,7 +278,7 @@ public function index(Request $request)
             return null;
         }
 
-        $registro = AnalisisLavadora::with(['linea', 'componente', 'usuario'])
+        $registro = AnalisisLavadora::with(['linea', 'componente', 'usuario', 'usuarioCorreccion'])
             ->find($id);
 
         if (!$registro) {
@@ -213,7 +301,10 @@ public function index(Request $request)
             ->where('reductor', $registro->reductor)
             ->count();
 
-        $canDeleteAnalysis = auth()->user()?->canDeleteAnalysis() ?? false;
+        $canDeleteAnalysis = auth()->user()?->canDeleteLavadoraAnalysis() ?? false;
+        $canCloseLavadoraDamage = auth()->user()?->canCloseLavadoraDamage() ?? false;
+        $canAccessLavadoraCosts = auth()->user()?->canAccessLavadoraCosts() ?? false;
+        $estadoOperativo = $registro->estado_operativo;
 
         return [
             'id' => $registro->id,
@@ -225,16 +316,41 @@ public function index(Request $request)
             'fecha_analisis' => $registro->fecha_analisis ? $registro->fecha_analisis->format('d/m/Y') : '',
             'numero_orden' => $registro->numero_orden,
             'estado' => $registro->estado ?? 'Buen estado',
+            'estado_operativo' => $estadoOperativo,
+            'estado_operativo_label' => $registro->estado_operativo_label,
+            'can_show_correction_actions' => $canCloseLavadoraDamage && AnalisisLavadora::requiereCierreAdministrativo($estadoOperativo),
             'usuario_nombre' => $registro->usuario?->name ?? 'Usuario no registrado',
             'actividad' => $registro->actividad,
             'imagenes' => $imagenes,
-            'color' => $this->analysisCellColor($registro->estado ?? null),
+            'color' => $this->analysisCellColor($estadoOperativo),
             'created_at' => $registro->created_at ? $registro->created_at->format('d/m/Y H:i') : '',
             'updated_at' => $registro->updated_at ? $registro->updated_at->format('d/m/Y H:i') : '',
             'is_new' => $registro->created_at ? $registro->created_at->gt(now()->subDays(3)) : false,
             'total_historial' => $totalHistorial,
+            'estado_correccion' => $canCloseLavadoraDamage ? $registro->estado_correccion : null,
+            'estado_correccion_label' => $canCloseLavadoraDamage ? $registro->estado_correccion_label : null,
+            'fecha_correccion' => $canCloseLavadoraDamage ? $registro->fecha_correccion?->format('Y-m-d\TH:i') : null,
+            'fecha_correccion_humana' => $canCloseLavadoraDamage ? $registro->fecha_correccion?->format('d/m/Y H:i') : null,
+            'corregido_por_nombre' => $canCloseLavadoraDamage ? $registro->usuarioCorreccion?->name : null,
+            'observaciones_reparacion' => $canCloseLavadoraDamage ? $registro->observaciones_reparacion : null,
+            'evidencias_reparacion' => $canCloseLavadoraDamage ? $registro->evidencias_reparacion : [],
+            'tipo_intervencion' => $canCloseLavadoraDamage ? $registro->tipo_intervencion : null,
+            'componente_instalado' => $canCloseLavadoraDamage ? $registro->componente_instalado : null,
+            'numero_parte' => $canCloseLavadoraDamage ? $registro->numero_parte : null,
+            'proveedor' => $canCloseLavadoraDamage ? $registro->proveedor : null,
+            'garantia' => $canCloseLavadoraDamage ? $registro->garantia : null,
+            'fecha_cambio' => $canCloseLavadoraDamage ? $registro->fecha_cambio?->format('Y-m-d') : null,
+            'costo_refacciones' => $canCloseLavadoraDamage ? $registro->costo_refacciones : null,
+            'costo_mano_obra' => $canCloseLavadoraDamage ? $registro->costo_mano_obra : null,
+            'costo_servicios_externos' => $canCloseLavadoraDamage ? $registro->costo_servicios_externos : null,
+            'costo_total_intervencion' => $canCloseLavadoraDamage ? $registro->costo_total_intervencion : null,
+            'tiempo_reparacion_horas' => $canCloseLavadoraDamage ? $registro->tiempo_reparacion_horas : null,
+            'responsable_trabajo' => $canCloseLavadoraDamage ? $registro->responsable_trabajo : null,
+            'comentarios_costos' => $canCloseLavadoraDamage ? $registro->comentarios_costos : null,
+            'can_close_damage' => $canCloseLavadoraDamage,
             'edit_url' => route('analisis-lavadora.edit', ['analisislavadora' => $registro->id], false),
-            'costs_url' => route('analisis-lavadora.costos.manage', ['analisislavadora' => $registro->id], false),
+            'costs_url' => $canAccessLavadoraCosts ? route('analisis-lavadora.costos.manage', ['analisislavadora' => $registro->id], false) : null,
+            'correction_url' => $canCloseLavadoraDamage ? route('analisis-lavadora.correccion.update', ['analisislavadora' => $registro->id], false) : null,
             'delete_url' => $canDeleteAnalysis ? route('analisis-lavadora.destroy', ['analisislavadora' => $registro->id], false) : null,
             'historial_url' => route('analisis-lavadora.historial', [
                 'linea_id' => $registro->linea_id,
@@ -304,38 +420,7 @@ public function index(Request $request)
 
     private function normalizarCodigoComponenteLavadora(?string $codigo): string
     {
-        $codigo = strtoupper(trim((string) $codigo));
-
-        if ($codigo === '') {
-            return '';
-        }
-
-        foreach ($this->getCodigosBaseComponentesOrdenados() as $codigoBase) {
-            if ($this->codigoContieneTokenComponente($codigo, $codigoBase)) {
-                return $codigoBase;
-            }
-        }
-
-        return $codigo;
-    }
-
-    private function getCodigosBaseComponentesOrdenados(): array
-    {
-        $codigos = array_keys($this->getTodosComponentes());
-
-        usort($codigos, function (string $a, string $b) {
-            return strlen($b) <=> strlen($a);
-        });
-
-        return $codigos;
-    }
-
-    private function codigoContieneTokenComponente(string $codigo, string $codigoBase): bool
-    {
-        return $codigo === $codigoBase
-            || str_starts_with($codigo, $codigoBase . '_')
-            || str_ends_with($codigo, '_' . $codigoBase)
-            || str_contains($codigo, '_' . $codigoBase . '_');
+        return AnalisisLavadora::codigoBaseComponente($codigo);
     }
 
     /**
@@ -587,8 +672,7 @@ public function index(Request $request)
             ->where('linea_id', $linea->id)
             ->where('componente_id', $componente->id)
             ->where('reductor', $request->reductor)
-            ->latest('fecha_analisis')
-            ->latest('created_at')
+            ->ordenVigente()
             ->limit(5)
             ->get();
 
@@ -847,10 +931,13 @@ public function edit($id)
 
     $puedeEditarFechaAnalisis = $this->puedeEditarFechaAnalisis(auth()->user());
 
+    $canDeleteAnalysis = auth()->user()?->canDeleteLavadoraAnalysis() ?? false;
+
     return view('lavadora/analisis-lavadora.edit', compact(
         'analisisComponente',
         'componentes',
-        'puedeEditarFechaAnalisis'
+        'puedeEditarFechaAnalisis',
+        'canDeleteAnalysis'
     ));
 }
 
@@ -958,6 +1045,40 @@ public function update(Request $request, $id)
         ->with('success', 'Análisis actualizado correctamente.');
 }
 
+public function updateCorrectionStatus(Request $request, AnalisisLavadora $analisislavadora): RedirectResponse
+{
+    abort_unless($request->user()?->canCloseLavadoraDamage(), 403, 'No tienes permiso para cerrar danos de lavadora.');
+
+    $validated = $request->validate([
+        'estado_correccion' => 'required|string|in:' . implode(',', AnalisisLavadora::ESTADOS_CORRECCION),
+    ]);
+
+    $estadoCorreccion = $validated['estado_correccion'];
+    $cerrado = $estadoCorreccion !== AnalisisLavadora::CORRECCION_PENDIENTE;
+    $now = now();
+
+    $analisislavadora->update([
+        'estado_correccion' => $estadoCorreccion,
+        'fecha_correccion' => $cerrado ? $now : null,
+        'corregido_por' => $cerrado ? $request->user()?->id : null,
+        'tipo_intervencion' => match ($estadoCorreccion) {
+            AnalisisLavadora::CORRECCION_CORREGIDO => 'Cierre administrativo a buen estado',
+            AnalisisLavadora::CORRECCION_COMPONENTE_CAMBIADO => 'Cierre administrativo por componente cambiado',
+            default => null,
+        },
+        'fecha_cambio' => $estadoCorreccion === AnalisisLavadora::CORRECCION_COMPONENTE_CAMBIADO
+            ? $now->toDateString()
+            : null,
+        'componente_instalado' => $estadoCorreccion === AnalisisLavadora::CORRECCION_COMPONENTE_CAMBIADO
+            ? ($analisislavadora->componente?->nombre ?? 'Componente cambiado')
+            : null,
+    ]);
+
+    $this->syncCorrectionCostEntry($analisislavadora->fresh(['linea', 'componente', 'usuarioCorreccion']));
+
+    return back()->with('success', 'Estado de correccion actualizado correctamente.');
+}
+
 private function puedeEditarFechaAnalisis(?User $user): bool
 {
     return $user?->canEditAnalysisDate() ?? false;
@@ -969,7 +1090,12 @@ private function puedeEditarFechaAnalisis(?User $user): bool
     public function show(AnalisisLavadora $analisislavadora)
     {
         $analisislavadora->load(['linea', 'componente', 'usuario', 'cambiosFecha.usuario']);
-        return view('lavadora/analisis-lavadora.show', compact('analisislavadora'));
+
+        return view('lavadora/analisis-lavadora.show', [
+            'analisislavadora' => $analisislavadora,
+            'canDeleteAnalysis' => auth()->user()?->canDeleteLavadoraAnalysis() ?? false,
+            'canAccessLavadoraCosts' => auth()->user()?->canAccessLavadoraCosts() ?? false,
+        ]);
     }
     
     /**
@@ -977,7 +1103,7 @@ private function puedeEditarFechaAnalisis(?User $user): bool
      */
     public function destroy(Request $request, AnalisisLavadora $analisislavadora)
     {
-        abort_unless($request->user()?->canDeleteAnalysis(), 403, 'No tienes permiso para eliminar analisis.');
+        abort_unless($request->user()?->canDeleteLavadoraAnalysis(), 403, 'No tienes permiso para eliminar analisis.');
 
         $analisislavadora->loadMissing(['linea', 'componente']);
 
@@ -1171,6 +1297,124 @@ private function puedeEditarFechaAnalisis(?User $user): bool
         return $rutas;
     }
 
+    private function guardarEvidenciasCorreccion(array $archivos): array
+    {
+        $rutas = [];
+
+        foreach ($archivos as $archivo) {
+            if (!$archivo || !$archivo->isValid()) {
+                continue;
+            }
+
+            $extension = strtolower($archivo->getClientOriginalExtension() ?: $archivo->extension() ?: 'jpg');
+            $nombreArchivo = now()->format('Ymd_His') . '_' . Str::random(10) . '.' . $extension;
+            $rutaPublica = public_path('storage/' . self::CORRECCION_EVIDENCIAS_PATH);
+
+            if (!file_exists($rutaPublica)) {
+                mkdir($rutaPublica, 0755, true);
+            }
+
+            $archivo->move($rutaPublica, $nombreArchivo);
+
+            $rutaGuardar = self::CORRECCION_EVIDENCIAS_PATH . '/' . $nombreArchivo;
+            $rutas[] = $rutaGuardar;
+
+            try {
+                $rutaStorage = storage_path('app/public/' . self::CORRECCION_EVIDENCIAS_PATH);
+
+                if (!file_exists($rutaStorage)) {
+                    mkdir($rutaStorage, 0755, true);
+                }
+
+                $origen = public_path('storage/' . $rutaGuardar);
+                $destino = $rutaStorage . '/' . $nombreArchivo;
+
+                if (file_exists($origen) && !file_exists($destino)) {
+                    copy($origen, $destino);
+                }
+            } catch (\Exception $e) {
+                Log::warning('No se pudo copiar evidencia de correccion a storage/app/public', [
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        return $rutas;
+    }
+
+    private function syncCorrectionCostEntry(AnalisisLavadora $analisis): void
+    {
+        $syncKey = sha1('cierre_dano|' . $analisis->id);
+
+        if (
+            $analisis->estado_correccion === AnalisisLavadora::CORRECCION_PENDIENTE
+            || round((float) $analisis->costo_total_intervencion, 2) <= 0
+        ) {
+            LavadoraCostEntry::query()
+                ->where('sync_key', $syncKey)
+                ->delete();
+
+            return;
+        }
+
+        $analisis->loadMissing(['linea', 'componente', 'usuarioCorreccion']);
+        $total = round((float) $analisis->costo_total_intervencion, 2);
+        $fechaCosto = $analisis->fecha_correccion?->toDateString()
+            ?? $analisis->fecha_cambio?->toDateString()
+            ?? now()->toDateString();
+        $componentName = $analisis->componente?->nombre
+            ?? $analisis->componente_instalado
+            ?? 'Componente no identificado';
+        $componentCode = AnalisisLavadora::codigoBaseComponente($analisis->componente?->codigo);
+
+        LavadoraCostEntry::query()->updateOrCreate(
+            ['sync_key' => $syncKey],
+            [
+                'linea_id' => $analisis->linea_id,
+                'analisis_lavadora_id' => $analisis->id,
+                'componente_id' => $analisis->componente_id,
+                'catalog_item_id' => null,
+                'source_type' => LavadoraCostEntry::SOURCE_DAMAGE_CLOSURE,
+                'source_reference' => $analisis->estado_correccion,
+                'cost_date' => $fechaCosto,
+                'quantity' => 1,
+                'unit_cost' => $total,
+                'total_cost' => $total,
+                'component_snapshot' => $componentName,
+                'catalog_name_snapshot' => 'Cierre administrativo de dano',
+                'catalog_sku_snapshot' => $analisis->numero_parte,
+                'catalog_category_snapshot' => $analisis->tipo_intervencion ?: 'Intervencion',
+                'unidad_medida_snapshot' => 'Intervencion',
+                'notas' => trim(implode("\n", array_filter([
+                    $analisis->observaciones_reparacion,
+                    $analisis->comentarios_costos,
+                ]))) ?: null,
+                'metadata' => [
+                    'estado_original' => $analisis->estado,
+                    'estado_operativo' => $analisis->estado_operativo,
+                    'estado_correccion' => $analisis->estado_correccion,
+                    'estado_correccion_label' => $analisis->estado_correccion_label,
+                    'tipo_intervencion' => $analisis->tipo_intervencion,
+                    'componente_instalado' => $analisis->componente_instalado,
+                    'numero_parte' => $analisis->numero_parte,
+                    'proveedor' => $analisis->proveedor,
+                    'garantia' => $analisis->garantia,
+                    'fecha_cambio' => $analisis->fecha_cambio?->toDateString(),
+                    'fecha_correccion' => $analisis->fecha_correccion?->toDateTimeString(),
+                    'costo_refacciones' => round((float) $analisis->costo_refacciones, 2),
+                    'costo_mano_obra' => round((float) $analisis->costo_mano_obra, 2),
+                    'costo_servicios_externos' => round((float) $analisis->costo_servicios_externos, 2),
+                    'tiempo_reparacion_horas' => $analisis->tiempo_reparacion_horas,
+                    'responsable_trabajo' => $analisis->responsable_trabajo,
+                    'linea_nombre' => $analisis->linea?->nombre,
+                    'component_code' => $componentCode,
+                    'closed_by' => $analisis->corregido_por,
+                    'closed_by_name' => $analisis->usuarioCorreccion?->name,
+                ],
+            ]
+        );
+    }
+
         public function historial(Request $request)
     {
         $request->validate([
@@ -1187,7 +1431,8 @@ private function puedeEditarFechaAnalisis(?User $user): bool
         $this->aplicarFiltroComponenteCodigo($query, $request->componente_id);
 
         $query->orderByDesc('fecha_analisis')
-            ->orderByDesc('created_at');
+            ->orderByDesc('created_at')
+            ->orderByDesc('id');
 
         // Paginar los resultados (10 por página)
         $analisis = $query->paginate(10)->withQueryString();
@@ -1413,17 +1658,18 @@ public function getEstadisticasProgreso(Request $request)
         foreach ($reductores as $reductor) {
             foreach ($componentes as $codigo => $nombre) {
                 // Buscar el último análisis para esta combinación
-                $analisis = AnalisisLavadora::where('linea_id', $linea->id)
+                $analisis = AnalisisLavadora::ultimosPorComponente()
+                    ->where('linea_id', $linea->id)
                     ->where('reductor', $reductor)
                     ->whereHas('componente', function($q) use ($codigo) {
                         $q->where('codigo', 'like', '%' . $codigo . '%');
                     })
-                    ->orderBy('fecha_analisis', 'desc')
+                    ->ordenVigente()
                     ->first();
                 
                 if ($analisis) {
                     $celdasConDatos++;
-                    $estado = $analisis->estado;
+                    $estado = $analisis->estado_operativo;
                     
                     if (AnalisisLavadora::esEstadoCambiado($estado)) {
                         $estados['cambiado']++;

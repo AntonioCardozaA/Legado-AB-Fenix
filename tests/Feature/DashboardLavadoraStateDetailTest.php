@@ -58,6 +58,77 @@ class DashboardLavadoraStateDetailTest extends TestCase
         );
     }
 
+    public function test_lavadora_state_uses_only_latest_analysis_for_component_status(): void
+    {
+        $linea = Linea::create([
+            'nombre' => 'L-04',
+            'descripcion' => 'Lavadora de prueba',
+            'tipo' => 'lavadora',
+            'activo' => true,
+        ]);
+
+        $componenteHistorico = Componente::create([
+            'linea' => $linea->nombre,
+            'nombre' => 'Guia inferior',
+            'codigo' => 'L04_reductor_1_GUI_INT_TANQUE',
+            'reductor' => 'Reductor 1',
+            'ubicacion' => 'Reductor 1',
+            'cantidad_total' => 1,
+            'activo' => true,
+        ]);
+
+        $componenteVigente = Componente::create([
+            'linea' => $linea->nombre,
+            'nombre' => 'Guia inferior',
+            'codigo' => 'GUI_INT_TANQUE_L_04',
+            'reductor' => 'Reductor 1',
+            'ubicacion' => 'Reductor 1',
+            'cantidad_total' => 1,
+            'activo' => true,
+        ]);
+
+        AnalisisLavadora::create([
+            'linea_id' => $linea->id,
+            'componente_id' => $componenteHistorico->id,
+            'reductor' => 'Reductor 1',
+            'fecha_analisis' => '2026-07-10',
+            'numero_orden' => 'OT-LAV-OLD',
+            'estado' => AnalisisLavadora::ESTADO_DANADO,
+            'actividad' => 'Registro historico danado',
+        ]);
+
+        $vigente = AnalisisLavadora::create([
+            'linea_id' => $linea->id,
+            'componente_id' => $componenteVigente->id,
+            'reductor' => 'Reductor 1',
+            'fecha_analisis' => '2026-07-10',
+            'numero_orden' => 'OT-LAV-NEW',
+            'estado' => AnalisisLavadora::ESTADO_BUENO,
+            'actividad' => 'Registro vigente bueno',
+        ]);
+
+        $this->assertSame(
+            [$vigente->id],
+            AnalisisLavadora::ultimosPorComponente()->pluck('id')->all()
+        );
+
+        $controller = app(DashboardController::class);
+        $method = new ReflectionMethod($controller, 'calcularEstadoLavadora');
+        $method->setAccessible(true);
+
+        /** @var array<string, mixed> $estado */
+        $estado = $method->invoke($controller, $linea->id);
+
+        $this->assertSame('bueno', $estado['nivel']);
+        $this->assertSame([
+            'critico' => 0,
+            'severo' => 0,
+            'moderado' => 0,
+            'revision' => 0,
+        ], $estado['conteo_alertas']);
+        $this->assertSame(0, $estado['total_alertas_componentes']);
+    }
+
     private function crearAnalisis(
         Linea $linea,
         string $codigo,

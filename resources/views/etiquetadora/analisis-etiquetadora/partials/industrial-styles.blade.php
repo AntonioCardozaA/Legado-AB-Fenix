@@ -36,6 +36,8 @@
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
         margin-bottom: 24px;
         border: 1px solid #e2e8f0;
+        width: 100%;
+        max-width: 100%;
     }
 
     .lineas-title {
@@ -61,12 +63,15 @@
         flex-wrap: wrap;
         align-items: center;
         gap: 12px;
+        min-width: 0;
     }
 
     .linea-item {
         display: inline-flex;
         align-items: center;
         gap: 8px;
+        min-width: 0;
+        max-width: 100%;
         padding: 8px 20px;
         background: #f8fafc;
         border: 2px solid #e2e8f0;
@@ -77,6 +82,8 @@
         transition: all 0.2s ease;
         cursor: pointer;
         text-decoration: none;
+        overflow-wrap: anywhere;
+        text-align: center;
     }
 
     .linea-item i {
@@ -111,6 +118,7 @@
         flex-wrap: wrap;
         align-items: center;
         gap: 16px;
+        min-width: 0;
     }
 
     .filter-link {
@@ -196,6 +204,7 @@
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
         gap: 16px;
+        min-width: 0;
     }
 
     .filter-group {
@@ -253,6 +262,8 @@
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
         margin-bottom: 30px;
         border: 1px solid #e2e8f0;
+        width: 100%;
+        max-width: 100%;
     }
 
     .lavadora-card-header {
@@ -264,10 +275,15 @@
         flex-wrap: wrap;
     }
 
+    .lavadora-card-header > * {
+        min-width: 0;
+    }
+
     .lavadora-card-header h3 {
         font-size: 20px;
         font-weight: 700;
         margin: 0;
+        overflow-wrap: anywhere;
     }
 
     .lavadora-card-header .badge {
@@ -283,12 +299,22 @@
         border: 1px solid var(--medium-gray);
         border-radius: 8px;
         max-height: 650px;
+        width: 100%;
+        max-width: 100%;
+        overscroll-behavior-x: contain;
+        -webkit-overflow-scrolling: touch;
     }
 
     .lavadora-card .table-wrapper {
         border-radius: 0;
         border: none;
         border-top: 1px solid #e2e8f0;
+    }
+
+    .table-wrapper > table,
+    .compact-table {
+        width: max-content;
+        min-width: 100%;
     }
 
     .table-corner {
@@ -538,16 +564,43 @@
     }
 
     @media (max-width: 768px) {
+        .filters-section {
+            padding: 16px;
+            border-radius: 12px;
+        }
+
         .lineas-grid { gap: 8px; }
         .linea-item { padding: 6px 16px; font-size: 13px; }
         .filters-row { flex-direction: column; align-items: stretch; }
-        .btn-apply { margin-left: 0; justify-content: center; }
+        .filter-link,
+        .btn-apply,
+        .btn-clear {
+            justify-content: center;
+            width: 100%;
+            margin-left: 0;
+        }
+
+        .lavadora-card-header {
+            align-items: stretch;
+            padding: 14px;
+        }
+
+        .lavadora-card-header > div {
+            width: 100%;
+        }
+
         .compact-table td,
         .compact-table th {
             min-width: 100px;
             font-size: 0.7rem !important;
             padding: 6px !important;
         }
+
+        .component-industrial-icon {
+            width: 3.5rem;
+            height: 3.5rem;
+        }
+
         .image-grid-enhanced {
             grid-template-columns: repeat(2, 1fr);
             gap: 12px;

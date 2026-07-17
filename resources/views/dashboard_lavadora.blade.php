@@ -2753,6 +2753,7 @@
         </div>
     </div>
 
+    @if($canViewLavadoraCostsModule ?? false)
     <div class="dashboard-panels-grid">
         <div class="chart-card">
             <h3>
@@ -2804,6 +2805,7 @@
             </div>
         </div>
     </div>
+    @endif
 
     {{-- ESTADO GENERAL DE LAVADORAS en Tarjetas --}}
     <div class="section-title">
@@ -6862,6 +6864,7 @@
     }
 })();
 </script>
+@if($canViewLavadoraCostsModule ?? false)
 <script>
 window.addEventListener('load', function () {
     const canvas = document.getElementById('lavadoraCostSummaryChart');
@@ -6931,4 +6934,5 @@ window.addEventListener('load', function () {
     });
 });
 </script>
+@endif
 @endsection

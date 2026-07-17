@@ -97,13 +97,21 @@ document.addEventListener('DOMContentLoaded', function () {
         var kind = target.dataset.monitorKind === 'reductor'
             ? 'Reductor monitoreado'
             : 'Componente afectado';
+        var monitorLado = String(target.dataset.monitorLado || '').trim();
         var rows = [
             ['Reductor', target.dataset.monitorReductor],
-            ['Componente', target.dataset.monitorComponente],
+            ['Componente', target.dataset.monitorComponente]
+        ];
+
+        if (monitorLado) {
+            rows.push(['Lado', monitorLado]);
+        }
+
+        rows = rows.concat([
             ['Nivel', target.dataset.monitorDano],
             ['Ultimo analisis', target.dataset.monitorFecha],
             ['Observaciones', target.dataset.monitorObservaciones]
-        ];
+        ]);
 
         monitorTooltip.style.setProperty('--monitor-tooltip-color', getMonitorColor(target));
         monitorTooltip.innerHTML = [

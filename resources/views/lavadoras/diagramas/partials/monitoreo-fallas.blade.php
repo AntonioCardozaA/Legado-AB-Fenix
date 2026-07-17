@@ -82,6 +82,20 @@
         'red' => 'Critico',
     ];
 
+    $formatearLadoMonitor = function ($lado) {
+        $ladoNormalizado = strtoupper(trim((string) ($lado ?? '')));
+
+        if (str_contains($ladoNormalizado, 'VAPOR')) {
+            return 'Lado Vapor';
+        }
+
+        if (str_contains($ladoNormalizado, 'PASILLO')) {
+            return 'Lado Pasillo';
+        }
+
+        return $ladoNormalizado;
+    };
+
     $gruposReductores = [];
     $fallbackIndex = 0;
 
@@ -158,8 +172,26 @@
                 $todos = collect($grupo['items']);
                 $primerItem = $afectados->first() ?? $todos->first();
                 $componentesTooltip = $afectados->isNotEmpty()
-                    ? $afectados->pluck('componente')->filter()->unique()->implode(', ')
+                    ? $afectados
+                        ->map(function ($item) use ($formatearLadoMonitor) {
+                            $componente = data_get($item, 'componente');
+                            $lado = $formatearLadoMonitor(data_get($item, 'lado'));
+
+                            if (!$componente) {
+                                return null;
+                            }
+
+                            return $lado ? "{$componente} ({$lado})" : $componente;
+                        })
+                        ->filter()
+                        ->unique()
+                        ->implode(', ')
                     : 'Sin componentes con anomalia';
+                $ladosTooltip = $afectados
+                    ->map(fn ($item) => $formatearLadoMonitor(data_get($item, 'lado')))
+                    ->filter()
+                    ->unique()
+                    ->implode(', ');
                 $fechaTooltip = data_get($primerItem, 'fecha', 'Sin fecha');
                 $observacionesTooltip = data_get($primerItem, 'observaciones', 'Sin observaciones');
                 $nivelTooltip = $severityLabel[$severity] ?? $severity;
@@ -172,6 +204,7 @@
                 data-monitor-kind="reductor"
                 data-monitor-reductor="{{ e($grupo['reductor']) }}"
                 data-monitor-componente="{{ e($componentesTooltip) }}"
+                data-monitor-lado="{{ e($ladosTooltip) }}"
                 data-monitor-dano="{{ e($nivelTooltip) }}"
                 data-monitor-fecha="{{ e($fechaTooltip) }}"
                 data-monitor-observaciones="{{ e($observacionesTooltip) }}"
@@ -218,6 +251,7 @@
                         $nombreComponente = data_get($item, 'componente', 'Componente');
                         $nombreCorto = \Illuminate\Support\Str::limit($nombreComponente, 18);
                         $nivelItem = $severityLabel[$itemSeverity] ?? data_get($item, 'nivel', 'Advertencia');
+                        $ladoItem = $formatearLadoMonitor(data_get($item, 'lado'));
                     @endphp
 
                     <g
@@ -226,6 +260,7 @@
                         data-monitor-kind="componente"
                         data-monitor-reductor="{{ e(data_get($item, 'reductor', $grupo['reductor'])) }}"
                         data-monitor-componente="{{ e($nombreComponente) }}"
+                        data-monitor-lado="{{ e($ladoItem) }}"
                         data-monitor-dano="{{ e(data_get($item, 'estado', $nivelItem)) }}"
                         data-monitor-fecha="{{ e(data_get($item, 'fecha', 'Sin fecha')) }}"
                         data-monitor-observaciones="{{ e(data_get($item, 'observaciones', 'Sin observaciones')) }}"

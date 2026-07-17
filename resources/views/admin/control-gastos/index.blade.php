@@ -5,6 +5,11 @@
 @section('content')
 @php
     $budgetYear = (int) ($filters['budget_year'] ?? now()->year);
+    $canCreateLavadoraCosts = auth()->user()?->canCreateLavadoraCosts() ?? false;
+    $canEditLavadoraCosts = auth()->user()?->canEditLavadoraCosts() ?? false;
+    $canDeleteLavadoraCosts = auth()->user()?->canDeleteLavadoraCosts() ?? false;
+    $canModifyLavadoraCosts = $canEditLavadoraCosts || $canDeleteLavadoraCosts;
+    $canModifyLavadoraBudgets = $canCreateLavadoraCosts || $canEditLavadoraCosts;
 @endphp
 
 <style>
@@ -635,6 +640,7 @@
         </article>
     </section>
 
+    @if($canCreateLavadoraCosts)
     <section class="expense-panel">
         <div class="panel-head">
             <div>
@@ -680,6 +686,7 @@
             </div>
         </form>
     </section>
+    @endif
 
     <section class="expense-panel">
         <div class="panel-head">
@@ -743,7 +750,11 @@
                         <th>Alias</th>
                         <th>Observaciones</th>
                         <th>Actualizado</th>
-                        <th>Acciones</th>
+                        @if($canModifyLavadoraCosts)
+                            @if($canModifyLavadoraCosts)
+                                <th>Acciones</th>
+                            @endif
+                        @endif
                     </tr>
                 </thead>
                 <tbody>
@@ -751,25 +762,25 @@
                         @php($formId = 'catalog-item-' . $item->id)
                         <tr>
                             <td>
-                                <input class="input-inline" name="sku" value="{{ old('sku.' . $item->id, $item->sku) }}" form="{{ $formId }}">
+                                <input class="input-inline" name="sku" value="{{ old('sku.' . $item->id, $item->sku) }}" form="{{ $formId }}" @disabled(!$canEditLavadoraCosts)>
                             </td>
                             <td>
-                                <textarea class="textarea-inline" name="nombre" form="{{ $formId }}" required>{{ old('nombre.' . $item->id, $item->nombre) }}</textarea>
+                                <textarea class="textarea-inline" name="nombre" form="{{ $formId }}" required @disabled(!$canEditLavadoraCosts)>{{ old('nombre.' . $item->id, $item->nombre) }}</textarea>
                             </td>
                             <td>
-                                <input class="input-inline" name="categoria" value="{{ old('categoria.' . $item->id, $item->categoria) }}" form="{{ $formId }}">
+                                <input class="input-inline" name="categoria" value="{{ old('categoria.' . $item->id, $item->categoria) }}" form="{{ $formId }}" @disabled(!$canEditLavadoraCosts)>
                             </td>
                             <td>
-                                <input class="input-inline" name="unidad_medida" value="{{ old('unidad_medida.' . $item->id, $item->unidad_medida) }}" form="{{ $formId }}" required>
+                                <input class="input-inline" name="unidad_medida" value="{{ old('unidad_medida.' . $item->id, $item->unidad_medida) }}" form="{{ $formId }}" required @disabled(!$canEditLavadoraCosts)>
                             </td>
                             <td>
-                                <input class="input-inline" name="costo_unitario" type="number" min="0" step="0.01" value="{{ old('costo_unitario.' . $item->id, $item->costo_unitario) }}" form="{{ $formId }}" required>
+                                <input class="input-inline" name="costo_unitario" type="number" min="0" step="0.01" value="{{ old('costo_unitario.' . $item->id, $item->costo_unitario) }}" form="{{ $formId }}" required @disabled(!$canEditLavadoraCosts)>
                             </td>
                             <td>
-                                <textarea class="textarea-inline" name="aliases_input" form="{{ $formId }}">{{ old('aliases_input.' . $item->id, implode(', ', $item->aliases ?? [])) }}</textarea>
+                                <textarea class="textarea-inline" name="aliases_input" form="{{ $formId }}" @disabled(!$canEditLavadoraCosts)>{{ old('aliases_input.' . $item->id, implode(', ', $item->aliases ?? [])) }}</textarea>
                             </td>
                             <td>
-                                <textarea class="textarea-inline" name="observaciones" form="{{ $formId }}">{{ old('observaciones.' . $item->id, $item->observaciones) }}</textarea>
+                                <textarea class="textarea-inline" name="observaciones" form="{{ $formId }}" @disabled(!$canEditLavadoraCosts)>{{ old('observaciones.' . $item->id, $item->observaciones) }}</textarea>
                             </td>
                             <td>
                                 <div class="text-sm font-semibold text-slate-900">{{ optional($item->fecha_actualizacion)->format('d/m/Y') ?? 'Sin fecha' }}</div>
@@ -778,12 +789,16 @@
                                     <span class="rule-chip">{{ $item->activo ? 'Activo' : 'Inactivo' }}</span>
                                 </div>
                             </td>
+                            @if($canModifyLavadoraCosts)
                             <td>
+                                @if($canEditLavadoraCosts)
                                 <form id="{{ $formId }}" method="POST" action="{{ route('admin.costos.catalog.update', $item) }}">
                                     @csrf
                                     @method('PUT')
                                 </form>
+                                @endif
                                 <div class="table-actions">
+                                    @if($canEditLavadoraCosts)
                                     <button type="submit" form="{{ $formId }}" class="create-action create-action--compact">
                                         <i class="fas fa-floppy-disk"></i>
                                         Guardar
@@ -800,6 +815,8 @@
                                             {{ $item->activo ? 'Desactivar' : 'Activar' }}
                                         </button>
                                     </form>
+                                    @endif
+                                    @if($canDeleteLavadoraCosts)
                                     <form method="POST" action="{{ route('admin.costos.catalog.destroy', $item) }}" onsubmit="return confirm('Se eliminará el concepto si no tiene reglas ni gastos asociados. ¿Continuar?');">
                                         @csrf
                                         @method('DELETE')
@@ -808,12 +825,14 @@
                                             Eliminar
                                         </button>
                                     </form>
+                                    @endif
                                 </div>
                             </td>
+                            @endif
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="9">No se encontraron conceptos con los filtros seleccionados.</td>
+                            <td colspan="{{ $canModifyLavadoraCosts ? 9 : 8 }}">No se encontraron conceptos con los filtros seleccionados.</td>
                         </tr>
                     @endforelse
                 </tbody>
@@ -833,6 +852,7 @@
                 </div>
             </div>
 
+            @if($canCreateLavadoraCosts)
             <form method="POST" action="{{ route('admin.costos.rules.store') }}" class="form-grid" style="margin-bottom: 1rem;">
                 @csrf
                 <div class="field-span-2">
@@ -889,6 +909,7 @@
                     </button>
                 </div>
             </form>
+            @endif
 
             <div class="table-wrap">
                 <table>
@@ -909,14 +930,14 @@
                             @php($formId = 'rule-form-' . $rule->id)
                             <tr>
                                 <td>
-                                    <select class="select-inline" name="cost_catalog_item_id" form="{{ $formId }}">
+                                    <select class="select-inline" name="cost_catalog_item_id" form="{{ $formId }}" @disabled(!$canEditLavadoraCosts)>
                                         @foreach($catalogOptions as $option)
                                             <option value="{{ $option->id }}" @selected($rule->cost_catalog_item_id === $option->id)>{{ \Illuminate\Support\Str::limit($option->nombre, 60) }}</option>
                                         @endforeach
                                     </select>
                                 </td>
                                 <td>
-                                    <select class="select-inline" name="linea_nombre" form="{{ $formId }}">
+                                    <select class="select-inline" name="linea_nombre" form="{{ $formId }}" @disabled(!$canEditLavadoraCosts)>
                                         <option value="">Todas</option>
                                         @foreach($budgetRows as $budgetRow)
                                             <option value="{{ $budgetRow['linea']->nombre }}" @selected($rule->linea_nombre === $budgetRow['linea']->nombre)>{{ $budgetRow['linea']->nombre }}</option>
@@ -924,7 +945,7 @@
                                     </select>
                                 </td>
                                 <td>
-                                    <select class="select-inline" name="component_code" form="{{ $formId }}">
+                                    <select class="select-inline" name="component_code" form="{{ $formId }}" @disabled(!$canEditLavadoraCosts)>
                                         <option value="">Cualquiera</option>
                                         @foreach($componentCodes as $code)
                                             <option value="{{ $code }}" @selected($rule->component_code === $code)>{{ $code }}</option>
@@ -932,49 +953,57 @@
                                     </select>
                                 </td>
                                 <td>
-                                    <select class="select-inline" name="trigger_type" form="{{ $formId }}">
+                                    <select class="select-inline" name="trigger_type" form="{{ $formId }}" @disabled(!$canEditLavadoraCosts)>
                                         @foreach($triggerOptions as $value => $label)
                                             <option value="{{ $value }}" @selected($rule->trigger_type === $value)>{{ $label }}</option>
                                         @endforeach
                                     </select>
                                 </td>
                                 <td>
-                                    <input class="input-inline" name="trigger_keyword" value="{{ $rule->trigger_keyword }}" form="{{ $formId }}">
+                                    <input class="input-inline" name="trigger_keyword" value="{{ $rule->trigger_keyword }}" form="{{ $formId }}" @disabled(!$canEditLavadoraCosts)>
                                 </td>
                                 <td>
-                                    <input class="input-inline" name="quantity" type="number" min="0.01" step="0.01" value="{{ $rule->quantity }}" form="{{ $formId }}">
+                                    <input class="input-inline" name="quantity" type="number" min="0.01" step="0.01" value="{{ $rule->quantity }}" form="{{ $formId }}" @disabled(!$canEditLavadoraCosts)>
                                 </td>
                                 <td>
                                     <input type="hidden" name="activo" value="0" form="{{ $formId }}">
                                     <label class="inline-flex items-center gap-2 text-sm">
-                                        <input type="checkbox" name="activo" value="1" @checked($rule->activo) form="{{ $formId }}">
+                                        <input type="checkbox" name="activo" value="1" @checked($rule->activo) form="{{ $formId }}" @disabled(!$canEditLavadoraCosts)>
                                         Activa
                                     </label>
                                 </td>
-                                <td>
-                                    <form id="{{ $formId }}" method="POST" action="{{ route('admin.costos.rules.update', $rule) }}">
-                                        @csrf
-                                        @method('PUT')
-                                    </form>
-                                    <div class="table-actions">
-                                        <button type="submit" form="{{ $formId }}" class="create-action create-action--compact">
-                                            <i class="fas fa-floppy-disk"></i>
-                                            Guardar
-                                        </button>
-                                        <form method="POST" action="{{ route('admin.costos.rules.destroy', $rule) }}" onsubmit="return confirm('¿Eliminar esta regla automática?');">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" class="create-action create-action--danger create-action--compact">
-                                                <i class="fas fa-trash"></i>
-                                                Eliminar
-                                            </button>
-                                        </form>
-                                    </div>
-                                </td>
+                                @if($canModifyLavadoraCosts)
+                                    <td>
+                                        @if($canEditLavadoraCosts)
+                                            <form id="{{ $formId }}" method="POST" action="{{ route('admin.costos.rules.update', $rule) }}">
+                                                @csrf
+                                                @method('PUT')
+                                            </form>
+                                        @endif
+                                        <div class="table-actions">
+                                            @if($canEditLavadoraCosts)
+                                                <button type="submit" form="{{ $formId }}" class="create-action create-action--compact">
+                                                    <i class="fas fa-floppy-disk"></i>
+                                                    Guardar
+                                                </button>
+                                            @endif
+                                            @if($canDeleteLavadoraCosts)
+                                                <form method="POST" action="{{ route('admin.costos.rules.destroy', $rule) }}" onsubmit="return confirm('¿Eliminar esta regla automática?');">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit" class="create-action create-action--danger create-action--compact">
+                                                        <i class="fas fa-trash"></i>
+                                                        Eliminar
+                                                    </button>
+                                                </form>
+                                            @endif
+                                        </div>
+                                    </td>
+                                @endif
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="9">No hay reglas registradas todavía.</td>
+                                <td colspan="{{ $canModifyLavadoraCosts ? 8 : 7 }}">No hay reglas registradas todavía.</td>
                             </tr>
                         @endforelse
                     </tbody>
@@ -998,7 +1027,9 @@
                             <th>Gastado</th>
                             <th>Disponible</th>
                             <th>Uso</th>
-                            <th>Guardar</th>
+                            @if($canModifyLavadoraBudgets)
+                                <th>Guardar</th>
+                            @endif
                         </tr>
                     </thead>
                     <tbody>
@@ -1010,7 +1041,7 @@
                                     <div class="text-xs text-slate-500 mt-1">{{ $row['budget']?->updatedBy?->name ?? 'Sin responsable' }}</div>
                                 </td>
                                 <td>
-                                    <input class="input-inline" name="annual_budget" type="number" min="0" step="0.01" value="{{ $row['budget']?->annual_budget ?? 0 }}" form="{{ $formId }}">
+                                    <input class="input-inline" name="annual_budget" type="number" min="0" step="0.01" value="{{ $row['budget']?->annual_budget ?? 0 }}" form="{{ $formId }}" @disabled(!$canModifyLavadoraBudgets)>
                                 </td>
                                 <td class="text-sm font-semibold text-slate-900">${{ number_format((float) $row['spent'], 2) }}</td>
                                 <td class="text-sm font-semibold text-slate-900">${{ number_format((float) $row['remaining'], 2) }}</td>
@@ -1022,18 +1053,20 @@
                                         {{ is_null($row['usage_percent']) ? 'Sin presupuesto' : number_format((float) $row['usage_percent'], 1) . '% utilizado' }}
                                     </div>
                                 </td>
-                                <td>
-                                    <form id="{{ $formId }}" method="POST" action="{{ route('admin.costos.budgets.upsert') }}">
-                                        @csrf
-                                        <input type="hidden" name="linea_id" value="{{ $row['linea']->id }}">
-                                        <input type="hidden" name="year" value="{{ $budgetYear }}">
-                                        <input type="hidden" name="observaciones" value="{{ $row['budget']?->observaciones }}">
-                                    </form>
-                                    <button type="submit" form="{{ $formId }}" class="create-action create-action--compact">
-                                        <i class="fas fa-floppy-disk"></i>
-                                        Guardar
-                                    </button>
-                                </td>
+                                @if($canModifyLavadoraBudgets)
+                                    <td>
+                                        <form id="{{ $formId }}" method="POST" action="{{ route('admin.costos.budgets.upsert') }}">
+                                            @csrf
+                                            <input type="hidden" name="linea_id" value="{{ $row['linea']->id }}">
+                                            <input type="hidden" name="year" value="{{ $budgetYear }}">
+                                            <input type="hidden" name="observaciones" value="{{ $row['budget']?->observaciones }}">
+                                        </form>
+                                        <button type="submit" form="{{ $formId }}" class="create-action create-action--compact">
+                                            <i class="fas fa-floppy-disk"></i>
+                                            Guardar
+                                        </button>
+                                    </td>
+                                @endif
                             </tr>
                         @endforeach
                     </tbody>

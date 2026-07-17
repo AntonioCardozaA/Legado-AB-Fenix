@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -48,6 +49,7 @@ class AdminUserController extends Controller
         return view('admin.users.index', [
             'users' => $users,
             'roleOptions' => $this->roleOptions(),
+            'permissionGroups' => User::configurablePermissionGroups(),
             'stats' => $this->stats(),
             'filters' => $filters,
         ]);
@@ -58,6 +60,7 @@ class AdminUserController extends Controller
         return view('admin.users.edit', [
             'managedUser' => $user->load(['roles', 'permissions']),
             'roleOptions' => $this->roleOptions(),
+            'permissionGroups' => User::configurablePermissionGroups(),
             'stats' => $this->stats(),
             'filters' => $this->filtersFromRequest($request),
         ]);
@@ -104,6 +107,19 @@ class AdminUserController extends Controller
             ->with('success', 'Usuario actualizado correctamente.');
     }
 
+    public function updatePermissions(Request $request, User $user): JsonResponse
+    {
+        $data = $this->validatePermissionPayload($request);
+
+        $this->syncSpecialPermissions($user, $data);
+
+        return response()->json([
+            'message' => 'Permisos guardados correctamente.',
+            'custom_permissions_enabled' => $user->fresh()?->usesCustomPermissionAccess() ?? false,
+            'custom_permissions' => $user->fresh()?->getDirectPermissions()->pluck('name')->values()->all() ?? [],
+        ]);
+    }
+
     private function validatePayload(Request $request, ?User $user = null): array
     {
         $request->merge([
@@ -132,6 +148,10 @@ class AdminUserController extends Controller
             'role' => ['required', 'string', Rule::in($roleNames)],
             'activo' => ['required', 'boolean'],
             'can_delete_analysis' => ['nullable', 'boolean'],
+            'can_close_lavadora_damage' => ['nullable', 'boolean'],
+            'custom_permissions_enabled' => ['nullable', 'boolean'],
+            'custom_permissions' => ['nullable', 'array'],
+            'custom_permissions.*' => ['string', Rule::in(User::configurablePermissionNames())],
             'password' => [
                 $user ? 'nullable' : 'required',
                 'confirmed',
@@ -141,8 +161,49 @@ class AdminUserController extends Controller
 
         $data['activo'] = $request->boolean('activo');
         $data['can_delete_analysis'] = $request->boolean('can_delete_analysis');
+        $data['can_close_lavadora_damage'] = $request->boolean('can_close_lavadora_damage');
+        $data['custom_permissions_enabled'] = $request->boolean('custom_permissions_enabled');
+        $data['custom_permissions'] = collect($request->input('custom_permissions', []))
+            ->filter(fn ($permission) => is_string($permission))
+            ->intersect(User::configurablePermissionNames())
+            ->unique()
+            ->values()
+            ->all();
+
+        if ($data['can_delete_analysis']) {
+            $data['custom_permissions'][] = User::PERMISSION_DELETE_ANALYSIS;
+        }
+
+        if ($data['can_close_lavadora_damage']) {
+            $data['custom_permissions'][] = User::PERMISSION_CLOSE_LAVADORA_DAMAGE;
+        }
+
+        if ($data['can_delete_analysis'] || $data['can_close_lavadora_damage']) {
+            $data['custom_permissions_enabled'] = true;
+        }
+
+        $data['custom_permissions'] = array_values(array_unique($data['custom_permissions']));
 
         return $data;
+    }
+
+    private function validatePermissionPayload(Request $request): array
+    {
+        $data = $request->validate([
+            'custom_permissions_enabled' => ['nullable', 'boolean'],
+            'custom_permissions' => ['nullable', 'array'],
+            'custom_permissions.*' => ['string', Rule::in(User::configurablePermissionNames())],
+        ]);
+
+        return [
+            'custom_permissions_enabled' => $request->boolean('custom_permissions_enabled'),
+            'custom_permissions' => collect($data['custom_permissions'] ?? [])
+                ->filter(fn ($permission) => is_string($permission))
+                ->intersect(User::configurablePermissionNames())
+                ->unique()
+                ->values()
+                ->all(),
+        ];
     }
 
     private function fillUser(User $user, array $data): void
@@ -222,23 +283,33 @@ class AdminUserController extends Controller
 
     private function syncSpecialPermissions(User $user, array $data): void
     {
-        $permission = Permission::firstOrCreate([
-            'name' => User::PERMISSION_DELETE_ANALYSIS,
-            'guard_name' => 'web',
-        ]);
+        $configurablePermissionNames = User::configurablePermissionNames();
+        $customAccessPermissionName = User::customAccessControlPermissionName();
 
-        $canReceivePermission = in_array($data['role'], User::supervisorEquivalentRoles(), true)
-            && (bool) ($data['can_delete_analysis'] ?? false);
-
-        if ($canReceivePermission) {
-            $user->givePermissionTo($permission);
-
-            return;
+        foreach ([...$configurablePermissionNames, $customAccessPermissionName] as $permissionName) {
+            Permission::firstOrCreate([
+                'name' => $permissionName,
+                'guard_name' => 'web',
+            ]);
         }
 
-        if ($user->hasDirectAnalysisDeletionPermission()) {
-            $user->revokePermissionTo($permission);
+        $requestedPermissions = collect($data['custom_permissions'] ?? [])
+            ->intersect($configurablePermissionNames)
+            ->unique()
+            ->values();
+
+        $preservedDirectPermissions = $user->getDirectPermissions()
+            ->pluck('name')
+            ->diff([...$configurablePermissionNames, $customAccessPermissionName])
+            ->values();
+
+        if ($data['custom_permissions_enabled'] ?? false) {
+            $requestedPermissions->push($customAccessPermissionName);
+        } else {
+            $requestedPermissions = collect();
         }
+
+        $user->syncPermissions($preservedDirectPermissions->merge($requestedPermissions)->unique()->all());
     }
 
     private function isCurrentUser(User $user): bool

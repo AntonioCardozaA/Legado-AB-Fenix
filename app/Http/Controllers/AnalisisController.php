@@ -176,8 +176,9 @@ public function index(Request $request)
     {
         $analisis = Analisis::with(['linea', 'componente', 'categoria', 'numeroR', 'usuario'])
             ->findOrFail($id);
+        $canDeleteAnalysis = auth()->user()?->canDeleteLegacyAnalysis() ?? false;
 
-        return view('analisis.show', compact('analisis'));
+        return view('analisis.show', compact('analisis', 'canDeleteAnalysis'));
     }
 
     /**
@@ -254,7 +255,7 @@ public function index(Request $request)
      */
     public function destroy(Request $request, $id)
     {
-        abort_unless($request->user()?->canDeleteAnalysis(), 403, 'No tienes permiso para eliminar analisis.');
+        abort_unless($request->user()?->canDeleteLegacyAnalysis(), 403, 'No tienes permiso para eliminar analisis.');
 
         $analisis = Analisis::with(['linea', 'componente', 'categoria', 'numeroR'])->findOrFail($id);
 

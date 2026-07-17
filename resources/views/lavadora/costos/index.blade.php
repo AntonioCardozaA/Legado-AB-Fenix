@@ -15,6 +15,9 @@
         flex-direction: column;
         gap: 1.5rem;
         font-family: inherit;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
     }
 
     .cost-hero {
@@ -46,6 +49,11 @@
         gap: 1rem;
         justify-content: space-between;
         align-items: flex-start;
+        min-width: 0;
+    }
+
+    .cost-hero-copy > * {
+        min-width: 0;
     }
 
     .cost-hero h1 {
@@ -130,6 +138,7 @@
         display: grid;
         grid-template-columns: repeat(6, minmax(0, 1fr));
         gap: 0.9rem;
+        min-width: 0;
     }
 
     .field-label {
@@ -172,6 +181,11 @@
         display: grid;
         grid-template-columns: repeat(5, minmax(0, 1fr));
         gap: 1rem;
+        min-width: 0;
+    }
+
+    .stat-grid.stat-grid-three {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
     }
 
     .stat-card {
@@ -222,6 +236,7 @@
         display: grid;
         grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr);
         gap: 1rem;
+        min-width: 0;
     }
 
     .chart-wrap {
@@ -313,6 +328,8 @@
         overflow-x: auto;
         border-radius: 1rem;
         border: 1px solid rgba(148, 163, 184, 0.16);
+        max-width: 100%;
+        -webkit-overflow-scrolling: touch;
     }
 
     .table-shell table {
@@ -350,6 +367,10 @@
             grid-template-columns: repeat(2, minmax(0, 1fr));
         }
 
+        .stat-grid.stat-grid-three {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
         .content-grid {
             grid-template-columns: 1fr;
         }
@@ -363,6 +384,10 @@
 
         .filter-grid,
         .stat-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .stat-grid.stat-grid-three {
             grid-template-columns: 1fr;
         }
 
@@ -402,7 +427,7 @@
                     <i class="fas fa-arrow-left"></i>
                     Volver al menú
                 </a>
-                @if(auth()->user()?->hasRole('admin'))
+                @if(auth()->user()?->canAccessLavadoraCosts())
                     <a href="{{ route('admin.costos.index') }}" class="create-action create-action--success">
                         <i class="fas fa-sliders"></i>
                         Control de Gastos
@@ -663,7 +688,7 @@
                 </span>
             </div>
 
-            <div class="stat-grid" style="grid-template-columns: repeat(3, minmax(0, 1fr)); margin-bottom: 1rem;">
+            <div class="stat-grid stat-grid-three" style="margin-bottom: 1rem;">
                 <article class="stat-card">
                     <div class="stat-label">Total gastado</div>
                     <div class="stat-value">${{ number_format((float) $selectedLinea['total'], 2) }}</div>

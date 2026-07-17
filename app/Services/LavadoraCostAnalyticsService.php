@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\AnalisisLavadora;
 use App\Models\LavadoraBudget;
 use App\Models\LavadoraCostEntry;
 use App\Models\Linea;
@@ -49,7 +50,8 @@ class LavadoraCostAnalyticsService
             ->values();
 
         $replacements = $entries
-            ->where('source_type', 'estado_cambiado')
+            ->filter(fn (LavadoraCostEntry $entry) => $entry->source_type === 'estado_cambiado'
+                || (($entry->metadata['estado_correccion'] ?? null) === AnalisisLavadora::CORRECCION_COMPONENTE_CAMBIADO))
             ->groupBy('component_snapshot')
             ->map(fn (Collection $group) => $group->pluck('analisis_lavadora_id')->unique()->count())
             ->sortDesc()
@@ -82,6 +84,8 @@ class LavadoraCostAnalyticsService
         $selectedLineaDetails = $selectedLinea
             ? $this->buildSelectedLineaDetails($selectedLinea, $from, $to)
             : null;
+        $correctionSummary = $this->buildCorrectionSummary($selectedLinea?->id, $from, $to);
+        $interventionHistory = $this->buildInterventionHistory($selectedLinea?->id, $from, $to);
 
         $monthComparison = $this->buildComparison(
             $selectedLinea?->id,
@@ -121,9 +125,11 @@ class LavadoraCostAnalyticsService
             'by_component' => $byComponent,
             'by_lavadora' => $byLavadora,
             'top_replacements' => $replacements,
+            'correction_summary' => $correctionSummary,
             'trend' => $trend,
             'budgets' => $lineBudgets,
             'history' => $history,
+            'intervention_history' => $interventionHistory,
             'selected_linea' => $selectedLineaDetails,
         ];
     }
@@ -282,7 +288,8 @@ class LavadoraCostAnalyticsService
             ->values();
 
         $topReplacements = $entries
-            ->where('source_type', 'estado_cambiado')
+            ->filter(fn (LavadoraCostEntry $entry) => $entry->source_type === 'estado_cambiado'
+                || (($entry->metadata['estado_correccion'] ?? null) === AnalisisLavadora::CORRECCION_COMPONENTE_CAMBIADO))
             ->groupBy('component_snapshot')
             ->map(fn (Collection $group) => $group->pluck('analisis_lavadora_id')->unique()->count())
             ->sortDesc()
@@ -298,6 +305,80 @@ class LavadoraCostAnalyticsService
             'top_replacements' => $topReplacements,
             'history' => $history,
         ];
+    }
+
+    private function buildCorrectionSummary(?int $lineaId, Carbon $from, Carbon $to): array
+    {
+        $pendingQuery = AnalisisLavadora::ultimosPorComponente()
+            ->with('componente')
+            ->where('estado', AnalisisLavadora::ESTADO_DANADO)
+            ->where(function ($query): void {
+                $query->whereNull('estado_correccion')
+                    ->orWhere('estado_correccion', AnalisisLavadora::CORRECCION_PENDIENTE);
+            });
+
+        if ($lineaId) {
+            $pendingQuery->where('linea_id', $lineaId);
+        }
+
+        $closedQuery = AnalisisLavadora::query()
+            ->whereIn('estado_correccion', [
+                AnalisisLavadora::CORRECCION_CORREGIDO,
+                AnalisisLavadora::CORRECCION_COMPONENTE_CAMBIADO,
+            ])
+            ->whereBetween('fecha_correccion', [$from->toDateTimeString(), $to->toDateTimeString()]);
+
+        if ($lineaId) {
+            $closedQuery->where('linea_id', $lineaId);
+        }
+
+        $closed = $closedQuery->get();
+        $pending = $pendingQuery->get();
+
+        return [
+            'pending' => $pending->count(),
+            'corrected' => $closed->where('estado_correccion', AnalisisLavadora::CORRECCION_CORREGIDO)->count(),
+            'replaced' => $closed->where('estado_correccion', AnalisisLavadora::CORRECCION_COMPONENTE_CAMBIADO)->count(),
+            'average_repair_hours' => $closed->whereNotNull('tiempo_reparacion_horas')->avg('tiempo_reparacion_horas'),
+            'total_intervention_cost' => round((float) $closed->sum('costo_total_intervencion'), 2),
+            'top_pending_components' => $pending
+                ->groupBy(fn (AnalisisLavadora $analysis) => $analysis->componente?->nombre ?? 'Sin componente')
+                ->map(fn (Collection $items, string $label) => ['label' => $label, 'total' => $items->count()])
+                ->sortByDesc('total')
+                ->values()
+                ->take(5),
+        ];
+    }
+
+    private function buildInterventionHistory(?int $lineaId, Carbon $from, Carbon $to): Collection
+    {
+        $query = AnalisisLavadora::query()
+            ->with(['linea:id,nombre', 'componente:id,nombre,codigo', 'usuarioCorreccion:id,name'])
+            ->whereIn('estado_correccion', [
+                AnalisisLavadora::CORRECCION_CORREGIDO,
+                AnalisisLavadora::CORRECCION_COMPONENTE_CAMBIADO,
+            ])
+            ->whereBetween('fecha_correccion', [$from->toDateTimeString(), $to->toDateTimeString()]);
+
+        if ($lineaId) {
+            $query->where('linea_id', $lineaId);
+        }
+
+        return $query
+            ->orderByDesc('fecha_correccion')
+            ->orderByDesc('id')
+            ->limit(15)
+            ->get()
+            ->map(fn (AnalisisLavadora $analysis) => [
+                'fecha' => $analysis->fecha_correccion?->format('d/m/Y H:i') ?? '-',
+                'lavadora' => $analysis->linea?->nombre ?? '-',
+                'componente' => $analysis->componente?->nombre ?? 'Sin componente',
+                'estado' => $analysis->estado_correccion_label,
+                'tipo_intervencion' => $analysis->tipo_intervencion ?: '-',
+                'responsable' => $analysis->responsable_trabajo ?: ($analysis->usuarioCorreccion?->name ?? '-'),
+                'horas' => $analysis->tiempo_reparacion_horas,
+                'total' => $analysis->costo_total_intervencion,
+            ]);
     }
 
     private function buildTrendSeries(Collection $entries, Carbon $from, Carbon $to): array

@@ -111,7 +111,7 @@ class AnalisisEtiquetadoraController extends Controller
             'estadisticas' => $estadisticas,
             'estadoModalItems' => $estadoModalItems,
             'openAnalysisData' => $openAnalysisData,
-            'canDeleteAnalysis' => $request->user()?->canDeleteAnalysis() ?? false,
+            'canDeleteAnalysis' => $request->user()?->canDeleteEtiquetadoraAnalysis() ?? false,
             'filtros' => $request->all(),
         ]);
     }
@@ -298,6 +298,7 @@ class AnalisisEtiquetadoraController extends Controller
 
         return view('etiquetadora.analisis-etiquetadora.show', [
             'analisis' => $analisisetiquetadora,
+            'canDeleteAnalysis' => auth()->user()?->canDeleteEtiquetadoraAnalysis() ?? false,
         ]);
     }
 
@@ -363,7 +364,7 @@ class AnalisisEtiquetadoraController extends Controller
 
     public function destroy(Request $request, AnalisisEtiquetadora $analisisetiquetadora)
     {
-        abort_unless($request->user()?->canDeleteAnalysis(), 403, 'No tienes permiso para eliminar analisis.');
+        abort_unless($request->user()?->canDeleteEtiquetadoraAnalysis(), 403, 'No tienes permiso para eliminar analisis.');
 
         $analisisetiquetadora->loadMissing(['linea', 'componente']);
 
@@ -494,7 +495,7 @@ class AnalisisEtiquetadoraController extends Controller
             ->where('maquina', $registro->maquina)
             ->count();
 
-        $canDeleteAnalysis = auth()->user()?->canDeleteAnalysis() ?? false;
+        $canDeleteAnalysis = auth()->user()?->canDeleteEtiquetadoraAnalysis() ?? false;
 
         return [
             'id' => $registro->id,

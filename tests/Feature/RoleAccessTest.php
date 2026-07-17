@@ -198,7 +198,7 @@ class RoleAccessTest extends TestCase
         $this->actingAs($user)
             ->get(route('tecnico.dashboard'))
             ->assertOk()
-            ->assertSee($message, false)
+            ->assertDontSee($message, false)
             ->assertDontSee('href="' . route('reportes.index') . '"', false);
 
         $this->actingAs($user)
@@ -265,7 +265,7 @@ class RoleAccessTest extends TestCase
         $this->actingAs($user)
             ->get(route('tecnico.dashboard'))
             ->assertOk()
-            ->assertSee($message, false)
+            ->assertDontSee($message, false)
             ->assertDontSee('href="' . route('reportes.index') . '"', false);
 
         $this->actingAs($user)

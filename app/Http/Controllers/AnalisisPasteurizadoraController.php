@@ -73,6 +73,7 @@ class AnalisisPasteurizadoraController extends Controller
             'analisisTitulo' => $this->tituloAnalisis,
             'historialTitulo' => $this->tituloHistorial,
             'historicoRevisadosTitulo' => $this->tituloHistoricoRevisados,
+            'canDeleteAnalysis' => auth()->user()?->canDeletePasteurizadoraAnalysis() ?? false,
         ]);
     }
 
@@ -493,7 +494,7 @@ class AnalisisPasteurizadoraController extends Controller
             })
             ->values();
 
-        $canDeleteAnalysis = auth()->user()?->canDeleteAnalysis() ?? false;
+        $canDeleteAnalysis = auth()->user()?->canDeletePasteurizadoraAnalysis() ?? false;
 
         return [
             'id' => $registro->id,
@@ -883,7 +884,7 @@ class AnalisisPasteurizadoraController extends Controller
 
     public function destroy(Request $request, $id)
     {
-        abort_unless($request->user()?->canDeleteAnalysis(), 403, 'No tienes permiso para eliminar analisis.');
+        abort_unless($request->user()?->canDeletePasteurizadoraAnalysis(), 403, 'No tienes permiso para eliminar analisis.');
 
         $analisis = $this->analisisQuery()->findOrFail($id);
         $analisis->loadMissing('linea');

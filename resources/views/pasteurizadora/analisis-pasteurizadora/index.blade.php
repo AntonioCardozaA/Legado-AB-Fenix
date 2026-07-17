@@ -7,7 +7,7 @@
     $analisisRoutePrefix = $analisisRoutePrefix ?? 'pasteurizadora.analisis-pasteurizadora';
     $analisisRoute = fn ($name, $params = []) => route($analisisRoutePrefix . '.' . $name, $params);
     $analisisBaseUrl = $analisisBaseUrl ?? '/pasteurizadora/analisis-pasteurizadora';
-    $canDeleteAnalysis = $canDeleteAnalysis ?? (auth()->user()?->canDeleteAnalysis() ?? false);
+    $canDeleteAnalysis = $canDeleteAnalysis ?? (auth()->user()?->canDeletePasteurizadoraAnalysis() ?? false);
 @endphp
 <style>
     /* VARIABLES CSS PARA CONSISTENCIA */
@@ -375,6 +375,16 @@
         overflow: auto;
         border: 1px solid var(--medium-gray);
         border-radius: 8px;
+        width: 100%;
+        max-width: 100%;
+        overscroll-behavior-x: contain;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .table-wrapper > table,
+    .compact-table {
+        width: max-content;
+        min-width: 100%;
     }
     
     .table-corner {
@@ -443,6 +453,8 @@
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
         margin-bottom: 24px;
         border: 1px solid #e2e8f0;
+        width: 100%;
+        max-width: 100%;
     }
     
     .lineas-title {
@@ -467,6 +479,7 @@
         flex-wrap: wrap;
         align-items: center;
         gap: 12px;
+        min-width: 0;
     }
     
     .linea-item {
@@ -773,6 +786,8 @@
         box-shadow: var(--soft-shadow);
         margin-bottom: 24px;
         border: 1px solid #e5e7eb;
+        width: 100%;
+        max-width: 100%;
     }
 
     .pasteurizadora-card-header {
@@ -783,12 +798,18 @@
         display: flex;
         align-items: center;
         gap: 15px;
+        flex-wrap: wrap;
+    }
+
+    .pasteurizadora-card-header > * {
+        min-width: 0;
     }
 
     .pasteurizadora-card-header h3 {
         font-size: 20px;
         font-weight: 700;
         margin: 0;
+        overflow-wrap: anywhere;
     }
 
     .pasteurizadora-card-header .badge {
@@ -881,7 +902,12 @@
 
     @media (max-width: 768px) {
         .pasteurizadora-card-header {
+            align-items: stretch;
             padding: 16px 18px;
+        }
+
+        .pasteurizadora-card-header > div {
+            width: 100%;
         }
 
         .pasteurizadora-card .component-header {

@@ -12,6 +12,7 @@ class LavadoraCostEntry extends Model
     use HasFactory;
 
     public const SOURCE_MANUAL = 'manual';
+    public const SOURCE_DAMAGE_CLOSURE = 'cierre_dano';
 
     protected $table = 'lavadora_cost_entries';
 
@@ -78,6 +79,7 @@ class LavadoraCostEntry extends Model
     {
         return match ($sourceType) {
             self::SOURCE_MANUAL => 'Manual',
+            self::SOURCE_DAMAGE_CLOSURE => 'Cierre de dano',
             CostAutomationRule::TRIGGER_ESTADO_CAMBIADO => 'Cambio completo',
             CostAutomationRule::TRIGGER_ACTIVIDAD_KEYWORD => 'Actividad',
             default => Str::headline(str_replace('_', ' ', (string) $sourceType)),
@@ -86,6 +88,10 @@ class LavadoraCostEntry extends Model
 
     public static function originLabel(?string $sourceType): string
     {
-        return $sourceType === self::SOURCE_MANUAL ? 'Manual' : 'Automatico';
+        return match ($sourceType) {
+            self::SOURCE_MANUAL => 'Manual',
+            self::SOURCE_DAMAGE_CLOSURE => 'Administrativo',
+            default => 'Automatico',
+        };
     }
 }

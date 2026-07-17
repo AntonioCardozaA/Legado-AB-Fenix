@@ -11,6 +11,12 @@ class LavadoraCostController extends Controller
 {
     public function index(Request $request, LavadoraCostAnalyticsService $analytics)
     {
+        abort_unless(
+            $request->user()?->canAccessLavadoraCosts(),
+            403,
+            'No tienes permiso para acceder al modulo de Costos.'
+        );
+
         $filters = $request->validate([
             'preset' => 'nullable|in:mensual,trimestral,semestral,anual,custom',
             'from' => 'nullable|date',

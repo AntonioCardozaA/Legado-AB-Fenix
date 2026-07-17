@@ -87,6 +87,68 @@
             color: #f59e0b;
         }
 
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            max-width: 100%;
+            overflow-x: hidden;
+        }
+
+        img,
+        video,
+        canvas,
+        svg {
+            max-width: 100%;
+        }
+
+        .app-shell {
+            width: 100%;
+            min-width: 0;
+        }
+
+        .app-shell-main,
+        .app-content {
+            width: 100%;
+            min-width: 0;
+            max-width: 100%;
+        }
+
+        .app-content {
+            overflow-x: hidden;
+        }
+
+        .app-content :where(.grid, .flex) > * {
+            min-width: 0;
+        }
+
+        .app-content :where(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), select, textarea) {
+            max-width: 100%;
+            min-width: 0;
+        }
+
+        .app-content :where(.overflow-x-auto, .table-wrapper, .table-container, .table-shell, .responsive-table, .industrial-table-container, .etq-table-wrapper) {
+            max-width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .app-content :where(.overflow-x-auto, .table-wrapper, .table-container, .table-shell, .responsive-table, .industrial-table-container, .etq-table-wrapper) > table {
+            min-width: 100%;
+        }
+
+        .app-content :where(td, th) {
+            overflow-wrap: anywhere;
+        }
+
+        .app-content :where(.card, section, article, form) {
+            max-width: 100%;
+        }
+
         .logo-sequence {
             position: relative;
             display: inline-block;
@@ -314,6 +376,23 @@
         }
 
         @media (max-width: 768px) {
+            .app-shell-main {
+                padding: 0.75rem;
+            }
+
+            .app-content :where(.overflow-x-auto, .table-wrapper, .table-container, .table-shell, .responsive-table, .industrial-table-container, .etq-table-wrapper) {
+                margin-inline: -0.75rem;
+                padding-inline: 0.75rem;
+            }
+
+            .app-content :where(div:not(.overflow-x-auto):not(.table-wrapper):not(.table-container):not(.table-shell):not(.responsive-table):not(.industrial-table-container):not(.etq-table-wrapper)) > table {
+                display: block;
+                width: 100%;
+                max-width: 100%;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+
             .create-actions,
             .responsive-actions {
                 width: 100%;
@@ -335,10 +414,10 @@
     </style>
 </head>
 
-<body class="bg-gray-100">
+<body class="bg-gray-100 overflow-x-hidden">
 
 <div
-    class="flex min-h-screen"
+    class="app-shell flex min-h-screen"
     x-data="{
         sidebarOpen: false,
         isDesktop: window.innerWidth >= 1024,
@@ -418,7 +497,19 @@
 
         <!-- Navegación -->
         <nav class="flex-1 px-4 py-6 space-y-2 text-sm overflow-y-auto">
+            @php
+                $usuarioActual = auth()->user();
+                $puedeVerDashboardPrincipal = $usuarioActual?->canUseCustomPermission('ver dashboard principal') ?? false;
+                $puedeVerDashboardLavadora = ($usuarioActual?->canUseCustomPermission('ver dashboard lavadoras') ?? false)
+                    && ($usuarioActual?->canAccessModule(\App\Models\User::MODULE_LAVADORA) ?? false);
+                $puedeVerDashboardEtiquetadora = ($usuarioActual?->canUseCustomPermission('ver dashboard etiquetadoras') ?? false)
+                    && ($usuarioActual?->canAccessModule(\App\Models\User::MODULE_ETIQUETADORA) ?? false);
+                $puedeVerDashboardPasteurizadora = $usuarioActual?->canUseCustomPermission('ver dashboard pasteurizadoras') ?? false;
+                $puedeVerReportes = $usuarioActual?->canUseCustomPermission('ver reportes') ?? false;
+                $puedeGestionarUsuarios = $usuarioActual?->canUseCustomPermission('gestionar usuarios') ?? false;
+            @endphp
 
+            @if($puedeVerDashboardPrincipal)
             <a href="{{ route('dashboard') }}"
                @click="if (!isDesktop) sidebarOpen = false"
                aria-label="Ir al Dashboard"
@@ -426,7 +517,9 @@
                 <i class="fas fa-chart-line w-5 mr-3 text-gray-500"></i>
                 Dashboard
             </a>
+            @endif
 
+            @if($puedeVerDashboardLavadora)
             <a href="{{ route('lavadora.dashboard') }}"
                @click="if (!isDesktop) sidebarOpen = false"
                aria-label="Dashboard de Lavadora"
@@ -434,22 +527,22 @@
                 <i class="fas fa-droplet w-5 mr-3 text-gray-500"></i>
                 Lavadora
             </a>
+            @endif
 
-            @auth
-                @if(auth()->user()->canAccessModule(\App\Models\User::MODULE_ETIQUETADORA))
-                    <a href="{{ route('etiquetadora.dashboard') }}"
-                       @click="if (!isDesktop) sidebarOpen = false"
-                       aria-label="Dashboard de Etiquetadora"
-                       class="nav-link flex items-center px-4 py-3 rounded-lg {{ request()->routeIs('etiquetadora.*') || request()->routeIs('analisis-etiquetadora.*') || request()->routeIs('dashboard_etiquetadora') ? 'nav-active' : '' }}">
-                        <i class="fas fa-tags w-5 mr-3 text-gray-500"></i>
-                        Etiquetadora
-                    </a>
-                @endif
-            @endauth
+            @if($puedeVerDashboardEtiquetadora)
+                <a href="{{ route('etiquetadora.dashboard') }}"
+                   @click="if (!isDesktop) sidebarOpen = false"
+                   aria-label="Dashboard de Etiquetadora"
+                   class="nav-link flex items-center px-4 py-3 rounded-lg {{ request()->routeIs('etiquetadora.*') || request()->routeIs('analisis-etiquetadora.*') || request()->routeIs('dashboard_etiquetadora') ? 'nav-active' : '' }}">
+                    <i class="fas fa-tags w-5 mr-3 text-gray-500"></i>
+                    Etiquetadora
+                </a>
+            @endif
 
             @auth
                 @php
-                    $mostrarPasteurizadora = $canSeePasteurizadora ?? ($canAccessPasteurizadora ?? false);
+                    $mostrarPasteurizadora = ($canSeePasteurizadora ?? ($canAccessPasteurizadora ?? false))
+                        && $puedeVerDashboardPasteurizadora;
                     $pasteurizadoraEnConstruccion = $pasteurizadoraComingSoon ?? false;
                 @endphp
 
@@ -481,40 +574,9 @@
                     </a>
                 @endif
                 @endif
-            @else
-                <a href="{{ route('pasteurizadora.dashboard') }}"
-                   @click="if (!isDesktop) sidebarOpen = false"
-                   aria-label="Análisis de Pasteurizadora"
-                   class="nav-link flex items-center px-4 py-3 rounded-lg {{ request()->routeIs('dashboard.pasteurizadora') || request()->routeIs('pasteurizadora.dashboard') || request()->routeIs('dashboard_pasteurizadora') ? 'nav-active' : '' }}">
-                    <i class="fas fa-thermometer-half w-5 mr-3 text-gray-500"></i>
-                    Pasteurizadora
-                </a>
             @endauth
 
-            @php
-                $usuarioActual = auth()->user();
-                $bloquearReportesTecnico = $usuarioActual
-                    && $usuarioActual->usesTechnicianAccessProfile();
-            @endphp
-
-            @if($bloquearReportesTecnico)
-                <button type="button"
-                        @click="
-                            if (!isDesktop) sidebarOpen = false;
-                            Swal.fire({
-                                icon: 'info',
-                                text: 'No cuentas con los permisos necesarios para visualizar los reportes.',
-                                title: 'Acceso restringido',
-                                confirmButtonText: 'Entendido',
-                                confirmButtonColor: '#1e40af'
-                            });
-                        "
-                        aria-label="Reportes"
-                        class="nav-link flex items-center w-full text-left px-4 py-3 rounded-lg">
-                    <i class="fas fa-chart-bar w-5 mr-3 text-gray-500"></i>
-                    Reportes
-                </button>
-            @else
+            @if($puedeVerReportes)
                 <a href="{{ route('reportes.index') }}"
                    @click="if (!isDesktop) sidebarOpen = false"
                    aria-label="Reportes"
@@ -525,7 +587,7 @@
             @endif
 
             @auth
-                @if(auth()->user()->hasRole('admin'))
+                @if($puedeGestionarUsuarios)
                     <a href="{{ route('admin.users.index') }}"
                        @click="if (!isDesktop) sidebarOpen = false"
                        aria-label="Gestion de usuarios"
@@ -533,7 +595,9 @@
                         <i class="fas fa-user-shield w-5 mr-3 text-gray-500"></i>
                         Gestion de usuarios
                     </a>
+                @endif
 
+                @if($usuarioActual?->canAccessLavadoraCosts())
                     <a href="{{ route('admin.costos.index') }}"
                        @click="if (!isDesktop) sidebarOpen = false"
                        aria-label="Control de gastos"
@@ -559,9 +623,9 @@
 
         <!-- Header -->
         <header class="bg-white shadow-sm border-b px-4 sm:px-6 py-4">
-            <div class="flex justify-between items-center gap-4">
+            <div class="flex flex-wrap items-center justify-between gap-3 sm:flex-nowrap sm:gap-4">
 
-                <div class="flex items-center space-x-3 min-w-0">
+                <div class="flex flex-1 items-center space-x-3 min-w-0">
                     <button
                         @click="sidebarOpen = !sidebarOpen"
                         aria-label="Abrir menú"
@@ -574,7 +638,7 @@
                     </h2>
                 </div>
 
-                <div class="flex items-center space-x-2 sm:space-x-4">
+                <div class="flex shrink-0 items-center space-x-2 sm:space-x-4">
                     <!-- NOTIFICACIONES DROPDOWN -->
                     @auth
                     @php
@@ -603,7 +667,7 @@
                              x-transition:leave="transition ease-in duration-75"
                              x-transition:leave-start="transform opacity-100 scale-100"
                              x-transition:leave-end="transform opacity-0 scale-95"
-                             class="absolute right-0 mt-2 w-72 sm:w-80 bg-white rounded-md shadow-lg overflow-hidden z-50 border border-gray-200"
+                             class="absolute right-0 mt-2 w-72 max-w-[calc(100vw-2rem)] sm:w-80 bg-white rounded-md shadow-lg overflow-hidden z-50 border border-gray-200"
                              style="display: none;">
 
                             <div class="px-4 py-3 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
@@ -725,7 +789,7 @@
         </header>
 
         <!-- Main -->
-        <main class="flex-1 overflow-auto p-4 sm:p-6">
+        <main class="app-shell-main app-content flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-6">
             @yield('content')
         </main>
 
