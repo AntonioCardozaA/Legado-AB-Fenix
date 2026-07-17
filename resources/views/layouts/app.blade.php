@@ -452,7 +452,7 @@
         x-transition:leave="transition ease-in duration-300"
         x-transition:leave-start="transform translate-x-0"
         x-transition:leave-end="transform -translate-x-full"
-        class="sidebar fixed inset-y-0 left-0 z-50 w-64 flex flex-col h-screen shadow-sm lg:sticky lg:top-0 lg:z-auto lg:translate-x-0"
+        class="sidebar fixed inset-y-0 left-0 z-50 w-64 flex flex-col h-screen shadow-sm lg:z-40 lg:translate-x-0"
     >
 
         <!-- Logo -->
@@ -619,7 +619,7 @@
     </aside>
 
     <!-- CONTENIDO -->
-    <div class="flex-1 flex flex-col overflow-hidden min-w-0">
+    <div class="flex-1 flex flex-col overflow-hidden min-w-0 lg:ml-64">
 
         <!-- Header -->
         <header class="bg-white shadow-sm border-b px-4 sm:px-6 py-4">
