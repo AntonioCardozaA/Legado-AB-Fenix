@@ -1011,6 +1011,26 @@
         text-align: center;
         padding: 40px;
     }
+
+    .single-image-stage {
+        max-width: 100%;
+        touch-action: pan-y;
+        user-select: none;
+        -webkit-user-select: none;
+        -webkit-user-drag: none;
+        cursor: grab;
+    }
+
+    .single-image-stage.is-swiping {
+        cursor: grabbing;
+    }
+
+    .single-image-stage img {
+        touch-action: pan-y;
+        user-select: none;
+        -webkit-user-select: none;
+        -webkit-user-drag: none;
+    }
     
     /* Ajustes responsive para el modal */
     @media (max-width: 768px) {
@@ -3177,7 +3197,6 @@
                         <div class="flex-1">
                             <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider font-mono">Componente</p>
                             <p id="detail-componente" class="font-bold text-gray-800 text-lg mt-1"></p>
-                            <p id="detail-componente-codigo" class="text-xs text-gray-500 mt-1 font-mono"></p>
                         </div>
                     </div>
                 </div>
@@ -3537,7 +3556,7 @@
                 class="absolute top-6 right-6 w-12 h-12 rounded-lg bg-gray-800/50 hover:bg-gray-700/70 text-white text-2xl flex items-center justify-center backdrop-blur-sm border border-gray-600 transition-all z-10 group">
             <i class="fas fa-times group-hover:rotate-90 transition-transform"></i>
         </button>
-        <div class="relative">
+        <div id="singleImageStage" class="relative single-image-stage" onclick="event.stopPropagation()">
             <button id="prevImageBtn"
                     onclick="event.stopPropagation(); changeSingleImage(-1)"
                     class="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-gray-800/60 hover:bg-gray-700/80 text-white text-2xl flex items-center justify-center backdrop-blur-sm border border-gray-600 transition-all z-10 hidden">
@@ -3568,6 +3587,9 @@
 let currentImages = [];
 let currentAnalysisData = null;
 let currentImageIndex = 0;
+let singleImageSwipe = null;
+const SINGLE_IMAGE_SWIPE_DISTANCE = 50;
+const SINGLE_IMAGE_SWIPE_VERTICAL_TOLERANCE = 1.25;
 const SEARCH_COMPONENT_CODE = @json($componenteBuscado ?? null);
 const OPEN_ANALYSIS_DATA = @json($openAnalysisData ?? null);
 const CAN_CLOSE_LAVADORA_DAMAGE = @json($canCloseLavadoraDamage);
@@ -3895,7 +3917,6 @@ function openAnalysisDetail(analysisData) {
     
     document.getElementById('detail-linea').textContent = analysisData.linea;
     document.getElementById('detail-componente').textContent = analysisData.componente;
-    document.getElementById('detail-componente-codigo').textContent = analysisData.componente_codigo;
     document.getElementById('detail-reductor').textContent = analysisData.reductor;
     
     // MANEJO DEL CAMPO LADO - OCULTAR SI NO APLICA
@@ -4397,6 +4418,119 @@ function changeSingleImage(direction) {
     updateSingleImageModal();
 }
 
+function getSwipePoint(event) {
+    const source = event.changedTouches?.[0] || event.touches?.[0] || event;
+
+    return {
+        x: source.clientX ?? 0,
+        y: source.clientY ?? 0,
+    };
+}
+
+function startSingleImageSwipe(event) {
+    if (event.target?.closest('button') || currentImages.length <= 1) {
+        return;
+    }
+
+    if (event.pointerId !== undefined && event.currentTarget?.setPointerCapture) {
+        try {
+            event.currentTarget.setPointerCapture(event.pointerId);
+        } catch (error) {}
+    }
+
+    const point = getSwipePoint(event);
+    singleImageSwipe = {
+        startX: point.x,
+        startY: point.y,
+        lastX: point.x,
+        lastY: point.y,
+        moved: false,
+    };
+
+    event.currentTarget?.classList.add('is-swiping');
+}
+
+function moveSingleImageSwipe(event) {
+    if (!singleImageSwipe) {
+        return;
+    }
+
+    const point = getSwipePoint(event);
+    const deltaX = point.x - singleImageSwipe.startX;
+    const deltaY = point.y - singleImageSwipe.startY;
+
+    singleImageSwipe.lastX = point.x;
+    singleImageSwipe.lastY = point.y;
+
+    if (Math.abs(deltaX) > 8 || Math.abs(deltaY) > 8) {
+        singleImageSwipe.moved = true;
+    }
+
+    if (Math.abs(deltaX) > Math.abs(deltaY) && event.cancelable) {
+        event.preventDefault();
+    }
+}
+
+function finishSingleImageSwipe(event) {
+    if (!singleImageSwipe) {
+        return;
+    }
+
+    const stage = event.currentTarget;
+    const point = getSwipePoint(event);
+    const endX = point.x ?? singleImageSwipe.lastX;
+    const endY = point.y ?? singleImageSwipe.lastY;
+    const deltaX = endX - singleImageSwipe.startX;
+    const deltaY = endY - singleImageSwipe.startY;
+    const isHorizontalSwipe = Math.abs(deltaX) >= SINGLE_IMAGE_SWIPE_DISTANCE
+        && Math.abs(deltaX) > Math.abs(deltaY) * SINGLE_IMAGE_SWIPE_VERTICAL_TOLERANCE;
+
+    if (isHorizontalSwipe) {
+        changeSingleImage(deltaX < 0 ? 1 : -1);
+    }
+
+    singleImageSwipe = null;
+    if (event.pointerId !== undefined && stage?.releasePointerCapture) {
+        try {
+            stage.releasePointerCapture(event.pointerId);
+        } catch (error) {}
+    }
+    stage?.classList.remove('is-swiping');
+}
+
+function cancelSingleImageSwipe(event) {
+    const stage = event.currentTarget;
+
+    singleImageSwipe = null;
+    if (event.pointerId !== undefined && stage?.releasePointerCapture) {
+        try {
+            stage.releasePointerCapture(event.pointerId);
+        } catch (error) {}
+    }
+    stage?.classList.remove('is-swiping');
+}
+
+function setupSingleImageSwipe() {
+    const stage = document.getElementById('singleImageStage');
+
+    if (!stage) {
+        return;
+    }
+
+    if (window.PointerEvent) {
+        stage.addEventListener('pointerdown', startSingleImageSwipe);
+        stage.addEventListener('pointermove', moveSingleImageSwipe);
+        stage.addEventListener('pointerup', finishSingleImageSwipe);
+        stage.addEventListener('pointercancel', cancelSingleImageSwipe);
+        return;
+    }
+
+    stage.addEventListener('touchstart', startSingleImageSwipe, { passive: true });
+    stage.addEventListener('touchmove', moveSingleImageSwipe, { passive: false });
+    stage.addEventListener('touchend', finishSingleImageSwipe);
+    stage.addEventListener('touchcancel', cancelSingleImageSwipe);
+}
+
 function downloadSingleImage(imagePath, index) {
     const link = document.createElement('a');
     link.href = resolveEvidenceImageUrl(imagePath);
@@ -4419,6 +4553,7 @@ function closeAllImagesModal() {
 function closeSingleImageModal() {
     document.getElementById('singleImageModal').classList.add('hidden');
     document.getElementById('singleImageModal').classList.remove('flex');
+    cancelSingleImageSwipe({ currentTarget: document.getElementById('singleImageStage') });
     document.body.style.overflow = '';
 }
 
@@ -4480,6 +4615,8 @@ document.addEventListener('keydown', function(e) {
 });
 
 document.addEventListener('DOMContentLoaded', function() {
+    setupSingleImageSwipe();
+
     document.getElementById('correction-estado')?.addEventListener('change', toggleComponentChangeFields);
     document.querySelectorAll('.correction-cost-field').forEach((field) => {
         field.addEventListener('input', updateCorrectionTotalFromBreakdown);

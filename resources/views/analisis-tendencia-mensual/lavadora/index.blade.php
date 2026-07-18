@@ -2005,9 +2005,7 @@ document.addEventListener('DOMContentLoaded', function() {
             return lines;
         }
 
-        if (meta.codigo) lines.push(`Codigo: ${meta.codigo}`);
         if (meta.porcentaje !== undefined) lines.push(`Participacion: ${Number(meta.porcentaje || 0).toFixed(1)}%`);
-        if (meta.dano_principal) lines.push(`Daño principal: ${meta.dano_principal}`);
         if (meta.ultima_falla) lines.push(`Ultima falla: ${meta.ultima_falla}`);
 
         const ubicaciones = options.currentUbicacion
