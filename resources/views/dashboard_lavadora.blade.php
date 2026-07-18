@@ -3,6 +3,11 @@
 @section('title', 'Lavadoras ')
 
 @section('content')
+@php
+    $usuarioActual = auth()->user();
+    $puedeVerAnalisisLavadora = $usuarioActual?->canUseCustomPermission('ver analisis lavadora') ?? false;
+    $puedeVerPlanesLavadora = $usuarioActual?->canViewPlanActionType(\App\Models\User::MODULE_LAVADORA) ?? false;
+@endphp
 <style>
     /* Estilos generales */
     :root {
@@ -3922,9 +3927,11 @@
                     <h4 class="font-bold text-gray-800 mb-2">Acciones Pendientes</h4>
                     <div class="bg-yellow-50 rounded-lg p-3 border border-yellow-200">
                         <p class="text-yellow-800">Esta lavadora tiene ${modalEscapeHtml(estado.acciones_pendientes)} acción(es) pendiente(s) en el plan de acción.</p>
+                        @if($puedeVerPlanesLavadora)
                         <a href="{{ route('plan-accion.lavadora.index') }}?linea_id=${lavadora.id}" class="mt-2 inline-block text-blue-600 text-sm hover:underline">
                             <i class="fas fa-arrow-right mr-1"></i> Ver Plan de Acción
                         </a>
+                        @endif
                     </div>
                 </div>
             `;
@@ -3940,9 +3947,11 @@
 
         html += `
             <div class="flex justify-end gap-3 mt-4 pt-4 border-t border-gray-200">
+                @if($puedeVerAnalisisLavadora)
                 <a href="{{ route('analisis-lavadora.index') }}?linea_id=${lavadora.id}" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition">
                     <i class="fas fa-chart-line mr-1"></i> Ver Análisis
                 </a>
+                @endif
                 <button onclick="closeModal()" class="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400 transition">
                     Cerrar
                 </button>
@@ -4160,10 +4169,12 @@
         ensureAfterHeading(card, 'planesCopy', `<p id="planesCopy" class="panel-copy"></p>`);
         ensureAfterElement('planesCopy', 'planesActions', `
             <div id="planesActions" class="panel-actions" style="margin-bottom: 18px; justify-content: flex-start;">
+                @if($puedeVerPlanesLavadora)
                 <a href="{{ route('plan-accion.lavadora.index') }}" class="panel-link">
                     <i class="fas fa-arrow-up-right-from-square"></i>
                     Ir al modulo
                 </a>
+                @endif
             </div>
         `);
         ensureAfterElement('planesActions', 'planesBanner', `<div id="planesBanner" class="status-banner estable"></div>`);

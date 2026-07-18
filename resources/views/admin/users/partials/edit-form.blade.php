@@ -88,6 +88,7 @@
                 'customPermissionsEnabled' => $managedCustomPermissionsEnabled,
                 'idSuffix' => 'edit_' . $managedUser->id,
                 'autoSaveUrl' => route('admin.users.permissions.update', ['user' => $managedUser]),
+                'managedUser' => $managedUser,
             ])
         </div>
 

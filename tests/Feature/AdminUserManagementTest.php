@@ -58,7 +58,10 @@ class AdminUserManagementTest extends TestCase
 
         $this->actingAs($technician)
             ->get(route('admin.users.index'))
-            ->assertForbidden();
+            ->assertForbidden()
+            ->assertSee('Acceso restringido')
+            ->assertSee('No cuenta con permisos suficientes para acceder a esta vista.')
+            ->assertSee('Si considera que requiere acceso a este contenido');
     }
 
     public function test_admin_can_open_dedicated_edit_view_for_a_user(): void

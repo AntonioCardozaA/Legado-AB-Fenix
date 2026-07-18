@@ -22,6 +22,12 @@
     $notificacionesEtiquetadora = $notificacionesEtiquetadora ?? ['total' => 0, 'no_leidas' => 0, 'ultimas' => collect()];
     $notificacionesEtiquetadora['ultimas'] = collect($notificacionesEtiquetadora['ultimas'] ?? []);
     $catalogoEtiquetadoraResumen = $catalogoEtiquetadoraResumen ?? ['componentes' => 0, 'equipos' => 0, 'grupos' => 0, 'maquinas' => 0, 'unidades' => 0];
+    $usuarioActual = auth()->user();
+    $puedeVerAnalisisEtiquetadora = $usuarioActual?->canUseCustomPermission('ver analisis etiquetadora') ?? false;
+    $puedeCrearAnalisisEtiquetadora = $usuarioActual?->canUseCustomPermission('crear analisis etiquetadora') ?? false;
+    $puedeVerPlanesEtiquetadora = $usuarioActual?->canViewPlanActionType(\App\Models\User::MODULE_ETIQUETADORA) ?? false;
+    $puedeVerReportes = $usuarioActual?->canUseCustomPermission('ver reportes') ?? false;
+    $puedeVerNotificaciones = $usuarioActual?->canUseCustomPermission('ver notificaciones') ?? false;
     $resumenEtiquetadora = $resumenEtiquetadora ?? [
         'total_etiquetadoras' => 0,
         'componentes_catalogo' => 0,
@@ -608,12 +614,16 @@
                 @endauth
             </div>
             <div class="dashboard-actions">
+                @if($puedeCrearAnalisisEtiquetadora)
                 <a href="{{ $dashboardLinksEtiquetadora['nuevo_analisis'] ?? route('analisis-etiquetadora.select-linea') }}" class="px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-800 transition">
                     <i class="fas fa-plus-circle mr-2"></i>Nuevo Analisis
                 </a>
+                @endif
+                @if($puedeVerReportes)
                 <a href="{{ $dashboardLinksEtiquetadora['reportes'] ?? route('reportes.index', ['tipo' => 'etiquetadoras']) }}" class="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition">
                     <i class="fas fa-file-lines mr-2"></i>Reportes
                 </a>
+                @endif
                 <button onclick="refreshData()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
                     <i class="fas fa-sync-alt mr-2"></i>Actualizar
                 </button>
@@ -666,6 +676,7 @@
 
     <div class="quick-access-card">
         <div class="quick-actions-grid">
+            @if($puedeVerAnalisisEtiquetadora)
             <a class="quick-action" href="{{ $dashboardLinksEtiquetadora['analisis'] ?? route('analisis-etiquetadora.index') }}">
                 <span class="quick-action-icon"><i class="fas fa-chart-pie"></i></span>
                 <span>
@@ -673,6 +684,8 @@
                     <span class="quick-action-meta block">{{ $resumenEtiquetadora['total_analisis'] ?? 0 }} registros</span>
                 </span>
             </a>
+            @endif
+            @if($puedeVerAnalisisEtiquetadora)
             <a class="quick-action" href="{{ $dashboardLinksEtiquetadora['historico'] ?? route('analisis-etiquetadora.historial') }}">
                 <span class="quick-action-icon"><i class="fas fa-history"></i></span>
                 <span>
@@ -680,6 +693,8 @@
                     <span class="quick-action-meta block">{{ $resumenEtiquetadora['avance'] ?? 0 }}% componentes</span>
                 </span>
             </a>
+            @endif
+            @if($puedeVerAnalisisEtiquetadora)
             <a class="quick-action" href="{{ $dashboardLinksEtiquetadora['catalogo'] ?? route('analisis-etiquetadora.index') }}">
                 <span class="quick-action-icon"><i class="fas fa-sitemap"></i></span>
                 <span>
@@ -687,6 +702,8 @@
                     <span class="quick-action-meta block">{{ $catalogoEtiquetadoraResumen['componentes'] ?? 0 }} componentes</span>
                 </span>
             </a>
+            @endif
+            @if($puedeVerAnalisisEtiquetadora)
             <a class="quick-action" href="{{ $dashboardLinksEtiquetadora['evidencias'] ?? route('analisis-etiquetadora.historial') }}">
                 <span class="quick-action-icon"><i class="fas fa-images"></i></span>
                 <span>
@@ -694,6 +711,8 @@
                     <span class="quick-action-meta block">{{ $evidenciasEtiquetadora['total_fotos'] ?? 0 }} fotos</span>
                 </span>
             </a>
+            @endif
+            @if($puedeVerPlanesEtiquetadora)
             <a class="quick-action" href="{{ $dashboardLinksEtiquetadora['plan_accion'] ?? route('plan-accion.index', ['tipo' => 'etiquetadora']) }}">
                 <span class="quick-action-icon"><i class="fas fa-tasks"></i></span>
                 <span>
@@ -701,6 +720,8 @@
                     <span class="quick-action-meta block">{{ $resumenEtiquetadora['pendientes_accion'] ?? 0 }} pendientes</span>
                 </span>
             </a>
+            @endif
+            @if($puedeVerReportes)
             <a class="quick-action" href="{{ $dashboardLinksEtiquetadora['reportes'] ?? route('reportes.index', ['tipo' => 'etiquetadoras']) }}">
                 <span class="quick-action-icon"><i class="fas fa-file-lines"></i></span>
                 <span>
@@ -708,6 +729,8 @@
                     <span class="quick-action-meta block">{{ $catalogoEtiquetadoraResumen['equipos'] ?? 0 }} equipos</span>
                 </span>
             </a>
+            @endif
+            @if($puedeVerNotificaciones)
             <a class="quick-action" href="{{ $dashboardLinksEtiquetadora['notificaciones'] ?? route('notifications.index') }}">
                 <span class="quick-action-icon"><i class="fas fa-bell"></i></span>
                 <span>
@@ -715,6 +738,7 @@
                     <span class="quick-action-meta block">{{ $notificacionesEtiquetadora['no_leidas'] ?? 0 }} nuevas</span>
                 </span>
             </a>
+            @endif
             <span class="quick-action disabled">
                 <span class="quick-action-icon"><i class="fas fa-wallet"></i></span>
                 <span>
@@ -840,16 +864,18 @@
                         </div>
                     </div>
                 </div>
-                <div class="lavadora-card-footer">
-                    <div class="grid grid-cols-2 gap-2">
-                        <a href="{{ route('analisis-etiquetadora.index', ['linea_id' => $etiquetadora['linea_id'], 'maquina' => $etiquetadora['maquina']]) }}" class="lavadora-card-action">
-                            <i class="fas fa-chart-simple mr-1"></i> Analisis
-                        </a>
-                        <a href="{{ route('analisis-etiquetadora.historial', ['linea_id' => $etiquetadora['linea_id'], 'maquina' => $etiquetadora['maquina']]) }}" class="lavadora-card-action">
-                            <i class="fas fa-history mr-1"></i> Historico
-                        </a>
+                @if($puedeVerAnalisisEtiquetadora)
+                    <div class="lavadora-card-footer">
+                        <div class="grid grid-cols-2 gap-2">
+                            <a href="{{ route('analisis-etiquetadora.index', ['linea_id' => $etiquetadora['linea_id'], 'maquina' => $etiquetadora['maquina']]) }}" class="lavadora-card-action">
+                                <i class="fas fa-chart-simple mr-1"></i> Analisis
+                            </a>
+                            <a href="{{ route('analisis-etiquetadora.historial', ['linea_id' => $etiquetadora['linea_id'], 'maquina' => $etiquetadora['maquina']]) }}" class="lavadora-card-action">
+                                <i class="fas fa-history mr-1"></i> Historico
+                            </a>
+                        </div>
                     </div>
-                </div>
+                @endif
             </div>
         @endforeach
     </div>

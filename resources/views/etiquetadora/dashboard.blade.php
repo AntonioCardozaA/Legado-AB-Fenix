@@ -3,6 +3,11 @@
 @section('title', 'Menu | Etiquetadora')
 
 @section('content')
+@php
+    $usuarioActual = auth()->user();
+    $puedeVerAnalisisEtiquetadora = $usuarioActual?->canUseCustomPermission('ver analisis etiquetadora') ?? false;
+    $puedeVerPlanesEtiquetadora = $usuarioActual?->canViewPlanActionType(\App\Models\User::MODULE_ETIQUETADORA) ?? false;
+@endphp
 <div class="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-6 sm:py-8">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="mb-10 animate-fade-in">
@@ -40,6 +45,7 @@
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
+            @if($puedeVerAnalisisEtiquetadora)
             <a href="{{ route('analisis-etiquetadora.index') }}"
                class="group relative bg-white rounded-3xl shadow-lg hover:shadow-2xl transition-all duration-500 overflow-hidden hover:-translate-y-2">
                 <div class="absolute top-0 left-0 right-0 h-2" style="background-color: rgb(31, 35, 72);"></div>
@@ -68,7 +74,9 @@
                     </div>
                 </div>
             </a>
+            @endif
 
+            @if($puedeVerAnalisisEtiquetadora)
             <a href="{{ route('analisis-etiquetadora.historial') }}"
                class="group relative bg-white rounded-3xl shadow-lg hover:shadow-2xl transition-all duration-500 overflow-hidden hover:-translate-y-2">
                 <div class="absolute top-0 left-0 right-0 h-2" style="background-color: rgb(31, 35, 72);"></div>
@@ -97,7 +105,9 @@
                     </div>
                 </div>
             </a>
+            @endif
 
+            @if($puedeVerPlanesEtiquetadora)
             <a href="{{ route('plan-accion.index', ['tipo' => 'etiquetadora']) }}"
                class="group relative bg-white rounded-3xl shadow-lg hover:shadow-2xl transition-all duration-500 overflow-hidden hover:-translate-y-2">
                 <div class="absolute top-0 left-0 right-0 h-2" style="background-color: rgb(31, 35, 72);"></div>
@@ -126,6 +136,13 @@
                     </div>
                 </div>
             </a>
+            @endif
+
+            @unless($puedeVerAnalisisEtiquetadora || $puedeVerPlanesEtiquetadora)
+                <div class="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-sm font-semibold text-amber-800 md:col-span-2 lg:col-span-3">
+                    No tiene vistas disponibles en este modulo. Solicite al administrador la asignacion del permiso correspondiente.
+                </div>
+            @endunless
         </div>
     </div>
 </div>

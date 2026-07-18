@@ -55,12 +55,14 @@ if (is_dir($frameworkBasePath)) {
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Request;
 use Spatie\Permission\Middleware\RoleMiddleware;
 use Spatie\Permission\Middleware\PermissionMiddleware;
 use Spatie\Permission\Middleware\RoleOrPermissionMiddleware;
 use App\Http\Middleware\EnsureTechnicianAccess;
 use App\Http\Middleware\EnsurePasteurizadoraAccess;
 use App\Http\Middleware\EnsureCustomPermissionAccess;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
         web: __DIR__.'/../routes/web.php',
@@ -78,5 +80,13 @@ return Application::configure(basePath: dirname(__DIR__))
          ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        $exceptions->render(function (HttpExceptionInterface $exception, Request $request) {
+            if ($exception->getStatusCode() !== 403 || $request->expectsJson()) {
+                return null;
+            }
+
+            return response()->view('errors.403', [
+                'message' => $exception->getMessage(),
+            ], 403);
+        });
     })->create();

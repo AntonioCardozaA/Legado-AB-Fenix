@@ -359,6 +359,16 @@ class AccessPermissionCatalog
 
     public static function defaultAllows(User $user, string $permission): bool
     {
+        return self::allows($user, $permission, true);
+    }
+
+    public static function roleDefaultAllows(User $user, string $permission): bool
+    {
+        return self::allows($user, $permission, false);
+    }
+
+    private static function allows(User $user, string $permission, bool $includeDirectUserPermissions): bool
+    {
         if ($user->hasRole(User::ROLE_ADMIN)) {
             return true;
         }
@@ -374,7 +384,9 @@ class AccessPermissionCatalog
             'crear analisis pasteurizadora',
             'editar analisis pasteurizadora',
             'eliminar analisis pasteurizadora',
-            'exportar analisis pasteurizadora' => $user->canAccessModule(User::MODULE_PASTEURIZADORA),
+            'exportar analisis pasteurizadora' => $includeDirectUserPermissions
+                ? $user->canAccessModule(User::MODULE_PASTEURIZADORA)
+                : $user->canAccessModuleByDefault(User::MODULE_PASTEURIZADORA),
             'ver lineas',
             'crear lineas',
             'editar lineas',
@@ -391,8 +403,10 @@ class AccessPermissionCatalog
             User::PERMISSION_CLOSE_LAVADORA_DAMAGE => false,
             'eliminar analisis etiquetadora',
             'eliminar analisis pasteurizadora',
-            'eliminar analisis legado' => $user->canDeleteAnalysis(),
-            User::PERMISSION_DELETE_ANALYSIS => $user->canDeleteAnalysis(),
+            'eliminar analisis legado',
+            User::PERMISSION_DELETE_ANALYSIS => $includeDirectUserPermissions
+                ? $user->canDeleteAnalysis()
+                : false,
             default => true,
         };
     }

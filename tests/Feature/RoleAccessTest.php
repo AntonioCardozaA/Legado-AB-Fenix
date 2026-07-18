@@ -7,6 +7,7 @@ use App\Models\PlanAccion;
 use App\Models\User;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
@@ -274,6 +275,55 @@ class RoleAccessTest extends TestCase
             ->assertSessionHas('acceso_restringido', $message);
     }
 
+    public function test_custom_permissions_hide_only_the_restricted_main_dashboard_module(): void
+    {
+        $user = $this->userWithRole(User::ROLE_SUPERVISOR);
+        $this->enableCustomPermissions($user, [
+            User::PERMISSION_ACCESS_ETIQUETADORA,
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('dashboard'))
+            ->assertOk()
+            ->assertSee('Lavadoras')
+            ->assertDontSee('Etiquetadoras')
+            ->assertSee('Pasteurizadoras');
+    }
+
+    public function test_custom_permissions_hide_only_restricted_lavadora_menu_cards(): void
+    {
+        $user = $this->userWithRole(User::ROLE_SUPERVISOR);
+        $this->enableCustomPermissions($user, [
+            'ver elongaciones',
+            'ver historico revisados',
+            'ver planes accion',
+            'ver tendencias lavadora',
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('lavadora.dashboard'))
+            ->assertOk()
+            ->assertSee(route('analisis-lavadora.index'), false)
+            ->assertDontSee(route('elongaciones.index'), false)
+            ->assertDontSee(route('historico-revisados.index'), false)
+            ->assertDontSee(route('plan-accion.index'), false)
+            ->assertDontSee(route('analisis-tendencia-mensual.lavadora.index'), false);
+    }
+
+    public function test_custom_permission_restriction_blocks_direct_module_access_without_showing_error_code(): void
+    {
+        $user = $this->userWithRole(User::ROLE_SUPERVISOR);
+        $this->enableCustomPermissions($user, [
+            User::PERMISSION_ACCESS_ETIQUETADORA,
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('etiquetadora.dashboard'))
+            ->assertForbidden()
+            ->assertSee('Acceso restringido')
+            ->assertDontSee('Error 403');
+    }
+
     private function userWithRole(string $role): User
     {
         Role::firstOrCreate([
@@ -285,5 +335,17 @@ class RoleAccessTest extends TestCase
         $user->assignRole($role);
 
         return $user;
+    }
+
+    private function enableCustomPermissions(User $user, array $permissions): void
+    {
+        foreach ([User::customAccessControlPermissionName(), ...$permissions] as $permission) {
+            Permission::firstOrCreate([
+                'name' => $permission,
+                'guard_name' => 'web',
+            ]);
+        }
+
+        $user->givePermissionTo([User::customAccessControlPermissionName(), ...$permissions]);
     }
 }

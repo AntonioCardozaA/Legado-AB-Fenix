@@ -37,11 +37,11 @@
     .cell-header { background-color: #eff6ff; }
     
     .compact-table td, .compact-table th {
-        padding: 6px !important;
-        font-size: 0.72rem !important;
-        min-width: 106px;
-        width: 112px;
-        max-width: 132px;
+        padding: 12px !important;
+        font-size: 0.82rem !important;
+        min-width: 190px;
+        width: 210px;
+        max-width: 240px;
         white-space: normal !important;
     }
     
@@ -151,7 +151,7 @@
         cursor: pointer;
         transition: all 0.2s ease;
         position: relative;
-        min-height: 96px;
+        min-height: 190px;
     }
     
     .analysis-cell.no-data {
@@ -296,14 +296,14 @@
     }
     
     .empty-cell {
-        min-height: 92px;
+        min-height: 182px;
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
         text-align: center;
         color: var(--dark-gray);
-        padding: 8px;
+        padding: 14px;
     }
     
     .no-records {
@@ -313,8 +313,8 @@
     }
     
     .empty-cell-icon {
-        font-size: 20px;
-        margin-bottom: 6px;
+        font-size: 24px;
+        margin-bottom: 10px;
         color: #d1d5db;
     }
     
@@ -324,7 +324,7 @@
         align-items: center;
         justify-content: center;
         text-align: center;
-        padding: 6px 3px;
+        padding: 14px 8px;
         min-width: 0;
         white-space: normal;
     }
@@ -332,7 +332,7 @@
     .component-name {
         font-weight: 600;
         color: #1e40af;
-        font-size: 10px;
+        font-size: 12px;
         line-height: 1.2;
         margin-bottom: 4px;
         overflow-wrap: anywhere;
@@ -352,7 +352,7 @@
         align-items: center;
         justify-content: center;
         text-align: center;
-        padding: 6px 3px;
+        padding: 12px 8px;
         min-width: 0;
         white-space: normal;
     }
@@ -360,7 +360,7 @@
     .reductor-name {
         font-weight: 600;
         color: #1e40af;
-        font-size: 10px;
+        font-size: 12px;
         line-height: 1.2;
         margin-bottom: 4px;
         overflow-wrap: anywhere;
@@ -1152,59 +1152,127 @@
 
     .lavadora-index .lavadora-card {
         border-radius: 10px;
-        margin-bottom: 20px;
+        margin-bottom: 28px;
     }
 
     .lavadora-index .lavadora-card-header {
-        gap: 10px;
-        padding: 12px 16px;
+        gap: 14px;
+        padding: 22px 28px;
     }
 
     .lavadora-index .lavadora-card-header > div:first-child {
-        width: 2.5rem !important;
-        height: 2.5rem !important;
-        flex: 0 0 2.5rem;
+        width: 3rem !important;
+        height: 3rem !important;
+        flex: 0 0 3rem;
+        border-radius: 999px;
+        overflow: hidden;
     }
 
     .lavadora-index .lavadora-card-header h3 {
-        font-size: 18px;
+        font-size: 1.45rem;
+        line-height: 1.05;
     }
 
     .lavadora-index .compact-table tr > :first-child {
-        min-width: 110px;
-        width: 116px;
-        max-width: 124px;
+        min-width: 132px;
+        width: 140px;
+        max-width: 150px;
+    }
+
+    .lavadora-index .compact-table {
+        table-layout: fixed;
     }
 
     .lavadora-index .component-header img {
-        width: 3.4rem !important;
-        height: 3.4rem !important;
+        width: 5.35rem !important;
+        height: 5.35rem !important;
         flex: 0 0 auto;
         object-fit: contain;
     }
 
-    .lavadora-index .analysis-cell > .space-y-2,
-    .lavadora-index .analysis-cell :where(.inline-flex, button, a) {
+    .lavadora-index .compact-table thead th {
+        height: 168px;
+        vertical-align: middle;
+    }
+
+    .lavadora-index .compact-table tbody th,
+    .lavadora-index .compact-table tbody td {
+        height: auto;
+        min-height: 190px;
+        vertical-align: top;
+    }
+
+    .lavadora-index .analysis-cell {
+        color: #1f2937;
+        line-height: 1.35;
+        overflow-wrap: normal;
+        word-break: normal;
+    }
+
+    .lavadora-index .analysis-cell > .space-y-2 {
+        display: flex;
+        min-height: 100%;
+        flex-direction: column;
+        gap: 0.65rem;
+    }
+
+    .lavadora-index .analysis-cell :where(.inline-flex, button, a, span, p, div) {
         max-width: 100%;
+        min-width: 0;
+    }
+
+    .lavadora-index .analysis-cell :where(.inline-flex, button, a) {
+        white-space: normal;
+        overflow-wrap: break-word;
+        word-break: normal;
+        line-height: 1.25;
+    }
+
+    .lavadora-index .analysis-cell .flex {
+        flex-wrap: wrap;
     }
 
     .lavadora-index .analysis-cell .bg-blue-50 {
-        padding: 0.35rem !important;
-        margin-bottom: 0.35rem !important;
+        padding: 0.55rem !important;
+        margin-bottom: 0.55rem !important;
+        border: 1px solid rgba(191, 219, 254, 0.72);
     }
 
     .lavadora-index .analysis-cell p.text-gray-700 {
-        display: -webkit-box;
-        line-height: 1.2;
-        overflow: hidden;
-        -webkit-box-orient: vertical;
-        -webkit-line-clamp: 2;
+        display: block;
+        overflow: visible;
+        color: #374151;
+        font-size: 0.78rem !important;
+        line-height: 1.4;
+        white-space: normal;
+        overflow-wrap: break-word;
+        word-break: normal;
+    }
+
+    .lavadora-index .analysis-cell .mt-1.inline-flex {
+        display: flex;
+        width: 100%;
+        align-items: flex-start;
+        justify-content: flex-start;
+        text-align: left;
+    }
+
+    .lavadora-index .analysis-cell span.inline-flex:not(.mt-1) {
+        align-items: center;
+        justify-content: flex-start;
+    }
+
+    .lavadora-index .analysis-cell .flex.flex-col {
+        margin-top: auto;
     }
 
     .lavadora-index .analysis-cell .create-action--compact {
-        min-height: 1.95rem !important;
-        padding: 0.34rem 0.55rem !important;
-        font-size: 0.68rem !important;
+        width: 100%;
+        min-height: 2.35rem !important;
+        padding: 0.45rem 0.75rem !important;
+        font-size: 0.78rem !important;
+        border-radius: 0.55rem !important;
+        text-align: center;
     }
 
     @media (max-width: 768px) {
@@ -1240,7 +1308,7 @@
 
         .lavadora-index .lavadora-card-header {
             align-items: center;
-            padding: 10px 12px;
+            padding: 16px;
         }
 
         .lavadora-index .lavadora-card-header > div {
@@ -1248,9 +1316,9 @@
         }
 
         .lavadora-index .lavadora-card-header > div:first-child {
-            width: 2.25rem !important;
-            height: 2.25rem !important;
-            flex-basis: 2.25rem;
+            width: 2.6rem !important;
+            height: 2.6rem !important;
+            flex-basis: 2.6rem;
         }
 
         .lavadora-index .lavadora-card-header > div:not(:first-child) {
@@ -1259,31 +1327,41 @@
 
         .lavadora-index .compact-table td,
         .lavadora-index .compact-table th {
-            min-width: 92px;
-            width: 96px;
-            max-width: 112px;
-            padding: 5px !important;
-            font-size: 0.68rem !important;
+            min-width: 166px;
+            width: 176px;
+            max-width: 198px;
+            padding: 10px !important;
+            font-size: 0.76rem !important;
         }
 
         .lavadora-index .compact-table tr > :first-child {
-            min-width: 96px;
-            width: 100px;
-            max-width: 108px;
+            min-width: 110px;
+            width: 116px;
+            max-width: 124px;
         }
 
         .lavadora-index .component-header img {
-            width: 2.65rem !important;
-            height: 2.65rem !important;
+            width: 4.35rem !important;
+            height: 4.35rem !important;
+        }
+
+        .lavadora-index .compact-table thead th {
+            height: 148px;
         }
 
         .lavadora-index .analysis-cell,
         .lavadora-index .empty-cell {
-            min-height: 78px;
+            min-height: 162px;
+        }
+
+        .lavadora-index .compact-table tbody th,
+        .lavadora-index .compact-table tbody td {
+            height: auto;
+            min-height: 170px;
         }
 
         .lavadora-index .empty-cell-icon {
-            font-size: 17px;
+            font-size: 21px;
         }
 
         .lavadora-index .lavadora-card .table-wrapper {
@@ -1303,15 +1381,16 @@
 
         .lavadora-index .compact-table td,
         .lavadora-index .compact-table th {
-            min-width: 86px;
-            width: 90px;
-            max-width: 100px;
+            min-width: 148px;
+            width: 156px;
+            max-width: 176px;
+            padding: 9px !important;
         }
 
         .lavadora-index .compact-table tr > :first-child {
-            min-width: 88px;
-            width: 92px;
-            max-width: 98px;
+            min-width: 96px;
+            width: 102px;
+            max-width: 110px;
         }
 
         .lavadora-index .component-name,
@@ -1320,8 +1399,29 @@
         }
 
         .lavadora-index .component-header img {
-            width: 2.35rem !important;
-            height: 2.35rem !important;
+            width: 3.75rem !important;
+            height: 3.75rem !important;
+        }
+
+        .lavadora-index .compact-table thead th {
+            height: 136px;
+        }
+
+        .lavadora-index .analysis-cell,
+        .lavadora-index .empty-cell {
+            min-height: 150px;
+        }
+
+        .lavadora-index .compact-table tbody th,
+        .lavadora-index .compact-table tbody td {
+            height: auto;
+            min-height: 158px;
+        }
+
+        .lavadora-index .analysis-cell .create-action--compact {
+            min-height: 2.15rem !important;
+            padding: 0.38rem 0.55rem !important;
+            font-size: 0.72rem !important;
         }
     }
 

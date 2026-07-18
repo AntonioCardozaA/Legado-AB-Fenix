@@ -12,6 +12,10 @@
     $analisis30147Pasteurizadora = $analisis30147Pasteurizadora ?? ['lineas' => [], 'criterios' => []];
     $planesPendientesPasteurizadora = collect($planesPendientesPasteurizadora ?? []);
     $ultimosAnalisisPasteurizadora = collect($ultimosAnalisisPasteurizadora ?? []);
+    $usuarioActual = auth()->user();
+    $puedeVerMecanicaPasteurizadora = $usuarioActual?->canAccessPasteurizadoraArea(\App\Models\AnalisisPasteurizadora::AREA_MECANICA) ?? false;
+    $puedeVerPlanesPasteurizadora = $puedeVerMecanicaPasteurizadora
+        && ($usuarioActual?->canViewPlanActionType(\App\Models\User::MODULE_PASTEURIZADORA) ?? false);
     $totalPasteurizadoras = max((int) ($resumenPasteurizadora['total_pasteurizadoras'] ?? $pasteurizadoras->count()), 1);
     $estadoLineas = [
         'bueno' => $pasteurizadoras->where('estado.nivel', 'bueno')->count(),
@@ -1704,12 +1708,16 @@
 
         html += `
             <div class="flex justify-end gap-3 mt-4 pt-4 border-t border-gray-200">
+                @if($puedeVerMecanicaPasteurizadora)
                 <a href="{{ route('pasteurizadora.analisis-pasteurizadora.index') }}?linea_id=${pasteurizadora.id}" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition">
                     <i class="fas fa-chart-line mr-1"></i> Ver Análisis
                 </a>
+                @endif
+                @if($puedeVerPlanesPasteurizadora)
                 <a href="{{ route('pasteurizadora.analisis-pasteurizadora.plan-accion.index') }}?linea_id=${pasteurizadora.id}" class="px-4 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600 transition">
                     <i class="fas fa-tasks mr-1"></i> Ver Plan
                 </a>
+                @endif
                 <button onclick="closeModal()" class="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400 transition">
                     Cerrar
                 </button>

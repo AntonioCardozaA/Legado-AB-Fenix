@@ -341,7 +341,13 @@ public function canUseCustomPermission(string $permission): bool
         return \App\Support\AccessPermissionCatalog::defaultAllows($this, $permission);
     }
 
-    return $this->hasDirectConfigurablePermission($permission);
+    $allowedByDefault = \App\Support\AccessPermissionCatalog::roleDefaultAllows($this, $permission);
+
+    if ($this->hasDirectConfigurablePermission($permission)) {
+        return !$allowedByDefault;
+    }
+
+    return $allowedByDefault;
 }
 
 private function hasDirectPermissionSafely(string $permission): bool
@@ -385,8 +391,30 @@ public function canAccessModule(string $module): bool
         return true;
     }
 
-    if ($this->usesCustomPermissionAccess()) {
-        return $permission ? $this->hasDirectConfigurablePermission($permission) : false;
+    $allowedByDefault = $this->canAccessModuleByDefault($module);
+
+    if (!$this->usesCustomPermissionAccess()) {
+        if ($allowedByDefault) {
+            return true;
+        }
+
+        return $permission ? $this->hasDirectPermissionSafely($permission) : false;
+    }
+
+    if ($permission && $this->hasDirectConfigurablePermission($permission)) {
+        return !$allowedByDefault;
+    }
+
+    return $allowedByDefault;
+}
+
+public function canAccessModuleByDefault(string $module): bool
+{
+    $module = strtolower($module);
+    $permission = self::modulePermissionMap()[$module] ?? null;
+
+    if ($this->hasRole(self::ROLE_ADMIN)) {
+        return true;
     }
 
     if ($this->hasAnyRole(self::supervisorEquivalentRoles())) {
@@ -398,12 +426,8 @@ public function canAccessModule(string $module): bool
     }
 
     if ($permission) {
-        try {
-            if ($this->hasPermissionTo($permission)) {
-                return true;
-            }
-        } catch (PermissionDoesNotExist) {
-            //
+        if ($this->hasPermissionThroughRoleSafely($permission)) {
+            return true;
         }
     }
 
@@ -435,11 +459,41 @@ public function canAccessPasteurizadoraArea(string $area): bool
     }
 
     if ($this->usesCustomPermissionAccess()) {
-        return $this->hasDirectConfigurablePermission($permission);
+        $allowedByDefault = $this->canAccessPasteurizadoraAreaByDefault($area);
+
+        if ($this->hasDirectConfigurablePermission($permission)) {
+            return !$allowedByDefault;
+        }
+
+        return $allowedByDefault;
     }
 
     try {
         return $this->hasPermissionTo($permission);
+    } catch (PermissionDoesNotExist) {
+        return true;
+    }
+}
+
+public function canAccessPasteurizadoraAreaByDefault(string $area): bool
+{
+    if (!$this->canAccessModuleByDefault(self::MODULE_PASTEURIZADORA)) {
+        return false;
+    }
+
+    if ($this->hasRole(self::ROLE_ADMIN)) {
+        return true;
+    }
+
+    $area = \App\Models\AnalisisPasteurizadora::normalizarArea($area);
+    $permission = self::pasteurizadoraAreaPermissionMap()[$area] ?? null;
+
+    if (!$permission) {
+        return false;
+    }
+
+    try {
+        return $this->hasPermissionThroughRoleSafely($permission);
     } catch (PermissionDoesNotExist) {
         return true;
     }
@@ -460,9 +514,8 @@ public function canViewPlanActionType(string $type): bool
     }
 
     if ($type === self::MODULE_PASTEURIZADORA) {
-        if ($this->usesCustomPermissionAccess()) {
-            return $this->hasDirectConfigurablePermission('ver planes accion')
-                && $this->canAccessModule(self::MODULE_PASTEURIZADORA);
+        if (!$this->canUseCustomPermission('ver planes accion')) {
+            return false;
         }
 
         return $this->hasAnyRole([
@@ -478,7 +531,7 @@ public function canViewPlanActionType(string $type): bool
 
 public function shouldShowPasteurizadoraComingSoon(): bool
 {
-    if ($this->usesCustomPermissionAccess()) {
+    if ($this->canAccessModule(self::MODULE_PASTEURIZADORA)) {
         return false;
     }
 
@@ -496,6 +549,15 @@ public function shouldSeePasteurizadoraShortcut(): bool
 {
     return $this->canAccessModule(self::MODULE_PASTEURIZADORA)
         || $this->shouldShowPasteurizadoraComingSoon();
+}
+
+private function hasPermissionThroughRoleSafely(string $permission): bool
+{
+    try {
+        return $this->getPermissionsViaRoles()->contains('name', $permission);
+    } catch (PermissionDoesNotExist) {
+        return false;
+    }
 }
 
 }

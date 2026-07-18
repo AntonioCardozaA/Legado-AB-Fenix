@@ -65,10 +65,22 @@ class DashboardController extends Controller
         }
 
         $pasteurizadoraComingSoon = $user?->shouldShowPasteurizadoraComingSoon() ?? false;
+        $canSeeLavadoraShortcut = ($user?->canAccessModule(User::MODULE_LAVADORA) ?? true)
+            && ($user?->canUseCustomPermission('ver dashboard lavadoras') ?? true);
+        $canSeeEtiquetadoraShortcut = ($user?->canAccessModule(User::MODULE_ETIQUETADORA) ?? true)
+            && ($user?->canUseCustomPermission('ver dashboard etiquetadoras') ?? true);
+        $canSeePasteurizadoraShortcut = $user?->shouldSeePasteurizadoraShortcut() ?? true;
+
+        if (($user?->canAccessModule(User::MODULE_PASTEURIZADORA) ?? false)
+            && !($user?->canUseCustomPermission('ver dashboard pasteurizadoras') ?? true)) {
+            $canSeePasteurizadoraShortcut = false;
+        }
 
         // Configuración de módulos disponibles (escalable para futuro)
-        $modulos = [
-            [
+        $modulos = [];
+
+        if ($canSeeLavadoraShortcut) {
+            $modulos[] = [
                 'id' => 'lavadora',
                 'nombre' => 'Lavadoras',
                 'descripcion' => '',
@@ -79,8 +91,11 @@ class DashboardController extends Controller
                 'ruta' => route('dashboard.global.lavadoras'),
                 'estadisticas' => $this->getLavadoraStats(),
                 'activo' => true
-            ],
-            [
+            ];
+        }
+
+        if ($canSeeEtiquetadoraShortcut) {
+            $modulos[] = [
                 'id' => 'etiquetadora',
                 'nombre' => 'Etiquetadoras',
                 'descripcion' => '',
@@ -91,10 +106,10 @@ class DashboardController extends Controller
                 'ruta' => route('dashboard.global.etiquetadoras'),
                 'estadisticas' => $this->getEtiquetadoraStats(),
                 'activo' => $user?->canAccessModule(User::MODULE_ETIQUETADORA) ?? true,
-            ],
-        ];
+            ];
+        }
 
-        if ($user?->shouldSeePasteurizadoraShortcut()) {
+        if ($canSeePasteurizadoraShortcut) {
             $modulos[] = [
                 'id' => 'pasteurizadora',
                 'nombre' => 'Pasteurizadoras',

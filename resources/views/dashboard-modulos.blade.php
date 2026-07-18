@@ -570,7 +570,7 @@
     </div>
 
     <div class="modulos-grid">
-  @foreach($modulos as $modulo)
+  @forelse($modulos as $modulo)
     @if($modulo['activo'])
         @php
             $hasCriticos = $modulo['estadisticas']['alertas_criticas'] > 0;
@@ -681,7 +681,11 @@
                     </div>
                 </div>
             @endif
-        @endforeach
+        @empty
+            <div class="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-sm font-semibold text-amber-800">
+                No tiene modulos disponibles. Solicite al administrador la asignacion del permiso correspondiente.
+            </div>
+        @endforelse
     </div>
 
     <div class="last-update">

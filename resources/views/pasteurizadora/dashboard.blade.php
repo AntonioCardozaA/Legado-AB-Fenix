@@ -3,6 +3,15 @@
 @section('title', 'Menú | Pasteurizadora')
 
 @section('content')
+@php
+    $usuarioActual = auth()->user();
+    $puedeVerMecanicaPasteurizadora = $usuarioActual?->canAccessPasteurizadoraArea(\App\Models\AnalisisPasteurizadora::AREA_MECANICA) ?? false;
+    $puedeVerCentralHidraulica = $usuarioActual?->canAccessPasteurizadoraArea(\App\Models\AnalisisPasteurizadora::AREA_CENTRAL_HIDRAULICA) ?? false;
+    $puedeVerPlanesPasteurizadora = $puedeVerMecanicaPasteurizadora
+        && ($usuarioActual?->canViewPlanActionType(\App\Models\User::MODULE_PASTEURIZADORA) ?? false);
+    $puedeVerTendenciasPasteurizadora = ($usuarioActual?->canAccessModule(\App\Models\User::MODULE_PASTEURIZADORA) ?? false)
+        && ($usuarioActual?->canUseCustomPermission('ver tendencias pasteurizadora') ?? false);
+@endphp
 <div class="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-6 sm:py-8">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
@@ -47,6 +56,7 @@
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
             
             {{-- ANALISIS PASTEURIZADORA --}}
+            @if($puedeVerMecanicaPasteurizadora)
             <a href="{{ route('pasteurizadora.analisis-pasteurizadora.index') }}" 
                class="group relative bg-white rounded-3xl shadow-lg hover:shadow-2xl transition-all duration-500 overflow-hidden hover:-translate-y-2">
                 
@@ -84,6 +94,9 @@
             </a>
 
             {{-- HISTORICO (reubicado en la posición que dejó ELONGACIÓN) --}}
+            @endif
+
+            @if($puedeVerMecanicaPasteurizadora)
             <a href="{{ route('pasteurizadora.analisis-pasteurizadora.historico-revisados') }}" 
                class="group relative bg-white rounded-3xl shadow-lg hover:shadow-2xl transition-all duration-500 overflow-hidden hover:-translate-y-2">
                 
@@ -114,7 +127,9 @@
                 </div>
             </a>
 
-            @if(auth()->user()?->canAccessPasteurizadoraArea(\App\Models\AnalisisPasteurizadora::AREA_CENTRAL_HIDRAULICA))
+            @endif
+
+            @if($puedeVerCentralHidraulica)
             {{-- ANALISIS PASTEURIZADORA CENTRAL HIDRAULICA --}}
             <a href="{{ route('pasteurizadora.central-hidraulica.index') }}"
                class="group relative bg-white rounded-3xl shadow-lg hover:shadow-2xl transition-all duration-500 overflow-hidden hover:-translate-y-2">
@@ -179,6 +194,7 @@
             @endif
 
             {{-- PLAN DE ACCION --}}
+            @if($puedeVerPlanesPasteurizadora)
             <a href="{{ route('pasteurizadora.analisis-pasteurizadora.plan-accion.index') }}" 
                class="group relative bg-white rounded-3xl shadow-lg hover:shadow-2xl transition-all duration-500 overflow-hidden hover:-translate-y-2">
                 
@@ -210,6 +226,9 @@
             </a>
 
             {{-- ANALISIS 52-12-4 --}}
+            @endif
+
+            @if($puedeVerTendenciasPasteurizadora)
             <a href="{{ route('analisis-tendencia-mensual.pasteurizadora.index') }}" 
                class="group relative bg-white rounded-3xl shadow-lg hover:shadow-2xl transition-all duration-500 overflow-hidden hover:-translate-y-2">
                 
@@ -238,6 +257,13 @@
                     </div>
                 </div>
             </a>
+            @endif
+
+            @unless($puedeVerMecanicaPasteurizadora || $puedeVerCentralHidraulica || $puedeVerPlanesPasteurizadora || $puedeVerTendenciasPasteurizadora)
+                <div class="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-sm font-semibold text-amber-800 md:col-span-2 lg:col-span-3">
+                    No tiene vistas disponibles en este modulo. Solicite al administrador la asignacion del permiso correspondiente.
+                </div>
+            @endunless
         </div>
     </div>
 </div>

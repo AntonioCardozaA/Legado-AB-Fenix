@@ -3,6 +3,15 @@
 @section('title', 'Menú | Lavadora')
 
 @section('content')
+@php
+    $usuarioActual = auth()->user();
+    $puedeVerAnalisisLavadora = $usuarioActual?->canUseCustomPermission('ver analisis lavadora') ?? false;
+    $puedeVerElongaciones = $usuarioActual?->canUseCustomPermission('ver elongaciones') ?? false;
+    $puedeVerHistoricoRevisados = $usuarioActual?->canUseCustomPermission('ver historico revisados') ?? false;
+    $puedeVerPlanesLavadora = $usuarioActual?->canViewPlanActionType(\App\Models\User::MODULE_LAVADORA) ?? false;
+    $puedeVerTendenciasLavadora = $usuarioActual?->canUseCustomPermission('ver tendencias lavadora') ?? false;
+    $puedeVerCostosLavadora = $canViewLavadoraCostsModule ?? ($usuarioActual?->canViewLavadoraCostModule() ?? false);
+@endphp
 <div class="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-6 sm:py-8">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
@@ -46,6 +55,7 @@
         {{-- GRID DE OPCIONES MEJORADO CON COLOR RGB 31 35 72 --}}
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
             
+            @if($puedeVerAnalisisLavadora)
             {{-- ANALISIS LAVADORA --}}
             <a href="{{ route('analisis-lavadora.index') }}" 
                class="group relative bg-white rounded-3xl shadow-lg hover:shadow-2xl transition-all duration-500 overflow-hidden hover:-translate-y-2">
@@ -82,7 +92,9 @@
                     </div>
                 </div>
             </a>
+            @endif
 
+            @if($puedeVerElongaciones)
             {{-- ELONGACION LAVADORA --}}
             <a href="{{ route('elongaciones.index') }}" 
                class="group relative bg-white rounded-3xl shadow-lg hover:shadow-2xl transition-all duration-500 overflow-hidden hover:-translate-y-2">
@@ -113,7 +125,9 @@
                     </div>
                 </div>
             </a>
+            @endif
 
+            @if($puedeVerHistoricoRevisados)
             {{-- HISTORICO --}}
             <a href="{{ route('historico-revisados.index') }}" 
                class="group relative bg-white rounded-3xl shadow-lg hover:shadow-2xl transition-all duration-500 overflow-hidden hover:-translate-y-2">
@@ -144,7 +158,9 @@
                     </div>
                 </div>
             </a>
+            @endif
 
+            @if($puedeVerPlanesLavadora)
             {{-- PLAN DE ACCION --}}
             <a href="{{ route('plan-accion.index') }}" 
                class="group relative bg-white rounded-3xl shadow-lg hover:shadow-2xl transition-all duration-500 overflow-hidden hover:-translate-y-2">
@@ -175,7 +191,9 @@
                     </div>
                 </div>
             </a>
+            @endif
 
+            @if($puedeVerTendenciasLavadora)
             {{-- ANALISIS 52-12-4 --}}
             <a href="{{ route('analisis-tendencia-mensual.lavadora.index') }}" 
                class="group relative bg-white rounded-3xl shadow-lg hover:shadow-2xl transition-all duration-500 overflow-hidden hover:-translate-y-2">
@@ -205,8 +223,9 @@
                     </div>
                 </div>
             </a>
+            @endif
 
-            @if($canViewLavadoraCostsModule ?? (auth()->user()?->canViewLavadoraCostModule() ?? false))
+            @if($puedeVerCostosLavadora)
                  {{-- COSTOS --}}
             <a href="{{ route('lavadora.costos.index') }}" 
                class="group relative bg-white rounded-3xl shadow-lg hover:shadow-2xl transition-all duration-500 overflow-hidden hover:-translate-y-2">
@@ -238,6 +257,12 @@
                 </div>
             </a>
             @endif
+
+            @unless($puedeVerAnalisisLavadora || $puedeVerElongaciones || $puedeVerHistoricoRevisados || $puedeVerPlanesLavadora || $puedeVerTendenciasLavadora || $puedeVerCostosLavadora)
+                <div class="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-sm font-semibold text-amber-800 md:col-span-2 lg:col-span-3">
+                    No tiene vistas disponibles en este modulo. Solicite al administrador la asignacion del permiso correspondiente.
+                </div>
+            @endunless
         </div>
 
         {{-- FOOTER CON ESTADÍSTICAS RÁPIDAS (OPCIONAL) --}}

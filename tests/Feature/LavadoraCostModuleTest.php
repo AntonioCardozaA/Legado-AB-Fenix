@@ -122,8 +122,6 @@ class LavadoraCostModuleTest extends TestCase
     {
         $user = $this->userWithRole(User::ROLE_TECNICO);
         $this->enableCustomPermissions($user, [
-            'crear analisis lavadora',
-            'editar analisis lavadora',
             User::PERMISSION_ACCESS_LAVADORA_COSTS,
             User::PERMISSION_CREATE_LAVADORA_COSTS,
         ]);
@@ -180,7 +178,6 @@ class LavadoraCostModuleTest extends TestCase
     {
         $user = $this->userWithRole(User::ROLE_TECNICO);
         $this->enableCustomPermissions($user, [
-            'crear analisis lavadora',
             User::PERMISSION_ACCESS_LAVADORA_COSTS,
             User::PERMISSION_EDIT_LAVADORA_COSTS,
         ]);

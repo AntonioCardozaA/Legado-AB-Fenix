@@ -23,10 +23,10 @@ class EnsureCustomPermissionAccess
 
         if ($request->expectsJson()) {
             return response()->json([
-                'message' => 'No tienes permiso para acceder a esta vista o ejecutar esta accion.',
+                'message' => 'No cuenta con permisos suficientes para acceder a esta vista o ejecutar esta accion.',
             ], 403);
         }
 
-        abort(403, 'No tienes permiso para acceder a esta vista o ejecutar esta accion.');
+        abort(403, 'No cuenta con permisos suficientes para acceder a esta vista o ejecutar esta accion.');
     }
 }
