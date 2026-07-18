@@ -37,9 +37,12 @@
     .cell-header { background-color: #eff6ff; }
     
     .compact-table td, .compact-table th {
-        padding: 8px !important;
-        font-size: 0.75rem !important;
-        min-width: 120px;
+        padding: 6px !important;
+        font-size: 0.72rem !important;
+        min-width: 106px;
+        width: 112px;
+        max-width: 132px;
+        white-space: normal !important;
     }
     
     .table-container {
@@ -148,7 +151,7 @@
         cursor: pointer;
         transition: all 0.2s ease;
         position: relative;
-        min-height: 120px;
+        min-height: 96px;
     }
     
     .analysis-cell.no-data {
@@ -293,14 +296,14 @@
     }
     
     .empty-cell {
-        min-height: 120px;
+        min-height: 92px;
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
         text-align: center;
         color: var(--dark-gray);
-        padding: 10px;
+        padding: 8px;
     }
     
     .no-records {
@@ -310,8 +313,8 @@
     }
     
     .empty-cell-icon {
-        font-size: 24px;
-        margin-bottom: 8px;
+        font-size: 20px;
+        margin-bottom: 6px;
         color: #d1d5db;
     }
     
@@ -321,15 +324,18 @@
         align-items: center;
         justify-content: center;
         text-align: center;
-        padding: 8px 4px;
+        padding: 6px 3px;
+        min-width: 0;
+        white-space: normal;
     }
     
     .component-name {
         font-weight: 600;
         color: #1e40af;
-        font-size: 11px;
+        font-size: 10px;
         line-height: 1.2;
         margin-bottom: 4px;
+        overflow-wrap: anywhere;
     }
     
     .component-code {
@@ -346,15 +352,18 @@
         align-items: center;
         justify-content: center;
         text-align: center;
-        padding: 8px 4px;
+        padding: 6px 3px;
+        min-width: 0;
+        white-space: normal;
     }
     
     .reductor-name {
         font-weight: 600;
         color: #1e40af;
-        font-size: 11px;
+        font-size: 10px;
         line-height: 1.2;
         margin-bottom: 4px;
+        overflow-wrap: anywhere;
     }
     
     .reductor-label {
@@ -478,6 +487,7 @@
         letter-spacing: 0.5px;
         margin-bottom: 16px;
         display: flex;
+        flex-wrap: wrap;
         align-items: center;
         gap: 8px;
     }
@@ -500,7 +510,7 @@
         align-items: center;
         min-width: 0;
         max-width: 100%;
-        padding: 8px 20px;
+        padding: 7px 16px;
         background: #f8fafc;
         border: 2px solid #e2e8f0;
         border-radius: 40px;
@@ -661,7 +671,7 @@
     
     .advanced-filters-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
         gap: 16px;
         min-width: 0;
     }
@@ -1111,7 +1121,210 @@
         }
     }
 
-    /* ESTILOS PARA TACÓMETROS PEQUEÑOS */
+    /* Ajustes responsive del index de lavadora */
+    .lavadora-index .lavadora-stats-grid {
+        grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)) !important;
+        gap: 0.75rem !important;
+    }
+
+    .lavadora-index .lavadora-stats-grid > * {
+        min-height: auto;
+        padding: 0.8rem !important;
+        border-radius: 0.75rem !important;
+    }
+
+    .lavadora-index .lavadora-stats-grid h3 {
+        font-size: 1.35rem !important;
+        line-height: 1.1;
+    }
+
+    .lavadora-index .lavadora-stats-grid p {
+        line-height: 1.15;
+    }
+
+    .lavadora-index .lavadora-stats-grid .rounded-full {
+        padding: 0.45rem !important;
+    }
+
+    .lavadora-index .lavadoras-section {
+        margin-top: 22px;
+    }
+
+    .lavadora-index .lavadora-card {
+        border-radius: 10px;
+        margin-bottom: 20px;
+    }
+
+    .lavadora-index .lavadora-card-header {
+        gap: 10px;
+        padding: 12px 16px;
+    }
+
+    .lavadora-index .lavadora-card-header > div:first-child {
+        width: 2.5rem !important;
+        height: 2.5rem !important;
+        flex: 0 0 2.5rem;
+    }
+
+    .lavadora-index .lavadora-card-header h3 {
+        font-size: 18px;
+    }
+
+    .lavadora-index .compact-table tr > :first-child {
+        min-width: 110px;
+        width: 116px;
+        max-width: 124px;
+    }
+
+    .lavadora-index .component-header img {
+        width: 3.4rem !important;
+        height: 3.4rem !important;
+        flex: 0 0 auto;
+        object-fit: contain;
+    }
+
+    .lavadora-index .analysis-cell > .space-y-2,
+    .lavadora-index .analysis-cell :where(.inline-flex, button, a) {
+        max-width: 100%;
+    }
+
+    .lavadora-index .analysis-cell .bg-blue-50 {
+        padding: 0.35rem !important;
+        margin-bottom: 0.35rem !important;
+    }
+
+    .lavadora-index .analysis-cell p.text-gray-700 {
+        display: -webkit-box;
+        line-height: 1.2;
+        overflow: hidden;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+    }
+
+    .lavadora-index .analysis-cell .create-action--compact {
+        min-height: 1.95rem !important;
+        padding: 0.34rem 0.55rem !important;
+        font-size: 0.68rem !important;
+    }
+
+    @media (max-width: 768px) {
+        .lavadora-index {
+            padding: 1rem !important;
+        }
+
+        .lavadora-index .filters-section {
+            padding: 14px;
+            margin-bottom: 16px;
+        }
+
+        .lavadora-index .lineas-title {
+            margin-bottom: 12px;
+        }
+
+        .lavadora-index .lineas-grid {
+            gap: 8px;
+        }
+
+        .lavadora-index .linea-item {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+
+        .lavadora-index .advanced-filters-panel {
+            padding: 14px;
+        }
+
+        .lavadora-index .advanced-filters-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .lavadora-index .lavadora-card-header {
+            align-items: center;
+            padding: 10px 12px;
+        }
+
+        .lavadora-index .lavadora-card-header > div {
+            width: auto;
+        }
+
+        .lavadora-index .lavadora-card-header > div:first-child {
+            width: 2.25rem !important;
+            height: 2.25rem !important;
+            flex-basis: 2.25rem;
+        }
+
+        .lavadora-index .lavadora-card-header > div:not(:first-child) {
+            flex: 1 1 auto;
+        }
+
+        .lavadora-index .compact-table td,
+        .lavadora-index .compact-table th {
+            min-width: 92px;
+            width: 96px;
+            max-width: 112px;
+            padding: 5px !important;
+            font-size: 0.68rem !important;
+        }
+
+        .lavadora-index .compact-table tr > :first-child {
+            min-width: 96px;
+            width: 100px;
+            max-width: 108px;
+        }
+
+        .lavadora-index .component-header img {
+            width: 2.65rem !important;
+            height: 2.65rem !important;
+        }
+
+        .lavadora-index .analysis-cell,
+        .lavadora-index .empty-cell {
+            min-height: 78px;
+        }
+
+        .lavadora-index .empty-cell-icon {
+            font-size: 17px;
+        }
+
+        .lavadora-index .lavadora-card .table-wrapper {
+            margin-inline: 0 !important;
+            padding-inline: 0 !important;
+        }
+    }
+
+    @media (max-width: 420px) {
+        .lavadora-index {
+            padding: 0.75rem !important;
+        }
+
+        .lavadora-index .lavadora-stats-grid {
+            grid-template-columns: repeat(auto-fit, minmax(118px, 1fr)) !important;
+        }
+
+        .lavadora-index .compact-table td,
+        .lavadora-index .compact-table th {
+            min-width: 86px;
+            width: 90px;
+            max-width: 100px;
+        }
+
+        .lavadora-index .compact-table tr > :first-child {
+            min-width: 88px;
+            width: 92px;
+            max-width: 98px;
+        }
+
+        .lavadora-index .component-name,
+        .lavadora-index .reductor-name {
+            font-size: 9px;
+        }
+
+        .lavadora-index .component-header img {
+            width: 2.35rem !important;
+            height: 2.35rem !important;
+        }
+    }
+
     .tacometro-card {
         transition: all 0.3s ease;
         cursor: pointer;
@@ -1125,7 +1338,7 @@
     }
 </style>
 
-<div class="max-w-full mx-auto px-4 py-6">
+<div class="lavadora-index max-w-full mx-auto px-4 py-6">
     {{-- HEADER --}}
     <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
         <div>
@@ -1649,7 +1862,7 @@
             }
         @endphp
         
-        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4 mb-6">
+        <div class="lavadora-stats-grid grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4 mb-6">
             {{-- TOTAL ANÁLISIS --}}
             <div class="bg-white rounded-xl shadow-sm p-4 border-t-4 border-gray-600 hover:shadow-lg transition-all">
                 <div class="flex items-center justify-between">
@@ -1832,7 +2045,7 @@
                 }
             @endphp
             
-            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4 mb-6">
+            <div class="lavadora-stats-grid grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4 mb-6">
                 {{-- TOTAL ANÁLISIS --}}
                 <div class="bg-white rounded-xl shadow-sm p-4 border-t-4 border-gray-600 hover:shadow-lg transition-all">
                     <div class="flex items-center justify-between">
