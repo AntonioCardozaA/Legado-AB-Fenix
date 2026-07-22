@@ -89,6 +89,7 @@
                 </div>
             @endif
 
+
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
                 <div class="border border-blue-200 rounded-xl overflow-hidden">
                     <div class="flex flex-col gap-2 border-b border-blue-100 bg-blue-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
@@ -199,3 +200,4 @@
     </div>
 </div>
 @endsection
+

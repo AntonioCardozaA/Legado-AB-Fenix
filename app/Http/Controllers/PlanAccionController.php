@@ -119,7 +119,10 @@ class PlanAccionController extends Controller
         $id = $request->input('id');
         $tipo = $this->normalizarTipo($request->get('tipo', 'lavadora'));
         
-        $plan = PlanAccion::with($this->relacionesTrazabilidad())->findOrFail($id);
+        $plan = PlanAccion::with(array_merge(
+            $this->relacionesTrazabilidad(),
+            ['maintenanceEvent.componente']
+        ))->findOrFail($id);
         $this->ensureCanAccessPlan($plan);
 
         if (!$request->filled('tipo') && $plan->linea) {
@@ -136,6 +139,7 @@ class PlanAccionController extends Controller
         $usuariosResponsables = $this->obtenerUsuariosResponsables();
 
         $lavadoras = $lineas;
+        $structuredContent = $plan->currentStructuredContent();
 
         return view($this->obtenerVistaPorTipo($tipo, 'edit'), compact(
             'plan',
@@ -144,7 +148,8 @@ class PlanAccionController extends Controller
             'tiposMaquinaSeleccionados',
             'areasPasteurizadora',
             'usuariosResponsables',
-            'tipo'
+            'tipo',
+            'structuredContent'
         ));
     }
 
@@ -320,8 +325,15 @@ class PlanAccionController extends Controller
      */
     public function show($id)
     {
-        $plan = PlanAccion::with($this->relacionesTrazabilidad())->findOrFail($id);
+        $plan = PlanAccion::with(array_merge(
+            $this->relacionesTrazabilidad(),
+            ['maintenanceEvent.componente']
+        ))->findOrFail($id);
         $this->ensureCanViewPlan($plan);
+
+        $plan->setAttribute('structured_content', $plan->currentStructuredContent());
+        $plan->setAttribute('source_label', $plan->sourceLabel());
+        $plan->setAttribute('maintenance_event_source_url', $plan->maintenanceEvent?->sourceUrl());
 
         return response()->json($plan);
     }
@@ -689,6 +701,16 @@ class PlanAccionController extends Controller
 
     private function ensureCanAccessPlan(PlanAccion $plan): void
     {
+        if ($this->requiresWasherAiReviewAccess($plan)) {
+            abort_unless(
+                auth()->user()?->canReviewWasherAiPlans(),
+                403,
+                'No tienes permiso para editar sugerencias de IA pendientes de revision.'
+            );
+
+            return;
+        }
+
         $tipo = $this->tipoDesdePlan($plan);
 
         $this->ensureCanAccessTipo($tipo);
@@ -696,6 +718,16 @@ class PlanAccionController extends Controller
 
     private function ensureCanViewPlan(PlanAccion $plan): void
     {
+        if ($this->requiresWasherAiReviewAccess($plan)) {
+            abort_unless(
+                auth()->user()?->canReviewWasherAiPlans(),
+                403,
+                'No tienes permiso para visualizar sugerencias de IA pendientes de revision.'
+            );
+
+            return;
+        }
+
         $tipo = $this->tipoDesdePlan($plan);
 
         $this->ensureCanViewTipo($tipo);
@@ -775,6 +807,15 @@ class PlanAccionController extends Controller
                 $query->where('tipo_equipo', User::MODULE_LAVADORA)
                     ->orWhereNull('tipo_equipo');
             });
+
+            $query->where(function ($query): void {
+                $query->whereNull('source')
+                    ->orWhere('source', 'manual')
+                    ->orWhere(function ($aiQuery): void {
+                        $aiQuery->where('source', 'ai')
+                            ->where('estado', 'approved');
+                    });
+            });
         } elseif ($tipo === User::MODULE_PASTEURIZADORA) {
             $query->where(function ($query): void {
                 $query->where('tipo_equipo', User::MODULE_PASTEURIZADORA)
@@ -806,6 +847,13 @@ class PlanAccionController extends Controller
         }
 
         return $this->normalizarTipoValido($linea->tipo ?? null) ?? User::MODULE_LAVADORA;
+    }
+
+    private function requiresWasherAiReviewAccess(PlanAccion $plan): bool
+    {
+        return $plan->isAiSuggested()
+            && $this->tipoDesdePlan($plan) === User::MODULE_LAVADORA
+            && $plan->estado !== 'approved';
     }
 
 }

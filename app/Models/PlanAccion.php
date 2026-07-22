@@ -3,40 +3,73 @@
 namespace App\Models;
 
 use App\Models\Concerns\UppercasesActividad;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * @property int $id
  * @property int|null $linea_id
+ * @property int|null $maintenance_event_id
  * @property int|null $responsable_id
  * @property int|null $registrado_por_id
  * @property int|null $ejecutado_por_id
+ * @property int|null $reviewed_by
  * @property string|null $actividad
+ * @property string|null $source
+ * @property string|null $estado
+ * @property string|null $tipo_equipo
+ * @property string|null $area_pasteurizadora
+ * @property string|null $priority_level
+ * @property string|null $maintenance_type
  * @property Carbon|null $fecha_pcm1
  * @property Carbon|null $fecha_pcm2
  * @property Carbon|null $fecha_pcm3
  * @property Carbon|null $fecha_pcm4
  * @property Carbon|null $fecha_ejecucion
- * @property string|null $estado
- * @property string|null $tipo_equipo
- * @property string|null $area_pasteurizadora
+ * @property Carbon|null $generated_at
+ * @property Carbon|null $reviewed_at
  * @property bool $completado
  * @property array<int, string>|null $tipo_maquina
+ * @property array<string, mixed>|null $original_generated_content
+ * @property array<string, mixed>|null $approved_content
  */
 class PlanAccion extends Model
 {
-    use HasFactory, UppercasesActividad;
+    use HasFactory;
+    use UppercasesActividad;
 
     protected $table = 'plan_accion';
 
     protected $fillable = [
         'linea_id',
         'actividad',
+        'source',
+        'maintenance_event_id',
         'tipo_equipo',
         'area_pasteurizadora',
+        'priority_level',
+        'maintenance_type',
+        'detected_problem',
+        'technical_justification',
+        'risk_if_not_executed',
+        'missing_information',
+        'ai_provider',
+        'ai_model',
+        'ai_original_response',
+        'original_generated_content',
+        'approved_content',
+        'knowledge_sources',
+        'source_metadata',
+        'review_history',
+        'confidence_level',
+        'prompt_version',
+        'prompt_snapshot',
+        'generated_at',
+        'reviewed_at',
+        'reviewed_by',
+        'rejection_reason',
         'fecha_pcm1',
         'fecha_pcm2',
         'fecha_pcm3',
@@ -49,19 +82,41 @@ class PlanAccion extends Model
         'registrado_por_id',
         'ejecutado_por_id',
         'fecha_ejecucion',
-        'tipo_maquina' // Agregar este campo
+        'tipo_maquina',
+        'estimated_cost_total',
+        'actual_cost_total',
+        'estimated_hours',
+        'actual_hours',
+        'execution_result',
+        'effectiveness',
+        'final_observations',
     ];
 
     protected $casts = [
         'area_pasteurizadora' => 'string',
+        'missing_information' => 'array',
+        'ai_original_response' => 'array',
+        'original_generated_content' => 'array',
+        'approved_content' => 'array',
+        'knowledge_sources' => 'array',
+        'source_metadata' => 'array',
+        'review_history' => 'array',
+        'prompt_snapshot' => 'array',
         'fecha_pcm1' => 'date',
         'fecha_pcm2' => 'date',
         'fecha_pcm3' => 'date',
         'fecha_pcm4' => 'date',
         'fecha_recordatorio' => 'date',
         'fecha_ejecucion' => 'datetime',
-        'tipo_maquina' => 'array', // Laravel convertirá automáticamente JSON a array
+        'generated_at' => 'datetime',
+        'reviewed_at' => 'datetime',
+        'tipo_maquina' => 'array',
         'completado' => 'boolean',
+        'confidence_level' => 'float',
+        'estimated_cost_total' => 'float',
+        'actual_cost_total' => 'float',
+        'estimated_hours' => 'float',
+        'actual_hours' => 'float',
     ];
 
     public function linea(): BelongsTo
@@ -84,13 +139,21 @@ class PlanAccion extends Model
         return $this->belongsTo(User::class, 'ejecutado_por_id');
     }
 
-    // Método helper para verificar si tiene un tipo específico
-    public function tieneTipoMaquina($tipo)
+    public function reviewedBy(): BelongsTo
     {
-        return $this->tipo_maquina && in_array($tipo, $this->tipo_maquina);
+        return $this->belongsTo(User::class, 'reviewed_by');
     }
 
-    // Getter para obtener los tipos formateados para mostrar
+    public function maintenanceEvent(): BelongsTo
+    {
+        return $this->belongsTo(MaintenanceEvent::class, 'maintenance_event_id');
+    }
+
+    public function tieneTipoMaquina($tipo): bool
+    {
+        return is_array($this->tipo_maquina) && in_array($tipo, $this->tipo_maquina, true);
+    }
+
     public function getTiposMaquinaFormateadosAttribute()
     {
         if (!$this->tipo_maquina) {
@@ -105,12 +168,12 @@ class PlanAccion extends Model
             'otros' => ['icon' => 'fa-cog', 'color' => 'gray'],
         ];
 
-        return collect($this->tipo_maquina)->map(function($tipo) use ($iconos) {
+        return collect($this->tipo_maquina)->map(function ($tipo) use ($iconos) {
             return [
                 'nombre' => $tipo,
                 'nombre_mostrar' => ucfirst($tipo),
                 'icono' => $iconos[$tipo]['icon'] ?? 'fa-cog',
-                'color' => $iconos[$tipo]['color'] ?? 'gray'
+                'color' => $iconos[$tipo]['color'] ?? 'gray',
             ];
         });
     }
@@ -137,75 +200,120 @@ class PlanAccion extends Model
         return self::areasPasteurizadoraOpciones()[$this->area_pasteurizadora] ?? $this->area_pasteurizadora;
     }
 
-    public function getFechasProgramadasAttribute()
+    public function getFechasProgramadasAttribute(): array
     {
         $fechas = [];
-        if ($this->fecha_pcm1) $fechas['pcm1'] = $this->fecha_pcm1;
-        if ($this->fecha_pcm2) $fechas['pcm2'] = $this->fecha_pcm2;
-        if ($this->fecha_pcm3) $fechas['pcm3'] = $this->fecha_pcm3;
-        if ($this->fecha_pcm4) $fechas['pcm4'] = $this->fecha_pcm4;
+
+        if ($this->fecha_pcm1) {
+            $fechas['pcm1'] = $this->fecha_pcm1;
+        }
+
+        if ($this->fecha_pcm2) {
+            $fechas['pcm2'] = $this->fecha_pcm2;
+        }
+
+        if ($this->fecha_pcm3) {
+            $fechas['pcm3'] = $this->fecha_pcm3;
+        }
+
+        if ($this->fecha_pcm4) {
+            $fechas['pcm4'] = $this->fecha_pcm4;
+        }
+
         return $fechas;
     }
 
-    public function getProximaFechaAttribute()
+    public function getProximaFechaAttribute(): ?array
     {
         $hoy = Carbon::now()->startOfDay();
         $proximaFecha = null;
         $proximaPcm = null;
-        
+
         foreach ($this->fechas_programadas as $pcm => $fecha) {
-            if ($fecha >= $hoy) {
-                if (!$proximaFecha || $fecha < $proximaFecha) {
-                    $proximaFecha = $fecha;
-                    $proximaPcm = $pcm;
-                }
+            if ($fecha >= $hoy && (!$proximaFecha || $fecha < $proximaFecha)) {
+                $proximaFecha = $fecha;
+                $proximaPcm = $pcm;
             }
         }
-        
-        return $proximaFecha ? [
+
+        if (!$proximaFecha) {
+            return null;
+        }
+
+        return [
             'fecha' => $proximaFecha,
             'pcm' => $proximaPcm,
-            'dias_restantes' => (int) $hoy->diffInDays(Carbon::parse($proximaFecha)->startOfDay(), false)
-        ] : null;
+            'dias_restantes' => (int) $hoy->diffInDays(Carbon::parse($proximaFecha)->startOfDay(), false),
+        ];
     }
 
-    public function getDiasParaVencimientoAttribute()
+    public function getDiasParaVencimientoAttribute(): ?int
     {
         $proxima = $this->proxima_fecha;
+
         return $proxima ? $proxima['dias_restantes'] : null;
     }
 
-    public function actualizarEstado()
+    public function actualizarEstado(): void
     {
         $hoy = Carbon::now();
         $tieneVencidas = false;
         $tienePendientes = false;
         $todasCompletadas = true;
-        
+
         foreach ($this->fechas_programadas as $fecha) {
-            if ($fecha) {
-                $todasCompletadas = false;
-                if ($fecha < $hoy) {
-                    $tieneVencidas = true;
-                } else {
-                    $tienePendientes = true;
-                }
+            if (!$fecha) {
+                continue;
+            }
+
+            $todasCompletadas = false;
+
+            if ($fecha < $hoy) {
+                $tieneVencidas = true;
+            } else {
+                $tienePendientes = true;
             }
         }
-        
+
         if ($todasCompletadas) {
             $this->estado = 'completada';
         } elseif ($tieneVencidas && !$tienePendientes) {
             $this->estado = 'atrasada';
-        } elseif ($tieneVencidas && $tienePendientes) {
+        } elseif ($tieneVencidas) {
             $this->estado = 'en_proceso';
         } else {
             $this->estado = 'pendiente';
         }
-        
+
         $this->saveQuietly();
     }
-     public function scopeActivas($query)
+
+    public function isAiSuggested(): bool
+    {
+        return $this->source === 'ai';
+    }
+
+    public function currentStructuredContent(): ?array
+    {
+        return $this->approved_content ?: $this->original_generated_content;
+    }
+
+    /**
+     * @param  array<string, mixed>  $entry
+     */
+    public function appendReviewHistory(array $entry): void
+    {
+        $history = $this->review_history ?? [];
+        $history[] = $entry;
+        $this->review_history = $history;
+    }
+
+    public function sourceLabel(): string
+    {
+        return $this->source === 'ai' ? 'Generado por IA' : 'Manual';
+    }
+
+    public function scopeActivas($query)
     {
         return $query->where('completado', false);
     }
@@ -220,4 +328,8 @@ class PlanAccion extends Model
         return $query->where('tipo_equipo', $tipoEquipo);
     }
 
+    public function scopeAiSuggested($query)
+    {
+        return $query->where('source', 'ai');
+    }
 }

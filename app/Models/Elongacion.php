@@ -6,6 +6,7 @@ use App\Support\HodometroHoras;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Elongacion extends Model
 {
@@ -123,6 +124,11 @@ class Elongacion extends Model
     public function lineaModel()
     {
         return $this->belongsTo(Linea::class, 'linea_id');
+    }
+
+    public function costEntries(): HasMany
+    {
+        return $this->hasMany(LavadoraCostEntry::class, 'elongacion_id');
     }
 
     public static function getPasoInicial($linea)

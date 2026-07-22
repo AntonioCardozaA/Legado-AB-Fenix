@@ -69,6 +69,7 @@
     <div class="rounded-2xl bg-white p-4 shadow-lg sm:p-8">
         <form method="POST" action="{{ route('elongaciones.store') }}" id="elongacionForm">
             @csrf
+            <input type="hidden" name="form_token" value="{{ $formToken }}">
 
             <div class="mb-8">
                 <div class="flex items-center gap-2 mb-4 pb-2 border-b border-gray-200">
@@ -192,6 +193,76 @@
                         <label for="observaciones_cadena" class="block text-sm font-medium text-gray-700 mb-2">Observaciones</label>
                         <textarea id="observaciones_cadena" name="observaciones_cadena" rows="1" class="block w-full rounded-lg border-gray-300 shadow-sm focus:ring-amber-500 focus:border-amber-500" placeholder="Motivo del cambio, lote, observaciones">{{ old('observaciones_cadena') }}</textarea>
                         @error('observaciones_cadena')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
+                    </div>
+                </div>
+
+                @error('nueva_cadena_costs')
+                    <div class="mt-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                        No se pudo registrar la nueva cadena porque falta configuracion en lavadoras/costos.
+                    </div>
+                @enderror
+
+                @error('form_token')
+                    <div class="mt-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                        {{ $message }}
+                    </div>
+                @enderror
+
+                <div id="panel_resumen_costos" class="hidden">
+                    <div class="mb-4 flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                        <div>
+                            <h3 class="text-lg font-semibold text-slate-900">Resumen previo de costos</h3>
+                            <p class="text-sm text-slate-500">
+                                Se usará el catálogo activo para estimar el costo y, al guardar, se conservará una copia histórica del precio unitario aplicado.
+                            </p>
+                        </div>
+                        <span id="cost_preview_status" class="inline-flex items-center rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800">
+                            Configuración lista
+                        </span>
+                    </div>
+
+                    @error('nueva_cadena_costs')
+                        <div class="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                            {{ $message }}
+                        </div>
+                    @enderror
+
+                    @error('form_token')
+                        <div class="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                            {{ $message }}
+                        </div>
+                    @enderror
+
+                    <div class="mb-4 grid grid-cols-1 gap-4 md:grid-cols-3">
+                        <div class="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                            <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Lavadora</p>
+                            <p id="cost_preview_linea" class="mt-2 text-xl font-bold text-slate-900">{{ old('linea', $lineaSeleccionada) }}</p>
+                        </div>
+                        <div class="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                            <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Tipo de cadena</p>
+                            <p id="cost_preview_chain_type" class="mt-2 text-base font-semibold text-slate-900">Pendiente</p>
+                        </div>
+                        <div class="rounded-xl border border-blue-200 bg-blue-50 p-4">
+                            <p class="text-xs font-semibold uppercase tracking-wide text-blue-700">Costo total estimado</p>
+                            <p id="cost_preview_total" class="mt-2 text-2xl font-bold text-blue-900">$0.00</p>
+                        </div>
+                    </div>
+
+                    <div id="cost_preview_error" class="mb-4 hidden rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"></div>
+
+                    <div class="overflow-x-auto rounded-2xl border border-slate-200">
+                        <table class="min-w-full divide-y divide-slate-200 text-sm">
+                            <thead class="bg-slate-50">
+                                <tr>
+                                    <th class="px-4 py-3 text-left font-semibold text-slate-600">Material</th>
+                                    <th class="px-4 py-3 text-left font-semibold text-slate-600">SKU</th>
+                                    <th class="px-4 py-3 text-left font-semibold text-slate-600">Cantidad</th>
+                                    <th class="px-4 py-3 text-left font-semibold text-slate-600">Costo unitario</th>
+                                    <th class="px-4 py-3 text-left font-semibold text-slate-600">Subtotal</th>
+                                </tr>
+                            </thead>
+                            <tbody id="cost_preview_rows" class="divide-y divide-slate-100 bg-white"></tbody>
+                        </table>
                     </div>
                 </div>
             </div>
@@ -368,6 +439,13 @@ document.addEventListener('DOMContentLoaded', function () {
     const alertaVaporTexto = document.getElementById('alerta_vapor_texto');
     const pasoActual = document.getElementById('paso_actual');
     const pasoInicialText = document.getElementById('paso_inicial_text');
+    const panelResumenCostos = document.getElementById('panel_resumen_costos');
+    const costPreviewRows = document.getElementById('cost_preview_rows');
+    const costPreviewError = document.getElementById('cost_preview_error');
+    const costPreviewStatus = document.getElementById('cost_preview_status');
+    const costPreviewLinea = document.getElementById('cost_preview_linea');
+    const costPreviewChainType = document.getElementById('cost_preview_chain_type');
+    const costPreviewTotal = document.getElementById('cost_preview_total');
 
     const LIMITE_COMPRA = 1.3;
     const LIMITE_CAMBIO = 1.46;
@@ -411,6 +489,92 @@ document.addEventListener('DOMContentLoaded', function () {
         preview.textContent = formatearHodometro(campo ? campo.value : null) || 'Sin captura';
     }
 
+    function money(value) {
+        return new Intl.NumberFormat('es-MX', {
+            style: 'currency',
+            currency: 'MXN',
+            minimumFractionDigits: 2,
+        }).format(Number(value || 0));
+    }
+
+    function escapeHtml(value) {
+        return String(value ?? '')
+            .replaceAll('&', '&amp;')
+            .replaceAll('<', '&lt;')
+            .replaceAll('>', '&gt;')
+            .replaceAll('"', '&quot;')
+            .replaceAll("'", '&#039;');
+    }
+
+    function renderCostPreview() {
+        if (panelResumenCostos) {
+            panelResumenCostos.classList.add('hidden');
+        }
+
+        return;
+
+        if (!panelResumenCostos || !costPreviewRows || !costPreviewLinea || !costPreviewChainType || !costPreviewTotal) {
+            return;
+        }
+
+        const linea = getLineaSeleccionada();
+        const preview = chainCostSummaries[linea] || null;
+        const visible = nuevaCadena.checked;
+
+        panelResumenCostos.classList.toggle('hidden', !visible);
+
+        if (!visible) {
+            return;
+        }
+
+        costPreviewLinea.textContent = linea;
+        costPreviewRows.innerHTML = '';
+
+        if (!preview) {
+            costPreviewChainType.textContent = 'Sin configuración';
+            costPreviewTotal.textContent = money(0);
+            costPreviewError.textContent = 'No existe una configuración de costos para la lavadora seleccionada.';
+            costPreviewError.classList.remove('hidden');
+            costPreviewStatus.textContent = 'Configuración incompleta';
+            costPreviewStatus.className = 'inline-flex items-center rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-800';
+            return;
+        }
+
+        costPreviewChainType.textContent = preview.chain_type || 'Pendiente';
+        costPreviewTotal.textContent = money(preview.total_cost || 0);
+
+        if (Array.isArray(preview.errors) && preview.errors.length > 0) {
+            costPreviewError.innerHTML = preview.errors.map((error) => `<div>${escapeHtml(error)}</div>`).join('');
+            costPreviewError.classList.remove('hidden');
+            costPreviewStatus.textContent = 'Faltan datos de catálogo';
+            costPreviewStatus.className = 'inline-flex items-center rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-800';
+        } else {
+            costPreviewError.classList.add('hidden');
+            costPreviewError.textContent = '';
+            costPreviewStatus.textContent = 'Configuración lista';
+            costPreviewStatus.className = 'inline-flex items-center rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800';
+        }
+
+        costPreviewRows.innerHTML = (preview.items || []).map((item) => {
+            const unit = item.unidad_medida || 'unidad';
+            const subtotal = item.subtotal === null || item.subtotal === undefined ? 'Pendiente' : money(item.subtotal);
+            const unitCost = item.costo_unitario === null || item.costo_unitario === undefined ? 'Pendiente' : money(item.costo_unitario);
+
+            return `
+                <tr>
+                    <td class="px-4 py-4 align-top">
+                        <div class="font-semibold text-slate-900">${escapeHtml(item.nombre)}</div>
+                        <div class="mt-1 text-xs text-slate-500">${escapeHtml(item.descripcion || '')}</div>
+                    </td>
+                    <td class="px-4 py-4 align-top text-slate-600">${escapeHtml(item.sku || 'Sin SKU')}</td>
+                    <td class="px-4 py-4 align-top text-slate-700">${Number(item.cantidad || 0).toFixed(2)} ${escapeHtml(unit)}</td>
+                    <td class="px-4 py-4 align-top text-slate-700">${escapeHtml(unitCost)}</td>
+                    <td class="px-4 py-4 align-top font-semibold text-slate-900">${escapeHtml(subtotal)}</td>
+                </tr>
+            `;
+        }).join('');
+    }
+
     function actualizarPanelNuevaCadena() {
         const linea = getLineaSeleccionada();
         const ciclo = ciclosActivos[linea] || null;
@@ -435,6 +599,7 @@ document.addEventListener('DOMContentLoaded', function () {
             badge.textContent = 'Se abrirá el primer ciclo';
             badge.className = 'px-3 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-700';
         }
+        renderCostPreview();
     }
 
     function actualizarUltimaLectura() {
@@ -472,6 +637,7 @@ document.addEventListener('DOMContentLoaded', function () {
         actualizarPanelNuevaCadena();
         actualizarUltimaLectura();
         actualizarCalculos();
+        renderCostPreview();
     }
 
     function calcularPromedio(fields) {
@@ -706,6 +872,7 @@ document.addEventListener('DOMContentLoaded', function () {
     nuevaCadena.addEventListener('change', function () {
         actualizarPanelNuevaCadena();
         actualizarCalculos();
+        renderCostPreview();
     });
 
     if (hodometro) {
@@ -737,8 +904,40 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
+    if (form) {
+        form.addEventListener('submit', function (event) {
+            if (!nuevaCadena.checked) {
+                return;
+            }
+
+            const newCycleConfirmationMessage = `Se registrara una nueva cadena para ${getLineaSeleccionada()}.\n\nDeseas continuar?`;
+
+            if (!window.confirm(newCycleConfirmationMessage)) {
+                event.preventDefault();
+            }
+
+            return;
+
+            const preview = chainCostSummaries[getLineaSeleccionada()] || null;
+
+            if (!preview || (Array.isArray(preview.errors) && preview.errors.length > 0)) {
+                event.preventDefault();
+                renderCostPreview();
+                alert('No es posible registrar la nueva cadena porque faltan materiales o precios en el catalogo.');
+                return;
+            }
+
+            const confirmationMessage = `Se registrara una nueva cadena para ${getLineaSeleccionada()}.\nTipo: ${preview.chain_type}\nCosto estimado: ${money(preview.total_cost || 0)}.\n\nDeseas continuar?`;
+
+            if (!window.confirm(confirmationMessage)) {
+                event.preventDefault();
+            }
+        });
+    }
+
     actualizarLineaSeleccionada();
     actualizarCalculos();
+    renderCostPreview();
     actualizarVistaPreviaHodometro(hodometro, 'hodometro_preview');
     actualizarVistaPreviaHodometro(hodometroInicial, 'hodometro_inicial_preview');
 });

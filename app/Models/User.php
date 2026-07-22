@@ -201,6 +201,18 @@ public function canEditAnalysisDate(): bool
     return $this->hasAnyRole(self::analysisDateEditorRoles());
 }
 
+public function canReviewWasherAiPlans(): bool
+{
+    return $this->hasAnyRole(self::elevatedMaintenanceRoles())
+        && $this->canAccessModule(self::MODULE_LAVADORA);
+}
+
+public function canManageWasherKnowledgeDocuments(): bool
+{
+    return $this->hasAnyRole(self::elevatedMaintenanceRoles())
+        && $this->canAccessModule(self::MODULE_LAVADORA);
+}
+
 public function canDeleteAnalysis(): bool
 {
     return $this->canDeleteAnalysisWithPermission(self::PERMISSION_DELETE_ANALYSIS);
