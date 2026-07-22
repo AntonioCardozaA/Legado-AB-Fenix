@@ -820,6 +820,28 @@
                 Planes de Accion
             </h1>
         </div>
+        @php
+            $reviewUser = auth()->user();
+        @endphp
+        @if($reviewUser?->canReviewWasherAiPlans() || $reviewUser?->canManageWasherKnowledgeDocuments())
+            <div class="flex flex-wrap justify-end gap-3">
+                @if($reviewUser?->canReviewWasherAiPlans())
+                    <a href="{{ route('plan-accion.ai.index') }}"
+                       class="inline-flex items-center gap-2 rounded-lg bg-amber-500 px-4 py-2 font-semibold text-white shadow-sm transition hover:bg-amber-600">
+                        <i class="fas fa-wand-magic-sparkles"></i>
+                        Revisar sugerencias IA
+                    </a>
+                @endif
+
+                @if($reviewUser?->canManageWasherKnowledgeDocuments())
+                    <a href="{{ route('lavadora.knowledge-documents.index') }}"
+                       class="inline-flex items-center gap-2 rounded-lg bg-slate-800 px-4 py-2 font-semibold text-white shadow-sm transition hover:bg-slate-900">
+                        <i class="fas fa-book-open"></i>
+                        Base de conocimiento
+                    </a>
+                @endif
+            </div>
+        @endif
     </div>
 
     {{-- Notificación lateral de fechas próximas --}}
@@ -1549,15 +1571,76 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!detalleActividad) return;
 
         const usuarioNombre = usuario => usuario && usuario.name ? usuario.name : null;
+        const formatMultiline = value => escapeHtml(value || '').replace(/\n/g, '<br>');
+        const normalizeObject = value => value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+        const humanize = value => {
+            if (value === null || value === undefined || value === '') {
+                return 'No disponible';
+            }
+
+            return String(value)
+                .replace(/_/g, ' ')
+                .replace(/\b\w/g, char => char.toUpperCase());
+        };
+        const formatCurrencyRange = estimatedCost => {
+            if (!estimatedCost || typeof estimatedCost !== 'object') {
+                return 'No disponible';
+            }
+
+            const minimum = estimatedCost.minimum;
+            const maximum = estimatedCost.maximum;
+            const rawValue = maximum ?? minimum;
+
+            if (rawValue === null || rawValue === undefined || rawValue === '') {
+                return 'No disponible';
+            }
+
+            const currency = estimatedCost.currency || 'MXN';
+            const formatAmount = value => {
+                const numericValue = Number(value);
+                if (!Number.isFinite(numericValue)) {
+                    return null;
+                }
+
+                try {
+                    return new Intl.NumberFormat('es-MX', {
+                        style: 'currency',
+                        currency,
+                        maximumFractionDigits: 2,
+                    }).format(numericValue);
+                } catch (error) {
+                    return `${currency} ${numericValue.toFixed(2)}`;
+                }
+            };
+
+            const minimumLabel = minimum !== null && minimum !== undefined && minimum !== '' ? formatAmount(minimum) : null;
+            const maximumLabel = maximum !== null && maximum !== undefined && maximum !== '' ? formatAmount(maximum) : null;
+
+            if (minimumLabel && maximumLabel) {
+                return `${minimumLabel} - ${maximumLabel}`;
+            }
+
+            return maximumLabel || minimumLabel || 'No disponible';
+        };
+
+        const structuredContent = normalizeObject(data.structured_content);
+        const approvedContent = normalizeObject(data.approved_content);
+        const generatedContent = normalizeObject(data.original_generated_content);
+        const aiContent = Object.keys(structuredContent).length
+            ? structuredContent
+            : (Object.keys(approvedContent).length ? approvedContent : generatedContent);
         const tipo = data.tipo_equipo || options.tipo || 'lavadora';
         const esPasteurizadora = tipo === 'pasteurizadora';
         const icon = esPasteurizadora ? 'fa-industry' : 'fa-clipboard-list';
-        const headerGradient = data.completado
-            ? 'linear-gradient(135deg, #065f46 0%, #059669 52%, #34d399 100%)'
-            : 'linear-gradient(135deg, #1e3a8a 0%, #2563eb 52%, #38bdf8 100%)';
+        const headerSurfaceClasses = data.completado
+            ? 'bg-white border-b border-emerald-100'
+            : 'bg-white border-b border-blue-100';
         const iconPanelClasses = data.completado
-            ? 'bg-emerald-500/15 text-emerald-50 ring-1 ring-emerald-300/25'
-            : 'bg-blue-500/15 text-blue-50 ring-1 ring-blue-300/25';
+            ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200'
+            : 'bg-blue-50 text-blue-700 ring-1 ring-blue-200';
+        const headerChipClasses = data.completado
+            ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200'
+            : 'bg-blue-50 text-blue-700 ring-1 ring-blue-200';
         const responsable = usuarioNombre(data.responsable) || 'Sin responsable';
         const registradoPor = usuarioNombre(data.registrado_por) || 'Sin dato historico';
         const ejecutadoPor = usuarioNombre(data.ejecutado_por) || (data.completado ? 'Sin dato historico' : 'Pendiente');
@@ -1570,6 +1653,20 @@ document.addEventListener('DOMContentLoaded', function() {
         const areaLabels = { mecanica: 'Mecanica', central_hidraulica: 'Hidraulica' };
         const areaLabel = areaLabels[data.area_pasteurizadora] || data.area_pasteurizadora_label || 'No especificada';
         const tipoMaquina = Array.isArray(data.tipo_maquina) ? data.tipo_maquina : [];
+        const detectedProblem = aiContent.detected_problem || data.detected_problem || null;
+        const technicalJustification = aiContent.technical_justification || data.technical_justification || null;
+        const riskIfNotExecuted = aiContent.risk_if_not_executed || data.risk_if_not_executed || null;
+        const recommendedActions = Array.isArray(aiContent.recommended_actions) ? aiContent.recommended_actions : [];
+        const reviewNotes = data.final_observations || null;
+        const maintenanceEvent = normalizeObject(data.maintenance_event);
+        const sourceUrl = data.maintenance_event_source_url || null;
+        const hasAiDetails = data.source === 'ai' || Object.keys(aiContent).length > 0;
+        const summaryItems = [
+            detectedProblem ? `Problema detectado: ${detectedProblem}` : null,
+            technicalJustification ? `Justificacion tecnica: ${technicalJustification}` : null,
+            riskIfNotExecuted ? `Riesgo si no se ejecuta: ${riskIfNotExecuted}` : null,
+            reviewNotes ? `Notas del revisor: ${reviewNotes}` : null,
+        ].filter(Boolean);
         const pcmCards = ['fecha_pcm1', 'fecha_pcm2', 'fecha_pcm3', 'fecha_pcm4']
             .map((campo, index) => {
                 const tone = pcmTone(data[campo]);
@@ -1595,22 +1692,57 @@ document.addEventListener('DOMContentLoaded', function() {
                 </span>
             `)
             .join('');
+        const recommendedActionsHtml = hasAiDetails ? `
+            <div class="rounded-xl border border-amber-200 bg-white p-4 shadow-sm">
+                <p class="text-xs font-bold uppercase tracking-wide text-amber-700">Acciones a ejecutar</p>
+                <div class="mt-3 space-y-3">
+                    ${recommendedActions.length ? recommendedActions.map((action, index) => `
+                        <div class="rounded-xl border border-amber-100 bg-amber-50/70 p-4">
+                            <p class="font-bold text-zinc-950">${escapeHtml(String(action.order || index + 1))}. ${escapeHtml(action.activity || 'Sin actividad definida')}</p>
+                            ${action.technical_detail ? `
+                                <p class="mt-2 text-sm leading-6 text-zinc-700">${escapeHtml(String(action.technical_detail))}</p>
+                            ` : ''}
+                        </div>
+                    `).join('') : `
+                        <p class="rounded-xl border border-dashed border-amber-200 bg-white px-4 py-5 text-sm text-zinc-500">
+                            No se registraron acciones en la aprobacion.
+                        </p>
+                    `}
+                </div>
+            </div>
+        ` : '';
+        const planSummaryHtml = hasAiDetails ? `
+            <div class="rounded-xl border border-amber-200 bg-white p-4 shadow-sm">
+                <p class="text-xs font-bold uppercase tracking-wide text-amber-700">Resumen del plan de accion</p>
+                <div class="mt-3 space-y-3 text-sm leading-6 text-zinc-700">
+                    ${summaryItems.length ? summaryItems.map(item => `
+                        <p class="flex gap-3">
+                            <span class="mt-1 text-amber-600">-</span>
+                            <span>${formatMultiline(item)}</span>
+                        </p>
+                    `).join('') : `
+                        <p class="rounded-xl border border-dashed border-amber-200 bg-white px-4 py-5 text-sm text-zinc-500">
+                            No hay resumen disponible para este plan.
+                        </p>
+                    `}
+                </div>
+            </div>
+        ` : '';
 
         detalleActividad.innerHTML = `
             <article class="overflow-hidden rounded-2xl border ${articleBorderClasses} bg-white shadow-xl shadow-zinc-200/70">
-                <div class="relative overflow-hidden px-5 py-5 text-white" style="background: ${headerGradient};">
-                    <div class="absolute inset-x-0 bottom-0 h-px bg-white/15"></div>
+                <div class="relative overflow-hidden px-5 py-5 ${headerSurfaceClasses}">
                     <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                         <div class="flex items-center gap-4">
                             <span class="flex h-14 w-14 items-center justify-center rounded-2xl text-2xl ${iconPanelClasses}">
                                 <i class="fas ${icon}"></i>
                             </span>
                             <div>
-                                <div class="mb-1 flex flex-wrap items-center gap-2 text-xs font-bold text-white/85">
-                                    <span class="rounded-full bg-white/15 px-3 py-1">Plan #${escapeHtml(data.id || '')}</span>
-                                    <span class="rounded-full bg-white/15 px-3 py-1">${escapeHtml(data.linea ? data.linea.nombre : 'Sin linea')}</span>
+                                <div class="mb-1 flex flex-wrap items-center gap-2 text-xs font-bold">
+                                    <span class="rounded-full px-3 py-1 ${headerChipClasses}">Plan #${escapeHtml(data.id || '')}</span>
+                                    <span class="rounded-full px-3 py-1 ${headerChipClasses}">${escapeHtml(data.linea ? data.linea.nombre : 'Sin linea')}</span>
                                 </div>
-                                <h4 class="text-xl font-black leading-tight">${escapeHtml(data.actividad || 'Actividad sin nombre')}</h4>
+                                <h4 class="text-xl font-black leading-tight text-zinc-950">${escapeHtml(data.actividad || 'Actividad sin nombre')}</h4>
                             </div>
                         </div>
                         <span class="inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-bold ${estadoClasses}">
@@ -1638,6 +1770,29 @@ document.addEventListener('DOMContentLoaded', function() {
                         </div>
                     </div>
 
+                    ${hasAiDetails ? `
+                        <section class="space-y-4 rounded-2xl border border-amber-200 bg-amber-50/80 p-4 shadow-sm">
+                            <div>
+                                <p class="text-xs font-bold uppercase tracking-wide text-amber-700">Plan aprobado</p>
+                                <p class="mt-1 text-sm text-amber-900">Se muestra solo el resumen operativo con los puntos importantes del plan.</p>
+                            </div>
+                            ${planSummaryHtml}
+                            <div class="grid gap-4 xl:grid-cols-2">
+                                ${recommendedActionsHtml}
+                                ${sourceUrl ? `
+                                    <div class="rounded-xl border border-amber-200 bg-white p-4 shadow-sm">
+                                        <p class="text-xs font-bold uppercase tracking-wide text-amber-700">Referencia del hallazgo</p>
+                                        <a href="${escapeHtml(sourceUrl)}"
+                                           class="mt-3 inline-flex items-center gap-2 rounded-xl border border-amber-300 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-900 transition hover:bg-amber-100">
+                                            <i class="fas fa-arrow-up-right-from-square"></i>
+                                            Abrir registro original
+                                        </a>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        </section>
+                    ` : ''}
+
                     ${pcmCards ? `<div class="grid gap-3 md:grid-cols-2">${pcmCards}</div>` : ''}
 
                     ${esPasteurizadora ? `
@@ -1654,12 +1809,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         </div>
                     ` : ''}
 
-                    ${data.observaciones ? `
-                        <div class="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
-                            <p class="text-xs font-bold uppercase tracking-wide text-zinc-500">Observaciones</p>
-                            <p class="mt-2 text-sm leading-6 text-zinc-700">${escapeHtml(data.observaciones)}</p>
-                        </div>
-                    ` : ''}
                 </div>
             </article>
         `;
@@ -1738,15 +1887,6 @@ document.addEventListener('DOMContentLoaded', function() {
                             `;
                         }
                     });
-                    
-                    if (data.observaciones) {
-                        html += `
-                            <div class="bg-gray-50 p-4 rounded-xl">
-                                <label class="text-xs text-gray-500 uppercase font-semibold">Observaciones</label>
-                                <p class="text-gray-700 mt-1">${data.observaciones}</p>
-                            </div>
-                        `;
-                    }
                     
                     if (data.completado) {
                         html += `

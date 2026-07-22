@@ -19,9 +19,11 @@ use App\Exports\AnalisisComponentesExport;
 use App\Exports\AnalisisLavadoraExport;
 use App\Services\AnalysisDeletionLogger;
 use App\Services\LavadoraCostSyncService;
+use App\Services\Maintenance\WasherMaintenanceOrchestrator;
 use Maatwebsite\Excel\Facades\Excel;
 use Barryvdh\DomPDF\Facade\Pdf;
 use App\Services\WhatsAppService;
+use Throwable;
 
 class AnalisisLavadoraController extends Controller
 {
@@ -856,13 +858,22 @@ $componente = Componente::firstOrCreate(
         ]);
     }
 
-    app(LavadoraCostSyncService::class)->syncForAnalysis($analisis->fresh(['linea', 'componente']));
+    $analisis = $analisis->fresh(['linea', 'componente', 'costEntries']);
+
+    app(LavadoraCostSyncService::class)->syncForAnalysis($analisis);
+    $mensajeIa = $this->procesarMantenimientoAutomaticoSafely(
+        $analisis->fresh(['linea', 'componente', 'costEntries'])
+    );
 
     /**
      * ==================
      * 6️⃣ REDIRECCIÓN 
      * ==================
      */
+    if ($mensajeIa) {
+        session()->flash('warning', $mensajeIa);
+    }
+
     if ($request->filled('redirect_to')) {
         return redirect($request->redirect_to)
             ->with('success', 'Análisis rápido registrado correctamente.');
@@ -1034,11 +1045,20 @@ public function update(Request $request, $id)
         }
     });
 
-    app(LavadoraCostSyncService::class)->syncForAnalysis($analisis->fresh(['linea', 'componente']));
+    $analisis = $analisis->fresh(['linea', 'componente', 'costEntries']);
+
+    app(LavadoraCostSyncService::class)->syncForAnalysis($analisis);
+    $mensajeIa = $this->procesarMantenimientoAutomaticoSafely(
+        $analisis->fresh(['linea', 'componente', 'costEntries'])
+    );
 
     /* =====================================================
      | REDIRECCIÓN - CORREGIDA
      ===================================================== */
+    if ($mensajeIa) {
+        session()->flash('warning', $mensajeIa);
+    }
+
     $redirectUrl = $request->input('redirect_to') ?? route('analisis-lavadora.index');
     
     return redirect($redirectUrl)
@@ -1082,6 +1102,24 @@ public function updateCorrectionStatus(Request $request, AnalisisLavadora $anali
 private function puedeEditarFechaAnalisis(?User $user): bool
 {
     return $user?->canEditAnalysisDate() ?? false;
+}
+
+private function procesarMantenimientoAutomaticoSafely(AnalisisLavadora $analisis): ?string
+{
+    try {
+        app(WasherMaintenanceOrchestrator::class)->processAnalysis($analisis);
+
+        return null;
+    } catch (Throwable $exception) {
+        Log::warning('El analisis de lavadora se guardo, pero fallo la automatizacion de mantenimiento.', [
+            'analisis_id' => $analisis->id,
+            'linea_id' => $analisis->linea_id,
+            'componente_id' => $analisis->componente_id,
+            'error' => $exception->getMessage(),
+        ]);
+
+        return 'La sugerencia IA no pudo generarse en este momento; revisa la configuracion SSL/API.';
+    }
 }
 
     /**

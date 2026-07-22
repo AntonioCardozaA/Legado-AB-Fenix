@@ -4701,6 +4701,7 @@
                 cutout: '68%',
                 plugins: {
                     legend: { display: false },
+                    datalabels: { display: false },
                     tooltip: {
                         backgroundColor: 'rgba(15, 23, 42, 0.96)',
                         titleColor: '#fff',
@@ -5246,6 +5247,7 @@
                 maintainAspectRatio: false,
                 plugins: {
                     legend: { display: false },
+                    datalabels: { display: false },
                     tooltip: {
                         backgroundColor: 'rgba(15, 23, 42, 0.96)',
                         titleColor: '#fff',
@@ -6912,6 +6914,7 @@ window.addEventListener('load', function () {
             maintainAspectRatio: false,
             plugins: {
                 legend: { display: false },
+                datalabels: { display: false },
                 tooltip: {
                     callbacks: {
                         label: (context) => new Intl.NumberFormat('es-MX', {

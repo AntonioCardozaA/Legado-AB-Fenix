@@ -1,5 +1,29 @@
 @extends('layouts.app')
 
+@php
+    $structuredContent = $structuredContent ?? $plan->currentStructuredContent() ?? [];
+    $recommendedActions = collect(data_get($structuredContent, 'recommended_actions', []))
+        ->filter(fn ($action) => is_array($action))
+        ->values();
+    $detectedProblem = data_get($structuredContent, 'detected_problem', $plan->detected_problem);
+    $technicalJustification = data_get($structuredContent, 'technical_justification', $plan->technical_justification);
+    $riskIfNotExecuted = data_get($structuredContent, 'risk_if_not_executed', $plan->risk_if_not_executed);
+    $reviewNotes = $plan->final_observations;
+    $planSummaryItems = array_filter([
+        filled($detectedProblem) ? 'Problema detectado: ' . $detectedProblem : null,
+        filled($technicalJustification) ? 'Justificacion tecnica: ' . $technicalJustification : null,
+        filled($riskIfNotExecuted) ? 'Riesgo si no se ejecuta: ' . $riskIfNotExecuted : null,
+        filled($reviewNotes) ? 'Notas del revisor: ' . $reviewNotes : null,
+    ]);
+    $hasAiReviewDetails = $plan->isAiSuggested() && (
+        filled($detectedProblem) ||
+        filled($technicalJustification) ||
+        filled($riskIfNotExecuted) ||
+        filled($reviewNotes) ||
+        $recommendedActions->isNotEmpty()
+    );
+@endphp
+
 @section('content')
 <div class="container-fluid px-4 py-4">
     <div class="row">
@@ -143,6 +167,61 @@
                             @enderror
                             <div id="actividad_counter" class="text-right text-xs text-gray-500 mt-1"></div>
                         </div>
+
+                        @if($hasAiReviewDetails)
+                            <div class="mb-6 rounded-2xl border border-amber-200 bg-amber-50/80 p-5 shadow-sm">
+                                <div>
+                                    <h4 class="text-base font-semibold text-amber-950 flex items-center gap-2">
+                                        <i class="fas fa-list-check text-amber-600"></i>
+                                        Resumen del plan de accion
+                                    </h4>
+                                    <p class="mt-1 text-sm text-amber-800">
+                                        Vista resumida con los puntos importantes del plan aprobado.
+                                    </p>
+                                </div>
+
+                                <div class="mt-4 rounded-xl border border-amber-200 bg-white p-4 shadow-sm">
+                                    <div class="space-y-3 text-sm leading-6 text-gray-700">
+                                        @foreach($planSummaryItems as $item)
+                                            <p class="flex gap-3">
+                                                <span class="mt-1 text-amber-600">-</span>
+                                                <span>{{ $item }}</span>
+                                            </p>
+                                        @endforeach
+                                    </div>
+                                </div>
+
+                                <div class="mt-4 rounded-xl border border-amber-200 bg-white p-4 shadow-sm">
+                                    <p class="text-xs font-bold uppercase tracking-wide text-amber-700">Acciones a ejecutar</p>
+                                    <div class="mt-3 space-y-3">
+                                        @forelse($recommendedActions as $action)
+                                            <div class="rounded-xl border border-amber-100 bg-amber-50/60 p-4">
+                                                <p class="font-semibold text-gray-900">
+                                                    {{ data_get($action, 'order', $loop->iteration) }}. {{ data_get($action, 'activity', 'Sin actividad definida') }}
+                                                </p>
+                                                @if(filled(data_get($action, 'technical_detail')))
+                                                    <p class="mt-2 text-sm leading-6 text-gray-700">{{ data_get($action, 'technical_detail') }}</p>
+                                                @endif
+                                            </div>
+                                        @empty
+                                            <p class="rounded-xl border border-dashed border-amber-200 bg-white px-4 py-5 text-sm text-gray-500">
+                                                No se registraron acciones en la aprobacion.
+                                            </p>
+                                        @endforelse
+                                    </div>
+                                </div>
+
+                                @if($plan->maintenanceEvent?->sourceUrl())
+                                    <div class="mt-4">
+                                        <a href="{{ $plan->maintenanceEvent->sourceUrl() }}"
+                                           class="inline-flex items-center gap-2 rounded-xl border border-amber-300 bg-white px-4 py-2 text-sm font-semibold text-amber-900 transition hover:bg-amber-100">
+                                            <i class="fas fa-arrow-up-right-from-square"></i>
+                                            Abrir registro original del hallazgo
+                                        </a>
+                                    </div>
+                                @endif
+                            </div>
+                        @endif
 
                         {{-- Fechas PCM --}}
                         <div class="mb-6">

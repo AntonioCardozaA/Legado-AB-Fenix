@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Support\HodometroHoras;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class CadenaCiclo extends Model
 {
@@ -45,6 +46,11 @@ class CadenaCiclo extends Model
     public function elongaciones()
     {
         return $this->hasMany(Elongacion::class, 'cadena_ciclo_id');
+    }
+
+    public function costEntries(): HasMany
+    {
+        return $this->hasMany(LavadoraCostEntry::class, 'cadena_ciclo_id');
     }
 
     public function scopeActivos($query)

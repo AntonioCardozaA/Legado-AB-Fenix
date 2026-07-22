@@ -40,6 +40,7 @@
         </div>
     </div>
 
+
     @if($ultimaMedicion)
         <div class="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-xl text-sm text-blue-900">
             Última medición: {{ $ultimaMedicion->created_at->format('d/m/Y H:i') }} · Hodómetro {{ $ultimaMedicion->hodometro_formateado ?? 'sin dato' }} · Horas del ciclo {{ $ultimaMedicion->hodometro_ciclo_formateado ?? 'sin dato' }}
@@ -84,8 +85,6 @@
                             <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{{ $elongacion->created_at->format('d/m/Y H:i') }}</td>
                             <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{{ $elongacion->hodometro_formateado ?? '-' }}</td>
                             <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{{ $elongacion->hodometro_ciclo_formateado ?? '-' }}</td>
-                            
-                            <!-- Barra de progreso para Bombas -->
                             <td class="px-4 py-3">
                                 <div class="flex flex-col gap-1 min-w-[110px]">
                                     <div class="flex items-center justify-between">
@@ -94,16 +93,13 @@
                                         </span>
                                     </div>
                                     <div class="w-full bg-gray-200 rounded-full h-2">
-                                        <div class="h-2 rounded-full transition-all duration-500 {{ $bombasCambio ? 'bg-red-500' : ($bombasCompra ? 'bg-yellow-500' : 'bg-green-500') }}" 
-                                             style="width: {{ $bombasBarraWidth }}%">
-                                        </div>
+                                        <div class="h-2 rounded-full transition-all duration-500 {{ $bombasCambio ? 'bg-red-500' : ($bombasCompra ? 'bg-yellow-500' : 'bg-green-500') }}"
+                                             style="width: {{ $bombasBarraWidth }}%"></div>
                                     </div>
                                     <div class="text-[11px] text-gray-500 leading-tight">Base: +{{ number_format($elongacion->bombas_incremento_base_mm, 2) }} mm</div>
                                     <div class="text-[11px] leading-tight {{ $bombasVariacionColor }}">Rev.: {{ $bombasVariacionTexto }}</div>
                                 </div>
                             </td>
-                            
-                            <!-- Barra de progreso para Vapor -->
                             <td class="px-4 py-3">
                                 <div class="flex flex-col gap-1 min-w-[110px]">
                                     <div class="flex items-center justify-between">
@@ -112,15 +108,13 @@
                                         </span>
                                     </div>
                                     <div class="w-full bg-gray-200 rounded-full h-2">
-                                        <div class="h-2 rounded-full transition-all duration-500 {{ $vaporCambio ? 'bg-red-500' : ($vaporCompra ? 'bg-yellow-500' : 'bg-green-500') }}" 
-                                             style="width: {{ $vaporBarraWidth }}%">
-                                        </div>
+                                        <div class="h-2 rounded-full transition-all duration-500 {{ $vaporCambio ? 'bg-red-500' : ($vaporCompra ? 'bg-yellow-500' : 'bg-green-500') }}"
+                                             style="width: {{ $vaporBarraWidth }}%"></div>
                                     </div>
                                     <div class="text-[11px] text-gray-500 leading-tight">Base: +{{ number_format($elongacion->vapor_incremento_base_mm, 2) }} mm</div>
                                     <div class="text-[11px] leading-tight {{ $vaporVariacionColor }}">Rev.: {{ $vaporVariacionTexto }}</div>
                                 </div>
                             </td>
-                            
                             <td class="px-4 py-3 whitespace-nowrap">
                                 @if($estadoColor === 'red')
                                     <span class="px-2 py-1 rounded-full text-xs font-bold bg-red-100 text-red-800">{{ $estadoTexto }}</span>
@@ -144,3 +138,4 @@
     </div>
 </div>
 @endsection
+

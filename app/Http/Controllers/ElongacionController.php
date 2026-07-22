@@ -5,17 +5,22 @@ namespace App\Http\Controllers;
 use App\Models\CadenaCiclo;
 use App\Models\Elongacion;
 use App\Models\Linea;
+use App\Services\ElongacionChainCostService;
 use App\Services\ElongacionStatusNotificationService;
+use App\Services\Maintenance\WasherMaintenanceOrchestrator;
 use App\Services\WhatsAppService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Throwable;
 
 class ElongacionController extends Controller
 {
     const LIMITE_COMPRA = 1.3;
     const LIMITE_CAMBIO = 1.46;
+    private const FORM_TOKEN_SESSION_KEY = 'elongaciones.create.form_token';
 
     public function __construct(
         private readonly ElongacionStatusNotificationService $elongacionStatusNotificationService
@@ -97,6 +102,8 @@ class ElongacionController extends Controller
     {
         $lineaSeleccionada = $request->get('linea', 'L-04');
         $lineas = array_keys(Elongacion::PASOS_INICIALES);
+        $formToken = (string) Str::uuid();
+        $request->session()->put(self::FORM_TOKEN_SESSION_KEY, $formToken);
 
         $ultimasLecturasPorLinea = Elongacion::with('cadenaCiclo')
             ->whereIn('id', Elongacion::selectRaw('MAX(id) as id')->groupBy('linea'))
@@ -116,14 +123,16 @@ class ElongacionController extends Controller
             'pasosIniciales' => Elongacion::PASOS_INICIALES,
             'ciclosActivosPorLinea' => $ciclosActivosPorLinea,
             'cicloActivo' => $ciclosActivosPorLinea->get($lineaSeleccionada),
+            'formToken' => $formToken,
         ]);
     }
 
-    public function store(Request $request)
+    public function store(Request $request, ElongacionChainCostService $chainCostService)
     {
         try {
             $request->validate([
                 'linea' => 'required|in:' . implode(',', array_keys(Elongacion::PASOS_INICIALES)),
+                'form_token' => 'required|string',
                 'cadena_ciclo_id' => 'nullable|integer|exists:cadena_ciclos,id',
                 'nueva_cadena' => 'nullable|boolean',
                 'proveedor' => 'nullable|string|max:255',
@@ -155,7 +164,9 @@ class ElongacionController extends Controller
                 'juego_rodaja_vapor' => 'nullable|numeric|min:0',
             ]);
 
-            $elongacion = DB::transaction(function () use ($request) {
+            $this->consumeFormToken($request);
+
+            $resultado = DB::transaction(function () use ($request, $chainCostService) {
                 $linea = Linea::where('nombre', $request->linea)->first();
                 $pasoInicial = Elongacion::getPasoInicial($request->linea);
                 $ciclo = $this->resolverCicloParaRegistro($request, $linea, $pasoInicial);
@@ -201,14 +212,24 @@ class ElongacionController extends Controller
 
                 $elongacion = Elongacion::create($data);
 
+                if ($request->boolean('nueva_cadena')) {
+                    $chainCostService->syncInstallationCosts($elongacion);
+                }
+
                 $this->enviarNotificacionWhatsApp($request, $bombasPorcentaje, $vaporPorcentaje, $ciclo);
 
                 return $elongacion;
             });
 
+            /** @var Elongacion $elongacion */
+            $elongacion = $resultado;
+
             $mensaje = 'Registro guardado exitosamente';
 
             $this->elongacionStatusNotificationService->notifyForRecord($elongacion);
+            $mensajeIa = $this->procesarMantenimientoAutomaticoSafely(
+                $elongacion->fresh(['lineaModel', 'cadenaCiclo'])
+            );
 
             if ($request->boolean('nueva_cadena')) {
                 $mensaje = 'Nueva cadena registrada y medicion guardada exitosamente';
@@ -218,6 +239,10 @@ class ElongacionController extends Controller
                 $mensaje .= ' - CAMBIO REQUERIDO';
             } elseif ($elongacion->requiere_compra) {
                 $mensaje .= ' - considerar compra de cadena';
+            }
+
+            if ($mensajeIa) {
+                session()->flash('warning', $mensajeIa);
             }
 
             return redirect()->route('elongaciones.index', ['linea' => $request->linea])
@@ -444,6 +469,20 @@ class ElongacionController extends Controller
         ]);
     }
 
+    private function consumeFormToken(Request $request): void
+    {
+        $submittedToken = (string) $request->input('form_token');
+        $sessionToken = (string) $request->session()->get(self::FORM_TOKEN_SESSION_KEY);
+
+        if ($submittedToken === '' || $sessionToken === '' || !hash_equals($sessionToken, $submittedToken)) {
+            throw ValidationException::withMessages([
+                'form_token' => 'Este formulario ya fue procesado o expiro. Recarga la pagina e intenta nuevamente.',
+            ]);
+        }
+
+        $request->session()->forget(self::FORM_TOKEN_SESSION_KEY);
+    }
+
     private function resolverEstadoDetallado(float $bombasPorcentaje, float $vaporPorcentaje): string
     {
         $maximo = max($bombasPorcentaje, $vaporPorcentaje);
@@ -577,6 +616,23 @@ class ElongacionController extends Controller
             } catch (\Exception $e) {
                 Log::error('Error WhatsApp elongacion: ' . $e->getMessage());
             }
+        }
+    }
+
+    private function procesarMantenimientoAutomaticoSafely(Elongacion $elongacion): ?string
+    {
+        try {
+            app(WasherMaintenanceOrchestrator::class)->processElongacion($elongacion);
+
+            return null;
+        } catch (Throwable $exception) {
+            Log::warning('La elongacion se guardo, pero fallo la automatizacion de mantenimiento.', [
+                'elongacion_id' => $elongacion->id,
+                'linea_id' => $elongacion->linea,
+                'error' => $exception->getMessage(),
+            ]);
+
+            return 'La sugerencia IA no pudo generarse en este momento; revisa la configuracion SSL/API.';
         }
     }
 }

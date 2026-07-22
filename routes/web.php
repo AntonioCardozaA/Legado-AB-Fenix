@@ -23,6 +23,9 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\AdminUserController;
 use App\Http\Controllers\LavadoraCostController;
 use App\Http\Controllers\ControlGastosController;
+use App\Http\Controllers\AssistantChatController;
+use App\Http\Controllers\WasherAiPlanReviewController;
+use App\Http\Controllers\WasherKnowledgeDocumentController;
 
 /*
 |--------------------------------------------------------------------------
@@ -41,6 +44,16 @@ Route::get('/', function () {
 Route::get('/diagramas-animados', function () {
     return view('diagram-test');
 })->name('diagramas.animados');
+
+Route::middleware(['auth'])
+    ->prefix('asistente/chat')
+    ->name('assistant-chat.')
+    ->controller(AssistantChatController::class)
+    ->group(function () {
+        Route::get('/', 'index')->name('index');
+        Route::post('/', 'store')->name('store');
+        Route::delete('/', 'destroy')->name('destroy');
+    });
 
 Route::prefix('lavadoras/diagramas')->name('lavadoras.diagramas.')->group(function () {
     Route::redirect('/', '/lavadoras/diagramas/l05-l12-l13')->name('index');
@@ -558,6 +571,27 @@ Route::prefix('pasteurizadora')->group(function () {
         ->name('plan-accion.checklist');
 
     Route::resource('plan-accion', PlanAccionController::class);
+
+    Route::prefix('plan-accion/ai/lavadora')
+        ->name('plan-accion.ai.')
+        ->controller(WasherAiPlanReviewController::class)
+        ->group(function () {
+            Route::get('/', 'index')->name('index');
+            Route::get('/{planAccion}', 'show')->name('review');
+            Route::post('/{planAccion}/approve', 'approve')->name('approve');
+            Route::post('/{planAccion}/reject', 'reject')->name('reject');
+            Route::post('/{planAccion}/request-information', 'requestInformation')->name('request-information');
+        });
+
+    Route::prefix('lavadora/documentos-conocimiento')
+        ->name('lavadora.knowledge-documents.')
+        ->controller(WasherKnowledgeDocumentController::class)
+        ->group(function () {
+            Route::get('/', 'index')->name('index');
+            Route::get('/crear', 'create')->name('create');
+            Route::post('/', 'store')->name('store');
+            Route::post('/{document}/reindex', 'reindex')->name('reindex');
+        });
 
     /*
     |--------------------------------------------------------------------------
