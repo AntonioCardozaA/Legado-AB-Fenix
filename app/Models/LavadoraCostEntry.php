@@ -12,11 +12,7 @@ class LavadoraCostEntry extends Model
     use HasFactory;
 
     public const SOURCE_MANUAL = 'manual';
-<<<<<<< HEAD
     public const SOURCE_CHAIN_INSTALLATION = 'instalacion_cadena';
-=======
-    public const SOURCE_DAMAGE_CLOSURE = 'cierre_dano';
->>>>>>> fde0a3fde9e8c02955fd24457d21e4eaf289e991
 
     protected $table = 'lavadora_cost_entries';
 
@@ -95,11 +91,7 @@ class LavadoraCostEntry extends Model
     {
         return match ($sourceType) {
             self::SOURCE_MANUAL => 'Manual',
-<<<<<<< HEAD
             self::SOURCE_CHAIN_INSTALLATION => 'Instalacion de cadena',
-=======
-            self::SOURCE_DAMAGE_CLOSURE => 'Cierre de dano',
->>>>>>> fde0a3fde9e8c02955fd24457d21e4eaf289e991
             CostAutomationRule::TRIGGER_ESTADO_CAMBIADO => 'Cambio completo',
             CostAutomationRule::TRIGGER_ACTIVIDAD_KEYWORD => 'Actividad',
             default => Str::headline(str_replace('_', ' ', (string) $sourceType)),
