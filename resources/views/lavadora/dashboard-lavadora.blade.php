@@ -72,7 +72,7 @@
                         <div class="relative mb-6">
                             <div class="absolute inset-0 rounded-full blur-lg opacity-50 group-hover:opacity-75 transition-opacity" style="background-color: rgba(31, 35, 72, 0.5);"></div>
                             <div class="relative text-white p-5 rounded-2xl shadow-lg group-hover:scale-110 transition-transform duration-300 group-hover:rotate-3" style="background: linear-gradient(135deg, rgb(31, 35, 72), rgb(51, 55, 92));">
-                                <i class="fas fa-chart-pie text-2xl sm:text-3xl"></i>
+                                <i class="fas fa-search text-2xl sm:text-3xl"></i>
                             </div>
                         </div>
                         
@@ -206,7 +206,7 @@
                         <div class="relative mb-6">
                             <div class="absolute inset-0 rounded-full blur-lg opacity-50 group-hover:opacity-75 transition-opacity" style="background-color: rgba(31, 35, 72, 0.5);"></div>
                             <div class="relative text-white p-5 rounded-2xl shadow-lg group-hover:scale-110 transition-transform duration-300 group-hover:rotate-3" style="background: linear-gradient(135deg, rgb(31, 35, 72), rgb(51, 55, 92));">
-                                <i class="fas fa-search text-xl"></i>
+                                <i class="fas fa-chart-bar text-2xl sm:text-3xl"></i>
                             </div>
                         </div>
                         

@@ -6,54 +6,24 @@
 @php
     $analisisRoutePrefix = $analisisRoutePrefix ?? 'pasteurizadora.analisis-pasteurizadora';
     $analisisRoute = fn ($name, $params = []) => route($analisisRoutePrefix . '.' . $name, $params);
+    $todasLasPasteurizadoras = collect(\App\Models\AnalisisPasteurizadora::getPasteurizadoresConfiguracion())
+        ->map(function ($config, $nombre) {
+            return [
+                'nombre' => $nombre,
+                'modulos' => $config['modulos'],
+                'tipo' => $config['tipo'],
+                'reglillas' => \App\Models\AnalisisPasteurizadora::getCantidadReglillasPorLinea($nombre),
+            ];
+        })
+        ->values();
+    $lineasDisponibles = collect($lineas)->keyBy('nombre');
 @endphp
-<style>
-    .pasteur-select {
-        --primary-blue: #2563eb;
-        --border: #e5e7eb;
-        --soft-shadow: 0 1px 2px rgba(15, 23, 42, .05);
-    }
 
-    .pasteur-select-header {
-        background: #ffffff;
-        border: 1px solid var(--border);
-        border-radius: 12px;
-        box-shadow: var(--soft-shadow);
-        padding: 20px 24px;
-    }
-
-    .pasteur-select-card {
-        background: #ffffff;
-        border: 1px solid var(--border);
-        border-radius: 12px;
-        box-shadow: var(--soft-shadow);
-        padding: 18px;
-        transition: border-color .2s ease, box-shadow .2s ease, transform .2s ease;
-    }
-
-    .pasteur-select-card:hover {
-        border-color: var(--primary-blue);
-        box-shadow: 0 10px 15px -3px rgba(15, 23, 42, .08);
-        transform: translateY(-2px);
-    }
-
-    .pasteur-select-icon {
-        background: #eff6ff;
-        border: 1px solid #bfdbfe;
-        border-radius: 8px;
-        height: 58px;
-        padding: 8px;
-        width: 58px;
-    }
-</style>
-
-<div class="pasteur-select max-w-7xl mx-auto px-4">
-
-    {{-- Encabezado con boton de volver --}}
-    <div class="pasteur-select-header mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div class="flex flex-col gap-4 sm:flex-row sm:items-center">
+<div class="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
+    <div class="mb-10 flex min-w-0 flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div class="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
             <a href="{{ $analisisRoute('index') }}"
-               class="responsive-action responsive-action--secondary group">
+               class="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-gray-100 px-4 py-2 text-gray-600 transition-all duration-300 hover:bg-gray-200 hover:text-gray-900 sm:w-auto group">
                 <svg class="w-5 h-5 group-hover:-translate-x-1 transition-transform"
                      fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -62,28 +32,12 @@
                 <span class="font-medium">Volver al Inicio</span>
             </a>
 
-            <h1 class="text-3xl font-bold text-gray-800">
+            <h1 class="min-w-0 break-words text-2xl font-bold text-gray-800 sm:text-3xl">
                 Seleccionar Pasteurizadora
             </h1>
         </div>
     </div>
 
-    @php
-        $todasLasPasteurizadoras = collect(\App\Models\AnalisisPasteurizadora::getPasteurizadoresConfiguracion())
-            ->map(function ($config, $nombre) {
-                return [
-                    'nombre' => $nombre,
-                    'modulos' => $config['modulos'],
-                    'tipo' => $config['tipo'],
-                    'reglillas' => \App\Models\AnalisisPasteurizadora::getCantidadReglillasPorLinea($nombre),
-                ];
-            })
-            ->values();
-
-        $lineasDisponibles = collect($lineas)->keyBy('nombre');
-    @endphp
-
-    {{-- Grid con el mismo estilo de lavadora --}}
     <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
         @foreach($todasLasPasteurizadoras as $config)
             @php
@@ -92,20 +46,21 @@
 
             @if($linea)
                 <a href="{{ $analisisRoute('create', $linea->id) }}"
-                   class="group">
-                    <div class="pasteur-select-card">
+                   class="group min-w-0">
+                    <div class="bg-white rounded-xl border border-gray-100 p-6 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
                         <div class="flex flex-col items-center text-center">
-                            <div class="pasteur-select-icon mb-4 flex items-center justify-center">
+                            <div class="mb-4 flex h-24 w-24 items-center justify-center sm:h-28 sm:w-28 lg:h-32 lg:w-32">
                                 <img src="{{ asset('images/icono_pas.png') }}"
-                                     alt="Icono de Pasteurizadora"
-                                     class="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300">
+                                     alt="Pasteurizadora"
+                                     class="h-full w-full object-contain transition-transform duration-300 group-hover:scale-105"
+                                     onerror="this.src='{{ asset('images/icono-pasteurizadora.png') }}'">
                             </div>
 
-                            <h3 class="text-lg font-semibold text-gray-800 mb-1">
+                            <h3 class="break-words text-lg font-semibold text-gray-800 mb-1">
                                 {{ $linea->nombre }}
                             </h3>
 
-                            <p class="text-sm text-gray-500 mb-4 line-clamp-2">
+                            <p class="break-words text-sm text-gray-500 mb-4 line-clamp-2">
                                 {{ $config['modulos'] }} modulos | Tipo {{ $config['tipo'] }}
                                 @if($config['reglillas'] > 0)
                                     | {{ $config['reglillas'] }} camas
@@ -126,11 +81,9 @@
         @endforeach
     </div>
 
-    {{-- Estado vacio --}}
     @if($lineasDisponibles->isEmpty())
         <div class="text-center py-16">
-            <div class="mx-auto w-16 h-16 flex items-center justify-center
-                        rounded-full bg-gray-100 mb-4">
+            <div class="mx-auto w-16 h-16 flex items-center justify-center rounded-full bg-gray-100 mb-4">
                 <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                           d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.998-.833-2.732 0L4.406 16.5c-.77.833.192 2.5 1.732 2.5z"/>
@@ -145,7 +98,7 @@
             </p>
 
             <a href="{{ url('/') }}"
-               class="responsive-action mt-6">
+               class="inline-flex items-center gap-2 mt-6 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                           d="M10 19l-7-7m0 0l7-7m-7 7h18"/>

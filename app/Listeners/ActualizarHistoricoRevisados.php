@@ -20,7 +20,8 @@ class ActualizarHistoricoRevisados implements ShouldQueue
         // Actualizar el histórico de revisados
         HistoricoRevisados::actualizarDesdePasteurizadora(
             $analisis->linea,
-            $analisis->componente
+            $analisis->componente,
+            $analisis->area
         );
     }
 }

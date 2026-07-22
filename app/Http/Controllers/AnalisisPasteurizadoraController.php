@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\AnalisisPasteurizadora;
+use App\Models\HistoricoRevisados;
 use App\Models\Linea;
 use App\Exports\AnalisisPasteurizadoraExport;
 use App\Services\AnalysisDeletionLogger;
@@ -328,9 +329,9 @@ class AnalisisPasteurizadoraController extends Controller
         return 'danger';
     }
 
-    // ============================================================
+    // ====================
     // INDEX
-    // ============================================================
+    // ====================
 
     public function index(Request $request)
     {
@@ -474,11 +475,15 @@ class AnalisisPasteurizadoraController extends Controller
                     $componentes = [];
                 }
 
+                $fechas = $this->modalDateLabels($item);
+
                 return [
                     'id' => $item->id,
                     'tipo_registro' => $item->tipo_registro,
                     'tipo_registro_label' => $item->tipo_registro_label,
-                    'fecha' => $item->fecha_analisis ? $item->fecha_analisis->format('d/m/Y') : $item->created_at?->format('d/m/Y'),
+                    'fecha' => $fechas['fecha_analisis'],
+                    'fecha_inicio' => $fechas['fecha_inicio'],
+                    'fecha_fin' => $fechas['fecha_fin'],
                     'hora' => $item->created_at?->format('H:i'),
                     'orden' => $item->numero_orden,
                     'estado' => $item->estado,
@@ -495,6 +500,7 @@ class AnalisisPasteurizadoraController extends Controller
             ->values();
 
         $canDeleteAnalysis = auth()->user()?->canDeletePasteurizadoraAnalysis() ?? false;
+        $fechas = $this->modalDateLabels($registro);
 
         return [
             'id' => $registro->id,
@@ -505,7 +511,9 @@ class AnalisisPasteurizadoraController extends Controller
             'componente' => $registro->componente_nombre ?? $registro->componente,
             'lado' => $registro->lado,
             'nivel' => $registro->nivel,
-            'fecha_analisis' => $registro->fecha_analisis ? $registro->fecha_analisis->format('d/m/Y') : $registro->created_at?->format('d/m/Y'),
+            'fecha_analisis' => $fechas['fecha_analisis'],
+            'fecha_inicio' => $fechas['fecha_inicio'],
+            'fecha_fin' => $fechas['fecha_fin'],
             'numero_orden' => $registro->numero_orden,
             'estado' => $registro->estado,
             'usuario_nombre' => $registro->usuario?->name ?? $registro->responsable ?? 'Usuario no registrado',
@@ -526,6 +534,19 @@ class AnalisisPasteurizadoraController extends Controller
                 'modulo' => $registro->modulo,
                 'componente' => $registro->componente,
             ], false),
+        ];
+    }
+
+    private function modalDateLabels(AnalisisPasteurizadora $registro): array
+    {
+        $fechaAnalisis = $registro->fecha_analisis ?? $registro->created_at;
+        $fechaInicio = $registro->fecha_inicio ?? $fechaAnalisis;
+        $fechaFin = $registro->fecha_fin ?? $fechaAnalisis;
+
+        return [
+            'fecha_analisis' => $fechaAnalisis?->format('d/m/Y'),
+            'fecha_inicio' => $fechaInicio?->format('d/m/Y'),
+            'fecha_fin' => $fechaFin?->format('d/m/Y'),
         ];
     }
 
@@ -578,13 +599,19 @@ class AnalisisPasteurizadoraController extends Controller
     {
         $esQuick = $request->boolean('es_quick');
 
+        if ($esQuick) {
+            $this->normalizarRangoFechasQuick($request);
+        }
+
         $validated = $request->validate([
             'linea_id' => 'required|exists:lineas,id',
             'modulo' => ['required', 'integer', $this->positiveIntegerRule('El modulo debe ser un numero entero mayor a 0.')],
             'nivel' => 'required|in:SUPERIOR,INFERIOR',
             'componente' => 'required|string',
             'lado' => 'required|in:VAPOR,PASILLO',
-            'fecha_analisis' => 'required|date',
+            'fecha_inicio' => [$esQuick ? 'required' : 'nullable', 'date'],
+            'fecha_fin' => [$esQuick ? 'required' : 'nullable', 'date', 'after_or_equal:fecha_inicio'],
+            'fecha_analisis' => [$esQuick ? 'nullable' : 'required', 'date'],
             'numero_orden' => ['nullable', 'regex:/^\d+$/', $this->maxStringLengthRule(50, 'El numero de orden no puede tener mas de 50 digitos.')],
             'estado' => 'required|in:' . implode(',', AnalisisPasteurizadora::ESTADOS),
             'actividad' => 'required|string',
@@ -594,6 +621,7 @@ class AnalisisPasteurizadoraController extends Controller
             'numero_componente' => ['nullable', 'integer', $this->positiveIntegerRule('Seleccione un numero de componente valido.')],
         ], [
             'numero_orden.regex' => 'El numero de orden solo puede contener numeros.',
+            'fecha_fin.after_or_equal' => 'La fecha final no puede ser anterior a la fecha de inicio.',
         ]);
 
         // Obtener la linea y validar la seleccion de componentes
@@ -623,6 +651,8 @@ class AnalisisPasteurizadoraController extends Controller
             'nivel' => $validated['nivel'],
             'componente' => $validated['componente'],
             'lado' => $validated['lado'],
+            'fecha_inicio' => $esQuick ? ($validated['fecha_inicio'] ?? null) : null,
+            'fecha_fin' => $esQuick ? ($validated['fecha_fin'] ?? null) : null,
             'fecha_analisis' => $validated['fecha_analisis'],
             'numero_orden' => $esQuick ? null : ($validated['numero_orden'] ?? null),
             'estado' => $validated['estado'],
@@ -642,13 +672,16 @@ class AnalisisPasteurizadoraController extends Controller
             $this->marcarRegistrosAnterioresComoResueltos($analisis);
         }
 
+        $this->sincronizarHistoricoRevisados($analisis);
+
         $siguienteRevision = AnalisisPasteurizadora::getSiguienteRevisionContexto(
             $validated['linea_id'],
             $validated['modulo'],
             $validated['componente'],
             $validated['nivel'],
             $validated['lado'],
-            $this->currentArea()
+            $this->currentArea(),
+            $esQuick ? AnalisisPasteurizadora::TIPO_REGISTRO_QUICK : null
         );
 
         $mensaje = $siguienteRevision
@@ -670,6 +703,24 @@ class AnalisisPasteurizadoraController extends Controller
         // Marcar que proviene de create-quick
         $request->merge(['es_quick' => true]);
         return $this->store($request);
+    }
+
+    private function normalizarRangoFechasQuick(Request $request): void
+    {
+        $fechaAnalisis = $request->input('fecha_analisis');
+        $fechaInicio = $request->input('fecha_inicio') ?: null;
+        $fechaFin = $request->input('fecha_fin') ?: null;
+
+        if ($fechaAnalisis) {
+            $fechaInicio = $fechaInicio ?: $fechaAnalisis;
+            $fechaFin = $fechaFin ?: $fechaAnalisis;
+        }
+
+        $request->merge([
+            'fecha_inicio' => $fechaInicio,
+            'fecha_fin' => $fechaFin,
+            'fecha_analisis' => $fechaFin ?: $fechaAnalisis,
+        ]);
     }
 
     private function guardarEvidenciaPasteurizadora($foto): string
@@ -779,6 +830,7 @@ class AnalisisPasteurizadoraController extends Controller
     {
         $analisis = $this->analisisQuery()->findOrFail($id);
         $esQuick = $analisis->es_registro_quick;
+        $componenteAnterior = $analisis->componente;
 
         $validated = $request->validate([
             'modulo' => ['nullable', 'integer', $this->positiveIntegerRule('El modulo debe ser un numero entero mayor a 0.')],
@@ -876,6 +928,11 @@ class AnalisisPasteurizadoraController extends Controller
         $validated['evidencia_fotos'] = $fotosExistentes;
 
         $analisis->update($validated);
+        $this->sincronizarHistoricoRevisados($analisis);
+
+        if ($componenteAnterior && $componenteAnterior !== $analisis->componente) {
+            $this->sincronizarHistoricoRevisados($analisis, $componenteAnterior);
+        }
 
         return redirect()
             ->route($this->routeName('index'), ['linea_id' => $analisis->linea_id])
@@ -906,7 +963,9 @@ class AnalisisPasteurizadoraController extends Controller
             }
         }
 
+        $componenteEliminado = $analisis->componente;
         $analisis->delete();
+        $this->sincronizarHistoricoRevisados($analisis, $componenteEliminado);
 
         return redirect()->route($this->routeName('index'))
             ->with('success', 'Registro eliminado correctamente');
@@ -1177,14 +1236,15 @@ class AnalisisPasteurizadoraController extends Controller
             ], 400);
         }
 
-        $componentesPendientes = AnalisisPasteurizadora::getCantidadComponentesPendientes($lineaId, $modulo, $componente, $lado, $nivel, null, $this->currentArea());
-        $cantidadComponentesRevisados = AnalisisPasteurizadora::getCantidadComponentesRevisados($lineaId, $modulo, $componente, $lado, $nivel, null, $this->currentArea());
+        $componentesDisponibles = AnalisisPasteurizadora::getComponentesDisponiblesSeguimiento($lineaId, $modulo, $componente, $lado, $nivel, null, $this->currentArea());
+        $componentesPendientes = count($componentesDisponibles);
 
-        // Obtener los componentes ya revisados especÃ­ficos de este lado y nivel
-        $componentesYaRevisados = AnalisisPasteurizadora::getComponentesYaRevisados($lineaId, $modulo, $componente, $lado, $nivel, null, $this->currentArea());
+        // Obtener los componentes ya revisados que no se pueden reabrir en seguimiento
+        $componentesYaRevisados = AnalisisPasteurizadora::getComponentesBloqueadosSeguimiento($lineaId, $modulo, $componente, $lado, $nivel, null, $this->currentArea());
+        $cantidadComponentesRevisados = count($componentesYaRevisados);
 
         // Obtener lados pendientes
-        $ladosPendientes = AnalisisPasteurizadora::getLadosPendientes($lineaId, $modulo, $componente, $nivel, $this->currentArea());
+        $ladosPendientes = AnalisisPasteurizadora::getLadosPendientes($lineaId, $modulo, $componente, $nivel, $this->currentArea(), AnalisisPasteurizadora::TIPO_REGISTRO_QUICK);
 
         return response()->json([
             'success' => true,
@@ -1252,7 +1312,7 @@ class AnalisisPasteurizadoraController extends Controller
             ], 422);
         }
 
-        $componentesDisponibles = AnalisisPasteurizadora::getComponentesPendientes(
+        $componentesDisponibles = AnalisisPasteurizadora::getComponentesDisponiblesSeguimiento(
             $linea->id,
             $request->modulo,
             $resolved['key'],
@@ -1719,12 +1779,12 @@ class AnalisisPasteurizadoraController extends Controller
         $ladosPendientes = [];
 
         if ($modulo && $componenteKey && $componentConfig) {
-            $estadoRevision = AnalisisPasteurizadora::getEstadoRevision($linea->id, $modulo, $componenteKey, null, $this->currentArea());
-            $siguienteRevision = AnalisisPasteurizadora::getSiguienteRevisionContexto($linea->id, $modulo, $componenteKey, $nivel, $lado, $this->currentArea());
+            $estadoRevision = AnalisisPasteurizadora::getEstadoRevision($linea->id, $modulo, $componenteKey, null, $this->currentArea(), AnalisisPasteurizadora::TIPO_REGISTRO_QUICK);
+            $siguienteRevision = AnalisisPasteurizadora::getSiguienteRevisionContexto($linea->id, $modulo, $componenteKey, $nivel, $lado, $this->currentArea(), AnalisisPasteurizadora::TIPO_REGISTRO_QUICK);
             $effectiveNivel = $effectiveNivel ?: ($siguienteRevision['nivel'] ?? null);
             $effectiveLado = $effectiveLado ?: ($siguienteRevision['lado'] ?? null);
 
-            $componentesYaRevisados = AnalisisPasteurizadora::getComponentesYaRevisados(
+            $componentesYaRevisados = AnalisisPasteurizadora::getComponentesBloqueadosSeguimiento(
                 $linea->id,
                 $modulo,
                 $componenteKey,
@@ -1744,7 +1804,7 @@ class AnalisisPasteurizadoraController extends Controller
                 ->latest('fecha_analisis')
                 ->latest('created_at')
                 ->get();
-            $componentesPendientes = AnalisisPasteurizadora::getCantidadComponentesPendientes(
+            $componentesDisponibles = AnalisisPasteurizadora::getComponentesDisponiblesSeguimiento(
                 $linea->id,
                 $modulo,
                 $componenteKey,
@@ -1753,17 +1813,10 @@ class AnalisisPasteurizadoraController extends Controller
                 null,
                 $this->currentArea()
             );
-            $cantidadComponentesRevisados = AnalisisPasteurizadora::getCantidadComponentesRevisados(
-                $linea->id,
-                $modulo,
-                $componenteKey,
-                $effectiveLado,
-                $effectiveNivel,
-                null,
-                $this->currentArea()
-            );
+            $componentesPendientes = count($componentesDisponibles);
+            $cantidadComponentesRevisados = count($componentesYaRevisados);
             $ladosPendientes = $effectiveNivel
-                ? AnalisisPasteurizadora::getLadosPendientes($linea->id, $modulo, $componenteKey, $effectiveNivel, $this->currentArea())
+                ? AnalisisPasteurizadora::getLadosPendientes($linea->id, $modulo, $componenteKey, $effectiveNivel, $this->currentArea(), AnalisisPasteurizadora::TIPO_REGISTRO_QUICK)
                 : [];
         }
 
@@ -1912,7 +1965,7 @@ class AnalisisPasteurizadoraController extends Controller
             $componentesSeleccionados = [1];
         }
 
-        $componentesPendientes = AnalisisPasteurizadora::getComponentesPendientes(
+        $componentesDisponibles = AnalisisPasteurizadora::getComponentesDisponiblesSeguimiento(
             $linea->id,
             $contexto['modulo'],
             $componente,
@@ -1922,7 +1975,7 @@ class AnalisisPasteurizadoraController extends Controller
             $this->currentArea()
         );
 
-        if (empty($componentesPendientes)) {
+        if (empty($componentesDisponibles)) {
             throw ValidationException::withMessages([
                 'componentes_revisados' => 'Todos los componentes de esta seleccion ya fueron revisados.',
             ]);
@@ -1934,7 +1987,7 @@ class AnalisisPasteurizadoraController extends Controller
             ]);
         }
 
-        $seleccionInvalida = array_values(array_diff($componentesSeleccionados, $componentesPendientes));
+        $seleccionInvalida = array_values(array_diff($componentesSeleccionados, $componentesDisponibles));
 
         if (!empty($seleccionInvalida)) {
             throw ValidationException::withMessages([
@@ -1951,5 +2004,20 @@ class AnalisisPasteurizadoraController extends Controller
                 ? AnalisisPasteurizadora::getCantidadBrazosTorsionPorLinea($linea->nombre)
                 : null,
         ];
+    }
+
+    private function sincronizarHistoricoRevisados(AnalisisPasteurizadora $analisis, ?string $componente = null): void
+    {
+        $analisis->loadMissing('linea');
+
+        if (!$analisis->linea) {
+            return;
+        }
+
+        HistoricoRevisados::actualizarDesdePasteurizadora(
+            $analisis->linea,
+            $componente ?: $analisis->componente,
+            $analisis->area ?: $this->currentArea()
+        );
     }
 }

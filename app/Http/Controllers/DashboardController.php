@@ -355,16 +355,22 @@ class DashboardController extends Controller
     $trend52124Range = $this->resolveLavadoraTrendDateRange($request, 'trend_52124_desde', 'trend_52124_hasta');
     $trend30147Range = $this->resolveLavadoraTrendDateRange($request, 'trend_30147_desde', 'trend_30147_hasta');
 
-    $analisis = AnalisisPasteurizadora::with('linea')
+    $lineaIdsPasteurizadora = $pasteurizadoras->pluck('id');
+
+    $analisis = AnalisisPasteurizadora::queryForArea(AnalisisPasteurizadora::AREA_MECANICA)
+        ->with('linea')
+        ->whereIn('linea_id', $lineaIdsPasteurizadora)
         ->where('resuelto_por_cambio', false)
         ->get();
 
-    $analisisHistorico = AnalisisPasteurizadora::with('linea')
-        ->whereIn('linea_id', $pasteurizadoras->pluck('id'))
+    $analisisHistorico = AnalisisPasteurizadora::queryForArea(AnalisisPasteurizadora::AREA_MECANICA)
+        ->with('linea')
+        ->whereIn('linea_id', $lineaIdsPasteurizadora)
         ->get();
 
     $estadoPasteurizadoras = collect($this->getEstadoPasteurizadoras($pasteurizadoras, $analisis));
     $planesPendientesPasteurizadora = $this->getPlanesPendientesPasteurizadora($pasteurizadoras, $analisis);
+    $planesAccionDashboardPasteurizadora = $this->getPlanesAccionDashboardPasteurizadora($pasteurizadoras);
 
     $resumenPasteurizadora = [
         'total_pasteurizadoras' => $pasteurizadoras->count(),
@@ -373,13 +379,15 @@ class DashboardController extends Controller
         'en_riesgo' => $estadoPasteurizadoras->where('estado.nivel', 'riesgo')->count(),
         'requiere_revision' => $estadoPasteurizadoras->where('estado.nivel', 'operativo')->count(),
         'buen_estado' => $estadoPasteurizadoras->where('estado.nivel', 'bueno')->count(),
-        'pendientes_accion' => $planesPendientesPasteurizadora->count(),
+        'pendientes_accion' => $planesAccionDashboardPasteurizadora['resumen']['activos'],
         'ultima_actualizacion' => now()->format('d/m/Y H:i'),
     ];
 
-    $fallasPorLineaPasteurizadora = $this->getFallasPorLineaPasteurizadora($pasteurizadoras, $analisisHistorico);
-    $componentesDanadosPasteurizadora = $this->getComponentesDanadosPasteurizadora($analisisHistorico);
+    $fallasPorLineaPasteurizadora = $this->getFallasPorLineaPasteurizadora($pasteurizadoras, $analisis);
+    $componentesDanadosPasteurizadora = $this->getComponentesDanadosPasteurizadora($analisis);
     $historicoRevisionesPasteurizadora = $this->getHistoricoRevisionesPasteurizadora($analisisHistorico);
+    $rankingDanosPasteurizadora = $this->getRankingDanosPasteurizadora($pasteurizadoras, $analisis);
+    $avanceRevisionPasteurizadora = $this->getAvanceRevisionPasteurizadora($estadoPasteurizadoras);
     $tendenciaDanos = app(TendenciaDanosService::class);
     $analisis52124Pasteurizadora = $tendenciaDanos->construirDashboard(
         $pasteurizadoras,
@@ -419,6 +427,9 @@ class DashboardController extends Controller
         'analisis30147Pasteurizadora',
         'trendFilters',
         'planesPendientesPasteurizadora',
+        'planesAccionDashboardPasteurizadora',
+        'rankingDanosPasteurizadora',
+        'avanceRevisionPasteurizadora',
         'ultimosAnalisisPasteurizadora'
     ));
 }
@@ -2860,15 +2871,142 @@ public function pasteurizadoraOperativo(Request $request)
             $criticos = $analisisLinea->whereIn('estado', AnalisisPasteurizadora::estadosDanado())->count();
             $desgaste = $analisisLinea->whereIn('estado', AnalisisPasteurizadora::ESTADOS_DESGASTE)->count();
             $requiereRevision = $analisisLinea->where('estado', AnalisisPasteurizadora::ESTADO_REQUIERE_REVISION)->count();
+            $estables = $analisisLinea
+                ->whereIn('estado', [AnalisisPasteurizadora::ESTADO_BUENO, AnalisisPasteurizadora::ESTADO_CAMBIADO])
+                ->count();
+            $impactados = $criticos + $desgaste + $requiereRevision;
+            $ultimaRevision = $analisisLinea
+                ->filter(fn ($item) => $item->fecha_analisis)
+                ->sortByDesc(fn ($item) => $item->fecha_analisis->format('Y-m-d') . '-' . str_pad((string) $item->id, 10, '0', STR_PAD_LEFT))
+                ->first();
 
             return [
+                'linea_id' => $linea->id,
                 'linea' => $linea->nombre,
-                'total_fallas' => $criticos + $desgaste + $requiereRevision,
+                'total_fallas' => $impactados,
+                'impactados' => $impactados,
                 'criticos' => $criticos,
+                'criticas' => $criticos,
                 'desgaste' => $desgaste,
+                'severas_moderadas' => $desgaste,
                 'requiere_revision' => $requiereRevision,
+                'estables' => $estables,
+                'total_componentes' => $analisisLinea->count(),
+                'porcentaje_impacto' => $analisisLinea->count() > 0
+                    ? round(($impactados / $analisisLinea->count()) * 100, 1)
+                    : 0,
+                'ultima_revision' => $ultimaRevision?->fecha_analisis?->format('Y-m-d'),
+                'ultima_revision_humana' => $ultimaRevision?->fecha_analisis?->format('d/m/Y'),
+                'estado' => $criticos > 0
+                    ? 'critico'
+                    : ($desgaste > 0
+                        ? 'riesgo'
+                        : ($requiereRevision > 0
+                            ? 'operativo'
+                            : ($analisisLinea->isNotEmpty() ? 'estable' : 'sin_datos'))),
+                'sin_datos' => $analisisLinea->isEmpty(),
             ];
         })->sortByDesc('total_fallas')->values();
+    }
+
+    /**
+     * Obtiene el ranking de pasteurizadoras con mayor daÃ±o activo.
+     */
+    private function getRankingDanosPasteurizadora($pasteurizadoras, Collection $analisisPasteurizadora): array
+    {
+        $agrupados = $analisisPasteurizadora->groupBy('linea_id');
+
+        return $pasteurizadoras
+            ->map(function ($linea) use ($agrupados) {
+                $analisisLinea = $agrupados->get($linea->id, collect());
+                $criticos = $analisisLinea->whereIn('estado', AnalisisPasteurizadora::estadosDanado())->count();
+                $severos = $analisisLinea->where('estado', 'Desgaste severo')->count();
+                $moderados = $analisisLinea->where('estado', 'Desgaste moderado')->count();
+                $requiereRevision = $analisisLinea->where('estado', AnalisisPasteurizadora::ESTADO_REQUIERE_REVISION)->count();
+                $totalDanos = $criticos + $severos + $moderados;
+                $impactados = $totalDanos + $requiereRevision;
+                $ultimaRevision = $analisisLinea
+                    ->filter(fn ($item) => $item->fecha_analisis)
+                    ->sortByDesc(fn ($item) => $item->fecha_analisis->format('Y-m-d') . '-' . str_pad((string) $item->id, 10, '0', STR_PAD_LEFT))
+                    ->first();
+
+                $prioridad = 'estable';
+                $prioridadLabel = 'Estable';
+
+                if ($criticos > 0) {
+                    $prioridad = 'critico';
+                    $prioridadLabel = 'CrÃ­tico';
+                } elseif (($severos + $moderados) > 0) {
+                    $prioridad = 'severo';
+                    $prioridadLabel = 'Severo / Moderado';
+                } elseif ($requiereRevision > 0) {
+                    $prioridad = 'revision';
+                    $prioridadLabel = 'Requiere revisiÃ³n';
+                }
+
+                return [
+                    'linea_id' => $linea->id,
+                    'nombre' => $linea->nombre,
+                    'linea' => $linea->nombre,
+                    'estado' => [
+                        'nivel' => $prioridad === 'severo' ? 'riesgo' : ($prioridad === 'revision' ? 'operativo' : ($prioridad === 'critico' ? 'critico' : 'bueno')),
+                        'acciones_pendientes' => $criticos,
+                    ],
+                    'criticas' => $criticos,
+                    'severos' => $severos,
+                    'moderados' => $moderados,
+                    'requiere_revision' => $requiereRevision,
+                    'severas_moderadas' => $severos + $moderados,
+                    'total_danos' => $totalDanos,
+                    'impactados' => $impactados,
+                    'total_componentes' => $analisisLinea->count(),
+                    'porcentaje_impacto' => $analisisLinea->count() > 0
+                        ? round(($impactados / $analisisLinea->count()) * 100, 1)
+                        : 0,
+                    'fecha_analisis' => $ultimaRevision?->fecha_analisis?->format('Y-m-d'),
+                    'fecha_analisis_humana' => $ultimaRevision?->fecha_analisis?->format('d/m/Y'),
+                    'prioridad' => $prioridad,
+                    'prioridad_label' => $prioridadLabel,
+                    'puntaje' => ($criticos * 100) + (($severos + $moderados) * 40) + ($requiereRevision * 15),
+                    'requiere_cambio' => $criticos > 0,
+                ];
+            })
+            ->sortByDesc(fn ($item) => ($item['puntaje'] * 1000) + $item['impactados'])
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Resume el avance de revisiÃ³n mecÃ¡nica por pasteurizadora.
+     */
+    private function getAvanceRevisionPasteurizadora(Collection $estadoPasteurizadoras): array
+    {
+        $lineas = $estadoPasteurizadoras
+            ->map(function (array $item) {
+                $progreso = data_get($item, 'estado.progreso_revision', []);
+
+                return [
+                    'linea_id' => $item['id'] ?? null,
+                    'linea' => $item['nombre'] ?? 'Sin linea',
+                    'porcentaje' => (int) ($progreso['porcentaje'] ?? 0),
+                    'revisados' => (int) ($progreso['revisados'] ?? 0),
+                    'total' => (int) ($progreso['total'] ?? 0),
+                    'componentes_revisados' => (int) ($progreso['componentes_revisados'] ?? 0),
+                    'total_componentes' => (int) ($progreso['total_componentes'] ?? 0),
+                ];
+            })
+            ->values();
+
+        return [
+            'labels' => $lineas->pluck('linea')->all(),
+            'porcentajes' => $lineas->pluck('porcentaje')->all(),
+            'revisados' => $lineas->pluck('revisados')->all(),
+            'totales' => $lineas->pluck('total')->all(),
+            'promedio' => $lineas->count() > 0 ? round($lineas->avg('porcentaje')) : 0,
+            'total_revisados' => $lineas->sum('revisados'),
+            'total_configurado' => $lineas->sum('total'),
+            'lineas' => $lineas->all(),
+        ];
     }
 
     /**
@@ -2940,6 +3078,160 @@ public function pasteurizadoraOperativo(Request $request)
             ->whereIn('estado', AnalisisPasteurizadora::estadosDanado())
             ->sortByDesc('fecha_analisis')
             ->values();
+    }
+
+    /**
+     * Obtiene planes de acciÃ³n reales del mÃ³dulo Pasteurizadora.
+     */
+    private function getPlanesAccionPasteurizadora($pasteurizadoras): Collection
+    {
+        if ($pasteurizadoras->isEmpty()) {
+            return collect();
+        }
+
+        return PlanAccion::with('linea:id,nombre')
+            ->whereIn('linea_id', $pasteurizadoras->pluck('id'))
+            ->where(function ($query) {
+                $query->where('tipo_equipo', User::MODULE_PASTEURIZADORA)
+                    ->orWhereNull('tipo_equipo');
+            })
+            ->where(function ($query) {
+                $query->where('area_pasteurizadora', AnalisisPasteurizadora::AREA_MECANICA)
+                    ->orWhereNull('area_pasteurizadora');
+            })
+            ->orderByDesc('created_at')
+            ->get();
+    }
+
+    /**
+     * Resumen y detalle para el panel de planes de acciÃ³n de Pasteurizadora.
+     */
+    private function getPlanesAccionDashboardPasteurizadora($pasteurizadoras): array
+    {
+        $planes = $this->getPlanesAccionPasteurizadora($pasteurizadoras);
+        $planesNormalizados = $planes
+            ->map(function (PlanAccion $plan) {
+                $prioridad = $this->resolvePlanPriority($plan);
+
+                return [
+                    'id' => $plan->id,
+                    'linea_id' => $plan->linea_id,
+                    'linea' => optional($plan->linea)->nombre ?? 'Sin linea',
+                    'actividad' => $plan->actividad,
+                    'completado' => (bool) $plan->completado,
+                    'prioridad' => $prioridad['level'],
+                    'prioridad_label' => $prioridad['label'],
+                    'prioridad_sort' => $prioridad['sort'],
+                    'proxima_fecha' => $prioridad['date']?->format('Y-m-d'),
+                    'proxima_fecha_humana' => $prioridad['date']?->format('d/m/Y'),
+                    'dias_restantes' => $prioridad['days'],
+                    'area' => $plan->area_pasteurizadora_label,
+                    'created_at' => optional($plan->created_at)?->format('Y-m-d H:i:s'),
+                ];
+            })
+            ->values();
+
+        $planesActivos = $planesNormalizados->where('completado', false)->values();
+        $conteoPrioridad = [
+            'alta' => $planesActivos->where('prioridad', 'alta')->count(),
+            'media' => $planesActivos->where('prioridad', 'media')->count(),
+            'baja' => $planesActivos->where('prioridad', 'baja')->count(),
+            'sin_fecha' => $planesActivos->where('prioridad', 'sin_fecha')->count(),
+        ];
+        $planesPendientes = $planesActivos->whereIn('prioridad', ['alta', 'media', 'sin_fecha'])->count();
+        $planesVencidos = $planesActivos
+            ->filter(fn ($item) => $item['dias_restantes'] !== null && $item['dias_restantes'] < 0)
+            ->count();
+        $planesProximos7Dias = $planesActivos
+            ->filter(fn ($item) => $item['dias_restantes'] !== null && $item['dias_restantes'] >= 0 && $item['dias_restantes'] <= 7)
+            ->count();
+
+        $estadoGeneral = [
+            'nivel' => 'estable',
+            'label' => 'Controlado',
+            'mensaje' => 'No hay planes abiertos con riesgo inmediato.',
+        ];
+
+        if ($conteoPrioridad['alta'] > 0) {
+            $estadoGeneral = [
+                'nivel' => 'critico',
+                'label' => 'AtenciÃ³n inmediata',
+                'mensaje' => 'Existen planes vencidos o por vencer con prioridad alta.',
+            ];
+        } elseif ($conteoPrioridad['media'] > 0 || $planesPendientes > 0) {
+            $estadoGeneral = [
+                'nivel' => 'riesgo',
+                'label' => 'Seguimiento cercano',
+                'mensaje' => 'Hay actividades pendientes que requieren seguimiento en corto plazo.',
+            ];
+        } elseif ($planesActivos->count() > 0) {
+            $estadoGeneral = [
+                'nivel' => 'estable',
+                'label' => 'En seguimiento',
+                'mensaje' => 'Las actividades abiertas se encuentran programadas y sin urgencia alta.',
+            ];
+        } elseif ($planesNormalizados->count() > 0) {
+            $estadoGeneral = [
+                'nivel' => 'estable',
+                'label' => 'Sin pendientes',
+                'mensaje' => 'Todos los planes registrados se encuentran completados.',
+            ];
+        }
+
+        $porLinea = $pasteurizadoras
+            ->map(function ($linea) use ($planesNormalizados) {
+                $planesLinea = $planesNormalizados->where('linea_id', $linea->id);
+                $abiertos = $planesLinea->where('completado', false)->count();
+                $completados = $planesLinea->where('completado', true)->count();
+                $altaPrioridad = $planesLinea
+                    ->where('completado', false)
+                    ->where('prioridad', 'alta')
+                    ->count();
+
+                return [
+                    'linea' => $linea->nombre,
+                    'linea_id' => $linea->id,
+                    'total' => $planesLinea->count(),
+                    'abiertos' => $abiertos,
+                    'completados' => $completados,
+                    'alta_prioridad' => $altaPrioridad,
+                    'porcentaje_cierre' => $planesLinea->count() > 0
+                        ? round(($completados / $planesLinea->count()) * 100)
+                        : 0,
+                ];
+            })
+            ->sortByDesc(fn ($item) => ($item['alta_prioridad'] * 100) + ($item['abiertos'] * 10) + $item['total'])
+            ->values()
+            ->all();
+
+        $topPlanes = $planesActivos
+            ->sortBy(fn ($item) => ($item['prioridad_sort'] * 1000000) + (int) str_replace('-', '', $item['proxima_fecha'] ?? '9999-12-31'))
+            ->take(8)
+            ->values()
+            ->all();
+
+        return [
+            'resumen' => [
+                'total' => $planesNormalizados->count(),
+                'activos' => $planesActivos->count(),
+                'pendientes' => $planesPendientes,
+                'programados' => max($planesActivos->count() - $planesPendientes, 0),
+                'completados' => $planesNormalizados->where('completado', true)->count(),
+                'prioridad_alta' => $conteoPrioridad['alta'],
+                'prioridad_media' => $conteoPrioridad['media'],
+                'prioridad_baja' => $conteoPrioridad['baja'],
+                'sin_fecha' => $conteoPrioridad['sin_fecha'],
+                'vencidos' => $planesVencidos,
+                'proximos_7_dias' => $planesProximos7Dias,
+                'lineas_comprometidas' => collect($porLinea)->filter(fn ($item) => $item['abiertos'] > 0)->count(),
+                'avance' => $planesNormalizados->count() > 0
+                    ? round(($planesNormalizados->where('completado', true)->count() / $planesNormalizados->count()) * 100)
+                    : 0,
+            ],
+            'estado_general' => $estadoGeneral,
+            'por_linea' => $porLinea,
+            'planes' => $topPlanes,
+        ];
     }
 
     /**

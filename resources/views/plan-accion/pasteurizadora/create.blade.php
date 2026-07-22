@@ -1,13 +1,56 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container-fluid px-4 py-4 mx-auto max-w-7xl">
+<style>
+    .plan-form-shell {
+        width: 100%;
+        max-width: min(80rem, 100%);
+        overflow-x: clip;
+    }
+
+    .plan-form-shell * {
+        box-sizing: border-box;
+        min-width: 0;
+    }
+
+    .plan-form-shell h4,
+    .plan-form-shell p,
+    .plan-form-shell span,
+    .plan-form-shell label,
+    .plan-form-shell textarea {
+        overflow-wrap: anywhere;
+    }
+
+    @media (max-width: 640px) {
+        .plan-form-shell {
+            padding: 1rem 0.75rem;
+        }
+
+        .plan-form-shell .p-6 {
+            padding: 1rem;
+        }
+
+        .plan-form-shell input,
+        .plan-form-shell select,
+        .plan-form-shell textarea {
+            font-size: 16px;
+        }
+
+        .plan-form-shell .create-action,
+        .plan-form-shell .responsive-action {
+            width: 100%;
+            justify-content: center;
+        }
+    }
+</style>
+
+<div class="plan-form-shell container-fluid px-4 py-4 mx-auto max-w-7xl">
     <div class="flex justify-center">
-        <div class="w-full md:w-2/3">
+        <div class="w-full max-w-3xl">
             <div class="bg-white rounded-lg shadow-lg overflow-hidden">
 
                 <div class="bg-green-600 px-6 py-4">
-                    <h4 class="text-white text-lg font-semibold flex items-center">
+                    <h4 class="flex items-start text-lg font-semibold text-white sm:items-center">
                         <i class="fas fa-plus-circle mr-2"></i>
                         Nueva Actividad - Pasteurizadora
                         @if($linea)
@@ -26,9 +69,8 @@
                                 Línea
                             </label>
 
-                            <div class="w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-md flex items-center">
-                                <img src="{{ asset('images/icono_pas.png') }}" class="w-10 h-8 mr-2 object-contain" alt="Ícono de pasteurizadora">
-                                {{ $linea?->nombre ?? 'Pasteurizadora no seleccionada' }}
+                            <div class="flex w-full items-center rounded-md border border-gray-300 bg-gray-100 px-3 py-2">
+                                <span class="min-w-0 break-words">{{ $linea?->nombre ?? 'Pasteurizadora no seleccionada' }}</span>
                             </div>
 
                             <input type="hidden" name="linea_id" value="{{ $lineaSeleccionada }}">

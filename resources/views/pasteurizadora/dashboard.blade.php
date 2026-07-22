@@ -12,13 +12,13 @@
     $puedeVerTendenciasPasteurizadora = ($usuarioActual?->canAccessModule(\App\Models\User::MODULE_PASTEURIZADORA) ?? false)
         && ($usuarioActual?->canUseCustomPermission('ver tendencias pasteurizadora') ?? false);
 @endphp
-<div class="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-6 sm:py-8">
+<div class="pasteur-menu min-h-screen overflow-x-hidden bg-gradient-to-br from-gray-50 to-gray-100 py-6 sm:py-8">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {{-- HEADER MEJORADO --}}
         <div class="mb-10 animate-fade-in">
             <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <div>
+                <div class="min-w-0">
                     <div class="mb-2 flex flex-col items-start gap-3 sm:flex-row sm:items-center">
                         <!-- Imagen a la izquierda (icono de pasteurizadora) -->
                         <div class="mb-2 flex h-24 w-24 items-center justify-center sm:mb-4 sm:h-32 sm:w-32">
@@ -29,7 +29,7 @@
                         <!-- Barra decorativa -->
                         <div class="h-10 w-2 bg-gradient-to-b from-gray-800 to-gray-600 rounded-full"></div>
                         
-                        <h1 class="text-3xl font-black tracking-tight text-gray-800 sm:text-4xl">
+                        <h1 class="break-words text-3xl font-black tracking-tight text-gray-800 sm:text-4xl">
                             <span class="text-transparent bg-clip-text bg-gradient-to-r from-gray-800 to-gray-600">
                                 PASTEURIZADORA
                             </span>
@@ -41,7 +41,7 @@
                     <div class="bg-white/80 backdrop-blur-sm px-4 py-2 rounded-2xl shadow-sm border border-gray-200">
                         <div class="flex items-center gap-3">
                             <div class="flex items-center gap-2">
-                                <div class="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></div>
+                                <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
                                 <span class="text-sm font-medium text-gray-700">Legado Ave Fenix</span>
                             </div>
                             <div class="h-4 w-px bg-gray-300"></div>
@@ -283,6 +283,29 @@
     
     .animate-fade-in {
         animation: fadeIn 0.6s ease-out forwards;
+    }
+
+    .pasteur-menu * {
+        box-sizing: border-box;
+        min-width: 0;
+    }
+
+    .pasteur-menu h1,
+    .pasteur-menu h3,
+    .pasteur-menu p,
+    .pasteur-menu span {
+        overflow-wrap: anywhere;
+    }
+
+    @media (max-width: 480px) {
+        .pasteur-menu h1 {
+            font-size: 1.85rem;
+            line-height: 1.1;
+        }
+
+        .pasteur-menu a.group {
+            border-radius: 1rem;
+        }
     }
     
     /* Mejoras de accesibilidad */

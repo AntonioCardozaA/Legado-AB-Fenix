@@ -41,42 +41,90 @@
 
 <style>
     .pasteur-form-shell {
-        --primary-blue: #2563eb;
+        --primary-blue: #3b82f6;
         --border: #e5e7eb;
-        --soft-shadow: 0 1px 2px rgba(15, 23, 42, .05);
+        --soft-shadow: 0 10px 15px -3px rgba(15, 23, 42, .10), 0 4px 6px -4px rgba(15, 23, 42, .10);
+        width: 100%;
+        max-width: min(56rem, 100%);
+        overflow-x: clip;
+    }
+
+    .pasteur-form-shell * {
+        box-sizing: border-box;
+        min-width: 0;
     }
 
     .pasteur-form-card {
         background: #ffffff;
-        border: 1px solid var(--border);
-        border-radius: 12px;
+        border: 0;
+        border-radius: 1rem;
         box-shadow: var(--soft-shadow);
-        padding: 24px;
+        padding: clamp(1rem, 4vw, 2rem);
     }
 
     .pasteur-context {
-        background: linear-gradient(to right, #f9fafb, #ffffff);
+        background: linear-gradient(to right, #f9fafb, #f3f4f6);
         border: 1px solid var(--border);
-        border-radius: 12px;
+        border-radius: 0.75rem;
         padding: 16px;
+        overflow: hidden;
     }
 
     .pasteur-context img {
-        background: #eff6ff;
-        border: 1px solid #bfdbfe;
-        border-radius: 8px;
-        padding: 8px;
+        background: transparent;
+        border: 0;
+        border-radius: 0;
+        padding: 0;
     }
 
     .pasteur-form-shell label i {
         color: var(--primary-blue);
+    }
+
+    .pasteur-form-shell h1,
+    .pasteur-form-shell p,
+    .pasteur-form-shell span,
+    .pasteur-form-shell label,
+    .pasteur-form-shell textarea {
+        overflow-wrap: anywhere;
+    }
+
+    .pasteur-form-shell .responsive-actions {
+        flex-wrap: wrap;
+    }
+
+    @media (max-width: 640px) {
+        .pasteur-form-shell {
+            padding: 1.25rem 0.75rem;
+        }
+
+        .pasteur-form-shell h1 {
+            font-size: 1.5rem;
+            line-height: 1.25;
+        }
+
+        .pasteur-context {
+            padding: 14px;
+        }
+
+        .pasteur-form-shell input,
+        .pasteur-form-shell select,
+        .pasteur-form-shell textarea {
+            font-size: 16px;
+        }
+
+        .pasteur-form-shell .responsive-action,
+        .pasteur-form-shell .create-action {
+            width: 100%;
+            justify-content: center;
+        }
     }
 </style>
 
 <div class="pasteur-form-shell max-w-4xl mx-auto py-10 px-4">
     <div class="mb-8">
         <div class="flex items-start gap-3 mb-4">
-            <a href="{{ $backUrl }}" class="mt-1 inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-gray-100 text-gray-500 transition hover:bg-gray-200 hover:text-blue-600" aria-label="Volver">
+            <a href="{{ $backUrl }}" class="mt-1 text-gray-400 hover:text-blue-600 transition" aria-label="Volver">
                 <i class="fas fa-arrow-left text-xl"></i>
             </a>
             <div class="min-w-0">
@@ -109,12 +157,7 @@
         @endif
 
         <div class="pasteur-context">
-            <div class="grid grid-cols-1 gap-4 text-sm sm:grid-cols-2 lg:grid-cols-5 lg:items-center">
-                <div class="flex justify-center sm:justify-start">
-                    <div class="h-20 w-20 rounded-xl bg-white border border-gray-200 p-3 shadow-sm">
-                        <img src="{{ asset('images/icono_pas.png') }}" alt="Pasteurizadora" class="h-full w-full object-contain">
-                    </div>
-                </div>
+            <div class="grid grid-cols-1 gap-4 text-sm sm:grid-cols-2 lg:grid-cols-4 lg:items-center">
                 <div>
                     <p class="font-semibold text-gray-600">Linea</p>
                     <p class="text-gray-900">{{ $analisis->linea->nombre ?? 'N/A' }}</p>
@@ -343,7 +386,7 @@
                         <i class="fas fa-images text-blue-600 mr-1"></i>
                         Evidencias actuales
                     </label>
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                         @foreach($evidencias as $index => $foto)
                             @php
                                 $fotoUrl = asset('storage/' . ltrim(str_replace('\\', '/', $foto), '/'));

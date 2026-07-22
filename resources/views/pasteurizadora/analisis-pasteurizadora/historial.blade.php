@@ -80,6 +80,13 @@
         --primary-blue: #2563eb;
         --border: #e5e7eb;
         --soft-shadow: 0 1px 2px rgba(15, 23, 42, .05);
+        width: 100%;
+        overflow-x: clip;
+    }
+
+    .pasteur-history * {
+        box-sizing: border-box;
+        min-width: 0;
     }
 
     .pasteur-history > .mb-10 {
@@ -106,6 +113,15 @@
         background: none !important;
         color: #0f172a;
         font-size: clamp(24px, 2.4vw, 30px);
+        overflow-wrap: anywhere;
+    }
+
+    .pasteur-history h2,
+    .pasteur-history h3,
+    .pasteur-history h4,
+    .pasteur-history p,
+    .pasteur-history span {
+        overflow-wrap: anywhere;
     }
 
     .pasteur-history .history-card > .bg-white,
@@ -119,16 +135,49 @@
         box-shadow: none;
         transform: translateY(-1px);
     }
+
+    .pasteur-history .status-badge {
+        white-space: normal;
+        text-align: center;
+    }
+
+    @media (max-width: 640px) {
+        .pasteur-history {
+            padding-left: 0.75rem;
+            padding-right: 0.75rem;
+        }
+
+        .pasteur-history > .mb-10 {
+            padding: 16px;
+        }
+
+        .pasteur-history .timeline-line {
+            left: 0.85rem !important;
+        }
+
+        .pasteur-history .relative.pl-16 {
+            padding-left: 2.75rem;
+        }
+
+        .pasteur-history .relative.pl-16 > .absolute.left-3 {
+            left: 0;
+        }
+
+        .pasteur-history .status-badge {
+            width: 100%;
+            justify-content: center;
+        }
+    }
 </style>
 
 <div class="pasteur-history max-w-6xl mx-auto px-4 sm:px-6 py-8">
     {{-- Header mejorado con gradiente y efectos --}}
     <div class="mb-10 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div class="flex items-center gap-4">
+        <div class="flex min-w-0 items-center gap-4">
             <div class="bg-gradient-to-r from-blue-600 to-blue-700 p-3 rounded-xl shadow-lg shadow-blue-500/30">
                 <i class="fas fa-history text-2xl text-white"></i>
             </div>
-            <div>
+            <div class="min-w-0">
                 <h1 class="text-3xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
                     Historial de Registros
                 </h1>
@@ -556,7 +605,7 @@
                                             </span>
                                         </div>
 
-                                        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                                        <div class="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-4 gap-3">
                                             @foreach($imagenes as $imgIndex => $imagen)
                                                 @php
                                                     $rutaImagen = asset('storage/' . ltrim(str_replace('\\', '/', $imagen), '/'));
@@ -665,7 +714,7 @@
         </button>
 
         {{-- Título de la imagen --}}
-        <p id="modalCaption" class="absolute bottom-20 left-1/2 transform -translate-x-1/2 text-white text-sm bg-black/50 backdrop-blur-sm px-4 py-2 rounded-full border border-white/20"></p>
+        <p id="modalCaption" class="absolute bottom-20 left-1/2 max-w-[calc(100vw-2rem)] transform -translate-x-1/2 rounded-full border border-white/20 bg-black/50 px-4 py-2 text-center text-sm text-white backdrop-blur-sm"></p>
     </div>
 </div>
 
@@ -692,7 +741,7 @@
             </div>
         </div>
         <div class="p-6 overflow-auto max-h-[calc(90vh-100px)]">
-            <div id="galleryGrid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"></div>
+            <div id="galleryGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"></div>
         </div>
     </div>
 </div>

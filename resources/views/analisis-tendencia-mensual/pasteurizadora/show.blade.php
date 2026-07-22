@@ -4,7 +4,39 @@
 @section('title', 'Detalle del Análisis Mensual')
 
 @section('content')
-<div class="max-w-6xl mx-auto px-4 py-6">
+<style>
+    .trend-detail-shell {
+        width: 100%;
+        max-width: min(72rem, 100%);
+        overflow-x: clip;
+    }
+
+    .trend-detail-shell * {
+        box-sizing: border-box;
+        min-width: 0;
+    }
+
+    .trend-detail-shell h1,
+    .trend-detail-shell h3,
+    .trend-detail-shell h4,
+    .trend-detail-shell p,
+    .trend-detail-shell span {
+        overflow-wrap: anywhere;
+    }
+
+    @media (max-width: 640px) {
+        .trend-detail-shell {
+            padding: 1rem 0.75rem;
+        }
+
+        .trend-detail-shell h1 {
+            font-size: 1.5rem;
+            line-height: 1.25;
+        }
+    }
+</style>
+
+<div class="trend-detail-shell max-w-6xl mx-auto px-4 py-6">
     <div class="mb-6">
         <a href="{{ route('analisis-tendencia-mensual.pasteurizadora.index', ['linea_id' => $analisis->linea_id]) }}"
            class="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900">
@@ -22,7 +54,6 @@
                     Análisis {{ $analisis->periodo }}
                 </h1>
                 <p class="text-blue-100 mt-2">
-                    <i class="fas fa-industry mr-2"></i>
                     {{ $analisis->linea->nombre }}
                 </p>
             </div>

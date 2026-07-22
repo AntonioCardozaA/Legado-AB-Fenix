@@ -1788,7 +1788,7 @@ class ReporteController extends Controller
 
     private function getReporteDetalladoPasteurizadora($linea, $fechaInicio, $fechaFin)
     {
-        $analisis = AnalisisPasteurizadora::query()
+        $analisis = AnalisisPasteurizadora::queryForArea(AnalisisPasteurizadora::AREA_MECANICA)
             ->with(['usuario:id,name', 'linea:id,nombre'])
             ->where('linea_id', $linea->id)
             ->whereBetween('fecha_analisis', [$fechaInicio, $fechaFin])
@@ -1796,13 +1796,14 @@ class ReporteController extends Controller
             ->orderByDesc('created_at')
             ->get();
 
-        $analisisHistorico = AnalisisPasteurizadora::query()
+        $analisisHistorico = AnalisisPasteurizadora::queryForArea(AnalisisPasteurizadora::AREA_MECANICA)
             ->with(['usuario:id,name', 'linea:id,nombre'])
             ->where('linea_id', $linea->id)
             ->orderByDesc('fecha_analisis')
             ->orderByDesc('created_at')
             ->orderByDesc('id')
             ->get();
+        $historialAuditado = $this->construirHistorialAuditadoPasteurizadora($analisisHistorico);
 
         $paros = Paro::with(['supervisor:id,name'])
             ->where('linea_id', $linea->id)
@@ -1871,6 +1872,7 @@ class ReporteController extends Controller
             ],
             'analisis' => $analisis,
             'analisis_historico' => $analisisHistorico,
+            'analisis_historico_detallado' => $historialAuditado,
             'paros' => $paros,
             'analisis_tendencia' => $analisisTendencia,
             'analisis_52124' => $analisis52124Reporte,
@@ -1878,6 +1880,225 @@ class ReporteController extends Controller
             'componentes' => $componentes,
             'modulos' => $avance['modulos'],
         ];
+    }
+
+    private function construirHistorialAuditadoPasteurizadora($analisisHistorico)
+    {
+        $registrosOrdenados = collect($analisisHistorico)
+            ->sortBy(fn ($registro) => $this->claveOrdenCronologicoPasteurizadora($registro))
+            ->values();
+        $anterioresPorContexto = [];
+        $historial = collect();
+
+        foreach ($registrosOrdenados as $registro) {
+            $componentes = $this->componentesRevisadosReportePasteurizadora($registro);
+            $contexto = $this->claveContextoReportePasteurizadora($registro);
+            $anterior = $this->registroAnteriorComparablePasteurizadora(
+                $anterioresPorContexto[$contexto] ?? [],
+                $componentes
+            );
+            $cambio = $this->describirCambioReportePasteurizadora($registro, $anterior);
+
+            $historial->push([
+                'id' => $registro->id,
+                'registro' => $registro,
+                'fecha_analisis' => $registro->fecha_analisis,
+                'fecha_label' => $registro->fecha_analisis
+                    ? Carbon::parse($registro->fecha_analisis)->format('d/m/Y')
+                    : 'Sin fecha',
+                'hora_label' => $registro->created_at
+                    ? Carbon::parse($registro->created_at)->format('H:i')
+                    : 'Sin hora',
+                'modulo' => $registro->modulo,
+                'nivel' => $registro->nivel,
+                'lado' => $registro->lado,
+                'componente_codigo' => $registro->componente,
+                'componente_nombre' => $registro->componente_nombre,
+                'componentes_revisados' => $componentes,
+                'componentes_label' => $this->formatearComponentesRevisadosReporte($componentes),
+                'estado' => $registro->estado,
+                'estado_anterior' => $cambio['estado_anterior'],
+                'cambio_estado' => $cambio['cambio_estado'],
+                'cambio_resumen' => $cambio['resumen'],
+                'cambio_detalle' => $cambio['detalle'],
+                'accion_correctiva' => $this->describirAccionCorrectivaPasteurizadora($registro),
+                'observaciones' => $registro->observaciones ?: $registro->actividad,
+                'actividad' => $registro->actividad,
+                'numero_orden' => $registro->numero_orden,
+                'usuario_nombre' => $registro->usuario?->name ?? $registro->responsable ?? 'Usuario no registrado',
+                'evidencias' => $this->normalizarEvidenciasReporte($registro->evidencia_fotos ?? null),
+                'tipo_registro' => $registro->tipo_registro,
+                'tipo_registro_label' => $registro->tipo_registro_label,
+                'show_url' => route('pasteurizadora.analisis-pasteurizadora.show', ['analisispasteurizadora' => $registro->id]),
+                'created_at' => $registro->created_at,
+            ]);
+
+            $anterioresPorContexto[$contexto][] = [
+                'registro' => $registro,
+                'componentes' => $componentes,
+            ];
+        }
+
+        return $historial
+            ->sortByDesc(fn ($item) => $this->claveOrdenCronologicoPasteurizadora($item['registro']))
+            ->values();
+    }
+
+    private function componentesRevisadosReportePasteurizadora(AnalisisPasteurizadora $registro): array
+    {
+        $totalComponentes = $registro->total_componentes ?: null;
+        $componentes = AnalisisPasteurizadora::normalizarComponentesRevisados(
+            $registro->componentes_revisados,
+            $totalComponentes
+        );
+
+        if (!empty($componentes)) {
+            return $componentes;
+        }
+
+        $cantidad = (int) ($registro->cantidad_componentes_revisados ?? 0);
+
+        if ($cantidad <= 0) {
+            return [];
+        }
+
+        $limite = $totalComponentes ? min($cantidad, $totalComponentes) : $cantidad;
+
+        return range(1, $limite);
+    }
+
+    private function formatearComponentesRevisadosReporte(array $componentes): string
+    {
+        if (empty($componentes)) {
+            return 'Sin detalle';
+        }
+
+        return collect($componentes)
+            ->map(fn ($numero) => '#' . $numero)
+            ->implode(', ');
+    }
+
+    private function registroAnteriorComparablePasteurizadora(array $anteriores, array $componentesActuales): ?array
+    {
+        if (empty($anteriores)) {
+            return null;
+        }
+
+        for ($index = count($anteriores) - 1; $index >= 0; $index--) {
+            $anterior = $anteriores[$index];
+            $componentesAnteriores = $anterior['componentes'] ?? [];
+
+            if (
+                empty($componentesActuales)
+                || empty($componentesAnteriores)
+                || !empty(array_intersect($componentesActuales, $componentesAnteriores))
+            ) {
+                $anterior['misma_pieza'] = !empty($componentesActuales)
+                    && !empty($componentesAnteriores)
+                    && !empty(array_intersect($componentesActuales, $componentesAnteriores));
+
+                return $anterior;
+            }
+        }
+
+        $ultimo = $anteriores[count($anteriores) - 1];
+        $ultimo['misma_pieza'] = false;
+
+        return $ultimo;
+    }
+
+    private function describirCambioReportePasteurizadora(AnalisisPasteurizadora $registro, ?array $anterior): array
+    {
+        if (!$anterior) {
+            return [
+                'estado_anterior' => null,
+                'cambio_estado' => false,
+                'resumen' => 'Primer registro del contexto',
+                'detalle' => 'Sin inspeccion anterior comparable.',
+            ];
+        }
+
+        /** @var AnalisisPasteurizadora $registroAnterior */
+        $registroAnterior = $anterior['registro'];
+        $mismaPieza = (bool) ($anterior['misma_pieza'] ?? false);
+        $cambioEstado = $registroAnterior->estado !== $registro->estado;
+        $fechaAnterior = $registroAnterior->fecha_analisis
+            ? Carbon::parse($registroAnterior->fecha_analisis)->format('d/m/Y')
+            : 'fecha no registrada';
+
+        if ($cambioEstado) {
+            $resumen = 'Estado: ' . $registroAnterior->estado . ' -> ' . $registro->estado;
+        } elseif ($mismaPieza) {
+            $resumen = 'Sin cambio de estado';
+        } else {
+            $resumen = 'Nuevo componente revisado en contexto existente';
+        }
+
+        return [
+            'estado_anterior' => $registroAnterior->estado,
+            'cambio_estado' => $cambioEstado,
+            'resumen' => $resumen,
+            'detalle' => ($mismaPieza ? 'Comparado con la misma pieza' : 'Comparado con el contexto')
+                . ' revisado el ' . $fechaAnterior . '.',
+        ];
+    }
+
+    private function describirAccionCorrectivaPasteurizadora(AnalisisPasteurizadora $registro): string
+    {
+        $orden = $registro->numero_orden ? 'Orden #' . $registro->numero_orden : null;
+
+        if (AnalisisPasteurizadora::esEstadoCambiado($registro->estado)) {
+            return $orden ? 'Cambio aplicado (' . $orden . ')' : 'Cambio aplicado';
+        }
+
+        if (AnalisisPasteurizadora::esEstadoDanado($registro->estado)) {
+            return $orden ? 'Cambio requerido (' . $orden . ')' : 'Cambio requerido';
+        }
+
+        if (AnalisisPasteurizadora::esEstadoRequiereRevision($registro->estado)) {
+            return 'Revision solicitada';
+        }
+
+        if (AnalisisPasteurizadora::esEstadoDesgaste($registro->estado)) {
+            return 'Seguimiento por ' . strtolower($registro->estado);
+        }
+
+        return 'Sin accion correctiva';
+    }
+
+    private function claveContextoReportePasteurizadora(AnalisisPasteurizadora $registro): string
+    {
+        return implode('|', [
+            $registro->linea_id,
+            (int) $registro->modulo,
+            strtoupper((string) $registro->componente),
+            strtoupper((string) $registro->nivel),
+            strtoupper((string) $registro->lado),
+        ]);
+    }
+
+    private function claveOrdenCronologicoPasteurizadora(AnalisisPasteurizadora $registro): string
+    {
+        $fecha = $registro->fecha_analisis
+            ? Carbon::parse($registro->fecha_analisis)->format('Ymd')
+            : '00000000';
+        $createdAt = str_pad((string) ($registro->created_at?->timestamp ?? 0), 12, '0', STR_PAD_LEFT);
+        $id = str_pad((string) ($registro->id ?? 0), 10, '0', STR_PAD_LEFT);
+
+        return $fecha . '-' . $createdAt . '-' . $id;
+    }
+
+    private function normalizarEvidenciasReporte($imagenes): array
+    {
+        if (is_string($imagenes)) {
+            $imagenes = json_decode($imagenes, true) ?? [];
+        }
+
+        if (!is_array($imagenes)) {
+            return [];
+        }
+
+        return collect($imagenes)->filter()->values()->all();
     }
 
     private function procesarComponentesPasteurizadora($linea, $analisisHistorico, $analisisPeriodo = null)

@@ -16,9 +16,16 @@
     }
 
     .plan-container {
-        max-width: 1400px;
+        width: 100%;
+        max-width: min(1400px, 100%);
         margin: 0 auto;
         padding: 24px;
+        overflow-x: clip;
+    }
+
+    .plan-container * {
+        box-sizing: border-box;
+        min-width: 0;
     }
 
     .lineas-section,
@@ -102,7 +109,7 @@
 
     .stats-grid {
         display: grid;
-        grid-template-columns: repeat(4, 1fr);
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
         gap: 20px;
         margin-bottom: 32px;
     }
@@ -186,11 +193,13 @@
         align-items: center;
         gap: 16px;
         flex-wrap: wrap;
+        min-width: 0;
     }
 
     .linea-nombre {
         font-size: 20px;
         font-weight: 700;
+        overflow-wrap: anywhere;
     }
 
     .badge-count {
@@ -201,6 +210,8 @@
         display: inline-flex;
         align-items: center;
         gap: 6px;
+        white-space: normal;
+        text-align: center;
     }
 
     .btn-agregar-rapido {
@@ -232,11 +243,16 @@
     }
 
     .table-responsive {
+        width: 100%;
+        max-width: 100%;
         overflow-x: auto;
+        overscroll-behavior-x: contain;
+        -webkit-overflow-scrolling: touch;
     }
 
     .table {
         width: 100%;
+        min-width: 940px;
         border-collapse: collapse;
         table-layout: fixed;
     }
@@ -270,6 +286,7 @@
     .actividad-cell {
         width: 320px;
         word-wrap: break-word;
+        overflow-wrap: anywhere;
         white-space: normal;
     }
 
@@ -416,7 +433,7 @@
     .modal-content {
         background: white;
         border-radius: 20px;
-        max-width: 760px;
+        max-width: min(760px, 100%);
         width: 100%;
         max-height: 85vh;
         overflow: hidden;
@@ -516,11 +533,6 @@
     }
 
     @media (max-width: 768px) {
-        .stats-grid {
-            grid-template-columns: 1fr;
-            gap: 16px;
-        }
-
         .col-actividad {
             width: 250px;
         }
@@ -544,9 +556,22 @@
             max-width: calc(100% - 40px);
             right: 20px;
         }
+
+        .modal {
+            padding: 10px;
+        }
+
+        .modal-header,
+        .modal-body {
+            padding: 16px;
+        }
     }
 
     @media (max-width: 480px) {
+        .plan-container {
+            padding: 14px 10px;
+        }
+
         .lineas-grid {
             flex-direction: column;
             align-items: stretch;
@@ -554,6 +579,26 @@
 
         .linea-btn {
             width: 100%;
+        }
+
+        .stat-card,
+        .lineas-section {
+            padding: 18px;
+        }
+
+        .linea-header {
+            padding: 18px;
+        }
+
+        .table {
+            min-width: 860px;
+        }
+
+        .notificacion-lateral {
+            left: 10px;
+            right: 10px;
+            max-width: none;
+            width: auto;
         }
     }
 </style>
@@ -596,7 +641,7 @@
     }
 @endphp
 
-<div class="historico-container">
+<div class="plan-container">
     <div class="flex justify-between items-center mb-6">
         <div>
             <a href="{{ route('pasteurizadora.dashboard') }}"
@@ -1114,9 +1159,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!detalleActividad) return;
 
         const usuarioNombre = usuario => usuario && usuario.name ? usuario.name : null;
-        const tipo = data.tipo_equipo || options.tipo || 'pasteurizadora';
-        const esPasteurizadora = tipo === 'pasteurizadora';
-        const icon = esPasteurizadora ? 'fa-industry' : 'fa-clipboard-list';
+        const icon = 'fa-clipboard-list';
         const headerGradient = data.completado
             ? 'linear-gradient(135deg, #065f46 0%, #059669 52%, #34d399 100%)'
             : 'linear-gradient(135deg, #1e3a8a 0%, #2563eb 52%, #38bdf8 100%)';

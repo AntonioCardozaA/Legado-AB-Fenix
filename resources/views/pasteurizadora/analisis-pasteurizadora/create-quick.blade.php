@@ -9,49 +9,97 @@
 @endphp
 <style>
     .pasteur-form-shell {
-        --primary-blue: #2563eb;
+        --primary-blue: #3b82f6;
         --border: #e5e7eb;
-        --soft-shadow: 0 1px 2px rgba(15, 23, 42, .05);
+        --soft-shadow: 0 10px 15px -3px rgba(15, 23, 42, .10), 0 4px 6px -4px rgba(15, 23, 42, .10);
+        width: 100%;
+        max-width: min(56rem, 100%);
+        overflow-x: clip;
+    }
+
+    .pasteur-form-shell * {
+        box-sizing: border-box;
+        min-width: 0;
     }
 
     .pasteur-form-card {
         background: #ffffff;
-        border: 1px solid var(--border);
-        border-radius: 12px;
+        border: 0;
+        border-radius: 1rem;
         box-shadow: var(--soft-shadow);
-        padding: 24px;
+        padding: clamp(1rem, 4vw, 2rem);
     }
 
     .pasteur-context {
-        background: linear-gradient(to right, #f9fafb, #ffffff);
+        background: linear-gradient(to right, #f9fafb, #f3f4f6);
         border: 1px solid var(--border);
-        border-radius: 12px;
+        border-radius: 0.75rem;
         padding: 16px;
+        overflow: hidden;
     }
 
     .pasteur-context img {
-        background: #eff6ff;
-        border: 1px solid #bfdbfe;
-        border-radius: 8px;
-        padding: 8px;
+        background: transparent;
+        border: 0;
+        border-radius: 0;
+        padding: 0;
     }
 
     .pasteur-form-shell label i,
     .pasteur-form-shell p i {
         color: var(--primary-blue);
     }
+
+    .pasteur-form-shell h1,
+    .pasteur-form-shell p,
+    .pasteur-form-shell span,
+    .pasteur-form-shell label,
+    .pasteur-form-shell textarea {
+        overflow-wrap: anywhere;
+    }
+
+    .pasteur-form-shell .create-actions {
+        flex-wrap: wrap;
+    }
+
+    @media (max-width: 640px) {
+        .pasteur-form-shell {
+            padding: 1.25rem 0.75rem;
+        }
+
+        .pasteur-form-shell h1 {
+            font-size: 1.5rem;
+            line-height: 1.25;
+        }
+
+        .pasteur-context {
+            padding: 14px;
+        }
+
+        .pasteur-form-shell input,
+        .pasteur-form-shell select,
+        .pasteur-form-shell textarea {
+            font-size: 16px;
+        }
+
+        .pasteur-form-shell .create-action,
+        .pasteur-form-shell .responsive-action {
+            width: 100%;
+            justify-content: center;
+        }
+    }
 </style>
 
-<div class="pasteur-form-shell max-w-4xl mx-auto px-4 py-8">
+<div class="pasteur-form-shell max-w-4xl mx-auto py-10 px-4">
     <div class="pasteur-form-card">
         {{-- Encabezado --}}
         <div class="mb-8">
             <div class="flex items-center gap-3 mb-4">
                 <a href="{{ $analisisRoute('index', request()->query()) }}"
-                   class="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-gray-100 text-gray-500 transition hover:bg-gray-200 hover:text-blue-600">
+                   class="text-gray-400 hover:text-blue-600 transition">
                     <i class="fas fa-arrow-left text-xl"></i>
                 </a>
-                <h1 class="text-2xl font-bold text-gray-800">
+                <h1 class="text-3xl font-bold text-gray-800">
                     Agregar Análisis
                 </h1>
             </div>
@@ -70,7 +118,6 @@
                     <div class="grid grid-cols-1 md:grid-cols-4 gap-4 md:gap-6 flex-grow">
                         <div class="text-center md:text-left">
                             <p class="text-gray-600 font-semibold text-sm mb-1">
-                                <i class="fas fa-temperature-high mr-1"></i>
                                 Línea
                             </p>
                             <p class="text-gray-800 font-medium">{{ $linea->nombre ?? 'Sin línea' }}</p>
@@ -166,7 +213,14 @@
 
             {{-- Estado de Niveles y Lados --}}
             @php
-                $estadoRevision = \App\Models\AnalisisPasteurizadora::getEstadoRevision($linea->id, $modulo, $componenteKey, null);
+                $estadoRevision = $estadoRevision ?? \App\Models\AnalisisPasteurizadora::getEstadoRevision(
+                    $linea->id,
+                    $modulo,
+                    $componenteKey,
+                    null,
+                    $analisisArea ?? null,
+                    \App\Models\AnalisisPasteurizadora::TIPO_REGISTRO_QUICK
+                );
             @endphp
             <div class="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl p-6 border border-indigo-200">
                 <div class="mb-4">
@@ -249,7 +303,7 @@
                         </div>
                     </div>
 
-                    <div id="componentes-checklist" class="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    <div id="componentes-checklist" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                         @php
                             $todosLosNumeros = range(1, $totalComponentes);
                         @endphp
@@ -294,18 +348,44 @@
                 </div>
             </div>
 
-            {{-- Fecha --}}
+            {{-- Rango de fechas --}}
             <div>
-                <label class="block text-sm font-semibold text-gray-700 mb-2">
-                    <i class="far fa-calendar-alt text-blue-600 mr-1"></i>
-                    Fecha del Análisis *
-                </label>
-                <input type="date"
-                       name="fecha_analisis"
-                       value="{{ old('fecha_analisis', $fechaSugerida ?? now()->format('Y-m-d')) }}"
-                       required
-                       class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500 shadow-sm
-                       @error('fecha_analisis') border-red-500 @enderror">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label for="fecha_inicio" class="block text-sm font-semibold text-gray-700 mb-2">
+                            <i class="far fa-calendar-alt text-blue-600 mr-1"></i>
+                            Fecha de inicio *
+                        </label>
+                        <input type="date"
+                               id="fecha_inicio"
+                               name="fecha_inicio"
+                               value="{{ old('fecha_inicio', old('fecha_analisis', $fechaSugerida ?? now()->format('Y-m-d'))) }}"
+                               required
+                               class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500 shadow-sm
+                               @error('fecha_inicio') border-red-500 @enderror">
+                        @error('fecha_inicio')
+                            <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                    <div>
+                        <label for="fecha_fin" class="block text-sm font-semibold text-gray-700 mb-2">
+                            <i class="far fa-calendar-check text-blue-600 mr-1"></i>
+                            Fecha final *
+                        </label>
+                        <input type="date"
+                               id="fecha_fin"
+                               name="fecha_fin"
+                               value="{{ old('fecha_fin', old('fecha_analisis', $fechaSugerida ?? now()->format('Y-m-d'))) }}"
+                               required
+                               class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500 shadow-sm
+                               @error('fecha_fin') border-red-500 @enderror">
+                        @error('fecha_fin')
+                            <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+                        @enderror
+                    </div>
+                </div>
+
                 @error('fecha_analisis')
                     <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
                 @enderror
