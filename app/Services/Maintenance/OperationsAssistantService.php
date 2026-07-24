@@ -106,6 +106,7 @@ class OperationsAssistantService
                 'Usar solo el contexto dado para afirmar datos especificos del sistema o del mantenimiento.',
                 'Tomar como prioridad el bloque platform_context para responder con vision global de la plataforma y no solo de la pagina actual.',
                 'Priorizar module_insights cuando exista, porque resume comparativos, rankings y estados actuales listos para responder.',
+                'Si module_insights contiene lubrication_lookup o coincidencias de documentos indexados, usarlos antes de concluir que falta informacion.',
                 'Si la pregunta pide maximos, minimos, ranking o comparativos, usar primero los resumenes comparativos presentes en platform_context.',
                 'Si falta informacion, decirlo claramente sin inventar.',
                 'Cuando aplique, entregar pasos accionables punto por punto.',
@@ -124,6 +125,8 @@ class OperationsAssistantService
             'El bloque platform_context contiene contexto vivo de toda la plataforma, incluyendo modulos, tablas relevantes, resumen de base de datos, actividad reciente, coincidencias por consulta y evidencias con fotos.',
             'No te limites a la pagina actual si platform_context aporta datos mas amplios y vigentes.',
             'Si existe module_insights, usalo como fuente primaria para rankings, comparativos, tendencias y estado actual de componentes o lineas.',
+            'Si module_insights incluye lubrication_lookup, tomalo como una referencia estructurada valida para responder preguntas de aceite, lubricante, litros, SKU y consumibles de lavadora.',
+            'Cuando existan coincidencias de documentos de conocimiento indexados, usalas para complementar o confirmar la respuesta operativa.',
             'Si platform_context ya incluye un ranking, panorama o comparativo actual, respondelo directamente sin decir que faltan datos.',
             'No inventes estados de equipos, costos, responsables ni trabajos ejecutados.',
             'Si el contexto no alcanza para responder con certeza, dilo explicitamente y sugiere el siguiente dato o modulo a revisar.',
@@ -237,6 +240,10 @@ class OperationsAssistantService
         }
 
         if (($reply = $this->replyForMostDamagedComponents($normalized, $platformContext)) !== null) {
+            return $reply;
+        }
+
+        if (($reply = $this->replyForWasherLubrication($normalized, $platformContext)) !== null) {
             return $reply;
         }
 
@@ -500,6 +507,116 @@ class OperationsAssistantService
     }
 
     /**
+     * @param  array<string, mixed>  $platformContext
+     * @return array{content: string, metadata: array<string, mixed>}|null
+     */
+    private function replyForWasherLubrication(string $question, array $platformContext): ?array
+    {
+        if (!(
+            str_contains($question, 'aceite')
+            || str_contains($question, 'lubric')
+            || str_contains($question, 'litro')
+            || str_contains($question, 'fluido')
+        )) {
+            return null;
+        }
+
+        $lookup = data_get($platformContext, 'module_insights.lavadora.lubrication_lookup');
+        $matches = is_array($lookup) ? ($lookup['matches'] ?? []) : [];
+
+        if (!is_array($matches) || $matches === []) {
+            return null;
+        }
+
+        $knowledgeMatches = is_array($lookup) && is_array($lookup['knowledge_matches'] ?? null)
+            ? $lookup['knowledge_matches']
+            : [];
+        $primary = $matches[0];
+        $product = (string) ($primary['producto'] ?? 'Lubricante');
+        $sku = (string) ($primary['sku'] ?? 'sin SKU');
+        $type = (string) ($primary['tipo'] ?? 'Aceite lubricante industrial');
+        $requestedLineas = $this->extractLineReferences($question);
+        $lineas = $requestedLineas !== []
+            ? $requestedLineas
+            : collect($primary['lineas'] ?? [])->filter()->values()->all();
+        $componentes = collect($primary['componentes'] ?? [])->filter()->values()->all();
+        $quantity = isset($primary['cantidad_referencia']) && $primary['cantidad_referencia'] !== null
+            ? $this->formatNumber((float) $primary['cantidad_referencia']) . ' ' . ((string) ($primary['unidad_referencia'] ?? 'LT'))
+            : null;
+        $unitCost = isset($primary['costo_unitario']) && (float) $primary['costo_unitario'] > 0
+            ? '$' . number_format((float) $primary['costo_unitario'], 2, '.', ',') . ' MXN por ' . ((string) ($primary['unidad_referencia'] ?? 'LT'))
+            : null;
+        $referenceCost = isset($primary['costo_referencia']) && $primary['costo_referencia'] !== null
+            ? '$' . number_format((float) $primary['costo_referencia'], 2, '.', ',') . ' MXN'
+            : null;
+        $asksQuantity = str_contains($question, 'cuanto')
+            || str_contains($question, 'cuantos')
+            || str_contains($question, 'cantidad')
+            || str_contains($question, 'litro')
+            || str_contains($question, 'capacidad');
+
+        $answer = $asksQuantity && $quantity
+            ? 'La referencia registrada para '
+                . $this->formatComponentPhrase($componentes, $lineas)
+                . ' es '
+                . $quantity
+                . ' de '
+                . $product
+                . ' (SKU ' . $sku . ').'
+            : 'Para '
+                . $this->formatComponentPhrase($componentes, $lineas)
+                . ' el lubricante de referencia es '
+                . $product
+                . ' (SKU ' . $sku . ').';
+
+        $extraMatches = collect($matches)
+            ->skip(1)
+            ->take(3)
+            ->map(function (array $item): string {
+                return implode(' | ', array_filter([
+                    $item['producto'] ?? null,
+                    isset($item['sku']) ? 'SKU ' . $item['sku'] : null,
+                    !empty($item['lineas']) ? implode(', ', $item['lineas']) : null,
+                    !empty($item['componentes']) ? implode(', ', $item['componentes']) : null,
+                ]));
+            })
+            ->all();
+
+        $sources = [
+            ['type' => 'lubrication_lookup', 'reference' => 'SKU ' . $sku],
+        ];
+
+        foreach (collect($knowledgeMatches)->take(2) as $knowledgeMatch) {
+            if (!is_array($knowledgeMatch)) {
+                continue;
+            }
+
+            $sources[] = [
+                'type' => 'knowledge_document',
+                'reference' => (string) ($knowledgeMatch['reference'] ?? 'Documento tecnico'),
+            ];
+        }
+
+        return $this->deterministicResponse(
+            $answer,
+            array_filter([
+                'Tipo: ' . $type . '.',
+                $componentes !== [] ? 'Componentes relacionados: ' . implode(', ', $componentes) . '.' : null,
+                $unitCost ? 'Costo unitario: ' . $unitCost . '.' : null,
+                $quantity ? 'Cantidad de referencia: ' . $quantity . '.' : null,
+                $referenceCost ? 'Costo de referencia: ' . $referenceCost . '.' : null,
+                $extraMatches !== [] ? 'Coincidencias adicionales: ' . implode(' || ', $extraMatches) . '.' : null,
+                $knowledgeMatches !== [] ? 'Documento relacionado: ' . (string) ($knowledgeMatches[0]['reference'] ?? 'Documento tecnico') . '.' : null,
+            ]),
+            [
+                'Si quieres, tambien te digo el costo estimado, la cantidad de litros o los otros aceites relacionados por linea.',
+            ],
+            $sources,
+            0.98
+        );
+    }
+
+    /**
      * @param  array<int, string>  $keyPoints
      * @param  array<int, string>  $nextSteps
      * @param  array<int, array<string, mixed>>  $sources
@@ -532,6 +649,45 @@ class OperationsAssistantService
                 'platform_facts' => true,
             ],
         ];
+    }
+
+    /**
+     * @param  array<int, mixed>  $componentes
+     * @param  array<int, mixed>  $lineas
+     */
+    private function formatComponentPhrase(array $componentes, array $lineas): string
+    {
+        $componentLabel = $componentes !== []
+            ? implode(', ', array_map(fn ($value) => (string) $value, $componentes))
+            : 'el componente consultado';
+        $lineLabel = $lineas !== []
+            ? 'en ' . implode(', ', array_map(fn ($value) => (string) $value, $lineas))
+            : 'en las lineas registradas';
+
+        return $componentLabel . ' ' . $lineLabel;
+    }
+
+    private function formatNumber(float $value): string
+    {
+        $formatted = number_format($value, 2, '.', '');
+
+        return rtrim(rtrim($formatted, '0'), '.');
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function extractLineReferences(string $question): array
+    {
+        $lineas = [];
+
+        if (preg_match_all('/(?:lavadora|linea|l)\s*[-#]?\s*0*(\d{1,2})\b/u', $question, $matches)) {
+            foreach ($matches[1] as $lineNumber) {
+                $lineas[] = 'L-' . str_pad((string) $lineNumber, 2, '0', STR_PAD_LEFT);
+            }
+        }
+
+        return array_values(array_unique($lineas));
     }
 
     /**
