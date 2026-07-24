@@ -489,6 +489,13 @@
                                class="sr-only">
                     </div>
                 </div>
+                <div class="mt-4 rounded-lg border border-dashed border-gray-300 bg-white p-3">
+                    <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                        <p id="fotos_resumen" class="text-sm font-medium text-gray-600">Sin imagenes seleccionadas</p>
+                        <p class="text-xs text-gray-500">JPG, PNG, WEBP, GIF o BMP. Max. 5MB por imagen.</p>
+                    </div>
+                    <div id="preview_fotos" class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-4"></div>
+                </div>
 
                 @error('evidencia_fotos')
                     <p class="text-red-500 text-sm mt-2">{{ $message }}</p>
@@ -697,7 +704,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const previewFotos = document.getElementById('preview_fotos');
     const fotosResumen = document.getElementById('fotos_resumen');
     const maxFotoSize = 5 * 1024 * 1024;
-    const soportaDataTransfer = typeof DataTransfer !== 'undefined';
     const extensionesPermitidas = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'];
 
     function actualizarResumenFotos(totalFotos) {
@@ -706,11 +712,23 @@ document.addEventListener('DOMContentLoaded', function() {
             : 'Sin imagenes seleccionadas';
     }
 
-    function crearDataTransfer(files) {
-        const dataTransfer = new DataTransfer();
+    function crearDataTransfer(files = []) {
+        if (typeof DataTransfer === 'undefined') {
+            return null;
+        }
+
+        let dataTransfer;
+        try {
+            dataTransfer = new DataTransfer();
+        } catch (error) {
+            return null;
+        }
+
         files.forEach((file) => dataTransfer.items.add(file));
         return dataTransfer;
     }
+
+    const soportaDataTransfer = Boolean(crearDataTransfer());
 
     function getFotosPrincipales() {
         return Array.from(inputFotos.files || []);
@@ -765,7 +783,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     removeBtn.onclick = function() {
                         const fotos = getFotosPrincipales();
                         fotos.splice(index, 1);
-                        inputFotos.files = crearDataTransfer(fotos).files;
+                        const dataTransfer = crearDataTransfer(fotos);
+                        if (dataTransfer) {
+                            inputFotos.files = dataTransfer.files;
+                        }
                         renderPreview(getFotosPrincipales(), true);
                     };
                     imgContainer.appendChild(removeBtn);
@@ -802,7 +823,12 @@ document.addEventListener('DOMContentLoaded', function() {
             nuevasFotos.push(file);
         });
 
-        inputFotos.files = crearDataTransfer(nuevasFotos).files;
+        const dataTransfer = crearDataTransfer(nuevasFotos);
+        if (!dataTransfer) {
+            return;
+        }
+
+        inputFotos.files = dataTransfer.files;
         renderPreview(getFotosPrincipales(), true);
     }
 
