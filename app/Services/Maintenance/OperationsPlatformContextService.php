@@ -8,6 +8,7 @@ use App\Models\AnalisisEtiquetadora;
 use App\Models\AnalisisLavadora;
 use App\Models\AnalisisPasteurizadora;
 use App\Models\Componente;
+use App\Models\CostCatalogItem;
 use App\Models\Elongacion;
 use App\Models\LavadoraCostEntry;
 use App\Models\Linea;
@@ -37,6 +38,8 @@ class OperationsPlatformContextService
         'maintenance_events',
         'elongaciones',
         'cadena_ciclos',
+        'cost_catalog_items',
+        'cost_automation_rules',
         'lavadora_cost_entries',
         'washer_knowledge_documents',
         'washer_knowledge_chunks',
@@ -73,6 +76,8 @@ class OperationsPlatformContextService
             'analisis_componentes',
             'plan_accion',
             'maintenance_events',
+            'cost_catalog_items',
+            'cost_automation_rules',
             'lavadora_cost_entries',
             'washer_knowledge_documents',
             'washer_knowledge_chunks',
@@ -101,6 +106,8 @@ class OperationsPlatformContextService
     ];
 
     private ?Collection $tableNameCache = null;
+
+    private ?Collection $lubricationReferenceCache = null;
 
     public function __construct(
         private readonly PromptSafetySanitizer $sanitizer
@@ -147,6 +154,7 @@ class OperationsPlatformContextService
                 'damage_periods' => $this->washerDamagePeriods($problematicAnalyses),
                 'current_damage_by_line' => $this->washerCurrentDamageByLine($problematicSnapshots),
                 'targeted_component_lookup' => $this->washerTargetedComponentLookup($question, $latestSnapshots),
+                'lubrication_lookup' => $this->washerLubricationLookup($question),
             ];
         }
 
@@ -686,6 +694,8 @@ class OperationsPlatformContextService
             }
 
             $targetedLookup = $this->washerTargetedComponentLookup($question, $latestSnapshots);
+            $lubricationLookup = $this->washerLubricationLookup($question);
+            $knowledgeDocumentMatches = $this->washerKnowledgeDocumentMatches($question);
 
             $candidates = $candidates->concat(
                 collect($targetedLookup['matches'] ?? [])->map(fn (array $match): array => [
@@ -706,58 +716,94 @@ class OperationsPlatformContextService
             );
 
             $candidates = $candidates->concat(
+                collect($lubricationLookup['matches'] ?? [])->map(fn (array $match): array => [
+                    'module' => User::MODULE_LAVADORA,
+                    'type' => 'lubricante_lavadora',
+                    'reference' => 'Lubricante ' . ($match['sku'] ?? 'sin sku'),
+                    'date' => null,
+                    'summary' => $this->summarizeText([
+                        implode(', ', $match['lineas'] ?? []),
+                        implode(', ', $match['componentes'] ?? []),
+                        $match['producto'] ?? null,
+                        $match['tipo'] ?? null,
+                        isset($match['cantidad_referencia']) && $match['cantidad_referencia'] !== null
+                            ? 'Cantidad ref: ' . $this->formatDecimal((float) $match['cantidad_referencia']) . ' ' . ($match['unidad_referencia'] ?? 'LT')
+                            : null,
+                        isset($match['costo_unitario']) && $match['costo_unitario'] > 0
+                            ? 'Costo unitario: ' . number_format((float) $match['costo_unitario'], 2, '.', ',')
+                            : null,
+                    ]),
+                    'score' => 34,
+                ])
+            );
+
+            $candidates = $candidates->concat(
+                collect($lubricationLookup['knowledge_matches'] ?? [])->map(fn (array $match): array => [
+                    'module' => User::MODULE_LAVADORA,
+                    'type' => 'documento_conocimiento',
+                    'reference' => $match['reference'] ?? 'Documento tecnico',
+                    'date' => $match['updated_at'] ?? null,
+                    'summary' => $this->summarizeText([
+                        $match['document_type'] ?? null,
+                        $match['linea'] ?? null,
+                        $match['componente'] ?? null,
+                        $match['excerpt'] ?? null,
+                    ], 420),
+                    'score' => 28,
+                ])
+            );
+
+            $candidates = $candidates->concat(
                 LavadoraCostEntry::query()
                     ->with(['linea', 'componente', 'catalogItem'])
                     ->latest('cost_date')
                     ->limit(30)
                     ->get()
-                    ->map(fn (LavadoraCostEntry $entry): array => [
-                        'module' => User::MODULE_LAVADORA,
-                        'type' => 'costo_lavadora',
-                        'reference' => 'Costo #' . $entry->id,
-                        'date' => optional($entry->cost_date)->toDateString(),
-                        'summary' => $this->summarizeText([
-                            $entry->linea?->nombre,
-                            $entry->componente?->nombre,
-                            $entry->catalogItem?->name ?? $entry->catalog_name_snapshot,
-                            $entry->source_reference,
-                            'Total: ' . number_format((float) $entry->total_cost, 2),
-                        ]),
-                        'score' => $this->scoreTokens($tokens, implode(' ', [
-                            (string) ($entry->linea?->nombre ?? ''),
-                            (string) ($entry->componente?->nombre ?? ''),
-                            (string) ($entry->catalogItem?->name ?? $entry->catalog_name_snapshot ?? ''),
-                            (string) $entry->source_reference,
-                            (string) $entry->notas,
-                        ])),
-                    ])
+                    ->map(function (LavadoraCostEntry $entry) use ($tokens): array {
+                        $catalogName = $this->costCatalogConcept($entry);
+                        $catalogType = $this->costCatalogType($entry);
+                        $catalogUnit = $entry->catalogItem?->unidad_medida ?? $entry->unidad_medida_snapshot;
+
+                        return [
+                            'module' => User::MODULE_LAVADORA,
+                            'type' => 'costo_lavadora',
+                            'reference' => 'Costo #' . $entry->id,
+                            'date' => optional($entry->cost_date)->toDateString(),
+                            'summary' => $this->summarizeText([
+                                $entry->linea?->nombre,
+                                $entry->componente?->nombre,
+                                $catalogName,
+                                $catalogType,
+                                $catalogUnit ? 'Unidad: ' . $catalogUnit : null,
+                                $entry->source_reference,
+                                'Total: ' . number_format((float) $entry->total_cost, 2),
+                            ]),
+                            'score' => $this->scoreTokens($tokens, implode(' ', array_filter([
+                                (string) ($entry->linea?->nombre ?? ''),
+                                (string) ($entry->componente?->nombre ?? ''),
+                                (string) ($catalogName ?? ''),
+                                (string) ($catalogType ?? ''),
+                                (string) ($catalogUnit ?? ''),
+                                (string) $entry->source_reference,
+                                (string) $entry->notas,
+                            ]))),
+                        ];
+                    })
             );
 
             $candidates = $candidates->concat(
-                WasherKnowledgeDocument::query()
-                    ->with(['linea', 'componente'])
-                    ->latest('updated_at')
-                    ->limit(20)
-                    ->get()
-                    ->map(fn (WasherKnowledgeDocument $document): array => [
+                collect($knowledgeDocumentMatches)->map(fn (array $document): array => [
                         'module' => User::MODULE_LAVADORA,
                         'type' => 'documento_conocimiento',
-                        'reference' => 'Documento #' . $document->id,
-                        'date' => optional($document->updated_at)->toDateString(),
+                        'reference' => $document['reference'] ?? 'Documento tecnico',
+                        'date' => $document['updated_at'] ?? null,
                         'summary' => $this->summarizeText([
-                            $document->title,
-                            $document->document_type,
-                            $document->linea?->nombre,
-                            $document->componente?->nombre,
-                            $document->lifecycle_status,
+                            $document['document_type'] ?? null,
+                            $document['linea'] ?? null,
+                            $document['componente'] ?? null,
+                            $document['excerpt'] ?? null,
                         ]),
-                        'score' => $this->scoreTokens($tokens, implode(' ', [
-                            (string) $document->title,
-                            (string) $document->document_type,
-                            (string) ($document->linea?->nombre ?? ''),
-                            (string) ($document->componente?->nombre ?? ''),
-                            (string) $document->extracted_text,
-                        ])),
+                        'score' => 20 + (int) ($document['score'] ?? 0),
                     ])
             );
         }
@@ -830,6 +876,12 @@ class OperationsPlatformContextService
         return $candidates
             ->filter(fn (array $item): bool => $item['score'] > 0)
             ->sortByDesc('score')
+            ->unique(fn (array $item): string => implode('|', [
+                (string) ($item['module'] ?? ''),
+                (string) ($item['type'] ?? ''),
+                (string) ($item['reference'] ?? ''),
+                (string) ($item['date'] ?? ''),
+            ]))
             ->take(max(4, (int) config('maintenance_ai.platform_context.query_match_limit', 8)))
             ->values()
             ->map(fn (array $item): array => [
@@ -840,6 +892,356 @@ class OperationsPlatformContextService
                 'summary' => $item['summary'],
             ])
             ->all();
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function washerLubricationLookup(string $question): array
+    {
+        $profile = $this->lubricationQuestionProfile($question);
+
+        if (!$profile['is_lubrication_query']) {
+            return [
+                'query' => $this->sanitizer->sanitizeText($question, 180),
+                'matches' => [],
+                'knowledge_matches' => [],
+            ];
+        }
+
+        $matches = $this->lubricationReferences()
+            ->map(function (array $reference) use ($profile): array {
+                $score = $this->scoreLubricationReference($reference, $profile);
+
+                return [
+                    'score' => $score,
+                    'data' => $reference,
+                ];
+            })
+            ->filter(fn (array $item): bool => $item['score'] > 0)
+            ->sortByDesc('score')
+            ->take(4)
+            ->values()
+            ->map(fn (array $item): array => $item['data'])
+            ->all();
+
+        $componentTerms = collect($matches)
+            ->pluck('component_terms')
+            ->flatten()
+            ->merge($profile['component_terms'])
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+
+        return [
+            'query' => $this->sanitizer->sanitizeText($question, 180),
+            'matches' => $matches,
+            'knowledge_matches' => $this->washerKnowledgeDocumentMatches($question, $profile['lineas'], $componentTerms, 3),
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $profile
+     */
+    private function scoreLubricationReference(array $reference, array $profile): int
+    {
+        $lineas = array_values(array_filter(array_map(
+            fn ($linea) => is_scalar($linea) ? Str::upper((string) $linea) : null,
+            $reference['lineas'] ?? []
+        )));
+        $componentCodes = array_values(array_filter(array_map(
+            fn ($code) => is_scalar($code) ? Str::upper((string) $code) : null,
+            $reference['component_codes'] ?? []
+        )));
+        $componentTerms = $this->tokenize(implode(' ', $reference['component_terms'] ?? []));
+        $haystack = implode(' ', array_filter([
+            (string) ($reference['sku'] ?? ''),
+            (string) ($reference['producto'] ?? ''),
+            (string) ($reference['tipo'] ?? ''),
+            (string) ($reference['clasificacion'] ?? ''),
+            implode(' ', $lineas),
+            implode(' ', array_map(fn (string $linea): string => $this->lineAliases($linea), $lineas)),
+            implode(' ', $componentCodes),
+            implode(' ', $reference['componentes'] ?? []),
+            implode(' ', $reference['component_terms'] ?? []),
+            implode(' ', $reference['palabras_clave'] ?? []),
+            (string) ($reference['uso_referencia'] ?? ''),
+            (string) ($reference['observaciones'] ?? ''),
+        ]));
+
+        $score = $this->scoreTokens($profile['tokens'], $haystack);
+
+        if ($profile['lineas'] !== []) {
+            if (count(array_intersect($profile['lineas'], $lineas)) === 0) {
+                return 0;
+            }
+
+            $score += 8;
+        }
+
+        $hasSpecificComponent = $profile['component_codes'] !== [] || $profile['component_terms'] !== [];
+        $componentMatched = count(array_intersect($profile['component_codes'], $componentCodes)) > 0
+            || $this->tokensOverlap($profile['component_terms'], $componentTerms);
+
+        if ($hasSpecificComponent && !$componentMatched) {
+            return 0;
+        }
+
+        if ($componentMatched) {
+            $score += 8;
+        }
+
+        if (($profile['asks_quantity'] ?? false) && ($reference['cantidad_referencia'] ?? null) !== null) {
+            $score += 3;
+        }
+
+        if (($profile['asks_type'] ?? false) || ($profile['asks_product'] ?? false)) {
+            $score += 2;
+        }
+
+        return $score;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function lubricationQuestionProfile(string $question): array
+    {
+        $normalized = Str::lower(Str::ascii($question));
+        $references = $this->extractQuestionReferences($question);
+        $componentCodes = [];
+        $componentTerms = [];
+
+        if (str_contains($normalized, 'servo chico') || str_contains($normalized, 'servos chicos')) {
+            $componentCodes[] = 'SERVO_CHICO';
+            $componentTerms = array_merge($componentTerms, ['servo', 'chico', 'servos']);
+        }
+
+        if (str_contains($normalized, 'servo grande') || str_contains($normalized, 'servos grandes')) {
+            $componentCodes[] = 'SERVO_GRANDE';
+            $componentTerms = array_merge($componentTerms, ['servo', 'grande', 'servos']);
+        }
+
+        if (str_contains($normalized, 'reductor') || str_contains($normalized, 'reductores') || str_contains($normalized, 'sin fin')) {
+            $componentCodes = array_merge($componentCodes, ['RV200', 'RV200_SIN_FIN']);
+            $componentTerms = array_merge($componentTerms, ['reductor', 'reductores', 'rv200', 'sin', 'fin']);
+        }
+
+        if (str_contains($normalized, 'red ppal') || str_contains($normalized, 'red principal')) {
+            $componentTerms = array_merge($componentTerms, ['red', 'ppal', 'principal']);
+        }
+
+        $isLubricationQuery = str_contains($normalized, 'aceite')
+            || str_contains($normalized, 'lubric')
+            || str_contains($normalized, 'litro')
+            || str_contains($normalized, 'lts')
+            || str_contains($normalized, 'fluido');
+
+        $asksQuantity = str_contains($normalized, 'cuanto')
+            || str_contains($normalized, 'cuantos')
+            || str_contains($normalized, 'cantidad')
+            || str_contains($normalized, 'litro')
+            || str_contains($normalized, 'capacidad');
+
+        $asksType = str_contains($normalized, 'tipo')
+            || str_contains($normalized, 'especific')
+            || str_contains($normalized, 'viscos')
+            || str_contains($normalized, 'grado');
+
+        $asksProduct = str_contains($normalized, 'que aceite')
+            || str_contains($normalized, 'cual aceite')
+            || str_contains($normalized, 'que lubric')
+            || str_contains($normalized, 'cual lubric');
+
+        return [
+            'is_lubrication_query' => $isLubricationQuery,
+            'tokens' => $this->expandLubricationTokens($this->tokenize($question), $normalized),
+            'lineas' => $references['lineas'],
+            'component_codes' => array_values(array_unique($componentCodes)),
+            'component_terms' => array_values(array_unique(array_filter($componentTerms, fn (string $term): bool => $this->isSearchableToken($term)))),
+            'asks_quantity' => $asksQuantity,
+            'asks_type' => $asksType,
+            'asks_product' => $asksProduct,
+        ];
+    }
+
+    /**
+     * @param  array<int, string>  $tokens
+     * @return array<int, string>
+     */
+    private function expandLubricationTokens(array $tokens, string $normalizedQuestion): array
+    {
+        $expanded = $tokens;
+
+        if (
+            str_contains($normalizedQuestion, 'aceite')
+            || str_contains($normalizedQuestion, 'lubric')
+            || str_contains($normalizedQuestion, 'litro')
+        ) {
+            $expanded = array_merge($expanded, ['aceite', 'lubricante', 'lubricacion', 'litro', 'litros']);
+        }
+
+        if (str_contains($normalizedQuestion, 'servo')) {
+            $expanded[] = 'servo';
+            $expanded[] = 'servos';
+        }
+
+        if (str_contains($normalizedQuestion, 'reductor')) {
+            $expanded[] = 'reductor';
+            $expanded[] = 'reductores';
+        }
+
+        return array_values(array_unique(array_filter($expanded, fn (string $token): bool => $this->isSearchableToken($token))));
+    }
+
+    /**
+     * @return Collection<int, array<string, mixed>>
+     */
+    private function lubricationReferences(): Collection
+    {
+        if ($this->lubricationReferenceCache instanceof Collection) {
+            return $this->lubricationReferenceCache;
+        }
+
+        $data = require database_path('data/lavadora_cost_catalog.php');
+        $rawReferences = collect($data['lubrication_references'] ?? []);
+        $catalogItems = CostCatalogItem::query()
+            ->active()
+            ->whereIn('sku', $rawReferences->pluck('sku')->filter()->all())
+            ->get()
+            ->keyBy(fn (CostCatalogItem $item): string => (string) $item->sku);
+
+        return $this->lubricationReferenceCache = $rawReferences
+            ->map(function (array $reference) use ($catalogItems): array {
+                $sku = (string) ($reference['sku'] ?? '');
+                /** @var CostCatalogItem|null $catalogItem */
+                $catalogItem = $catalogItems->get($sku);
+                $unit = $this->normalizeLubricationUnit($reference['unidad_referencia'] ?? $catalogItem?->unidad_medida);
+                $unitCost = round((float) ($catalogItem?->costo_unitario ?? $reference['costo_unitario'] ?? 0), 2);
+                $referenceQuantity = isset($reference['cantidad_referencia']) && $reference['cantidad_referencia'] !== null
+                    ? (float) $reference['cantidad_referencia']
+                    : null;
+                $referenceCost = isset($reference['costo_referencia']) && $reference['costo_referencia'] !== null
+                    ? round((float) $reference['costo_referencia'], 2)
+                    : ($referenceQuantity !== null && $unitCost > 0
+                        ? round($referenceQuantity * $unitCost, 2)
+                        : null);
+
+                return [
+                    'sku' => $sku,
+                    'producto' => (string) ($catalogItem?->nombre ?: ($reference['producto'] ?? 'Lubricante')),
+                    'categoria' => (string) ($catalogItem?->categoria ?: 'Lubricante'),
+                    'tipo' => (string) ($reference['tipo'] ?? 'Aceite lubricante industrial'),
+                    'clasificacion' => (string) ($reference['clasificacion'] ?? 'Lubricante liquido'),
+                    'lineas' => array_values($reference['lineas'] ?? []),
+                    'component_codes' => array_values($reference['component_codes'] ?? []),
+                    'componentes' => array_values($reference['componentes'] ?? []),
+                    'component_terms' => array_values($reference['component_terms'] ?? []),
+                    'uso_referencia' => $reference['uso_referencia'] ?? null,
+                    'cantidad_referencia' => $referenceQuantity,
+                    'unidad_referencia' => $unit,
+                    'unidad_medida' => $unit,
+                    'costo_unitario' => $unitCost,
+                    'costo_referencia' => $referenceCost,
+                    'observaciones' => $reference['observaciones'] ?? null,
+                    'palabras_clave' => array_values($reference['palabras_clave'] ?? []),
+                ];
+            })
+            ->values();
+    }
+
+    private function normalizeLubricationUnit(?string $unit): string
+    {
+        $normalized = Str::upper(trim((string) $unit));
+
+        return match ($normalized) {
+            'LITRO', 'LITROS', 'L', 'LT', 'LTS' => 'LT',
+            default => $normalized !== '' ? $normalized : 'LT',
+        };
+    }
+
+    private function formatDecimal(float $value): string
+    {
+        $formatted = number_format($value, 2, '.', '');
+
+        return rtrim(rtrim($formatted, '0'), '.');
+    }
+
+    /**
+     * @param  array<int, string>  $lineas
+     * @param  array<int, string>  $componentTerms
+     * @return array<int, array<string, mixed>>
+     */
+    private function washerKnowledgeDocumentMatches(string $question, array $lineas = [], array $componentTerms = [], int $limit = 4): array
+    {
+        $normalizedQuestion = Str::lower(Str::ascii($question));
+        $tokens = $this->expandLubricationTokens($this->tokenize($question), $normalizedQuestion);
+
+        if ($tokens === []) {
+            return [];
+        }
+
+        return WasherKnowledgeDocument::query()
+            ->with(['linea', 'componente'])
+            ->where('indexing_status', 'indexed')
+            ->where(function ($query): void {
+                $query->where('lifecycle_status', 'vigente')
+                    ->orWhereNull('lifecycle_status');
+            })
+            ->get()
+            ->map(function (WasherKnowledgeDocument $document) use ($tokens, $lineas, $componentTerms): array {
+                $linea = (string) ($document->linea?->nombre ?? '');
+                $haystack = implode(' ', array_filter([
+                    (string) $document->title,
+                    (string) $document->document_type,
+                    $linea,
+                    $this->lineAliases($linea),
+                    (string) ($document->componente?->nombre ?? ''),
+                    (string) $document->extracted_text,
+                ]));
+
+                $score = $this->scoreTokens($tokens, $haystack);
+
+                if ($lineas !== [] && $linea !== '' && in_array(Str::upper($linea), $lineas, true)) {
+                    $score += 4;
+                }
+
+                if ($componentTerms !== [] && $this->tokensOverlap(
+                    $componentTerms,
+                    $this->tokenize(implode(' ', array_filter([
+                        (string) ($document->componente?->nombre ?? ''),
+                        (string) $document->title,
+                        (string) $document->extracted_text,
+                    ])))
+                )) {
+                    $score += 4;
+                }
+
+                return [
+                    'score' => $score,
+                    'reference' => (string) $document->title,
+                    'document_type' => (string) $document->document_type,
+                    'linea' => $linea !== '' ? $linea : null,
+                    'componente' => $document->componente?->nombre,
+                    'excerpt' => $this->sanitizer->sanitizeText((string) ($document->extracted_text ?: $document->title), 280),
+                    'updated_at' => optional($document->updated_at ?: $document->uploaded_at)->toDateString(),
+                ];
+            })
+            ->filter(fn (array $item): bool => $item['score'] > 0)
+            ->sortByDesc('score')
+            ->take($limit)
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @param  array<int, string>  $left
+     * @param  array<int, string>  $right
+     */
+    private function tokensOverlap(array $left, array $right): bool
+    {
+        return count(array_intersect($left, $right)) > 0;
     }
 
     /**
@@ -1806,11 +2208,29 @@ class OperationsPlatformContextService
             'id' => $entry->id,
             'linea' => $entry->linea?->nombre,
             'componente' => $entry->componente?->nombre,
-            'concepto' => $entry->catalogItem?->name ?? $entry->catalog_name_snapshot,
+            'concepto' => $this->costCatalogConcept($entry),
             'origen' => LavadoraCostEntry::sourceLabel($entry->source_type),
             'costo_total' => $entry->total_cost,
             'fecha' => optional($entry->cost_date)->toDateString(),
         ];
+    }
+
+    private function costCatalogConcept(LavadoraCostEntry $entry): ?string
+    {
+        return $entry->catalogItem?->nombre ?: $entry->catalog_name_snapshot;
+    }
+
+    private function costCatalogType(LavadoraCostEntry $entry): ?string
+    {
+        $category = $entry->catalogItem?->categoria ?: $entry->catalog_category_snapshot;
+
+        if (blank($category)) {
+            return null;
+        }
+
+        return Str::lower($category) === 'lubricante'
+            ? 'Aceite lubricante'
+            : $category;
     }
 
     /**

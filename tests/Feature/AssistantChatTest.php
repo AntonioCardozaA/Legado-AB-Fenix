@@ -6,11 +6,14 @@ use App\Contracts\AiProviderInterface;
 use App\Models\AnalisisLavadora;
 use App\Models\AssistantMessage;
 use App\Models\Componente;
+use App\Models\CostCatalogItem;
 use App\Models\Elongacion;
 use App\Models\Linea;
 use App\Models\MaintenanceEvent;
 use App\Models\PlanAccion;
 use App\Models\User;
+use App\Models\WasherKnowledgeChunk;
+use App\Models\WasherKnowledgeDocument;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Schema;
 use Spatie\Permission\Models\Role;
@@ -860,6 +863,215 @@ class AssistantChatTest extends TestCase
         $content = (string) $response->json('message.content');
         $this->assertStringContainsString('L-07', $content);
         $this->assertStringContainsString('3 componentes', $content);
+    }
+
+    public function test_chat_answers_with_structured_lubrication_lookup_and_related_knowledge_document(): void
+    {
+        config([
+            'maintenance_ai.enabled' => true,
+        ]);
+
+        $capturingProvider = new class implements AiProviderInterface
+        {
+            public array $payloads = [];
+
+            public function generateStructuredActionPlan(array $payload): array
+            {
+                $this->payloads[] = $payload;
+
+                return [
+                    'data' => [
+                        'answer' => 'No deberia usarse el proveedor para esta consulta.',
+                        'key_points' => [],
+                        'next_steps' => [],
+                        'sources' => [],
+                        'confidence' => 0.5,
+                    ],
+                    'raw' => [],
+                    'meta' => [
+                        'provider' => 'fake',
+                        'model' => 'unused-model',
+                    ],
+                ];
+            }
+
+            public function createEmbedding(string $content): array
+            {
+                return [];
+            }
+
+            public function extractDocumentText(array $payload): string
+            {
+                return '';
+            }
+        };
+
+        $this->app->instance(AiProviderInterface::class, $capturingProvider);
+
+        $user = $this->authenticatedUser();
+        $linea = Linea::create([
+            'nombre' => 'L-09',
+            'tipo' => User::MODULE_LAVADORA,
+            'activo' => true,
+        ]);
+        $componente = Componente::create([
+            'nombre' => 'Servo Chico',
+            'codigo' => 'SERVO_CHICO',
+            'tipo_equipo' => User::MODULE_LAVADORA,
+            'activo' => true,
+        ]);
+
+        CostCatalogItem::create([
+            'sku' => '4056384',
+            'nombre' => 'Aceite Glygoyle_30',
+            'categoria' => 'Lubricante',
+            'unidad_medida' => 'Litro',
+            'costo_unitario' => 465.25,
+            'activo' => true,
+            'aliases' => ['ACEITE', 'LUBRICANTE', 'GLYGOYLE_30', 'SERVO CHICO'],
+        ]);
+
+        $document = WasherKnowledgeDocument::create([
+            'linea_id' => $linea->id,
+            'componente_id' => $componente->id,
+            'title' => 'Manual de lubricacion servo chico L-09',
+            'document_type' => 'manual tecnico',
+            'lifecycle_status' => 'vigente',
+            'storage_disk' => 'local',
+            'uploaded_by' => $user->id,
+            'uploaded_at' => now(),
+            'indexing_status' => 'indexed',
+            'extracted_text' => 'La linea 9 utiliza Aceite Glygoyle_30 para servos chicos con referencia de 1.5 LT.',
+            'indexed_at' => now(),
+        ]);
+
+        WasherKnowledgeChunk::create([
+            'document_id' => $document->id,
+            'chunk_index' => 1,
+            'content' => 'La linea 9 utiliza Aceite Glygoyle_30 para servos chicos con referencia de 1.5 LT.',
+            'searchable_text' => 'la linea 9 utiliza aceite glygoyle 30 para servos chicos con referencia de 1.5 lt',
+            'token_count' => 14,
+        ]);
+
+        $response = $this->actingAs($user)->postJson(route('assistant-chat.store'), [
+            'message' => 'Que aceite llevan los servos chicos de la linea 9?',
+            'page_context' => [
+                'module' => User::MODULE_LAVADORA,
+                'page_title' => 'Chat operativo',
+                'current_path' => '/asistente/chat',
+                'section' => 'Consulta tecnica',
+            ],
+        ]);
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('message.metadata.provider', 'platform-insights');
+
+        $this->assertSame([], $capturingProvider->payloads);
+        $content = (string) $response->json('message.content');
+        $this->assertStringContainsString('Aceite Glygoyle_30', $content);
+        $this->assertStringContainsString('SKU 4056384', $content);
+        $this->assertStringContainsString('1.5 LT', $content);
+        $this->assertStringContainsString('Manual de lubricacion servo chico L-09', $content);
+    }
+
+    public function test_chat_includes_uploaded_knowledge_documents_in_ai_context(): void
+    {
+        config([
+            'maintenance_ai.enabled' => true,
+        ]);
+
+        $capturingProvider = new class implements AiProviderInterface
+        {
+            public array $payloads = [];
+
+            public function generateStructuredActionPlan(array $payload): array
+            {
+                $this->payloads[] = $payload;
+
+                return [
+                    'data' => [
+                        'answer' => 'Resumen generado con base en el documento indexado.',
+                        'key_points' => [],
+                        'next_steps' => [],
+                        'sources' => [],
+                        'confidence' => 0.88,
+                    ],
+                    'raw' => [],
+                    'meta' => [
+                        'provider' => 'fake',
+                        'model' => 'assistant-doc-model',
+                    ],
+                ];
+            }
+
+            public function createEmbedding(string $content): array
+            {
+                return [];
+            }
+
+            public function extractDocumentText(array $payload): string
+            {
+                return '';
+            }
+        };
+
+        $this->app->instance(AiProviderInterface::class, $capturingProvider);
+
+        $user = $this->authenticatedUser();
+        $linea = Linea::create([
+            'nombre' => 'L-09',
+            'tipo' => User::MODULE_LAVADORA,
+            'activo' => true,
+        ]);
+        $componente = Componente::create([
+            'nombre' => 'Servo Chico',
+            'codigo' => 'SERVO_CHICO',
+            'tipo_equipo' => User::MODULE_LAVADORA,
+            'activo' => true,
+        ]);
+
+        $document = WasherKnowledgeDocument::create([
+            'linea_id' => $linea->id,
+            'componente_id' => $componente->id,
+            'title' => 'Guia tecnica de lubricacion L-09',
+            'document_type' => 'manual tecnico',
+            'lifecycle_status' => 'vigente',
+            'storage_disk' => 'local',
+            'uploaded_by' => $user->id,
+            'uploaded_at' => now(),
+            'indexing_status' => 'indexed',
+            'extracted_text' => 'El procedimiento documentado para la linea 9 indica revisar el nivel de aceite del servo chico y confirmar el uso de Glygoyle_30.',
+            'indexed_at' => now(),
+        ]);
+
+        WasherKnowledgeChunk::create([
+            'document_id' => $document->id,
+            'chunk_index' => 1,
+            'content' => 'El procedimiento documentado para la linea 9 indica revisar el nivel de aceite del servo chico y confirmar el uso de Glygoyle_30.',
+            'searchable_text' => 'el procedimiento documentado para la linea 9 indica revisar el nivel de aceite del servo chico y confirmar el uso de glygoyle 30',
+            'token_count' => 21,
+        ]);
+
+        $response = $this->actingAs($user)->postJson(route('assistant-chat.store'), [
+            'message' => 'Segun el documento de conocimiento, que recomienda la guia tecnica de la linea 9 para el servo chico?',
+            'page_context' => [
+                'module' => User::MODULE_LAVADORA,
+                'page_title' => 'Chat operativo',
+                'current_path' => '/asistente/chat',
+                'section' => 'Consulta documental',
+            ],
+        ]);
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('message.metadata.provider', 'fake');
+
+        $capturedPayload = $capturingProvider->payloads[0] ?? [];
+        $userPrompt = (string) ($capturedPayload['user_prompt'] ?? '');
+
+        $this->assertStringContainsString('Guia tecnica de lubricacion L-09', $userPrompt);
+        $this->assertStringContainsString('confirmar el uso de Glygoyle_30', $userPrompt);
     }
 
     private function authenticatedUser(): User
