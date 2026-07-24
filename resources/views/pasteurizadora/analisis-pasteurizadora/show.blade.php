@@ -1,246 +1,73 @@
 @extends('layouts.app')
 
-@section('title', 'Detalle del Análisis - Pasteurizadora')
+@section('title', 'Detalle del Analisis - Pasteurizadora')
 
 @section('content')
 @php
     $analisisRoutePrefix = $analisisRoutePrefix ?? 'pasteurizadora.analisis-pasteurizadora';
     $analisisRoute = fn ($name, $params = []) => route($analisisRoutePrefix . '.' . $name, $params);
-@endphp
-<style>
-    .detail-card {
-        background: white;
-        border-radius: 12px;
-        overflow: hidden;
-        box-shadow: 0 1px 2px rgba(15, 23, 42, .05);
-        margin-bottom: 24px;
-        border: 1px solid #e5e7eb;
-    }
-    .detail-header {
-        background: linear-gradient(to right, #f9fafb, #ffffff);
-        border-bottom: 1px solid #e5e7eb;
-        color: #111827;
-        padding: 20px 24px;
-    }
-    .detail-header img {
-        background: #eff6ff;
-        border: 1px solid #bfdbfe;
-        border-radius: 8px;
-        filter: none !important;
-        height: 42px;
-        padding: 6px;
-        width: 42px;
-    }
-    .detail-header .text-blue-200 {
-        color: #64748b;
-    }
-    .detail-header a {
-        color: #ffffff;
-    }
-    .info-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-        gap: 16px;
-        padding: 24px;
-    }
-    .info-item {
-        background: #f8fafc;
-        border-radius: 8px;
-        padding: 16px;
-        border: 1px solid #e5e7eb;
-    }
-    .info-label {
-        font-size: 11px;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        color: #64748b;
-        margin-bottom: 8px;
-    }
-    .info-value {
-        font-size: 16px;
-        font-weight: 600;
-        color: #1e293b;
-    }
-    .image-gallery {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-        gap: 16px;
-        padding: 24px;
-    }
-    .gallery-item {
-        position: relative;
-        border-radius: 8px;
-        overflow: hidden;
-        border: 1px solid #e5e7eb;
-        transition: all 0.3s ease;
-        cursor: pointer;
-    }
-    .gallery-item:hover {
-        transform: translateY(-2px);
-        border-color: #2563eb;
-        box-shadow: 0 10px 15px -3px rgba(15, 23, 42, .08);
-    }
-    .gallery-img {
-        width: 100%;
-        height: 150px;
-        object-fit: cover;
-    }
-    .progress-container {
-        width: 100%;
-        background: #e2e8f0;
-        border-radius: 999px;
-        height: 8px;
-        overflow: hidden;
-    }
-    .progress-bar {
-        height: 100%;
-        border-radius: 999px;
-        transition: width 0.5s ease;
-    }
-    .status-badge {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        padding: 6px 14px;
-        border-radius: 999px;
-        font-weight: 600;
-        font-size: 14px;
-    }
-    .pasteur-detail-action {
-        align-items: center;
-        border-radius: 8px;
-        display: inline-flex;
-        font-size: 13px;
-        font-weight: 600;
-        gap: 8px;
-        min-height: 42px;
-        padding: 10px 14px;
-        text-decoration: none;
-    }
-</style>
+    $canDeleteAnalysis = $canDeleteAnalysis ?? (auth()->user()?->canDeletePasteurizadoraAnalysis() ?? false);
+    $canEditAnalysis = $canEditAnalysis ?? (auth()->user()?->canUseCustomPermission('editar analisis pasteurizadora') ?? false);
 
-<div class="pasteur-detail max-w-5xl mx-auto px-4 py-8">
-    {{-- Header con navegación --}}
-    <div class="mb-6">
-        <div class="responsive-actions mb-4">
-            <a href="{{ $analisisRoute('index') }}"
-               class="responsive-action responsive-action--secondary">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
-                </svg>
-                Volver
-            </a>
-            <a href="{{ $analisisRoute('historial', ['linea_id' => $analisis->linea_id, 'modulo' => $analisis->modulo, 'componente' => $analisis->componente]) }}"
-               class="responsive-action responsive-action--secondary">
-                <i class="fas fa-history"></i>
-                Ver Historial
-            </a>
-        </div>
-    </div>
+    $evidencias = collect($analisis->evidencia_fotos ?? [])
+        ->filter()
+        ->map(fn ($foto) => ltrim(str_replace('\\', '/', $foto), '/'))
+        ->values();
 
-    {{-- Tarjeta principal --}}
-    <div class="detail-card">
-        <div class="detail-header">
-            <div class="flex justify-between items-start flex-wrap gap-4">
-                <div>
-                    <div class="flex items-center gap-3 mb-2">
-                        <img src="{{ asset('images/icono-pasteurizadora.png') }}"
-                             class="w-8 h-8 object-contain filter brightness-0 invert">
-                        <h1 class="text-2xl font-bold">Detalle del Análisis</h1>
-                    </div>
-                    <p class="text-blue-200">
-                        {{ $analisis->numero_orden ? 'Orden #' . $analisis->numero_orden : 'Sin numero de orden' }}
-                        <span class="mx-2">|</span>
-                        {{ $analisis->tipo_registro_label }}
-                    </p>
-                </div>
-            <div class="responsive-actions">
-                    <a href="{{ $analisisRoute('edit', $analisis->id) }}"
-                       class="responsive-action responsive-action--compact">
-                        <i class="fas fa-edit"></i> Editar
-                    </a>
-                    @if($canDeleteAnalysis ?? false)
-                        <button onclick="confirmDelete()"
-                                class="responsive-action responsive-action--compact responsive-action--danger">
-                            <i class="fas fa-trash"></i> Eliminar
-                        </button>
-                    @endif
-                </div>
-            </div>
-        </div>
+    $estado = $analisis->estado;
+    $estadoStyles = match (true) {
+        \App\Models\AnalisisPasteurizadora::esEstadoDanado($estado) => [
+            'class' => 'bg-red-50 text-red-700 border-red-200',
+            'icon' => 'fa-exclamation-circle',
+            'header' => 'from-red-700 via-red-600 to-rose-500',
+            'surface' => 'bg-red-50/70 border-red-100',
+            'card' => 'border-red-100 bg-red-50/70',
+            'iconBox' => 'bg-red-50 text-red-600',
+            'activity' => 'border-red-200 bg-red-50/80',
+            'buttonText' => 'text-red-700 hover:bg-red-50',
+        ],
+        \App\Models\AnalisisPasteurizadora::esEstadoDesgaste($estado) => [
+            'class' => 'bg-orange-50 text-orange-700 border-orange-200',
+            'icon' => 'fa-triangle-exclamation',
+            'header' => 'from-orange-700 via-orange-600 to-amber-500',
+            'surface' => 'bg-orange-50/70 border-orange-100',
+            'card' => 'border-orange-100 bg-orange-50/70',
+            'iconBox' => 'bg-orange-50 text-orange-600',
+            'activity' => 'border-orange-200 bg-orange-50/80',
+            'buttonText' => 'text-orange-700 hover:bg-orange-50',
+        ],
+        \App\Models\AnalisisPasteurizadora::esEstadoRequiereRevision($estado) => [
+            'class' => 'bg-amber-50 text-amber-700 border-amber-200',
+            'icon' => 'fa-screwdriver-wrench',
+            'header' => 'from-amber-700 via-amber-600 to-yellow-500',
+            'surface' => 'bg-amber-50/70 border-amber-100',
+            'card' => 'border-amber-100 bg-amber-50/70',
+            'iconBox' => 'bg-amber-50 text-amber-600',
+            'activity' => 'border-amber-200 bg-amber-50/80',
+            'buttonText' => 'text-amber-700 hover:bg-amber-50',
+        ],
+        \App\Models\AnalisisPasteurizadora::esEstadoCambiado($estado) => [
+            'class' => 'bg-blue-50 text-blue-700 border-blue-200',
+            'icon' => 'fa-arrows-rotate',
+            'header' => 'from-blue-700 via-blue-600 to-sky-500',
+            'surface' => 'bg-blue-50/70 border-blue-100',
+            'card' => 'border-blue-100 bg-blue-50/70',
+            'iconBox' => 'bg-blue-50 text-blue-600',
+            'activity' => 'border-blue-200 bg-blue-50/80',
+            'buttonText' => 'text-blue-700 hover:bg-blue-50',
+        ],
+        default => [
+            'class' => 'bg-emerald-50 text-emerald-700 border-emerald-200',
+            'icon' => 'fa-circle-check',
+            'header' => 'from-emerald-700 via-emerald-600 to-teal-500',
+            'surface' => 'bg-emerald-50/70 border-emerald-100',
+            'card' => 'border-emerald-100 bg-emerald-50/70',
+            'iconBox' => 'bg-emerald-50 text-emerald-600',
+            'activity' => 'border-emerald-200 bg-emerald-50/80',
+            'buttonText' => 'text-emerald-700 hover:bg-emerald-50',
+        ],
+    };
 
-        {{-- Información general --}}
-        <div class="info-grid">
-            <div class="info-item">
-                <div class="info-label"><i class="fas fa-temperature-high mr-1"></i> Línea</div>
-                <div class="info-value">{{ $analisis->linea->nombre ?? 'No especificada' }}</div>
-            </div>
-            <div class="info-item">
-                <div class="info-label"><i class="fas fa-cubes mr-1"></i> Módulo</div>
-                <div class="info-value">Módulo {{ $analisis->modulo }}</div>
-            </div>
-            <div class="info-item">
-                <div class="info-label"><i class="fas fa-cog mr-1"></i> Componente</div>
-                <div class="info-value">{{ $analisis->componente_nombre }}</div>
-            </div>
-            @if($analisis->lado)
-            <div class="info-item">
-                <div class="info-label"><i class="fas fa-arrows-alt-h mr-1"></i> Lado</div>
-                <div class="info-value">
-                    <span class="inline-flex items-center gap-1 px-2 py-1 rounded text-sm {{ $analisis->lado_clase }}">
-                        <i class="fas {{ $analisis->lado_icono }}"></i> {{ $analisis->lado }}
-                    </span>
-                </div>
-            </div>
-            @endif
-            @if($analisis->nivel)
-            <div class="info-item">
-                <div class="info-label"><i class="fas fa-layer-group mr-1"></i> Nivel</div>
-                <div class="info-value">{{ $analisis->nivel }}</div>
-            </div>
-            @endif
-            <div class="info-item">
-                <div class="info-label"><i class="far fa-calendar-alt mr-1"></i> Fecha</div>
-                <div class="info-value">{{ $analisis->fecha_formateada }}</div>
-            </div>
-            <div class="info-item">
-                <div class="info-label"><i class="fas fa-user mr-1"></i> Realizado por</div>
-                <div class="info-value">{{ $analisis->usuario?->name ?? $analisis->responsable ?? 'Usuario no registrado' }}</div>
-            </div>
-        </div>
-
-        {{-- Estado y progreso --}}
-        <div class="px-6 pb-4">
-            @php
-                $badge = $analisis->estado_badge;
-                $porcentaje = $analisis->porcentaje_avance;
-            @endphp
-            <div class="flex flex-wrap gap-4 items-center justify-between">
-                <div>
-                    <div class="text-sm text-gray-500 mb-1">Estado actual</div>
-                    <span class="status-badge {{ $badge['class'] }}">
-                        <i class="fas {{ $badge['icon'] }}"></i>
-                        {{ $analisis->estado }}
-                    </span>
-                </div>
-                @if($analisis->total_componentes)
-                <div class="flex-1 max-w-xs">
-                    <div class="text-sm text-gray-500 mb-1">
-                        Progreso de revisión: {{ $analisis->cantidad_componentes_revisados ?? 0 }} / {{ $analisis->total_componentes }} componentes
-                    </div>
-                    <div class="progress-container">
-                        <div class="progress-bar bg-blue-600" style="width: {{ $porcentaje }}%"></div>
-                    </div>
-                    <div class="text-right text-xs text-gray-500 mt-1">{{ $porcentaje }}% completado</div>
-                </div>
-                @endif
-            </div>
-        </div>
-
-        {{-- Componentes revisados --}}
-@php
-    // Validar que sea un array no vacío
     $componentesRevisados = \App\Models\AnalisisPasteurizadora::normalizarComponentesRevisados(
         $analisis->componentes_revisados,
         $analisis->total_componentes
@@ -249,416 +76,482 @@
     if (empty($componentesRevisados) && $analisis->cantidad_componentes_revisados) {
         $componentesRevisados = range(1, min($analisis->cantidad_componentes_revisados, $analisis->total_componentes));
     }
-    @endphp
-    @if(!empty($componentesRevisados))
-    <div class="px-6 pb-4">
-        <div class="bg-indigo-50 rounded-xl p-5 border border-indigo-200">
-            <div class="flex items-center gap-2 mb-4">
-                <div class="w-6 h-6 rounded-lg bg-indigo-100 flex items-center justify-center">
-                    <i class="fas fa-clipboard-check text-indigo-600 text-xs"></i>
+
+    $porcentajeAvance = (int) ($analisis->porcentaje_avance ?? 0);
+    $bloquesTendencia = [
+        'Analisis de Tendencia (52-12-4 semanas)' => collect($tendencia52124['ventanas'] ?? []),
+        'Analisis de Tendencia (30-14-7 dias)' => collect($tendencia30147['ventanas'] ?? []),
+    ];
+    $pcmPlanes = [
+        'pcm1' => $analisis->plan_accion_pcm1,
+        'pcm2' => $analisis->plan_accion_pcm2,
+        'pcm3' => $analisis->plan_accion_pcm3,
+        'pcm4' => $analisis->plan_accion_pcm4,
+    ];
+    $tienePCM = collect($pcmPlanes)->contains(fn ($plan) => $plan && (!empty($plan['fecha']) || !empty($plan['accion'])));
+@endphp
+
+<div class="mx-auto max-w-7xl space-y-6 px-4 sm:px-6 lg:px-8">
+    <section class="overflow-hidden rounded-2xl border {{ $estadoStyles['surface'] }} bg-white shadow-sm">
+        <div class="bg-gradient-to-r {{ $estadoStyles['header'] }} px-6 py-7 text-white sm:px-8">
+            <div class="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+                <div class="flex items-center gap-4">
+                    <div class="min-w-0">
+                        <div class="mb-2 flex flex-wrap items-center gap-2 text-sm text-blue-100">
+                            <span class="inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 font-semibold">
+                                Analisis #{{ $analisis->id }}
+                            </span>
+                            <span class="inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 font-semibold">
+                                <i class="far fa-calendar-alt"></i>
+                                {{ optional($analisis->fecha_analisis)->format('d/m/Y') ?? optional($analisis->created_at)->format('d/m/Y') ?? 'Sin fecha' }}
+                            </span>
+                            <span class="inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 font-semibold">
+                                {{ $analisis->tipo_registro_label }}
+                            </span>
+                        </div>
+                        <h1 class="break-words text-2xl font-bold leading-tight sm:text-3xl">
+                            {{ $analisis->linea->nombre ?? 'Pasteurizadora ' . $analisis->linea_id }}
+                        </h1>
+                        <p class="mt-2 max-w-3xl break-words text-sm text-blue-50">
+                            Modulo {{ $analisis->modulo }} | {{ $analisis->componente_nombre }}
+                            @if($analisis->nivel)
+                                <span class="mx-2 text-blue-200">|</span>{{ $analisis->nivel }}
+                            @endif
+                            @if($analisis->lado)
+                                <span class="mx-2 text-blue-200">|</span>{{ $analisis->lado }}
+                            @endif
+                        </p>
+                    </div>
                 </div>
-                <h4 class="text-sm font-semibold text-indigo-800 uppercase tracking-wider">Componentes revisados</h4>
-                <span class="ml-2 px-2 py-0.5 bg-indigo-200 text-indigo-800 text-xs rounded-full font-medium">
+
+                <div class="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:flex-wrap">
+                    <a href="{{ $analisisRoute('edit', $analisis->id) }}"
+                       class="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-white px-4 py-2.5 text-sm font-semibold {{ $estadoStyles['buttonText'] }} shadow-sm transition sm:w-auto">
+                        <i class="fas fa-edit"></i>
+                        Editar
+                    </a>
+                    <a href="{{ $analisisRoute('historial', ['linea_id' => $analisis->linea_id, 'modulo' => $analisis->modulo, 'componente' => $analisis->componente]) }}"
+                       class="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-white px-4 py-2.5 text-sm font-semibold {{ $estadoStyles['buttonText'] }} shadow-sm transition sm:w-auto">
+                        <i class="fas fa-history"></i>
+                        Historial
+                    </a>
+                    @if($canDeleteAnalysis)
+                        <button type="button"
+                                id="delete-analysis-button"
+                                class="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-red-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-red-700 sm:w-auto">
+                            <i class="fas fa-trash"></i>
+                            Eliminar
+                        </button>
+                    @endif
+                    <a href="{{ $analisisRoute('index', ['linea_id' => $analisis->linea_id]) }}"
+                       class="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-white/40 bg-white/10 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-white/20 sm:w-auto">
+                        <i class="fas fa-arrow-left"></i>
+                        Volver
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid gap-4 border-t px-6 py-5 sm:grid-cols-2 lg:grid-cols-4 sm:px-8 {{ $estadoStyles['surface'] }}">
+            <div class="rounded-xl border bg-white/85 p-4 shadow-sm {{ $estadoStyles['card'] }}">
+                <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Estado</p>
+                <span class="mt-2 inline-flex items-center gap-2 rounded-full border px-3 py-1 text-sm font-semibold {{ $estadoStyles['class'] }}">
+                    <i class="fas {{ $estadoStyles['icon'] }}"></i>
+                    {{ $estado ?? 'Sin estado' }}
+                </span>
+            </div>
+            <div class="rounded-xl border bg-white/85 p-4 shadow-sm {{ $estadoStyles['card'] }}">
+                <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Orden</p>
+                <p class="mt-2 text-lg font-bold text-gray-900">{{ $analisis->numero_orden ?: 'Sin orden' }}</p>
+            </div>
+            <div class="rounded-xl border bg-white/85 p-4 shadow-sm {{ $estadoStyles['card'] }}">
+                <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Avance</p>
+                <p class="mt-2 text-lg font-bold text-gray-900">{{ $porcentajeAvance }}%</p>
+            </div>
+            <div class="rounded-xl border bg-white/85 p-4 shadow-sm {{ $estadoStyles['card'] }}">
+                <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Registro</p>
+                <p class="mt-2 text-lg font-bold text-gray-900">{{ $analisis->tipo_registro_label }}</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="grid gap-6 lg:grid-cols-3">
+        <div class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm lg:col-span-2">
+            <div class="mb-5 flex items-center gap-3">
+                <span class="flex h-10 w-10 items-center justify-center rounded-xl {{ $estadoStyles['iconBox'] }}">
+                    <i class="fas fa-info-circle"></i>
+                </span>
+                <h2 class="text-lg font-bold text-gray-900">Informacion General</h2>
+            </div>
+
+            <div class="grid gap-4 md:grid-cols-2">
+                <div class="rounded-xl border p-4 {{ $estadoStyles['card'] }}">
+                    <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Linea</p>
+                    <p class="mt-2 text-base font-semibold text-gray-900">{{ $analisis->linea->nombre ?? 'N/A' }}</p>
+                </div>
+                <div class="rounded-xl border p-4 {{ $estadoStyles['card'] }}">
+                    <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Modulo</p>
+                    <p class="mt-2 text-base font-semibold text-gray-900">Modulo {{ $analisis->modulo }}</p>
+                </div>
+                <div class="rounded-xl border p-4 {{ $estadoStyles['card'] }}">
+                    <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Componente</p>
+                    <p class="mt-2 text-base font-semibold text-gray-900">{{ $analisis->componente_nombre }}</p>
+                </div>
+                <div class="rounded-xl border p-4 {{ $estadoStyles['card'] }}">
+                    <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Registrado por</p>
+                    <p class="mt-2 text-base font-semibold text-gray-900">{{ $analisis->usuario?->name ?? $analisis->responsable ?? 'Sin usuario asignado' }}</p>
+                </div>
+                <div class="rounded-xl border p-4 {{ $estadoStyles['card'] }}">
+                    <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Lado</p>
+                    <p class="mt-2 text-base font-semibold text-gray-900">{{ $analisis->lado ?: 'Sin lado' }}</p>
+                </div>
+                <div class="rounded-xl border p-4 {{ $estadoStyles['card'] }}">
+                    <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Nivel</p>
+                    <p class="mt-2 text-base font-semibold text-gray-900">{{ $analisis->nivel ?: 'Sin nivel' }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+            <div class="mb-5 flex items-center gap-3">
+                <span class="flex h-10 w-10 items-center justify-center rounded-xl {{ $estadoStyles['iconBox'] }}">
+                    <i class="fas fa-clipboard-check"></i>
+                </span>
+                <h2 class="text-lg font-bold text-gray-900">Actividad</h2>
+            </div>
+            <div class="min-h-40 rounded-xl border p-4 text-sm leading-6 text-gray-800 whitespace-pre-line {{ $estadoStyles['activity'] }}">
+                {{ $analisis->actividad ?: 'Sin actividad registrada.' }}
+            </div>
+        </div>
+    </section>
+
+    @if(!empty($componentesRevisados))
+        <section class="rounded-2xl border border-indigo-200 bg-white p-6 shadow-sm">
+            <div class="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div class="flex items-center gap-3">
+                    <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
+                        <i class="fas fa-clipboard-list"></i>
+                    </span>
+                    <h2 class="text-lg font-bold text-gray-900">Componentes revisados</h2>
+                </div>
+                <span class="inline-flex items-center rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-sm font-semibold text-indigo-700">
                     {{ count($componentesRevisados) }} de {{ $analisis->total_componentes }}
                 </span>
             </div>
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-2 mt-3">
-                @foreach($componentesRevisados as $componente_num)
-                <div class="flex items-center gap-2 bg-white rounded-lg p-3 border border-indigo-200">
-                    <div class="w-8 h-8 rounded-lg bg-indigo-100 flex items-center justify-center flex-shrink-0">
-                        <i class="fas fa-check text-indigo-600"></i>
+            <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                @foreach($componentesRevisados as $componenteNumero)
+                    <div class="flex items-center gap-3 rounded-xl border border-indigo-100 bg-indigo-50/70 p-4">
+                        <span class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-white text-indigo-600">
+                            <i class="fas fa-check"></i>
+                        </span>
+                        <span class="min-w-0 break-words text-sm font-semibold text-gray-800">
+                            @if(\App\Models\AnalisisPasteurizadora::esBrazoTorsion($analisis->componente))
+                                {{ $analisis->componente_nombre }} modulo {{ intval($componenteNumero) }}
+                            @else
+                                {{ $analisis->componente_nombre }} #{{ intval($componenteNumero) }}
+                            @endif
+                        </span>
                     </div>
-                    <span class="text-sm font-medium text-gray-700">
-                        @if(\App\Models\AnalisisPasteurizadora::esBrazoTorsion($analisis->componente))
-                            {{ $analisis->componente_nombre }} modulo {{ intval($componente_num) }}
-                        @else
-                            {{ $analisis->componente_nombre }} #{{ intval($componente_num) }}
-                        @endif
-                    </span>
-                </div>
                 @endforeach
             </div>
-        </div>
-    </div>
+        </section>
     @endif
 
-        {{-- Actividad --}}
-        <div class="px-6 pb-4">
-            <div class="bg-gray-50 rounded-xl p-5 border border-gray-200">
-                <div class="flex items-center gap-2 mb-3">
-                    <div class="w-6 h-6 rounded-lg bg-blue-100 flex items-center justify-center">
-                        <i class="fas fa-sticky-note text-blue-600 text-xs"></i>
-                    </div>
-                    <h4 class="text-sm font-semibold text-gray-700 uppercase tracking-wider">Actividad realizada</h4>
-                </div>
-                <div class="text-gray-700 whitespace-pre-line leading-relaxed">
-                    {{ $analisis->actividad }}
-                </div>
-            </div>
-        </div>
-
-        @if($analisis->observaciones)
-        <div class="px-6 pb-4">
-            <div class="bg-yellow-50 rounded-xl p-5 border border-yellow-200">
-                <div class="flex items-center gap-2 mb-3">
-                    <i class="fas fa-comment-dots text-yellow-600"></i>
-                    <h4 class="text-sm font-semibold text-yellow-800 uppercase tracking-wider">Observaciones adicionales</h4>
-                </div>
-                <div class="text-gray-700 whitespace-pre-line">
-                    {{ $analisis->observaciones }}
-                </div>
-            </div>
-        </div>
-        @endif
-
-        {{-- Resolución (si está resuelto) --}}
-        @if($analisis->resuelto_por_cambio)
-        <div class="px-6 pb-4">
-            <div class="bg-green-50 rounded-xl p-5 border border-green-200">
-                <div class="flex items-center gap-2 mb-3">
-                    <i class="fas fa-check-circle text-green-600"></i>
-                    <h4 class="text-sm font-semibold text-green-800 uppercase tracking-wider">Registro resuelto</h4>
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <div class="text-xs text-gray-500">Fecha de resolución</div>
-                        <div class="font-medium">{{ $analisis->fecha_resolucion_formateada }}</div>
-                    </div>
-                    <div>
-                        <div class="text-xs text-gray-500">Resuelto por</div>
-                        <div class="font-medium">Orden #{{ $analisis->registroResolutor->numero_orden ?? 'N/A' }}</div>
-                    </div>
-                </div>
-                @if($analisis->nota_resolucion)
-                <div class="mt-3 pt-3 border-t border-green-200">
-                    <div class="text-xs text-gray-500 mb-1">Nota de resolución</div>
-                    <div class="text-sm">{{ $analisis->nota_resolucion }}</div>
-                </div>
-                @endif
-            </div>
-        </div>
-        @endif
-
-        {{-- Evidencia fotográfica --}}
-        @if($analisis->evidencia_fotos && count($analisis->evidencia_fotos) > 0)
-        <div class="border-t border-gray-200">
-            <div class="bg-gray-50 px-6 py-4">
-                <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div class="flex items-center gap-2">
-                        <i class="fas fa-images text-blue-600"></i>
-                        <h3 class="font-semibold text-gray-800">Evidencia Fotográfica</h3>
-                        <span class="text-xs text-gray-500">{{ count($analisis->evidencia_fotos) }} imágenes</span>
-                    </div>
-                    <button onclick="descargarTodasImagenes()"
-                            class="responsive-action responsive-action--compact">
-                        <i class="fas fa-download"></i> Descargar todas
-                    </button>
-                </div>
-            </div>
-            <div class="image-gallery" id="imageGallery">
-                @foreach($analisis->evidencia_fotos as $index => $foto)
-                @php
-                    $fotoUrl = asset('storage/' . ltrim(str_replace('\\', '/', $foto), '/'));
-                @endphp
-                <div class="gallery-item" onclick="abrirImagen('{{ $fotoUrl }}', {{ $index }})">
-                    <img src="{{ $fotoUrl }}"
-                         alt="Evidencia {{ $index + 1 }}"
-                         class="gallery-img">
-                    <div class="absolute bottom-2 right-2 bg-black/70 text-white text-xs w-6 h-6 rounded-full flex items-center justify-center">
-                        {{ $index + 1 }}
-                    </div>
-                    <div class="absolute top-2 left-2 bg-blue-600 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition">
-                        <i class="fas fa-search-plus"></i> Ampliar
-                    </div>
-                </div>
-                @endforeach
-            </div>
-        </div>
-        @endif
-
-        {{-- Análisis 52-12-4 (si tiene datos) --}}
-        @if(false)
-        <div class="border-t border-gray-200">
-            <div class="bg-gray-50 px-6 py-4">
-                <div class="flex items-center gap-2">
-                    <i class="fas fa-chart-line text-blue-600"></i>
-                    <h3 class="font-semibold text-gray-800">Análisis de Tendencia (52-12-4 semanas)</h3>
-                </div>
-            </div>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 p-6">
-                @if(false)
-                <div class="bg-blue-50 rounded-lg p-4 text-center">
-                    <div class="text-xs text-gray-500 mb-1">52 semanas</div>
-                    <div class="text-2xl font-bold text-blue-700">0</div>
-                    @if(false)
-                    <div class="text-xs mt-1">
-                        <span class="text-yellow-600">
-                            <i class="fas fa-minus"></i>
-                            0%
+    @if($analisis->observaciones || $analisis->resuelto_por_cambio)
+        <section class="grid gap-6 lg:grid-cols-2">
+            @if($analisis->observaciones)
+                <div class="rounded-2xl border border-amber-200 bg-amber-50 p-6 shadow-sm">
+                    <div class="mb-4 flex items-center gap-3">
+                        <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-amber-600">
+                            <i class="fas fa-comment-dots"></i>
                         </span>
-                        vs anterior
+                        <h2 class="text-lg font-bold text-gray-900">Observaciones adicionales</h2>
                     </div>
-                    @endif
-                </div>
-                @endif
-                @if(false)
-                <div class="bg-yellow-50 rounded-lg p-4 text-center">
-                    <div class="text-xs text-gray-500 mb-1">12 semanas</div>
-                    <div class="text-2xl font-bold text-yellow-700">0</div>
-                    @if(false)
-                    <div class="text-xs mt-1">
-                        <span class="text-yellow-600">
-                            <i class="fas fa-minus"></i>
-                            0%
-                        </span>
-                        vs anterior
-                    </div>
-                    @endif
-                </div>
-                @endif
-                @if(false)
-                <div class="bg-green-50 rounded-lg p-4 text-center">
-                    <div class="text-xs text-gray-500 mb-1">4 semanas</div>
-                    <div class="text-2xl font-bold text-green-700">0</div>
-                    @if(false)
-                    <div class="text-xs mt-1">
-                        <span class="text-yellow-600">
-                            <i class="fas fa-minus"></i>
-                            0%
-                        </span>
-                        vs anterior
-                    </div>
-                    @endif
-                </div>
-                @endif
-            </div>
-        </div>
-        @endif
-
-        @php
-            $bloquesTendencia = [
-                'Analisis de Tendencia (52-12-4 semanas)' => collect($tendencia52124['ventanas'] ?? []),
-                'Analisis de Tendencia (30-14-7 dias)' => collect($tendencia30147['ventanas'] ?? []),
-            ];
-        @endphp
-        @foreach($bloquesTendencia as $tituloTendencia => $ventanasTendencia)
-            @if($ventanasTendencia->isNotEmpty())
-                <div class="border-t border-gray-200">
-                    <div class="bg-gray-50 px-6 py-4">
-                        <div class="flex items-center gap-2">
-                            <i class="fas fa-chart-line text-blue-600"></i>
-                            <h3 class="font-semibold text-gray-800">{{ $tituloTendencia }}</h3>
-                        </div>
-                    </div>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 p-6">
-                        @foreach($ventanasTendencia as $ventana)
-                            @php
-                                $delta = (int) ($ventana['delta'] ?? 0);
-                                $trend = $ventana['trend'] ?? 'stable';
-                                $toneClass = $trend === 'up' ? 'text-red-600' : ($trend === 'down' ? 'text-green-600' : 'text-yellow-600');
-                                $icon = $trend === 'up' ? 'fa-arrow-up' : ($trend === 'down' ? 'fa-arrow-down' : 'fa-minus');
-                            @endphp
-                            <div class="bg-blue-50 rounded-lg p-4 text-center">
-                                <div class="text-xs text-gray-500 mb-1">{{ $ventana['label'] }}</div>
-                                <div class="text-2xl font-bold text-blue-700">{{ $ventana['current'] ?? 0 }}</div>
-                                <div class="text-xs mt-1">
-                                    <span class="{{ $toneClass }}">
-                                        <i class="fas {{ $icon }}"></i>
-                                        {{ $delta > 0 ? '+' : '' }}{{ $delta }}
-                                    </span>
-                                    vs periodo anterior
-                                </div>
-                                <div class="text-[11px] text-gray-500 mt-2">{{ $ventana['current_range'] ?? '-' }}</div>
-                            </div>
-                        @endforeach
-                    </div>
+                    <div class="text-sm leading-6 text-gray-800 whitespace-pre-line">{{ $analisis->observaciones }}</div>
                 </div>
             @endif
-        @endforeach
 
-        {{-- Planes PCM --}}
-        @php
-            $pcmPlanes = [
-                'pcm1' => $analisis->plan_accion_pcm1,
-                'pcm2' => $analisis->plan_accion_pcm2,
-                'pcm3' => $analisis->plan_accion_pcm3,
-                'pcm4' => $analisis->plan_accion_pcm4,
-            ];
-            $tienePCM = false;
-            foreach($pcmPlanes as $plan) {
-                if($plan && (!empty($plan['fecha']) || !empty($plan['accion']))) {
-                    $tienePCM = true;
-                    break;
-                }
-            }
-        @endphp
-
-        @if($tienePCM)
-        <div class="border-t border-gray-200">
-            <div class="bg-gray-50 px-6 py-4">
-                <div class="flex items-center gap-2">
-                    <i class="fas fa-calendar-check text-blue-600"></i>
-                    <h3 class="font-semibold text-gray-800">Plan de Acción PCM</h3>
+            @if($analisis->resuelto_por_cambio)
+                <div class="rounded-2xl border border-emerald-200 bg-emerald-50 p-6 shadow-sm">
+                    <div class="mb-4 flex items-center gap-3">
+                        <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-emerald-600">
+                            <i class="fas fa-check-circle"></i>
+                        </span>
+                        <h2 class="text-lg font-bold text-gray-900">Registro resuelto</h2>
+                    </div>
+                    <div class="grid gap-4 text-sm md:grid-cols-2">
+                        <div>
+                            <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Fecha de resolucion</p>
+                            <p class="mt-1 font-semibold text-gray-900">{{ $analisis->fecha_resolucion_formateada }}</p>
+                        </div>
+                        <div>
+                            <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Resuelto por</p>
+                            <p class="mt-1 font-semibold text-gray-900">Orden #{{ $analisis->registroResolutor->numero_orden ?? 'N/A' }}</p>
+                        </div>
+                    </div>
+                    @if($analisis->nota_resolucion)
+                        <div class="mt-4 border-t border-emerald-200 pt-4 text-sm text-gray-800">
+                            {{ $analisis->nota_resolucion }}
+                        </div>
+                    @endif
                 </div>
+            @endif
+        </section>
+    @endif
+
+    @foreach($bloquesTendencia as $tituloTendencia => $ventanasTendencia)
+        @if($ventanasTendencia->isNotEmpty())
+            <section class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+                <div class="mb-5 flex items-center gap-3">
+                    <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+                        <i class="fas fa-chart-line"></i>
+                    </span>
+                    <h2 class="text-lg font-bold text-gray-900">{{ $tituloTendencia }}</h2>
+                </div>
+                <div class="grid gap-4 md:grid-cols-3">
+                    @foreach($ventanasTendencia as $ventana)
+                        @php
+                            $delta = (int) ($ventana['delta'] ?? 0);
+                            $trend = $ventana['trend'] ?? 'stable';
+                            $toneClass = $trend === 'up' ? 'text-red-600' : ($trend === 'down' ? 'text-green-600' : 'text-yellow-600');
+                            $icon = $trend === 'up' ? 'fa-arrow-up' : ($trend === 'down' ? 'fa-arrow-down' : 'fa-minus');
+                        @endphp
+                        <div class="rounded-xl border border-blue-100 bg-blue-50/70 p-5 text-center">
+                            <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">{{ $ventana['label'] }}</p>
+                            <p class="mt-2 text-3xl font-bold text-blue-700">{{ $ventana['current'] ?? 0 }}</p>
+                            <p class="mt-2 text-xs text-gray-600">
+                                <span class="{{ $toneClass }}">
+                                    <i class="fas {{ $icon }}"></i>
+                                    {{ $delta > 0 ? '+' : '' }}{{ $delta }}
+                                </span>
+                                vs periodo anterior
+                            </p>
+                            <p class="mt-2 text-[11px] text-gray-500">{{ $ventana['current_range'] ?? '-' }}</p>
+                        </div>
+                    @endforeach
+                </div>
+            </section>
+        @endif
+    @endforeach
+
+    @if($tienePCM)
+        <section class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+            <div class="mb-5 flex items-center gap-3">
+                <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+                    <i class="fas fa-calendar-check"></i>
+                </span>
+                <h2 class="text-lg font-bold text-gray-900">Plan de Accion PCM</h2>
             </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 p-6">
+            <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                 @foreach(['pcm1' => 'PCM 1', 'pcm2' => 'PCM 2', 'pcm3' => 'PCM 3', 'pcm4' => 'PCM 4'] as $key => $nombre)
-                    @php $plan = $analisis->{'plan_accion_' . $key}; @endphp
-                    <div class="border rounded-lg p-4 {{ $plan && $plan['fecha'] ? 'bg-blue-50 border-blue-200' : 'bg-gray-50 border-gray-200' }}">
-                        <h4 class="font-bold text-gray-700 mb-2">{{ $nombre }}</h4>
+                    @php($plan = $analisis->{'plan_accion_' . $key})
+                    <div class="rounded-xl border p-4 {{ $plan && $plan['fecha'] ? 'border-blue-200 bg-blue-50' : 'border-gray-200 bg-gray-50' }}">
+                        <h3 class="font-bold text-gray-800">{{ $nombre }}</h3>
                         @if($plan && $plan['fecha'])
-                            <div class="text-sm">
-                                <div class="flex items-center gap-1 text-gray-600 mb-1">
-                                    <i class="far fa-calendar-alt text-xs"></i>
-                                    <span>{{ \Carbon\Carbon::parse($plan['fecha'])->format('d/m/Y') }}</span>
-                                </div>
-                                @if($plan['accion'])
-                                    <div class="text-xs text-gray-500 mt-1">{{ Str::limit($plan['accion'], 60) }}</div>
-                                @endif
-                            </div>
+                            <p class="mt-2 text-sm font-semibold text-gray-700">
+                                <i class="far fa-calendar-alt mr-1 text-blue-600"></i>
+                                {{ \Carbon\Carbon::parse($plan['fecha'])->format('d/m/Y') }}
+                            </p>
+                            @if($plan['accion'])
+                                <p class="mt-2 text-xs leading-5 text-gray-600">{{ Str::limit($plan['accion'], 80) }}</p>
+                            @endif
                         @else
-                            <div class="text-sm text-gray-400">Sin programación</div>
+                            <p class="mt-2 text-sm text-gray-400">Sin programacion</p>
                         @endif
                     </div>
                 @endforeach
             </div>
-        </div>
-        @endif
+        </section>
+    @endif
 
-        {{-- Metadatos --}}
-        <div class="border-t border-gray-200 px-6 py-4 bg-gray-50 text-xs text-gray-500">
-            <div class="flex flex-wrap justify-between gap-4">
-                <div>
-                    <i class="far fa-clock mr-1"></i> Creado: {{ $analisis->created_at ? $analisis->created_at->format('d/m/Y H:i') : 'N/A' }}
-                </div>
-                <div>
-                    <i class="fas fa-edit mr-1"></i> Última actualización: {{ $analisis->updated_at ? $analisis->updated_at->format('d/m/Y H:i') : 'N/A' }}
-                </div>
+    <section class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+        <div class="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div class="flex items-center gap-3">
+                <span class="flex h-10 w-10 items-center justify-center rounded-xl {{ $estadoStyles['iconBox'] }}">
+                    <i class="fas fa-camera"></i>
+                </span>
+                <h2 class="text-lg font-bold text-gray-900">Evidencia Fotografica</h2>
+            </div>
+            @if($evidencias->isNotEmpty())
+                <button type="button" id="download-all-evidence" class="create-action create-action--compact">
+                    <i class="fas fa-download"></i>
+                    Descargar todas
+                </button>
+            @endif
+        </div>
+
+        @if($evidencias->isNotEmpty())
+            <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                @foreach($evidencias as $index => $foto)
+                    @php($fotoUrl = asset('storage/' . $foto))
+                    <article class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+                        <button type="button"
+                                class="group relative block aspect-[4/3] w-full overflow-hidden bg-gray-100"
+                                data-photo-url="{{ $fotoUrl }}"
+                                data-photo-title="Evidencia #{{ $index + 1 }}">
+                            <img src="{{ $fotoUrl }}" alt="Evidencia {{ $index + 1 }}" class="h-full w-full object-cover transition duration-300 group-hover:scale-105">
+                            <span class="absolute left-3 top-3 rounded-full bg-black/70 px-3 py-1 text-xs font-semibold text-white">
+                                #{{ $index + 1 }}
+                            </span>
+                            <span class="absolute inset-0 flex items-center justify-center bg-black/0 text-white opacity-0 transition group-hover:bg-black/35 group-hover:opacity-100">
+                                <i class="fas fa-search-plus text-2xl"></i>
+                            </span>
+                        </button>
+                        <div class="flex flex-col items-stretch gap-2 p-3 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+                            <a href="{{ $fotoUrl }}" target="_blank" class="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg px-3 text-sm font-semibold text-blue-600 hover:bg-blue-50 hover:text-blue-800 sm:justify-start">
+                                <i class="fas fa-up-right-from-square"></i>
+                                Abrir
+                            </a>
+                            @if($canEditAnalysis)
+                                <form action="{{ $analisisRoute('delete-foto', ['analisispasteurizadora' => $analisis->id, 'fotoIndex' => $index]) }}" method="POST" class="m-0 delete-photo-form">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-lg bg-red-50 px-3 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-100 sm:w-auto">
+                                        <i class="fas fa-trash"></i>
+                                        Eliminar
+                                    </button>
+                                </form>
+                            @endif
+                        </div>
+                    </article>
+                @endforeach
+            </div>
+        @else
+            <div class="rounded-xl border border-dashed px-6 py-12 text-center {{ $estadoStyles['card'] }}">
+                <i class="fas fa-image mb-3 text-3xl text-gray-300"></i>
+                <p class="text-sm font-semibold text-gray-700">No hay evidencia fotografica registrada.</p>
+            </div>
+        @endif
+    </section>
+
+    <section class="rounded-2xl border border-gray-200 bg-gray-50 px-6 py-4 text-xs text-gray-500">
+        <div class="flex flex-wrap justify-between gap-4">
+            <div>
+                <i class="far fa-clock mr-1"></i>
+                Creado: {{ optional($analisis->created_at)->format('d/m/Y H:i') ?: 'N/A' }}
+            </div>
+            <div>
+                <i class="fas fa-edit mr-1"></i>
+                Ultima actualizacion: {{ optional($analisis->updated_at)->format('d/m/Y H:i') ?: 'N/A' }}
             </div>
         </div>
-    </div>
+    </section>
 </div>
 
-{{-- Modal para ver imágenes ampliadas --}}
-<div id="imageModal" class="fixed inset-0 bg-black/90 hidden items-center justify-center z-50 p-4" onclick="cerrarModalImagen()">
-    <div class="relative max-w-5xl w-full">
-        <button onclick="cerrarModalImagen()"
-                class="absolute -top-14 right-0 flex h-11 w-11 items-center justify-center rounded-full bg-black/50 text-2xl text-white transition hover:bg-black/70 hover:text-gray-300">
-            <i class="fas fa-times"></i>
-        </button>
-        <img id="modalImage" src="" class="w-full h-auto max-h-[85vh] object-contain rounded-lg">
-        <div class="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black/70 text-white px-4 py-2 rounded-full text-sm">
-            <span id="currentImageIndex">1</span> / <span id="totalImages">1</span>
-        </div>
-        <button onclick="navegarImagen(-1)" id="prevBtn"
-                class="absolute left-4 top-1/2 hidden h-11 w-11 -translate-y-1/2 transform rounded-full bg-black/50 text-white hover:bg-black/70">
-            <i class="fas fa-chevron-left"></i>
-        </button>
-        <button onclick="navegarImagen(1)" id="nextBtn"
-                class="absolute right-4 top-1/2 hidden h-11 w-11 -translate-y-1/2 transform rounded-full bg-black/50 text-white hover:bg-black/70">
-            <i class="fas fa-chevron-right"></i>
-        </button>
-    </div>
-</div>
-
-@if($canDeleteAnalysis ?? false)
-    <form id="deleteForm" action="{{ $analisisRoute('destroy', $analisis->id) }}" method="POST" style="display: none;">
+@if($canDeleteAnalysis)
+    <form id="delete-analysis-form" action="{{ $analisisRoute('destroy', $analisis->id) }}" method="POST" class="hidden">
         @csrf
         @method('DELETE')
     </form>
 @endif
 
+<div id="photoPreviewModal" class="fixed inset-0 z-[80] hidden items-center justify-center bg-black/75 p-2 sm:p-4">
+    <div class="w-full max-w-5xl overflow-hidden rounded-2xl bg-white shadow-2xl">
+        <div class="flex items-center justify-between border-b border-gray-200 px-5 py-4">
+            <h3 id="photoPreviewTitle" class="min-w-0 break-words text-base font-bold text-gray-900">Evidencia</h3>
+            <button type="button" id="photoPreviewClose" class="flex h-9 w-9 items-center justify-center rounded-full bg-gray-100 text-gray-600 transition hover:bg-gray-200">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="bg-gray-950 p-3">
+            <img id="photoPreviewImage" src="" alt="Evidencia" class="mx-auto max-h-[70vh] w-auto rounded-lg object-contain sm:max-h-[75vh]">
+        </div>
+    </div>
+</div>
+@endsection
+
+@section('scripts')
 <script>
-    let imagenes = @json($analisis->evidencia_fotos ?? []);
-    let imagenesUrls = imagenes.map(img => buildEvidenceUrl(img));
-    let currentImgIndex = 0;
+document.addEventListener('DOMContentLoaded', function() {
+    const modal = document.getElementById('photoPreviewModal');
+    const image = document.getElementById('photoPreviewImage');
+    const title = document.getElementById('photoPreviewTitle');
+    const close = document.getElementById('photoPreviewClose');
+    const evidencias = @json($evidencias->map(fn ($foto) => asset('storage/' . $foto))->values());
 
-    function buildEvidenceUrl(path) {
-        const cleanPath = String(path || '').replace(/\\/g, '/').replace(/^\/+/, '');
-        return `{{ asset('storage') }}/${cleanPath}`;
-    }
-
-    function abrirImagen(url, index) {
-        currentImgIndex = index;
-        const modal = document.getElementById('imageModal');
-        const modalImg = document.getElementById('modalImage');
-        const prevBtn = document.getElementById('prevBtn');
-        const nextBtn = document.getElementById('nextBtn');
-        const currentSpan = document.getElementById('currentImageIndex');
-        const totalSpan = document.getElementById('totalImages');
-
-        modalImg.src = url;
-        currentSpan.textContent = index + 1;
-        totalSpan.textContent = imagenesUrls.length;
-
-        if (imagenesUrls.length > 1) {
-            prevBtn.classList.remove('hidden');
-            nextBtn.classList.remove('hidden');
-        } else {
-            prevBtn.classList.add('hidden');
-            nextBtn.classList.add('hidden');
-        }
-
-        modal.classList.remove('hidden');
-        modal.classList.add('flex');
-        document.body.style.overflow = 'hidden';
-    }
-
-    function cerrarModalImagen() {
-        const modal = document.getElementById('imageModal');
+    function closeModal() {
         modal.classList.add('hidden');
         modal.classList.remove('flex');
-        document.body.style.overflow = '';
+        image.src = '';
     }
 
-    function navegarImagen(direccion) {
-        let nuevoIndex = currentImgIndex + direccion;
-        if (nuevoIndex < 0) nuevoIndex = imagenesUrls.length - 1;
-        if (nuevoIndex >= imagenesUrls.length) nuevoIndex = 0;
-        currentImgIndex = nuevoIndex;
+    document.querySelectorAll('[data-photo-url]').forEach(function(button) {
+        button.addEventListener('click', function() {
+            image.src = this.dataset.photoUrl;
+            title.textContent = this.dataset.photoTitle || 'Evidencia';
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        });
+    });
 
-        const modalImg = document.getElementById('modalImage');
-        const currentSpan = document.getElementById('currentImageIndex');
+    close.addEventListener('click', closeModal);
+    modal.addEventListener('click', function(event) {
+        if (event.target === modal) {
+            closeModal();
+        }
+    });
 
-        modalImg.src = imagenesUrls[currentImgIndex];
-        currentSpan.textContent = currentImgIndex + 1;
-    }
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape' && !modal.classList.contains('hidden')) {
+            closeModal();
+        }
+    });
 
-    function descargarTodasImagenes() {
-        if (imagenesUrls.length === 0) return;
-
-        imagenesUrls.forEach((url, index) => {
+    document.getElementById('download-all-evidence')?.addEventListener('click', function() {
+        evidencias.forEach(function(url, index) {
             const link = document.createElement('a');
             link.href = url;
             link.download = `evidencia_${index + 1}.jpg`;
-            setTimeout(() => link.click(), index * 200);
+            setTimeout(function() {
+                link.click();
+            }, index * 200);
         });
-    }
-
-    function confirmDelete() {
-        Swal.fire({
-            icon: 'warning',
-            title: 'Eliminar analisis',
-            text: 'Esta accion es irreversible y eliminara el registro seleccionado.',
-            showCancelButton: true,
-            confirmButtonText: 'Eliminar',
-            cancelButtonText: 'Cancelar',
-            confirmButtonColor: '#dc2626',
-            cancelButtonColor: '#6b7280',
-        }).then(function(result) {
-            if (result.isConfirmed) {
-                document.getElementById('deleteForm').submit();
-            }
-        });
-    }
-
-    document.addEventListener('keydown', function(e) {
-        const modal = document.getElementById('imageModal');
-        if (modal.classList.contains('flex')) {
-            if (e.key === 'Escape') cerrarModalImagen();
-            if (e.key === 'ArrowLeft') navegarImagen(-1);
-            if (e.key === 'ArrowRight') navegarImagen(1);
-        }
     });
+
+    document.querySelectorAll('.delete-photo-form').forEach(function(form) {
+        form.addEventListener('submit', function(event) {
+            event.preventDefault();
+
+            Swal.fire({
+                icon: 'warning',
+                title: 'Eliminar evidencia',
+                text: 'Esta accion no se puede deshacer.',
+                showCancelButton: true,
+                confirmButtonText: 'Eliminar',
+                cancelButtonText: 'Cancelar',
+                confirmButtonColor: '#dc2626',
+                cancelButtonColor: '#6b7280',
+            }).then(function(result) {
+                if (result.isConfirmed) {
+                    form.submit();
+                }
+            });
+        });
+    });
+
+    @if($canDeleteAnalysis)
+        const deleteAnalysisButton = document.getElementById('delete-analysis-button');
+        const deleteAnalysisForm = document.getElementById('delete-analysis-form');
+
+        if (deleteAnalysisButton && deleteAnalysisForm) {
+            deleteAnalysisButton.addEventListener('click', function() {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Eliminar analisis',
+                    text: 'Esta accion es irreversible y eliminara el registro seleccionado.',
+                    showCancelButton: true,
+                    confirmButtonText: 'Eliminar',
+                    cancelButtonText: 'Cancelar',
+                    confirmButtonColor: '#dc2626',
+                    cancelButtonColor: '#6b7280',
+                }).then(function(result) {
+                    if (result.isConfirmed) {
+                        deleteAnalysisForm.submit();
+                    }
+                });
+            });
+        }
+    @endif
+});
 </script>
 @endsection

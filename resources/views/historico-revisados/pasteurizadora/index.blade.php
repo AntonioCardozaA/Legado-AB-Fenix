@@ -23,9 +23,16 @@
     }
 
     .historico-container {
-        max-width: 1400px;
+        width: 100%;
+        max-width: min(1400px, 100%);
         margin: 0 auto;
         padding: 24px;
+        overflow-x: clip;
+    }
+
+    .historico-container * {
+        box-sizing: border-box;
+        min-width: 0;
     }
 
     .lineas-section,
@@ -50,6 +57,9 @@
         text-transform: uppercase;
         letter-spacing: 0.5px;
         margin-bottom: 16px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
     }
 
     .lineas-grid {
@@ -109,7 +119,7 @@
 
     .resumen-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr));
         gap: 20px;
         margin-bottom: 24px;
     }
@@ -175,7 +185,7 @@
 
     .modulos-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
         gap: 22px;
         padding: 20px;
     }
@@ -202,6 +212,7 @@
         font-size: 18px;
         font-weight: 800;
         color: #1f2937;
+        overflow-wrap: anywhere;
     }
 
     .linea-group-meta {
@@ -240,6 +251,7 @@
         font-weight: 800;
         color: var(--slate-900);
         margin: 0;
+        overflow-wrap: anywhere;
     }
 
     .modulo-summary-subtitle {
@@ -528,7 +540,7 @@
 
     .modal-levels-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
         gap: 18px;
     }
 
@@ -735,7 +747,7 @@
 
     .grafica-lineas-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr));
         gap: 20px;
     }
 
@@ -763,7 +775,7 @@
 
     .grafica-pie-layout {
         display: grid;
-        grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
+        grid-template-columns: minmax(min(100%, 280px), 360px) minmax(0, 1fr);
         gap: 20px;
         align-items: center;
     }
@@ -953,6 +965,51 @@
             padding: 14px;
         }
     }
+
+    @media (max-width: 480px) {
+        .historico-container {
+            padding: 12px 10px;
+        }
+
+        .lineas-section,
+        .grafica-section {
+            padding: 16px;
+        }
+
+        .modulos-grid {
+            padding: 14px;
+            gap: 14px;
+        }
+
+        .resumen-card,
+        .modulo-summary-card,
+        .grafica-linea-card {
+            padding: 16px;
+        }
+
+        .modal {
+            padding: 8px;
+        }
+
+        .modal-header {
+            align-items: flex-start;
+            padding: 16px;
+        }
+
+        .modal-header h3 {
+            font-size: 18px;
+            line-height: 1.2;
+            overflow-wrap: anywhere;
+        }
+
+        .modal-body {
+            padding: 14px;
+        }
+
+        .grafica-pie-center-value {
+            font-size: 28px;
+        }
+    }
 </style>
 
 <div class="historico-container">
@@ -973,7 +1030,9 @@
     </div>
 
     <div class="lineas-section">
-        <div class="lineas-title">Lineas de pasteurizadora</div>
+        <div class="lineas-title">
+            Lineas de pasteurizadora
+        </div>
         <div class="lineas-grid">
             @foreach($lineas as $linea)
                 <a href="{{ $analisisRoute('historico-revisados', ['linea_id' => $linea->id]) }}"
@@ -986,6 +1045,15 @@
 
     @if(isset($estadisticas['resumen']))
         <div class="resumen-grid">
+            <div class="resumen-card">
+                <div class="resumen-icono total">
+                    <i class="fas fa-cubes"></i>
+                </div>
+                <div class="resumen-info">
+                    <h4>Total Analisis</h4>
+                    <div class="valor">{{ $estadisticas['resumen']['total_general'] }}</div>
+                </div>
+            </div>
             <div class="resumen-card">
                 <div class="resumen-icono revisado">
                     <i class="fas fa-check-circle"></i>

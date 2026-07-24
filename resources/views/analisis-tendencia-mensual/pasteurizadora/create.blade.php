@@ -3,7 +3,52 @@
 @section('title', 'Nuevo Análisis Mensual 52-12-4')
 
 @section('content')
-<div class="max-w-4xl mx-auto px-4 py-6">
+<style>
+    .trend-form-shell {
+        width: 100%;
+        max-width: min(56rem, 100%);
+        overflow-x: clip;
+    }
+
+    .trend-form-shell * {
+        box-sizing: border-box;
+        min-width: 0;
+    }
+
+    .trend-form-shell h2,
+    .trend-form-shell h3,
+    .trend-form-shell h4,
+    .trend-form-shell p,
+    .trend-form-shell span,
+    .trend-form-shell label,
+    .trend-form-shell textarea {
+        overflow-wrap: anywhere;
+    }
+
+    @media (max-width: 640px) {
+        .trend-form-shell {
+            padding: 1rem 0.75rem;
+        }
+
+        .trend-form-shell input,
+        .trend-form-shell select,
+        .trend-form-shell textarea {
+            font-size: 16px;
+        }
+
+        .trend-form-shell .create-actions {
+            align-items: stretch;
+            flex-direction: column;
+        }
+
+        .trend-form-shell .create-action {
+            width: 100%;
+            justify-content: center;
+        }
+    }
+</style>
+
+<div class="trend-form-shell max-w-4xl mx-auto px-4 py-6">
     <div class="mb-6">
         <a href="{{ route('analisis-tendencia-mensual.pasteurizadora.index') }}" 
            class="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900">
@@ -33,7 +78,6 @@
             {{-- Línea --}}
             <div class="mb-6">
                 <label class="block text-sm font-semibold text-gray-700 mb-3">
-                    <i class="fas fa-industry mr-2 text-blue-600"></i>
                     Línea (Pasteurizadora) <span class="text-red-500">*</span>
                 </label>
                 <select name="linea_id" id="linea_id" 

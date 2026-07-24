@@ -20,51 +20,98 @@
 
 <style>
     .pasteur-form-shell {
-        --primary-blue: #2563eb;
+        --primary-blue: #3b82f6;
         --border: #e5e7eb;
-        --soft-shadow: 0 1px 2px rgba(15, 23, 42, .05);
+        --soft-shadow: 0 10px 15px -3px rgba(15, 23, 42, .10), 0 4px 6px -4px rgba(15, 23, 42, .10);
+        width: 100%;
+        max-width: min(56rem, 100%);
+        overflow-x: clip;
+    }
+
+    .pasteur-form-shell * {
+        box-sizing: border-box;
+        min-width: 0;
     }
 
     .pasteur-form-card {
         background: #ffffff;
-        border: 1px solid var(--border);
-        border-radius: 12px;
+        border: 0;
+        border-radius: 1rem;
         box-shadow: var(--soft-shadow);
-        padding: 24px;
+        padding: clamp(1rem, 4vw, 2rem);
     }
 
     .pasteur-context {
-        background: linear-gradient(to right, #f9fafb, #ffffff);
+        background: linear-gradient(to right, #f9fafb, #f3f4f6);
         border: 1px solid var(--border);
-        border-radius: 12px;
+        border-radius: 0.75rem;
         padding: 16px;
+        overflow: hidden;
     }
 
     .pasteur-context img {
-        background: #eff6ff;
-        border: 1px solid #bfdbfe;
-        border-radius: 8px;
-        padding: 8px;
+        background: transparent;
+        border: 0;
+        border-radius: 0;
+        padding: 0;
     }
 
     .pasteur-form-shell label i,
     .pasteur-form-shell p i {
         color: var(--primary-blue);
     }
+
+    .pasteur-form-shell h1,
+    .pasteur-form-shell p,
+    .pasteur-form-shell span,
+    .pasteur-form-shell label,
+    .pasteur-form-shell textarea {
+        overflow-wrap: anywhere;
+    }
+
+    .pasteur-form-shell .create-actions {
+        flex-wrap: wrap;
+    }
+
+    @media (max-width: 640px) {
+        .pasteur-form-shell {
+            padding: 1.25rem 0.75rem;
+        }
+
+        .pasteur-form-shell h1 {
+            font-size: 1.5rem;
+            line-height: 1.25;
+        }
+
+        .pasteur-context {
+            padding: 14px;
+        }
+
+        .pasteur-form-shell input,
+        .pasteur-form-shell select,
+        .pasteur-form-shell textarea {
+            font-size: 16px;
+        }
+
+        .pasteur-form-shell .create-action,
+        .pasteur-form-shell .responsive-action {
+            width: 100%;
+            justify-content: center;
+        }
+    }
 </style>
 
-<div class="pasteur-form-shell max-w-5xl mx-auto px-4 py-8">
-    <div class="pasteur-form-card">
-        <div class="mb-8">
-            <div class="flex items-center gap-3 mb-4">
+<div class="pasteur-form-shell max-w-4xl mx-auto py-10 px-4">
+    <div class="mb-8">
+        <div class="flex items-center gap-3 mb-4">
                 <a href="{{ $analisisRoute('select-linea') }}"
-                   class="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-gray-100 text-gray-500 transition hover:bg-gray-200 hover:text-blue-600">
+                   class="text-gray-400 hover:text-blue-600 transition">
                     <i class="fas fa-arrow-left text-xl"></i>
                 </a>
-                <h1 class="text-2xl font-bold text-gray-800">
+                <h1 class="text-3xl font-bold text-gray-800">
                     Agregar Analisis
                 </h1>
-            </div>
+        </div>
 
             <div class="pasteur-context">
                 <div class="flex flex-col md:flex-row items-center gap-6">
@@ -80,7 +127,6 @@
                     <div class="grid grid-cols-1 md:grid-cols-4 gap-4 md:gap-6 flex-grow">
                         <div class="text-center md:text-left">
                             <p class="text-gray-600 font-semibold text-sm mb-1">
-                                <i class="fas fa-temperature-high mr-1"></i>
                                 Linea
                             </p>
                             <p class="text-gray-800 font-medium">{{ $linea->nombre }}</p>
@@ -114,6 +160,7 @@
             </div>
         </div>
 
+    <div class="pasteur-form-card">
         <div class="mb-6 rounded-xl border border-blue-200 bg-blue-50 px-4 py-4 text-sm text-blue-800">
             <div class="flex items-start gap-3">
                 <i class="fas fa-info-circle mt-0.5"></i>
@@ -347,7 +394,7 @@
                         <p id="fotos_resumen" class="text-sm font-medium text-gray-600">Sin imagenes seleccionadas</p>
                         <p class="text-xs text-gray-500">JPG, PNG, WEBP, GIF o BMP. Max. 5MB por imagen.</p>
                     </div>
-                    <div id="preview_fotos" class="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4"></div>
+                    <div id="preview_fotos" class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-4"></div>
                 </div>
 
                 @error('evidencia_fotos')

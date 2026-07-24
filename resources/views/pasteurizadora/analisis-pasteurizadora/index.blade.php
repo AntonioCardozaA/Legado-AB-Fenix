@@ -12,7 +12,7 @@
 <style>
     /* VARIABLES CSS PARA CONSISTENCIA */
     :root {
-        --primary-blue: #2563eb;
+        --primary-blue: #3b82f6;
         --success-green: #10b981;
         --warning-yellow: #f59e0b;
         --danger-red: #ef4444;
@@ -20,7 +20,7 @@
         --light-gray: #f9fafb;
         --medium-gray: #e5e7eb;
         --dark-gray: #6b7280;
-        --soft-shadow: 0 1px 2px rgba(15, 23, 42, .05);
+        --soft-shadow: 0 4px 6px rgba(15, 23, 42, 0.05);
     }
     
     .sticky-top { position: sticky; top: 0; z-index: 30; }
@@ -35,9 +35,12 @@
     .cell-header { background-color: #eff6ff; }
     
     .compact-table td, .compact-table th {
-        padding: 8px !important;
-        font-size: 0.75rem !important;
-        min-width: 120px;
+        padding: 12px !important;
+        font-size: 0.82rem !important;
+        min-width: 190px;
+        width: 210px;
+        max-width: 240px;
+        white-space: normal !important;
     }
     
     .table-container {
@@ -47,7 +50,7 @@
     
     .image-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr));
         gap: 16px;
         margin-top: 20px;
         max-height: 60vh;
@@ -152,7 +155,7 @@
         cursor: pointer;
         transition: all 0.2s ease;
         position: relative;
-        min-height: 120px;
+        min-height: 190px;
     }
     
     .analysis-cell.no-data {
@@ -184,7 +187,7 @@
     
     .detail-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr));
         gap: 20px;
         margin-top: 20px;
     }
@@ -533,8 +536,8 @@
     }
     
     .linea-item.active {
-        background: #2563eb;
-        border-color: #2563eb;
+        background: #3b82f6;
+        border-color: #3b82f6;
         color: white;
     }
     
@@ -621,7 +624,7 @@
         justify-content: center;
         gap: 8px;
         padding: 10px 28px;
-        background: #2563eb;
+        background: #3b82f6;
         color: white;
         font-size: 14px;
         font-weight: 600;
@@ -636,14 +639,14 @@
         overflow-wrap: anywhere;
         transition: all 0.2s ease;
         margin-left: auto;
-        box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);
+        box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.2);
         touch-action: manipulation;
     }
     
     .btn-apply:hover {
-        background: #1d4ed8;
+        background: #2563eb;
         transform: translateY(-1px);
-        box-shadow: 0 6px 10px -1px rgba(37, 99, 235, 0.3);
+        box-shadow: 0 6px 10px -1px rgba(59, 130, 246, 0.3);
     }
     
     .btn-clear {
@@ -691,7 +694,7 @@
     
     .advanced-filters-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr));
         gap: 16px;
     }
     
@@ -783,18 +786,17 @@
         background: white;
         border-radius: 12px;
         overflow: hidden;
-        box-shadow: var(--soft-shadow);
-        margin-bottom: 24px;
-        border: 1px solid #e5e7eb;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        margin-bottom: 30px;
+        border: 1px solid #e2e8f0;
         width: 100%;
         max-width: 100%;
     }
 
     .pasteurizadora-card-header {
-        background: linear-gradient(to right, #f9fafb, #ffffff);
-        border-bottom: 1px solid #e5e7eb;
-        color: #111827;
-        padding: 20px 24px;
+        background: linear-gradient(135deg, #1e293b, #0f172a);
+        color: white;
+        padding: 15px 20px;
         display: flex;
         align-items: center;
         gap: 15px;
@@ -813,13 +815,13 @@
     }
 
     .pasteurizadora-card-header .badge {
-        background: #eff6ff;
-        border: 1px solid #bfdbfe;
-        color: #1d4ed8;
-        padding: 6px 12px;
-        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.2);
+        border: 0;
+        color: white;
+        padding: 4px 12px;
+        border-radius: 20px;
         font-size: 12px;
-        font-weight: 700;
+        font-weight: 600;
     }
 
     .pasteurizadora-card .table-wrapper {
@@ -962,15 +964,23 @@
     }
 
     .pasteur-index-shell {
-        max-width: 1280px;
+        width: 100%;
+        max-width: 100%;
+        overflow-x: clip;
+    }
+
+    .pasteur-index-shell * {
+        box-sizing: border-box;
+        min-width: 0;
     }
 
     .pasteur-index-shell > .flex:first-child {
-        background: #ffffff;
-        border: 1px solid #e5e7eb;
-        border-radius: 12px;
-        box-shadow: var(--soft-shadow);
-        padding: 20px 24px;
+        width: 100%;
+        background: transparent;
+        border: 0;
+        border-radius: 0;
+        box-shadow: none;
+        padding: 0;
     }
 
     .pasteur-index-shell .filters-section,
@@ -980,17 +990,25 @@
         box-shadow: var(--soft-shadow);
     }
 
+    .pasteur-index-shell h1,
+    .pasteur-index-shell h2,
+    .pasteur-index-shell h3,
+    .pasteur-index-shell p,
+    .pasteur-index-shell span {
+        overflow-wrap: anywhere;
+    }
+
     .pasteur-index-shell .pasteurizadora-card-header img {
-        background: #eff6ff;
-        border: 1px solid #bfdbfe;
-        border-radius: 8px;
-        padding: 6px;
+        background: transparent;
+        border: 0;
+        border-radius: 0;
+        padding: 0;
     }
 
     /* Grid de imagenes mejorado para el modal monocromatico */
     .image-grid-enhanced {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+        grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr));
         gap: 20px;
     }
 
@@ -1070,6 +1088,32 @@
     }
 
     @media (max-width: 768px) {
+        .pasteur-index-shell {
+            padding: 1rem 0.75rem;
+        }
+
+        .pasteur-index-shell > .flex:first-child {
+            align-items: stretch;
+        }
+
+        .pasteur-index-shell > .flex:first-child > div {
+            width: 100%;
+        }
+
+        .pasteur-index-shell .create-actions {
+            width: 100%;
+        }
+
+        .pasteur-index-shell .create-action,
+        .pasteur-index-shell .responsive-action {
+            width: 100%;
+            justify-content: center;
+        }
+
+        .filters-section {
+            padding: 16px;
+        }
+
         .image-grid-enhanced {
             grid-template-columns: repeat(2, 1fr);
             gap: 12px;
@@ -1081,6 +1125,19 @@
     }
 
     @media (max-width: 480px) {
+        .pasteur-index-shell {
+            padding: 0.875rem 0.625rem;
+        }
+
+        .pasteur-index-shell h1 {
+            font-size: 1.35rem;
+            line-height: 1.25;
+        }
+
+        .advanced-filters-panel {
+            padding: 14px;
+        }
+
         .image-grid-enhanced {
             grid-template-columns: 1fr;
         }
@@ -1091,7 +1148,8 @@
     {{-- HEADER --}}
     <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
         <div>
-            <a href="{{ route($analisisDashboardRoute ?? 'pasteurizadora.dashboard') }}" class="responsive-action responsive-action--secondary group">
+            <a href="{{ route($analisisDashboardRoute ?? 'pasteurizadora.dashboard') }}"
+               class="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 rounded-lg transition-all duration-300 group">
                 <svg class="w-5 h-5 group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
                 </svg>
@@ -1102,10 +1160,12 @@
             </h1>
         </div>
 
-        <a href="{{ $analisisRoute('select-linea') }}" class="responsive-action whitespace-nowrap">
-            <i class="fas fa-plus"></i>
-            AGREGAR AN&Aacute;LISIS
-        </a>
+        <div class="create-actions create-actions--end">
+            <a href="{{ $analisisRoute('select-linea') }}" class="create-action">
+                <i class="fas fa-plus-circle"></i>
+                Nuevo An&aacute;lisis
+            </a>
+        </div>
     </div>
 
     {{-- FILTROS ESTILO IMAGEN - CON VER MÁS FUNCIONAL --}}
@@ -1179,7 +1239,6 @@
     <div class="filters-section">
         {{-- LÍNEAS: con las pasteurizadoras específicas --}}
         <div class="lineas-title">
-       
             LÍNEAS DE PASTEURIZADORA:
         </div>
         
@@ -1195,7 +1254,6 @@
                 @foreach($lineasFiltradas as $l)
                     <div class="linea-item {{ request('linea_id') == $l->id ? 'active' : '' }}" 
                          onclick="selectLinea('{{ $l->id }}')">
-                    
                         {{ $l->nombre }}
                     </div>
                 @endforeach
@@ -1219,7 +1277,7 @@
                 
                 <button type="submit" class="btn-apply">
                     <i class="fas fa-search"></i>
-                    Buscar
+                    Aplicar filtros
                 </button>
                 
                 <a href="{{ $analisisRoute('index', ['linea_id' => 'todas']) }}" class="btn-clear">
@@ -1507,10 +1565,7 @@
                 <div class="pasteurizadora-card">
                     <div class="pasteurizadora-card-header">
                         <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 w-full">
-                            <div class="flex items-center gap-3">
-                                <div class="w-12 h-12">
-                                    <img src="{{ asset('images/icono_pas.png') }}" alt="Icono" class="w-full h-full object-contain">
-                                </div>
+                            <div class="min-w-0">
                                 <div>
                                     <h3>{{ $linea->nombre }}</h3>
                                     <div class="badge">{{ $totalModulos }} módulos | {{ count($componentesLinea) }} componentes</div>
@@ -1683,10 +1738,12 @@
                                                         'modulo' => $moduloNumero,
                                                         'componente' => $compData['nombre'],
                                                         'tipo_registro' => $hasNormalAnalysis ? 'normal' : 'quick',
-                                                        'tipo_registro_label' => $hasNormalAnalysis ? 'Analisis normal' : 'Bitacora rapida',
+                                                        'tipo_registro_label' => $hasNormalAnalysis ? 'Revisión programada' : 'Revisión de seguimiento',
                                                         'lado' => $registro->lado,
                                                         'nivel' => $registro->nivel,
                                                         'fecha_analisis' => $registro->fecha_analisis ? $registro->fecha_analisis->format('d/m/Y') : $registro->created_at->format('d/m/Y'),
+                                                        'fecha_inicio' => optional($registro->fecha_inicio ?? $registro->fecha_analisis ?? $registro->created_at)->format('d/m/Y'),
+                                                        'fecha_fin' => optional($registro->fecha_fin ?? $registro->fecha_analisis ?? $registro->created_at)->format('d/m/Y'),
                                                         'numero_orden' => $registro->numero_orden,
                                                         'estado' => $estadoActual,
                                                         'usuario_nombre' => $registro->usuario?->name ?? $registro->responsable ?? 'Usuario no registrado',
@@ -1720,8 +1777,10 @@
                                                                 return [
                                                                     'id' => $item->id,
                                                                     'tipo_registro' => $item->tipo_registro,
-                                                                    'tipo_registro_label' => $item->es_registro_normal ? 'Analisis normal' : 'Bitacora rapida',
+                                                                    'tipo_registro_label' => $item->es_registro_normal ? 'Revisión programada' : 'Revisión de seguimiento',
                                                                     'fecha' => $item->fecha_analisis ? $item->fecha_analisis->format('d/m/Y') : $item->created_at?->format('d/m/Y'),
+                                                                    'fecha_inicio' => optional($item->fecha_inicio ?? $item->fecha_analisis ?? $item->created_at)->format('d/m/Y'),
+                                                                    'fecha_fin' => optional($item->fecha_fin ?? $item->fecha_analisis ?? $item->created_at)->format('d/m/Y'),
                                                                     'hora' => $item->created_at?->format('H:i'),
                                                                     'orden' => $item->numero_orden,
                                                                     'estado' => $item->estado,
@@ -1747,7 +1806,7 @@
                                                             @if($hasNormalAnalysis)
                                                                 <span class="inline-flex items-center gap-1 rounded-full border border-slate-300 bg-white/80 px-2 py-1 text-[11px] font-semibold text-slate-700">
                                                                     <i class="fas fa-file-medical-alt text-[10px]"></i>
-                                                                    Analisis normal
+                                                                    Revisión programada
                                                                 </span>
                                                             @elseif($mostrarProcesoCompletado)
                                                                 <span class="inline-flex items-center gap-1 rounded-full border border-green-200 bg-green-100 px-2 py-1 text-[11px] font-semibold text-green-800">
@@ -1759,7 +1818,7 @@
                                                             @else
                                                                 <span class="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-100/80 px-2 py-1 text-[11px] font-semibold text-emerald-800">
                                                                     <i class="fas fa-clipboard-check text-[10px]"></i>
-                                                                    Bitacora rapida
+                                                                    Revisión de seguimiento
                                                                 </span>
                                                             @endif
 
@@ -1970,9 +2029,6 @@
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div class="bg-white rounded-lg p-5 border-l-4 border-gray-700 shadow-sm hover:shadow-md transition-all">
                     <div class="flex items-start gap-3">
-                        <div class="bg-gray-100 p-3 rounded-lg">
-                            <i class="fas fa-industry text-gray-700 text-xl"></i>
-                        </div>
                         <div class="flex-1">
                             <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider font-mono">Línea</p>
                             <p id="detail-linea" class="font-bold text-gray-800 text-lg mt-1"></p>
@@ -2023,8 +2079,18 @@
                             <i class="far fa-calendar-alt text-gray-700 text-xl"></i>
                         </div>
                         <div class="flex-1">
-                            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider font-mono">Fecha</p>
+                            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider font-mono">Fechas</p>
                             <p id="detail-fecha" class="font-bold text-gray-800 text-lg mt-1 font-mono"></p>
+                            <div class="mt-3 grid grid-cols-1 gap-2 text-sm font-mono">
+                                <div class="flex items-center justify-between gap-3 rounded-lg bg-gray-50 px-3 py-2">
+                                    <span class="text-gray-500">Inicio</span>
+                                    <span id="detail-fecha-inicio" class="font-semibold text-gray-800"></span>
+                                </div>
+                                <div class="flex items-center justify-between gap-3 rounded-lg bg-gray-50 px-3 py-2">
+                                    <span class="text-gray-500">Final</span>
+                                    <span id="detail-fecha-fin" class="font-semibold text-gray-800"></span>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -2362,7 +2428,10 @@ function openAnalysisDetail(data) {
     document.getElementById('detail-linea').textContent = data.linea || 'N/A';
     document.getElementById('detail-modulo').textContent = data.modulo ? `Modulo ${data.modulo}` : 'N/A';
     document.getElementById('detail-componente').textContent = data.componente || 'N/A';
-    document.getElementById('detail-fecha').textContent = data.fecha_analisis || 'N/A';
+    const fechaAnalisis = data.fecha_analisis || 'N/A';
+    document.getElementById('detail-fecha').textContent = fechaAnalisis;
+    document.getElementById('detail-fecha-inicio').textContent = data.fecha_inicio || fechaAnalisis;
+    document.getElementById('detail-fecha-fin').textContent = data.fecha_fin || fechaAnalisis;
     document.getElementById('detail-orden').textContent = data.numero_orden ? `#${data.numero_orden}` : 'Sin orden';
     document.getElementById('detail-actividad').textContent = data.actividad || 'No especificada';
     document.getElementById('detail-usuario').textContent = `Realizado por: ${data.usuario_nombre || 'Usuario no registrado'}`;
@@ -2558,6 +2627,8 @@ function renderActualizaciones(data) {
                     const nivelNombre = item.nivel === 'SUPERIOR' ? 'Superior' : (item.nivel === 'INFERIOR' ? 'Inferior' : '');
                     const ladoNombre = item.lado === 'VAPOR' ? 'Vapor' : (item.lado === 'PASILLO' ? 'Pasillo' : '');
                     const componentes = Array.isArray(item.componentes_revisados) ? item.componentes_revisados : [];
+                    const fechaInicio = item.fecha_inicio || item.fecha || '';
+                    const fechaFin = item.fecha_fin || item.fecha || '';
 
                     return `
                         <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
@@ -2573,6 +2644,10 @@ function renderActualizaciones(data) {
                                     ${ladoNombre ? `<span class="text-xs px-2 py-1 rounded ${ladoClass}">${ladoNombre}</span>` : ''}
                                     <span class="text-xs px-2 py-1 rounded ${estadoClass}">${item.estado || 'N/A'}</span>
                                 </div>
+                            </div>
+                            <div class="mb-2 flex flex-wrap gap-2 text-xs text-gray-600">
+                                <span class="inline-flex items-center rounded bg-white px-2 py-1 border border-gray-200">Inicio: ${fechaInicio || '-'}</span>
+                                <span class="inline-flex items-center rounded bg-white px-2 py-1 border border-gray-200">Final: ${fechaFin || '-'}</span>
                             </div>
                             <p class="text-sm text-gray-700 whitespace-pre-line">${item.actividad || 'Sin actividad registrada.'}</p>
                             ${componentes.length > 0 ? `

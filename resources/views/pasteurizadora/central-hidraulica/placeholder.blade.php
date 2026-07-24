@@ -1,7 +1,14 @@
 <style>
     .central-placeholder {
-        max-width: 960px;
+        width: 100%;
+        max-width: min(960px, 100%);
         margin: 0 auto;
+        overflow-x: clip;
+    }
+
+    .central-placeholder * {
+        box-sizing: border-box;
+        min-width: 0;
     }
 
     .central-card {
@@ -33,6 +40,25 @@
         height: 58px;
         justify-content: center;
         width: 58px;
+    }
+
+    .central-card-header h1,
+    .central-card-header p,
+    .central-card p {
+        overflow-wrap: anywhere;
+    }
+
+    @media (max-width: 640px) {
+        .central-card-header {
+            align-items: flex-start;
+            flex-direction: column;
+            padding: 18px;
+        }
+
+        .central-placeholder {
+            padding-left: 0.75rem;
+            padding-right: 0.75rem;
+        }
     }
 </style>
 

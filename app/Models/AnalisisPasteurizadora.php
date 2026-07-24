@@ -24,6 +24,8 @@ class AnalisisPasteurizadora extends Model
         'nivel',
         'componente',
         'lado',
+        'fecha_inicio',
+        'fecha_fin',
         'fecha_analisis',
         'numero_orden',
         'estado',
@@ -56,6 +58,8 @@ class AnalisisPasteurizadora extends Model
     protected $casts = [
         'area' => 'string',
         'tipo_registro' => 'string',
+        'fecha_inicio' => 'date',
+        'fecha_fin' => 'date',
         'fecha_analisis' => 'date',
         'evidencia_fotos' => 'array',
         'cantidad_componentes_revisados' => 'integer',
@@ -239,6 +243,23 @@ class AnalisisPasteurizadora extends Model
     public static function esEstadoCambiado(?string $estado): bool
     {
         return $estado === self::ESTADO_CAMBIADO;
+    }
+
+    public static function estadosSeguimientoReinspeccion(): array
+    {
+        return array_values(array_unique(array_merge([
+            self::ESTADO_REQUIERE_REVISION,
+            ...self::ESTADOS_DESGASTE,
+        ], self::estadosDanado())));
+    }
+
+    public static function esEstadoSeguimientoReinspeccion(?string $estado): bool
+    {
+        $estado = self::normalizarEstado($estado);
+
+        return self::esEstadoRequiereRevision($estado)
+            || self::esEstadoDesgaste($estado)
+            || self::esEstadoDanado($estado);
     }
 
     public static function normalizarEstado($estado): string
@@ -448,16 +469,18 @@ class AnalisisPasteurizadora extends Model
         ];
     }
 
-    public static function getResumenCicloComponente($lineaId, $modulo, $componente, ?int $excludeId = null, ?string $area = null): array
+    public static function getResumenCicloComponente($lineaId, $modulo, $componente, ?int $excludeId = null, ?string $area = null, ?string $tipoRegistro = null): array
     {
         $linea = Linea::find($lineaId);
         $totalComponentes = self::getTotalComponentesPorLineaYComponente($linea?->nombre, $componente);
 
-        $registros = self::queryForArea($area)
+        $query = self::queryForArea($area)
             ->where('linea_id', $lineaId)
             ->where('modulo', $modulo)
             ->where('componente', $componente)
-            ->when($excludeId, fn ($query) => $query->where('id', '!=', $excludeId))
+            ->when($excludeId, fn ($query) => $query->where('id', '!=', $excludeId));
+
+        $registros = self::aplicarFiltroTipoRegistro($query, $tipoRegistro)
             ->orderBy('fecha_analisis')
             ->orderBy('created_at')
             ->orderBy('id')
@@ -466,12 +489,12 @@ class AnalisisPasteurizadora extends Model
         return self::buildResumenCicloComponenteFromCollection($registros, $totalComponentes);
     }
 
-    public static function getComponentesRevisadosRegistrados($lineaId, $modulo, $componente, $lado = null, $nivel = null, ?int $excludeId = null, ?string $area = null): array
+    public static function getComponentesRevisadosRegistrados($lineaId, $modulo, $componente, $lado = null, $nivel = null, ?int $excludeId = null, ?string $area = null, ?string $tipoRegistro = null): array
     {
         $linea = Linea::find($lineaId);
         $totalComponentes = self::getTotalComponentesPorLineaYComponente($linea?->nombre, $componente);
 
-        return self::getResumenCicloComponente($lineaId, $modulo, $componente, $excludeId, $area)['registros_actuales']
+        return self::getResumenCicloComponente($lineaId, $modulo, $componente, $excludeId, $area, $tipoRegistro)['registros_actuales']
             ->when($lado, fn (Collection $registros) => $registros->where('lado', $lado))
             ->when($nivel, fn (Collection $registros) => $registros->where('nivel', $nivel))
             ->flatMap(function ($registro) use ($totalComponentes) {
@@ -493,7 +516,7 @@ class AnalisisPasteurizadora extends Model
             ->all();
     }
 
-    public static function getComponentesPendientes($lineaId, $modulo, $componente, $lado = null, $nivel = null, ?int $excludeId = null, ?string $area = null): array
+    public static function getComponentesPendientes($lineaId, $modulo, $componente, $lado = null, $nivel = null, ?int $excludeId = null, ?string $area = null, ?string $tipoRegistro = null): array
     {
         $linea = Linea::find($lineaId);
         $totalComponentes = self::getTotalComponentesPorLineaYComponente($linea?->nombre, $componente);
@@ -504,7 +527,7 @@ class AnalisisPasteurizadora extends Model
 
         return array_values(array_diff(
             range(1, $totalComponentes),
-            self::getComponentesRevisadosRegistrados($lineaId, $modulo, $componente, $lado, $nivel, $excludeId, $area)
+            self::getComponentesRevisadosRegistrados($lineaId, $modulo, $componente, $lado, $nivel, $excludeId, $area, $tipoRegistro)
         ));
     }
 
@@ -512,12 +535,12 @@ class AnalisisPasteurizadora extends Model
     // MÃ‰TODOS PARA CONTEO POR LADO Y NIVEL
     // ============================================================
 
-    public static function getCantidadComponentesRevisados($lineaId, $modulo, $componente, $lado = null, $nivel = null, ?int $excludeId = null, ?string $area = null): int
+    public static function getCantidadComponentesRevisados($lineaId, $modulo, $componente, $lado = null, $nivel = null, ?int $excludeId = null, ?string $area = null, ?string $tipoRegistro = null): int
     {
-        return count(self::getComponentesRevisadosRegistrados($lineaId, $modulo, $componente, $lado, $nivel, $excludeId, $area));
+        return count(self::getComponentesRevisadosRegistrados($lineaId, $modulo, $componente, $lado, $nivel, $excludeId, $area, $tipoRegistro));
     }
 
-    public static function getCantidadComponentesPendientes($lineaId, $modulo, $componente, $lado = null, $nivel = null, ?int $excludeId = null, ?string $area = null): int
+    public static function getCantidadComponentesPendientes($lineaId, $modulo, $componente, $lado = null, $nivel = null, ?int $excludeId = null, ?string $area = null, ?string $tipoRegistro = null): int
     {
         $linea = Linea::find($lineaId);
         if (!$linea) {
@@ -525,22 +548,111 @@ class AnalisisPasteurizadora extends Model
         }
 
         $total = self::getTotalComponentesPorLineaYComponente($linea->nombre, $componente);
-        $alreadyReviewed = self::getCantidadComponentesRevisados($lineaId, $modulo, $componente, $lado, $nivel, $excludeId, $area);
+        $alreadyReviewed = self::getCantidadComponentesRevisados($lineaId, $modulo, $componente, $lado, $nivel, $excludeId, $area, $tipoRegistro);
 
         return max(0, $total - $alreadyReviewed);
     }
 
-    public static function getComponentesYaRevisados($lineaId, $modulo, $componente, $lado = null, $nivel = null, ?int $excludeId = null, ?string $area = null): array
+    public static function getComponentesYaRevisados($lineaId, $modulo, $componente, $lado = null, $nivel = null, ?int $excludeId = null, ?string $area = null, ?string $tipoRegistro = null): array
     {
-        return self::getComponentesRevisadosRegistrados($lineaId, $modulo, $componente, $lado, $nivel, $excludeId, $area);
+        return self::getComponentesRevisadosRegistrados($lineaId, $modulo, $componente, $lado, $nivel, $excludeId, $area, $tipoRegistro);
     }
 
-    public static function getLadosPendientes($lineaId, $modulo, $componente, $nivel = null, ?string $area = null)
+    public static function getComponentesReinspeccionSeguimiento($lineaId, $modulo, $componente, $lado = null, $nivel = null, ?int $excludeId = null, ?string $area = null): array
+    {
+        $linea = Linea::find($lineaId);
+        $totalComponentes = self::getTotalComponentesPorLineaYComponente($linea?->nombre, $componente);
+
+        if ($totalComponentes <= 0) {
+            return [];
+        }
+
+        $registros = self::queryForArea($area)
+            ->where('linea_id', $lineaId)
+            ->where('modulo', $modulo)
+            ->where('componente', $componente)
+            ->when($lado, fn ($query) => $query->where('lado', $lado))
+            ->when($nivel, fn ($query) => $query->where('nivel', $nivel))
+            ->when($excludeId, fn ($query) => $query->where('id', '!=', $excludeId))
+            ->orderBy('fecha_analisis')
+            ->orderBy('created_at')
+            ->orderBy('id')
+            ->get();
+
+        $ultimoEstadoPorComponente = [];
+
+        foreach ($registros as $registro) {
+            $componentes = self::normalizarComponentesRevisados($registro->componentes_revisados, $totalComponentes);
+
+            if (empty($componentes)) {
+                $cantidad = min((int) ($registro->cantidad_componentes_revisados ?? 0), $totalComponentes);
+                $componentes = $cantidad > 0 ? range(1, $cantidad) : [];
+            }
+
+            foreach ($componentes as $numeroComponente) {
+                $ultimoEstadoPorComponente[(int) $numeroComponente] = $registro->estado;
+            }
+        }
+
+        return collect($ultimoEstadoPorComponente)
+            ->filter(fn ($estado) => self::esEstadoSeguimientoReinspeccion($estado))
+            ->keys()
+            ->map(fn ($numeroComponente) => (int) $numeroComponente)
+            ->filter(fn ($numeroComponente) => $numeroComponente > 0 && $numeroComponente <= $totalComponentes)
+            ->sort()
+            ->values()
+            ->all();
+    }
+
+    public static function getComponentesDisponiblesSeguimiento($lineaId, $modulo, $componente, $lado = null, $nivel = null, ?int $excludeId = null, ?string $area = null): array
+    {
+        $pendientesQuick = self::getComponentesPendientes(
+            $lineaId,
+            $modulo,
+            $componente,
+            $lado,
+            $nivel,
+            $excludeId,
+            $area,
+            self::TIPO_REGISTRO_QUICK
+        );
+        $reinspeccion = self::getComponentesReinspeccionSeguimiento($lineaId, $modulo, $componente, $lado, $nivel, $excludeId, $area);
+
+        return collect($pendientesQuick)
+            ->merge($reinspeccion)
+            ->unique()
+            ->sort()
+            ->values()
+            ->all();
+    }
+
+    public static function getComponentesBloqueadosSeguimiento($lineaId, $modulo, $componente, $lado = null, $nivel = null, ?int $excludeId = null, ?string $area = null): array
+    {
+        $revisadosQuick = self::getComponentesYaRevisados(
+            $lineaId,
+            $modulo,
+            $componente,
+            $lado,
+            $nivel,
+            $excludeId,
+            $area,
+            self::TIPO_REGISTRO_QUICK
+        );
+        $reinspeccion = self::getComponentesReinspeccionSeguimiento($lineaId, $modulo, $componente, $lado, $nivel, $excludeId, $area);
+
+        return collect($revisadosQuick)
+            ->diff($reinspeccion)
+            ->sort()
+            ->values()
+            ->all();
+    }
+
+    public static function getLadosPendientes($lineaId, $modulo, $componente, $nivel = null, ?string $area = null, ?string $tipoRegistro = null)
     {
         $ladosPendientes = [];
 
         foreach (self::LADOS as $lado) {
-            $remaining = self::getCantidadComponentesPendientes($lineaId, $modulo, $componente, $lado, $nivel, null, $area);
+            $remaining = self::getCantidadComponentesPendientes($lineaId, $modulo, $componente, $lado, $nivel, null, $area, $tipoRegistro);
             if ($remaining > 0) {
                 $ladosPendientes[] = $lado;
             }
@@ -557,9 +669,9 @@ class AnalisisPasteurizadora extends Model
      * Obtiene el siguiente lado a revisar para un nivel específico
      * @return string|null El siguiente lado (VAPOR o PASILLO) o null si ambos están completos
      */
-    public static function getSiguienteLado($lineaId, $modulo, $componente, $ladoActual = null, $nivel = null, ?string $area = null)
+    public static function getSiguienteLado($lineaId, $modulo, $componente, $ladoActual = null, $nivel = null, ?string $area = null, ?string $tipoRegistro = null)
     {
-        $ladosPendientes = self::getLadosPendientes($lineaId, $modulo, $componente, $nivel, $area);
+        $ladosPendientes = self::getLadosPendientes($lineaId, $modulo, $componente, $nivel, $area, $tipoRegistro);
 
         if (empty($ladosPendientes)) {
             return null; // Ambos lados están completos para este nivel
@@ -582,12 +694,12 @@ class AnalisisPasteurizadora extends Model
         return null;
     }
 
-    public static function getSiguienteRevisionContexto($lineaId, $modulo, $componente, $nivelActual = null, $ladoActual = null, ?string $area = null)
+    public static function getSiguienteRevisionContexto($lineaId, $modulo, $componente, $nivelActual = null, $ladoActual = null, ?string $area = null, ?string $tipoRegistro = null)
     {
         $niveles = self::NIVELES;
 
         if ($nivelActual && in_array($nivelActual, $niveles, true)) {
-            $siguienteLado = self::getSiguienteLado($lineaId, $modulo, $componente, $ladoActual, $nivelActual, $area);
+            $siguienteLado = self::getSiguienteLado($lineaId, $modulo, $componente, $ladoActual, $nivelActual, $area, $tipoRegistro);
 
             if ($siguienteLado) {
                 return [
@@ -603,7 +715,7 @@ class AnalisisPasteurizadora extends Model
         }
 
         foreach ($niveles as $nivel) {
-            $ladosPendientes = self::getLadosPendientes($lineaId, $modulo, $componente, $nivel, $area);
+            $ladosPendientes = self::getLadosPendientes($lineaId, $modulo, $componente, $nivel, $area, $tipoRegistro);
 
             if (!empty($ladosPendientes)) {
                 return [
@@ -620,9 +732,9 @@ class AnalisisPasteurizadora extends Model
      * Obtiene el siguiente nivel a revisar
      * @return string|null El siguiente nivel (SUPERIOR o INFERIOR) o null si ambos están completos
      */
-    public static function getSiguienteNivel($lineaId, $modulo, $componente, $nivelActual = null, ?string $area = null)
+    public static function getSiguienteNivel($lineaId, $modulo, $componente, $nivelActual = null, ?string $area = null, ?string $tipoRegistro = null)
     {
-        $siguiente = self::getSiguienteRevisionContexto($lineaId, $modulo, $componente, $nivelActual, null, $area);
+        $siguiente = self::getSiguienteRevisionContexto($lineaId, $modulo, $componente, $nivelActual, null, $area, $tipoRegistro);
 
         if (!$siguiente) {
             return null;
@@ -634,24 +746,24 @@ class AnalisisPasteurizadora extends Model
     /**
      * Verifica si un nivel está completamente revisado
      */
-    public static function nivelCompletado($lineaId, $modulo, $componente, $nivel, ?string $area = null)
+    public static function nivelCompletado($lineaId, $modulo, $componente, $nivel, ?string $area = null, ?string $tipoRegistro = null)
     {
-        $ladosPendientes = self::getLadosPendientes($lineaId, $modulo, $componente, $nivel, $area);
+        $ladosPendientes = self::getLadosPendientes($lineaId, $modulo, $componente, $nivel, $area, $tipoRegistro);
         return empty($ladosPendientes);
     }
 
     /**
      * Obtiene información del estado de revisión de lados y niveles
      */
-    public static function getEstadoRevision($lineaId, $modulo, $componente, $nivel = null, ?string $area = null)
+    public static function getEstadoRevision($lineaId, $modulo, $componente, $nivel = null, ?string $area = null, ?string $tipoRegistro = null)
     {
         $niveles = self::NIVELES;
         $estado = [];
 
         foreach ($niveles as $niv) {
             $estado[$niv] = [
-                'completado' => self::nivelCompletado($lineaId, $modulo, $componente, $niv, $area),
-                'lados_pendientes' => self::getLadosPendientes($lineaId, $modulo, $componente, $niv, $area)
+                'completado' => self::nivelCompletado($lineaId, $modulo, $componente, $niv, $area, $tipoRegistro),
+                'lados_pendientes' => self::getLadosPendientes($lineaId, $modulo, $componente, $niv, $area, $tipoRegistro)
             ];
         }
 
@@ -920,8 +1032,8 @@ class AnalisisPasteurizadora extends Model
     public function getTipoRegistroLabelAttribute(): string
     {
         return $this->es_registro_normal
-            ? 'Analisis normal'
-            : 'Bitacora de revision';
+            ? 'Revisión programada'
+            : 'Revisión de seguimiento';
     }
 
     public function getComponentesRevisadosListaAttribute(): array
@@ -1080,6 +1192,17 @@ class AnalisisPasteurizadora extends Model
                 return $fechaAnalisis . '-' . $createdAt . '-' . $id;
             })
             ->values();
+    }
+
+    private static function aplicarFiltroTipoRegistro($query, ?string $tipoRegistro)
+    {
+        if ($tipoRegistro === null) {
+            return $query;
+        }
+
+        return self::normalizarTipoRegistro($tipoRegistro) === self::TIPO_REGISTRO_NORMAL
+            ? $query->normal()
+            : $query->quick();
     }
 
     private static function inicializarEstadoCiclo(): array

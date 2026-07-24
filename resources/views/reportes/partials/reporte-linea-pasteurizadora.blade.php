@@ -3,6 +3,7 @@
     $resumen = $reporte['resumen'] ?? [];
     $analisis = collect($reporte['analisis'] ?? []);
     $analisisHistorico = collect($reporte['analisis_historico'] ?? $analisis);
+    $historialAuditado = collect($reporte['analisis_historico_detallado'] ?? []);
     $componentes = collect($reporte['componentes'] ?? []);
     $modulos = collect($reporte['modulos'] ?? []);
     $analisisTendencia = collect($reporte['analisis_tendencia'] ?? []);
@@ -142,7 +143,9 @@
     };
 
     $evidenceList = function ($item) {
-        $imagenes = $item->evidencia_fotos ?? [];
+        $imagenes = is_array($item)
+            ? ($item['evidencias'] ?? [])
+            : ($item->evidencia_fotos ?? []);
 
         if (is_string($imagenes)) {
             $imagenes = json_decode($imagenes, true) ?? [];
@@ -170,11 +173,30 @@
         --surface: #ffffff;
         --background: #f8fafc;
         --soft-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+        width: 100%;
+        max-width: 100%;
+        overflow-x: clip;
+    }
+
+    .pasteur-report-detail *,
+    .pasteur-report-detail *::before,
+    .pasteur-report-detail *::after {
+        box-sizing: border-box;
+        min-width: 0;
+    }
+
+    .pasteur-report-detail h2,
+    .pasteur-report-detail h3,
+    .pasteur-report-detail h4,
+    .pasteur-report-detail p,
+    .pasteur-report-detail span,
+    .pasteur-report-detail td {
+        overflow-wrap: anywhere;
     }
 
     .pasteur-report-detail .stats-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
         gap: 16px;
         margin-bottom: 24px;
     }
@@ -380,7 +402,7 @@
     .pasteur-report-detail .componentes-grid {
         display: grid;
         gap: 16px;
-        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+        grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
     }
 
     .pasteur-report-detail .componente-card {
@@ -528,6 +550,7 @@
     .pasteur-report-detail .industrial-table {
         border-collapse: collapse;
         font-size: 14px;
+        min-width: 760px;
         width: 100%;
     }
 
@@ -557,7 +580,7 @@
     .pasteur-report-detail .metric-grid {
         display: grid;
         gap: 16px;
-        grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr));
         margin-bottom: 24px;
     }
 
@@ -656,6 +679,17 @@
         .pasteur-report-detail .quick-action {
             justify-content: center;
             width: 100%;
+        }
+
+        .pasteur-report-detail .industrial-table {
+            min-width: 680px;
+        }
+
+        .pasteur-report-detail .modulo-body,
+        .pasteur-report-detail .stat-card,
+        .pasteur-report-detail .metric-card,
+        .pasteur-report-detail .trend-card {
+            padding: 14px;
         }
     }
 </style>
@@ -1241,46 +1275,74 @@
                 <table class="industrial-table">
                     <thead>
                         <tr>
-                            <th>Fecha</th>
+                            <th>Fecha / Hora</th>
                             <th>Modulo</th>
                             <th>Nivel / Lado</th>
                             <th>Componente</th>
+                            <th>Piezas</th>
                             <th>Estado</th>
-                            <th>Orden</th>
-                            <th>Actividad</th>
+                            <th>Cambio</th>
+                            <th>Accion / Observacion</th>
+                            <th>Usuario</th>
                             <th>Evidencias</th>
                             <th></th>
                         </tr>
                     </thead>
                     <tbody>
-                        @forelse($analisisHistorico->take(12) as $item)
+                        @forelse(($historialAuditado->isNotEmpty() ? $historialAuditado : $analisisHistorico)->take(12) as $item)
                             @php
-                                $estadoActual = $item->estado;
+                                $filaAuditada = is_array($item);
+                                $estadoActual = $filaAuditada ? ($item['estado'] ?? null) : ($item->estado ?? null);
                                 $evidencias = $evidenceList($item);
+                                $showUrl = $filaAuditada
+                                    ? ($item['show_url'] ?? null)
+                                    : route('pasteurizadora.analisis-pasteurizadora.show', ['analisispasteurizadora' => $item->id]);
+                                $componenteNombreFila = $filaAuditada
+                                    ? ($item['componente_nombre'] ?? '-')
+                                    : ($item->componente_nombre ?? '-');
                             @endphp
                             <tr>
-                                <td>{{ $formatDate($item->fecha_analisis) }}</td>
-                                <td>Modulo {{ $item->modulo }}</td>
-                                <td>{{ $item->nivel ?? '-' }} / {{ $item->lado ?? '-' }}</td>
+                                <td>
+                                    <div class="font-medium">{{ $filaAuditada ? ($item['fecha_label'] ?? '-') : $formatDate($item->fecha_analisis) }}</div>
+                                    <div class="text-xs text-gray-500">{{ $filaAuditada ? ($item['hora_label'] ?? '-') : ($item->created_at?->format('H:i') ?? '-') }}</div>
+                                </td>
+                                <td>Modulo {{ $filaAuditada ? ($item['modulo'] ?? '-') : $item->modulo }}</td>
+                                <td>{{ $filaAuditada ? ($item['nivel'] ?? '-') : ($item->nivel ?? '-') }} / {{ $filaAuditada ? ($item['lado'] ?? '-') : ($item->lado ?? '-') }}</td>
                                 <td>
                                     <div class="flex items-center gap-2">
                                         <img
-                                            src="{{ $pasteurComponentIcon($item->componente ?? null) }}"
+                                            src="{{ $pasteurComponentIcon($filaAuditada ? ($item['componente_codigo'] ?? null) : ($item->componente ?? null)) }}"
                                             class="w-6 h-6 object-contain"
-                                            alt="{{ $item->componente_nombre }}"
+                                            alt="{{ $componenteNombreFila }}"
                                             onerror="this.src='{{ asset('images/icono_pas.png') }}'">
-                                        <span>{{ $item->componente_nombre }}</span>
+                                        <span>{{ $componenteNombreFila }}</span>
                                     </div>
                                 </td>
+                                <td>{{ $filaAuditada ? ($item['componentes_label'] ?? 'Sin detalle') : 'Sin detalle' }}</td>
                                 <td>
                                     <span class="estado-badge {{ $estadoClass($estadoActual) }}">
                                         <i class="fas {{ $estadoIcon($estadoActual) }}"></i>
                                         {{ $estadoActual }}
                                     </span>
                                 </td>
-                                <td>{{ $item->numero_orden ?: '-' }}</td>
                                 <td class="max-w-xs">
-                                    <p class="truncate">{{ \Illuminate\Support\Str::limit($item->actividad, 90) ?: '-' }}</p>
+                                    @if($filaAuditada)
+                                        <div class="font-semibold text-gray-800">{{ $item['cambio_resumen'] ?? '-' }}</div>
+                                        <div class="text-xs text-gray-500 mt-1">{{ $item['cambio_detalle'] ?? '' }}</div>
+                                    @else
+                                        <span class="text-xs text-gray-400">Sin comparativo</span>
+                                    @endif
+                                </td>
+                                <td class="max-w-xs">
+                                    <div class="font-semibold text-gray-800">
+                                        {{ $filaAuditada ? ($item['accion_correctiva'] ?? '-') : ($item->numero_orden ?: '-') }}
+                                    </div>
+                                    <p class="truncate text-xs text-gray-600 mt-1">
+                                        {{ \Illuminate\Support\Str::limit($filaAuditada ? ($item['observaciones'] ?? '') : ($item->actividad ?? ''), 90) ?: '-' }}
+                                    </p>
+                                </td>
+                                <td>
+                                    {{ $filaAuditada ? ($item['usuario_nombre'] ?? 'Usuario no registrado') : ($item->usuario?->name ?? $item->responsable ?? 'Usuario no registrado') }}
                                 </td>
                                 <td>
                                     @if($evidencias->isNotEmpty())
@@ -1290,7 +1352,7 @@
                                                     <img
                                                         src="{{ $evidenceUrl($foto) }}"
                                                         class="evidence-thumb"
-                                                        alt="Evidencia de {{ $item->componente_nombre }}"
+                                                        alt="Evidencia de {{ $componenteNombreFila }}"
                                                         onerror="this.style.display='none'">
                                                 </a>
                                             @endforeach
@@ -1303,7 +1365,7 @@
                                     @endif
                                 </td>
                                 <td>
-                                    <a href="{{ route('pasteurizadora.analisis-pasteurizadora.show', ['analisispasteurizadora' => $item->id]) }}"
+                                    <a href="{{ $showUrl }}"
                                        class="inline-flex items-center gap-1 text-xs text-blue-700 font-bold hover:text-blue-900">
                                         <i class="fas fa-eye"></i>
                                         Ver
@@ -1312,7 +1374,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="9">
+                                <td colspan="11">
                                     <div class="empty-state">
                                         <i class="fas fa-info-circle text-3xl"></i>
                                         <p>No hay analisis registrados en este periodo.</p>

@@ -16,6 +16,15 @@
         'linea_id' => $lineaSeleccionada,
     ], fn ($value) => filled($value)) + $parametrosFecha;
     $tituloAnalisis = $isAnalisis30147 ? 'Analisis 30-14-7' : 'Analisis 52-12-4';
+    $analisisDetalle = $analisisDetalle ?? [];
+    $detalleLinea = $detalleLinea ?? null;
+    $resumenDetalle = $detalleLinea['resumen'] ?? [];
+    $componentesDetalle = collect($detalleLinea['componentes'] ?? []);
+    $danosDetalle = collect($detalleLinea['danos'] ?? []);
+    $eventosDetalle = collect($detalleLinea['eventos'] ?? []);
+    $globalDetalle = $analisisDetalle['global'] ?? [];
+    $periodoDetalle = $analisisDetalle['periodo']['label'] ?? 'Historico disponible';
+    $graficasDetalle = $detalleLinea['graficas'] ?? [];
 @endphp
 @extends('layouts.app')
 
@@ -49,6 +58,28 @@
     body {
         background: var(--background);
         font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    }
+
+    .analysis-page {
+        width: 100%;
+        max-width: min(80rem, 100%);
+        overflow-x: clip;
+    }
+
+    .analysis-page *,
+    .analysis-page *::before,
+    .analysis-page *::after {
+        box-sizing: border-box;
+        min-width: 0;
+    }
+
+    .analysis-page h1,
+    .analysis-page h2,
+    .analysis-page h3,
+    .analysis-page p,
+    .analysis-page span,
+    .analysis-page label {
+        overflow-wrap: anywhere;
     }
 
     /* Header Industrial */   
@@ -117,7 +148,6 @@
         font-size: 15px;
         display: inline-flex;
         align-items: center;
-        justify-content: center;
         gap: 12px;
         transition: all 0.3s;
         border: none;
@@ -126,14 +156,6 @@
         box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.3);
         border: 1px solid rgba(255, 255, 255, 0.2);
         letter-spacing: 0.3px;
-        min-height: 48px;
-        min-width: 0;
-        max-width: 100%;
-        line-height: 1.2;
-        text-align: center;
-        white-space: normal;
-        overflow-wrap: anywhere;
-        touch-action: manipulation;
     }
 
     .btn-industrial:hover {
@@ -670,8 +692,6 @@
         flex-wrap: wrap;
         gap: 8px;
         margin-left: auto;
-        max-width: 100%;
-        min-width: 0;
     }
 
     .view-btn {
@@ -684,13 +704,6 @@
         border: 1px solid var(--border);
         background: white;
         color: var(--text-secondary);
-        min-height: 44px;
-        min-width: 0;
-        max-width: 100%;
-        text-align: center;
-        white-space: normal;
-        overflow-wrap: anywhere;
-        touch-action: manipulation;
     }
 
     .view-btn.active {
@@ -795,6 +808,282 @@
         font-weight: 600;
     }
 
+    .analysis-summary-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr));
+        gap: 16px;
+        margin-bottom: 24px;
+    }
+
+    .analysis-summary-card {
+        background: white;
+        border: 1px solid var(--border);
+        border-top: 4px solid var(--primary);
+        border-radius: 16px;
+        padding: 18px;
+        box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06);
+        min-width: 0;
+    }
+
+    .analysis-summary-card.danger { border-top-color: var(--danger); }
+    .analysis-summary-card.warning { border-top-color: var(--warning); }
+    .analysis-summary-card.success { border-top-color: var(--success); }
+
+    .analysis-summary-label {
+        font-size: 11px;
+        color: var(--text-secondary);
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        margin-bottom: 8px;
+    }
+
+    .analysis-summary-value {
+        color: var(--text-primary);
+        font-size: 24px;
+        font-weight: 800;
+        line-height: 1.15;
+        overflow-wrap: anywhere;
+    }
+
+    .analysis-summary-meta {
+        color: var(--text-secondary);
+        font-size: 12px;
+        margin-top: 8px;
+        line-height: 1.4;
+    }
+
+    .analysis-insight-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 18px;
+        margin-bottom: 24px;
+    }
+
+    .analysis-panel {
+        background: white;
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        padding: 20px;
+        box-shadow: 0 12px 22px rgba(15, 23, 42, 0.07);
+        min-width: 0;
+    }
+
+    .analysis-panel-title {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        color: var(--text-primary);
+        font-size: 15px;
+        font-weight: 800;
+        margin-bottom: 14px;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+    }
+
+    .analysis-panel-title i {
+        color: var(--primary);
+    }
+
+    .analysis-panel-copy {
+        color: var(--text-secondary);
+        font-size: 12px;
+        font-weight: 700;
+        line-height: 1.45;
+        margin: -4px 0 14px;
+    }
+
+    .analysis-list {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .analysis-row {
+        border: 1px solid rgba(148, 163, 184, 0.24);
+        border-radius: 14px;
+        padding: 12px;
+        background: #ffffff;
+    }
+
+    .analysis-row-top {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+        min-width: 0;
+    }
+
+    .analysis-row-name {
+        color: var(--text-primary);
+        font-size: 13px;
+        font-weight: 800;
+        overflow-wrap: anywhere;
+    }
+
+    .analysis-row-meta {
+        color: var(--text-secondary);
+        font-size: 11px;
+        line-height: 1.4;
+        margin-top: 4px;
+    }
+
+    .analysis-pill {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 999px;
+        padding: 5px 10px;
+        color: #0f172a;
+        background: #e2e8f0;
+        font-size: 11px;
+        font-weight: 800;
+        white-space: nowrap;
+    }
+
+    .analysis-pill.danger {
+        color: #991b1b;
+        background: #fee2e2;
+    }
+
+    .analysis-pill.warning {
+        color: #92400e;
+        background: #fef3c7;
+    }
+
+    .analysis-pill.success {
+        color: #065f46;
+        background: #d1fae5;
+    }
+
+    .analysis-progress {
+        height: 7px;
+        border-radius: 999px;
+        background: #e2e8f0;
+        overflow: hidden;
+        margin-top: 10px;
+    }
+
+    .analysis-progress span {
+        display: block;
+        height: 100%;
+        border-radius: 999px;
+        background: linear-gradient(90deg, var(--primary), var(--danger));
+    }
+
+    .component-detail-table {
+        width: 100%;
+        min-width: 920px;
+        border-collapse: collapse;
+        font-size: 13px;
+    }
+
+    .component-detail-table th {
+        background: var(--dark);
+        color: white;
+        padding: 12px;
+        text-align: left;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+    }
+
+    .component-detail-table td {
+        border-bottom: 1px solid var(--border);
+        padding: 12px;
+        vertical-align: top;
+        color: var(--text-primary);
+    }
+
+    .component-chip-stack {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 8px;
+    }
+
+    .event-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr));
+        gap: 12px;
+    }
+
+    .event-card {
+        background: #f8fafc;
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 12px;
+        min-width: 0;
+    }
+
+    .analysis-chart-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+        gap: 18px;
+        margin-bottom: 24px;
+    }
+
+    .analysis-chart-grid--two {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .analysis-panel--wide {
+        grid-column: 1 / -1;
+    }
+
+    .mini-chart-container {
+        position: relative;
+        height: 280px;
+        width: 100%;
+        min-width: 0;
+    }
+
+    .mini-chart-container--bar {
+        height: 310px;
+    }
+
+    .mini-chart-container--bar-tall {
+        height: 340px;
+    }
+
+    .mini-chart-container--combined {
+        height: 440px;
+    }
+
+    .chart-hint {
+        color: var(--text-secondary);
+        font-size: 12px;
+        line-height: 1.4;
+        margin-top: 10px;
+    }
+
+    .chart-reading-copy {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr));
+        gap: 8px;
+        margin-top: 12px;
+    }
+
+    .chart-reading-copy span {
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        background: #f8fafc;
+        color: var(--text-secondary);
+        font-size: 11px;
+        font-weight: 700;
+        line-height: 1.35;
+        padding: 9px 10px;
+    }
+
+    .empty-note {
+        color: var(--text-secondary);
+        font-size: 13px;
+        padding: 16px;
+        border: 1px dashed var(--border);
+        border-radius: 14px;
+        background: #f8fafc;
+    }
+
     /* Tooltip personalizado */
     .custom-tooltip {
         background: var(--dark);
@@ -813,6 +1102,14 @@
 
         .executive-window-grid {
             grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+        }
+
+        .analysis-chart-grid--two {
+            grid-template-columns: 1fr;
+        }
+
+        .mini-chart-container--combined {
+            height: 390px;
         }
 
         .industrial-table {
@@ -841,6 +1138,12 @@
             width: 100%;
         }
 
+        .analysis-page input,
+        .analysis-page select,
+        .analysis-page textarea {
+            font-size: 16px;
+        }
+
         .analysis-switcher a {
             justify-content: center;
             padding: 12px 10px;
@@ -850,7 +1153,8 @@
 
         .industrial-filters,
         .industrial-chart,
-        .industrial-empty {
+        .industrial-empty,
+        .analysis-panel {
             border-radius: 16px;
             padding: 16px;
             margin-bottom: 20px;
@@ -880,6 +1184,26 @@
                 'title'
                 'controls'
                 'caption';
+        }
+
+        .analysis-summary-grid,
+        .analysis-insight-grid,
+        .analysis-chart-grid {
+            grid-template-columns: 1fr;
+            gap: 12px;
+        }
+
+        .mini-chart-container {
+            height: 250px;
+        }
+
+        .analysis-summary-value {
+            font-size: 20px;
+        }
+
+        .analysis-row-top {
+            flex-direction: column;
+            gap: 8px;
         }
 
         .filters-header,
@@ -1026,11 +1350,6 @@
             margin-left: 0;
         }
 
-        .view-btn {
-            width: 100%;
-            padding: 10px 12px;
-        }
-
         .chart-caption {
             width: 100%;
             margin-left: 0;
@@ -1042,6 +1361,11 @@
 
         .chart-subcopy {
             font-size: 11px;
+        }
+
+        .view-btn {
+            width: 100%;
+            padding: 10px 12px;
         }
 
         .chart-container {
@@ -1124,7 +1448,6 @@
     {{-- Filtros Industriales --}}
     <div class="industrial-filters">
         <div class="filters-header">
-            <img src="{{ asset('images/icono-pasteurizadora.png') }}" class="w-10 h-8 " alt="Icono de máquina">
             <h2>SELECCIONAR PASTEURIZADORA</h2>
         </div>
         
@@ -1132,7 +1455,6 @@
             @foreach($lineas as $linea)
                 <a href="{{ route($rutaAnalisisActiva, ['linea_id' => $linea->id] + $parametrosFecha) }}" 
                    class="machine-pill {{ $lineaSeleccionada == $linea->id ? 'machine-pill-active' : 'machine-pill-inactive' }}">
-                    <i class="fas fa-industry"></i>
                     {{ $linea->nombre }}
                 </a>
             @endforeach
@@ -1184,6 +1506,107 @@
         </form>
     </div>
 
+    @if($lineaSeleccionada && $detalleLinea)
+        @php
+            $totalPeriodo = (int) ($resumenDetalle['total_periodo'] ?? $resumenDetalle['total_fallas'] ?? 0);
+            $totalGlobal = (int) ($globalDetalle['total_fallas'] ?? 0);
+            $participacion = (float) ($resumenDetalle['participacion_global'] ?? 0);
+            $componenteCritico = $resumenDetalle['componente_critico'] ?? ($componentesDetalle->first()['componente'] ?? 'Sin componente');
+            $componenteCriticoTotal = (int) ($resumenDetalle['componente_critico_total'] ?? ($componentesDetalle->first()['total'] ?? 0));
+            $danoFrecuente = $resumenDetalle['dano_mas_frecuente'] ?? ($danosDetalle->first()['estado'] ?? 'Sin daño');
+            $danoFrecuenteTotal = (int) ($resumenDetalle['dano_mas_frecuente_total'] ?? ($danosDetalle->first()['total'] ?? 0));
+            $ultimoMesTotal = (int) ($resumenDetalle['ultimo_mes_total'] ?? 0);
+            $variacionMensual = $resumenDetalle['variacion_mensual'] ?? null;
+            $deltaMensual = (float) ($variacionMensual['diferencia'] ?? 0);
+            $tonoDano = function ($estado) {
+                $normalizado = strtolower(\Illuminate\Support\Str::ascii((string) $estado));
+                if (str_contains($normalizado, 'requiere cambio') || str_contains($normalizado, 'danado')) {
+                    return 'danger';
+                }
+                if (str_contains($normalizado, 'desgaste')) {
+                    return 'warning';
+                }
+                return 'success';
+            };
+        @endphp
+
+        <div class="analysis-summary-grid">
+            <div class="analysis-summary-card {{ $totalPeriodo > 0 ? 'danger' : 'success' }}">
+                <div class="analysis-summary-label">Total de daños</div>
+                <div class="analysis-summary-value">{{ number_format($totalPeriodo) }}</div>
+                <div class="analysis-summary-meta">{{ $periodoDetalle }}</div>
+            </div>
+
+            <div class="analysis-summary-card warning">
+                <div class="analysis-summary-label">Componente critico</div>
+                <div class="analysis-summary-value">{{ $componenteCritico }}</div>
+                <div class="analysis-summary-meta">{{ number_format($componenteCriticoTotal) }} daños registrados</div>
+            </div>
+
+            <div class="analysis-summary-card danger">
+                <div class="analysis-summary-label">Daño mas frecuente</div>
+                <div class="analysis-summary-value">{{ $danoFrecuente }}</div>
+            </div>
+
+            <div class="analysis-summary-card">
+                <div class="analysis-summary-label">Porcentaje global</div>
+                <div class="analysis-summary-value">{{ number_format($participacion, 1) }}%</div>
+            </div>
+
+            <div class="analysis-summary-card {{ $deltaMensual > 0 ? 'danger' : ($deltaMensual < 0 ? 'success' : '') }}">
+                <div class="analysis-summary-label">Mes actual</div>
+                <div class="analysis-summary-value">{{ number_format($ultimoMesTotal) }}</div>
+                <div class="analysis-summary-meta">
+                    @if($variacionMensual)
+                        {{ $deltaMensual > 0 ? '+' : '' }}{{ number_format($deltaMensual) }} vs mes anterior
+                        ({{ number_format((float) ($variacionMensual['porcentaje'] ?? 0), 1) }}%)
+                    @else
+                        Sin comparativo mensual
+                    @endif
+                </div>
+            </div>
+        </div>
+
+        <div class="analysis-chart-grid analysis-chart-grid--two">
+            <div class="analysis-panel">
+                <div class="analysis-panel-title">
+                    <i class="fas fa-chart-bar"></i>
+                    {{ $tituloAnalisis }} - componentes criticos
+                </div>
+                <div class="analysis-panel-copy">
+
+                </div>
+                <div class="mini-chart-container mini-chart-container--bar mini-chart-container--bar-tall">
+                    <canvas id="componentBarChart"></canvas>
+                </div>
+            </div>
+
+            <div class="analysis-panel">
+                <div class="analysis-panel-title">
+                    <i class="fas fa-triangle-exclamation"></i>
+                    {{ $tituloAnalisis }} - tipos de daños frecuentes
+                </div>
+
+                <div class="mini-chart-container mini-chart-container--bar mini-chart-container--bar-tall">
+                    <canvas id="damageBarChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="analysis-chart-grid">
+            <div class="analysis-panel analysis-panel--wide">
+                <div class="analysis-panel-title">
+                    <i class="fas fa-layer-group"></i>
+                    {{ $tituloAnalisis }} - daños por componente
+                </div>
+
+                <div class="mini-chart-container mini-chart-container--bar mini-chart-container--combined">
+                    <canvas id="damageComponentChart"></canvas>
+                </div>
+            </div>
+        </div>
+    @endif
+
     {{-- Tabla de Tendencias --}}
     @if($lineaSeleccionada)
         @if($analisis->isNotEmpty())
@@ -1199,9 +1622,6 @@
                     <p id="implementationStatusCopy" class="executive-status-copy">
                         Estamos comparando las ventanas recientes para mostrar si los daños van bajando y si la implementacion ya se refleja en la operacion.
                     </p>
-                    <div id="implementationStatusNote" class="executive-status-note">
-                        La lectura rapida debe enfocarse en las ventanas cortas; el historico tarda mas en bajar porque conserva memoria de meses anteriores.
-                    </div>
                 </div>
                 <div id="executiveWindowCards" class="executive-window-grid"></div>
             </div>
@@ -1210,8 +1630,7 @@
                     <div class="chart-title-block">
                         <i class="fas fa-chart-line"></i>
                         <div class="chart-title-copy">
-                            <h3>{{ strtoupper($tituloAnalisis) }} - CONTROL EJECUTIVO</h3>
-                            <p class="chart-subcopy">Resumen visual para revisar si la baja de daños se sostiene sin entrar al detalle tecnico.</p>
+                            <h3>{{ strtoupper($tituloAnalisis) }}</h3>
                         </div>
                     </div>
                     <div class="chart-view-selector">
@@ -1221,7 +1640,7 @@
                     <div id="executiveChartCaption" class="chart-caption"></div>
                 </div>
                 <div class="chart-container chart-container--executive">
-                    <canvas id="executiveTrendChart"></canvas>
+                    <canvas id="windowTrendChart"></canvas>
                 </div>
             </div>
             @if(!$isAnalisis30147)
@@ -1229,7 +1648,7 @@
                 <table class="industrial-table">
                     <thead>
                         <tr>
-                            <th rowspan="2" class="border-r border-gray-600">PERÍODO</th>
+                            <th rowspan="2" class="border-r border-gray-600">PERIODO</th>
                             <th colspan="3" class="group-header border-r border-gray-600">52 SEMANAS</th>
                             <th colspan="3" class="group-header border-r border-gray-600">12 SEMANAS</th>
                             <th colspan="3" class="group-header">4 SEMANAS</th>
@@ -1431,21 +1850,6 @@
                 </table>
             </div>
             @endif
-
-            <div class="industrial-chart">
-                <div class="chart-header">
-                    <i class="fas fa-chart-bar"></i>
-                    <h3>{{ strtoupper($tituloAnalisis) }} - {{ $lineas->find($lineaSeleccionada)?->nombre }}</h3>
-                    <div class="chart-view-selector">
-                        <button class="view-btn active" data-chart-type="bar" onclick="changeChartType('bar')">Barras</button>
-                        <button class="view-btn" data-chart-type="line" onclick="changeChartType('line')">Línea</button>
-                    </div>
-                </div>
-                <div class="chart-container">
-                    <canvas id="trendChart"></canvas>
-                </div>
-            </div>
-
         @else
             {{-- Empty State Industrial --}}
             <div class="industrial-empty">
@@ -1476,7 +1880,7 @@
 @if($lineaSeleccionada && $analisis->isNotEmpty())
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-let chart, executiveTrendChart;
+let componentBarChart, damageBarChart, damageComponentChart, windowTrendChart;
 
 document.addEventListener('DOMContentLoaded', function() {
     if (window.ChartDataLabels) {
@@ -1484,9 +1888,8 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     const analisisData = @json($analisis);
-    const mobileQuery = window.matchMedia('(max-width: 640px)');
-    let currentChartType = 'bar';
-    let currentExecutiveChartType = 'bar';
+    const detalleData = @json($detalleLinea ?? []);
+    const graphData = detalleData.graficas || {};
     
     const datosOrdenados = [...analisisData].sort((a, b) => {
         if (a.anio !== b.anio) return a.anio - b.anio;
@@ -1502,6 +1905,447 @@ document.addEventListener('DOMContentLoaded', function() {
     const data30 = datosOrdenados.map(item => parseFloat(item.total_danos_30_dias) || 0);
     const data14 = datosOrdenados.map(item => parseFloat(item.total_danos_14_dias) || 0);
     const data7 = datosOrdenados.map(item => parseFloat(item.total_danos_7_dias) || 0);
+    let currentExecutiveChartType = 'bar';
+    const componentPalette = [
+        ['#1d4ed8', 'rgba(37, 99, 235, 0.95)'],
+        ['#dc2626', 'rgba(239, 68, 68, 0.95)'],
+        ['#059669', 'rgba(16, 185, 129, 0.95)'],
+        ['#d97706', 'rgba(245, 158, 11, 0.95)'],
+        ['#6d28d9', 'rgba(124, 58, 237, 0.92)'],
+        ['#0e7490', 'rgba(14, 165, 233, 0.92)'],
+        ['#be185d', 'rgba(219, 39, 119, 0.92)'],
+        ['#475569', 'rgba(100, 116, 139, 0.9)']
+    ];
+
+    function normalizeStatusText(value) {
+        return String(value || '')
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .toLowerCase()
+            .trim();
+    }
+
+    function indicatorChartPalette(label) {
+        const normalized = normalizeStatusText(label);
+
+        if (normalized.includes('requiere cambio') || normalized.includes('elongacion')) {
+            return {
+                background: 'rgba(239, 68, 68, 0.92)',
+                border: '#dc2626',
+                text: '#ffffff'
+            };
+        }
+
+        if (normalized.includes('requiere revision')) {
+            return {
+                background: 'rgba(245, 158, 11, 0.92)',
+                border: '#d97706',
+                text: '#ffffff'
+            };
+        }
+
+        if (normalized.includes('desgaste sever') || normalized.includes('desgaste moder')) {
+            return {
+                background: 'rgba(249, 115, 22, 0.92)',
+                border: '#ea580c',
+                text: '#ffffff'
+            };
+        }
+
+        if (normalized.includes('cambiado')) {
+            return {
+                background: 'rgba(59, 130, 246, 0.92)',
+                border: '#2563eb',
+                text: '#ffffff'
+            };
+        }
+
+        if (normalized.includes('buen estado') || normalized.includes('estable')) {
+            return {
+                background: 'rgba(16, 185, 129, 0.9)',
+                border: '#059669',
+                text: '#ffffff'
+            };
+        }
+
+        return {
+            background: 'rgba(100, 116, 139, 0.9)',
+            border: '#475569',
+            text: '#ffffff'
+        };
+    }
+
+    function formatList(items, labelKey, limit = 3) {
+        if (!Array.isArray(items) || !items.length) {
+            return null;
+        }
+
+        return items
+            .slice(0, limit)
+            .map((item) => `${item[labelKey] || 'Sin dato'} (${Number(item.total || 0)})`)
+            .join(', ');
+    }
+
+    function responsiveTooltipOptions() {
+        const isMobile = window.innerWidth < 640;
+
+        return {
+            titleFont: { size: isMobile ? 15 : 17, weight: '700', family: 'Inter' },
+            bodyFont: { size: isMobile ? 14 : 16, weight: '500', family: 'Inter' },
+            padding: isMobile ? 10 : 14,
+            cornerRadius: 10,
+            titleSpacing: 4,
+            titleMarginBottom: isMobile ? 5 : 7,
+            bodySpacing: isMobile ? 3 : 5
+        };
+    }
+
+    function wrapTooltipLines(lines) {
+        const maxCharacters = window.innerWidth < 480 ? 32 : (window.innerWidth < 768 ? 46 : 72);
+        const sourceLines = Array.isArray(lines) ? lines : [lines];
+
+        return sourceLines.flatMap((line) => {
+            const words = String(line ?? '').split(/\s+/);
+            const wrapped = [];
+            let currentLine = '';
+
+            words.forEach((word) => {
+                const candidate = currentLine ? `${currentLine} ${word}` : word;
+                if (candidate.length > maxCharacters && currentLine) {
+                    wrapped.push(currentLine);
+                    currentLine = word;
+                } else {
+                    currentLine = candidate;
+                }
+            });
+
+            if (currentLine) wrapped.push(currentLine);
+            return wrapped;
+        });
+    }
+
+    function componentTooltipLines(meta, options = {}) {
+        const lines = [];
+
+        if (!meta) {
+            return lines;
+        }
+
+        if (meta.porcentaje !== undefined) lines.push(`Participacion: ${Number(meta.porcentaje || 0).toFixed(1)}%`);
+        if (meta.ultima_falla) lines.push(`Ultima falla: ${meta.ultima_falla}`);
+
+        const ubicaciones = options.currentUbicacion
+            ? options.currentUbicacion
+            : formatList(meta.ubicaciones, 'ubicacion');
+        if (ubicaciones) lines.push(`Ubicaciones: ${ubicaciones}`);
+
+        const danos = formatList(meta.danos, 'estado');
+        if (danos) lines.push(`Daños: ${danos}`);
+
+        return lines;
+    }
+
+    function damageTooltipLines(meta) {
+        const lines = [];
+
+        if (!meta) {
+            return lines;
+        }
+
+        if (meta.porcentaje !== undefined) lines.push(`Participacion: ${Number(meta.porcentaje || 0).toFixed(1)}%`);
+        if (meta.ultima_falla) lines.push(`Ultima falla: ${meta.ultima_falla}`);
+        if (meta.historial_total !== undefined) {
+            lines.push(`Historial del periodo: ${Number(meta.historial_total || 0)} registros`);
+        }
+        if (meta.componentes_afectados !== undefined) {
+            lines.push(`Componentes afectados: ${Number(meta.componentes_afectados || 0)}`);
+        }
+
+        const componentes = formatList(meta.componentes, 'componente', 4);
+        if (componentes) lines.push(`Componentes: ${componentes}`);
+
+        return lines;
+    }
+
+    function locationTooltipLines(meta) {
+        const lines = [];
+
+        if (!meta) {
+            return lines;
+        }
+
+        const componentes = formatList(meta.componentes, 'componente', 4);
+        if (componentes) lines.push(`Componentes: ${componentes}`);
+
+        const danos = formatList(meta.danos, 'estado', 3);
+        if (danos) lines.push(`Daños principales: ${danos}`);
+
+        return lines;
+    }
+    function createPieCharts() {
+        if (componentBarChart) componentBarChart.destroy();
+        if (damageBarChart) damageBarChart.destroy();
+        if (damageComponentChart) damageComponentChart.destroy();
+        if (windowTrendChart) windowTrendChart.destroy();
+
+        componentBarChart = createHorizontalBarChart('componentBarChart', graphData.barras_componentes_totales || {}, '', {
+            datasetLabel: 'Daños por componente'
+        });
+        damageBarChart = createHorizontalBarChart('damageBarChart', graphData.pastel_danos || {}, '', {
+            datasetLabel: 'Daños por tipo de daño',
+            damageMode: true
+        });
+        damageComponentChart = createStackedHorizontalBarChart('damageComponentChart', graphData.barras_danos_componentes || {}, '');
+        windowTrendChart = createWindowTrendChart();
+    }
+
+    function createHorizontalBarChart(canvasId, chartData, title, options = {}) {
+        const canvas = document.getElementById(canvasId);
+        const values = Array.isArray(chartData?.data) ? chartData.data.map(value => Number(value || 0)) : [];
+
+        if (!canvas || !values.some(value => value > 0)) {
+            return null;
+        }
+
+        const isDamageChart = Boolean(options.damageMode) || canvasId.toLowerCase().includes('damagebar');
+        const labels = Array.isArray(chartData?.labels) ? chartData.labels : [];
+        const indicatorKeys = labels.map((label, index) => {
+            if (isDamageChart) {
+                return chartData.meta?.[index]?.estado || label;
+            }
+
+            return chartData.principal?.[index]
+                || chartData.meta?.[index]?.dano_principal
+                || chartData.meta?.[index]?.danos?.[0]?.estado
+                || '';
+        });
+        const palettes = indicatorKeys.map((label) => indicatorChartPalette(label));
+
+        return new Chart(canvas.getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels,
+                datasets: [{
+                    label: options.datasetLabel || (isDamageChart ? 'Daños por tipo de daño' : 'Daños por componente'),
+                    data: values,
+                    backgroundColor: palettes.map((item) => item.background),
+                    borderColor: palettes.map((item) => item.border),
+                    borderWidth: 2,
+                    borderRadius: 8,
+                    borderSkipped: false,
+                    minBarLength: 6,
+                    maxBarThickness: 34
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                indexAxis: 'y',
+                plugins: {
+                    legend: { display: false },
+                    title: {
+                        display: true,
+                        text: title,
+                        color: '#0f172a',
+                        font: { size: 12, weight: '800' }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(15, 23, 42, 0.96)',
+                        titleColor: '#fff',
+                        bodyColor: '#e2e8f0',
+                        ...responsiveTooltipOptions(),
+                        callbacks: {
+                            label: (context) => {
+                                const meta = chartData.meta?.[context.dataIndex] || null;
+                                const pct = chartData.porcentajes?.[context.dataIndex] ?? meta?.porcentaje ?? null;
+                                const principal = chartData.principal?.[context.dataIndex] || null;
+
+                                if (isDamageChart) {
+                                    return wrapTooltipLines(pct !== null
+                                        ? `${context.raw} componentes/ubicaciones con este ultimo daño (${Number(pct || 0).toFixed(1)}%)`
+                                        : `${context.raw} componentes/ubicaciones con este ultimo daño`);
+                                }
+
+                                return wrapTooltipLines(principal ? `${context.raw} daños - ${principal}` : `${context.raw} daños`);
+                            },
+                            afterLabel: (context) => {
+                                const meta = chartData.meta?.[context.dataIndex] || null;
+
+                                if (isDamageChart) {
+                                    return wrapTooltipLines(damageTooltipLines(meta));
+                                }
+
+                                return wrapTooltipLines(canvasId.toLowerCase().includes('location')
+                                    ? locationTooltipLines(meta)
+                                    : componentTooltipLines(meta));
+                            }
+                        }
+                    },
+                    datalabels: {
+                        display: (context) => Number(context.raw || 0) > 0,
+                        formatter: (value) => Number(value || 0),
+                        color: (context) => palettes[context.dataIndex]?.text || '#ffffff',
+                        font: { size: 10, weight: '800' }
+                    }
+                },
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        grid: { color: 'rgba(148, 163, 184, 0.16)' },
+                        ticks: { precision: 0, color: '#64748b' }
+                    },
+                    y: {
+                        grid: { display: false },
+                        ticks: {
+                            color: '#334155',
+                            font: { size: 10, weight: '700' }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    function createStackedHorizontalBarChart(canvasId, chartData, title) {
+        const canvas = document.getElementById(canvasId);
+        const componentLabels = Array.isArray(chartData?.labels) ? chartData.labels : [];
+        const series = Array.isArray(chartData?.series) ? chartData.series : [];
+        const metaComponents = Array.isArray(chartData?.meta?.componentes) ? chartData.meta.componentes : [];
+        const hasData = series.some(serie => Array.isArray(serie.data) && serie.data.some(value => Number(value || 0) > 0));
+
+        if (!canvas || !componentLabels.length || !hasData) {
+            return null;
+        }
+
+        const reducerLabels = series.map((serie, index) => serie.label || `Ubicacion ${index + 1}`);
+        const datasets = componentLabels
+            .map((componentLabel, componentIndex) => {
+                const data = series.map((serie) => Number(serie.data?.[componentIndex] || 0));
+                const segmentMeta = series.map((serie) => serie.meta?.[componentIndex] || null);
+                const componentMeta = metaComponents[componentIndex] || null;
+                const indicatorKey = componentMeta?.dano_principal
+                    || segmentMeta.find((item) => item?.ultimo_dano)?.ultimo_dano
+                    || segmentMeta.find((item) => Array.isArray(item?.danos) && item.danos.length)?.danos?.[0]?.estado
+                    || '';
+                const palette = indicatorChartPalette(indicatorKey);
+
+                return {
+                    label: componentLabel || `Componente ${componentIndex + 1}`,
+                    data,
+                    backgroundColor: palette.background,
+                    borderColor: palette.border,
+                    borderWidth: 2,
+                    borderRadius: 7,
+                    borderSkipped: false,
+                    stack: 'fallas',
+                    componentIndex,
+                    textColor: palette.text,
+                    segmentMeta
+                };
+            })
+            .filter((dataset) => dataset.data.some((value) => value > 0));
+
+        return new Chart(canvas.getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: reducerLabels,
+                datasets
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                indexAxis: 'y',
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            usePointStyle: true,
+                            pointStyle: 'rectRounded',
+                            boxWidth: 10,
+                            color: '#334155',
+                            font: { size: 10, weight: '700' }
+                        }
+                    },
+                    title: {
+                        display: true,
+                        text: title,
+                        color: '#0f172a',
+                        font: { size: 12, weight: '800' }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(15, 23, 42, 0.96)',
+                        titleColor: '#fff',
+                        bodyColor: '#e2e8f0',
+                        ...responsiveTooltipOptions(),
+                        callbacks: {
+                            title: (context) => {
+                                return context[0]?.label || 'Sin ubicacion';
+                            },
+                            label: (context) => wrapTooltipLines(`${context.dataset.label || 'Sin componente'}: ${Number(context.raw || 0)} daños`),
+                            afterLabel: (context) => {
+                                const componentIndex = context.dataset.componentIndex;
+                                const componentMeta = chartData.meta?.componentes?.[componentIndex] || null;
+                                const segmentMeta = context.dataset.segmentMeta?.[context.dataIndex] || null;
+                                const lines = [];
+
+                                if (segmentMeta?.ultimo_dano) lines.push(`Ultimo daño: ${segmentMeta.ultimo_dano}`);
+                                if (segmentMeta?.ultima_falla) lines.push(`Ultimo registro: ${segmentMeta.ultima_falla}`);
+
+                                const danos = formatList(segmentMeta?.danos, 'estado');
+                                if (danos) lines.push(`Daños en esta ubicacion: ${danos}`);
+
+                                return wrapTooltipLines([
+                                    ...lines,
+                                    ...componentTooltipLines(componentMeta, {
+                                        currentUbicacion: segmentMeta?.ubicacion || null
+                                    })
+                                ]);
+                            }
+                        }
+                    },
+                    datalabels: {
+                        display: (context) => Number(context.raw || 0) > 0,
+                        formatter: (value) => Number(value || 0),
+                        color: (context) => context.dataset.textColor || '#ffffff',
+                        font: { size: 10, weight: '800' }
+                    }
+                },
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        stacked: true,
+                        grid: { color: 'rgba(148, 163, 184, 0.14)' },
+                        title: {
+                            display: true,
+                            text: 'Total de daños',
+                            color: '#64748b',
+                            font: { size: 12, weight: '800' }
+                        },
+                        ticks: {
+                            precision: 0,
+                            color: '#334155',
+                            font: { size: 10, weight: '700' }
+                        }
+                    },
+                    y: {
+                        stacked: true,
+                        grid: { color: 'rgba(148, 163, 184, 0.14)' },
+                        title: {
+                            display: true,
+                            text: 'Modulos / niveles / lados',
+                            color: '#64748b',
+                            font: { size: 12, weight: '800' }
+                        },
+                        ticks: {
+                            color: '#334155',
+                            font: { size: 10, weight: '700' }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
     const executiveWindows = @json($isAnalisis30147)
         ? [
             { label: '30 dias', data: data30, role: 'referencia operativa', color: '#16a34a', fill: 'rgba(34, 197, 94, 0.18)', dashed: true },
@@ -1513,6 +2357,8 @@ document.addEventListener('DOMContentLoaded', function() {
             { label: '12 semanas', data: data12, role: 'impacto trimestral', color: '#dc2626', fill: 'rgba(239, 68, 68, 0.16)' },
             { label: '4 semanas', data: data4, role: 'control inmediato', color: '#f97316', fill: 'rgba(249, 115, 22, 0.18)' }
         ];
+
+    const executiveMobileQuery = window.matchMedia('(max-width: 640px)');
 
     function formatMetric(value) {
         return new Intl.NumberFormat('es-MX', {
@@ -1598,10 +2444,9 @@ document.addEventListener('DOMContentLoaded', function() {
         const statusCard = document.getElementById('implementationStatusCard');
         const titleNode = document.getElementById('implementationStatusTitle');
         const copyNode = document.getElementById('implementationStatusCopy');
-        const noteNode = document.getElementById('implementationStatusNote');
         const captionNode = document.getElementById('executiveChartCaption');
 
-        if (!statusCard || !titleNode || !copyNode || !noteNode || !captionNode) {
+        if (!statusCard || !titleNode || !copyNode || !captionNode) {
             return;
         }
 
@@ -1636,29 +2481,22 @@ document.addEventListener('DOMContentLoaded', function() {
         statusCard.className = `executive-status executive-status--${tone}`;
         titleNode.textContent = title;
         copyNode.textContent = copy;
-        noteNode.textContent = @json($isAnalisis30147)
-            ? 'Lectura rapida: 7 y 14 dias muestran si la operacion diaria ya cambio; 30 dias funciona como respaldo del mes.'
-            : 'Lectura rapida: 4 y 12 semanas muestran el impacto reciente; 52 semanas tarda mas en reflejar la mejora completa.';
-        captionNode.textContent = `Corte actual: ${latestLabel}. Verde = 52/30, rojo = 12/14, naranja = 4/7.`;
+        captionNode.textContent = `Corte actual: ${latestLabel}.`;
     }
 
-    function createExecutiveTrendChart(type = currentExecutiveChartType) {
-        const executiveCanvas = document.getElementById('executiveTrendChart');
+    function createWindowTrendChart(type = currentExecutiveChartType) {
+        const canvas = document.getElementById('windowTrendChart');
         const executiveIsBar = type === 'bar';
-        const executiveIsSmallScreen = mobileQuery.matches;
+        const executiveIsSmallScreen = executiveMobileQuery.matches;
 
-        if (!executiveCanvas || !labels.length) {
-            return;
+        if (!canvas || !labels.length) {
+            return null;
         }
 
         renderExecutiveCards();
         renderExecutiveStatus();
 
-        if (executiveTrendChart) {
-            executiveTrendChart.destroy();
-        }
-
-        executiveTrendChart = new Chart(executiveCanvas.getContext('2d'), {
+        return new Chart(canvas.getContext('2d'), {
             type,
             data: {
                 labels,
@@ -1725,41 +2563,50 @@ document.addEventListener('DOMContentLoaded', function() {
                             }
                         }
                     },
-                    datalabels: {
-                        display: (context) => {
-                            if (executiveIsSmallScreen) {
-                                return false;
-                            }
-
-                            if (executiveIsBar) {
-                                return Number(context.raw || 0) > 0;
-                            }
-
-                            return context.dataIndex === labels.length - 1 && Number(context.raw || 0) > 0;
-                        },
-                        align: 'top',
+                    datalabels: executiveIsBar ? {
+                        display: (context) => Number(context.raw || 0) > 0,
                         anchor: 'end',
-                        offset: executiveIsBar ? 4 : 6,
+                        align: 'top',
+                        offset: 8,
                         clamp: true,
-                        color: executiveIsBar ? '#0f172a' : ((context) => context.dataset.borderColor),
-                        backgroundColor: executiveIsBar ? 'rgba(255, 255, 255, 0.94)' : null,
-                        borderRadius: executiveIsBar ? 6 : 0,
-                        padding: executiveIsBar ? {
-                            top: 3,
-                            right: 5,
-                            bottom: 3,
-                            left: 5
-                        } : 0,
+                        clip: false,
+                        color: '#ffffff',
+                        backgroundColor: (context) => context.dataset.borderColor,
+                        borderRadius: 999,
+                        padding: {
+                            top: 4,
+                            right: 8,
+                            bottom: 4,
+                            left: 8
+                        },
                         formatter: (value) => formatMetric(value),
                         font: {
-                            size: executiveIsBar ? 9 : 10,
+                            size: executiveIsSmallScreen ? 9 : 11,
+                            weight: '800'
+                        }
+                    } : {
+                        display: (context) => !executiveIsSmallScreen && context.dataIndex === labels.length - 1 && Number(context.raw || 0) > 0,
+                        anchor: 'end',
+                        align: 'top',
+                        offset: 6,
+                        clamp: true,
+                        clip: false,
+                        color: (context) => context.dataset.borderColor,
+                        backgroundColor: null,
+                        borderRadius: 0,
+                        padding: 0,
+                        formatter: (value) => formatMetric(value),
+                        textStrokeColor: 'rgba(255, 255, 255, 0.98)',
+                        textStrokeWidth: 2,
+                        font: {
+                            size: 10,
                             weight: '800'
                         }
                     }
                 },
                 layout: {
                     padding: {
-                        top: executiveIsBar ? 16 : 14,
+                        top: executiveIsBar ? 72 : 14,
                         right: 8,
                         bottom: executiveIsBar ? 10 : 4,
                         left: 4
@@ -1782,6 +2629,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     },
                     y: {
                         beginAtZero: true,
+                        grace: executiveIsBar ? '36%' : '8%',
                         grid: {
                             color: 'rgba(148, 163, 184, 0.18)'
                         },
@@ -1802,272 +2650,124 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
         });
-    }
-    
-    const ctx = document.getElementById('trendChart').getContext('2d');
-    
-    // Función para crear la gráfica
-    function createChart(type = 'bar') {
-        const isSmallScreen = mobileQuery.matches;
-        const isMediumScreen = window.matchMedia('(max-width: 1024px)').matches;
 
-        if (chart) {
-            chart.destroy();
-        }
-        
-        chart = new Chart(ctx, {
-            type: type,
+        const latestIndex = labels.length - 1;
+        const latestLabel = labels[latestIndex] || 'Periodo actual';
+        const serviceWindowData = graphData.barras_ventanas || {};
+        const windowMeta = Array.isArray(serviceWindowData.meta) ? serviceWindowData.meta : [];
+        const damagePercent = (value) => Math.min(Math.max(Number(value || 0), 0), 100);
+        const fallbackWindowSeries = @json($isAnalisis30147)
+            ? [
+                { label: '30 dias', total: Number(data30[latestIndex] || 0), porcentaje: damagePercent(data30[latestIndex]), descripcion: '30 dias hacia atras desde el corte actual.', escala: '1 daño = 1%' },
+                { label: '14 dias', total: Number(data14[latestIndex] || 0), porcentaje: damagePercent(data14[latestIndex]), descripcion: '14 dias hacia atras desde el corte actual.', escala: '1 daño = 1%' },
+                { label: '7 dias', total: Number(data7[latestIndex] || 0), porcentaje: damagePercent(data7[latestIndex]), descripcion: '7 dias hacia atras desde el corte actual.', escala: '1 daño = 1%' }
+            ]
+            : [
+                { label: '52 semanas', total: Number(data52[latestIndex] || 0), porcentaje: damagePercent(data52[latestIndex]), descripcion: '52 semanas equivalen a 1 ano hacia atras desde el corte actual.', escala: '1 daño = 1%' },
+                { label: '12 semanas', total: Number(data12[latestIndex] || 0), porcentaje: damagePercent(data12[latestIndex]), descripcion: '12 semanas equivalen a 3 meses hacia atras desde el corte actual.', escala: '1 daño = 1%' },
+                { label: '4 semanas', total: Number(data4[latestIndex] || 0), porcentaje: damagePercent(data4[latestIndex]), descripcion: '4 semanas equivalen a 1 mes hacia atras desde el corte actual.', escala: '1 daño = 1%' }
+            ];
+        const windowSeries = windowMeta.length ? windowMeta : fallbackWindowSeries;
+        const windowColorForLabel = (label) => {
+            const normalized = String(label || '').toLowerCase();
+
+            if (normalized.includes('52') || normalized.includes('30')) {
+                return ['#047857', 'rgba(16, 185, 129, 0.92)'];
+            }
+
+            if (normalized.includes('12') || normalized.includes('14')) {
+                return ['#dc2626', 'rgba(239, 68, 68, 0.92)'];
+            }
+
+            if (normalized.includes('4') || normalized.includes('7')) {
+                return ['#d97706', 'rgba(245, 158, 11, 0.94)'];
+            }
+
+            return ['#475569', 'rgba(100, 116, 139, 0.88)'];
+        };
+
+        return new Chart(canvas.getContext('2d'), {
+            type: 'bar',
             data: {
-                labels: labels,
-                datasets: [
-                    @if(!$isAnalisis30147)
-                    {
-                        label: '52 Semanas',
-                        data: data52,
-                        backgroundColor: 'rgba(34, 197, 94, 0.78)',
-                        borderColor: '#16a34a',
-                        borderWidth: type === 'bar' ? 0 : 3,
-                        borderRadius: type === 'bar' ? 8 : 0,
-                        barPercentage: 0.7,
-                        categoryPercentage: 0.8,
-                        pointBackgroundColor: '#16a34a',
-                        pointBorderColor: 'white',
-                        pointBorderWidth: 2,
-                        pointRadius: type === 'bar' ? 0 : 4,
-                        pointHoverRadius: 6,
-                        tension: 0.3,
-                        fill: type === 'line' ? true : false
-                    },
-                    {
-                        label: '12 Semanas',
-                        data: data12,
-                        backgroundColor: 'rgba(239, 68, 68, 0.78)',
-                        borderColor: '#dc2626',
-                        borderWidth: type === 'bar' ? 0 : 3,
-                        borderRadius: type === 'bar' ? 8 : 0,
-                        barPercentage: 0.7,
-                        categoryPercentage: 0.8,
-                        pointBackgroundColor: '#dc2626',
-                        pointBorderColor: 'white',
-                        pointBorderWidth: 2,
-                        pointRadius: type === 'bar' ? 0 : 4,
-                        pointHoverRadius: 6,
-                        tension: 0.3,
-                        fill: type === 'line' ? true : false
-                    },
-                    {
-                        label: '4 Semanas',
-                        data: data4,
-                        backgroundColor: 'rgba(249, 115, 22, 0.8)',
-                        borderColor: '#f97316',
-                        borderWidth: type === 'bar' ? 0 : 3,
-                        borderRadius: type === 'bar' ? 8 : 0,
-                        barPercentage: 0.7,
-                        categoryPercentage: 0.8,
-                        pointBackgroundColor: '#f97316',
-                        pointBorderColor: 'white',
-                        pointBorderWidth: 2,
-                        pointRadius: type === 'bar' ? 0 : 4,
-                        pointHoverRadius: 6,
-                        tension: 0.3,
-                        fill: type === 'line' ? true : false
-                    },
-                    @else
-                    {
-                        label: '30 Dias',
-                        data: data30,
-                        backgroundColor: 'rgba(34, 197, 94, 0.72)',
-                        borderColor: '#16a34a',
-                        borderWidth: type === 'bar' ? 0 : 3,
-                        borderRadius: type === 'bar' ? 8 : 0,
-                        barPercentage: 0.7,
-                        categoryPercentage: 0.8,
-                        pointBackgroundColor: '#16a34a',
-                        pointBorderColor: 'white',
-                        pointBorderWidth: 2,
-                        pointRadius: type === 'bar' ? 0 : 4,
-                        pointHoverRadius: 6,
-                        tension: 0.3,
-                        fill: type === 'line' ? true : false
-                    },
-                    {
-                        label: '14 Dias',
-                        data: data14,
-                        backgroundColor: 'rgba(239, 68, 68, 0.72)',
-                        borderColor: '#dc2626',
-                        borderWidth: type === 'bar' ? 0 : 3,
-                        borderRadius: type === 'bar' ? 8 : 0,
-                        barPercentage: 0.7,
-                        categoryPercentage: 0.8,
-                        pointBackgroundColor: '#dc2626',
-                        pointBorderColor: 'white',
-                        pointBorderWidth: 2,
-                        pointRadius: type === 'bar' ? 0 : 4,
-                        pointHoverRadius: 6,
-                        tension: 0.3,
-                        fill: type === 'line' ? true : false
-                    },
-                    {
-                        label: '7 Dias',
-                        data: data7,
-                        backgroundColor: 'rgba(249, 115, 22, 0.72)',
-                        borderColor: '#f97316',
-                        borderWidth: type === 'bar' ? 0 : 3,
-                        borderRadius: type === 'bar' ? 8 : 0,
-                        barPercentage: 0.7,
-                        categoryPercentage: 0.8,
-                        pointBackgroundColor: '#f97316',
-                        pointBorderColor: 'white',
-                        pointBorderWidth: 2,
-                        pointRadius: type === 'bar' ? 0 : 4,
-                        pointHoverRadius: 6,
-                        tension: 0.3,
-                        fill: type === 'line' ? true : false
-                    }
-                    @endif
-                ]
+                labels: windowSeries.map((item) => item.label || 'Ventana'),
+                datasets: [{
+                    label: `${latestLabel} - incidencia por daños`,
+                    data: windowSeries.map((item) => Number(item.porcentaje || 0)),
+                    borderColor: windowSeries.map((item) => windowColorForLabel(item.label)[0]),
+                    backgroundColor: windowSeries.map((item) => windowColorForLabel(item.label)[1]),
+                    borderWidth: 2,
+                    borderRadius: 10,
+                    borderSkipped: false,
+                    minBarLength: 8,
+                    maxBarThickness: 74,
+                    barPercentage: 0.72,
+                    categoryPercentage: 0.72
+                }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                interaction: {
-                    mode: 'index',
-                    intersect: false
-                },
                 plugins: {
                     legend: {
-                        position: isSmallScreen ? 'bottom' : 'top',
-                        labels: {
-                            usePointStyle: true,
-                            padding: isSmallScreen ? 10 : 20,
-                            boxWidth: isSmallScreen ? 8 : 12,
-                            font: {
-                                size: isSmallScreen ? 10 : 12,
-                                weight: '500',
-                                family: 'Inter'
-                            }
-                        }
+                        display: false
                     },
                     tooltip: {
-                        backgroundColor: 'rgba(15, 23, 42, 0.95)',
-                        titleColor: '#f8fafc',
-                        bodyColor: '#f1f5f9',
-                        bodyFont: {
-                            size: 13,
-                            family: 'JetBrains Mono'
-                        },
-                        padding: 12,
-                        cornerRadius: 8,
+                        backgroundColor: 'rgba(15, 23, 42, 0.96)',
+                        titleColor: '#fff',
+                        bodyColor: '#e2e8f0',
                         callbacks: {
-                            label: function(context) {
-                                let label = context.dataset.label || '';
-                                if (label) {
-                                    label += ': ';
-                                }
-                                if (context.parsed.y !== null) {
-                                    label += new Intl.NumberFormat('es-MX', { 
-                                        minimumFractionDigits: 2, 
-                                        maximumFractionDigits: 2 
-                                    }).format(context.parsed.y);
-                                }
-                                return label;
+                            title: (context) => `${context[0]?.label || ''} - ${latestLabel}`,
+                            label: (context) => `Incidencia: ${Number(context.raw || 0).toFixed(1)}%`,
+                            afterLabel: (context) => {
+                                const item = windowSeries[context.dataIndex] || {};
+                                const lines = [
+                                    `Total real: ${Number(item.total || 0).toFixed(2)} daños`,
+                                    item.desde && item.hasta ? `Rango: ${item.desde} al ${item.hasta}` : null,
+                                    item.escala || 'Escala: 1 daño = 1%',
+                                    item.descripcion || null
+                                ];
+
+                                return lines.filter(Boolean);
                             }
                         }
                     },
-                    datalabels: type === 'bar' ? {
-                        display: (context) => !isSmallScreen && Number(context.raw || 0) > 0,
+                    datalabels: {
+                        display: true,
                         color: '#0f172a',
-                        backgroundColor: 'rgba(255, 255, 255, 0.94)',
-                        borderRadius: 6,
-                        padding: {
-                            top: 3,
-                            right: 5,
-                            bottom: 3,
-                            left: 5
-                        },
-                        clamp: true,
-                        clip: false,
-                        font: {
-                            weight: 'bold',
-                            size: isMediumScreen ? 10 : 11,
-                            family: 'JetBrains Mono'
-                        },
-                        formatter: (value) => {
-                            return value.toFixed(1);
-                        },
                         anchor: 'end',
                         align: 'top',
-                        offset: 4
-                    } : {
-                        display: false
+                        formatter: (value) => `${Number(value || 0).toFixed(1)}%`,
+                        font: { weight: '800', size: 11 }
                     }
                 },
                 scales: {
-                    y: {
-                        beginAtZero: true,
-                        grace: type === 'bar' ? '18%' : '10%',
-                        grid: {
-                            color: 'rgba(0, 0, 0, 0.05)',
-                            drawBorder: false
-                        },
+                    x: {
+                        grid: { display: false },
                         ticks: {
-                            callback: function(value) {
-                                return value.toFixed(2);
-                            },
-                            maxTicksLimit: isSmallScreen ? 6 : 8,
-                            font: {
-                                size: isSmallScreen ? 10 : 11,
-                                family: 'JetBrains Mono'
-                            }
-                        },
-                        title: {
-                            display: true,
-                            text: 'TOTAL DE DAÑOS',
-                            font: {
-                                size: isSmallScreen ? 10 : 11,
-                                weight: '600',
-                                family: 'Inter'
-                            },
-                            color: '#64748b'
+                            color: '#334155',
+                            font: { size: 12, weight: '800' }
                         }
                     },
-                    x: {
-                        grid: {
-                            display: false
+                    y: {
+                        beginAtZero: true,
+                        suggestedMax: 100,
+                        max: 100,
+                        grid: { color: 'rgba(148, 163, 184, 0.16)' },
+                        title: {
+                            display: true,
+                            text: 'Cantidad de daños (%)',
+                            color: '#64748b',
+                            font: { size: 12, weight: '700' }
                         },
                         ticks: {
-                            autoSkip: false,
-                            maxRotation: isSmallScreen ? 60 : 45,
-                            minRotation: isSmallScreen ? 60 : 45,
-                            font: {
-                                size: isSmallScreen ? 10 : 11,
-                                family: 'Inter'
-                            }
+                            color: '#64748b',
+                            callback: (value) => `${value}%`
                         }
-                    }
-                },
-                elements: {
-                    line: {
-                        borderWidth: 2
-                    }
-                },
-                layout: {
-                    padding: {
-                        left: isSmallScreen ? 4 : 10,
-                        right: isSmallScreen ? 4 : 10,
-                        top: type === 'bar' && !isSmallScreen ? 48 : 16,
-                        bottom: 10
                     }
                 }
             }
         });
     }
-    
-    createExecutiveTrendChart();
-
-    // Crear gráfica inicial de barras
-    createChart(currentChartType);
-
     window.changeExecutiveChartType = function(type) {
         currentExecutiveChartType = type;
 
@@ -2075,38 +2775,22 @@ document.addEventListener('DOMContentLoaded', function() {
             button.classList.toggle('active', button.dataset.executiveChartType === type);
         });
 
-        createExecutiveTrendChart();
-    };
-    
-    // Función para cambiar el tipo de gráfica
-    window.changeChartType = function(type) {
-        currentChartType = type;
-
-        // Actualizar botones
-        document.querySelectorAll('[data-chart-type]').forEach(btn => {
-            btn.classList.toggle('active', btn.dataset.chartType === type);
-        });
-        
-        // Cambiar gráfica
-        createChart(type);
-        
-        // Actualizar icono del header
-        const chartIcon = document.querySelector('.chart-header i');
-        if (type === 'bar') {
-            chartIcon.className = 'fas fa-chart-bar';
-        } else {
-            chartIcon.className = 'fas fa-chart-line';
+        if (windowTrendChart) {
+            windowTrendChart.destroy();
         }
+
+        windowTrendChart = createWindowTrendChart();
     };
 
-    let wasSmallScreen = mobileQuery.matches;
-    window.addEventListener('resize', () => {
-        const isSmallScreen = mobileQuery.matches;
+    createPieCharts();
 
-        if (isSmallScreen !== wasSmallScreen) {
-            wasSmallScreen = isSmallScreen;
-            createExecutiveTrendChart();
-            createChart(currentChartType);
+    let wasExecutiveSmallScreen = executiveMobileQuery.matches;
+    window.addEventListener('resize', () => {
+        const isSmallScreen = executiveMobileQuery.matches;
+
+        if (isSmallScreen !== wasExecutiveSmallScreen) {
+            wasExecutiveSmallScreen = isSmallScreen;
+            createPieCharts();
         }
     });
 });

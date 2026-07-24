@@ -1,7 +1,55 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container-fluid px-4 py-4">
+<style>
+    .plan-form-shell {
+        width: 100%;
+        max-width: min(80rem, 100%);
+        margin: 0 auto;
+        overflow-x: clip;
+    }
+
+    .plan-form-shell * {
+        box-sizing: border-box;
+        min-width: 0;
+    }
+
+    .plan-form-shell h3,
+    .plan-form-shell h4,
+    .plan-form-shell h6,
+    .plan-form-shell p,
+    .plan-form-shell span,
+    .plan-form-shell label,
+    .plan-form-shell textarea {
+        overflow-wrap: anywhere;
+    }
+
+    @media (max-width: 640px) {
+        .plan-form-shell {
+            padding: 1rem 0.75rem;
+        }
+
+        .plan-form-shell .p-6,
+        .plan-form-shell .px-6 {
+            padding-left: 1rem;
+            padding-right: 1rem;
+        }
+
+        .plan-form-shell input,
+        .plan-form-shell select,
+        .plan-form-shell textarea {
+            font-size: 16px;
+        }
+
+        .plan-form-shell .responsive-action,
+        .plan-form-shell .create-action {
+            width: 100%;
+            justify-content: center;
+        }
+    }
+</style>
+
+<div class="plan-form-shell container-fluid px-4 py-4">
     <div class="row">
         <div class="col-12">
             <div class="bg-white rounded-lg shadow-lg overflow-hidden border border-gray-200">
@@ -46,7 +94,6 @@
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                             <div class="group">
                                 <label for="linea_id" class="block text-sm font-medium text-gray-700 mb-2">
-                                    <i class="fas fa-industry mr-2 text-blue-500"></i>
                                     Línea / Pasteurizadora
                                     <span class="text-red-500 ml-1">*</span>
                                 </label>
