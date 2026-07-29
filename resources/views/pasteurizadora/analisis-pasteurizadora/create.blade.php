@@ -514,20 +514,65 @@ const fotosResumen = document.getElementById('fotos_resumen');
 const previewFotos = document.getElementById('preview_fotos');
 const btnGaleria = document.getElementById('btn_evidencia_fotos_galeria');
 const btnCamara = document.getElementById('btn_evidencia_fotos_camara');
-const dt = new DataTransfer();
+const maxFotoSize = 5 * 1024 * 1024;
+const extensionesPermitidasFotos = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'];
 
-function syncFotosInput() {
-    evidenciaFotosInput.files = dt.files;
-    const total = dt.files.length;
+function crearDataTransferFotos(files = []) {
+    if (typeof DataTransfer === 'undefined') {
+        return null;
+    }
+
+    try {
+        const dataTransfer = new DataTransfer();
+        files.forEach((file) => dataTransfer.items.add(file));
+        return dataTransfer;
+    } catch (error) {
+        return null;
+    }
+}
+
+const fotosDataTransfer = crearDataTransferFotos();
+const soportaDataTransferFotos = Boolean(fotosDataTransfer);
+
+function esImagenSeleccionable(file) {
+    if (!file) {
+        return false;
+    }
+
+    if ((file.type || '').startsWith('image/')) {
+        return true;
+    }
+
+    const extension = (file.name.split('.').pop() || '').toLowerCase();
+    return extensionesPermitidasFotos.includes(extension);
+}
+
+function getFotosPrincipales() {
+    return Array.from(evidenciaFotosInput?.files || []);
+}
+
+function getFotosFallback() {
+    return [
+        ...Array.from(evidenciaFotosGaleriaInput?.files || []),
+        ...Array.from(evidenciaFotosCamaraInput?.files || []),
+    ];
+}
+
+function actualizarResumenFotos(total) {
     fotosResumen.textContent = total === 0
         ? 'Sin imagenes seleccionadas'
         : `${total} imagen${total === 1 ? '' : 'es'} seleccionada${total === 1 ? '' : 's'}`;
 }
 
-function renderFotoPreview() {
+function renderFotoPreview(files, permitirEliminar) {
     previewFotos.innerHTML = '';
+    actualizarResumenFotos(files.length);
 
-    Array.from(dt.files).forEach((file, index) => {
+    files.forEach((file, index) => {
+        if (!esImagenSeleccionable(file)) {
+            return;
+        }
+
         const reader = new FileReader();
         reader.onload = (event) => {
             const card = document.createElement('div');
@@ -543,6 +588,7 @@ function renderFotoPreview() {
                     </button>
                 </div>
             `;
+            card.querySelector('[data-remove-index]')?.classList.toggle('hidden', !permitirEliminar);
             previewFotos.appendChild(card);
         };
         reader.readAsDataURL(file);
@@ -550,48 +596,90 @@ function renderFotoPreview() {
 }
 
 function agregarArchivos(files) {
+    if (!soportaDataTransferFotos) {
+        renderFotoPreview(getFotosFallback(), false);
+        return;
+    }
+
+    const fotosActuales = getFotosPrincipales();
+    const firmas = new Set(fotosActuales.map((file) => `${file.name}-${file.size}-${file.lastModified}`));
+    const nuevasFotos = [...fotosActuales];
+
     Array.from(files || []).forEach((file) => {
-        dt.items.add(file);
+        if (!esImagenSeleccionable(file)) {
+            alert(`El archivo ${file.name} no es una imagen valida.`);
+            return;
+        }
+
+        if (file.size > maxFotoSize) {
+            alert(`La imagen ${file.name} supera el tamano maximo de 5MB.`);
+            return;
+        }
+
+        const firma = `${file.name}-${file.size}-${file.lastModified}`;
+        if (firmas.has(firma)) {
+            return;
+        }
+
+        firmas.add(firma);
+        nuevasFotos.push(file);
     });
 
-    syncFotosInput();
-    renderFotoPreview();
+    const dataTransfer = crearDataTransferFotos(nuevasFotos);
+    if (!dataTransfer) {
+        return;
+    }
+
+    evidenciaFotosInput.files = dataTransfer.files;
+    renderFotoPreview(getFotosPrincipales(), true);
 }
 
 previewFotos.addEventListener('click', (event) => {
     const button = event.target.closest('[data-remove-index]');
-    if (!button) {
+    if (!button || !soportaDataTransferFotos) {
         return;
     }
 
     const removeIndex = Number(button.dataset.removeIndex);
-    const rebuilt = new DataTransfer();
+    const fotos = getFotosPrincipales().filter((file, index) => index !== removeIndex);
+    const dataTransfer = crearDataTransferFotos(fotos);
 
-    Array.from(dt.files).forEach((file, index) => {
-        if (index !== removeIndex) {
-            rebuilt.items.add(file);
-        }
-    });
-
-    while (dt.items.length > 0) {
-        dt.items.remove(0);
+    if (dataTransfer) {
+        evidenciaFotosInput.files = dataTransfer.files;
+        renderFotoPreview(getFotosPrincipales(), true);
     }
-
-    Array.from(rebuilt.files).forEach((file) => dt.items.add(file));
-    syncFotosInput();
-    renderFotoPreview();
 });
 
 btnGaleria?.addEventListener('click', () => evidenciaFotosGaleriaInput.click());
 btnCamara?.addEventListener('click', () => evidenciaFotosCamaraInput.click());
-evidenciaFotosGaleriaInput?.addEventListener('change', (event) => agregarArchivos(event.target.files));
-evidenciaFotosCamaraInput?.addEventListener('change', (event) => agregarArchivos(event.target.files));
+evidenciaFotosInput?.addEventListener('change', () => renderFotoPreview(getFotosPrincipales(), true));
+
+if (soportaDataTransferFotos) {
+    evidenciaFotosGaleriaInput?.addEventListener('change', (event) => {
+        agregarArchivos(event.target.files);
+        event.target.value = '';
+    });
+    evidenciaFotosCamaraInput?.addEventListener('change', (event) => {
+        agregarArchivos(event.target.files);
+        event.target.value = '';
+    });
+    renderFotoPreview(getFotosPrincipales(), true);
+} else {
+    evidenciaFotosGaleriaInput.name = 'evidencia_fotos[]';
+    evidenciaFotosCamaraInput.name = 'evidencia_fotos[]';
+    evidenciaFotosInput.disabled = true;
+
+    const renderizarFallbackFotos = () => renderFotoPreview(getFotosFallback(), false);
+    evidenciaFotosGaleriaInput?.addEventListener('change', renderizarFallbackFotos);
+    evidenciaFotosCamaraInput?.addEventListener('change', renderizarFallbackFotos);
+    renderizarFallbackFotos();
+}
+
 componenteSelect.addEventListener('change', renderNumeroComponenteOptions);
 numeroComponenteSelect.addEventListener('change', actualizarResumenFormulario);
 moduloSelect.addEventListener('change', actualizarResumenFormulario);
 
 renderNumeroComponenteOptions();
 actualizarResumenFormulario();
-syncFotosInput();
 </script>
 @endsection

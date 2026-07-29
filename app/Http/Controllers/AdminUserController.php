@@ -3,11 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
@@ -105,6 +107,34 @@ class AdminUserController extends Controller
                 'user' => $user,
             ], array_filter($this->filtersFromRequest($request), fn ($value) => $value !== '')))
             ->with('success', 'Usuario actualizado correctamente.');
+    }
+
+    public function destroy(Request $request, User $user): RedirectResponse
+    {
+        $filters = array_filter($this->filtersFromRequest($request), fn ($value) => $value !== '');
+
+        if ($this->isCurrentUser($user)) {
+            return back()
+                ->withErrors([
+                    'delete_user' => 'No puedes eliminar tu propia cuenta desde Gestion de usuarios.',
+                ]);
+        }
+
+        try {
+            $userName = $user->name;
+            DB::transaction(function () use ($user): void {
+                $user->delete();
+            });
+        } catch (QueryException) {
+            return back()
+                ->withErrors([
+                    'delete_user' => 'No se pudo eliminar el usuario porque tiene registros operativos asociados. Puedes desactivarlo para retirar su acceso.',
+                ]);
+        }
+
+        return redirect()
+            ->route('admin.users.index', $filters)
+            ->with('success', "Usuario {$userName} eliminado correctamente.");
     }
 
     public function updatePermissions(Request $request, User $user): JsonResponse

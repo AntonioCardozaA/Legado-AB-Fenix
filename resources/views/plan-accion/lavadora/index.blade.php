@@ -412,13 +412,22 @@
     }
 
     /* Fechas con animaciones */
+    .table td.fecha-cell {
+        padding-left: 8px;
+        padding-right: 8px;
+    }
+
     .fecha-cell span {
         transition: all 0.3s ease;
         display: inline-block;
+        box-sizing: border-box;
+        max-width: 100%;
         padding: 6px 12px;
         border-radius: 8px;
         font-size: 13px;
         font-weight: 600;
+        text-align: center;
+        white-space: nowrap;
         cursor: pointer;
     }
 
@@ -739,6 +748,126 @@
             right: 20px;
         }
     }
+
+    @media (max-width: 640px) {
+        .table-responsive {
+            overflow-x: visible;
+        }
+
+        .table,
+        .table tbody,
+        .table tr,
+        .table td {
+            display: block;
+            width: 100%;
+        }
+
+        .table {
+            min-width: 0;
+            table-layout: auto;
+        }
+
+        .table thead {
+            display: none;
+        }
+
+        .table tbody {
+            display: grid;
+            gap: 14px;
+            padding: 14px;
+            background: #f8fafc;
+        }
+
+        .table tbody tr {
+            overflow: hidden;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            background: #ffffff;
+            box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06);
+        }
+
+        .table tbody tr:hover {
+            background: #ffffff;
+        }
+
+        .table td {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 12px 14px;
+            border-bottom: 1px solid #e2e8f0;
+            text-align: right;
+        }
+
+        .table td:last-child {
+            border-bottom: 0;
+        }
+
+        .table td[colspan] {
+            display: block;
+            text-align: center;
+        }
+
+        .table td[data-label]::before {
+            content: attr(data-label);
+            flex: 0 0 6.5rem;
+            color: #64748b;
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: 0.04em;
+            text-align: left;
+            text-transform: uppercase;
+        }
+
+        .table td.actividad-cell {
+            display: block;
+            width: 100%;
+            text-align: left;
+        }
+
+        .table td.actividad-cell::before {
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        .table td.fecha-cell {
+            display: flex;
+            text-align: right;
+        }
+
+        .table td.fecha-cell span {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 36px;
+            width: min(100%, 9rem);
+        }
+
+        .acciones {
+            justify-content: flex-end;
+        }
+    }
+
+    @media (max-width: 380px) {
+        .table td {
+            align-items: stretch;
+            flex-direction: column;
+            text-align: left;
+        }
+
+        .table td[data-label]::before {
+            flex: none;
+        }
+
+        .table td.fecha-cell span {
+            width: 100%;
+        }
+
+        .acciones {
+            justify-content: flex-start;
+        }
+    }
 </style>
 
 @php
@@ -1027,8 +1156,8 @@
                         <tbody>
                             @forelse($planesLinea as $index => $plan)
                             <tr>
-                                <td>{{ $index + 1 }}</td>
-                                <td class="actividad-cell">
+                                <td data-label="#">{{ $index + 1 }}</td>
+                                <td class="actividad-cell" data-label="Actividad">
                                     <div class="actividad-texto">
                                         {{ $plan->actividad }}
                                         @if($plan->completado)
@@ -1078,7 +1207,7 @@
                                         $fechaCampo = 'fecha_' . $pcm;
                                         $fecha = $plan->$fechaCampo ?? null;
                                     @endphp
-                                    <td class="text-center fecha-cell">
+                                    <td class="text-center fecha-cell" data-label="PCM {{ $loop->iteration }}">
                                         @if($fecha)
                                             @php
                                                 $dias = (int) \Carbon\Carbon::now()->startOfDay()->diffInDays(\Carbon\Carbon::parse($fecha)->startOfDay(), false);
@@ -1111,7 +1240,7 @@
                                         @endif
                                     </td>
                                 @endforeach
-                                <td class="text-center">
+                                <td class="text-center" data-label="Acciones">
                                     <div class="acciones">
                                         <a href="{{ route('plan-accion.edit', ['plan_accion' => $plan->id, 'tipo' => 'lavadora']) }}"  
                                            class="btn-accion btn-editar" 

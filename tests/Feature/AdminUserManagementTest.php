@@ -81,6 +81,7 @@ class AdminUserManagementTest extends TestCase
             ->assertOk()
             ->assertSee('Editar datos del usuario')
             ->assertSee($employee->email)
+            ->assertSee('Eliminar usuario')
             ->assertSee('Volver al directorio de usuarios');
     }
 
@@ -183,6 +184,54 @@ class AdminUserManagementTest extends TestCase
 
         $this->assertTrue((bool) $admin->activo);
         $this->assertTrue($admin->hasRole(User::ROLE_ADMIN));
+    }
+
+    public function test_admin_can_delete_another_user_account(): void
+    {
+        $admin = $this->userWithRole(User::ROLE_ADMIN);
+        $employee = $this->userWithRole(User::ROLE_TECNICO, [
+            'name' => 'Usuario Eliminable',
+            'email' => 'eliminable@example.com',
+        ]);
+
+        $this->actingAs($admin)
+            ->delete(route('admin.users.destroy', [
+                'user' => $employee,
+                'search' => 'eliminable',
+            ]))
+            ->assertRedirect(route('admin.users.index', [
+                'search' => 'eliminable',
+            ]))
+            ->assertSessionHasNoErrors()
+            ->assertSessionHas('success');
+
+        $this->assertNull($employee->fresh());
+        $this->assertNotNull($admin->fresh());
+    }
+
+    public function test_admin_cannot_delete_own_account_from_user_management(): void
+    {
+        $admin = $this->userWithRole(User::ROLE_ADMIN);
+
+        $this->actingAs($admin)
+            ->from(route('admin.users.edit', ['user' => $admin]))
+            ->delete(route('admin.users.destroy', ['user' => $admin]))
+            ->assertRedirect(route('admin.users.edit', ['user' => $admin]))
+            ->assertSessionHasErrors('delete_user');
+
+        $this->assertNotNull($admin->fresh());
+    }
+
+    public function test_non_admin_cannot_delete_users_from_user_management(): void
+    {
+        $technician = $this->userWithRole(User::ROLE_TECNICO);
+        $employee = $this->userWithRole(User::ROLE_SUPERVISOR);
+
+        $this->actingAs($technician)
+            ->delete(route('admin.users.destroy', ['user' => $employee]))
+            ->assertForbidden();
+
+        $this->assertNotNull($employee->fresh());
     }
 
     private function userWithRole(string $role, array $attributes = []): User

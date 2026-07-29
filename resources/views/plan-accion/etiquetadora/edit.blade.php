@@ -86,7 +86,7 @@
                     @error('actividad') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                 </div>
 
-                <div class="grid gap-4 md:grid-cols-4">
+                <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                     @foreach(['1','2','3','4'] as $n)
                         @php($field = 'fecha_pcm' . $n)
                         <div>

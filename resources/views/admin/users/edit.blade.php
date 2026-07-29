@@ -101,6 +101,35 @@
             </div>
 
             <div class="rounded bg-white p-5 shadow">
+                <h2 class="text-xl font-bold text-gray-900">Eliminar cuenta</h2>
+
+                @if($managedUser->id === auth()->id())
+                    <p class="mt-2 rounded border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                        No puedes eliminar tu propia cuenta desde Gestion de usuarios.
+                    </p>
+                @else
+                    <p class="mt-2 text-sm leading-6 text-gray-500">
+                        Elimina esta cuenta solo si ya no debe existir en el sistema.
+                    </p>
+
+                    <form
+                        method="POST"
+                        action="{{ route('admin.users.destroy', array_merge(['user' => $managedUser], $activeFilters)) }}"
+                        class="mt-5"
+                        onsubmit="return confirm(@js('Esta accion eliminara la cuenta de ' . $managedUser->name . '. Deseas continuar?'));"
+                    >
+                        @csrf
+                        @method('DELETE')
+
+                        <button type="submit" class="create-action create-action--danger w-full">
+                            <i class="fas fa-user-xmark"></i>
+                            Eliminar usuario
+                        </button>
+                    </form>
+                @endif
+            </div>
+
+            <div class="rounded bg-white p-5 shadow">
                 <div class="text-xs font-semibold uppercase tracking-wide text-gray-500">Usuarios activos</div>
                 <div class="mt-2 text-3xl font-bold text-gray-900">{{ $stats['activos'] }}</div>
                 <p class="mt-2 text-sm text-gray-500">Personal habilitado actualmente en el sistema.</p>

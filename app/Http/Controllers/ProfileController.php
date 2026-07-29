@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\ProfileUpdateRequest;
+use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -42,6 +43,8 @@ class ProfileController extends Controller
      */
     public function destroy(Request $request): RedirectResponse
     {
+        abort_unless($request->user()->hasRole(User::ROLE_ADMIN), 403);
+
         $request->validateWithBag('userDeletion', [
             'password' => ['required', 'current_password'],
         ]);

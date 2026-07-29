@@ -229,7 +229,7 @@
                                         @endphp
 
                                         <tr>
-                                            <td>
+                                            <td data-label="Actividad">
                                                 <div class="space-y-2">
                                                     <p class="etq-plan-title">{{ $plan->actividad }}</p>
                                                     <div class="etq-trace-grid">
@@ -249,12 +249,12 @@
                                                     </div>
                                                 </div>
                                             </td>
-                                            <td>
+                                            <td data-label="Responsable">
                                                 <span class="font-semibold text-slate-700">
                                                     {{ $plan->responsable->name ?? 'Usuario actual' }}
                                                 </span>
                                             </td>
-                                            <td>
+                                            <td data-label="Fechas PCM">
                                                 <div class="etq-date-row">
                                                     @foreach($pcmFechas as $pcm => $meta)
                                                         <span class="etq-date-pill {{ $meta['class'] }}">
@@ -264,13 +264,13 @@
                                                     @endforeach
                                                 </div>
                                             </td>
-                                            <td>
+                                            <td data-label="Estado">
                                                 <span class="etq-status-badge {{ $estado['class'] }}">
                                                     <i class="fas {{ $estado['icon'] }}"></i>
                                                     {{ $estado['label'] }}
                                                 </span>
                                             </td>
-                                            <td>
+                                            <td data-label="Acciones">
                                                 <div class="flex justify-center gap-2">
                                                     <a href="{{ route('plan-accion.edit', ['plan_accion' => $plan->id, 'tipo' => 'etiquetadora']) }}"
                                                        class="etq-icon-action edit"

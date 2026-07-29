@@ -3327,7 +3327,10 @@ public function pasteurizadoraOperativo(Request $request)
             $porcentajeRevision = $totalComponentesConfigurados > 0 ? round(($cantidadComponentesRevisados / $totalComponentesConfigurados) * 100) : 0;
 
             $criticosCount = $criticos->count();
-            $desgasteCount = $analisisLinea->whereIn('estado', AnalisisPasteurizadora::ESTADOS_DESGASTE)->count();
+            $desgaste = $analisisLinea->whereIn('estado', AnalisisPasteurizadora::ESTADOS_DESGASTE)->values();
+            $severosCount = $desgaste->where('estado', 'Desgaste severo')->count();
+            $moderadosCount = $desgaste->where('estado', 'Desgaste moderado')->count();
+            $desgasteCount = $severosCount + $moderadosCount;
             $revisionOperativa = $analisisLinea->where('estado', AnalisisPasteurizadora::ESTADO_REQUIERE_REVISION)->values();
             $revisionOperativaCount = $revisionOperativa->count();
 
@@ -3379,6 +3382,12 @@ public function pasteurizadoraOperativo(Request $request)
                     })->toArray(),
                     'acciones_pendientes' => $criticosCount,
                     'requiere_revision' => $revisionOperativaCount,
+                    'conteo_alertas' => [
+                        'critico' => $criticosCount,
+                        'severo' => $severosCount,
+                        'moderado' => $moderadosCount,
+                        'revision' => $revisionOperativaCount,
+                    ],
                     'ultimo_analisis' => $ultimoAnalisis ? [
                         'fecha' => $ultimoAnalisis->fecha_formateada,
                         'modulos' => $totalModulos
@@ -3392,11 +3401,8 @@ public function pasteurizadoraOperativo(Request $request)
                     ],
                     'alert_carousel' => $this->buildPasteurizadoraAlertCarousel(
                         $criticos->values(),
+                        $desgaste,
                         $revisionOperativa,
-                        $desgasteCount,
-                        $criticosCount,
-                        $porcentajeRevision,
-                        $ultimoAnalisis,
                         $nivel
                     )
                 ]
@@ -3409,7 +3415,7 @@ public function pasteurizadoraOperativo(Request $request)
     /**
      * Construye los items del carrusel para tarjetas de pasteurizadoras.
      */
-    private function buildPasteurizadoraAlertCarousel($criticos, $revisionOperativa, int $desgasteCount, int $accionesPendientes, int $porcentajeRevision, $ultimoAnalisis, string $nivel)
+    private function buildPasteurizadoraAlertCarousel($criticos, $desgaste, $revisionOperativa, string $nivel)
     {
         $items = [];
 
@@ -3420,30 +3426,31 @@ public function pasteurizadoraOperativo(Request $request)
                 'title' => $analisis->componente_nombre ?? 'Componente crítico',
                 'subtitle' => "Módulo {$analisis->modulo}" . ($analisis->lado ? " · {$analisis->lado}" : ''),
                 'image' => asset("images/componentes-pasteurizadora/{$codigo}.png"),
-                'fallback_image' => asset('images/icono-pasteurizadora.png'),
+                'fallback_image' => asset('images/icono_pas.png'),
                 'detail' => $analisis->actividad ?? 'Componente requiere cambio.',
                 'meta' => $analisis->numero_orden,
                 'fecha' => $analisis->fecha_formateada,
+                'estado_label' => 'Requiere cambio',
+                'estado_key' => 'critico',
             ];
         }
 
-        if ($accionesPendientes > 0) {
-            $items[] = [
-                'type' => 'alert',
-                'title' => 'Acciones pendientes',
-                'subtitle' => "{$accionesPendientes} componente(s) requieren cambio",
-                'description' => 'Revisa el plan de acción de pasteurizadora para cerrar las actividades.',
-                'icon' => 'fa-tasks',
-            ];
-        }
+        foreach ($desgaste as $analisis) {
+            $codigo = strtoupper((string) $analisis->componente);
+            $estadoKey = $analisis->estado === 'Desgaste severo' ? 'severo' : 'moderado';
+            $estadoLabel = $estadoKey === 'severo' ? 'Daño severo' : 'Daño moderado';
 
-        if ($desgasteCount > 0) {
             $items[] = [
-                'type' => 'alert',
-                'title' => 'Severidad detectada',
-                'subtitle' => "{$desgasteCount} componente(s) con condición severa o moderada",
-                'description' => 'Existen componentes con severidad moderada o severa que deben monitorearse.',
-                'icon' => 'fa-exclamation-triangle',
+                'type' => 'componente',
+                'title' => $analisis->componente_nombre ?? 'Componente con alerta',
+                'subtitle' => "Módulo {$analisis->modulo}" . ($analisis->lado ? " · {$analisis->lado}" : ''),
+                'image' => asset("images/componentes-pasteurizadora/{$codigo}.png"),
+                'fallback_image' => asset('images/icono_pas.png'),
+                'detail' => $analisis->actividad ?? 'Problema detectado en el componente.',
+                'meta' => $analisis->numero_orden,
+                'fecha' => $analisis->fecha_formateada,
+                'estado_label' => $estadoLabel,
+                'estado_key' => $estadoKey,
             ];
         }
 
@@ -3454,32 +3461,32 @@ public function pasteurizadoraOperativo(Request $request)
                 'title' => $analisis->componente_nombre ?? 'Componente en revisión',
                 'subtitle' => "Módulo {$analisis->modulo}" . ($analisis->lado ? " · {$analisis->lado}" : ''),
                 'image' => asset("images/componentes-pasteurizadora/{$codigo}.png"),
-                'fallback_image' => asset('images/icono-pasteurizadora.png'),
+                'fallback_image' => asset('images/icono_pas.png'),
                 'detail' => $analisis->actividad ?? 'Se detectó una anomalía operativa que debe revisarse.',
                 'meta' => $analisis->numero_orden,
                 'fecha' => $analisis->fecha_formateada,
                 'icon' => 'fa-tools',
+                'estado_label' => 'Requiere revisión',
+                'estado_key' => 'revision',
             ];
         }
 
-        $items[] = [
-            'type' => 'info',
-            'title' => 'Avance de revisión',
-            'subtitle' => "{$porcentajeRevision}% completado",
-            'description' => $ultimoAnalisis ? "Último análisis: {$ultimoAnalisis->fecha_formateada}" : 'Sin análisis registrado todavía.',
-            'icon' => 'fa-chart-line',
-        ];
+        if (!empty($items)) {
+            return $items;
+        }
 
-        if ($nivel === 'bueno' && count($items) === 1) {
-            $items[] = [
+        if ($nivel === 'bueno') {
+            return [[
                 'type' => 'info',
                 'title' => 'Sin alertas activas',
                 'subtitle' => 'Pasteurizadora en buen estado',
-                'description' => 'No hay componentes críticos ni desgaste activo en este momento.',
+                'description' => 'No hay componentes criticos ni desgaste activo en este momento.',
                 'icon' => 'fa-check-circle',
-            ];
+                'estado_label' => 'Estable',
+                'estado_key' => 'estable',
+            ]];
         }
 
-        return $items;
+        return [];
     }
 }
