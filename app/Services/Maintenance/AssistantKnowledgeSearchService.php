@@ -244,6 +244,13 @@ class AssistantKnowledgeSearchService
             $boost += 3;
         }
 
+        if (($profile['is_refaction_cost_query'] ?? false) && $this->tokensOverlap(
+            ['costo', 'precio', 'sku', 'refaccion', 'refacciones', 'refa', 'consumible', 'material', 'catarina', 'cadena', 'guia', 'buje', 'servo', 'reductor'],
+            $this->tokenize($componentHaystack)
+        )) {
+            $boost += 5;
+        }
+
         return $boost;
     }
 
@@ -278,6 +285,31 @@ class AssistantKnowledgeSearchService
             $componentTerms = array_merge($componentTerms, ['red', 'ppal', 'principal']);
         }
 
+        if (str_contains($normalized, 'catarina') || str_contains($normalized, 'sprocket')) {
+            $componentTerms = array_merge($componentTerms, ['catarina', 'catarinas', 'sprocket', 'sprockets']);
+        }
+
+        if (
+            str_contains($normalized, 'cadena')
+            || str_contains($normalized, 'candado')
+            || str_contains($normalized, 'eslabon')
+        ) {
+            $componentTerms = array_merge($componentTerms, ['cadena', 'cadenas', 'candado', 'candados', 'eslabon', 'eslabones']);
+        }
+
+        if (str_contains($normalized, 'guia')) {
+            $componentTerms = array_merge($componentTerms, ['guia', 'guias']);
+        }
+
+        if (
+            str_contains($normalized, 'buje')
+            || str_contains($normalized, 'baquelita')
+            || str_contains($normalized, 'espiga')
+            || str_contains($normalized, 'casquillo')
+        ) {
+            $componentTerms = array_merge($componentTerms, ['buje', 'baquelita', 'espiga', 'casquillo']);
+        }
+
         return [
             'tokens' => $this->expandTokens($this->tokenize($baseText), $normalized),
             'lineas' => $this->extractLineReferences($baseText),
@@ -286,6 +318,14 @@ class AssistantKnowledgeSearchService
                 || str_contains($normalized, 'lubric')
                 || str_contains($normalized, 'litro')
                 || str_contains($normalized, 'fluido'),
+            'is_refaction_cost_query' => str_contains($normalized, 'cuesta')
+                || str_contains($normalized, 'costo')
+                || str_contains($normalized, 'precio')
+                || str_contains($normalized, 'sku')
+                || str_contains($normalized, 'refa')
+                || str_contains($normalized, 'refaccion')
+                || str_contains($normalized, 'material')
+                || str_contains($normalized, 'consumible'),
         ];
     }
 
@@ -313,6 +353,41 @@ class AssistantKnowledgeSearchService
         if (str_contains($normalized, 'reductor')) {
             $expanded[] = 'reductor';
             $expanded[] = 'reductores';
+        }
+
+        if (
+            str_contains($normalized, 'cuesta')
+            || str_contains($normalized, 'costo')
+            || str_contains($normalized, 'precio')
+            || str_contains($normalized, 'sku')
+            || str_contains($normalized, 'refa')
+            || str_contains($normalized, 'refaccion')
+        ) {
+            $expanded = array_merge($expanded, [
+                'costo',
+                'costos',
+                'precio',
+                'precios',
+                'sku',
+                'refa',
+                'refas',
+                'refaccion',
+                'refacciones',
+                'material',
+                'materiales',
+                'consumible',
+                'consumibles',
+                'repuesto',
+                'repuestos',
+            ]);
+        }
+
+        if (str_contains($normalized, 'catarina') || str_contains($normalized, 'sprocket')) {
+            $expanded = array_merge($expanded, ['catarina', 'catarinas', 'sprocket', 'sprockets']);
+        }
+
+        if (str_contains($normalized, 'guia')) {
+            $expanded = array_merge($expanded, ['guia', 'guias']);
         }
 
         return array_values(array_unique(array_filter($expanded, function ($token): bool {

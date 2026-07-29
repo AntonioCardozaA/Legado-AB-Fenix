@@ -109,6 +109,8 @@ class OperationsPlatformContextService
 
     private ?Collection $lubricationReferenceCache = null;
 
+    private ?Collection $refactionReferenceCache = null;
+
     public function __construct(
         private readonly PromptSafetySanitizer $sanitizer
     ) {
@@ -154,6 +156,7 @@ class OperationsPlatformContextService
                 'damage_periods' => $this->washerDamagePeriods($problematicAnalyses),
                 'current_damage_by_line' => $this->washerCurrentDamageByLine($problematicSnapshots),
                 'targeted_component_lookup' => $this->washerTargetedComponentLookup($question, $latestSnapshots),
+                'refaction_cost_lookup' => $this->washerRefactionCostLookup($question),
                 'lubrication_lookup' => $this->washerLubricationLookup($question),
             ];
         }
@@ -694,6 +697,7 @@ class OperationsPlatformContextService
             }
 
             $targetedLookup = $this->washerTargetedComponentLookup($question, $latestSnapshots);
+            $refactionLookup = $this->washerRefactionCostLookup($question);
             $lubricationLookup = $this->washerLubricationLookup($question);
             $knowledgeDocumentMatches = $this->washerKnowledgeDocumentMatches($question);
 
@@ -712,6 +716,45 @@ class OperationsPlatformContextService
                         $match['actividad'] ?? null,
                     ]),
                     'score' => 25,
+                ])
+            );
+
+            $candidates = $candidates->concat(
+                collect($refactionLookup['matches'] ?? [])->map(fn (array $match): array => [
+                    'module' => User::MODULE_LAVADORA,
+                    'type' => 'refaccion_costo_lavadora',
+                    'reference' => 'SKU ' . ($match['sku'] ?? 'sin sku'),
+                    'date' => null,
+                    'summary' => $this->summarizeText([
+                        implode(', ', $match['lineas'] ?? []),
+                        implode(', ', $match['componentes'] ?? []),
+                        $match['producto'] ?? null,
+                        $match['categoria'] ?? null,
+                        isset($match['costo_unitario']) && $match['costo_unitario'] > 0
+                            ? 'Costo unitario: ' . number_format((float) $match['costo_unitario'], 2, '.', ',')
+                            : null,
+                        isset($match['cantidad_referencia']) && $match['cantidad_referencia'] !== null
+                            ? 'Cantidad ref: ' . $this->formatDecimal((float) $match['cantidad_referencia']) . ' ' . ($match['unidad_referencia'] ?? ($match['unidad_medida'] ?? 'PZA'))
+                            : null,
+                        $match['observaciones'] ?? null,
+                    ]),
+                    'score' => 36,
+                ])
+            );
+
+            $candidates = $candidates->concat(
+                collect($refactionLookup['knowledge_matches'] ?? [])->map(fn (array $match): array => [
+                    'module' => User::MODULE_LAVADORA,
+                    'type' => 'documento_conocimiento',
+                    'reference' => $match['reference'] ?? 'Documento tecnico',
+                    'date' => $match['updated_at'] ?? null,
+                    'summary' => $this->summarizeText([
+                        $match['document_type'] ?? null,
+                        $match['linea'] ?? null,
+                        $match['componente'] ?? null,
+                        $match['excerpt'] ?? null,
+                    ], 420),
+                    'score' => 30,
                 ])
             );
 
@@ -892,6 +935,645 @@ class OperationsPlatformContextService
                 'summary' => $item['summary'],
             ])
             ->all();
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function washerRefactionCostLookup(string $question): array
+    {
+        $profile = $this->refactionQuestionProfile($question);
+
+        if (!$profile['is_refaction_query']) {
+            return [
+                'query' => $this->sanitizer->sanitizeText($question, 180),
+                'matches' => [],
+                'knowledge_matches' => [],
+            ];
+        }
+
+        $matches = $this->refactionReferences()
+            ->map(function (array $reference) use ($profile): array {
+                return [
+                    'score' => $this->scoreRefactionReference($reference, $profile),
+                    'data' => $reference,
+                ];
+            })
+            ->filter(fn (array $item): bool => $item['score'] > 0)
+            ->sortByDesc('score')
+            ->take(6)
+            ->values()
+            ->map(fn (array $item): array => $item['data'])
+            ->all();
+
+        $componentTerms = collect($matches)
+            ->pluck('component_terms')
+            ->flatten()
+            ->merge($profile['component_terms'])
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+
+        return [
+            'query' => $this->sanitizer->sanitizeText($question, 180),
+            'matches' => $matches,
+            'knowledge_matches' => $this->washerKnowledgeDocumentMatches($question, $profile['lineas'], $componentTerms, 4),
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $profile
+     */
+    private function scoreRefactionReference(array $reference, array $profile): int
+    {
+        $lineas = array_values(array_filter(array_map(
+            fn ($linea) => is_scalar($linea) ? Str::upper((string) $linea) : null,
+            $reference['lineas'] ?? []
+        )));
+        $componentCodes = array_values(array_filter(array_map(
+            fn ($code) => is_scalar($code) ? Str::upper((string) $code) : null,
+            $reference['component_codes'] ?? []
+        )));
+        $componentTerms = $this->tokenize(implode(' ', $reference['component_terms'] ?? []));
+        $productTokens = $this->tokenize((string) ($reference['producto'] ?? ''));
+        $haystack = implode(' ', array_filter([
+            (string) ($reference['sku'] ?? ''),
+            (string) ($reference['producto'] ?? ''),
+            (string) ($reference['categoria'] ?? ''),
+            implode(' ', $lineas),
+            implode(' ', array_map(fn (string $linea): string => $linea === 'TODAS' ? 'todas las lavadoras' : $this->lineAliases($linea), $lineas)),
+            implode(' ', $componentCodes),
+            implode(' ', $reference['componentes'] ?? []),
+            implode(' ', $reference['component_terms'] ?? []),
+            implode(' ', $reference['aliases'] ?? []),
+            (string) ($reference['observaciones'] ?? ''),
+            (string) ($reference['source_document'] ?? ''),
+        ]));
+
+        $score = $this->scoreTokens($profile['tokens'], $haystack);
+
+        if ($profile['sku_terms'] !== []) {
+            $sku = Str::upper((string) ($reference['sku'] ?? ''));
+
+            if ($sku === '' || count(array_intersect($profile['sku_terms'], [$sku])) === 0) {
+                return 0;
+            }
+
+            $score += 25;
+        }
+
+        if ($profile['lineas'] !== []) {
+            if ($lineas === []) {
+                $score = max(0, $score - 2);
+            } elseif (!$this->referenceMatchesRequestedLines($profile['lineas'], $lineas)) {
+                return 0;
+            } else {
+                $score += in_array('TODAS', $lineas, true) ? 4 : 10;
+            }
+        }
+
+        $hasSpecificComponent = $profile['component_codes'] !== [] || $profile['component_terms'] !== [];
+        $componentMatched = count(array_intersect($profile['component_codes'], $componentCodes)) > 0
+            || $this->tokensOverlap($profile['component_terms'], $componentTerms)
+            || $this->tokensOverlap($profile['component_terms'], $productTokens);
+
+        if ($hasSpecificComponent && !$componentMatched) {
+            return 0;
+        }
+
+        if ($componentMatched) {
+            $score += 10;
+        }
+
+        if ($this->tokensOverlap($profile['component_terms'], $productTokens)) {
+            $score += 6;
+        }
+
+        if (($profile['is_cost_query'] ?? false) && isset($reference['costo_unitario']) && (float) $reference['costo_unitario'] > 0) {
+            $score += 4;
+        }
+
+        if (($profile['asks_sku'] ?? false) && filled($reference['sku'] ?? null)) {
+            $score += 3;
+        }
+
+        if (($profile['asks_list'] ?? false) && (($reference['componentes'] ?? []) !== [] || ($reference['lineas'] ?? []) !== [])) {
+            $score += 2;
+        }
+
+        return $score;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function refactionQuestionProfile(string $question): array
+    {
+        $normalized = Str::lower(Str::ascii($question));
+        $references = $this->extractQuestionReferences($question);
+        $signals = $this->refactionComponentSignals($question);
+        $skuTerms = [];
+
+        if (preg_match_all('/\b(?:sku|np|n\.?\s*p\.?|parte)\s*[:#-]?\s*([a-z0-9-]{4,})\b/ui', $normalized, $skuMatches) > 0) {
+            $skuTerms = array_values(array_unique(array_map(
+                fn (string $sku): string => Str::upper(trim($sku)),
+                $skuMatches[1]
+            )));
+        }
+
+        $isCostQuery = str_contains($normalized, 'cuesta')
+            || str_contains($normalized, 'costo')
+            || str_contains($normalized, 'coste')
+            || str_contains($normalized, 'precio')
+            || str_contains($normalized, 'vale')
+            || str_contains($normalized, 'valor');
+
+        $asksSku = str_contains($normalized, 'sku')
+            || str_contains($normalized, 'numero de parte')
+            || str_contains($normalized, 'n parte')
+            || str_contains($normalized, 'np');
+
+        $asksList = str_contains($normalized, 'que refa')
+            || str_contains($normalized, 'que refaccion')
+            || str_contains($normalized, 'que refacciones')
+            || str_contains($normalized, 'cuales refacciones')
+            || str_contains($normalized, 'que piezas')
+            || str_contains($normalized, 'que materiales')
+            || str_contains($normalized, 'que consumibles')
+            || str_contains($normalized, 'que lleva')
+            || str_contains($normalized, 'que usa');
+
+        $asksCompatibility = str_contains($normalized, 'compatible')
+            || str_contains($normalized, 'compatibles')
+            || str_contains($normalized, 'aplica')
+            || str_contains($normalized, 'sirve');
+
+        $mentionsRefactionDomain = str_contains($normalized, 'refa')
+            || str_contains($normalized, 'refaccion')
+            || str_contains($normalized, 'refacciones')
+            || str_contains($normalized, 'repuesto')
+            || str_contains($normalized, 'material')
+            || str_contains($normalized, 'materiales')
+            || str_contains($normalized, 'consumible')
+            || str_contains($normalized, 'consumibles')
+            || str_contains($normalized, 'sku');
+
+        $isRefactionQuery = $isCostQuery
+            || $asksSku
+            || $asksList
+            || $asksCompatibility
+            || $mentionsRefactionDomain
+            || ($signals['terms'] !== [] && (
+                str_contains($normalized, 'cuanto')
+                || str_contains($normalized, 'cual')
+                || str_contains($normalized, 'que')
+                || str_contains($normalized, 'lleva')
+                || str_contains($normalized, 'usa')
+                || str_contains($normalized, 'aplica')
+            ));
+
+        return [
+            'is_refaction_query' => $isRefactionQuery,
+            'is_cost_query' => $isCostQuery,
+            'asks_sku' => $asksSku,
+            'asks_list' => $asksList,
+            'asks_compatibility' => $asksCompatibility,
+            'tokens' => $this->expandRefactionTokens($this->tokenize($question), $normalized),
+            'lineas' => $references['lineas'],
+            'sku_terms' => $skuTerms,
+            'component_codes' => $signals['codes'],
+            'component_terms' => $signals['terms'],
+        ];
+    }
+
+    /**
+     * @param  array<int, string>  $tokens
+     * @return array<int, string>
+     */
+    private function expandRefactionTokens(array $tokens, string $normalizedQuestion): array
+    {
+        $expanded = $tokens;
+
+        if (
+            str_contains($normalizedQuestion, 'cuesta')
+            || str_contains($normalizedQuestion, 'costo')
+            || str_contains($normalizedQuestion, 'precio')
+            || str_contains($normalizedQuestion, 'sku')
+            || str_contains($normalizedQuestion, 'refa')
+            || str_contains($normalizedQuestion, 'refaccion')
+        ) {
+            $expanded = array_merge($expanded, [
+                'costo',
+                'costos',
+                'precio',
+                'precios',
+                'sku',
+                'refa',
+                'refas',
+                'refaccion',
+                'refacciones',
+                'material',
+                'materiales',
+                'consumible',
+                'consumibles',
+                'repuesto',
+                'repuestos',
+            ]);
+        }
+
+        if (str_contains($normalizedQuestion, 'catarina') || str_contains($normalizedQuestion, 'sprocket')) {
+            $expanded = array_merge($expanded, ['catarina', 'catarinas', 'sprocket', 'sprockets']);
+        }
+
+        if (
+            str_contains($normalizedQuestion, 'cadena')
+            || str_contains($normalizedQuestion, 'candado')
+            || str_contains($normalizedQuestion, 'eslabon')
+        ) {
+            $expanded = array_merge($expanded, ['cadena', 'cadenas', 'candado', 'candados', 'eslabon', 'eslabones']);
+        }
+
+        if (str_contains($normalizedQuestion, 'guia')) {
+            $expanded = array_merge($expanded, ['guia', 'guias']);
+        }
+
+        return array_values(array_unique(array_filter($expanded, fn (string $token): bool => $this->isSearchableToken($token))));
+    }
+
+    /**
+     * @return Collection<int, array<string, mixed>>
+     */
+    private function refactionReferences(): Collection
+    {
+        if ($this->refactionReferenceCache instanceof Collection) {
+            return $this->refactionReferenceCache;
+        }
+
+        $catalogItems = CostCatalogItem::query()
+            ->active()
+            ->get()
+            ->keyBy(fn (CostCatalogItem $item): string => (string) $item->sku);
+
+        $knowledgeReferences = $this->extractRefactionReferencesFromKnowledgeDocuments($catalogItems);
+        $knowledgeSkus = $knowledgeReferences
+            ->pluck('sku')
+            ->filter()
+            ->map(fn ($sku): string => (string) $sku)
+            ->all();
+
+        $fallbackReferences = $catalogItems
+            ->filter(fn (CostCatalogItem $item): bool => !in_array((string) $item->sku, $knowledgeSkus, true))
+            ->map(fn (CostCatalogItem $item): array => $this->fallbackRefactionReference($item))
+            ->values();
+
+        return $this->refactionReferenceCache = $knowledgeReferences
+            ->concat($fallbackReferences)
+            ->values();
+    }
+
+    /**
+     * @param  Collection<int, CostCatalogItem>  $catalogItems
+     * @return Collection<int, array<string, mixed>>
+     */
+    private function extractRefactionReferencesFromKnowledgeDocuments(Collection $catalogItems): Collection
+    {
+        $documents = WasherKnowledgeDocument::query()
+            ->where('indexing_status', 'indexed')
+            ->where(function ($query): void {
+                $query->where('lifecycle_status', 'vigente')
+                    ->orWhereNull('lifecycle_status');
+            })
+            ->get()
+            ->filter(function (WasherKnowledgeDocument $document): bool {
+                $text = Str::lower(Str::ascii((string) $document->extracted_text));
+
+                return $text !== '' && str_contains($text, 'sku') && str_contains($text, 'costo unitario');
+            });
+
+        return $documents
+            ->flatMap(function (WasherKnowledgeDocument $document) use ($catalogItems): array {
+                $entries = $this->parseKnowledgeCostEntries((string) $document->extracted_text);
+
+                return array_map(function (array $entry) use ($document, $catalogItems): array {
+                    /** @var CostCatalogItem|null $catalogItem */
+                    $catalogItem = $catalogItems->get((string) ($entry['sku'] ?? ''));
+                    $aliases = collect($catalogItem?->aliases ?? [])
+                        ->map(fn ($alias) => Str::lower(Str::ascii((string) $alias)))
+                        ->filter()
+                        ->unique()
+                        ->values()
+                        ->all();
+                    $componentText = implode(' ', array_filter([
+                        $entry['producto'] ?? null,
+                        implode(' ', $entry['componentes'] ?? []),
+                        implode(' ', $aliases),
+                        (string) ($catalogItem?->categoria ?? ''),
+                    ]));
+                    $signals = $this->refactionComponentSignals($componentText);
+                    $unit = $catalogItem?->unidad_medida
+                        ? $this->normalizeRefactionUnit((string) $catalogItem->unidad_medida)
+                        : $this->normalizeRefactionUnit((string) ($entry['unidad_medida'] ?? 'PZA'));
+                    $quantityUnit = isset($entry['unidad_referencia']) && $entry['unidad_referencia'] !== null
+                        ? $this->normalizeRefactionUnit((string) $entry['unidad_referencia'])
+                        : null;
+
+                    return [
+                        'sku' => (string) ($entry['sku'] ?? ''),
+                        'producto' => (string) ($catalogItem?->nombre ?: ($entry['producto'] ?? 'Refaccion')),
+                        'categoria' => (string) ($catalogItem?->categoria ?: 'Refaccion'),
+                        'unidad_medida' => $unit,
+                        'costo_unitario' => round((float) ($catalogItem?->costo_unitario ?? ($entry['costo_unitario'] ?? 0)), 2),
+                        'lineas' => $entry['lineas'] ?? [],
+                        'componentes' => $entry['componentes'] ?? [],
+                        'component_codes' => $signals['codes'],
+                        'component_terms' => array_values(array_unique(array_filter(array_merge($signals['terms'], $aliases)))),
+                        'cantidad_referencia' => $entry['cantidad_referencia'] ?? null,
+                        'unidad_referencia' => $quantityUnit,
+                        'costo_referencia' => $entry['costo_referencia'] ?? null,
+                        'observaciones' => $entry['observaciones'] ?? null,
+                        'aliases' => $aliases,
+                        'source_document' => (string) $document->title,
+                        'source_documents' => [(string) $document->title],
+                    ];
+                }, $entries);
+            })
+            ->groupBy(fn (array $reference): string => implode('|', [
+                (string) ($reference['sku'] ?? ''),
+                implode(',', $reference['lineas'] ?? []),
+                implode(',', $reference['componentes'] ?? []),
+            ]))
+            ->map(function (Collection $items): array {
+                $primary = $items->first();
+                $documents = $items
+                    ->pluck('source_document')
+                    ->filter()
+                    ->unique()
+                    ->values()
+                    ->all();
+
+                $primary['source_documents'] = $documents;
+                $primary['source_document'] = $documents[0] ?? ($primary['source_document'] ?? null);
+
+                return $primary;
+            })
+            ->values();
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function parseKnowledgeCostEntries(string $text): array
+    {
+        $pattern = '/##\s*SKU\s*([A-Z0-9-]+)\s*-\s*(.+?)\s*-\s*Costo unitario:\s*\$?([0-9.,]+)\s*MXN\s*por\s*(.+?)\s*-\s*Lavadoras:\s*(.+?)\s*-\s*Componentes:\s*(.+?)(?:\s*-\s*Cantidad de referencia:\s*([0-9.,]+)\s*([A-Za-z]+))?(?:\s*-\s*Costo de referencia:\s*\$?([0-9.,]+)\s*MXN)?(?:\s*-\s*Observaciones:\s*(.+?))?(?=\s*##\s*SKU|\z)/isu';
+
+        if (preg_match_all($pattern, $text, $matches, PREG_SET_ORDER) < 1) {
+            return [];
+        }
+
+        return array_values(array_filter(array_map(function (array $match): ?array {
+            $sku = Str::upper(trim((string) ($match[1] ?? '')));
+
+            if ($sku === '') {
+                return null;
+            }
+
+            return [
+                'sku' => $sku,
+                'producto' => trim((string) ($match[2] ?? '')),
+                'costo_unitario' => $this->parseDecimalValue((string) ($match[3] ?? '0')),
+                'unidad_medida' => $this->normalizeRefactionUnit((string) ($match[4] ?? 'PZA')),
+                'lineas' => $this->normalizeReferenceLines((string) ($match[5] ?? '')),
+                'componentes' => $this->normalizeReferenceComponents((string) ($match[6] ?? '')),
+                'cantidad_referencia' => isset($match[7]) && trim((string) $match[7]) !== ''
+                    ? $this->parseDecimalValue((string) $match[7])
+                    : null,
+                'unidad_referencia' => isset($match[8]) && trim((string) $match[8]) !== ''
+                    ? $this->normalizeRefactionUnit((string) $match[8])
+                    : null,
+                'costo_referencia' => isset($match[9]) && trim((string) $match[9]) !== ''
+                    ? $this->parseDecimalValue((string) $match[9])
+                    : null,
+                'observaciones' => isset($match[10]) && trim((string) $match[10]) !== ''
+                    ? trim((string) $match[10])
+                    : null,
+            ];
+        }, $matches)));
+    }
+
+    private function fallbackRefactionReference(CostCatalogItem $item): array
+    {
+        $aliases = collect($item->aliases ?? [])
+            ->map(fn ($alias) => Str::lower(Str::ascii((string) $alias)))
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+        $signals = $this->refactionComponentSignals(implode(' ', array_filter([
+            (string) $item->nombre,
+            (string) $item->categoria,
+            implode(' ', $aliases),
+        ])));
+        $componentes = $signals['codes'] !== []
+            ? array_values(array_unique(array_map(
+                fn (string $code): string => str_replace('_', ' ', Str::title(Str::lower($code))),
+                $signals['codes']
+            )))
+            : [(string) ($item->categoria ?: $item->nombre)];
+
+        return [
+            'sku' => (string) $item->sku,
+            'producto' => (string) $item->nombre,
+            'categoria' => (string) ($item->categoria ?: 'Refaccion'),
+            'unidad_medida' => $this->normalizeRefactionUnit((string) $item->unidad_medida),
+            'costo_unitario' => round((float) $item->costo_unitario, 2),
+            'lineas' => [],
+            'componentes' => $componentes,
+            'component_codes' => $signals['codes'],
+            'component_terms' => array_values(array_unique(array_filter(array_merge($signals['terms'], $aliases)))),
+            'cantidad_referencia' => null,
+            'unidad_referencia' => null,
+            'costo_referencia' => null,
+            'observaciones' => $item->observaciones,
+            'aliases' => $aliases,
+            'source_document' => null,
+            'source_documents' => [],
+        ];
+    }
+
+    /**
+     * @return array{codes: array<int, string>, terms: array<int, string>}
+     */
+    private function refactionComponentSignals(string $text): array
+    {
+        $normalized = Str::lower(Str::ascii($text));
+        $codes = [];
+        $terms = [];
+
+        if (str_contains($normalized, 'servo chico') || str_contains($normalized, 'servos chicos')) {
+            $codes[] = 'SERVO_CHICO';
+            $terms = array_merge($terms, ['servo', 'chico', 'servos']);
+        }
+
+        if (str_contains($normalized, 'servo grande') || str_contains($normalized, 'servos grandes')) {
+            $codes[] = 'SERVO_GRANDE';
+            $terms = array_merge($terms, ['servo', 'grande', 'servos']);
+        }
+
+        if (str_contains($normalized, 'catarina') || str_contains($normalized, 'sprocket')) {
+            $codes[] = 'CATARINAS';
+            $terms = array_merge($terms, ['catarina', 'catarinas', 'sprocket', 'sprockets']);
+        }
+
+        if (
+            str_contains($normalized, 'cadena')
+            || str_contains($normalized, 'candado')
+            || str_contains($normalized, 'eslabon')
+        ) {
+            $terms = array_merge($terms, ['cadena', 'cadenas', 'candado', 'candados', 'eslabon', 'eslabones']);
+        }
+
+        if (str_contains($normalized, 'guia sup') || str_contains($normalized, 'guia superior')) {
+            $codes[] = 'GUI_SUP_TANQUE';
+            $terms = array_merge($terms, ['guia', 'superior', 'tanque']);
+        }
+
+        if (str_contains($normalized, 'guia int') || str_contains($normalized, 'guia inter')) {
+            $codes[] = 'GUI_INT_TANQUE';
+            $terms = array_merge($terms, ['guia', 'intermedia', 'tanque']);
+        }
+
+        if (str_contains($normalized, 'guia inf') || str_contains($normalized, 'guia inferior')) {
+            $codes[] = 'GUI_INF_TANQUE';
+            $terms = array_merge($terms, ['guia', 'inferior', 'tanque']);
+        }
+
+        if (
+            str_contains($normalized, 'buje')
+            || str_contains($normalized, 'baquelita')
+            || str_contains($normalized, 'espiga')
+            || str_contains($normalized, 'casquillo')
+        ) {
+            $codes[] = 'BUJE_ESPIGA';
+            $terms = array_merge($terms, ['buje', 'baquelita', 'espiga', 'casquillo']);
+        }
+
+        if (str_contains($normalized, 'rv200 sin fin') || str_contains($normalized, 'sin fin-corona')) {
+            $codes[] = 'RV200_SIN_FIN';
+            $terms = array_merge($terms, ['rv200', 'sin', 'fin', 'corona', 'reductor']);
+        }
+
+        if (str_contains($normalized, 'rv200') || str_contains($normalized, 'reductor')) {
+            $codes[] = 'RV200';
+            $terms = array_merge($terms, ['rv200', 'reductor', 'reductores']);
+        }
+
+        if (str_contains($normalized, 'red principal') || str_contains($normalized, 'red ppal')) {
+            $terms = array_merge($terms, ['red', 'principal', 'ppal']);
+        }
+
+        if (str_contains($normalized, 'dado')) {
+            $terms[] = 'dado';
+        }
+
+        if (str_contains($normalized, 'tornillo')) {
+            $terms[] = 'tornillo';
+        }
+
+        if (str_contains($normalized, 'balero')) {
+            $terms[] = 'balero';
+        }
+
+        if (str_contains($normalized, 'chumacera')) {
+            $terms[] = 'chumacera';
+        }
+
+        if (str_contains($normalized, 'reten')) {
+            $terms[] = 'reten';
+        }
+
+        if (str_contains($normalized, 'oring') || str_contains($normalized, 'o ring')) {
+            $terms = array_merge($terms, ['oring', 'o', 'ring']);
+        }
+
+        return [
+            'codes' => array_values(array_unique(array_filter($codes))),
+            'terms' => array_values(array_unique(array_filter($terms, fn (string $term): bool => $this->isSearchableToken($term)))),
+        ];
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function normalizeReferenceLines(string $lineText): array
+    {
+        $normalized = Str::upper(Str::ascii($lineText));
+
+        if ($normalized === '') {
+            return [];
+        }
+
+        if (str_contains($normalized, 'TODAS')) {
+            return ['TODAS'];
+        }
+
+        $lineas = [];
+
+        if (preg_match_all('/L[\s-]?0*(\d{1,2})\b/u', $normalized, $matches) > 0) {
+            foreach ($matches[1] as $lineNumber) {
+                $lineas[] = 'L-' . str_pad((string) $lineNumber, 2, '0', STR_PAD_LEFT);
+            }
+        }
+
+        return array_values(array_unique($lineas));
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function normalizeReferenceComponents(string $componentsText): array
+    {
+        return collect(preg_split('/\s*,\s*/u', trim($componentsText)) ?: [])
+            ->map(fn ($component) => trim((string) $component))
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    private function normalizeRefactionUnit(string $unit): string
+    {
+        $normalized = Str::upper(trim(Str::ascii($unit)));
+
+        return match ($normalized) {
+            'PIEZA', 'PIEZAS', 'PZA', 'PZ' => 'PZA',
+            'METRO', 'METROS', 'M', 'MT', 'MTS' => 'MT',
+            'LITRO', 'LITROS', 'L', 'LT', 'LTS' => 'LT',
+            'KILO', 'KILO', 'KG', 'KGS' => 'KG',
+            default => $normalized !== '' ? $normalized : 'PZA',
+        };
+    }
+
+    private function parseDecimalValue(string $value): float
+    {
+        return (float) str_replace(',', '', trim($value));
+    }
+
+    /**
+     * @param  array<int, string>  $requestedLines
+     * @param  array<int, string>  $referenceLines
+     */
+    private function referenceMatchesRequestedLines(array $requestedLines, array $referenceLines): bool
+    {
+        if ($referenceLines === [] || $requestedLines === []) {
+            return false;
+        }
+
+        if (in_array('TODAS', $referenceLines, true)) {
+            return true;
+        }
+
+        return count(array_intersect($requestedLines, $referenceLines)) > 0;
     }
 
     /**
@@ -1176,7 +1858,10 @@ class OperationsPlatformContextService
     private function washerKnowledgeDocumentMatches(string $question, array $lineas = [], array $componentTerms = [], int $limit = 4): array
     {
         $normalizedQuestion = Str::lower(Str::ascii($question));
-        $tokens = $this->expandLubricationTokens($this->tokenize($question), $normalizedQuestion);
+        $tokens = $this->expandRefactionTokens(
+            $this->expandLubricationTokens($this->tokenize($question), $normalizedQuestion),
+            $normalizedQuestion
+        );
 
         if ($tokens === []) {
             return [];
@@ -1216,6 +1901,19 @@ class OperationsPlatformContextService
                     ])))
                 )) {
                     $score += 4;
+                }
+
+                if (
+                    $this->tokensOverlap(['costo', 'precio', 'sku', 'refaccion', 'refacciones', 'refa', 'consumible', 'material'], $tokens)
+                    && $this->tokensOverlap(
+                        ['costo', 'precio', 'sku', 'refaccion', 'refacciones', 'refa', 'consumible', 'material'],
+                        $this->tokenize(implode(' ', [
+                            (string) $document->title,
+                            (string) $document->extracted_text,
+                        ]))
+                    )
+                ) {
+                    $score += 5;
                 }
 
                 return [

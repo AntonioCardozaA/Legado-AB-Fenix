@@ -18,18 +18,15 @@
         {{-- HEADER MEJORADO --}}
         <div class="mb-10 animate-fade-in">
             <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <div class="min-w-0">
-                    <div class="mb-2 flex flex-col items-start gap-3 sm:flex-row sm:items-center">
-                        <!-- Imagen a la izquierda (icono de pasteurizadora) -->
-                        <div class="mb-2 flex h-24 w-24 items-center justify-center sm:mb-4 sm:h-32 sm:w-32">
-                            <img src="{{ asset('images/icono_pas.png') }}" 
-                                 alt="Icono de Pasteurizadora" 
-                                 class="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300">
-                        </div>
-                        <!-- Barra decorativa -->
-                        <div class="h-10 w-2 bg-gradient-to-b from-gray-800 to-gray-600 rounded-full"></div>
-                        
-                        <h1 class="break-words text-3xl font-black tracking-tight text-gray-800 sm:text-4xl">
+                <div class="menu-hero-brand">
+                    <div class="menu-hero-icon">
+                        <img src="{{ asset('images/icono_pas.png') }}"
+                             alt="Icono de Pasteurizadora"
+                             class="h-full w-full object-contain transition-transform duration-300 group-hover:scale-105">
+                    </div>
+                    <div class="menu-hero-copy">
+                        <div class="menu-hero-accent"></div>
+                        <h1 class="menu-hero-title text-gray-800">
                             <span class="text-transparent bg-clip-text bg-gradient-to-r from-gray-800 to-gray-600">
                                 PASTEURIZADORA
                             </span>
@@ -297,10 +294,79 @@
         overflow-wrap: anywhere;
     }
 
+    .pasteur-menu .menu-hero-brand {
+        display: flex;
+        align-items: center;
+        gap: 0.85rem;
+        min-width: 0;
+    }
+
+    .pasteur-menu .menu-hero-icon {
+        display: flex;
+        width: clamp(4.75rem, 22vw, 8rem);
+        height: clamp(4.75rem, 22vw, 8rem);
+        align-items: center;
+        justify-content: center;
+        flex: 0 0 auto;
+    }
+
+    .pasteur-menu .menu-hero-copy {
+        display: flex;
+        align-items: center;
+        gap: 0.9rem;
+        flex: 1 1 auto;
+        min-width: 0;
+        max-width: 100%;
+    }
+
+    .pasteur-menu .menu-hero-accent {
+        width: 0.45rem;
+        height: clamp(2.8rem, 12vw, 4rem);
+        flex: 0 0 0.45rem;
+        border-radius: 9999px;
+        background: linear-gradient(to bottom, #1f2937, #4b5563);
+    }
+
+    .pasteur-menu .menu-hero-title {
+        margin: 0;
+        flex: 1 1 auto;
+        max-width: 100%;
+        font-size: clamp(1.55rem, 6vw, 3rem);
+        line-height: 0.95;
+        letter-spacing: -0.04em;
+        text-wrap: balance;
+    }
+
+    .pasteur-menu .menu-hero-title span {
+        display: block;
+    }
+
+    @media (min-width: 640px) {
+        .pasteur-menu .menu-hero-brand {
+            gap: 1rem;
+        }
+
+        .pasteur-menu .menu-hero-title {
+            line-height: 1;
+        }
+    }
+
     @media (max-width: 480px) {
-        .pasteur-menu h1 {
-            font-size: 1.85rem;
-            line-height: 1.1;
+        .pasteur-menu .menu-hero-brand {
+            gap: 0.65rem;
+        }
+
+        .pasteur-menu .menu-hero-icon {
+            width: 4.2rem;
+            height: 4.2rem;
+        }
+
+        .pasteur-menu .menu-hero-copy {
+            gap: 0.6rem;
+        }
+
+        .pasteur-menu .menu-hero-accent {
+            height: 2.45rem;
         }
 
         .pasteur-menu a.group {

@@ -107,6 +107,7 @@ class OperationsAssistantService
                 'Tomar como prioridad el bloque platform_context para responder con vision global de la plataforma y no solo de la pagina actual.',
                 'Priorizar module_insights cuando exista, porque resume comparativos, rankings y estados actuales listos para responder.',
                 'Si module_insights contiene lubrication_lookup o coincidencias de documentos indexados, usarlos antes de concluir que falta informacion.',
+                'Si module_insights contiene refaction_cost_lookup, usarlo como fuente principal para responder costos, SKUs, compatibilidad por linea y refacciones de lavadora.',
                 'Si la pregunta pide maximos, minimos, ranking o comparativos, usar primero los resumenes comparativos presentes en platform_context.',
                 'Si falta informacion, decirlo claramente sin inventar.',
                 'Cuando aplique, entregar pasos accionables punto por punto.',
@@ -125,6 +126,7 @@ class OperationsAssistantService
             'El bloque platform_context contiene contexto vivo de toda la plataforma, incluyendo modulos, tablas relevantes, resumen de base de datos, actividad reciente, coincidencias por consulta y evidencias con fotos.',
             'No te limites a la pagina actual si platform_context aporta datos mas amplios y vigentes.',
             'Si existe module_insights, usalo como fuente primaria para rankings, comparativos, tendencias y estado actual de componentes o lineas.',
+            'Si module_insights incluye refaction_cost_lookup, tomalo como referencia estructurada valida para responder refacciones, costos unitarios, SKUs, compatibilidad por linea y consumibles de lavadora.',
             'Si module_insights incluye lubrication_lookup, tomalo como una referencia estructurada valida para responder preguntas de aceite, lubricante, litros, SKU y consumibles de lavadora.',
             'Cuando existan coincidencias de documentos de conocimiento indexados, usalas para complementar o confirmar la respuesta operativa.',
             'Si platform_context ya incluye un ranking, panorama o comparativo actual, respondelo directamente sin decir que faltan datos.',
@@ -240,6 +242,10 @@ class OperationsAssistantService
         }
 
         if (($reply = $this->replyForMostDamagedComponents($normalized, $platformContext)) !== null) {
+            return $reply;
+        }
+
+        if (($reply = $this->replyForWasherRefactionCosts($normalized, $platformContext)) !== null) {
             return $reply;
         }
 
@@ -510,6 +516,155 @@ class OperationsAssistantService
      * @param  array<string, mixed>  $platformContext
      * @return array{content: string, metadata: array<string, mixed>}|null
      */
+    private function replyForWasherRefactionCosts(string $question, array $platformContext): ?array
+    {
+        if (
+            str_contains($question, 'aceite')
+            || str_contains($question, 'lubric')
+            || str_contains($question, 'fluido')
+        ) {
+            return null;
+        }
+
+        if (!(
+            str_contains($question, 'cuesta')
+            || str_contains($question, 'costo')
+            || str_contains($question, 'precio')
+            || str_contains($question, 'sku')
+            || str_contains($question, 'refa')
+            || str_contains($question, 'refaccion')
+            || str_contains($question, 'refacciones')
+            || str_contains($question, 'repuesto')
+            || str_contains($question, 'material')
+            || str_contains($question, 'consumible')
+            || str_contains($question, 'compatible')
+            || str_contains($question, 'aplica')
+            || str_contains($question, 'lleva')
+            || str_contains($question, 'usa')
+            || str_contains($question, 'catarina')
+            || str_contains($question, 'cadena')
+            || str_contains($question, 'guia')
+            || str_contains($question, 'buje')
+            || str_contains($question, 'servo')
+            || str_contains($question, 'reductor')
+        )) {
+            return null;
+        }
+
+        $lookup = data_get($platformContext, 'module_insights.lavadora.refaction_cost_lookup');
+        $matches = is_array($lookup) ? ($lookup['matches'] ?? []) : [];
+
+        if (!is_array($matches) || $matches === []) {
+            return null;
+        }
+
+        $knowledgeMatches = is_array($lookup) && is_array($lookup['knowledge_matches'] ?? null)
+            ? $lookup['knowledge_matches']
+            : [];
+        $requestedLineas = $this->extractLineReferences($question);
+        $asksCost = str_contains($question, 'cuesta')
+            || str_contains($question, 'costo')
+            || str_contains($question, 'precio')
+            || str_contains($question, 'vale')
+            || str_contains($question, 'valor');
+        $asksSku = str_contains($question, 'sku')
+            || str_contains($question, 'numero de parte')
+            || str_contains($question, 'n parte')
+            || str_contains($question, 'np');
+        $asksList = str_contains($question, 'que refa')
+            || str_contains($question, 'que refaccion')
+            || str_contains($question, 'que refacciones')
+            || str_contains($question, 'cuales refacciones')
+            || str_contains($question, 'que piezas')
+            || str_contains($question, 'que materiales')
+            || str_contains($question, 'que consumibles')
+            || str_contains($question, 'que lleva')
+            || str_contains($question, 'que usa')
+            || str_contains($question, 'compatible')
+            || str_contains($question, 'aplica');
+
+        $primary = $matches[0];
+        $componentes = collect($primary['componentes'] ?? [])->filter()->values()->all();
+        $lineas = $requestedLineas !== []
+            ? $requestedLineas
+            : collect($primary['lineas'] ?? [])->filter()->values()->all();
+        $producto = (string) ($primary['producto'] ?? 'Refaccion');
+        $sku = (string) ($primary['sku'] ?? 'sin SKU');
+        $categoria = (string) ($primary['categoria'] ?? 'Refaccion');
+        $unidad = (string) ($primary['unidad_medida'] ?? 'PZA');
+        $unitCost = isset($primary['costo_unitario']) && (float) $primary['costo_unitario'] > 0
+            ? '$' . number_format((float) $primary['costo_unitario'], 2, '.', ',') . ' MXN por ' . $unidad
+            : null;
+        $quantity = isset($primary['cantidad_referencia']) && $primary['cantidad_referencia'] !== null
+            ? $this->formatNumber((float) $primary['cantidad_referencia']) . ' ' . ((string) ($primary['unidad_referencia'] ?? $unidad))
+            : null;
+        $referenceCost = isset($primary['costo_referencia']) && $primary['costo_referencia'] !== null
+            ? '$' . number_format((float) $primary['costo_referencia'], 2, '.', ',') . ' MXN'
+            : null;
+        $scope = $this->formatRefactionScope($componentes, $lineas);
+        $extraMatches = collect($matches)
+            ->skip(1)
+            ->take(4)
+            ->map(fn (array $item): string => $this->formatRefactionMatchSummary($item))
+            ->filter()
+            ->all();
+
+        $answer = $asksCost
+            ? 'La refaccion de referencia para ' . $scope . ' es ' . $producto . ' (SKU ' . $sku . ')'
+                . ($unitCost ? ', con costo unitario de ' . $unitCost : '.')
+            : 'La referencia principal encontrada para ' . $scope . ' es ' . $producto . ' (SKU ' . $sku . ').';
+
+        if ($requestedLineas === [] && $asksCost && count($matches) > 1) {
+            $answer = 'Encontre varias referencias de costo para ' . ($componentes !== [] ? implode(', ', $componentes) : 'la refaccion consultada') . ' segun la linea o el paso de la lavadora.';
+        } elseif ($asksSku) {
+            $answer = 'El SKU de referencia para ' . $scope . ' es ' . $sku . ', correspondiente a ' . $producto . '.';
+        } elseif ($asksList && count($matches) > 1) {
+            $answer = 'Estas son las refacciones compatibles encontradas para ' . $scope . '.';
+        }
+
+        $sources = [
+            ['type' => 'refaction_cost_lookup', 'reference' => 'SKU ' . $sku],
+        ];
+
+        foreach (collect($knowledgeMatches)->take(2) as $knowledgeMatch) {
+            if (!is_array($knowledgeMatch)) {
+                continue;
+            }
+
+            $sources[] = [
+                'type' => 'knowledge_document',
+                'reference' => (string) ($knowledgeMatch['reference'] ?? 'Documento tecnico'),
+            ];
+        }
+
+        return $this->deterministicResponse(
+            $answer,
+            array_filter([
+                $unitCost ? 'Costo unitario: ' . $unitCost . '.' : null,
+                $categoria !== '' ? 'Categoria: ' . $categoria . '.' : null,
+                $lineas !== [] ? 'Compatibilidad registrada: ' . $this->formatLineScope($lineas) . '.' : null,
+                $quantity ? 'Cantidad de referencia: ' . $quantity . '.' : null,
+                $referenceCost ? 'Costo de referencia: ' . $referenceCost . '.' : null,
+                isset($primary['observaciones']) && $primary['observaciones']
+                    ? 'Observaciones: ' . (string) $primary['observaciones'] . '.'
+                    : null,
+                $extraMatches !== [] ? 'Coincidencias adicionales: ' . implode(' || ', $extraMatches) . '.' : null,
+                $knowledgeMatches !== [] ? 'Documento relacionado: ' . (string) ($knowledgeMatches[0]['reference'] ?? 'Documento tecnico') . '.' : null,
+            ]),
+            [
+                $requestedLineas === [] && count($matches) > 1
+                    ? 'Si me dices la linea exacta, te dejo un solo SKU y costo de referencia.'
+                    : 'Si quieres, tambien te listo las refacciones relacionadas, consumibles o costos auxiliares del mismo conjunto.',
+            ],
+            $sources,
+            0.98
+        );
+    }
+
+    /**
+     * @param  array<string, mixed>  $platformContext
+     * @return array{content: string, metadata: array<string, mixed>}|null
+     */
     private function replyForWasherLubrication(string $question, array $platformContext): ?array
     {
         if (!(
@@ -665,6 +820,58 @@ class OperationsAssistantService
             : 'en las lineas registradas';
 
         return $componentLabel . ' ' . $lineLabel;
+    }
+
+    /**
+     * @param  array<int, mixed>  $componentes
+     * @param  array<int, mixed>  $lineas
+     */
+    private function formatRefactionScope(array $componentes, array $lineas): string
+    {
+        $componentLabel = $componentes !== []
+            ? implode(', ', array_map(fn ($value) => (string) $value, $componentes))
+            : 'la refaccion consultada';
+
+        if ($lineas === []) {
+            return $componentLabel . ' en las lavadoras registradas';
+        }
+
+        if (in_array('TODAS', array_map(fn ($value) => Str::upper((string) $value), $lineas), true)) {
+            return $componentLabel . ' en todas las lavadoras';
+        }
+
+        return $componentLabel . ' en ' . implode(', ', array_map(fn ($value) => (string) $value, $lineas));
+    }
+
+    /**
+     * @param  array<int, mixed>  $lineas
+     */
+    private function formatLineScope(array $lineas): string
+    {
+        $normalized = array_values(array_map(fn ($value) => Str::upper((string) $value), $lineas));
+
+        if (in_array('TODAS', $normalized, true)) {
+            return 'todas las lavadoras';
+        }
+
+        return implode(', ', array_map(fn ($value) => (string) $value, $lineas));
+    }
+
+    /**
+     * @param  array<string, mixed>  $match
+     */
+    private function formatRefactionMatchSummary(array $match): string
+    {
+        $parts = array_filter([
+            $match['producto'] ?? null,
+            isset($match['sku']) ? 'SKU ' . $match['sku'] : null,
+            isset($match['costo_unitario']) && (float) $match['costo_unitario'] > 0
+                ? '$' . number_format((float) $match['costo_unitario'], 2, '.', ',') . ' MXN/' . ((string) ($match['unidad_medida'] ?? 'PZA'))
+                : null,
+            !empty($match['lineas']) ? $this->formatLineScope((array) $match['lineas']) : null,
+        ]);
+
+        return implode(' | ', $parts);
     }
 
     private function formatNumber(float $value): string

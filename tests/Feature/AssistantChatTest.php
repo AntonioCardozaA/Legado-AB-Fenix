@@ -15,6 +15,7 @@ use App\Models\User;
 use App\Models\WasherKnowledgeChunk;
 use App\Models\WasherKnowledgeDocument;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Schema;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
@@ -865,6 +866,208 @@ class AssistantChatTest extends TestCase
         $this->assertStringContainsString('3 componentes', $content);
     }
 
+    public function test_chat_answers_with_refaction_cost_for_specific_washer_line(): void
+    {
+        config([
+            'maintenance_ai.enabled' => true,
+        ]);
+
+        $capturingProvider = new class implements AiProviderInterface
+        {
+            public array $payloads = [];
+
+            public function generateStructuredActionPlan(array $payload): array
+            {
+                $this->payloads[] = $payload;
+
+                return [
+                    'data' => [
+                        'answer' => 'No deberia usarse el proveedor para esta consulta.',
+                        'key_points' => [],
+                        'next_steps' => [],
+                        'sources' => [],
+                        'confidence' => 0.5,
+                    ],
+                    'raw' => [],
+                    'meta' => [
+                        'provider' => 'fake',
+                        'model' => 'unused-model',
+                    ],
+                ];
+            }
+
+            public function createEmbedding(string $content): array
+            {
+                return [];
+            }
+
+            public function extractDocumentText(array $payload): string
+            {
+                return '';
+            }
+        };
+
+        $this->app->instance(AiProviderInterface::class, $capturingProvider);
+
+        $user = $this->authenticatedUser();
+        $this->seedRefactionCostKnowledge($user);
+
+        $response = $this->actingAs($user)->postJson(route('assistant-chat.store'), [
+            'message' => 'Cuanto cuesta una catarina para la lavadora 7',
+            'page_context' => [
+                'module' => User::MODULE_LAVADORA,
+                'page_title' => 'Chat operativo',
+                'current_path' => '/asistente/chat',
+                'section' => 'Consulta tecnica',
+            ],
+        ]);
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('message.metadata.provider', 'platform-insights');
+
+        $this->assertSame([], $capturingProvider->payloads);
+        $content = (string) $response->json('message.content');
+        $this->assertStringContainsString('SKU 4094364', $content);
+        $this->assertStringContainsString('CATARINA DE ACERO COLADO PASO 173', $content);
+        $this->assertStringContainsString('$48,000.00 MXN por PZA', $content);
+        $this->assertStringContainsString('L-07', $content);
+    }
+
+    public function test_chat_answers_with_refaction_variants_when_line_is_not_specified(): void
+    {
+        config([
+            'maintenance_ai.enabled' => true,
+        ]);
+
+        $capturingProvider = new class implements AiProviderInterface
+        {
+            public array $payloads = [];
+
+            public function generateStructuredActionPlan(array $payload): array
+            {
+                $this->payloads[] = $payload;
+
+                return [
+                    'data' => [
+                        'answer' => 'No deberia usarse el proveedor para esta consulta.',
+                        'key_points' => [],
+                        'next_steps' => [],
+                        'sources' => [],
+                        'confidence' => 0.5,
+                    ],
+                    'raw' => [],
+                    'meta' => [
+                        'provider' => 'fake',
+                        'model' => 'unused-model',
+                    ],
+                ];
+            }
+
+            public function createEmbedding(string $content): array
+            {
+                return [];
+            }
+
+            public function extractDocumentText(array $payload): string
+            {
+                return '';
+            }
+        };
+
+        $this->app->instance(AiProviderInterface::class, $capturingProvider);
+
+        $user = $this->authenticatedUser();
+        $this->seedRefactionCostKnowledge($user);
+
+        $response = $this->actingAs($user)->postJson(route('assistant-chat.store'), [
+            'message' => 'Cuanto cuesta una catarina de lavadora',
+            'page_context' => [
+                'module' => User::MODULE_LAVADORA,
+                'page_title' => 'Chat operativo',
+                'current_path' => '/asistente/chat',
+                'section' => 'Consulta tecnica',
+            ],
+        ]);
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('message.metadata.provider', 'platform-insights');
+
+        $this->assertSame([], $capturingProvider->payloads);
+        $content = (string) $response->json('message.content');
+        $this->assertStringContainsString('PASO 125', $content);
+        $this->assertStringContainsString('PASO 173', $content);
+        $this->assertStringContainsString('PASO 140', $content);
+    }
+
+    public function test_chat_lists_related_refactions_for_component_and_line(): void
+    {
+        config([
+            'maintenance_ai.enabled' => true,
+        ]);
+
+        $capturingProvider = new class implements AiProviderInterface
+        {
+            public array $payloads = [];
+
+            public function generateStructuredActionPlan(array $payload): array
+            {
+                $this->payloads[] = $payload;
+
+                return [
+                    'data' => [
+                        'answer' => 'No deberia usarse el proveedor para esta consulta.',
+                        'key_points' => [],
+                        'next_steps' => [],
+                        'sources' => [],
+                        'confidence' => 0.5,
+                    ],
+                    'raw' => [],
+                    'meta' => [
+                        'provider' => 'fake',
+                        'model' => 'unused-model',
+                    ],
+                ];
+            }
+
+            public function createEmbedding(string $content): array
+            {
+                return [];
+            }
+
+            public function extractDocumentText(array $payload): string
+            {
+                return '';
+            }
+        };
+
+        $this->app->instance(AiProviderInterface::class, $capturingProvider);
+
+        $user = $this->authenticatedUser();
+        $this->seedRefactionCostKnowledge($user);
+
+        $response = $this->actingAs($user)->postJson(route('assistant-chat.store'), [
+            'message' => 'Que refacciones lleva la catarina de la lavadora 7',
+            'page_context' => [
+                'module' => User::MODULE_LAVADORA,
+                'page_title' => 'Chat operativo',
+                'current_path' => '/asistente/chat',
+                'section' => 'Consulta tecnica',
+            ],
+        ]);
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('message.metadata.provider', 'platform-insights');
+
+        $this->assertSame([], $capturingProvider->payloads);
+        $content = (string) $response->json('message.content');
+        $this->assertStringContainsString('CATARINA DE ACERO COLADO PASO 173', $content);
+        $this->assertStringContainsString('DADO TRIBLOCK', $content);
+        $this->assertStringContainsString('TORNILLO CAB. HEX.', $content);
+    }
+
     public function test_chat_answers_with_structured_lubrication_lookup_and_related_knowledge_document(): void
     {
         config([
@@ -1088,5 +1291,57 @@ class AssistantChatTest extends TestCase
         $user->assignRole(User::ROLE_TECNICO);
 
         return $user;
+    }
+
+    private function seedRefactionCostKnowledge(User $user): void
+    {
+        foreach ([
+            ['sku' => '4064265', 'nombre' => 'CATARINA DE ACERO COLADO PASO 125', 'categoria' => 'Catarina', 'unidad_medida' => 'Pieza', 'costo_unitario' => 47410.00, 'aliases' => ['CATARINA', 'SPROCKET']],
+            ['sku' => '4094364', 'nombre' => 'CATARINA DE ACERO COLADO PASO 173', 'categoria' => 'Catarina', 'unidad_medida' => 'Pieza', 'costo_unitario' => 48000.00, 'aliases' => ['CATARINA', 'SPROCKET']],
+            ['sku' => '4065310', 'nombre' => 'CATARINA DE ACERO COLADO PASO 140', 'categoria' => 'Catarina', 'unidad_medida' => 'Pieza', 'costo_unitario' => 48000.00, 'aliases' => ['CATARINA', 'SPROCKET']],
+            ['sku' => '4153062', 'nombre' => 'DADO TRIBLOCK N.P. HHC420 MCA. SIMONAZZI', 'categoria' => 'Tornilleria', 'unidad_medida' => 'Pieza', 'costo_unitario' => 69.18, 'aliases' => ['DADO', 'TRIBLOCK', 'CATARINA']],
+            ['sku' => '4073113', 'nombre' => 'TORNILLO CAB. HEX. GALV. 8.8 DE M20X2.5X65 R. CORRIDA.', 'categoria' => 'Tornilleria', 'unidad_medida' => 'Pieza', 'costo_unitario' => 150.00, 'aliases' => ['TORNILLO', 'CATARINA']],
+            ] as $item) {
+            CostCatalogItem::query()->updateOrCreate(
+                ['sku' => $item['sku']],
+                [
+                    'nombre' => $item['nombre'],
+                    'categoria' => $item['categoria'],
+                    'unidad_medida' => $item['unidad_medida'],
+                    'costo_unitario' => $item['costo_unitario'],
+                    'activo' => true,
+                    'aliases' => $item['aliases'],
+                ]
+            );
+        }
+
+        $content = implode("\n", [
+            '# Base de conocimiento - Costos de refacciones para lavadoras',
+            '## SKU 4064265 - CATARINA DE ACERO COLADO PASO 125 - Costo unitario: $47,410.00 MXN por PZA - Lavadoras: L8 - Componentes: Catarinas',
+            '## SKU 4094364 - CATARINA DE ACERO COLADO PASO 173 - Costo unitario: $48,000.00 MXN por PZA - Lavadoras: L4, L6, L7 - Componentes: Catarinas',
+            '## SKU 4065310 - CATARINA DE ACERO COLADO PASO 140 - Costo unitario: $48,000.00 MXN por PZA - Lavadoras: L5, L9, L12, L13 - Componentes: Catarinas',
+            '## SKU 4153062 - DADO TRIBLOCK N.P. HHC420 MCA. SIMONAZZI - Costo unitario: $69.18 MXN por PZA - Lavadoras: Todas - Componentes: Bujes De Baquelita - Espiga De Flecha, Catarinas - Cantidad de referencia: 6 PZA - Costo de referencia: $415.08 MXN',
+            '## SKU 4073113 - TORNILLO CAB. HEX. GALV. 8.8 DE M20X2.5X65 R. CORRIDA. - Costo unitario: $150.00 MXN por PZA - Lavadoras: Todas - Componentes: Bujes De Baquelita - Espiga De Flecha, Catarinas - Cantidad de referencia: 6 PZA - Costo de referencia: $900.00 MXN',
+        ]);
+
+        $document = WasherKnowledgeDocument::create([
+            'title' => 'Costos y refas lav',
+            'document_type' => 'manual tecnico',
+            'lifecycle_status' => 'vigente',
+            'storage_disk' => 'local',
+            'uploaded_by' => $user->id,
+            'uploaded_at' => now(),
+            'indexing_status' => 'indexed',
+            'extracted_text' => $content,
+            'indexed_at' => now(),
+        ]);
+
+        WasherKnowledgeChunk::create([
+            'document_id' => $document->id,
+            'chunk_index' => 1,
+            'content' => $content,
+            'searchable_text' => Str::lower(Str::ascii($content)),
+            'token_count' => 120,
+        ]);
     }
 }
