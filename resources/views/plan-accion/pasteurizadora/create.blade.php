@@ -131,7 +131,7 @@
                             @enderror
                         </div>
 
-                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                             @foreach(['1', '2', '3', '4'] as $n)
                                 <div class="mb-4">
                                     <label class="block text-sm font-medium text-gray-700 mb-2">

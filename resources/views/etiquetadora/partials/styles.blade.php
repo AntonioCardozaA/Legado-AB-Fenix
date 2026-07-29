@@ -649,17 +649,21 @@
         display: flex;
         flex-wrap: wrap;
         gap: 0.5rem;
+        min-width: 0;
     }
 
     .etq-date-pill {
         display: inline-flex;
         align-items: center;
         gap: 0.35rem;
+        max-width: 100%;
         border-radius: 0.55rem;
         border: 1px solid #e5e7eb;
         padding: 0.4rem 0.65rem;
         font-size: 0.75rem;
         font-weight: 800;
+        line-height: 1.2;
+        white-space: normal;
     }
 
     .etq-date-pill.fecha-vencida {
@@ -1086,6 +1090,99 @@
     }
 
     @media (max-width: 640px) {
+        .etq-plan-table-wrap {
+            overflow-x: visible;
+        }
+
+        .etq-plan-table,
+        .etq-plan-table tbody,
+        .etq-plan-table tr,
+        .etq-plan-table td {
+            display: block;
+            width: 100%;
+        }
+
+        .etq-plan-table {
+            min-width: 0;
+            table-layout: auto;
+        }
+
+        .etq-plan-table thead {
+            display: none;
+        }
+
+        .etq-plan-table tbody {
+            display: grid;
+            gap: 1rem;
+            padding: 1rem;
+            background: #f8fafc;
+        }
+
+        .etq-plan-table tbody tr {
+            overflow: hidden;
+            border: 1px solid #e2e8f0;
+            border-radius: 1rem;
+            background: #ffffff;
+            box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06);
+        }
+
+        .etq-plan-table tbody tr:hover {
+            background: #ffffff;
+        }
+
+        .etq-plan-table td {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+            padding: 0.85rem 1rem;
+            border-bottom: 1px solid #e2e8f0;
+            text-align: right;
+        }
+
+        .etq-plan-table td:last-child {
+            border-bottom: 0;
+        }
+
+        .etq-plan-table td[data-label]::before {
+            content: attr(data-label);
+            flex: 0 0 6.75rem;
+            color: #64748b;
+            font-size: 0.68rem;
+            font-weight: 900;
+            letter-spacing: 0.04em;
+            text-align: left;
+            text-transform: uppercase;
+        }
+
+        .etq-plan-table td[data-label="Actividad"],
+        .etq-plan-table td[data-label="Fechas PCM"] {
+            display: block;
+            text-align: left;
+        }
+
+        .etq-plan-table td[data-label="Actividad"]::before,
+        .etq-plan-table td[data-label="Fechas PCM"]::before {
+            display: block;
+            margin-bottom: 0.55rem;
+        }
+
+        .etq-date-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(min(100%, 8rem), 1fr));
+        }
+
+        .etq-date-pill {
+            justify-content: center;
+            width: 100%;
+            text-align: center;
+        }
+
+        .etq-plan-table td[data-label="Acciones"] > .flex {
+            justify-content: flex-end;
+            flex-wrap: wrap;
+        }
+
         .etq-section-header {
             align-items: stretch;
         }
@@ -1093,6 +1190,11 @@
         .etq-line-filter-link,
         .etq-icon-action {
             width: 100%;
+        }
+
+        .etq-plan-table td[data-label="Acciones"] .etq-icon-action {
+            flex: 0 0 2.5rem;
+            width: 2.5rem;
         }
     }
 </style>

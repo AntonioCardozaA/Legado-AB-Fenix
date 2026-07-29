@@ -79,6 +79,69 @@
             transform: translate(-30%, -50%);
         }
 
+        .notification-bell-button {
+            transform: translateZ(0);
+        }
+
+        .notification-bell-icon {
+            display: inline-block;
+            transform-origin: 50% 0;
+            transition: transform 0.2s ease, color 0.2s ease;
+        }
+
+        .notification-bell-button.has-unread:not(.is-open) .notification-bell-icon {
+            animation: notification-bell-ring 7s cubic-bezier(0.36, 0.07, 0.19, 0.97) infinite;
+            will-change: transform;
+        }
+
+        .notification-bell-button.has-unread:not(.is-open) .notification-badge-pulse {
+            animation: notification-badge-pulse 2.6s ease-out infinite;
+        }
+
+        @keyframes notification-bell-ring {
+            0%, 18%, 100% {
+                transform: rotate(0deg);
+            }
+
+            2% {
+                transform: rotate(14deg);
+            }
+
+            4% {
+                transform: rotate(-12deg);
+            }
+
+            6% {
+                transform: rotate(10deg);
+            }
+
+            9% {
+                transform: rotate(-8deg);
+            }
+
+            12% {
+                transform: rotate(5deg);
+            }
+
+            15% {
+                transform: rotate(-3deg);
+            }
+        }
+
+        @keyframes notification-badge-pulse {
+            0%, 100% {
+                box-shadow: 0 0 0 0 rgba(220, 38, 38, 0);
+            }
+
+            20% {
+                box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.3);
+            }
+
+            70% {
+                box-shadow: 0 0 0 7px rgba(220, 38, 38, 0);
+            }
+        }
+
         .logo-text {
             color: #1e40af;
         }
@@ -220,7 +283,9 @@
         }
 
         @media (prefers-reduced-motion: reduce) {
-            .logo-sequence-frame {
+            .logo-sequence-frame,
+            .notification-bell-button.has-unread .notification-bell-icon,
+            .notification-bell-button.has-unread .notification-badge-pulse {
                 animation: none;
             }
         }
@@ -648,14 +713,15 @@
                         $notificationsCount = $availableNotifications->count();
                         $unreadCount = $notificationVisibility->availableUnreadNotificationsCountFor(auth()->user());
                     @endphp
-                    <div class="relative" x-data="{ open: false }">
+                    <div class="relative" x-data="{ open: false }" @click.away="open = false">
                         <button @click="open = !open"
-                                @click.away="open = false"
+                                :class="{ 'is-open': open }"
+                                id="notification-button"
                                 aria-label="Notificaciones"
-                                class="p-2 rounded-full bg-gray-100 hover:bg-gray-200 transition relative">
-                            <i class="fas fa-bell text-gray-600"></i>
+                                class="notification-bell-button p-2 rounded-full bg-gray-100 hover:bg-gray-200 transition relative {{ $unreadCount > 0 ? 'has-unread' : '' }}">
+                            <i class="notification-bell-icon fas fa-bell text-gray-600"></i>
                             <span id="notification-badge"
-                                  class="absolute top-0 right-0 inline-flex items-center justify-center px-1 py-0.5 text-xs font-bold leading-none text-white transform translate-x-1/2 -translate-y-1/2 bg-red-600 rounded-full {{ $unreadCount > 0 ? '' : 'hidden' }}">
+                                  class="notification-badge-pulse absolute top-0 right-0 inline-flex items-center justify-center px-1 py-0.5 text-xs font-bold leading-none text-white transform translate-x-1/2 -translate-y-1/2 bg-red-600 rounded-full {{ $unreadCount > 0 ? '' : 'hidden' }}">
                                 {{ $unreadCount > 9 ? '9+' : $unreadCount }}
                             </span>
                         </button>
@@ -944,12 +1010,18 @@ function renderNotifications(items) {
 
 function updateNotificationControls(data) {
     const badge = document.getElementById('notification-badge');
+    const notificationButton = document.getElementById('notification-button');
     const readAllForm = document.getElementById('notification-read-all-form');
     const viewAllWrapper = document.getElementById('notifications-view-all-wrapper');
+    const unreadCount = Number(data.count) || 0;
+
+    if (notificationButton) {
+        notificationButton.classList.toggle('has-unread', unreadCount > 0);
+    }
 
     if (badge) {
-        if (data.count > 0) {
-            badge.textContent = data.count > 9 ? '9+' : data.count;
+        if (unreadCount > 0) {
+            badge.textContent = unreadCount > 9 ? '9+' : unreadCount;
             badge.classList.remove('hidden');
         } else {
             badge.classList.add('hidden');
@@ -957,7 +1029,7 @@ function updateNotificationControls(data) {
     }
 
     if (readAllForm) {
-        readAllForm.classList.toggle('hidden', data.count <= 0);
+        readAllForm.classList.toggle('hidden', unreadCount <= 0);
     }
 
     if (viewAllWrapper) {

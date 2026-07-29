@@ -421,7 +421,7 @@ class AccessPermissionCatalog
             ['routes' => ['dashboard.global.etiquetadoras', 'dashboard_etiquetadora', 'etiquetadora.dashboard'], 'permission' => 'ver dashboard etiquetadoras'],
 
             ['routes' => ['admin.users.index', 'admin.users.edit'], 'methods' => ['GET'], 'permission' => 'gestionar usuarios'],
-            ['routes' => ['admin.users.store', 'admin.users.update', 'admin.users.permissions.update'], 'permission' => 'gestionar usuarios'],
+            ['routes' => ['admin.users.store', 'admin.users.update', 'admin.users.destroy', 'admin.users.permissions.update'], 'permission' => 'gestionar usuarios'],
 
             ['routes' => ['lavadora.costos.index', 'analisis-lavadora.costos.manage', 'admin.costos.index'], 'methods' => ['GET'], 'permission' => User::PERMISSION_ACCESS_LAVADORA_COSTS],
             ['routes' => ['analisis-lavadora.costos.manual.store', 'admin.costos.catalog.store', 'admin.costos.rules.store', 'admin.costos.budgets.upsert'], 'permission' => User::PERMISSION_CREATE_LAVADORA_COSTS],

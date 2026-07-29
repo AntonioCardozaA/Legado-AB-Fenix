@@ -134,7 +134,7 @@
 
     .stats-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr));
+        grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: 12px;
         margin-bottom: 16px;
         align-items: stretch;
@@ -513,10 +513,10 @@
     .chart-card {
         background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
         border-radius: 16px;
-        padding: 20px;
-        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+        padding: 18px;
+        box-shadow: 0 4px 14px rgba(15, 23, 42, 0.08);
         border: 1px solid rgba(59, 130, 246, 0.1);
-        margin-bottom: 20px;
+        margin-bottom: 0;
         transition: var(--transition);
         position: relative;
         overflow: hidden;
@@ -539,7 +539,7 @@
         top: 0;
         left: 0;
         right: 0;
-        height: 5px;
+        height: 4px;
         background: linear-gradient(90deg, #3b82f6 0%, #8b5cf6 25%, #10b981 50%, #f59e0b 75%, #3b82f6 100%);
         background-size: 400% 100%;
         animation: gradientShift 8s ease infinite;
@@ -551,21 +551,21 @@
     }
 
     .chart-card:hover {
-        box-shadow: 0 16px 48px rgba(0, 0, 0, 0.15), 0 4px 12px rgba(59, 130, 246, 0.15);
-        transform: translateY(-6px);
+        box-shadow: 0 12px 30px rgba(15, 23, 42, 0.12), 0 4px 10px rgba(59, 130, 246, 0.12);
+        transform: translateY(-3px);
         border-color: rgba(59, 130, 246, 0.2);
     }
 
     .chart-card h3 {
-        font-size: 16px;
+        font-size: 15px;
         font-weight: 800;
         color: var(--text-primary);
-        margin-bottom: 16px;
+        margin-bottom: 14px;
         display: flex;
         align-items: flex-start;
         gap: 10px;
         letter-spacing: -0.3px;
-        padding-bottom: 12px;
+        padding-bottom: 10px;
         border-bottom: 1px solid rgba(59, 130, 246, 0.08);
         flex-wrap: wrap;
     }
@@ -590,24 +590,24 @@
     }
 
     .chart-container {
-        height: 280px;
+        height: 248px;
         position: relative;
         width: 100%;
         min-width: 0;
-        padding: 12px 0;
+        padding: 8px 0;
         display: flex;
         align-items: center;
         justify-content: center;
         background: linear-gradient(135deg, rgba(59, 130, 246, 0.02) 0%, rgba(139, 92, 246, 0.02) 100%);
         border-radius: 12px;
-        margin: 4px 0;
+        margin: 2px 0;
     }
 
     .chart-description,
     .table-footer,
     .ranking-footer {
-        margin-top: 12px;
-        padding: 10px 12px;
+        margin-top: 10px;
+        padding: 9px 12px;
         background: linear-gradient(135deg, rgba(59, 130, 246, 0.06) 0%, rgba(139, 92, 246, 0.06) 100%);
         border-radius: 10px;
         text-align: center;
@@ -1722,6 +1722,94 @@
         box-shadow: 0 6px 16px rgba(153, 27, 27, 0.25);
     }
 
+    .ranking-list {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .ranking-item {
+        gap: 10px;
+        min-width: 0;
+        margin-bottom: 0;
+        padding: 10px 14px;
+        border: 1px solid rgba(148, 163, 184, 0.16);
+        border-radius: 12px;
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 250, 252, 0.92) 100%);
+        box-shadow: var(--shadow-sm);
+    }
+
+    .ranking-item:hover {
+        transform: translateY(-2px);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 1) 0%, rgba(239, 246, 255, 0.92) 100%);
+        box-shadow: 0 10px 24px rgba(59, 130, 246, 0.12);
+        border-color: rgba(59, 130, 246, 0.18);
+    }
+
+    .ranking-position {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        font-size: 13px;
+    }
+
+    .ranking-asset {
+        display: flex;
+        flex: 1 1 auto;
+        align-items: center;
+        gap: 10px;
+        margin-left: 10px;
+        min-width: 0;
+    }
+
+    .asset-media {
+        display: none;
+    }
+
+    .ranking-info {
+        min-width: 0;
+        margin-left: 0;
+        gap: 2px;
+    }
+
+    .ranking-linea {
+        font-size: 12px;
+    }
+
+    .ranking-puntaje {
+        flex-wrap: wrap;
+        min-width: 0;
+        gap: 4px;
+        font-size: 10px;
+        line-height: 1.35;
+    }
+
+    .ranking-meta {
+        display: none;
+        margin-top: 3px;
+        color: var(--text-secondary);
+        font-size: 9px;
+        font-weight: 600;
+        line-height: 1.3;
+    }
+
+    .ranking-status-stack {
+        display: flex;
+        flex: 0 0 auto;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 8px;
+        max-width: 100%;
+        min-width: 0;
+    }
+
+    .ranking-status-stack .severity-pill,
+    .ranking-badge {
+        padding: 4px 8px;
+        font-size: 9px;
+        gap: 4px;
+    }
+
     .chart-card .overflow-x-auto {
         border-radius: 14px;
         overflow-x: auto;
@@ -1941,6 +2029,22 @@
             padding: 16px;
         }
 
+        .ranking-item {
+            align-items: flex-start;
+            flex-wrap: wrap;
+        }
+
+        .ranking-asset {
+            flex: 1 1 calc(100% - 46px);
+            margin-left: 0;
+        }
+
+        .ranking-status-stack {
+            width: 100%;
+            align-items: flex-start;
+            padding-left: 46px;
+        }
+
         .dashboard-trend-card {
             padding: 16px;
         }
@@ -2096,6 +2200,11 @@
                     <i class="fas fa-chart-line text-blue-600"></i>
                     Dashboard Pasteurizadoras
                 </h1>
+                @auth
+                    <p class="mt-1 text-sm font-medium text-gray-500">
+                        Rol: {{ $userRoleLabel ?? auth()->user()->role_label }}
+                    </p>
+                @endauth
             </div>
             <div class="dashboard-actions">
                 <button onclick="refreshData()" class="inline-flex min-h-11 items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-white transition hover:bg-blue-700">
@@ -2162,6 +2271,7 @@
             <div class="lavadora-card {{ $cardClass }}">
                 <div class="lavadora-card-header">
                     <div class="lavadora-nombre">
+                        <i class="fas fa-temperature-high status-icon"></i>
                         {{ $pasteurizadora['nombre'] }}
                     </div>
                     <div>
@@ -2185,7 +2295,7 @@
                                         <div class="carousel-slide-content">
                                             @if(($item['type'] ?? '') === 'componente')
                                                 <div class="carousel-slide-image">
-                                                    <img src="{{ $item['image'] }}" alt="{{ $item['title'] }}" onerror="this.src='{{ $item['fallback_image'] ?? asset('images/icono-pasteurizadora.png') }}'" />
+                                                    <img src="{{ $item['image'] }}" alt="{{ $item['title'] }}" onerror="this.src='{{ $item['fallback_image'] ?? asset('images/icono_pas.png') }}'" />
                                                 </div>
                                             @else
                                                 <div class="carousel-slide-icon">
@@ -2193,8 +2303,17 @@
                                                 </div>
                                             @endif
                                             <div class="carousel-slide-info">
+                                                @if(!empty($item['estado_label']))
+                                                    <div class="mb-1">
+                                                        <span class="severity-pill {{ $item['estado_key'] ?? 'estable' }}">
+                                                            {{ $item['estado_label'] }}
+                                                        </span>
+                                                    </div>
+                                                @endif
                                                 <div class="carousel-slide-title">{{ $item['title'] }}</div>
-                                                <div class="carousel-slide-subtitle">{{ $item['subtitle'] }}</div>
+                                                @if(!empty($item['subtitle']) && $item['subtitle'] !== ($item['meta'] ?? null))
+                                                    <div class="carousel-slide-subtitle">{{ $item['subtitle'] }}</div>
+                                                @endif
                                                 @if(!empty($item['detail']) || !empty($item['description']))
                                                     <div class="carousel-slide-detail">{{ $item['detail'] ?? $item['description'] }}</div>
                                                 @endif
@@ -2224,6 +2343,28 @@
                                         <i class="fas fa-chevron-right"></i>
                                     </button>
                                 </div>
+                            @endif
+                        </div>
+                    @endif
+
+                    @php
+                        $conteoAlertas = $estado['conteo_alertas'] ?? [];
+                        $totalAlertas = array_sum($conteoAlertas);
+                    @endphp
+
+                    @if($totalAlertas > 0)
+                        <div class="flex flex-wrap gap-2 mb-3">
+                            @if(($conteoAlertas['critico'] ?? 0) > 0)
+                                <span class="severity-pill critico">{{ $conteoAlertas['critico'] }} requiere cambio</span>
+                            @endif
+                            @if(($conteoAlertas['severo'] ?? 0) > 0)
+                                <span class="severity-pill severo">{{ $conteoAlertas['severo'] }} severo</span>
+                            @endif
+                            @if(($conteoAlertas['moderado'] ?? 0) > 0)
+                                <span class="severity-pill moderado">{{ $conteoAlertas['moderado'] }} moderado</span>
+                            @endif
+                            @if(($conteoAlertas['revision'] ?? 0) > 0)
+                                <span class="severity-pill revision">{{ $conteoAlertas['revision'] }} revision</span>
                             @endif
                         </div>
                     @endif
@@ -2266,7 +2407,7 @@
     @endphp
 
     <div class="dashboard-panels-grid">
-        <div class="chart-card">
+        <div class="chart-card fallas-card">
             <h3>
                 <i class="fas fa-chart-bar"></i>
                 <span>Fallas por Línea</span>
@@ -2280,7 +2421,7 @@
             </div>
         </div>
 
-        <div class="chart-card">
+        <div class="chart-card componentes-card">
             <h3>
                 <i class="fas fa-chart-pie"></i>
                 <span>Componentes con Daño o Desgaste</span>
@@ -2296,7 +2437,7 @@
     </div>
 
     <div class="dashboard-panels-grid">
-        <div class="chart-card">
+        <div class="chart-card ranking-card">
             <h3>
                 <i class="fas fa-trophy"></i>
                 <span>Ranking de Atención</span>
@@ -2317,24 +2458,37 @@
                         <div class="ranking-position {{ $index === 0 ? 'top-1' : ($index === 1 ? 'top-2' : ($index === 2 ? 'top-3' : '')) }}">
                             {{ $index + 1 }}
                         </div>
+                        <div class="ranking-asset">
+                            <div class="asset-media">
+                                <i class="fas fa-temperature-high" style="font-size: 18px; color: #2563eb;"></i>
+                            </div>
                         <div class="ranking-info">
-                            <div class="ranking-linea">{{ $item['nombre'] }}</div>
+                            <div class="ranking-linea">{{ $item['linea'] ?? $item['nombre'] }}</div>
                             <div class="ranking-puntaje">
-                                <i class="fas fa-star"></i>
-                                Estado: <strong>{{ $estadoLabel }}</strong>
+                                <i class="fas fa-triangle-exclamation"></i>
+                                Criticas: {{ $item['criticas'] ?? 0 }} - Severo / Moderado: {{ ($item['severos'] ?? 0) + ($item['moderados'] ?? 0) }} - Revision: {{ $item['requiere_revision'] ?? 0 }}
+                            </div>
+                            <div class="ranking-meta">
+                                Total con dano: {{ $item['total_danos'] ?? 0 }} de {{ $item['total_componentes'] ?? 0 }} registros - Impacto {{ number_format((float) ($item['porcentaje_impacto'] ?? 0), 1) }}% - Revision: {{ $item['fecha_analisis_humana'] ?? 'Sin fecha' }}
                             </div>
                         </div>
+                        </div>
+                        <div class="ranking-status-stack">
+                            <span class="severity-pill {{ $item['prioridad'] ?? 'estable' }}">{{ $item['prioridad_label'] ?? $estadoLabel }}</span>
                         <div class="ranking-badge">
-                            <i class="fas fa-exclamation-circle"></i>
-                            {{ $pendientes }} pendientes
+                            <i class="fas fa-bolt"></i>
+                            {{ number_format((float) ($item['total_danos'] ?? $pendientes), 0) }} danos
+                        </div>
                         </div>
                     </li>
                 @empty
                     <li class="ranking-item">
                         <div class="ranking-position">0</div>
+                        <div class="ranking-asset">
                         <div class="ranking-info">
                             <div class="ranking-linea">Sin datos</div>
                             <div class="ranking-puntaje">No hay pasteurizadoras para priorizar</div>
+                        </div>
                         </div>
                     </li>
                 @endforelse

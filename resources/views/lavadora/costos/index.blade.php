@@ -18,6 +18,7 @@
         width: 100%;
         max-width: 100%;
         min-width: 0;
+        overflow-x: hidden;
     }
 
     .cost-hero {
@@ -58,11 +59,12 @@
 
     .cost-hero h1 {
         margin: 0 0 0.6rem;
-        font-size: clamp(1.8rem, 2.5vw, 2.4rem);
+        font-size: 2.15rem;
         font-weight: 800;
-        letter-spacing: -0.02em;
+        letter-spacing: 0;
         font-family: inherit;
         color: #1f2937;
+        overflow-wrap: anywhere;
     }
 
     .cost-hero p {
@@ -92,12 +94,16 @@
         font-weight: 700;
         border: 1px solid rgba(203, 213, 225, 0.9);
         font-family: inherit;
+        max-width: 100%;
+        min-width: 0;
+        overflow-wrap: anywhere;
     }
 
     .hero-actions {
         display: flex;
         flex-wrap: wrap;
         gap: 0.75rem;
+        min-width: 0;
     }
 
     .cost-panel {
@@ -105,6 +111,8 @@
         border: 1px solid rgba(148, 163, 184, 0.16);
         border-radius: 1.25rem;
         box-shadow: 0 16px 32px rgba(15, 23, 42, 0.06);
+        max-width: 100%;
+        min-width: 0;
     }
 
     .panel-pad {
@@ -117,6 +125,8 @@
         justify-content: space-between;
         gap: 0.75rem;
         margin-bottom: 1rem;
+        min-width: 0;
+        flex-wrap: wrap;
     }
 
     .panel-title h2,
@@ -126,12 +136,16 @@
         font-size: 1rem;
         font-weight: 800;
         font-family: inherit;
+        min-width: 0;
+        overflow-wrap: anywhere;
     }
 
     .panel-subtle {
         color: #64748b;
         font-size: 0.9rem;
         font-family: inherit;
+        min-width: 0;
+        overflow-wrap: anywhere;
     }
 
     .filter-grid {
@@ -148,7 +162,7 @@
         font-size: 0.82rem;
         font-weight: 700;
         text-transform: uppercase;
-        letter-spacing: 0.04em;
+        letter-spacing: 0;
         font-family: inherit;
     }
 
@@ -195,6 +209,7 @@
         padding: 1rem;
         background: linear-gradient(180deg, #ffffff, #f8fafc);
         border: 1px solid rgba(148, 163, 184, 0.18);
+        min-width: 0;
     }
 
     .stat-card::before {
@@ -211,8 +226,9 @@
         font-size: 0.8rem;
         font-weight: 700;
         text-transform: uppercase;
-        letter-spacing: 0.05em;
+        letter-spacing: 0;
         font-family: inherit;
+        overflow-wrap: anywhere;
     }
 
     .stat-value {
@@ -222,6 +238,7 @@
         font-weight: 900;
         line-height: 1.05;
         font-family: inherit;
+        overflow-wrap: anywhere;
     }
 
     .stat-meta {
@@ -230,6 +247,7 @@
         font-size: 0.88rem;
         line-height: 1.45;
         font-family: inherit;
+        overflow-wrap: anywhere;
     }
 
     .content-grid {
@@ -257,6 +275,7 @@
         border-radius: 1rem;
         border: 1px solid rgba(148, 163, 184, 0.14);
         background: #f8fafc;
+        min-width: 0;
     }
 
     .budget-row-top {
@@ -265,16 +284,26 @@
         gap: 1rem;
         align-items: center;
         margin-bottom: 0.55rem;
+        min-width: 0;
+    }
+
+    .budget-row-top > *,
+    .comparison-pill > *,
+    .replacement-item > * {
+        min-width: 0;
     }
 
     .budget-name {
         color: #0f172a;
         font-weight: 800;
+        overflow-wrap: anywhere;
     }
 
     .budget-meta {
         color: #64748b;
         font-size: 0.85rem;
+        line-height: 1.45;
+        overflow-wrap: anywhere;
     }
 
     .budget-track {
@@ -307,6 +336,7 @@
         border-radius: 1rem;
         background: #f8fafc;
         border: 1px solid rgba(148, 163, 184, 0.12);
+        min-width: 0;
     }
 
     .comparison-pill.up {
@@ -322,12 +352,15 @@
     .pill-value {
         font-weight: 900;
         color: #0f172a;
+        flex: 0 0 auto;
+        font-variant-numeric: tabular-nums;
     }
 
     .table-shell {
         overflow-x: auto;
         border-radius: 1rem;
         border: 1px solid rgba(148, 163, 184, 0.16);
+        width: 100%;
         max-width: 100%;
         -webkit-overflow-scrolling: touch;
     }
@@ -344,6 +377,8 @@
         border-bottom: 1px solid rgba(148, 163, 184, 0.12);
         text-align: left;
         font-size: 0.92rem;
+        vertical-align: top;
+        overflow-wrap: anywhere;
     }
 
     .table-shell th {
@@ -352,13 +387,57 @@
         font-size: 0.78rem;
         font-weight: 800;
         text-transform: uppercase;
-        letter-spacing: 0.05em;
+        letter-spacing: 0;
+        white-space: nowrap;
     }
 
     .amount {
         font-variant-numeric: tabular-nums;
         font-weight: 800;
         color: #0f172a;
+        white-space: nowrap;
+    }
+
+    .history-date-cell {
+        color: #334155;
+        font-variant-numeric: tabular-nums;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
+    .history-origin-heading,
+    .history-origin-cell {
+        min-width: 8.5rem;
+        width: 8.5rem;
+    }
+
+    .history-origin-cell {
+        overflow-wrap: normal;
+        word-break: normal;
+        hyphens: none;
+    }
+
+    .history-origin-badge {
+        display: inline-flex;
+        align-items: center;
+        max-width: 100%;
+        border-radius: 999px;
+        border: 1px solid rgba(203, 213, 225, 0.9);
+        background: #f8fafc;
+        padding: 0.35rem 0.65rem;
+        color: #334155;
+        font-size: 0.82rem;
+        font-weight: 800;
+        line-height: 1.25;
+        white-space: normal;
+        overflow-wrap: normal;
+        word-break: normal;
+        hyphens: none;
+    }
+
+    .history-card .amount {
+        white-space: normal;
+        overflow-wrap: anywhere;
     }
 
     @media (max-width: 1200px) {
@@ -377,9 +456,21 @@
     }
 
     @media (max-width: 768px) {
+        .cost-shell {
+            gap: 1rem;
+        }
+
         .cost-hero,
         .panel-pad {
             padding: 1rem;
+        }
+
+        .cost-hero {
+            border-radius: 1.1rem;
+        }
+
+        .cost-hero h1 {
+            font-size: 1.75rem;
         }
 
         .filter-grid,
@@ -396,11 +487,56 @@
             width: 100%;
         }
 
+        .hero-badges {
+            gap: 0.5rem;
+        }
+
+        .hero-badge {
+            width: 100%;
+            border-radius: 0.85rem;
+            font-size: 0.8rem;
+        }
+
         .hero-actions a,
         .filter-actions button,
         .filter-actions a {
             width: 100%;
             justify-content: center;
+        }
+
+        .panel-title {
+            align-items: flex-start;
+        }
+
+        .stat-value {
+            font-size: 1.3rem;
+        }
+
+        .budget-row-top,
+        .comparison-pill,
+        .replacement-item {
+            align-items: flex-start;
+        }
+    }
+
+    @media (max-width: 640px) {
+        .budget-row-top,
+        .comparison-pill,
+        .replacement-item {
+            flex-direction: column;
+            gap: 0.65rem;
+        }
+
+        .pill-value {
+            text-align: left;
+        }
+
+        .chart-wrap {
+            height: 250px;
+        }
+
+        .chart-wrap.compact {
+            height: 220px;
         }
     }
 </style>
@@ -417,8 +553,6 @@
 
                 <div class="hero-badges">
                     <span class="hero-badge"><i class="fas fa-calendar-range"></i> {{ $filters['range_label'] }}</span>
-                    <span class="hero-badge"><i class="fas fa-chart-line"></i> {{ count($dashboard['by_component']) }} componentes con costo</span>
-                    <span class="hero-badge"><i class="fas fa-industry"></i> {{ count($dashboard['budgets']) }} lavadoras monitoreadas</span>
                 </div>
             </div>
 
@@ -646,26 +780,62 @@
                 <h3><i class="fas fa-clock-rotate-left text-violet-600 mr-2"></i>Historial reciente de gastos</h3>
             </div>
 
-            <div class="table-shell">
-                <table>
+            <div class="lg:hidden space-y-3">
+                @forelse($dashboard['history'] as $entry)
+                    <article class="history-card rounded-2xl border border-slate-200 bg-slate-50 p-4 shadow-sm">
+                        <div class="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                            <div class="min-w-0">
+                                <div class="inline-flex max-w-full items-center gap-2 rounded-full border border-violet-200 bg-violet-50 px-3 py-1 text-xs font-bold text-violet-700">
+                                    <i class="fas fa-calendar-day text-[0.7rem]" aria-hidden="true"></i>
+                                    <span class="whitespace-nowrap">{{ $entry['fecha'] }}</span>
+                                </div>
+                                <h4 class="mt-3 min-w-0 break-words text-sm font-extrabold text-slate-900">{{ $entry['componente'] }}</h4>
+                                <p class="mt-1 min-w-0 break-words text-xs font-semibold text-slate-500">{{ $entry['concepto'] }}</p>
+                            </div>
+                            <div class="min-w-0 shrink-0 text-left sm:text-right">
+                                <div class="text-[0.68rem] font-bold uppercase text-slate-400">Total</div>
+                                <div class="amount text-base">${{ number_format((float) $entry['total'], 2) }}</div>
+                            </div>
+                        </div>
+
+                        <div class="mt-3 grid min-w-0 grid-cols-1 gap-2 text-xs sm:grid-cols-2">
+                            <div class="min-w-0 rounded-xl border border-slate-100 bg-white px-3 py-2">
+                                <div class="text-[0.68rem] font-bold uppercase text-slate-400">Lavadora</div>
+                                <div class="mt-0.5 min-w-0 break-words font-bold text-slate-700">{{ $entry['lavadora'] }}</div>
+                            </div>
+                            <div class="min-w-0 rounded-xl border border-slate-100 bg-white px-3 py-2">
+                                <div class="text-[0.68rem] font-bold uppercase text-slate-400">Origen</div>
+                                <div class="mt-0.5 min-w-0 break-words font-bold text-slate-700">{{ $entry['tipo'] }}</div>
+                            </div>
+                        </div>
+                    </article>
+                @empty
+                    <div class="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-5 text-sm font-semibold text-slate-500">
+                        No hay gastos calculados todavia para el rango seleccionado.
+                    </div>
+                @endforelse
+            </div>
+
+            <div class="table-shell hidden lg:block">
+                <table class="cost-history-table">
                     <thead>
                         <tr>
                             <th>Fecha</th>
                             <th>Lavadora</th>
                             <th>Componente</th>
                             <th>Concepto</th>
-                            <th>Origen</th>
+                            <th class="history-origin-heading">Origen</th>
                             <th>Total</th>
                         </tr>
                     </thead>
                     <tbody>
                         @forelse($dashboard['history'] as $entry)
                             <tr>
-                                <td>{{ $entry['fecha'] }}</td>
+                                <td class="history-date-cell">{{ $entry['fecha'] }}</td>
                                 <td>{{ $entry['lavadora'] }}</td>
                                 <td>{{ $entry['componente'] }}</td>
                                 <td>{{ $entry['concepto'] }}</td>
-                                <td>{{ $entry['tipo'] }}</td>
+                                <td class="history-origin-cell"><span class="history-origin-badge">{{ $entry['tipo'] }}</span></td>
                                 <td class="amount">${{ number_format((float) $entry['total'], 2) }}</td>
                             </tr>
                         @empty
@@ -724,24 +894,54 @@
                     <div class="panel-title">
                         <h3>Historial de la lavadora</h3>
                     </div>
-                    <div class="table-shell">
-                        <table>
+                    <div class="lg:hidden space-y-3">
+                        @forelse($selectedLinea['history'] as $entry)
+                            <article class="history-card rounded-2xl border border-slate-200 bg-slate-50 p-4 shadow-sm">
+                                <div class="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                                    <div class="min-w-0">
+                                        <div class="inline-flex max-w-full items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700">
+                                            <i class="fas fa-calendar-day text-[0.7rem]" aria-hidden="true"></i>
+                                            <span class="whitespace-nowrap">{{ $entry['fecha'] }}</span>
+                                        </div>
+                                        <h4 class="mt-3 min-w-0 break-words text-sm font-extrabold text-slate-900">{{ $entry['componente'] }}</h4>
+                                        <p class="mt-1 min-w-0 break-words text-xs font-semibold text-slate-500">{{ $entry['concepto'] }}</p>
+                                    </div>
+                                    <div class="min-w-0 shrink-0 text-left sm:text-right">
+                                        <div class="text-[0.68rem] font-bold uppercase text-slate-400">Total</div>
+                                        <div class="amount text-base">${{ number_format((float) $entry['total'], 2) }}</div>
+                                    </div>
+                                </div>
+
+                                <div class="mt-3 min-w-0 rounded-xl border border-slate-100 bg-white px-3 py-2 text-xs">
+                                    <div class="text-[0.68rem] font-bold uppercase text-slate-400">Origen</div>
+                                    <div class="mt-0.5 min-w-0 break-words font-bold text-slate-700">{{ $entry['tipo'] }}</div>
+                                </div>
+                            </article>
+                        @empty
+                            <div class="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-5 text-sm font-semibold text-slate-500">
+                                Sin historial reciente.
+                            </div>
+                        @endforelse
+                    </div>
+
+                    <div class="table-shell hidden lg:block">
+                        <table class="cost-history-table">
                             <thead>
                                 <tr>
                                     <th>Fecha</th>
                                     <th>Componente</th>
                                     <th>Concepto</th>
-                                    <th>Origen</th>
+                                    <th class="history-origin-heading">Origen</th>
                                     <th>Total</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 @forelse($selectedLinea['history'] as $entry)
                                     <tr>
-                                        <td>{{ $entry['fecha'] }}</td>
+                                        <td class="history-date-cell">{{ $entry['fecha'] }}</td>
                                         <td>{{ $entry['componente'] }}</td>
                                         <td>{{ $entry['concepto'] }}</td>
-                                        <td>{{ $entry['tipo'] }}</td>
+                                        <td class="history-origin-cell"><span class="history-origin-badge">{{ $entry['tipo'] }}</span></td>
                                         <td class="amount">${{ number_format((float) $entry['total'], 2) }}</td>
                                     </tr>
                                 @empty

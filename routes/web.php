@@ -159,6 +159,7 @@ Route::prefix('pasteurizadora')->group(function () {
             Route::post('/', 'store')->name('store');
             Route::get('/{user}/editar', 'edit')->name('edit');
             Route::put('/{user}', 'update')->name('update');
+            Route::delete('/{user}', 'destroy')->name('destroy');
             Route::patch('/{user}/permisos', 'updatePermissions')->name('permissions.update');
         });
 
