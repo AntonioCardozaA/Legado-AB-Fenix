@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\AnalisisLavadora;
 use App\Models\AnalisisEtiquetadora;
+use App\Models\CadenaCiclo;
 use App\Models\Componente;
 use App\Models\Linea;
 use App\Models\Elongacion;
@@ -1996,14 +1997,43 @@ public function pasteurizadoraOperativo(Request $request)
      */
     private function getEvolucionElongaciones($lineasLavadora): array
     {
-        $mediciones = Elongacion::whereIn('linea', $lineasLavadora->pluck('nombre'))
+        $lineaNombres = $lineasLavadora->pluck('nombre')->filter()->values();
+
+        if ($lineaNombres->isEmpty()) {
+            return [
+                'default_linea_id' => null,
+                'lineas' => [],
+            ];
+        }
+
+        $ciclosActivos = CadenaCiclo::query()
+            ->whereIn('linea', $lineaNombres)
+            ->where('activa', true)
+            ->orderBy('linea')
+            ->orderByDesc('numero_ciclo')
+            ->orderByDesc('id')
+            ->get()
+            ->unique('linea')
+            ->keyBy('linea');
+
+        $mediciones = Elongacion::with('cadenaCiclo')
+            ->whereIn('linea', $lineaNombres)
             ->orderBy('created_at')
+            ->orderBy('id')
             ->get()
             ->groupBy('linea');
 
         $seriesPorLinea = $lineasLavadora
-            ->map(function ($linea) use ($mediciones) {
-                $items = $mediciones->get($linea->nombre, collect())->values();
+            ->map(function ($linea) use ($mediciones, $ciclosActivos) {
+                $itemsPorLinea = $mediciones->get($linea->nombre, collect())->values();
+                $cicloActivo = $ciclosActivos->get($linea->nombre);
+                $ultimoRegistroConCiclo = $itemsPorLinea->last(fn (Elongacion $item) => !empty($item->cadena_ciclo_id));
+                $cicloActualId = $cicloActivo?->id ?? $ultimoRegistroConCiclo?->cadena_ciclo_id;
+                $items = $cicloActualId
+                    ? $itemsPorLinea
+                        ->filter(fn (Elongacion $item) => (int) $item->cadena_ciclo_id === (int) $cicloActualId)
+                        ->values()
+                    : collect();
 
                 if ($items->isEmpty()) {
                     return [

@@ -4119,7 +4119,7 @@
         if (!card) return;
 
         card.classList.add('dashboard-panel');
-        updateCardTitle(card, 'Fallas por linea', 'fas fa-chart-bar');
+        updateCardTitle(card, 'Daños o anomalias por linea', 'fas fa-chart-bar');
         ensureAfterHeading(card, 'fallasCopy', `<p id="fallasCopy" class="panel-copy"></p>`);
         ensureAfterElement('fallasCopy', 'fallasToolbar', `
             <div id="fallasToolbar" class="panel-actions" style="margin-bottom: 18px; justify-content: flex-start;">
@@ -4604,6 +4604,14 @@
                                     `Impacto: ${percent(item.porcentaje_impacto || 0, 1)}`,
                                     `Última revisión: ${item.ultima_revision_humana || 'Sin fecha'}`
                                 ];
+                            },
+                            afterBody: (context) => {
+                                const item = sorted[context[0].dataIndex];
+                                return [
+                                    `Impactados: ${Number(item.impactados || 0)}`,
+                                    `Impacto: ${percent(item.porcentaje_impacto || 0, 1)}`,
+                                    `Ultima revision: ${item.ultima_revision_humana || 'Sin fecha'}`
+                                ];
                             }
                         }
                     }
@@ -4820,9 +4828,9 @@
                     ['Max actual', '0%', 'Sin lecturas', 'danger']
                 ]);
             }
-            if (description) description.innerHTML = '<i class="fas fa-info-circle"></i> No existe historico de elongaciones para la lavadora seleccionada';
+            if (description) description.innerHTML = '<i class="fas fa-info-circle"></i> No existe historico de elongaciones para el ciclo actual de la lavadora seleccionada';
             charts.elongaciones = destroyChartForCanvas('elongacionesChart', charts.elongaciones);
-            setChartState('elongaciones', true, 'Sin historial de elongaciones', 'Registra mediciones para visualizar la tendencia de la cadena.', 'fa-wave-square');
+            setChartState('elongaciones', true, 'Sin historial de elongaciones', 'Registra mediciones para visualizar la tendencia del ciclo actual de la cadena.', 'fa-wave-square');
             return;
         }
 
