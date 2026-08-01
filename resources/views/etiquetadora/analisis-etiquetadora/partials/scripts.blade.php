@@ -325,13 +325,25 @@ function openAnalysisDetail(analysisData) {
             .map((item) => parseInt(item, 10))
             .filter((item) => item > 0)
         : [];
+    const piezasPendientes = Array.isArray(analysisData.componentes_pendientes)
+        ? analysisData.componentes_pendientes
+            .map((item) => parseInt(item, 10))
+            .filter((item) => item > 0)
+        : [];
 
     if (piezasContainer && piezasResumen && piezasList && totalPiezas > 1 && piezasRevisadas.length > 0) {
         piezasContainer.classList.remove('hidden');
-        piezasResumen.textContent = `${piezasRevisadas.length} de ${totalPiezas}`;
-        piezasList.innerHTML = piezasRevisadas
+        piezasResumen.textContent = `${piezasRevisadas.length} de ${totalPiezas} revisadas`;
+        let piezasHtml = piezasRevisadas
             .map((numero) => `<span class="rounded bg-indigo-50 px-2 py-1 text-xs font-semibold text-indigo-700 border border-indigo-100">#${numero}</span>`)
             .join('');
+        if (piezasPendientes.length > 0) {
+            piezasHtml += `
+                <div class="mt-2 basis-full text-xs font-semibold text-slate-500">Pendientes</div>
+                ${piezasPendientes.map((numero) => `<span class="rounded bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-600 border border-slate-200">#${numero}</span>`).join('')}
+            `;
+        }
+        piezasList.innerHTML = piezasHtml;
     } else if (piezasContainer && piezasResumen && piezasList) {
         piezasContainer.classList.add('hidden');
         piezasResumen.textContent = '';

@@ -134,6 +134,7 @@ class AnalisisEtiquetadoraController extends Controller
             ->where('linea', $linea->nombre)
             ->get()
             ->groupBy('reductor');
+        $estadoCiclosComponentes = $this->estadoCiclosComponentesParaLinea($linea, $componentes->flatten(1));
 
         return view('etiquetadora.analisis-etiquetadora.create', [
             'linea' => $linea,
@@ -141,6 +142,7 @@ class AnalisisEtiquetadoraController extends Controller
             'maquinas' => EtiquetadoraCatalog::maquinas(),
             'maquinaSeleccionada' => $maquinaSeleccionada,
             'componenteSeleccionado' => $componenteSeleccionado,
+            'estadoCiclosComponentes' => $estadoCiclosComponentes,
             'analisis' => null,
         ]);
     }
@@ -162,9 +164,14 @@ class AnalisisEtiquetadoraController extends Controller
                 ->withInput();
         }
 
-        $seleccionComponentes = $this->resolverSeleccionComponentesRevisados($request, $componente);
+        $analisis = DB::transaction(function () use ($request, $linea, $componente) {
+            $seleccionComponentes = $this->resolverSeleccionComponentesRevisados(
+                $request,
+                $componente,
+                null,
+                true
+            );
 
-        $analisis = DB::transaction(function () use ($request, $linea, $componente, $seleccionComponentes) {
             $analisis = AnalisisEtiquetadora::create([
                 'linea_id' => $linea->id,
                 'componente_id' => $componente->id,
@@ -190,12 +197,23 @@ class AnalisisEtiquetadoraController extends Controller
             return $analisis;
         });
 
+        $resumenPosterior = AnalisisEtiquetadora::getResumenCicloComponente(
+            $linea->id,
+            $componente->id,
+            $analisis->maquina,
+            null,
+            $analisis->total_componentes ?: (int) ($componente->cantidad_total ?? 1)
+        );
+        $mensaje = $resumenPosterior['tiene_ciclo_activo']
+            ? 'Avance parcial guardado. Puedes continuar con las piezas pendientes desde el listado principal.'
+            : 'Analisis de Etiquetadora registrado correctamente. Este ciclo quedo completado.';
+
         return redirect()
             ->route('analisis-etiquetadora.index', [
                 'linea_id' => $linea->id,
                 'maquina' => $analisis->maquina,
             ])
-            ->with('success', 'Analisis de Etiquetadora registrado correctamente.');
+            ->with('success', $mensaje);
     }
 
     public function edit(AnalisisEtiquetadora $analisisetiquetadora)
@@ -206,6 +224,11 @@ class AnalisisEtiquetadoraController extends Controller
             ->where('reductor', EtiquetadoraCatalog::maquinaLabel($analisisetiquetadora->maquina))
             ->get()
             ->groupBy('reductor');
+        $estadoCiclosComponentes = $this->estadoCiclosComponentesParaLinea(
+            $analisisetiquetadora->linea,
+            $componentes->flatten(1),
+            $analisisetiquetadora->id
+        );
 
         return view('etiquetadora.analisis-etiquetadora.edit', [
             'analisis' => $analisisetiquetadora,
@@ -214,6 +237,7 @@ class AnalisisEtiquetadoraController extends Controller
             'maquinas' => EtiquetadoraCatalog::maquinas(),
             'maquinaSeleccionada' => $analisisetiquetadora->maquina,
             'componenteSeleccionado' => $analisisetiquetadora->componente_id,
+            'estadoCiclosComponentes' => $estadoCiclosComponentes,
             'puedeEditarFechaAnalisis' => $this->puedeEditarFechaAnalisis(auth()->user()),
         ]);
     }
@@ -239,7 +263,7 @@ class AnalisisEtiquetadoraController extends Controller
 
         $fechaAnterior = $analisisetiquetadora->fecha_analisis?->toDateString();
         $fechaNueva = Carbon::createFromFormat('Y-m-d', $request->input('fecha_analisis'))->toDateString();
-        $seleccionComponentes = $this->resolverSeleccionComponentesRevisados($request, $componente);
+        $seleccionComponentes = $this->resolverSeleccionComponentesRevisados($request, $componente, $analisisetiquetadora);
 
         if ($fechaAnterior !== $fechaNueva && !$this->puedeEditarFechaAnalisis($request->user())) {
             abort(403, 'No tienes permiso para modificar la fecha del analisis.');
@@ -479,7 +503,20 @@ class AnalisisEtiquetadoraController extends Controller
             return null;
         }
 
-        $imagenes = $registro->evidencia_fotos ?? [];
+        $totalComponentes = max(1, (int) ($registro->total_componentes ?: ($registro->componente?->cantidad_total ?? 1)));
+        $registrosCiclo = AnalisisEtiquetadora::with(['linea', 'componente', 'usuario'])
+            ->where('linea_id', $registro->linea_id)
+            ->where('componente_id', $registro->componente_id)
+            ->where('maquina', $registro->maquina)
+            ->orderBy('fecha_analisis')
+            ->orderBy('created_at')
+            ->orderBy('id')
+            ->get();
+        $resumenCiclo = AnalisisEtiquetadora::buildResumenCicloPiezas($registrosCiclo, $totalComponentes);
+        $resumenVisible = $resumenCiclo['resumen_visible'];
+        $registroVisible = $this->ultimoAnalisisEtiquetadora($resumenCiclo['registros_visibles']) ?: $registro;
+
+        $imagenes = $registroVisible->evidencia_fotos ?? [];
 
         if (is_string($imagenes)) {
             $imagenes = json_decode($imagenes, true) ?? [];
@@ -498,33 +535,35 @@ class AnalisisEtiquetadoraController extends Controller
         $canDeleteAnalysis = auth()->user()?->canDeleteEtiquetadoraAnalysis() ?? false;
 
         return [
-            'id' => $registro->id,
-            'linea' => $registro->linea->nombre ?? 'Linea no registrada',
-            'componente' => $registro->componente->nombre ?? 'Componente no registrado',
-            'componente_codigo' => $registro->componente->codigo ?? $registro->componente_id,
-            'reductor' => $registro->reductor ?: EtiquetadoraCatalog::maquinaLabel((string) $registro->maquina),
-            'maquina' => $registro->maquina,
-            'lado' => $registro->lado ?? null,
-            'fecha_analisis' => $registro->fecha_analisis ? $registro->fecha_analisis->format('d/m/Y') : '',
-            'numero_orden' => $registro->numero_orden,
-            'estado' => $registro->estado ?? AnalisisEtiquetadora::ESTADO_BUENO,
-            'usuario_nombre' => $registro->usuario?->name ?? 'Usuario no registrado',
-            'actividad' => $registro->actividad,
+            'id' => $registroVisible->id,
+            'linea' => $registroVisible->linea->nombre ?? 'Linea no registrada',
+            'componente' => $registroVisible->componente->nombre ?? 'Componente no registrado',
+            'componente_codigo' => $registroVisible->componente->codigo ?? $registroVisible->componente_id,
+            'reductor' => $registroVisible->reductor ?: EtiquetadoraCatalog::maquinaLabel((string) $registroVisible->maquina),
+            'maquina' => $registroVisible->maquina,
+            'lado' => $registroVisible->lado ?? null,
+            'fecha_analisis' => $registroVisible->fecha_analisis ? $registroVisible->fecha_analisis->format('d/m/Y') : '',
+            'numero_orden' => $registroVisible->numero_orden,
+            'estado' => $registroVisible->estado ?? AnalisisEtiquetadora::ESTADO_BUENO,
+            'usuario_nombre' => $registroVisible->usuario?->name ?? 'Usuario no registrado',
+            'actividad' => $registroVisible->actividad,
             'imagenes' => $imagenes,
-            'componentes_revisados' => $registro->componentes_revisados_lista,
-            'cantidad_componentes_revisados' => $registro->cantidad_componentes_revisados,
-            'total_componentes' => $registro->total_componentes ?: (int) ($registro->componente?->cantidad_total ?? 0),
-            'color' => $this->analysisCellColor($registro->estado ?? null),
-            'created_at' => $registro->created_at ? $registro->created_at->format('d/m/Y H:i') : '',
-            'updated_at' => $registro->updated_at ? $registro->updated_at->format('d/m/Y H:i') : '',
-            'is_new' => $registro->created_at ? $registro->created_at->gt(now()->subDays(3)) : false,
+            'componentes_revisados' => $resumenVisible['piezas_revisadas'],
+            'componentes_pendientes' => $resumenVisible['piezas_pendientes'],
+            'cantidad_componentes_revisados' => $resumenVisible['cantidad_revisada'],
+            'total_componentes' => $resumenVisible['total_componentes'],
+            'tiene_ciclo_activo' => $resumenCiclo['tiene_ciclo_activo'],
+            'color' => $this->analysisCellColor($registroVisible->estado ?? null),
+            'created_at' => $registroVisible->created_at ? $registroVisible->created_at->format('d/m/Y H:i') : '',
+            'updated_at' => $registroVisible->updated_at ? $registroVisible->updated_at->format('d/m/Y H:i') : '',
+            'is_new' => $registroVisible->created_at ? $registroVisible->created_at->gt(now()->subDays(3)) : false,
             'total_historial' => $totalHistorial,
-            'edit_url' => route('analisis-etiquetadora.edit', ['analisisetiquetadora' => $registro->id], false),
-            'delete_url' => $canDeleteAnalysis ? route('analisis-etiquetadora.destroy', ['analisisetiquetadora' => $registro->id], false) : null,
+            'edit_url' => route('analisis-etiquetadora.edit', ['analisisetiquetadora' => $registroVisible->id], false),
+            'delete_url' => $canDeleteAnalysis ? route('analisis-etiquetadora.destroy', ['analisisetiquetadora' => $registroVisible->id], false) : null,
             'historial_url' => route('analisis-etiquetadora.historial', [
-                'linea_id' => $registro->linea_id,
-                'componente_id' => $registro->componente_id,
-                'maquina' => $registro->maquina,
+                'linea_id' => $registroVisible->linea_id,
+                'componente_id' => $registroVisible->componente_id,
+                'maquina' => $registroVisible->maquina,
             ], false),
         ];
     }
@@ -574,6 +613,7 @@ class AnalisisEtiquetadoraController extends Controller
                     ->values();
 
                 $registros = [];
+                $estadoCiclos = [];
                 $analisisLinea = $linea ? collect($analisisPorLinea->get($linea->id, collect())) : collect();
 
                 foreach ($analisisLinea as $registro) {
@@ -638,7 +678,12 @@ class AnalisisEtiquetadoraController extends Controller
                         $conteosMaquinas[$maquina]['total_posibles']++;
 
                         $celda = collect($registros[$maquina][$componentForMachine->id] ?? []);
-                        $registro = $celda->first();
+                        $resumenCiclo = AnalisisEtiquetadora::buildResumenCicloPiezas(
+                            $celda,
+                            max(1, (int) ($componentForMachine->cantidad_total ?? 1))
+                        );
+                        $estadoCiclos[$maquina][$componentForMachine->id] = $resumenCiclo;
+                        $registro = $this->ultimoAnalisisEtiquetadora($resumenCiclo['registros_visibles']);
 
                         if (!$registro) {
                             $resumenEstados['sin_datos']++;
@@ -677,6 +722,7 @@ class AnalisisEtiquetadoraController extends Controller
                     'componentes' => $componentes,
                     'maquinas' => $maquinas,
                     'registros' => $registros,
+                    'estado_ciclos' => $estadoCiclos,
                     'conteos_componentes' => $conteosComponentes,
                     'conteos_maquinas' => $conteosMaquinas,
                     'resumen_estados' => $resumenEstados,
@@ -806,11 +852,30 @@ class AnalisisEtiquetadoraController extends Controller
         ];
     }
 
-    private function resolverSeleccionComponentesRevisados(Request $request, Componente $componente): array
+    private function resolverSeleccionComponentesRevisados(
+        Request $request,
+        Componente $componente,
+        ?AnalisisEtiquetadora $analisisActual = null,
+        bool $lockForUpdate = false
+    ): array
     {
         $totalComponentes = max(1, (int) ($componente->cantidad_total ?? 1));
+        $componentesDisponibles = AnalisisEtiquetadora::getPiezasDisponiblesParaRegistro(
+            $request->input('linea_id'),
+            $componente->id,
+            $request->input('maquina'),
+            $analisisActual?->id,
+            $totalComponentes,
+            $lockForUpdate
+        );
 
         if ($totalComponentes === 1) {
+            if (!in_array(1, $componentesDisponibles, true)) {
+                throw ValidationException::withMessages([
+                    'componentes_revisados' => 'Todas las piezas de este componente ya fueron revisadas en el ciclo actual.',
+                ]);
+            }
+
             return [
                 'total_componentes' => $totalComponentes,
                 'componentes_revisados' => [1],
@@ -828,6 +893,20 @@ class AnalisisEtiquetadoraController extends Controller
             ]);
         }
 
+        if (empty($componentesDisponibles)) {
+            throw ValidationException::withMessages([
+                'componentes_revisados' => 'Todas las piezas de este componente ya fueron revisadas en el ciclo actual.',
+            ]);
+        }
+
+        $seleccionInvalida = array_values(array_diff($componentesSeleccionados, $componentesDisponibles));
+
+        if (!empty($seleccionInvalida)) {
+            throw ValidationException::withMessages([
+                'componentes_revisados' => 'La seleccion incluye piezas ya revisadas en el ciclo actual o fuera del rango permitido.',
+            ]);
+        }
+
         return [
             'total_componentes' => $totalComponentes,
             'componentes_revisados' => $componentesSeleccionados,
@@ -841,6 +920,64 @@ class AnalisisEtiquetadoraController extends Controller
             ->where('linea', $linea->nombre)
             ->where('reductor', EtiquetadoraCatalog::maquinaLabel($maquina))
             ->first();
+    }
+
+    private function estadoCiclosComponentesParaLinea(?Linea $linea, $componentes, ?int $excludeId = null): array
+    {
+        if (!$linea) {
+            return [];
+        }
+
+        $componentes = collect($componentes)
+            ->filter(fn ($componente) => $componente instanceof Componente && filled($componente->id))
+            ->values();
+
+        if ($componentes->isEmpty()) {
+            return [];
+        }
+
+        $registros = AnalisisEtiquetadora::query()
+            ->where('linea_id', $linea->id)
+            ->whereIn('componente_id', $componentes->pluck('id')->all())
+            ->when($excludeId, fn ($query) => $query->where('id', '!=', $excludeId))
+            ->orderBy('fecha_analisis')
+            ->orderBy('created_at')
+            ->orderBy('id')
+            ->get()
+            ->groupBy(fn (AnalisisEtiquetadora $registro) => strtoupper((string) $registro->maquina) . '|' . $registro->componente_id);
+
+        return $componentes
+            ->mapWithKeys(function (Componente $componente) use ($registros): array {
+                $maquina = $this->maquinaDesdeEtiqueta($componente->reductor);
+                $totalComponentes = max(1, (int) ($componente->cantidad_total ?? 1));
+                $resumen = AnalisisEtiquetadora::buildResumenCicloPiezas(
+                    $registros->get($maquina . '|' . $componente->id, collect()),
+                    $totalComponentes
+                );
+                $piezasDisponibles = $resumen['tiene_ciclo_activo']
+                    ? $resumen['resumen_actual']['piezas_pendientes']
+                    : range(1, $totalComponentes);
+                $piezasBloqueadas = $resumen['tiene_ciclo_activo']
+                    ? $resumen['resumen_actual']['piezas_revisadas']
+                    : [];
+
+                return [
+                    (string) $componente->id => [
+                        'total_componentes' => $totalComponentes,
+                        'piezas_disponibles' => $piezasDisponibles,
+                        'piezas_bloqueadas' => $piezasBloqueadas,
+                        'piezas_revisadas' => $resumen['resumen_actual']['piezas_revisadas'],
+                        'piezas_pendientes' => $resumen['resumen_actual']['piezas_pendientes'],
+                        'cantidad_revisada' => $resumen['resumen_actual']['cantidad_revisada'],
+                        'cantidad_pendiente' => $resumen['tiene_ciclo_activo']
+                            ? $resumen['resumen_actual']['cantidad_pendiente']
+                            : $totalComponentes,
+                        'tiene_ciclo_activo' => $resumen['tiene_ciclo_activo'],
+                        'tiene_ciclo_completado' => $resumen['tiene_ciclo_completado'],
+                    ],
+                ];
+            })
+            ->all();
     }
 
     private function catalogoBase()
@@ -1006,17 +1143,11 @@ class AnalisisEtiquetadoraController extends Controller
     {
         $totalComponentes = max(1, (int) ($componente->cantidad_total ?? 1));
         $registros = collect($registros);
-        $piezasRevisadas = $registros
-            ->flatMap(fn (AnalisisEtiquetadora $registro) => $registro->piezasRevisadasParaTotal($totalComponentes))
-            ->map(fn ($pieza) => (int) $pieza)
-            ->filter(fn (int $pieza) => $pieza > 0 && $pieza <= $totalComponentes)
-            ->unique()
-            ->sort()
-            ->values();
-        $piezasPendientes = collect(range(1, $totalComponentes))
-            ->diff($piezasRevisadas)
-            ->values();
-        $ultimoRegistro = $this->ultimoAnalisisEtiquetadora($registros);
+        $resumenCiclo = AnalisisEtiquetadora::buildResumenCicloPiezas($registros, $totalComponentes);
+        $resumenVisible = $resumenCiclo['resumen_visible'];
+        $piezasRevisadas = collect($resumenVisible['piezas_revisadas']);
+        $piezasPendientes = collect($resumenVisible['piezas_pendientes']);
+        $ultimoRegistro = $this->ultimoAnalisisEtiquetadora($resumenCiclo['registros_visibles']);
 
         return [
             'componente_id' => $componente->id,
