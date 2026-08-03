@@ -40,6 +40,11 @@ class PlanAccion extends Model
     use HasFactory;
     use UppercasesActividad;
 
+    public const EFFECTIVENESS_EFFECTIVE = 'effective';
+    public const EFFECTIVENESS_PARTIALLY_EFFECTIVE = 'partially_effective';
+    public const EFFECTIVENESS_INEFFECTIVE = 'ineffective';
+    public const EFFECTIVENESS_NOT_EVALUABLE = 'not_evaluable';
+
     protected $table = 'plan_accion';
 
     protected $fillable = [
@@ -74,6 +79,7 @@ class PlanAccion extends Model
         'fecha_pcm2',
         'fecha_pcm3',
         'fecha_pcm4',
+        'completado',
         'estado',
         'observaciones',
         'notificacion_enviada',
@@ -311,6 +317,57 @@ class PlanAccion extends Model
     public function sourceLabel(): string
     {
         return $this->source === 'ai' ? 'Generado por IA' : 'Manual';
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public static function effectivenessOptions(): array
+    {
+        return [
+            self::EFFECTIVENESS_EFFECTIVE => 'Efectivo',
+            self::EFFECTIVENESS_PARTIALLY_EFFECTIVE => 'Parcialmente efectivo',
+            self::EFFECTIVENESS_INEFFECTIVE => 'No efectivo',
+            self::EFFECTIVENESS_NOT_EVALUABLE => 'No evaluable',
+        ];
+    }
+
+    public function effectivenessLabel(): ?string
+    {
+        if (!$this->effectiveness) {
+            return null;
+        }
+
+        return self::effectivenessOptions()[$this->effectiveness]
+            ?? ucfirst(str_replace('_', ' ', (string) $this->effectiveness));
+    }
+
+    public function hasExecutionFeedback(): bool
+    {
+        return filled($this->execution_result)
+            || filled($this->effectiveness)
+            || $this->actual_cost_total !== null
+            || $this->actual_hours !== null;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function executionFeedbackSummary(): array
+    {
+        return [
+            'completed' => (bool) $this->completado,
+            'executed_by' => $this->ejecutadoPor?->name,
+            'executed_at' => optional($this->fecha_ejecucion)->toIso8601String(),
+            'estimated_cost_total' => $this->estimated_cost_total,
+            'actual_cost_total' => $this->actual_cost_total,
+            'estimated_hours' => $this->estimated_hours,
+            'actual_hours' => $this->actual_hours,
+            'execution_result' => $this->execution_result,
+            'effectiveness' => $this->effectiveness,
+            'effectiveness_label' => $this->effectivenessLabel(),
+            'has_feedback' => $this->hasExecutionFeedback(),
+        ];
     }
 
     public function scopeActivas($query)

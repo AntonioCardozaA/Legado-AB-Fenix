@@ -59,6 +59,34 @@ php artisan notifications:send-activities
 php artisan componentes:reset-estadisticas --simular
 ```
 
+## IA En Produccion
+
+Variables minimas:
+
+```bash
+AI_ENABLED=true
+AI_PROVIDER=openai
+AI_FALLBACK_PROVIDER=gemini
+AI_DISPATCH_MODE=queue
+AI_QUEUE=maintenance-ai
+AI_CHAT_RATE_LIMIT_PER_MINUTE=12
+OPENAI_API_KEY=...
+OPENAI_MODEL=...
+OPENAI_EMBEDDING_MODEL=text-embedding-3-small
+AI_KNOWLEDGE_SEMANTIC_QUERY_ENABLED=true
+AI_KNOWLEDGE_CANDIDATE_LIMIT=120
+```
+
+Levantar un worker dedicado o compartido que atienda la cola configurada:
+
+```bash
+php artisan queue:work --queue=maintenance-ai,default --tries=3 --timeout=180
+```
+
+Despues de desplegar migraciones, revisar la tabla `ai_interaction_logs` para validar latencia, errores, proveedor/modelo y consumo de tokens. Si suben errores 429/5xx, ajustar `AI_MAX_RETRIES`, fallback y limite del chat antes de subir capacidad.
+
+El RAG de documentos usa ranking hibrido: tokens, metadata de linea/componente y embeddings cuando `AI_KNOWLEDGE_SEMANTIC_QUERY_ENABLED=true`. Si el chat sube de latencia o costo, bajar `AI_KNOWLEDGE_CANDIDATE_LIMIT` o desactivar busqueda semantica de consulta temporalmente.
+
 ## Storage
 
 Las evidencias se sirven desde `public/storage`, por eso se requiere:

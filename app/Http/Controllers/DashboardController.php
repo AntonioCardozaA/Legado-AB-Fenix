@@ -1446,9 +1446,9 @@ public function pasteurizadoraOperativo(Request $request)
     {
         $lineaNombre = Linea::whereKey($lineaId)->value('nombre');
 
-        $ultimaElongacion = Elongacion::where('linea', $lineaNombre)
-            ->orderBy('created_at', 'desc')
-            ->first();
+        $ultimaElongacion = $lineaNombre
+            ? Elongacion::latestForCurrentActiveCycles((string) $lineaNombre)->first()
+            : null;
 
         $analisisPorEstado = $this->getLavadoraDashboardAnalysesByState($lineaId);
         $analisisCriticos = $analisisPorEstado['critico'];

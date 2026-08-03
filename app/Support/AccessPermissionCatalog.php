@@ -254,6 +254,10 @@ class AccessPermissionCatalog
                         'label' => 'Gestionar usuarios',
                         'description' => 'Permite crear y editar usuarios y sus permisos.',
                     ],
+                    User::PERMISSION_VIEW_AI_OBSERVABILITY => [
+                        'label' => 'Observabilidad IA',
+                        'description' => 'Permite revisar metricas, errores y uso de la IA operativa.',
+                    ],
                     'ver perfil' => [
                         'label' => 'Ver perfil',
                         'description' => 'Permite abrir perfil y configuracion de notificaciones.',
@@ -375,6 +379,7 @@ class AccessPermissionCatalog
 
         return match ($permission) {
             'gestionar usuarios' => false,
+            User::PERMISSION_VIEW_AI_OBSERVABILITY => false,
             User::PERMISSION_ACCESS_PASTEURIZADORA,
             User::PERMISSION_ACCESS_PASTEURIZADORA_MECANICA,
             User::PERMISSION_ACCESS_PASTEURIZADORA_CENTRAL_HIDRAULICA,
@@ -422,6 +427,7 @@ class AccessPermissionCatalog
 
             ['routes' => ['admin.users.index', 'admin.users.edit'], 'methods' => ['GET'], 'permission' => 'gestionar usuarios'],
             ['routes' => ['admin.users.store', 'admin.users.update', 'admin.users.destroy', 'admin.users.permissions.update'], 'permission' => 'gestionar usuarios'],
+            ['routes' => ['admin.ai-observability.index'], 'methods' => ['GET'], 'permission' => User::PERMISSION_VIEW_AI_OBSERVABILITY],
 
             ['routes' => ['lavadora.costos.index', 'analisis-lavadora.costos.manage', 'admin.costos.index'], 'methods' => ['GET'], 'permission' => User::PERMISSION_ACCESS_LAVADORA_COSTS],
             ['routes' => ['analisis-lavadora.costos.manual.store', 'admin.costos.catalog.store', 'admin.costos.rules.store', 'admin.costos.budgets.upsert'], 'permission' => User::PERMISSION_CREATE_LAVADORA_COSTS],

@@ -36,7 +36,8 @@ class DocumentIndexer
             $chunkOverlap = max(0, min($chunkSize - 50, (int) config('maintenance_ai.knowledge.chunk_overlap', 200)));
             $chunks = $this->chunkText($content, $chunkSize, $chunkOverlap);
 
-            foreach ($chunks as $index => $chunk) {
+            foreach ($chunks as $index => $chunkData) {
+                $chunk = $chunkData['content'];
                 $embedding = [];
 
                 if ((bool) config('maintenance_ai.enabled', false)) {
@@ -54,6 +55,10 @@ class DocumentIndexer
                     'token_count' => str_word_count($chunk),
                     'metadata' => [
                         'section' => $document->title,
+                        'char_start' => $chunkData['char_start'],
+                        'char_end' => $chunkData['char_end'],
+                        'document_version' => $document->version,
+                        'embedding_model' => $embedding === [] ? null : $this->embeddingModelName(),
                     ],
                     'embedding' => $embedding === [] ? null : $embedding,
                 ]);
@@ -76,7 +81,7 @@ class DocumentIndexer
         return $document->fresh(['chunks']);
     }
     /**
-     * @return array<int, string>
+     * @return array<int, array{content: string, char_start: int, char_end: int}>
      */
     private function chunkText(string $content, int $chunkSize, int $chunkOverlap): array
     {
@@ -89,7 +94,11 @@ class DocumentIndexer
             $chunk = trim($chunk);
 
             if ($chunk !== '') {
-                $chunks[] = $chunk;
+                $chunks[] = [
+                    'content' => $chunk,
+                    'char_start' => $start,
+                    'char_end' => min($length, $start + $chunkSize),
+                ];
             }
 
             if ($start + $chunkSize >= $length) {
@@ -100,5 +109,14 @@ class DocumentIndexer
         }
 
         return $chunks;
+    }
+
+    private function embeddingModelName(): ?string
+    {
+        $provider = trim((string) config('maintenance_ai.provider', ''));
+
+        return data_get(config('maintenance_ai'), 'providers.' . $provider . '.embedding_model')
+            ?: data_get(config('maintenance_ai'), 'providers.openai.embedding_model')
+            ?: data_get(config('maintenance_ai'), 'providers.gemini.embedding_model');
     }
 }

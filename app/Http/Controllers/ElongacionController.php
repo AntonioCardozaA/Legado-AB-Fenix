@@ -53,23 +53,15 @@ class ElongacionController extends Controller
         }
 
         if (!$hasLineaFilter && !$hasEstadoFilter && !$hasProveedorFilter && !$hasCicloFilter) {
-            $ultimosIds = Elongacion::select(DB::raw('MAX(id) as id'))
-                ->groupBy('linea')
+            $ultimosIds = Elongacion::latestForCurrentActiveCycles()
                 ->pluck('id');
 
             $query->whereIn('id', $ultimosIds);
         }
 
-        $latestAlertableRecordIds = (clone $query)
-            ->select(['id', 'linea', 'cadena_ciclo_id', 'created_at'])
-            ->orderByDesc('created_at')
-            ->orderByDesc('id')
-            ->get()
-            ->unique(static function (Elongacion $elongacion): string {
-                return $elongacion->cadena_ciclo_id
-                    ? 'ciclo:' . $elongacion->cadena_ciclo_id
-                    : 'linea:' . $elongacion->linea;
-            })
+        $latestAlertableRecordIds = Elongacion::latestForCurrentActiveCycles(
+                $hasLineaFilter ? (string) $request->linea : null
+            )
             ->pluck('id')
             ->map(static fn ($id): int => (int) $id)
             ->values()
@@ -105,12 +97,10 @@ class ElongacionController extends Controller
         $formToken = (string) Str::uuid();
         $request->session()->put(self::FORM_TOKEN_SESSION_KEY, $formToken);
 
-        $ultimasLecturasPorLinea = Elongacion::with('cadenaCiclo')
-            ->whereIn('id', Elongacion::selectRaw('MAX(id) as id')->groupBy('linea'))
-            ->get()
+        $ultimasLecturasPorLinea = Elongacion::latestForCurrentActiveCycles()
             ->keyBy('linea');
 
-        $ciclosActivosPorLinea = CadenaCiclo::activos()
+        $ciclosActivosPorLinea = CadenaCiclo::actualesPorLinea()
             ->orderBy('linea')
             ->get()
             ->keyBy('linea');
@@ -344,10 +334,7 @@ class ElongacionController extends Controller
     public function ultimaLectura($linea)
     {
         try {
-            $ultima = Elongacion::with('cadenaCiclo')
-                ->where('linea', $linea)
-                ->orderBy('created_at', 'desc')
-                ->first();
+            $ultima = Elongacion::latestForCurrentActiveCycles((string) $linea)->first();
 
             if ($ultima) {
                 return response()->json([
@@ -390,10 +377,7 @@ class ElongacionController extends Controller
 
     private function resolverCicloParaRegistro(Request $request, ?Linea $linea, int $pasoInicial): CadenaCiclo
     {
-        $cicloActivo = CadenaCiclo::porLinea($request->linea)
-            ->activos()
-            ->orderByDesc('numero_ciclo')
-            ->first();
+        $cicloActivo = CadenaCiclo::currentActiveForLine((string) $request->linea);
 
         if ($request->filled('cadena_ciclo_id')) {
             $cicloSeleccionado = CadenaCiclo::whereKey($request->cadena_ciclo_id)
@@ -403,6 +387,12 @@ class ElongacionController extends Controller
             if (!$cicloSeleccionado) {
                 throw ValidationException::withMessages([
                     'cadena_ciclo_id' => 'El ciclo seleccionado no pertenece a la linea indicada.',
+                ]);
+            }
+
+            if (!$cicloSeleccionado->activa || !$cicloActivo || (int) $cicloSeleccionado->id !== (int) $cicloActivo->id) {
+                throw ValidationException::withMessages([
+                    'cadena_ciclo_id' => 'Solo se pueden registrar elongaciones en el ciclo activo actual de la linea.',
                 ]);
             }
 
@@ -416,12 +406,12 @@ class ElongacionController extends Controller
                 ]);
             }
 
-            if ($cicloActivo) {
-                $cicloActivo->update([
+            CadenaCiclo::porLinea($request->linea)
+                ->activos()
+                ->update([
                     'activa' => false,
                     'retirada_en' => $request->input('fecha_instalacion', now()),
                 ]);
-            }
 
             $numeroCiclo = (int) CadenaCiclo::porLinea($request->linea)->max('numero_ciclo') + 1;
 

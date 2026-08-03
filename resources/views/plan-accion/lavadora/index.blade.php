@@ -1751,6 +1751,22 @@ document.addEventListener('DOMContentLoaded', function() {
 
             return maximumLabel || minimumLabel || 'No disponible';
         };
+        const formatCurrencyValue = value => {
+            if (value === null || value === undefined || value === '') {
+                return 'No registrado';
+            }
+
+            const numericValue = Number(value);
+            if (!Number.isFinite(numericValue)) {
+                return 'No registrado';
+            }
+
+            return new Intl.NumberFormat('es-MX', {
+                style: 'currency',
+                currency: 'MXN',
+                maximumFractionDigits: 2,
+            }).format(numericValue);
+        };
 
         const structuredContent = normalizeObject(data.structured_content);
         const approvedContent = normalizeObject(data.approved_content);
@@ -1787,6 +1803,43 @@ document.addEventListener('DOMContentLoaded', function() {
         const riskIfNotExecuted = aiContent.risk_if_not_executed || data.risk_if_not_executed || null;
         const recommendedActions = Array.isArray(aiContent.recommended_actions) ? aiContent.recommended_actions : [];
         const reviewNotes = data.final_observations || null;
+        const executionFeedback = normalizeObject(data.execution_feedback);
+        const hasExecutionFeedback = Boolean(
+            executionFeedback.has_feedback
+            || data.actual_cost_total !== null
+            || data.actual_hours !== null
+            || data.execution_result
+            || data.effectiveness
+        );
+        const actualCost = executionFeedback.actual_cost_total ?? data.actual_cost_total;
+        const actualHours = executionFeedback.actual_hours ?? data.actual_hours;
+        const executionResult = executionFeedback.execution_result || data.execution_result || null;
+        const effectivenessLabel = executionFeedback.effectiveness_label || data.effectiveness_label || humanize(data.effectiveness || '');
+        const executionFeedbackHtml = hasExecutionFeedback ? `
+            <section class="rounded-2xl border border-emerald-200 bg-emerald-50/80 p-4 shadow-sm">
+                <p class="text-xs font-bold uppercase tracking-wide text-emerald-700">Cierre tecnico</p>
+                <div class="mt-3 grid gap-3 md:grid-cols-3">
+                    <div class="rounded-xl border border-emerald-100 bg-white p-4">
+                        <p class="text-xs font-bold uppercase tracking-wide text-zinc-500">Costo real</p>
+                        <p class="mt-2 font-black text-zinc-950">${escapeHtml(formatCurrencyValue(actualCost))}</p>
+                    </div>
+                    <div class="rounded-xl border border-emerald-100 bg-white p-4">
+                        <p class="text-xs font-bold uppercase tracking-wide text-zinc-500">Horas reales</p>
+                        <p class="mt-2 font-black text-zinc-950">${actualHours !== null && actualHours !== undefined && actualHours !== '' ? `${escapeHtml(Number(actualHours).toFixed(2))} h` : 'No registrado'}</p>
+                    </div>
+                    <div class="rounded-xl border border-emerald-100 bg-white p-4">
+                        <p class="text-xs font-bold uppercase tracking-wide text-zinc-500">Efectividad</p>
+                        <p class="mt-2 font-black text-zinc-950">${escapeHtml(effectivenessLabel || 'Sin evaluar')}</p>
+                    </div>
+                </div>
+                ${executionResult ? `
+                    <div class="mt-3 rounded-xl border border-emerald-100 bg-white p-4">
+                        <p class="text-xs font-bold uppercase tracking-wide text-zinc-500">Resultado</p>
+                        <p class="mt-2 text-sm leading-6 text-zinc-700">${formatMultiline(executionResult)}</p>
+                    </div>
+                ` : ''}
+            </section>
+        ` : '';
         const maintenanceEvent = normalizeObject(data.maintenance_event);
         const sourceUrl = data.maintenance_event_source_url || null;
         const hasAiDetails = data.source === 'ai' || Object.keys(aiContent).length > 0;
@@ -1898,6 +1951,8 @@ document.addEventListener('DOMContentLoaded', function() {
                             <p class="mt-1 text-xs text-zinc-500">${escapeHtml(fechaEjecucion)}</p>
                         </div>
                     </div>
+
+                    ${executionFeedbackHtml}
 
                     ${hasAiDetails ? `
                         <section class="space-y-4 rounded-2xl border border-amber-200 bg-amber-50/80 p-4 shadow-sm">
@@ -2153,20 +2208,93 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
+    function promptExecutionFeedback() {
+        return Swal.fire({
+            title: 'Cerrar actividad',
+            html: `
+                <div class="space-y-3 text-left">
+                    <div>
+                        <label class="mb-1 block text-sm font-semibold text-slate-700">Costo real total</label>
+                        <input id="swal_actual_cost_total" type="number" min="0" step="0.01" class="swal2-input" placeholder="0.00" style="width: 100%; margin: 0;">
+                    </div>
+                    <div>
+                        <label class="mb-1 block text-sm font-semibold text-slate-700">Horas reales</label>
+                        <input id="swal_actual_hours" type="number" min="0" step="0.01" class="swal2-input" placeholder="0.00" style="width: 100%; margin: 0;">
+                    </div>
+                    <div>
+                        <label class="mb-1 block text-sm font-semibold text-slate-700">Efectividad</label>
+                        <select id="swal_effectiveness" class="swal2-select" style="width: 100%; margin: 0;">
+                            <option value="">Sin evaluar</option>
+                            <option value="effective">Efectivo</option>
+                            <option value="partially_effective">Parcialmente efectivo</option>
+                            <option value="ineffective">No efectivo</option>
+                            <option value="not_evaluable">No evaluable</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="mb-1 block text-sm font-semibold text-slate-700">Resultado de ejecucion</label>
+                        <textarea id="swal_execution_result" class="swal2-textarea" maxlength="3000" placeholder="Que se hizo y como quedo el equipo." style="width: 100%; margin: 0;"></textarea>
+                    </div>
+                </div>
+            `,
+            focusConfirm: false,
+            showCancelButton: true,
+            confirmButtonText: 'Guardar cierre',
+            cancelButtonText: 'Cancelar',
+            preConfirm: () => {
+                const cost = document.getElementById('swal_actual_cost_total').value.trim();
+                const hours = document.getElementById('swal_actual_hours').value.trim();
+                const effectiveness = document.getElementById('swal_effectiveness').value;
+                const result = document.getElementById('swal_execution_result').value.trim();
+
+                if (cost !== '' && Number(cost) < 0) {
+                    Swal.showValidationMessage('El costo real no puede ser negativo.');
+                    return false;
+                }
+
+                if (hours !== '' && Number(hours) < 0) {
+                    Swal.showValidationMessage('Las horas reales no pueden ser negativas.');
+                    return false;
+                }
+
+                return {
+                    actual_cost_total: cost === '' ? null : cost,
+                    actual_hours: hours === '' ? null : hours,
+                    effectiveness: effectiveness || null,
+                    execution_result: result || null,
+                };
+            },
+        }).then(result => result.isConfirmed ? result.value : null);
+    }
+
     // Checklist
     document.querySelectorAll('.checklist-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
+        btn.addEventListener('click', async function() {
             const id = this.dataset.id;
             const boton = this;
+            const alreadyCompleted = boton.classList.contains('completado');
+            const payload = alreadyCompleted ? {} : await promptExecutionFeedback();
+
+            if (!alreadyCompleted && payload === null) {
+                return;
+            }
             
             fetch(`/plan-accion/${id}/checklist`, {
                 method: 'POST',
                 headers: {
                     'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                    'Content-Type': 'application/json'
-                }
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify(payload)
             })
-            .then(res => res.json())
+            .then(res => {
+                if (!res.ok) {
+                    throw new Error('request_failed');
+                }
+
+                return res.json();
+            })
             .then(data => {
                 if (data.completado) {
                     boton.classList.add('completado');

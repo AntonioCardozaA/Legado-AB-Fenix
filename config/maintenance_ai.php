@@ -6,7 +6,7 @@ return [
     'timeout' => (int) env('AI_TIMEOUT', 30),
     'job_timeout' => env('AI_JOB_TIMEOUT') !== null ? (int) env('AI_JOB_TIMEOUT') : null,
     'max_retries' => (int) env('AI_MAX_RETRIES', 2),
-    'queue' => env('AI_QUEUE', 'default'),
+    'queue' => env('AI_QUEUE', 'maintenance-ai'),
     'dispatch_mode' => env('AI_DISPATCH_MODE', env('APP_ENV') === 'local' ? 'after_response' : 'queue'),
     'fallback' => [
         'provider' => env('AI_FALLBACK_PROVIDER'),
@@ -22,6 +22,12 @@ return [
     'knowledge' => [
         'chunk_size' => (int) env('AI_KNOWLEDGE_CHUNK_SIZE', 1200),
         'chunk_overlap' => (int) env('AI_KNOWLEDGE_CHUNK_OVERLAP', 200),
+        'semantic_query_enabled' => (bool) env('AI_KNOWLEDGE_SEMANTIC_QUERY_ENABLED', true),
+        'candidate_limit' => (int) env('AI_KNOWLEDGE_CANDIDATE_LIMIT', 120),
+        'min_score' => (float) env('AI_KNOWLEDGE_MIN_SCORE', 1),
+        'lexical_weight' => (float) env('AI_KNOWLEDGE_LEXICAL_WEIGHT', 2.0),
+        'metadata_weight' => (float) env('AI_KNOWLEDGE_METADATA_WEIGHT', 1.0),
+        'semantic_weight' => (float) env('AI_KNOWLEDGE_SEMANTIC_WEIGHT', 18.0),
         'pdf_ocr_enabled' => (bool) env('AI_KNOWLEDGE_PDF_OCR_ENABLED', true),
         'pdf_ocr_detail' => env('AI_KNOWLEDGE_PDF_OCR_DETAIL', 'high'),
         'pdf_ocr_model' => env('AI_KNOWLEDGE_PDF_OCR_MODEL'),
@@ -31,6 +37,7 @@ return [
         'history_window' => (int) env('AI_CHAT_HISTORY_WINDOW', 8),
         'max_stored_messages' => (int) env('AI_CHAT_MAX_STORED_MESSAGES', 30),
         'max_context_items' => (int) env('AI_CHAT_MAX_CONTEXT_ITEMS', 5),
+        'rate_limit_per_minute' => (int) env('AI_CHAT_RATE_LIMIT_PER_MINUTE', 12),
     ],
     'platform_context' => [
         'schema_table_limit' => (int) env('AI_PLATFORM_SCHEMA_TABLE_LIMIT', 8),

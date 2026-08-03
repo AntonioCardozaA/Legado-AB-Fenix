@@ -217,7 +217,10 @@ class WasherKnowledgeBasePdfBuilder
                 $lineEvents = $events->where('linea_id', $linea->id)->values();
                 $linePlans = $plans->where('linea_id', $linea->id)->values();
                 $activeCycle = $cycles->first(fn (CadenaCiclo $cycle): bool => $cycle->activa && $cycle->linea === $linea->nombre);
-                $lastElongacion = $lineElongaciones->first();
+                $currentLineElongaciones = $activeCycle
+                    ? $lineElongaciones->where('cadena_ciclo_id', $activeCycle->id)->values()
+                    : collect();
+                $lastElongacion = $currentLineElongaciones->first();
                 $chainGroup = collect($chainGroups)->first(fn (array $group): bool => in_array($linea->nombre, $group['lineas'], true));
 
                 return [

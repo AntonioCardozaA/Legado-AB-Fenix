@@ -238,10 +238,9 @@
                         <tr>
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fecha</th>
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Línea</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ciclo</th>
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Proveedor</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Hodómetro</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Horas ciclo</th>
+                            <th class="px-2 py-3 text-left text-xs font-medium leading-tight text-gray-500 uppercase sm:px-4">Hodómetro</th>
+                            <th class="px-2 py-3 text-left text-xs font-medium leading-tight text-gray-500 uppercase sm:px-4">Horas ciclo</th>
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Lado Bombas</th>
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Lado Vapor</th>
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Estado</th>
@@ -309,19 +308,19 @@
                                 <td class="px-4 py-3 whitespace-nowrap">
                                     <span class="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">{{ $registro->linea }}</span>
                                 </td>
-                                <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
-                                    @if($registro->cadenaCiclo)
-                                        <a href="{{ route('elongaciones.ciclos.show', $registro->cadenaCiclo) }}" class="font-semibold text-slate-900 hover:text-blue-700">
-                                            {{ $registro->cadenaCiclo->codigo }}
-                                        </a>
-                                        <div class="text-xs text-gray-500">#{{ $registro->cadenaCiclo->numero_ciclo }}</div>
-                                    @else
-                                        -
-                                    @endif
-                                </td>
                                 <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">{{ $registro->proveedor_actual ?? '-' }}</td>
-                                <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{{ $registro->hodometro_formateado ?? '-' }}</td>
-                                <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{{ $registro->hodometro_ciclo_formateado ?? '-' }}</td>
+                                <td class="px-2 py-3 align-top text-sm text-gray-900 sm:px-4">
+                                    <div class="min-w-[4.75rem] max-w-[5.75rem] leading-tight sm:min-w-[6rem] sm:max-w-none">
+                                        <span class="block text-[10px] font-semibold uppercase text-gray-400 sm:hidden">Hodómetro</span>
+                                        <span class="block break-words font-medium">{{ $registro->hodometro_formateado ?? '-' }}</span>
+                                    </div>
+                                </td>
+                                <td class="px-2 py-3 align-top text-sm text-gray-900 sm:px-4">
+                                    <div class="min-w-[4.75rem] max-w-[5.75rem] leading-tight sm:min-w-[6rem] sm:max-w-none">
+                                        <span class="block text-[10px] font-semibold uppercase text-gray-400 sm:hidden">Horas ciclo</span>
+                                        <span class="block break-words font-medium">{{ $registro->hodometro_ciclo_formateado ?? '-' }}</span>
+                                    </div>
+                                </td>
                                 <td class="px-4 py-3">
                                     <div class="flex flex-col gap-1 min-w-[110px]">
                                         <div class="flex items-center justify-between">

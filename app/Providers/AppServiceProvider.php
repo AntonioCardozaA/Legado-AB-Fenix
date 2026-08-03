@@ -9,8 +9,11 @@ use App\Services\Maintenance\FailoverAiProvider;
 use App\Services\Maintenance\GeminiProvider;
 use App\Services\Maintenance\NullAiProvider;
 use App\Services\Maintenance\OpenAiProvider;
+use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Pagination\Paginator;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\RateLimiter;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -27,6 +30,13 @@ class AppServiceProvider extends ServiceProvider
     
     public function boot(): void
     {
+        RateLimiter::for('assistant-chat', function (Request $request) {
+            $limit = max(1, (int) config('maintenance_ai.chat.rate_limit_per_minute', 12));
+            $userKey = $request->user()?->id ?: $request->ip();
+
+            return Limit::perMinute($limit)->by('assistant-chat:' . $userKey);
+        });
+
         Paginator::useTailwind();
         app(AdminRecordNotificationService::class)->registerModelEvents();
         

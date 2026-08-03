@@ -69,6 +69,99 @@ class PlanAccionTraceabilityTest extends TestCase
         $this->assertNotNull($plan->fecha_ejecucion);
     }
 
+    public function test_checklist_records_execution_feedback_for_ai_learning(): void
+    {
+        $registrador = $this->adminUser();
+        $ejecutor = $this->adminUser();
+        $linea = $this->lavadoraLinea();
+
+        $plan = PlanAccion::create([
+            'linea_id' => $linea->id,
+            'actividad' => 'Ajustar tension de cadena',
+            'tipo_equipo' => 'lavadora',
+            'registrado_por_id' => $registrador->id,
+            'responsable_id' => $registrador->id,
+            'fecha_pcm1' => '2026-07-01',
+            'completado' => false,
+            'estimated_cost_total' => 1000,
+            'estimated_hours' => 2,
+        ]);
+
+        $this->actingAs($ejecutor)
+            ->postJson("/plan-accion/{$plan->id}/checklist", [
+                'actual_cost_total' => 1250.75,
+                'actual_hours' => 2.5,
+                'effectiveness' => PlanAccion::EFFECTIVENESS_EFFECTIVE,
+                'execution_result' => 'Se ajusto tension, se valido operacion y no quedo vibracion.',
+            ])
+            ->assertOk()
+            ->assertJsonPath('completado', true)
+            ->assertJsonPath('actual_cost_total', 1250.75)
+            ->assertJsonPath('actual_hours', 2.5)
+            ->assertJsonPath('effectiveness', PlanAccion::EFFECTIVENESS_EFFECTIVE)
+            ->assertJsonPath('effectiveness_label', 'Efectivo');
+
+        $plan->refresh();
+
+        $this->assertTrue($plan->completado);
+        $this->assertSame($ejecutor->id, $plan->ejecutado_por_id);
+        $this->assertSame(1250.75, $plan->actual_cost_total);
+        $this->assertSame(2.5, $plan->actual_hours);
+        $this->assertSame(PlanAccion::EFFECTIVENESS_EFFECTIVE, $plan->effectiveness);
+        $this->assertStringContainsString('se valido operacion', $plan->execution_result);
+        $this->assertSame('quick_complete', $plan->review_history[0]['action'] ?? null);
+
+        $this->actingAs($ejecutor)
+            ->getJson(route('plan-accion.show', ['plan_accion' => $plan->id]))
+            ->assertOk()
+            ->assertJsonPath('execution_feedback.has_feedback', true)
+            ->assertJsonPath('execution_feedback.effectiveness_label', 'Efectivo');
+    }
+
+    public function test_update_records_execution_feedback_from_edit_form(): void
+    {
+        $registrador = $this->adminUser();
+        $ejecutor = $this->adminUser();
+        $linea = $this->lavadoraLinea();
+
+        $plan = PlanAccion::create([
+            'linea_id' => $linea->id,
+            'actividad' => 'Revisar chumaceras',
+            'tipo_equipo' => 'lavadora',
+            'registrado_por_id' => $registrador->id,
+            'responsable_id' => $registrador->id,
+            'fecha_pcm1' => '2026-07-01',
+            'completado' => false,
+        ]);
+
+        $this->actingAs($ejecutor)
+            ->put(route('plan-accion.update', ['plan_accion' => $plan->id]), [
+                'tipo' => 'lavadora',
+                'linea_id' => $linea->id,
+                'actividad' => 'Revisar chumaceras y lubricar',
+                'responsable_id' => $registrador->id,
+                'fecha_pcm1' => '2026-07-02',
+                'completado' => '1',
+                'actual_cost_total' => '300.50',
+                'actual_hours' => '1.25',
+                'effectiveness' => PlanAccion::EFFECTIVENESS_PARTIALLY_EFFECTIVE,
+                'execution_result' => 'Se lubrico, pero queda seguimiento por ruido leve.',
+            ])
+            ->assertRedirect(route('plan-accion.index', [
+                'tipo' => 'lavadora',
+                'linea_id' => $linea->id,
+            ]));
+
+        $plan->refresh();
+
+        $this->assertTrue($plan->completado);
+        $this->assertSame($ejecutor->id, $plan->ejecutado_por_id);
+        $this->assertSame(300.5, $plan->actual_cost_total);
+        $this->assertSame(1.25, $plan->actual_hours);
+        $this->assertSame(PlanAccion::EFFECTIVENESS_PARTIALLY_EFFECTIVE, $plan->effectiveness);
+        $this->assertSame('manual_update', $plan->review_history[0]['action'] ?? null);
+    }
+
     private function adminUser(): User
     {
         Role::firstOrCreate([

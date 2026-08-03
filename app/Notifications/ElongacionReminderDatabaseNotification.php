@@ -19,6 +19,9 @@ class ElongacionReminderDatabaseNotification extends Notification
      *     last_recorded_at: CarbonInterface,
      *     days_remaining: int,
      *     status: string
+     *     elongacion_id: int|null,
+     *     cadena_ciclo_id: int|null,
+     *     ciclo: string|null
      * }>  $alerts
      */
     public function __construct(
@@ -57,6 +60,9 @@ class ElongacionReminderDatabaseNotification extends Notification
                 return [
                     'linea' => $alert['linea'],
                     'linea_id' => $alert['linea_id'],
+                    'elongacion_id' => $alert['elongacion_id'] ?? null,
+                    'cadena_ciclo_id' => $alert['cadena_ciclo_id'] ?? null,
+                    'ciclo' => $alert['ciclo'] ?? null,
                     'ultimo_registro' => $alert['last_recorded_at']->format('Y-m-d H:i:s'),
                     'vence_el' => $alert['due_at']->format('Y-m-d'),
                     'dias_restantes' => $alert['days_remaining'],

@@ -72,4 +72,84 @@ class SendElongacionStatusNotificationsCommandTest extends TestCase
             ->expectsOutputToContain('Omitidas: 1')
             ->assertSuccessful();
     }
+
+    public function test_command_ignores_status_alerts_from_closed_cycles(): void
+    {
+        $user = User::factory()->create();
+        $linea = Linea::create([
+            'nombre' => 'L-04',
+            'descripcion' => 'Linea de prueba',
+            'tipo' => 'lavadora',
+            'activo' => true,
+        ]);
+
+        $cicloCerrado = CadenaCiclo::create([
+            'linea_id' => $linea->id,
+            'linea' => 'L-04',
+            'codigo' => 'L-04-C001',
+            'numero_ciclo' => 1,
+            'proveedor' => 'Proveedor anterior',
+            'paso_inicial' => Elongacion::getPasoInicial('L-04'),
+            'hodometro_inicial' => 0,
+            'instalada_en' => now()->subMonths(4),
+            'retirada_en' => now()->subMonth(),
+            'activa' => false,
+        ]);
+
+        $cicloActivo = CadenaCiclo::create([
+            'linea_id' => $linea->id,
+            'linea' => 'L-04',
+            'codigo' => 'L-04-C002',
+            'numero_ciclo' => 2,
+            'proveedor' => 'Proveedor actual',
+            'paso_inicial' => Elongacion::getPasoInicial('L-04'),
+            'hodometro_inicial' => 0,
+            'instalada_en' => now()->subDays(10),
+            'activa' => true,
+        ]);
+
+        Elongacion::create([
+            'linea_id' => $linea->id,
+            'linea' => 'L-04',
+            'cadena_ciclo_id' => $cicloCerrado->id,
+            'proveedor' => 'Proveedor anterior',
+            'seccion' => 'LAVADORA',
+            'bombas_promedio' => 175.6,
+            'bombas_porcentaje' => 1.50,
+            'vapor_promedio' => 175.6,
+            'vapor_porcentaje' => 1.50,
+            'requiere_cambio' => true,
+            'estado' => 'critico',
+            'estado_detallado' => 'cambio',
+            'paso_inicial' => Elongacion::getPasoInicial('L-04'),
+            'hodometro' => 0,
+            'hodometro_ciclo' => 0,
+        ]);
+
+        Elongacion::create([
+            'linea_id' => $linea->id,
+            'linea' => 'L-04',
+            'cadena_ciclo_id' => $cicloActivo->id,
+            'proveedor' => 'Proveedor actual',
+            'seccion' => 'LAVADORA',
+            'bombas_promedio' => 173,
+            'bombas_porcentaje' => 0,
+            'vapor_promedio' => 173,
+            'vapor_porcentaje' => 0,
+            'requiere_cambio' => false,
+            'estado' => 'normal',
+            'estado_detallado' => 'normal',
+            'paso_inicial' => Elongacion::getPasoInicial('L-04'),
+            'hodometro' => 0,
+            'hodometro_ciclo' => 0,
+        ]);
+
+        $this->artisan('elongaciones:notify-status', [
+            '--dry-run' => true,
+        ])
+            ->expectsOutputToContain('Registros: 0')
+            ->assertSuccessful();
+
+        $this->assertSame(0, $user->fresh()->notifications()->count());
+    }
 }

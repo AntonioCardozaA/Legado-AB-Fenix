@@ -16,7 +16,8 @@ class WasherActionPlanGenerator
         private readonly WasherActionPlanPromptBuilder $promptBuilder,
         private readonly StructuredActionPlanValidator $validator,
         private readonly AiProviderInterface $aiProvider,
-        private readonly WasherActionPlanReviewNotifier $notifier
+        private readonly WasherActionPlanReviewNotifier $notifier,
+        private readonly AiInteractionLogger $interactionLogger
     ) {
     }
 
@@ -24,8 +25,42 @@ class WasherActionPlanGenerator
     {
         $context = $this->contextBuilder->build($event);
         $prompt = $this->promptBuilder->build($context);
-        $response = $this->aiProvider->generateStructuredActionPlan($prompt);
-        $validated = $this->validator->validate($response['data']);
+
+        try {
+            $response = $this->aiProvider->generateStructuredActionPlan($prompt);
+            $validated = $this->validator->validate($response['data']);
+        } catch (Throwable $exception) {
+            $this->interactionLogger->failure(null, 'washer_action_plan_generation', $exception, [
+                'source_type' => 'maintenance_event',
+                'source_id' => $event->id,
+                'prompt_version' => $prompt['prompt_version'] ?? config('maintenance_ai.prompt_version'),
+                'input_chars' => mb_strlen((string) ($prompt['system_prompt'] ?? '') . (string) ($prompt['user_prompt'] ?? '')),
+                'metadata' => [
+                    'linea_id' => $event->linea_id,
+                    'componente_id' => $event->componente_id,
+                    'event_type' => $event->event_type,
+                    'severity' => $event->severity,
+                ],
+            ]);
+
+            throw $exception;
+        }
+
+        $this->interactionLogger->success(null, 'washer_action_plan_generation', $response, [
+            'source_type' => 'maintenance_event',
+            'source_id' => $event->id,
+            'prompt_version' => $prompt['prompt_version'] ?? config('maintenance_ai.prompt_version'),
+            'input_chars' => mb_strlen((string) ($prompt['system_prompt'] ?? '') . (string) ($prompt['user_prompt'] ?? '')),
+            'output_chars' => mb_strlen((string) json_encode($validated, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)),
+            'metadata' => [
+                'linea_id' => $event->linea_id,
+                'componente_id' => $event->componente_id,
+                'event_type' => $event->event_type,
+                'severity' => $event->severity,
+                'confidence' => $validated['confidence'] ?? null,
+                'knowledge_sources_count' => count($validated['knowledge_sources'] ?? []),
+            ],
+        ]);
 
         /** @var PlanAccion $plan */
         $plan = DB::transaction(function () use ($context, $event, $prompt, $response, $validated) {
@@ -87,6 +122,19 @@ class WasherActionPlanGenerator
         $context = $this->contextBuilder->build($event);
         $structured = $this->fallbackStructuredContent($event, $context, $exception);
         $error = $this->truncate($exception->getMessage(), 500);
+
+        $this->interactionLogger->failure(null, 'washer_action_plan_fallback', $exception, [
+            'source_type' => 'maintenance_event',
+            'source_id' => $event->id,
+            'prompt_version' => config('maintenance_ai.prompt_version'),
+            'output_chars' => mb_strlen((string) json_encode($structured, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)),
+            'metadata' => [
+                'linea_id' => $event->linea_id,
+                'componente_id' => $event->componente_id,
+                'event_type' => $event->event_type,
+                'severity' => $event->severity,
+            ],
+        ]);
 
         /** @var PlanAccion $plan */
         $plan = DB::transaction(function () use ($context, $event, $structured, $error) {
@@ -206,6 +254,7 @@ class WasherActionPlanGenerator
                     'type' => $item['type'] ?? 'revision',
                     'reference' => $this->truncate((string) ($item['reference'] ?? 'Contexto del evento'), 255),
                     'document_id' => $item['document_id'] ?? null,
+                    'chunk_index' => $item['chunk_index'] ?? null,
                     'page' => $item['page'] ?? null,
                     'section' => $item['section'] ?? null,
                 ])

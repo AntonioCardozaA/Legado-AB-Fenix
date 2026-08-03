@@ -111,6 +111,42 @@ class WasherMaintenanceRuleEngineTest extends TestCase
         $this->assertContains('rodaja_out_of_tolerance', $types);
     }
 
+    public function test_elongacion_rules_ignore_records_from_closed_cycles(): void
+    {
+        Carbon::setTestNow('2026-07-16 09:00:00');
+
+        $linea = $this->washerLine();
+        $cicloCerrado = CadenaCiclo::create([
+            'linea_id' => $linea->id,
+            'linea' => $linea->nombre,
+            'codigo' => 'L-04-C001',
+            'numero_ciclo' => 1,
+            'proveedor' => 'Proveedor anterior',
+            'paso_inicial' => 173,
+            'hodometro_inicial' => 0,
+            'instalada_en' => now()->subMonths(4),
+            'retirada_en' => now()->subMonth(),
+            'activa' => false,
+        ]);
+        CadenaCiclo::create([
+            'linea_id' => $linea->id,
+            'linea' => $linea->nombre,
+            'codigo' => 'L-04-C002',
+            'numero_ciclo' => 2,
+            'proveedor' => 'Proveedor actual',
+            'paso_inicial' => 173,
+            'hodometro_inicial' => 0,
+            'instalada_en' => now()->subDays(10),
+            'activa' => true,
+        ]);
+
+        $historico = $this->createElongacionRecord($linea, $cicloCerrado, '2026-05-10 08:00:00', 1.50, 1.48, 2.30);
+
+        $events = app(WasherMaintenanceRuleEngine::class)->forElongacion($historico);
+
+        $this->assertTrue($events->isEmpty());
+    }
+
     private function createElongacionRecord(Linea $linea, CadenaCiclo $ciclo, string $createdAt, float $bombas, float $vapor, float $rodaja): Elongacion
     {
         $elongacion = Elongacion::create([

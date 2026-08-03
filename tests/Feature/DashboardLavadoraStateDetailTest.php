@@ -4,7 +4,9 @@ namespace Tests\Feature;
 
 use App\Http\Controllers\DashboardController;
 use App\Models\AnalisisLavadora;
+use App\Models\CadenaCiclo;
 use App\Models\Componente;
+use App\Models\Elongacion;
 use App\Models\Linea;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use ReflectionMethod;
@@ -129,6 +131,32 @@ class DashboardLavadoraStateDetailTest extends TestCase
         $this->assertSame(0, $estado['total_alertas_componentes']);
     }
 
+    public function test_lavadora_state_uses_only_active_cycle_elongacion(): void
+    {
+        $linea = Linea::create([
+            'nombre' => 'L-04',
+            'descripcion' => 'Lavadora de prueba',
+            'tipo' => 'lavadora',
+            'activo' => true,
+        ]);
+
+        $cicloCerrado = $this->crearCiclo($linea, 1, false);
+        $cicloActivo = $this->crearCiclo($linea, 2, true);
+
+        $this->crearElongacion($cicloCerrado, 1.50, 1.48, '2026-06-01 08:00:00');
+        $elongacionActiva = $this->crearElongacion($cicloActivo, 0.20, 0.25, '2026-07-01 08:00:00');
+
+        $controller = app(DashboardController::class);
+        $method = new ReflectionMethod($controller, 'calcularEstadoLavadora');
+        $method->setAccessible(true);
+
+        /** @var array<string, mixed> $estado */
+        $estado = $method->invoke($controller, $linea->id);
+
+        $this->assertSame('bueno', $estado['nivel']);
+        $this->assertSame($elongacionActiva->id, $estado['ultima_elongacion']?->id);
+    }
+
     private function crearAnalisis(
         Linea $linea,
         string $codigo,
@@ -156,5 +184,50 @@ class DashboardLavadoraStateDetailTest extends TestCase
             'estado' => $estado,
             'actividad' => 'Registro de prueba ' . $codigo,
         ]));
+    }
+
+    private function crearCiclo(Linea $linea, int $numeroCiclo, bool $activa): CadenaCiclo
+    {
+        return CadenaCiclo::create([
+            'linea_id' => $linea->id,
+            'linea' => $linea->nombre,
+            'codigo' => sprintf('%s-C%03d', $linea->nombre, $numeroCiclo),
+            'numero_ciclo' => $numeroCiclo,
+            'proveedor' => 'Proveedor test',
+            'paso_inicial' => Elongacion::getPasoInicial($linea->nombre),
+            'hodometro_inicial' => 0,
+            'instalada_en' => '2026-01-01 08:00:00',
+            'retirada_en' => $activa ? null : '2026-06-15 08:00:00',
+            'activa' => $activa,
+        ]);
+    }
+
+    private function crearElongacion(CadenaCiclo $ciclo, float $bombas, float $vapor, string $createdAt): Elongacion
+    {
+        $pasoInicial = Elongacion::getPasoInicial($ciclo->linea);
+        $elongacion = Elongacion::create([
+            'linea_id' => $ciclo->linea_id,
+            'linea' => $ciclo->linea,
+            'cadena_ciclo_id' => $ciclo->id,
+            'proveedor' => $ciclo->proveedor,
+            'seccion' => 'LAVADORA',
+            'bombas_promedio' => $pasoInicial,
+            'bombas_porcentaje' => $bombas,
+            'vapor_promedio' => $pasoInicial,
+            'vapor_porcentaje' => $vapor,
+            'requiere_cambio' => $bombas >= Elongacion::LIMITE_CAMBIO || $vapor >= Elongacion::LIMITE_CAMBIO,
+            'estado' => ($bombas >= Elongacion::LIMITE_CAMBIO || $vapor >= Elongacion::LIMITE_CAMBIO) ? 'critico' : 'normal',
+            'estado_detallado' => ($bombas >= Elongacion::LIMITE_CAMBIO || $vapor >= Elongacion::LIMITE_CAMBIO) ? 'cambio' : 'normal',
+            'paso_inicial' => $pasoInicial,
+            'hodometro' => 0,
+            'hodometro_ciclo' => 0,
+        ]);
+
+        $elongacion->forceFill([
+            'created_at' => $createdAt,
+            'updated_at' => $createdAt,
+        ])->saveQuietly();
+
+        return $elongacion->fresh();
     }
 }

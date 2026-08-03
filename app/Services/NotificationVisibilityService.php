@@ -6,6 +6,7 @@ use App\Models\Analisis;
 use App\Models\AnalisisEtiquetadora;
 use App\Models\AnalisisLavadora;
 use App\Models\AnalisisPasteurizadora;
+use App\Models\Elongacion;
 use App\Models\PlanAccion;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
@@ -169,6 +170,12 @@ class NotificationVisibilityService
     {
         $data = $notification->data ?? [];
 
+        $elongacionTarget = $this->elongacionNotificationTargetExists($data);
+
+        if ($elongacionTarget !== null) {
+            return $elongacionTarget;
+        }
+
         $planId = $this->planActionIdFromData($data);
 
         if (filled($planId)) {
@@ -191,6 +198,70 @@ class NotificationVisibilityService
             ->withoutGlobalScopes()
             ->whereKey($target['id'])
             ->exists();
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    private function elongacionNotificationTargetExists(array $data): ?bool
+    {
+        $type = (string) ($data['type'] ?? '');
+
+        if (in_array($type, ['elongacion_change_alert', 'elongacion_purchase_alert'], true)) {
+            return $this->currentElongacionRecordExists($data['elongacion_id'] ?? null);
+        }
+
+        if ($type !== 'elongacion_reminder') {
+            return null;
+        }
+
+        $detalles = collect($data['detalles'] ?? []);
+
+        if ($detalles->isEmpty()) {
+            return true;
+        }
+
+        return $detalles->every(function (mixed $detalle): bool {
+            $detalle = (array) $detalle;
+
+            if (!empty($detalle['elongacion_id'])) {
+                return $this->currentElongacionRecordExists($detalle['elongacion_id'], true);
+            }
+
+            $linea = trim((string) ($detalle['linea'] ?? ''));
+
+            if ($linea === '') {
+                return false;
+            }
+
+            $elongacion = Elongacion::latestForCurrentActiveCycles($linea)->first();
+
+            if (!$elongacion || !$elongacion->revision_needs_alert) {
+                return false;
+            }
+
+            $ultimoRegistro = (string) ($detalle['ultimo_registro'] ?? '');
+
+            return $ultimoRegistro === ''
+                || $elongacion->created_at?->format('Y-m-d H:i:s') === $ultimoRegistro;
+        });
+    }
+
+    private function currentElongacionRecordExists(mixed $id, bool $requireRevisionAlert = false): bool
+    {
+        if (blank($id)) {
+            return false;
+        }
+
+        $elongacion = Elongacion::query()
+            ->with('cadenaCiclo')
+            ->find($id);
+
+        if (!$elongacion || !$elongacion->is_latest_current_cycle_record) {
+            return false;
+        }
+
+        return !$requireRevisionAlert || $elongacion->revision_needs_alert;
     }
 
     /**

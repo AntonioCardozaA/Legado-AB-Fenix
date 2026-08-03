@@ -55,6 +55,7 @@ class User extends Authenticatable
     public const PERMISSION_EDIT_LAVADORA_COSTS = 'editar costos lavadora';
     public const PERMISSION_DELETE_LAVADORA_COSTS = 'eliminar costos lavadora';
     public const PERMISSION_MANAGE_LAVADORA_COSTS = 'gestionar costos lavadora';
+    public const PERMISSION_VIEW_AI_OBSERVABILITY = 'ver observabilidad ia';
 
     /**
      * The attributes that should be hidden for serialization.
@@ -316,6 +317,11 @@ public function canManageLavadoraCosts(): bool
     }
 
     return $this->hasDirectPermissionSafely(self::PERMISSION_MANAGE_LAVADORA_COSTS);
+}
+
+public function canViewAiObservability(): bool
+{
+    return $this->canUseCustomPermission(self::PERMISSION_VIEW_AI_OBSERVABILITY);
 }
 
 public function hasDirectAnalysisDeletionPermission(): bool

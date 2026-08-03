@@ -9,6 +9,7 @@ use App\Models\Linea;
 use App\Models\User;
 use App\Services\NotificationService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 class PlanAccionController extends Controller
@@ -166,10 +167,11 @@ class PlanAccionController extends Controller
         $this->ensureCanAccessPlan($plan);
 
         $validated = $this->prepararDatosValidados(
-            $request->validate($this->reglasValidacion($tipo)),
+            $request->validate(array_merge($this->reglasValidacion($tipo), $this->reglasValidacionCierreTecnico())),
             $tipo
         );
-        $plan->update($validated);
+
+        $this->guardarActualizacionPlan($plan, $validated, $request->has('completado'), 'manual_update');
 
         return redirect()->route('plan-accion.index', [
             'tipo' => $tipo,
@@ -334,6 +336,8 @@ class PlanAccionController extends Controller
         $plan->setAttribute('structured_content', $plan->currentStructuredContent());
         $plan->setAttribute('source_label', $plan->sourceLabel());
         $plan->setAttribute('maintenance_event_source_url', $plan->maintenanceEvent?->sourceUrl());
+        $plan->setAttribute('effectiveness_label', $plan->effectivenessLabel());
+        $plan->setAttribute('execution_feedback', $plan->executionFeedbackSummary());
 
         return response()->json($plan);
     }
@@ -360,10 +364,11 @@ class PlanAccionController extends Controller
         $this->ensureCanAccessPlan($plan);
 
         $validated = $this->prepararDatosValidados(
-            $request->validate($this->reglasValidacion($tipo)),
+            $request->validate(array_merge($this->reglasValidacion($tipo), $this->reglasValidacionCierreTecnico())),
             $tipo
         );
-        $plan->update($validated);
+
+        $this->guardarActualizacionPlan($plan, $validated, $request->has('completado'), 'manual_update');
 
         return redirect()->route('plan-accion.index', [
             'tipo' => $tipo,
@@ -577,10 +582,11 @@ class PlanAccionController extends Controller
             })->count();
     }
 
-      public function checklist($id)
+      public function checklist(Request $request, $id)
     {
         $plan = PlanAccion::with($this->relacionesTrazabilidad())->findOrFail($id);
         $this->ensureCanAccessPlan($plan);
+        $validated = $request->validate($this->reglasValidacionCierreTecnico());
 
         $plan->completado = !$plan->completado;
 
@@ -591,11 +597,20 @@ class PlanAccionController extends Controller
             if (!$plan->responsable_id) {
                 $plan->responsable_id = auth()->id();
             }
+
+            $this->aplicarCierreTecnico($plan, $validated);
+            foreach (['actual_cost_total', 'actual_hours', 'execution_result', 'effectiveness'] as $field) {
+                if (array_key_exists($field, $validated)) {
+                    $plan->{$field} = $validated[$field];
+                }
+            }
         } else {
             $plan->ejecutado_por_id = null;
             $plan->fecha_ejecucion = null;
         }
 
+        $validated['completado'] = $plan->completado;
+        $this->registrarHistorialCierreTecnico($plan, $validated, $plan->completado ? 'quick_complete' : 'quick_reopen');
         $plan->save();
         $plan->load(['ejecutadoPor', 'responsable']);
 
@@ -607,6 +622,12 @@ class PlanAccionController extends Controller
             'ejecutado_por' => $plan->ejecutadoPor,
             'responsable' => $plan->responsable,
             'fecha_ejecucion' => optional($plan->fecha_ejecucion)->toISOString(),
+            'actual_cost_total' => $plan->actual_cost_total,
+            'actual_hours' => $plan->actual_hours,
+            'execution_result' => $plan->execution_result,
+            'effectiveness' => $plan->effectiveness,
+            'effectiveness_label' => $plan->effectivenessLabel(),
+            'execution_feedback' => $plan->executionFeedbackSummary(),
         ]);
     }
 
@@ -658,6 +679,17 @@ class PlanAccionController extends Controller
         return $reglas;
     }
 
+    private function reglasValidacionCierreTecnico(): array
+    {
+        return [
+            'completado' => ['nullable', 'boolean'],
+            'actual_cost_total' => ['nullable', 'numeric', 'min:0', 'max:999999999999.99'],
+            'actual_hours' => ['nullable', 'numeric', 'min:0', 'max:99999.99'],
+            'execution_result' => ['nullable', 'string', 'max:3000'],
+            'effectiveness' => ['nullable', Rule::in(array_keys(PlanAccion::effectivenessOptions()))],
+        ];
+    }
+
     private function prepararDatosValidados(array $validated, string $tipo): array
     {
         $tipo = $this->normalizarTipo($tipo);
@@ -672,6 +704,83 @@ class PlanAccionController extends Controller
         }
 
         return $validated;
+    }
+
+    private function guardarActualizacionPlan(PlanAccion $plan, array $validated, bool $incluyeEstadoCompletado, string $accionHistorial): void
+    {
+        $this->sincronizarEstadoCompletado($plan, $validated, $incluyeEstadoCompletado);
+        $this->aplicarCierreTecnico($plan, $validated);
+
+        $plan->fill($validated);
+        $this->registrarHistorialCierreTecnico($plan, $validated, $accionHistorial);
+        $plan->save();
+    }
+
+    private function sincronizarEstadoCompletado(PlanAccion $plan, array &$validated, bool $incluyeEstadoCompletado): void
+    {
+        if (!$incluyeEstadoCompletado) {
+            unset($validated['completado']);
+
+            return;
+        }
+
+        $validated['completado'] = (bool) ($validated['completado'] ?? false);
+
+        if ($validated['completado'] && !$plan->completado) {
+            $validated['ejecutado_por_id'] = auth()->id();
+            $validated['fecha_ejecucion'] = now();
+
+            if (!$plan->responsable_id && !isset($validated['responsable_id'])) {
+                $validated['responsable_id'] = auth()->id();
+            }
+        }
+
+        if (!$validated['completado'] && $plan->completado) {
+            $validated['ejecutado_por_id'] = null;
+            $validated['fecha_ejecucion'] = null;
+        }
+    }
+
+    private function aplicarCierreTecnico(PlanAccion $plan, array &$validated): void
+    {
+        foreach (['actual_cost_total', 'actual_hours'] as $field) {
+            if (array_key_exists($field, $validated) && $validated[$field] !== null) {
+                $validated[$field] = round((float) $validated[$field], 2);
+            }
+        }
+
+        foreach (['execution_result', 'effectiveness'] as $field) {
+            if (array_key_exists($field, $validated) && is_string($validated[$field])) {
+                $validated[$field] = trim($validated[$field]);
+            }
+        }
+    }
+
+    private function registrarHistorialCierreTecnico(PlanAccion $plan, array $validated, string $accion): void
+    {
+        $fields = ['completado', 'actual_cost_total', 'actual_hours', 'execution_result', 'effectiveness'];
+        $feedback = [];
+        $isQuickAction = in_array($accion, ['quick_complete', 'quick_reopen'], true);
+
+        foreach ($fields as $field) {
+            if (array_key_exists($field, $validated) && ($isQuickAction || $plan->isDirty($field))) {
+                $feedback[$field] = $field === 'execution_result'
+                    ? Str::limit((string) $validated[$field], 600)
+                    : $validated[$field];
+            }
+        }
+
+        if ($feedback === []) {
+            return;
+        }
+
+        $plan->appendReviewHistory([
+            'action' => $accion,
+            'actor_id' => auth()->id(),
+            'actor_name' => auth()->user()?->name,
+            'at' => now()->toIso8601String(),
+            'execution_feedback' => $feedback,
+        ]);
     }
 
     private function resolveAreaPasteurizadoraLabel(PlanAccion $plan): ?string

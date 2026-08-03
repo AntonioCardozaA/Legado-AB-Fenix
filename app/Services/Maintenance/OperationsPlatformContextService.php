@@ -94,6 +94,7 @@ class OperationsPlatformContextService
             'lineas',
             'componentes',
             'analisis_etiquetadora',
+            'plan_accion',
         ],
         'general' => [
             'users',
@@ -314,6 +315,25 @@ class OperationsPlatformContextService
                 'completados' => PlanAccion::query()->where('completado', true)->count(),
                 'pendientes' => PlanAccion::query()->where('completado', false)->count(),
                 'sugeridos_por_ia' => PlanAccion::query()->where('source', 'ai')->count(),
+                'con_cierre_tecnico' => PlanAccion::query()
+                    ->where('completado', true)
+                    ->where(function ($query): void {
+                        $query->whereNotNull('execution_result')
+                            ->orWhereNotNull('effectiveness')
+                            ->orWhereNotNull('actual_cost_total')
+                            ->orWhereNotNull('actual_hours');
+                    })
+                    ->count(),
+                'efectivos' => PlanAccion::query()
+                    ->where('completado', true)
+                    ->where('effectiveness', PlanAccion::EFFECTIVENESS_EFFECTIVE)
+                    ->count(),
+                'costo_real_total' => round((float) PlanAccion::query()
+                    ->where('completado', true)
+                    ->sum('actual_cost_total'), 2),
+                'horas_reales_total' => round((float) PlanAccion::query()
+                    ->where('completado', true)
+                    ->sum('actual_hours'), 2),
             ],
             'eventos_mantenimiento' => [
                 'total' => MaintenanceEvent::query()->count(),
@@ -407,6 +427,8 @@ class OperationsPlatformContextService
                 ->orderByDesc('id')
                 ->limit($limit)
                 ->get()
+                ->filter(fn (MaintenanceEvent $event): bool => $this->userCanSeeMaintenanceEventInContext($user, $event))
+                ->values()
                 ->map(fn (MaintenanceEvent $event): array => $this->maintenanceEventSummary($event))
                 ->all(),
         ];
@@ -511,12 +533,17 @@ class OperationsPlatformContextService
                         $plan->maintenanceEvent?->componente?->nombre,
                         $plan->detected_problem,
                         $plan->technical_justification,
+                        $plan->execution_result,
+                        $plan->effectivenessLabel(),
                     ]),
                     'score' => $this->scoreTokens($tokens, implode(' ', [
                         (string) $plan->actividad,
                         (string) $plan->detected_problem,
                         (string) $plan->technical_justification,
                         (string) $plan->risk_if_not_executed,
+                        (string) $plan->execution_result,
+                        (string) $plan->effectiveness,
+                        (string) $plan->effectivenessLabel(),
                         (string) ($plan->linea?->nombre ?? ''),
                         (string) ($plan->maintenanceEvent?->componente?->nombre ?? ''),
                     ])),
@@ -530,6 +557,8 @@ class OperationsPlatformContextService
                 ->orderByDesc('id')
                 ->limit(40)
                 ->get()
+                ->filter(fn (MaintenanceEvent $event): bool => $this->userCanSeeMaintenanceEventInContext($user, $event))
+                ->values()
                 ->map(fn (MaintenanceEvent $event): array => [
                     'module' => $this->moduleFromMaintenanceEvent($event),
                     'type' => 'maintenance_event',
@@ -2021,7 +2050,7 @@ class OperationsPlatformContextService
             );
         }
 
-        if ($this->hasTable('analisis')) {
+        if ($this->hasTable('analisis') && $user->canAccessModule(User::MODULE_LAVADORA)) {
             $entries = $entries->concat(
                 Analisis::query()
                     ->with(['linea', 'componente'])
@@ -2277,6 +2306,17 @@ class OperationsPlatformContextService
         return true;
     }
 
+    private function userCanSeeMaintenanceEventInContext(User $user, MaintenanceEvent $event): bool
+    {
+        $module = $this->moduleFromMaintenanceEvent($event);
+
+        if (in_array($module, [User::MODULE_LAVADORA, User::MODULE_PASTEURIZADORA, User::MODULE_ETIQUETADORA], true)) {
+            return $user->canAccessModule($module);
+        }
+
+        return $user->hasRole(User::ROLE_ADMIN);
+    }
+
     /**
      * @param  array<int, mixed>  $parts
      */
@@ -2326,6 +2366,9 @@ class OperationsPlatformContextService
             'componente' => $plan->maintenanceEvent?->componente?->nombre,
             'fecha_objetivo' => optional($plan->fecha_pcm1)->toDateString(),
             'source' => $plan->source,
+            'completado' => (bool) $plan->completado,
+            'fecha_ejecucion' => optional($plan->fecha_ejecucion)->toDateString(),
+            'cierre_tecnico' => $plan->executionFeedbackSummary(),
         ];
     }
 
@@ -2802,7 +2845,11 @@ class OperationsPlatformContextService
             ->orderByDesc('id')
             ->get();
 
-        if ($records->isEmpty()) {
+        $latestByLine = Elongacion::latestForCurrentActiveCycles()
+            ->sortByDesc(fn (Elongacion $elongacion): float => $this->elongacionMaxValue($elongacion))
+            ->values();
+
+        if ($records->isEmpty() && $latestByLine->isEmpty()) {
             return [
                 'current_by_line' => [],
                 'highest_current' => null,
@@ -2813,15 +2860,6 @@ class OperationsPlatformContextService
                 'lineas_en_cambio' => 0,
             ];
         }
-
-        $latestByLine = $records
-            ->groupBy(function (Elongacion $elongacion): string {
-                return trim((string) ($elongacion->linea ?: $elongacion->lineaModel?->nombre ?: 'Sin linea'));
-            })
-            ->map(fn (Collection $items) => $items->first())
-            ->values()
-            ->sortByDesc(fn (Elongacion $elongacion): float => $this->elongacionMaxValue($elongacion))
-            ->values();
 
         $currentByLine = $latestByLine
             ->map(fn (Elongacion $elongacion): array => $this->elongacionComparisonSummary($elongacion))

@@ -193,6 +193,8 @@
                             </div>
                         </div>
 
+                        @include('plan-accion.partials.execution-feedback-fields', ['plan' => $plan])
+
                         <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
                             <h6 class="text-sm font-semibold text-gray-600 mb-3 flex items-center">
                                 <i class="fas fa-info-circle mr-2 text-blue-500"></i>

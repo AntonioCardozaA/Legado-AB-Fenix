@@ -14,7 +14,8 @@ class OperationsAssistantService
         private readonly AiProviderInterface $aiProvider,
         private readonly PromptSafetySanitizer $sanitizer,
         private readonly AssistantKnowledgeSearchService $knowledgeSearch,
-        private readonly OperationsPlatformContextService $platformContext
+        private readonly OperationsPlatformContextService $platformContext,
+        private readonly AiInteractionLogger $interactionLogger
     ) {
     }
 
@@ -39,17 +40,38 @@ class OperationsAssistantService
         $platformContext = $this->buildPlatformContext($user, $question, $safePageContext);
 
         if ($deterministicReply = $this->resolveDeterministicReply($question, $platformContext)) {
+            $this->interactionLogger->fallback($user, 'assistant_chat', [
+                'provider' => data_get($deterministicReply, 'metadata.provider'),
+                'model' => data_get($deterministicReply, 'metadata.model'),
+                'input_chars' => mb_strlen($question),
+                'output_chars' => mb_strlen((string) $deterministicReply['content']),
+                'metadata' => [
+                    'mode' => 'deterministic_platform_context',
+                    'confidence' => data_get($deterministicReply, 'metadata.confidence'),
+                    'sources_count' => count((array) data_get($deterministicReply, 'metadata.sources', [])),
+                    'platform_query_matches' => count($platformContext['query_matches'] ?? []),
+                    'platform_recent_evidence' => count($platformContext['recent_evidence'] ?? []),
+                ],
+            ]);
+
             return $deterministicReply;
         }
 
         if (!(bool) config('maintenance_ai.enabled', false)) {
+            $this->interactionLogger->fallback($user, 'assistant_chat', [
+                'input_chars' => mb_strlen($question),
+                'metadata' => [
+                    'mode' => 'disabled',
+                ],
+            ]);
+
             return [
                 'content' => 'El asistente no esta disponible porque la IA del sistema esta deshabilitada en este momento.',
                 'metadata' => ['fallback' => true, 'disabled' => true],
             ];
         }
 
-        $knowledge = $this->knowledgeSearch->search($question, $safePageContext);
+        $knowledge = $this->knowledgeSearch->search($question, $safePageContext, $user);
 
         $payload = [
             'system_prompt' => $this->systemPrompt(),
@@ -66,9 +88,22 @@ class OperationsAssistantService
 
         $response = $this->aiProvider->generateStructuredActionPlan($payload);
         $structured = is_array($response['data'] ?? null) ? $response['data'] : [];
+        $content = $this->composeMessage($structured);
+
+        $this->interactionLogger->success($user, 'assistant_chat', $response, [
+            'input_chars' => mb_strlen($payload['system_prompt'] . $payload['user_prompt']),
+            'output_chars' => mb_strlen($content),
+            'metadata' => [
+                'question_excerpt' => $this->sanitizer->sanitizeText($question, 240),
+                'knowledge_count' => count($knowledge),
+                'platform_query_matches' => count($platformContext['query_matches'] ?? []),
+                'platform_recent_evidence' => count($platformContext['recent_evidence'] ?? []),
+                'page_context' => $safePageContext,
+            ],
+        ]);
 
         return [
-            'content' => $this->composeMessage($structured),
+            'content' => $content,
             'metadata' => [
                 'provider' => Arr::get($response, 'meta.provider'),
                 'model' => Arr::get($response, 'meta.model'),
@@ -108,6 +143,7 @@ class OperationsAssistantService
                 'Priorizar module_insights cuando exista, porque resume comparativos, rankings y estados actuales listos para responder.',
                 'Si module_insights contiene lubrication_lookup o coincidencias de documentos indexados, usarlos antes de concluir que falta informacion.',
                 'Si module_insights contiene refaction_cost_lookup, usarlo como fuente principal para responder costos, SKUs, compatibilidad por linea y refacciones de lavadora.',
+                'Cuando relevant_context incluya documentos, priorizar fragmentos con document_id, chunk_index y mayor score_breakdown.',
                 'Si la pregunta pide maximos, minimos, ranking o comparativos, usar primero los resumenes comparativos presentes en platform_context.',
                 'Si falta informacion, decirlo claramente sin inventar.',
                 'Cuando aplique, entregar pasos accionables punto por punto.',

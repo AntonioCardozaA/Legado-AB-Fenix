@@ -49,6 +49,28 @@ class SendElongacionRemindersCommandTest extends TestCase
         Http::assertNothingSent();
     }
 
+    public function test_command_ignores_overdue_records_from_closed_cycles(): void
+    {
+        Http::fake();
+
+        $this->crearLinea('L-04');
+        $cicloCerrado = $this->crearCiclo('L-04', 1, false);
+        $cicloActivo = $this->crearCiclo('L-04', 2, true);
+
+        $this->crearElongacionEnCiclo($cicloCerrado, '2026-03-24 18:00:00');
+        $this->crearElongacionEnCiclo($cicloActivo, '2026-05-20 18:00:00');
+
+        $this->artisan('elongaciones:send-reminders', [
+            '--date' => '2026-05-27 09:00:00',
+            '--dry-run' => true,
+        ])
+            ->expectsOutputToContain('WhatsApp -> Pendientes: 0')
+            ->expectsOutputToContain('Internas -> Pendientes: 0')
+            ->assertSuccessful();
+
+        Http::assertNothingSent();
+    }
+
     private function crearLinea(string $nombre): Linea
     {
         return Linea::create([
@@ -61,26 +83,36 @@ class SendElongacionRemindersCommandTest extends TestCase
 
     private function crearElongacion(string $linea, string $createdAt): Elongacion
     {
+        return $this->crearElongacionEnCiclo($this->crearCiclo($linea, 1, true), $createdAt);
+    }
+
+    private function crearCiclo(string $linea, int $numeroCiclo, bool $activa): CadenaCiclo
+    {
         $lineaModel = Linea::where('nombre', $linea)->firstOrFail();
         $pasoInicial = Elongacion::getPasoInicial($linea);
 
-        $ciclo = CadenaCiclo::create([
+        return CadenaCiclo::create([
             'linea_id' => $lineaModel->id,
             'linea' => $linea,
-            'codigo' => sprintf('%s-C001', $linea),
-            'numero_ciclo' => 1,
+            'codigo' => sprintf('%s-C%03d', $linea, $numeroCiclo),
+            'numero_ciclo' => $numeroCiclo,
             'proveedor' => 'Proveedor test',
             'paso_inicial' => $pasoInicial,
             'hodometro_inicial' => 0,
             'instalada_en' => now()->subDays(30),
-            'activa' => true,
+            'retirada_en' => $activa ? null : now()->subDay(),
+            'activa' => $activa,
         ]);
+    }
 
+    private function crearElongacionEnCiclo(CadenaCiclo $ciclo, string $createdAt): Elongacion
+    {
+        $pasoInicial = Elongacion::getPasoInicial($ciclo->linea);
         $elongacion = Elongacion::create([
-            'linea_id' => $lineaModel->id,
-            'linea' => $linea,
+            'linea_id' => $ciclo->linea_id,
+            'linea' => $ciclo->linea,
             'cadena_ciclo_id' => $ciclo->id,
-            'proveedor' => 'Proveedor test',
+            'proveedor' => $ciclo->proveedor,
             'seccion' => 'LAVADORA',
             'bombas_promedio' => $pasoInicial,
             'bombas_porcentaje' => 0,

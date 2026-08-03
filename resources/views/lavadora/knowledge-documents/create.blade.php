@@ -11,7 +11,7 @@
         </a>
         <h1 class="mt-4 text-3xl font-black tracking-tight">Cargar documento para la IA de lavadoras</h1>
         <p class="mt-2 max-w-3xl text-sm text-slate-300">
-            Primera version segura: si el archivo es PDF o Word, agrega tambien el texto extraido para que el indexador pueda usarlo sin OCR automatico.
+            Primera version segura: carga PDF o archivos de texto indexables; para Word o Excel copia el contenido en el campo de texto extraido.
         </p>
     </div>
 
@@ -88,7 +88,7 @@
             <div class="md:col-span-2">
                 <label for="upload" class="mb-2 block text-sm font-semibold text-slate-700">Archivo</label>
                 <input id="upload" name="upload" type="file" class="block w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-700 file:mr-4 file:rounded-lg file:border-0 file:bg-slate-100 file:px-4 file:py-2 file:font-semibold file:text-slate-700 hover:file:bg-slate-200">
-                <p class="mt-2 text-xs text-slate-500">Soporta texto, markdown, csv, html, xml, pdf y documentos de Office. PDF y Word necesitan texto extraido en esta primera version.</p>
+                <p class="mt-2 text-xs text-slate-500">Soporta txt, md, csv, html, xml, log y pdf. Para Word o Excel, copia el contenido en el campo de texto extraido.</p>
             </div>
 
             <div class="md:col-span-2">

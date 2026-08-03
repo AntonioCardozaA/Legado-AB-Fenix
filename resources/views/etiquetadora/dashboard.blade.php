@@ -212,6 +212,7 @@
         flex: 1 1 auto;
         max-width: 100%;
         font-size: clamp(1.55rem, 6vw, 3rem);
+        font-weight: 900;
         line-height: 0.95;
         letter-spacing: -0.04em;
         text-wrap: balance;

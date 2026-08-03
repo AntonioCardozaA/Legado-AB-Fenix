@@ -7,6 +7,7 @@ use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Collection;
 
 class Elongacion extends Model
 {
@@ -180,6 +181,29 @@ class Elongacion extends Model
         return $query->where('cadena_ciclo_id', $cicloId);
     }
 
+    public function scopeDelCicloActivoActual($query, ?string $linea = null)
+    {
+        return $query
+            ->whereIn('cadena_ciclo_id', CadenaCiclo::currentActiveIdsQuery($linea))
+            ->when($linea, static fn ($builder, string $lineaFiltrada) => $builder->where('linea', $lineaFiltrada));
+    }
+
+    /**
+     * @return Collection<int, self>
+     */
+    public static function latestForCurrentActiveCycles(?string $linea = null): Collection
+    {
+        return static::query()
+            ->with(['lineaModel', 'cadenaCiclo'])
+            ->delCicloActivoActual($linea)
+            ->orderBy('linea')
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->get()
+            ->unique('cadena_ciclo_id')
+            ->values();
+    }
+
     public static function calcularPromedio($mediciones)
     {
         $suma = 0;
@@ -328,9 +352,45 @@ class Elongacion extends Model
             : null;
     }
 
+    public function getIsCurrentCycleRecordAttribute(): bool
+    {
+        if (!$this->exists || !$this->cadena_ciclo_id || blank($this->linea)) {
+            return false;
+        }
+
+        $currentCycle = CadenaCiclo::currentActiveForLine((string) $this->linea);
+
+        return $currentCycle !== null
+            && (int) $this->cadena_ciclo_id === (int) $currentCycle->id;
+    }
+
+    public function getIsLatestCurrentCycleRecordAttribute(): bool
+    {
+        if (!$this->is_current_cycle_record) {
+            return false;
+        }
+
+        return !static::query()
+            ->where('cadena_ciclo_id', $this->cadena_ciclo_id)
+            ->where(function ($query): void {
+                if ($this->created_at) {
+                    $query->where('created_at', '>', $this->created_at)
+                        ->orWhere(function ($sameTimestamp): void {
+                            $sameTimestamp->where('created_at', $this->created_at)
+                                ->where('id', '>', $this->getKey());
+                        });
+
+                    return;
+                }
+
+                $query->where('id', '>', $this->getKey());
+            })
+            ->exists();
+    }
+
     public function getRevisionDueAtAttribute(): ?CarbonImmutable
     {
-        if (!$this->created_at) {
+        if (!$this->created_at || !$this->is_latest_current_cycle_record) {
             return null;
         }
 

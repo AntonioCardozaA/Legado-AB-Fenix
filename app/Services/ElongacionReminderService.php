@@ -5,12 +5,12 @@ namespace App\Services;
 use App\Models\Elongacion;
 use App\Models\NotificationDispatchLog;
 use App\Models\ElongacionReminderNotification;
+use App\Models\Linea;
 use App\Models\UserNotificationSetting;
 use App\Notifications\ElongacionReminderDatabaseNotification;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use InvalidArgumentException;
 use RuntimeException;
@@ -40,6 +40,9 @@ class ElongacionReminderService
      *         due_at: string,
      *         days_remaining: int,
      *         status: string
+     *         elongacion_id: int,
+     *         cadena_ciclo_id: int,
+     *         ciclo: string|null
      *     }>,
      *     recipient_targets: array<int, array{
      *         recipient: string,
@@ -168,6 +171,9 @@ class ElongacionReminderService
      *         due_at: string,
      *         days_remaining: int,
      *         status: string
+     *         elongacion_id: int,
+     *         cadena_ciclo_id: int,
+     *         ciclo: string|null
      *     }>,
      *     failed: array<int, array{recipient: string, error: string}>
      * }
@@ -257,6 +263,9 @@ class ElongacionReminderService
      *     alert_starts_at: CarbonImmutable,
      *     days_remaining: int,
      *     status: string
+     *     elongacion_id: int,
+     *     cadena_ciclo_id: int,
+     *     ciclo: string|null
      * }>
      */
     public function getPendingAlerts(?CarbonImmutable $referenceDate = null): Collection
@@ -265,33 +274,25 @@ class ElongacionReminderService
         $today = ($referenceDate ?? CarbonImmutable::now($timezone))->setTimezone($timezone)->startOfDay();
         $intervalMonths = $this->intervalMonths();
         $leadDays = $this->leadDays();
-        $appTimezone = (string) config('app.timezone', 'UTC');
+        $latestRecords = Elongacion::latestForCurrentActiveCycles();
+        $lineasByName = Linea::query()
+            ->whereIn('nombre', $latestRecords->pluck('linea')->filter()->unique()->values())
+            ->get()
+            ->keyBy('nombre');
 
-        $latestPerLine = Elongacion::query()
-            ->select('linea', DB::raw('MAX(created_at) as last_recorded_at'))
-            ->groupBy('linea');
+        return $latestRecords
+            ->filter(static function (Elongacion $elongacion) use ($lineasByName): bool {
+                $linea = $elongacion->lineaModel ?: $lineasByName->get($elongacion->linea);
 
-        $rows = DB::query()
-            ->fromSub($latestPerLine, 'latest_elongaciones')
-            ->leftJoin('lineas', 'lineas.nombre', '=', 'latest_elongaciones.linea')
-            ->select([
-                'latest_elongaciones.linea',
-                'latest_elongaciones.last_recorded_at',
-                'lineas.id as linea_id',
-            ])
-            ->where(function ($query) {
-                $query->whereNull('lineas.id')
-                    ->orWhere(function ($innerQuery) {
-                        $innerQuery->where('lineas.activo', true)
-                            ->where('lineas.tipo', 'lavadora');
-                    });
+                return $linea === null
+                    || ((bool) $linea->activo && $linea->tipo === 'lavadora');
             })
-            ->orderBy('latest_elongaciones.linea')
-            ->get();
+            ->map(function (Elongacion $elongacion) use ($intervalMonths, $leadDays, $timezone, $today) {
+                if (!$elongacion->created_at) {
+                    return null;
+                }
 
-        return collect($rows)
-            ->map(function ($row) use ($appTimezone, $intervalMonths, $leadDays, $timezone, $today) {
-                $lastRecordedAt = CarbonImmutable::parse((string) $row->last_recorded_at, $appTimezone)
+                $lastRecordedAt = CarbonImmutable::instance($elongacion->created_at)
                     ->setTimezone($timezone);
                 $dueAt = $lastRecordedAt->addMonthsNoOverflow($intervalMonths)->startOfDay();
                 $daysRemaining = $today->diffInDays($dueAt, false);
@@ -301,8 +302,11 @@ class ElongacionReminderService
                 }
 
                 return [
-                    'linea' => (string) $row->linea,
-                    'linea_id' => $row->linea_id !== null ? (int) $row->linea_id : null,
+                    'linea' => (string) $elongacion->linea,
+                    'linea_id' => $elongacion->linea_id !== null ? (int) $elongacion->linea_id : null,
+                    'elongacion_id' => (int) $elongacion->id,
+                    'cadena_ciclo_id' => (int) $elongacion->cadena_ciclo_id,
+                    'ciclo' => $elongacion->cadenaCiclo?->codigo,
                     'last_recorded_at' => $lastRecordedAt,
                     'due_at' => $dueAt,
                     'alert_starts_at' => $dueAt->subDays($leadDays),
@@ -529,7 +533,10 @@ class ElongacionReminderService
      *     last_recorded_at: string,
      *     due_at: string,
      *     days_remaining: int,
-     *     status: string
+     *     status: string,
+     *     elongacion_id: int|null,
+     *     cadena_ciclo_id: int|null,
+     *     ciclo: string|null
      * }>
      */
     private function buildSnapshot(Collection $alerts): array
@@ -538,6 +545,9 @@ class ElongacionReminderService
             return [
                 'linea' => $alert['linea'],
                 'linea_id' => $alert['linea_id'],
+                'elongacion_id' => $alert['elongacion_id'] ?? null,
+                'cadena_ciclo_id' => $alert['cadena_ciclo_id'] ?? null,
+                'ciclo' => $alert['ciclo'] ?? null,
                 'last_recorded_at' => $alert['last_recorded_at']->toIso8601String(),
                 'due_at' => $alert['due_at']->toDateString(),
                 'days_remaining' => $alert['days_remaining'],

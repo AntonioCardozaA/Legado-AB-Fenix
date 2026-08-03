@@ -117,6 +117,7 @@ class WasherContextBuilder
             ->all();
 
         $elongaciones = Elongacion::query()
+            ->delCicloActivoActual()
             ->where('linea_id', $event->linea_id)
             ->latest('created_at')
             ->limit(5)
@@ -139,6 +140,15 @@ class WasherContextBuilder
                 'actividad' => $this->sanitizer->sanitizeText((string) $plan->actividad, 300),
                 'estado' => $plan->estado,
                 'source' => $plan->source,
+                'completado' => (bool) $plan->completado,
+                'fecha_ejecucion' => optional($plan->fecha_ejecucion)->toDateString(),
+                'estimated_cost_total' => $plan->estimated_cost_total,
+                'actual_cost_total' => $plan->actual_cost_total,
+                'estimated_hours' => $plan->estimated_hours,
+                'actual_hours' => $plan->actual_hours,
+                'execution_result' => $this->sanitizer->sanitizeText((string) $plan->execution_result, 500),
+                'effectiveness' => $plan->effectiveness,
+                'effectiveness_label' => $plan->effectivenessLabel(),
             ])
             ->all();
 

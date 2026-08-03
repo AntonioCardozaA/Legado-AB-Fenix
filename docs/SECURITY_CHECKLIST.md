@@ -23,6 +23,16 @@ Este checklist es de soporte. No cambia el comportamiento de la aplicacion.
 - Usar destinatarios configurables, no numeros fijos en controladores.
 - Registrar fallos sin exponer tokens ni datos sensibles.
 
+## IA
+
+- Mantener `AI_ENABLED=false` hasta tener llaves, colas y permisos validados.
+- Guardar `OPENAI_API_KEY`, `GEMINI_API_KEY` y cualquier llave IA solo en `.env` o secretos del servidor.
+- Activar limite del chat con `AI_CHAT_RATE_LIMIT_PER_MINUTE`.
+- Revisar periodicamente `ai_interaction_logs` para detectar errores, latencia alta, abuso de uso o consumo inesperado de tokens.
+- Evitar subir documentos de conocimiento con secretos, passwords, datos personales innecesarios o instrucciones no confiables.
+- Validar que los documentos indexados tengan ciclo de vida correcto (`vigente`/obsoleto) porque el RAG prioriza fragmentos vigentes por metadata.
+- Confirmar que las sugerencias IA sigan pasando por aprobacion humana antes de publicarse como plan operativo.
+
 ## Archivos
 
 - No versionar `backup.sql`, ZIPs, caches ni archivos temporales.

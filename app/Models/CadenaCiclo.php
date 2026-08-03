@@ -58,9 +58,33 @@ class CadenaCiclo extends Model
         return $query->where('activa', true);
     }
 
+    public function scopeActualesPorLinea($query, ?string $linea = null)
+    {
+        return $query->whereIn(
+            $this->qualifyColumn('id'),
+            static::currentActiveIdsQuery($linea)
+        );
+    }
+
     public function scopePorLinea($query, string $linea)
     {
         return $query->where('linea', $linea);
+    }
+
+    public static function currentActiveIdsQuery(?string $linea = null)
+    {
+        return static::query()
+            ->selectRaw('MAX(id) as id')
+            ->where('activa', true)
+            ->when($linea, static fn ($query, string $lineaFiltrada) => $query->where('linea', $lineaFiltrada))
+            ->groupBy('linea');
+    }
+
+    public static function currentActiveForLine(string $linea): ?self
+    {
+        return static::query()
+            ->whereIn('id', static::currentActiveIdsQuery($linea))
+            ->first();
     }
 
     public function getUltimoHodometroCicloAttribute(): ?int

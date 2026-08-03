@@ -158,6 +158,46 @@ class ElongacionReminderServiceTest extends TestCase
         $this->assertSame([], $results['alerts']);
     }
 
+    public function test_it_ignores_overdue_records_from_closed_cycles_when_an_active_cycle_exists(): void
+    {
+        Http::fake();
+
+        $this->crearLinea('L-04');
+        $cicloCerrado = $this->crearCiclo('L-04', 1, false);
+        $cicloActivo = $this->crearCiclo('L-04', 2, true);
+
+        $this->crearElongacionEnCiclo($cicloCerrado, '2026-03-24 18:00:00');
+        $this->crearElongacionEnCiclo($cicloActivo, '2026-05-20 18:00:00');
+
+        $service = app(ElongacionReminderService::class);
+        $results = $service->sendPendingAlerts(
+            CarbonImmutable::parse('2026-05-27 09:00:00', 'America/Mexico_City')
+        );
+
+        $this->assertSame(0, $results['pending_lines']);
+        $this->assertSame([], $results['alerts']);
+        Http::assertNothingSent();
+    }
+
+    public function test_it_reports_only_the_active_cycle_latest_record_when_multiple_cycles_are_registered(): void
+    {
+        $this->crearLinea('L-05');
+        $cicloCerrado = $this->crearCiclo('L-05', 1, false);
+        $cicloActivo = $this->crearCiclo('L-05', 2, true);
+
+        $registroHistorico = $this->crearElongacionEnCiclo($cicloCerrado, '2026-03-24 18:00:00');
+        $registroActivo = $this->crearElongacionEnCiclo($cicloActivo, '2026-03-30 18:00:00');
+
+        $alerts = app(ElongacionReminderService::class)->getPendingAlerts(
+            CarbonImmutable::parse('2026-05-27 09:00:00', 'America/Mexico_City')
+        );
+
+        $this->assertCount(1, $alerts);
+        $this->assertSame($registroActivo->id, $alerts->first()['elongacion_id']);
+        $this->assertSame($cicloActivo->id, $alerts->first()['cadena_ciclo_id']);
+        $this->assertNotSame($registroHistorico->id, $alerts->first()['elongacion_id']);
+    }
+
     public function test_it_can_run_in_dry_run_mode_without_sending_messages(): void
     {
         Http::fake();
@@ -222,26 +262,36 @@ class ElongacionReminderServiceTest extends TestCase
 
     private function crearElongacion(string $linea, string $createdAt): Elongacion
     {
+        return $this->crearElongacionEnCiclo($this->crearCiclo($linea, 1, true), $createdAt);
+    }
+
+    private function crearCiclo(string $linea, int $numeroCiclo, bool $activa): CadenaCiclo
+    {
         $lineaModel = Linea::where('nombre', $linea)->firstOrFail();
         $pasoInicial = Elongacion::getPasoInicial($linea);
 
-        $ciclo = CadenaCiclo::create([
+        return CadenaCiclo::create([
             'linea_id' => $lineaModel->id,
             'linea' => $linea,
-            'codigo' => sprintf('%s-C001', $linea),
-            'numero_ciclo' => 1,
+            'codigo' => sprintf('%s-C%03d', $linea, $numeroCiclo),
+            'numero_ciclo' => $numeroCiclo,
             'proveedor' => 'Proveedor test',
             'paso_inicial' => $pasoInicial,
             'hodometro_inicial' => 0,
             'instalada_en' => now()->subDays(30),
-            'activa' => true,
+            'retirada_en' => $activa ? null : now()->subDay(),
+            'activa' => $activa,
         ]);
+    }
 
+    private function crearElongacionEnCiclo(CadenaCiclo $ciclo, string $createdAt): Elongacion
+    {
+        $pasoInicial = Elongacion::getPasoInicial($ciclo->linea);
         $elongacion = Elongacion::create([
-            'linea_id' => $lineaModel->id,
-            'linea' => $linea,
+            'linea_id' => $ciclo->linea_id,
+            'linea' => $ciclo->linea,
             'cadena_ciclo_id' => $ciclo->id,
-            'proveedor' => 'Proveedor test',
+            'proveedor' => $ciclo->proveedor,
             'seccion' => 'LAVADORA',
             'bombas_promedio' => $pasoInicial,
             'bombas_porcentaje' => 0,

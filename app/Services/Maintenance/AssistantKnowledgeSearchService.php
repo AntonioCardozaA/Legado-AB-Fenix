@@ -13,7 +13,8 @@ use Illuminate\Support\Str;
 class AssistantKnowledgeSearchService
 {
     public function __construct(
-        private readonly PromptSafetySanitizer $sanitizer
+        private readonly PromptSafetySanitizer $sanitizer,
+        private readonly HybridKnowledgeRanker $ranker
     ) {
     }
 
@@ -21,16 +22,21 @@ class AssistantKnowledgeSearchService
      * @param  array<string, mixed>  $pageContext
      * @return array<int, array<string, mixed>>
      */
-    public function search(string $query, array $pageContext = []): array
+    public function search(string $query, array $pageContext = [], ?User $user = null): array
     {
-        $profile = $this->buildQueryProfile($query, $pageContext);
+        $user ??= auth()->user();
+        $profile = $this->ranker->profile($query, $pageContext);
+        $queryEmbedding = $this->ranker->queryEmbedding((string) ($profile['query'] ?? $query));
         $module = $this->normalizeModule($pageContext['module'] ?? null);
         $recordId = isset($pageContext['record_id']) && is_numeric($pageContext['record_id'])
             ? (int) $pageContext['record_id']
             : null;
         $path = Str::lower((string) ($pageContext['current_path'] ?? ''));
         $limit = max(1, (int) config('maintenance_ai.chat.max_context_items', 5));
-        $knowledgeDocuments = $this->searchKnowledgeDocuments($profile);
+        $canUseWasherKnowledge = $this->userCanUseWasherKnowledge($user);
+        $knowledgeDocuments = $canUseWasherKnowledge
+            ? $this->searchKnowledgeDocuments($profile)
+            : collect();
         $preferredDocumentIds = $knowledgeDocuments
             ->pluck('document_id')
             ->filter()
@@ -38,13 +44,13 @@ class AssistantKnowledgeSearchService
             ->take(12)
             ->all();
 
-        return $this->searchPlans($profile['tokens'], $module, $recordId, $path)
+        return $this->searchPlans($profile['tokens'], $module, $recordId, $path, $user)
             ->concat($knowledgeDocuments)
-            ->concat($this->searchKnowledgeChunks($profile, $preferredDocumentIds))
+            ->concat($canUseWasherKnowledge ? $this->searchKnowledgeChunks($profile, $queryEmbedding, $preferredDocumentIds) : collect())
             ->sortByDesc('score')
             ->take($limit)
             ->values()
-            ->map(fn (array $item): array => Arr::except($item, ['score', 'document_id']))
+            ->map(fn (array $item): array => Arr::except($item, ['score']))
             ->all();
     }
 
@@ -52,7 +58,7 @@ class AssistantKnowledgeSearchService
      * @param  array<int, string>  $tokens
      * @return Collection<int, array<string, mixed>>
      */
-    private function searchPlans(array $tokens, ?string $module, ?int $recordId, string $path): Collection
+    private function searchPlans(array $tokens, ?string $module, ?int $recordId, string $path, ?User $user): Collection
     {
         $plans = PlanAccion::query()
             ->with(['linea', 'maintenanceEvent.componente'])
@@ -70,6 +76,7 @@ class AssistantKnowledgeSearchService
             ->get();
 
         return $plans
+            ->filter(fn (PlanAccion $plan): bool => $this->userCanViewPlan($user, $plan))
             ->map(function (PlanAccion $plan) use ($tokens, $recordId, $path): array {
                 $haystack = implode(' ', array_filter([
                     $plan->actividad,
@@ -105,6 +112,26 @@ class AssistantKnowledgeSearchService
                 ];
             })
             ->filter(fn (array $item): bool => $item['score'] > 0);
+    }
+
+    private function userCanUseWasherKnowledge(?User $user): bool
+    {
+        return $user?->canAccessModule(User::MODULE_LAVADORA) ?? false;
+    }
+
+    private function userCanViewPlan(?User $user, PlanAccion $plan): bool
+    {
+        if (!$user) {
+            return false;
+        }
+
+        $tipo = $this->normalizeModule($plan->tipo_equipo) ?: User::MODULE_LAVADORA;
+
+        if (!$user->canViewPlanActionType($tipo)) {
+            return false;
+        }
+
+        return !($plan->source === 'ai' && $tipo === User::MODULE_LAVADORA && $plan->estado !== 'approved' && !$user->canReviewWasherAiPlans());
     }
 
     /**
@@ -166,14 +193,15 @@ class AssistantKnowledgeSearchService
 
     /**
      * @param  array<string, mixed>  $profile
+     * @param  array<int, float>  $queryEmbedding
      * @param  array<int, int>  $preferredDocumentIds
      * @return Collection<int, array<string, mixed>>
      */
-    private function searchKnowledgeChunks(array $profile, array $preferredDocumentIds = []): Collection
+    private function searchKnowledgeChunks(array $profile, array $queryEmbedding = [], array $preferredDocumentIds = []): Collection
     {
         $tokens = $profile['tokens'] ?? [];
 
-        if ($tokens === []) {
+        if ($tokens === [] && $queryEmbedding === []) {
             return collect();
         }
 
@@ -186,37 +214,29 @@ class AssistantKnowledgeSearchService
                             ->orWhereNull('lifecycle_status');
                     });
             })
-            ->when($preferredDocumentIds !== [], fn ($query) => $query->whereIn('document_id', $preferredDocumentIds))
+            ->latest('updated_at')
+            ->limit(max(
+                (int) config('maintenance_ai.chat.max_context_items', 5),
+                (int) config('maintenance_ai.knowledge.candidate_limit', 80)
+            ))
             ->get();
 
         return $chunks
-            ->map(function (WasherKnowledgeChunk $chunk) use ($profile, $tokens): array {
+            ->map(function (WasherKnowledgeChunk $chunk) use ($profile, $preferredDocumentIds, $queryEmbedding): array {
                 $document = $chunk->document;
-                $haystack = implode(' ', array_filter([
-                    $chunk->searchable_text,
-                    $document?->title,
-                    $document?->linea?->nombre,
-                    $document?->componente?->nombre,
-                ]));
+                $ranking = $this->ranker->rankChunk($chunk, $profile, [], $queryEmbedding);
+                $item = $this->ranker->toKnowledgeItem($chunk, $ranking, 900);
 
-                return [
-                    'score' => $this->scoreTokens($tokens, $haystack) + $this->knowledgeMetadataBoost(
-                        $profile,
-                        (string) ($document?->linea?->nombre ?? ''),
-                        implode(' ', array_filter([
-                            (string) ($document?->componente?->nombre ?? ''),
-                            (string) ($document?->title ?? ''),
-                            (string) $chunk->searchable_text,
-                        ]))
-                    ),
-                    'document_id' => (int) ($document?->id ?? 0),
-                    'type' => $this->normalizeDocumentType((string) ($document?->document_type ?? 'manual')),
-                    'reference' => (string) ($document?->title ?? 'Documento tecnico'),
-                    'content' => $this->sanitizer->sanitizeText((string) $chunk->content, 900),
-                    'module' => User::MODULE_LAVADORA,
-                ];
+                if ($document && in_array((int) $document->id, $preferredDocumentIds, true)) {
+                    $item['score'] += 3;
+                    $item['score_breakdown']['document_match'] = true;
+                }
+
+                $item['module'] = User::MODULE_LAVADORA;
+
+                return $item;
             })
-            ->filter(fn (array $item): bool => $item['score'] > 0);
+            ->filter(fn (array $item): bool => $this->ranker->shouldKeep($item));
     }
 
     /**

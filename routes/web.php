@@ -24,6 +24,7 @@ use App\Http\Controllers\AdminUserController;
 use App\Http\Controllers\LavadoraCostController;
 use App\Http\Controllers\ControlGastosController;
 use App\Http\Controllers\AssistantChatController;
+use App\Http\Controllers\AiObservabilityController;
 use App\Http\Controllers\WasherAiPlanReviewController;
 use App\Http\Controllers\WasherKnowledgeDocumentController;
 
@@ -45,7 +46,7 @@ Route::get('/diagramas-animados', function () {
     return view('diagram-test');
 })->name('diagramas.animados');
 
-Route::middleware(['auth'])
+Route::middleware(['auth', 'throttle:assistant-chat'])
     ->prefix('asistente/chat')
     ->name('assistant-chat.')
     ->controller(AssistantChatController::class)
@@ -177,6 +178,9 @@ Route::prefix('pasteurizadora')->group(function () {
             Route::delete('/reglas/{rule}', 'destroyRule')->name('rules.destroy');
             Route::post('/presupuestos', 'upsertBudget')->name('budgets.upsert');
         });
+
+    Route::get('/admin/observabilidad-ia', [AiObservabilityController::class, 'index'])
+        ->name('admin.ai-observability.index');
 
     /*
     |--------------------------------------------------------------------------

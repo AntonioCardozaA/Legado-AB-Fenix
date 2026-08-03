@@ -572,6 +572,7 @@
                 $puedeVerDashboardPasteurizadora = $usuarioActual?->canUseCustomPermission('ver dashboard pasteurizadoras') ?? false;
                 $puedeVerReportes = $usuarioActual?->canUseCustomPermission('ver reportes') ?? false;
                 $puedeGestionarUsuarios = $usuarioActual?->canUseCustomPermission('gestionar usuarios') ?? false;
+                $puedeVerObservabilidadIa = $usuarioActual?->canViewAiObservability() ?? false;
             @endphp
 
             @if($puedeVerDashboardPrincipal)
@@ -659,6 +660,16 @@
                        class="nav-link flex items-center px-4 py-3 rounded-lg {{ request()->routeIs('admin.users.*') ? 'nav-active' : '' }}">
                         <i class="fas fa-user-shield w-5 mr-3 text-gray-500"></i>
                         Gestion de usuarios
+                    </a>
+                @endif
+
+                @if($puedeVerObservabilidadIa)
+                    <a href="{{ route('admin.ai-observability.index') }}"
+                       @click="if (!isDesktop) sidebarOpen = false"
+                       aria-label="Observabilidad IA"
+                       class="nav-link flex items-center px-4 py-3 rounded-lg {{ request()->routeIs('admin.ai-observability.*') ? 'nav-active' : '' }}">
+                        <i class="fas fa-brain w-5 mr-3 text-gray-500"></i>
+                        Observabilidad IA
                     </a>
                 @endif
 

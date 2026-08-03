@@ -7,6 +7,7 @@ use App\Models\Elongacion;
 use App\Models\Linea;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
 
 class ElongacionCycleTest extends TestCase
@@ -110,17 +111,62 @@ class ElongacionCycleTest extends TestCase
         $this->assertStringContainsString('Vencida por 5 dias', $html);
     }
 
+    public function test_index_does_not_show_revision_alerts_for_closed_cycles_after_new_cycle_is_active(): void
+    {
+        $this->travelTo(now()->setDate(2026, 7, 6)->setTime(9, 0));
+
+        $linea = $this->crearLinea('L-04');
+        $cicloCerrado = $this->crearCiclo('L-04', 1, 'Proveedor anterior', [
+            'linea_id' => $linea->id,
+            'activa' => false,
+            'retirada_en' => '2026-06-01 08:00:00',
+        ]);
+        $cicloActivo = $this->crearCiclo('L-04', 2, 'Proveedor actual', [
+            'linea_id' => $linea->id,
+            'activa' => true,
+        ]);
+
+        $registroHistorico = $this->crearElongacion($cicloCerrado, [
+            'created_at' => '2026-05-01 18:00:00',
+            'updated_at' => '2026-05-01 18:00:00',
+        ]);
+        $registroActivo = $this->crearElongacion($cicloActivo, [
+            'created_at' => '2026-06-25 18:00:00',
+            'updated_at' => '2026-06-25 18:00:00',
+        ]);
+
+        $response = $this->actingAs(User::factory()->create())
+            ->get(route('elongaciones.index', ['linea' => 'L-04']));
+
+        $response->assertOk();
+        $response->assertViewHas('latestAlertableRecordIds', function (array $ids) use ($registroHistorico, $registroActivo): bool {
+            return in_array($registroActivo->id, $ids, true)
+                && !in_array($registroHistorico->id, $ids, true);
+        });
+
+        $html = $response->getContent();
+
+        $this->assertSame(0, substr_count($html, 'data-elongacion-alert="upcoming"'));
+        $this->assertSame(0, substr_count($html, 'data-elongacion-alert="overdue"'));
+        $this->assertFalse($registroHistorico->fresh(['cadenaCiclo'])->revision_needs_alert);
+    }
+
     public function test_store_creates_new_cycle_and_closes_previous_active_cycle(): void
     {
+        $user = User::factory()->create();
         $linea = $this->crearLinea('L-04');
         $cicloActivo = $this->crearCiclo('L-04', 1, 'Proveedor anterior', [
             'linea_id' => $linea->id,
             'hodometro_inicial' => 500,
             'instalada_en' => now()->subDays(10),
         ]);
+        $cicloActivoDuplicado = $this->crearCiclo('L-04', 2, 'Proveedor duplicado', [
+            'linea_id' => $linea->id,
+            'hodometro_inicial' => 900,
+            'instalada_en' => now()->subDays(3),
+        ]);
 
-        $response = $this->actingAs(User::factory()->create())
-            ->post(route('elongaciones.store'), $this->payloadBase('L-04', [
+        $response = $this->postElongacion($user, $this->payloadBase('L-04', [
             'linea' => 'L-04',
             'nueva_cadena' => 1,
             'proveedor' => 'Proveedor nuevo',
@@ -133,7 +179,7 @@ class ElongacionCycleTest extends TestCase
 
         $this->assertDatabaseHas('cadena_ciclos', [
             'linea' => 'L-04',
-            'numero_ciclo' => 2,
+            'numero_ciclo' => 3,
             'proveedor' => 'Proveedor nuevo',
             'activa' => 1,
         ]);
@@ -143,7 +189,14 @@ class ElongacionCycleTest extends TestCase
             'activa' => 0,
         ]);
 
-        $nuevoCiclo = CadenaCiclo::where('linea', 'L-04')->where('numero_ciclo', 2)->firstOrFail();
+        $this->assertDatabaseHas('cadena_ciclos', [
+            'id' => $cicloActivoDuplicado->id,
+            'activa' => 0,
+        ]);
+
+        $this->assertSame(1, CadenaCiclo::where('linea', 'L-04')->where('activa', true)->count());
+
+        $nuevoCiclo = CadenaCiclo::where('linea', 'L-04')->where('numero_ciclo', 3)->firstOrFail();
         $elongacion = Elongacion::latest('id')->firstOrFail();
 
         $this->assertSame($nuevoCiclo->id, $elongacion->cadena_ciclo_id);
@@ -153,14 +206,14 @@ class ElongacionCycleTest extends TestCase
 
     public function test_store_without_new_cycle_uses_active_cycle(): void
     {
+        $user = User::factory()->create();
         $linea = $this->crearLinea('L-05');
         $cicloActivo = $this->crearCiclo('L-05', 1, 'Proveedor continuidad', [
             'linea_id' => $linea->id,
             'hodometro_inicial' => 1000,
         ]);
 
-        $response = $this->actingAs(User::factory()->create())
-            ->post(route('elongaciones.store'), $this->payloadBase('L-05', [
+        $response = $this->postElongacion($user, $this->payloadBase('L-05', [
             'linea' => 'L-05',
             'hodometro' => 1300,
         ]));
@@ -172,6 +225,28 @@ class ElongacionCycleTest extends TestCase
         $this->assertSame($cicloActivo->id, $elongacion->cadena_ciclo_id);
         $this->assertSame('Proveedor continuidad', $elongacion->proveedor);
         $this->assertSame(300, $elongacion->hodometro_ciclo);
+    }
+
+    public function test_store_rejects_manual_registration_in_closed_cycle(): void
+    {
+        $linea = $this->crearLinea('L-06');
+        $cicloCerrado = $this->crearCiclo('L-06', 1, 'Proveedor anterior', [
+            'linea_id' => $linea->id,
+            'activa' => false,
+            'retirada_en' => now()->subDay(),
+        ]);
+        $this->crearCiclo('L-06', 2, 'Proveedor actual', [
+            'linea_id' => $linea->id,
+            'activa' => true,
+        ]);
+
+        $response = $this->postElongacion(User::factory()->create(), $this->payloadBase('L-06', [
+            'linea' => 'L-06',
+            'cadena_ciclo_id' => $cicloCerrado->id,
+        ]));
+
+        $response->assertSessionHasErrors('cadena_ciclo_id');
+        $this->assertSame(0, Elongacion::query()->count());
     }
 
     public function test_store_creates_internal_notification_when_elongacion_reaches_purchase_limit(): void
@@ -190,7 +265,7 @@ class ElongacionCycleTest extends TestCase
             $payload["vapor_{$i}"] = 175.3;
         }
 
-        $response = $this->actingAs($user)->post(route('elongaciones.store'), $payload);
+        $response = $this->postElongacion($user, $payload);
 
         $response->assertRedirect(route('elongaciones.index', ['linea' => 'L-04']));
 
@@ -219,7 +294,7 @@ class ElongacionCycleTest extends TestCase
             $payload["vapor_{$i}"] = 175.6;
         }
 
-        $response = $this->actingAs($user)->post(route('elongaciones.store'), $payload);
+        $response = $this->postElongacion($user, $payload);
 
         $response->assertRedirect(route('elongaciones.index', ['linea' => 'L-04']));
 
@@ -237,6 +312,7 @@ class ElongacionCycleTest extends TestCase
         return Linea::create([
             'nombre' => $nombre,
             'descripcion' => 'Linea de prueba',
+            'tipo' => 'lavadora',
             'activo' => true,
         ]);
     }
@@ -302,5 +378,18 @@ class ElongacionCycleTest extends TestCase
         }
 
         return array_merge($payload, $overrides);
+    }
+
+    private function postElongacion(User $user, array $payload): TestResponse
+    {
+        $formToken = 'test-form-token-' . bin2hex(random_bytes(8));
+
+        return $this->actingAs($user)
+            ->withSession([
+                'elongaciones.create.form_token' => $formToken,
+            ])
+            ->post(route('elongaciones.store'), array_merge($payload, [
+                'form_token' => $formToken,
+            ]));
     }
 }

@@ -77,16 +77,7 @@ class ElongacionStatusNotificationService
      */
     private function getLatestStatusRecords(?string $linea = null): Collection
     {
-        $latestIds = Elongacion::query()
-            ->selectRaw('MAX(id) as id')
-            ->when($linea, static fn ($query, string $lineaFiltrada) => $query->where('linea', $lineaFiltrada))
-            ->groupBy('linea');
-
-        return Elongacion::query()
-            ->with('cadenaCiclo')
-            ->whereIn('id', $latestIds)
-            ->orderBy('linea')
-            ->get()
+        return Elongacion::latestForCurrentActiveCycles($linea)
             ->filter(fn (Elongacion $elongacion): bool => $this->resolveStatusType($elongacion) !== null)
             ->values();
     }
@@ -96,6 +87,16 @@ class ElongacionStatusNotificationService
      */
     private function dispatchForRecord(Elongacion $elongacion, bool $dryRun): array
     {
+        if (!$elongacion->is_latest_current_cycle_record) {
+            return [
+                'recipients' => 0,
+                'simulated' => 0,
+                'sent' => 0,
+                'skipped' => 0,
+                'failed' => 0,
+            ];
+        }
+
         $statusType = $this->resolveStatusType($elongacion);
 
         if ($statusType === null) {

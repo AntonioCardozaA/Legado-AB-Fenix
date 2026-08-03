@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreAssistantMessageRequest;
 use App\Models\AssistantMessage;
+use App\Services\Maintenance\AiInteractionLogger;
 use App\Services\Maintenance\OperationsAssistantService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -30,8 +31,11 @@ class AssistantChatController extends Controller
         ]);
     }
 
-    public function store(StoreAssistantMessageRequest $request, OperationsAssistantService $assistant): JsonResponse
-    {
+    public function store(
+        StoreAssistantMessageRequest $request,
+        OperationsAssistantService $assistant,
+        AiInteractionLogger $interactionLogger
+    ): JsonResponse {
         $user = $request->user();
         $payload = $request->validated();
 
@@ -63,6 +67,13 @@ class AssistantChatController extends Controller
             );
         } catch (Throwable $exception) {
             report($exception);
+
+            $interactionLogger->failure($user, 'assistant_chat', $exception, [
+                'input_chars' => mb_strlen((string) $payload['message']),
+                'metadata' => [
+                    'page_context' => $payload['page_context'] ?? [],
+                ],
+            ]);
 
             Log::warning('Assistant chat reply failed.', [
                 'user_id' => $user->id,

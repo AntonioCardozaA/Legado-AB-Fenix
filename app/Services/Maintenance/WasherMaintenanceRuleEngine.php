@@ -82,6 +82,10 @@ class WasherMaintenanceRuleEngine
      */
     public function forElongacion(Elongacion $elongacion): Collection
     {
+        if (!$elongacion->is_latest_current_cycle_record) {
+            return collect();
+        }
+
         $events = collect();
         $warning = (float) config('maintenance_ai.rules.elongacion_warning_threshold', 1.30);
         $critical = (float) config('maintenance_ai.rules.elongacion_critical_threshold', 1.46);
@@ -179,7 +183,7 @@ class WasherMaintenanceRuleEngine
     private function detectAscendingTrend(Elongacion $elongacion): ?float
     {
         $records = Elongacion::query()
-            ->where('linea_id', $elongacion->linea_id)
+            ->where('cadena_ciclo_id', $elongacion->cadena_ciclo_id)
             ->latest('created_at')
             ->limit(3)
             ->get()

@@ -99,6 +99,8 @@
                     @endforeach
                 </div>
 
+                @include('plan-accion.partials.execution-feedback-fields', ['plan' => $plan])
+
                 <div class="create-actions border-t border-gray-200 pt-5">
                     <a href="{{ route('plan-accion.index', ['tipo' => 'etiquetadora', 'linea_id' => $plan->linea_id]) }}" class="create-action create-action--secondary flex-1">
                         <i class="fas fa-times"></i>

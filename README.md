@@ -121,6 +121,11 @@ php artisan schedule:run
 - `TWILIO_*`: envio SMS si se usa Twilio.
 - `ELONGACION_ALERT_*`: horario, zona horaria y destinatarios de recordatorios.
 - `QUEUE_CONNECTION`: usar `database` o un driver de colas real en produccion si las notificaciones deben procesarse en segundo plano.
+- `AI_ENABLED`, `AI_PROVIDER`, `AI_FALLBACK_PROVIDER`, `AI_QUEUE`, `AI_DISPATCH_MODE`: activacion, proveedor, fallback y cola del modulo IA.
+- `OPENAI_API_KEY`, `OPENAI_MODEL`, `OPENAI_EMBEDDING_MODEL`: credenciales y modelos de OpenAI para chat, planes, OCR y embeddings.
+- `GEMINI_API_KEY`, `GEMINI_MODEL`, `GEMINI_EMBEDDING_MODEL`: credenciales y modelos Gemini si se usa como proveedor principal o fallback.
+- `AI_CHAT_RATE_LIMIT_PER_MINUTE`: limite por usuario/IP para controlar costo y abuso del chat.
+- `AI_KNOWLEDGE_SEMANTIC_QUERY_ENABLED`, `AI_KNOWLEDGE_CANDIDATE_LIMIT`, `AI_KNOWLEDGE_*_WEIGHT`: controlan el ranking hibrido de documentos para el chatbot y los planes IA.
 
 Nunca guardes credenciales reales en `.env.example`, README, seeders publicos o archivos versionados.
 
