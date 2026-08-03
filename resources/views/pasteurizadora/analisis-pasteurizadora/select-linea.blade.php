@@ -12,7 +12,6 @@
                 'nombre' => $nombre,
                 'modulos' => $config['modulos'],
                 'tipo' => $config['tipo'],
-                'reglillas' => \App\Models\AnalisisPasteurizadora::getCantidadReglillasPorLinea($nombre),
             ];
         })
         ->values();
@@ -32,13 +31,13 @@
                 <span class="font-medium">Volver al Inicio</span>
             </a>
 
-            <h1 class="min-w-0 break-words text-2xl font-bold text-gray-800 sm:text-3xl">
+            <h1 class="min-w-0 break-words text-xl font-bold text-gray-800 sm:text-3xl">
                 Seleccionar Pasteurizadora
             </h1>
         </div>
     </div>
 
-    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+    <div class="grid grid-cols-1 items-stretch gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3 xl:grid-cols-4">
         @foreach($todasLasPasteurizadoras as $config)
             @php
                 $linea = $lineasDisponibles->get($config['nombre']);
@@ -46,28 +45,25 @@
 
             @if($linea)
                 <a href="{{ $analisisRoute('create', $linea->id) }}"
-                   class="group min-w-0">
-                    <div class="bg-white rounded-xl border border-gray-100 p-6 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-                        <div class="flex flex-col items-center text-center">
-                            <div class="mb-4 flex h-24 w-24 items-center justify-center sm:h-28 sm:w-28 lg:h-32 lg:w-32">
-                                <img src="{{ asset('images/icono_pas.png') }}"
-                                     alt="Pasteurizadora"
-                                     class="h-full w-full object-contain transition-transform duration-300 group-hover:scale-105"
-                                     onerror="this.src='{{ asset('images/icono-pasteurizadora.png') }}'">
-                            </div>
+                   class="group flex min-w-0">
+                    <div class="flex h-full min-w-0 flex-col overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
+                        <div class="flex aspect-[2/1] w-full shrink-0 items-center justify-center bg-slate-50">
+                            <img src="{{ asset('images/icono-pas-cover.png') }}"
+                                 alt="Pasteurizadora"
+                                 class="h-full w-full object-contain"
+                                 onerror="this.src='{{ asset('images/icono_pas.png') }}'">
+                        </div>
 
+                        <div class="flex flex-1 flex-col items-center px-4 pb-5 pt-4 text-center sm:px-6 sm:pb-6">
                             <h3 class="break-words text-lg font-semibold text-gray-800 mb-1">
                                 {{ $linea->nombre }}
                             </h3>
 
-                            <p class="break-words text-sm text-gray-500 mb-4 line-clamp-2">
+                            <p class="mb-4 min-h-5 break-words text-sm text-gray-500 line-clamp-2">
                                 {{ $config['modulos'] }} modulos | Tipo {{ $config['tipo'] }}
-                                @if($config['reglillas'] > 0)
-                                    | {{ $config['reglillas'] }} camas
-                                @endif
                             </p>
 
-                            <span class="create-action create-action--compact">
+                            <span class="create-action create-action--compact mt-auto">
                                 Seleccionar
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -98,7 +94,7 @@
             </p>
 
             <a href="{{ url('/') }}"
-               class="inline-flex items-center gap-2 mt-6 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
+               class="mt-6 inline-flex min-h-11 w-full max-w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-6 py-3 font-medium text-white transition-all duration-300 hover:-translate-y-1 hover:bg-blue-700 hover:shadow-lg sm:w-auto">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                           d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
