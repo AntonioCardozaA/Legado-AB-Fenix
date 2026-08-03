@@ -4,6 +4,7 @@
     $componentes = collect($lineaTabla['componentes'] ?? []);
     $maquinasTabla = collect($lineaTabla['maquinas'] ?? []);
     $registrosTabla = $lineaTabla['registros'] ?? [];
+    $ciclosTabla = $lineaTabla['estado_ciclos'] ?? [];
     $conteosComponentes = $lineaTabla['conteos_componentes'] ?? [];
     $conteosMaquinas = $lineaTabla['conteos_maquinas'] ?? [];
     $resumenEstados = $lineaTabla['resumen_estados'] ?? [];
@@ -145,9 +146,30 @@
                                     $registrosCelda = $componentForMachine
                                         ? collect($registrosTabla[$maquina][$componentForMachine->id] ?? [])
                                         : collect();
-                                    $registro = $registrosCelda->first();
+                                    $resumenCiclo = $componentForMachine
+                                        ? ($ciclosTabla[$maquina][$componentForMachine->id] ?? null)
+                                        : null;
+                                    $resumenVisible = $resumenCiclo['resumen_visible'] ?? [
+                                        'total_componentes' => max(1, (int) ($componentForMachine->cantidad_total ?? 1)),
+                                        'cantidad_revisada' => 0,
+                                        'cantidad_pendiente' => max(1, (int) ($componentForMachine->cantidad_total ?? 1)),
+                                        'piezas_revisadas' => [],
+                                        'piezas_pendientes' => [],
+                                        'completado' => false,
+                                    ];
+                                    $resumenActual = $resumenCiclo['resumen_actual'] ?? $resumenVisible;
+                                    $registrosVisibles = collect($resumenCiclo['registros_visibles'] ?? []);
+                                    $registro = $registrosVisibles->last() ?: $registrosCelda->first();
                                     $hasData = filled($registro);
                                     $totalHistorial = $registrosCelda->count();
+                                    $tieneCicloActivo = (bool) ($resumenCiclo['tiene_ciclo_activo'] ?? false);
+                                    $piezasRevisadasCiclo = $resumenVisible['piezas_revisadas'] ?? [];
+                                    $piezasPendientesCiclo = $tieneCicloActivo
+                                        ? ($resumenActual['piezas_pendientes'] ?? [])
+                                        : [];
+                                    $cantidadRevisadaCiclo = (int) ($resumenVisible['cantidad_revisada'] ?? 0);
+                                    $totalPiezasCiclo = (int) ($resumenVisible['total_componentes'] ?? ($componentForMachine->cantidad_total ?? 1));
+                                    $hayPiezasPendientes = $tieneCicloActivo && count($piezasPendientesCiclo) > 0;
                                     $color = 'cell-empty';
                                     $statusClass = 'bg-gray-100 text-gray-700 border-gray-200';
                                     $icon = 'fa-clipboard';
@@ -233,9 +255,11 @@
                                             'usuario_nombre' => $registro->usuario?->name ?? 'Usuario no registrado',
                                             'actividad' => $registro->actividad,
                                             'imagenes' => $imagenes,
-                                            'componentes_revisados' => $registro->componentes_revisados_lista,
-                                            'cantidad_componentes_revisados' => $registro->cantidad_componentes_revisados,
-                                            'total_componentes' => $registro->total_componentes ?: (int) ($registro->componente?->cantidad_total ?? $componentForMachine->cantidad_total ?? 0),
+                                            'componentes_revisados' => $piezasRevisadasCiclo,
+                                            'componentes_pendientes' => $piezasPendientesCiclo,
+                                            'cantidad_componentes_revisados' => $cantidadRevisadaCiclo,
+                                            'total_componentes' => $totalPiezasCiclo,
+                                            'tiene_ciclo_activo' => $tieneCicloActivo,
                                             'color' => $color,
                                             'created_at' => $registro->created_at ? $registro->created_at->format('d/m/Y H:i') : '',
                                             'updated_at' => $registro->updated_at ? $registro->updated_at->format('d/m/Y H:i') : '',
@@ -274,6 +298,29 @@
                                                 {{ $componentForMachine->cantidad_original ?: ($componentForMachine->cantidad_total . ' por maquina') }}
                                             </div>
 
+                                            @if($totalPiezasCiclo > 1)
+                                                <div class="rounded border border-indigo-100 bg-white/80 p-2 text-[10px] text-slate-700">
+                                                    <div class="mb-1 flex items-center justify-between gap-2 font-bold">
+                                                        <span>
+                                                            <i class="fas fa-clipboard-check text-indigo-600"></i>
+                                                            Piezas
+                                                        </span>
+                                                        <span>{{ $cantidadRevisadaCiclo }}/{{ $totalPiezasCiclo }}</span>
+                                                    </div>
+                                                    <div class="h-1.5 overflow-hidden rounded-full bg-slate-200">
+                                                        <div class="h-full rounded-full {{ $hayPiezasPendientes ? 'bg-indigo-500' : 'bg-emerald-500' }}"
+                                                             style="width: {{ $totalPiezasCiclo > 0 ? min(100, round(($cantidadRevisadaCiclo / $totalPiezasCiclo) * 100)) : 0 }}%"></div>
+                                                    </div>
+                                                    @if($hayPiezasPendientes)
+                                                        <p class="mt-1 font-semibold text-indigo-700">
+                                                            Pendientes: #{{ implode(', #', $piezasPendientesCiclo) }}
+                                                        </p>
+                                                    @else
+                                                        <p class="mt-1 font-semibold text-emerald-700">Ciclo completado</p>
+                                                    @endif
+                                                </div>
+                                            @endif
+
                                             <div class="bg-blue-50 p-2 rounded mb-2">
                                                 <div class="flex items-center gap-1">
                                                     <i class="fas fa-calendar-alt text-blue-600"></i>
@@ -311,10 +358,10 @@
                                                 @endif
 
                                                 <a href="{{ $createUrl }}"
-                                                   class="create-action create-action--compact create-action--success"
+                                                   class="create-action create-action--compact {{ $hayPiezasPendientes ? '' : 'create-action--success' }}"
                                                    onclick="event.stopPropagation();">
-                                                    <i class="fas fa-plus"></i>
-                                                    Nuevo Registro
+                                                    <i class="fas {{ $hayPiezasPendientes ? 'fa-play' : 'fa-plus' }}"></i>
+                                                    {{ $hayPiezasPendientes ? 'Continuar' : 'Nuevo Registro' }}
                                                 </a>
                                             </div>
                                         </div>

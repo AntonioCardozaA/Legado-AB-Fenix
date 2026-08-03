@@ -225,6 +225,146 @@ class AnalisisEtiquetadoraSeparationTest extends TestCase
         $this->assertSame([4], $detalle['detalle_componentes'][0]['piezas_pendientes']);
     }
 
+    public function test_store_blocks_duplicate_pieces_inside_active_etiquetadora_cycle(): void
+    {
+        $user = User::factory()->create();
+        [$linea, $componente] = $this->crearCatalogoEtiquetadora(cantidadTotal: 4);
+
+        AnalisisEtiquetadora::create([
+            'linea_id' => $linea->id,
+            'componente_id' => $componente->id,
+            'reductor' => EtiquetadoraCatalog::maquinaLabel('A'),
+            'maquina' => 'A',
+            'fecha_analisis' => '2026-07-20',
+            'numero_orden' => 'OT-PARCIAL',
+            'estado' => AnalisisEtiquetadora::ESTADO_BUENO,
+            'actividad' => 'Avance inicial',
+            'total_componentes' => 4,
+            'cantidad_componentes_revisados' => 2,
+            'componentes_revisados' => [1, 2],
+        ]);
+
+        $response = $this->actingAs($user)->post(route('analisis-etiquetadora.store'), [
+            'linea_id' => $linea->id,
+            'componente_id' => $componente->id,
+            'maquina' => 'A',
+            'fecha_analisis' => '2026-07-21',
+            'numero_orden' => 'OT-DUPLICADA',
+            'estado' => AnalisisEtiquetadora::ESTADO_BUENO,
+            'actividad' => 'Intento de repetir pieza',
+            'componentes_revisados' => [2, 3],
+        ]);
+
+        $response->assertSessionHasErrors('componentes_revisados');
+        $this->assertDatabaseMissing('analisis_etiquetadora', [
+            'numero_orden' => 'OT-DUPLICADA',
+        ]);
+        $this->assertSame(
+            [3, 4],
+            AnalisisEtiquetadora::getPiezasDisponiblesParaRegistro($linea->id, $componente->id, 'A', null, 4)
+        );
+    }
+
+    public function test_completed_etiquetadora_cycle_allows_starting_a_new_cycle(): void
+    {
+        $user = User::factory()->create();
+        [$linea, $componente] = $this->crearCatalogoEtiquetadora(cantidadTotal: 4);
+
+        foreach ([[1, 2], [3, 4]] as $index => $piezas) {
+            AnalisisEtiquetadora::create([
+                'linea_id' => $linea->id,
+                'componente_id' => $componente->id,
+                'reductor' => EtiquetadoraCatalog::maquinaLabel('A'),
+                'maquina' => 'A',
+                'fecha_analisis' => '2026-07-' . (20 + $index),
+                'numero_orden' => 'OT-CICLO-' . ($index + 1),
+                'estado' => AnalisisEtiquetadora::ESTADO_BUENO,
+                'actividad' => 'Cierre de ciclo',
+                'total_componentes' => 4,
+                'cantidad_componentes_revisados' => count($piezas),
+                'componentes_revisados' => $piezas,
+            ]);
+        }
+
+        $resumenCompletado = AnalisisEtiquetadora::getResumenCicloComponente($linea->id, $componente->id, 'A', null, 4);
+        $this->assertFalse($resumenCompletado['tiene_ciclo_activo']);
+        $this->assertSame([1, 2, 3, 4], AnalisisEtiquetadora::getPiezasDisponiblesParaRegistro($linea->id, $componente->id, 'A', null, 4));
+
+        $response = $this->actingAs($user)->post(route('analisis-etiquetadora.store'), [
+            'linea_id' => $linea->id,
+            'componente_id' => $componente->id,
+            'maquina' => 'A',
+            'fecha_analisis' => '2026-07-22',
+            'numero_orden' => 'OT-CICLO-NUEVO',
+            'estado' => AnalisisEtiquetadora::ESTADO_BUENO,
+            'actividad' => 'Inicio de nuevo ciclo',
+            'componentes_revisados' => [1],
+        ]);
+
+        $response->assertSessionHasNoErrors();
+        $response->assertRedirect(route('analisis-etiquetadora.index', [
+            'linea_id' => $linea->id,
+            'maquina' => 'A',
+        ]));
+
+        $resumenNuevo = AnalisisEtiquetadora::getResumenCicloComponente($linea->id, $componente->id, 'A', null, 4);
+        $this->assertTrue($resumenNuevo['tiene_ciclo_activo']);
+        $this->assertSame([1], $resumenNuevo['resumen_actual']['piezas_revisadas']);
+        $this->assertSame([2, 3, 4], $resumenNuevo['resumen_actual']['piezas_pendientes']);
+    }
+
+    public function test_index_action_switches_between_continue_and_new_record_by_cycle_state(): void
+    {
+        $user = User::factory()->create();
+        [$linea, $componente] = $this->crearCatalogoEtiquetadora(cantidadTotal: 4);
+
+        AnalisisEtiquetadora::create([
+            'linea_id' => $linea->id,
+            'componente_id' => $componente->id,
+            'reductor' => EtiquetadoraCatalog::maquinaLabel('A'),
+            'maquina' => 'A',
+            'fecha_analisis' => '2026-07-20',
+            'numero_orden' => 'OT-PARCIAL',
+            'estado' => AnalisisEtiquetadora::ESTADO_BUENO,
+            'actividad' => 'Avance inicial',
+            'total_componentes' => 4,
+            'cantidad_componentes_revisados' => 2,
+            'componentes_revisados' => [1, 2],
+        ]);
+
+        $response = $this->actingAs($user)->get(route('analisis-etiquetadora.index', [
+            'linea_id' => $linea->id,
+            'maquina' => 'A',
+        ]));
+
+        $response->assertOk();
+        $response->assertSee('Continuar');
+        $response->assertDontSee('Nuevo Registro');
+
+        AnalisisEtiquetadora::create([
+            'linea_id' => $linea->id,
+            'componente_id' => $componente->id,
+            'reductor' => EtiquetadoraCatalog::maquinaLabel('A'),
+            'maquina' => 'A',
+            'fecha_analisis' => '2026-07-21',
+            'numero_orden' => 'OT-CIERRE',
+            'estado' => AnalisisEtiquetadora::ESTADO_BUENO,
+            'actividad' => 'Cierre de ciclo',
+            'total_componentes' => 4,
+            'cantidad_componentes_revisados' => 2,
+            'componentes_revisados' => [3, 4],
+        ]);
+
+        $response = $this->actingAs($user)->get(route('analisis-etiquetadora.index', [
+            'linea_id' => $linea->id,
+            'maquina' => 'A',
+        ]));
+
+        $response->assertOk();
+        $response->assertSee('Nuevo Registro');
+        $response->assertDontSee('Continuar');
+    }
+
     /**
      * @return array{0: Linea, 1: Componente}
      */

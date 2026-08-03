@@ -3,6 +3,7 @@
     $selectedMaquina = old('maquina', $maquinaSeleccionada ?: ($analisis->maquina ?? ''));
     $selectedComponente = old('componente_id', $componenteSeleccionado ?: ($analisis->componente_id ?? ''));
     $componentesPlanos = $componentesPorMaquina->flatten(1);
+    $estadoCiclosComponentes = collect($estadoCiclosComponentes ?? []);
     $componentesRevisadosSeleccionados = old('componentes_revisados');
     if ($componentesRevisadosSeleccionados === null && $isEdit) {
         $componentesRevisadosSeleccionados = $analisis->componentes_revisados_lista;
@@ -61,6 +62,7 @@
                     class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm @error('componente_id') border-red-500 @enderror">
                 <option value="">Seleccionar componente...</option>
                 @foreach($componentesPlanos as $componente)
+                    @php($estadoCicloComponente = $estadoCiclosComponentes->get((string) $componente->id, []))
                     @php($maquinaComponente = str_replace('Maquina ', '', str_replace('Máquina ', '', $componente->reductor)))
                     <option value="{{ $componente->id }}"
                             data-maquina="{{ $maquinaComponente }}"
@@ -69,6 +71,11 @@
                             data-mecanismo="{{ $componente->mecanismo }}"
                             data-cantidad="{{ $componente->cantidad_total }}"
                             data-original="{{ $componente->cantidad_original }}"
+                            data-ciclo-activo="{{ !empty($estadoCicloComponente['tiene_ciclo_activo']) ? '1' : '0' }}"
+                            data-piezas-disponibles='@json($estadoCicloComponente["piezas_disponibles"] ?? [])'
+                            data-piezas-bloqueadas='@json($estadoCicloComponente["piezas_bloqueadas"] ?? [])'
+                            data-cantidad-revisada="{{ $estadoCicloComponente['cantidad_revisada'] ?? 0 }}"
+                            data-cantidad-pendiente="{{ $estadoCicloComponente['cantidad_pendiente'] ?? ($componente->cantidad_total ?? 0) }}"
                             @selected((string) $selectedComponente === (string) $componente->id)>
                         {{ $componente->nombre }}
                     </option>
@@ -288,6 +295,21 @@ document.addEventListener('DOMContentLoaded', function () {
     );
     let checklistComponentValue = @json((string) $selectedComponente);
 
+    function parseDatasetArray(option, key) {
+        if (!option || !option.dataset || !option.dataset[key]) {
+            return [];
+        }
+
+        try {
+            const parsed = JSON.parse(option.dataset[key]);
+            return Array.isArray(parsed)
+                ? parsed.map((item) => parseInt(item, 10)).filter((item) => item > 0)
+                : [];
+        } catch (error) {
+            return [];
+        }
+    }
+
     function updateComponents() {
         const selectedMachine = maquina.value;
         const selectedValue = componente.value;
@@ -349,42 +371,55 @@ document.addEventListener('DOMContentLoaded', function () {
         updateChecklist();
     }
 
-    function syncChecklistCounter(total) {
+    function syncChecklistCounter(total, disponiblesCount = total) {
         if (!checklistCounter) {
             return;
         }
 
-        checklistCounter.textContent = `${selectedComponentesRevisados.size} de ${total} seleccionadas`;
+        checklistCounter.textContent = `${selectedComponentesRevisados.size} de ${disponiblesCount} pendientes seleccionadas`;
     }
 
-    function updateSelectedFromChecklist(total) {
+    function updateSelectedFromChecklist(total, availablePieces) {
+        const disponibles = new Set(availablePieces);
         selectedComponentesRevisados = new Set(
-            Array.from(checklist.querySelectorAll('input[type="checkbox"]:checked'))
+            Array.from(checklist.querySelectorAll('input[type="checkbox"]:checked:not(:disabled)'))
                 .map((input) => parseInt(input.value, 10))
-                .filter((item) => item > 0 && item <= total)
+                .filter((item) => item > 0 && item <= total && disponibles.has(item))
         );
 
-        syncChecklistCounter(total);
+        syncChecklistCounter(total, disponibles.size);
     }
 
-    function appendChecklistItem(numero, nombre, total) {
+    function appendChecklistItem(numero, nombre, total, availablePieces, blockedPieces) {
+        const disponible = availablePieces.has(numero);
+        const bloqueada = blockedPieces.has(numero);
         const label = document.createElement('label');
-        label.className = 'flex cursor-pointer items-center gap-3 rounded-lg border border-indigo-200 bg-white p-3 transition hover:border-indigo-400 hover:shadow-sm';
+        label.className = disponible
+            ? 'flex cursor-pointer items-center gap-3 rounded-lg border border-indigo-200 bg-white p-3 transition hover:border-indigo-400 hover:shadow-sm'
+            : 'flex cursor-not-allowed items-center gap-3 rounded-lg border border-slate-200 bg-slate-100 p-3 text-slate-400';
 
         const input = document.createElement('input');
         input.type = 'checkbox';
         input.name = 'componentes_revisados[]';
         input.value = String(numero);
-        input.checked = selectedComponentesRevisados.has(numero);
+        input.checked = disponible && selectedComponentesRevisados.has(numero);
+        input.disabled = !disponible;
         input.className = 'h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500';
-        input.addEventListener('change', () => updateSelectedFromChecklist(total));
+        input.addEventListener('change', () => updateSelectedFromChecklist(total, Array.from(availablePieces)));
 
         const text = document.createElement('span');
-        text.className = 'text-sm font-medium text-gray-700';
+        text.className = disponible ? 'text-sm font-medium text-gray-700' : 'text-sm font-medium text-slate-500';
         text.textContent = `${nombre} #${numero}`;
+
+        const badge = document.createElement('span');
+        badge.className = disponible
+            ? 'ml-auto rounded bg-indigo-50 px-2 py-1 text-[10px] font-bold text-indigo-700'
+            : 'ml-auto rounded bg-white px-2 py-1 text-[10px] font-bold text-slate-500';
+        badge.textContent = bloqueada ? 'Ya revisada' : 'Pendiente';
 
         label.appendChild(input);
         label.appendChild(text);
+        label.appendChild(badge);
         checklist.appendChild(label);
     }
 
@@ -403,6 +438,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
         const total = parseInt(option.dataset.cantidad || '0', 10) || 0;
         const nombre = option.dataset.nombre || option.textContent.trim() || 'Pieza';
+        const cicloActivo = option.dataset.cicloActivo === '1';
+        const availablePieces = new Set(parseDatasetArray(option, 'piezasDisponibles'));
+        const blockedPieces = new Set(parseDatasetArray(option, 'piezasBloqueadas'));
 
         checklist.innerHTML = '';
 
@@ -411,17 +449,29 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
 
+        if (availablePieces.size === 0) {
+            for (let numero = 1; numero <= total; numero++) {
+                availablePieces.add(numero);
+            }
+        }
+
+        selectedComponentesRevisados = new Set(
+            Array.from(selectedComponentesRevisados).filter((item) => availablePieces.has(item))
+        );
+
         checklistWrapper.classList.remove('hidden');
 
         if (checklistHelp) {
-            checklistHelp.textContent = `Selecciona una o varias de las ${total} piezas configuradas para este componente.`;
+            checklistHelp.textContent = cicloActivo
+                ? `Continua el ciclo actual seleccionando solo las ${availablePieces.size} piezas pendientes.`
+                : `Selecciona una o varias de las ${total} piezas configuradas para iniciar un nuevo ciclo.`;
         }
 
         for (let numero = 1; numero <= total; numero++) {
-            appendChecklistItem(numero, nombre, total);
+            appendChecklistItem(numero, nombre, total, availablePieces, blockedPieces);
         }
 
-        syncChecklistCounter(total);
+        syncChecklistCounter(total, availablePieces.size);
     }
 
     function updateFileSummary(total) {

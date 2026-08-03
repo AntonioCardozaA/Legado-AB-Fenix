@@ -6,11 +6,9 @@
 @php
     $pasteurizadoras = collect($estadoPasteurizadoras);
     $fallasPorLineaPasteurizadora = collect($fallasPorLineaPasteurizadora ?? []);
-    $componentesDanadosPasteurizadora = collect($componentesDanadosPasteurizadora ?? []);
     $historicoRevisionesPasteurizadora = collect($historicoRevisionesPasteurizadora ?? []);
     $analisis52124Pasteurizadora = $analisis52124Pasteurizadora ?? ['lineas' => [], 'criterios' => []];
     $analisis30147Pasteurizadora = $analisis30147Pasteurizadora ?? ['lineas' => [], 'criterios' => []];
-    $planesPendientesPasteurizadora = collect($planesPendientesPasteurizadora ?? []);
     $planesAccionDashboardPasteurizadora = $planesAccionDashboardPasteurizadora ?? ['resumen' => [], 'estado_general' => [], 'por_linea' => [], 'planes' => []];
     $rankingDanosPasteurizadora = collect($rankingDanosPasteurizadora ?? []);
     $avanceRevisionPasteurizadora = $avanceRevisionPasteurizadora ?? ['labels' => [], 'porcentajes' => [], 'revisados' => [], 'totales' => [], 'lineas' => []];
@@ -652,6 +650,10 @@
         gap: 12px;
         margin-bottom: 12px;
         align-items: stretch;
+    }
+
+    .dashboard-history-trend-grid {
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 760px), 1fr));
     }
 
     .dashboard-panels-full {
@@ -1961,6 +1963,12 @@
         border-color: var(--danger-red);
     }
 
+    @media (min-width: 1280px) {
+        .stats-grid {
+            grid-template-columns: repeat(6, minmax(0, 1fr));
+        }
+    }
+
     @media (max-width: 1400px) {
         .lavadoras-grid {
             grid-template-columns: repeat(auto-fit, minmax(min(100%, 295px), 1fr));
@@ -1980,12 +1988,97 @@
             grid-template-columns: repeat(2, minmax(0, 1fr));
         }
 
+        .dashboard-panels-grid,
+        .dashboard-history-trend-grid {
+            grid-template-columns: 1fr;
+        }
+
         .lavadoras-grid {
             grid-template-columns: repeat(auto-fit, minmax(min(100%, 295px), 1fr));
         }
 
         .dashboard-trend-brief {
             grid-template-columns: 1fr;
+        }
+
+        .trend-card-side .trend-filter-form {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            align-items: end;
+        }
+
+        .trend-card-side .panel-select,
+        .trend-card-side .trend-filter-field,
+        .trend-card-side .trend-filter-field input,
+        .trend-card-side .trend-filter-button {
+            width: 100%;
+            min-width: 0;
+        }
+
+        .historico-dashboard-card .overflow-x-auto {
+            overflow: visible;
+            border: 0;
+            box-shadow: none;
+        }
+
+        .historico-dashboard-card table {
+            min-width: 0;
+            border-collapse: separate;
+            border-spacing: 0 10px;
+            background: transparent;
+        }
+
+        .historico-dashboard-card table thead {
+            display: none;
+        }
+
+        .historico-dashboard-card table tbody,
+        .historico-dashboard-card table tr,
+        .historico-dashboard-card table td {
+            display: block;
+            width: 100%;
+        }
+
+        .historico-dashboard-card table tr {
+            overflow: hidden;
+            border: 1px solid rgba(148, 163, 184, 0.18);
+            border-radius: 14px;
+            background: #ffffff;
+            box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06);
+        }
+
+        .historico-dashboard-card table td {
+            display: grid;
+            grid-template-columns: minmax(100px, 0.42fr) minmax(0, 1fr);
+            gap: 12px;
+            align-items: start;
+            padding: 10px 12px;
+            border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+            text-align: left !important;
+            font-size: 12px;
+            color: var(--text-primary);
+        }
+
+        .historico-dashboard-card table td:last-child {
+            border-bottom: 0;
+        }
+
+        .historico-dashboard-card table td::before {
+            content: attr(data-label);
+            font-size: 10px;
+            font-weight: 800;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+
+        .historico-dashboard-card table td[colspan] {
+            display: block;
+            text-align: center !important;
+        }
+
+        .historico-dashboard-card table td[colspan]::before {
+            display: none;
         }
     }
 
@@ -2071,6 +2164,10 @@
         .trend-filter-button,
         .trend-open-link {
             flex: 1 1 130px;
+        }
+
+        .trend-card-side .trend-filter-form {
+            grid-template-columns: 1fr;
         }
 
         .modal {
@@ -2420,27 +2517,13 @@
                 Datos reales desde análisis activos de pasteurizadora
             </div>
         </div>
-
-        <div class="chart-card componentes-card">
-            <h3>
-                <i class="fas fa-chart-pie"></i>
-                <span>Componentes con Daño o Desgaste</span>
-            </h3>
-            <div class="chart-container">
-                <canvas id="componentesPasteurizadoraChart"></canvas>
-            </div>
-            <div class="chart-description">
-                <i class="fas fa-info-circle"></i>
-                Distribución real por componente revisado
-            </div>
-        </div>
     </div>
 
     <div class="dashboard-panels-grid">
         <div class="chart-card ranking-card">
             <h3>
                 <i class="fas fa-trophy"></i>
-                <span>Ranking de Atención</span>
+                <span>Ranking de Daño</span>
             </h3>
             <ul class="ranking-list">
                 @forelse($rankingDanosPasteurizadora->take(8) as $index => $item)
@@ -2496,80 +2579,15 @@
             <div class="ranking-footer">
                 <div>
                     <i class="fas fa-info-circle"></i>
-                    Ordenado visualmente por criticidad y pendientes activos
+                    Daños activos
                 </div>
             </div>
         </div>
 
-        <div class="chart-card">
-            <h3>
-                <i class="fas fa-tasks"></i>
-                <span>Componentes que Requieren Cambio</span>
-            </h3>
-            <div class="overflow-x-auto">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Línea</th>
-                            <th><i class="fas fa-clipboard-list" style="color: #8b5cf6;"></i> Actividad</th>
-                            <th class="text-right"><i class="fas fa-calendar" style="color: #f59e0b;"></i> Próxima fecha</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @forelse($planesPendientesPasteurizadora as $plan)
-                            @php
-                                $fechaPlan = $plan->plan_accion_pcm1['fecha']
-                                    ?? $plan->plan_accion_pcm2['fecha']
-                                    ?? $plan->plan_accion_pcm3['fecha']
-                                    ?? $plan->plan_accion_pcm4['fecha']
-                                    ?? null;
-                            @endphp
-                            <tr>
-                                <td>
-                                    @if($puedeVerMecanicaPasteurizadora)
-                                        <a href="{{ route('pasteurizadora.analisis-pasteurizadora.index', ['linea_id' => $plan->linea_id]) }}" class="dashboard-table-link">
-                                            {{ $plan->linea?->nombre ?? 'Sin línea' }}
-                                        </a>
-                                    @else
-                                        {{ $plan->linea?->nombre ?? 'Sin línea' }}
-                                    @endif
-                                </td>
-                                <td>
-                                    <div>
-                                        @if($puedeVerMecanicaPasteurizadora)
-                                            <a href="{{ route('pasteurizadora.analisis-pasteurizadora.show', $plan) }}" class="dashboard-table-link">
-                                                {{ Str::limit($plan->actividad ?? 'Sin actividad', 48) }}
-                                            </a>
-                                        @else
-                                            {{ Str::limit($plan->actividad ?? 'Sin actividad', 48) }}
-                                        @endif
-                                    </div>
-                                    <div class="text-xs text-gray-500">Módulo {{ $plan->modulo }} · {{ $plan->componente_nombre }}</div>
-                                </td>
-                                <td>
-                                    {{ $fechaPlan ? \Carbon\Carbon::parse($fechaPlan)->format('d/m/Y') : 'Sin fecha' }}
-                                </td>
-                            </tr>
-                        @empty
-                            <tr>
-                                <td colspan="3">Sin pendientes activos</td>
-                            </tr>
-                        @endforelse
-                    </tbody>
-                </table>
-            </div>
-            <div class="table-footer">
-                <i class="fas fa-info-circle"></i>
-                <span>Registros activos de análisis mecánico que requieren cambio.</span>
-                @if($puedeVerMecanicaPasteurizadora)
-                    <a href="{{ route('pasteurizadora.analisis-pasteurizadora.index') }}">Abrir análisis</a>
-                @endif
-            </div>
-        </div>
     </div>
 
     <div class="dashboard-panels-grid">
-        <div class="chart-card">
+        <div class="chart-card planes-card">
             <h3>
                 <i class="fas fa-tasks"></i>
                 <span>Plan de Acción</span>
@@ -2628,10 +2646,10 @@
             </div>
         </div>
 
-        <div class="chart-card">
+        <div class="chart-card avance-card">
             <h3>
                 <i class="fas fa-chart-line"></i>
-                <span>Avance de Revisión</span>
+                <span>Avance de Revisión Mecánica</span>
             </h3>
             <div class="mini-stats-grid compact">
                 <div class="mini-stat info">
@@ -2679,8 +2697,8 @@
         </div>
     </div>
 
-    <div class="dashboard-panels-grid">
-        <div class="chart-card historico-dashboard-card">
+    <div class="dashboard-panels-grid dashboard-history-trend-grid">
+        <div class="chart-card historico-card historico-dashboard-card">
             <h3>
                 <i class="fas fa-history"></i>
                 <span>Histórico de Revisiones</span>
@@ -2907,10 +2925,9 @@
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-    let fallasPasteurizadoraChart, componentesPasteurizadoraChart, planesPasteurizadoraChart, avanceRevisionPasteurizadoraChart, analisis52124PasteurizadoraChart, analisis30147PasteurizadoraChart;
+    let fallasPasteurizadoraChart, planesPasteurizadoraChart, avanceRevisionPasteurizadoraChart, analisis52124PasteurizadoraChart, analisis30147PasteurizadoraChart;
     const pasteurizadorasData = @json($pasteurizadoras->values());
     const fallasPorLineaPasteurizadora = @json($fallasPorLineaPasteurizadora->values());
-    const componentesDanadosPasteurizadora = @json($componentesDanadosPasteurizadora->values());
     const planesAccionDashboardPasteurizadora = @json($planesAccionDashboardPasteurizadora);
     const avanceRevisionPasteurizadora = @json($avanceRevisionPasteurizadora);
     const analisis52124Pasteurizadora = @json($analisis52124Pasteurizadora);
@@ -3048,57 +3065,6 @@
             }
         });
 
-        const componentesCtx = document.getElementById('componentesPasteurizadoraChart').getContext('2d');
-        componentesPasteurizadoraChart = new Chart(componentesCtx, {
-            type: 'doughnut',
-            data: {
-                labels: componentesDanadosPasteurizadora.map(item => item.componente),
-                datasets: [{
-                    data: componentesDanadosPasteurizadora.map(item => item.total_danios),
-                    backgroundColor: [
-                        'rgba(239, 68, 68, 0.9)',
-                        'rgba(245, 158, 11, 0.9)',
-                        'rgba(16, 185, 129, 0.9)',
-                        'rgba(59, 130, 246, 0.9)',
-                        'rgba(139, 92, 246, 0.9)',
-                        'rgba(236, 72, 153, 0.9)',
-                        'rgba(14, 165, 233, 0.9)',
-                        'rgba(100, 116, 139, 0.9)'
-                    ],
-                    borderColor: ['#dc2626', '#d97706', '#059669', '#2563eb', '#7c3aed', '#db2777', '#0284c7', '#475569'],
-                    borderWidth: 3,
-                    borderRadius: 8,
-                    hoverBorderWidth: 5,
-                    hoverOffset: 12,
-                    spacing: 3
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'right',
-                        labels: { font: { size: 12, weight: 'bold' }, color: '#334155', padding: 16, usePointStyle: true }
-                    },
-                    tooltip: {
-                        backgroundColor: 'rgba(15, 23, 42, 0.95)',
-                        titleColor: '#ffffff',
-                        bodyColor: '#e0e7ff',
-                        borderColor: '#3b82f6',
-                        borderWidth: 2,
-                        padding: 14,
-                        callbacks: {
-                            label: function(context) {
-                                return `${context.label}: ${context.raw}`;
-                            }
-                        }
-                    }
-                },
-                cutout: '62%'
-            }
-        });
-
         planesPasteurizadoraChart = buildPlanesPasteurizadoraChart();
         avanceRevisionPasteurizadoraChart = buildAvanceRevisionPasteurizadoraChart();
         analisis52124PasteurizadoraChart = buildPasteurizadoraTrendChart(
@@ -3194,7 +3160,7 @@
             data: {
                 labels,
                 datasets: [{
-                    label: 'Avance de revisión',
+                    label: 'Avance de revisión mecánica',
                     data: values,
                     backgroundColor: values.map(value => value >= 90
                         ? 'rgba(16, 185, 129, 0.88)'

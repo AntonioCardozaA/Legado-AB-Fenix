@@ -97,6 +97,175 @@ class AnalisisEtiquetadora extends Model
             ->all();
     }
 
+    public static function buildResumenCicloPiezas($registros, int $totalComponentes): array
+    {
+        $totalComponentes = max(1, $totalComponentes);
+        $registros = collect($registros)
+            ->filter(fn ($registro) => $registro instanceof self)
+            ->sortBy(fn (self $registro) => self::cycleSortKey($registro))
+            ->values();
+
+        $ciclos = [];
+        $registrosCiclo = collect();
+        $piezasCiclo = collect();
+
+        foreach ($registros as $registro) {
+            $registrosCiclo->push($registro);
+            $piezasCiclo = $piezasCiclo
+                ->merge($registro->piezasRevisadasParaTotal($totalComponentes))
+                ->map(fn ($pieza) => (int) $pieza)
+                ->filter(fn (int $pieza) => $pieza > 0 && $pieza <= $totalComponentes)
+                ->unique()
+                ->sort()
+                ->values();
+
+            if ($piezasCiclo->count() >= $totalComponentes) {
+                $ciclos[] = [
+                    'registros' => $registrosCiclo->values(),
+                    'resumen' => self::resumenPiezasCiclo($piezasCiclo, $totalComponentes),
+                    'completado' => true,
+                ];
+
+                $registrosCiclo = collect();
+                $piezasCiclo = collect();
+            }
+        }
+
+        if ($registrosCiclo->isNotEmpty()) {
+            $ciclos[] = [
+                'registros' => $registrosCiclo->values(),
+                'resumen' => self::resumenPiezasCiclo($piezasCiclo, $totalComponentes),
+                'completado' => $piezasCiclo->count() >= $totalComponentes,
+            ];
+        }
+
+        $cicloActivo = null;
+        $ultimoCicloCompletado = null;
+
+        foreach ($ciclos as $ciclo) {
+            if ($ciclo['completado']) {
+                $ultimoCicloCompletado = $ciclo;
+                continue;
+            }
+
+            $cicloActivo = $ciclo;
+        }
+
+        $cicloVisible = $cicloActivo ?: $ultimoCicloCompletado;
+        $resumenVacio = self::resumenPiezasCiclo([], $totalComponentes);
+
+        return [
+            'ciclos' => $ciclos,
+            'ciclo_actual' => $cicloActivo,
+            'ultimo_ciclo_completado' => $ultimoCicloCompletado,
+            'registros_actuales' => collect($cicloActivo['registros'] ?? []),
+            'registros_visibles' => collect($cicloVisible['registros'] ?? []),
+            'resumen_actual' => $cicloActivo['resumen'] ?? $resumenVacio,
+            'resumen_visible' => $cicloVisible['resumen'] ?? $resumenVacio,
+            'tiene_ciclo_activo' => $cicloActivo !== null,
+            'tiene_ciclo_completado' => $ultimoCicloCompletado !== null,
+            'total_componentes' => $totalComponentes,
+        ];
+    }
+
+    public static function getResumenCicloComponente(
+        int|string $lineaId,
+        int|string $componenteId,
+        ?string $maquina,
+        ?int $excludeId = null,
+        ?int $totalComponentes = null,
+        bool $lockForUpdate = false
+    ): array {
+        $maquina = strtoupper(trim((string) $maquina));
+        $totalComponentes = $totalComponentes ?: (int) (Componente::find($componenteId)?->cantidad_total ?? 1);
+
+        $registros = self::query()
+            ->where('linea_id', $lineaId)
+            ->where('componente_id', $componenteId)
+            ->where('maquina', $maquina)
+            ->when($excludeId, fn ($query) => $query->where('id', '!=', $excludeId))
+            ->when($lockForUpdate, fn ($query) => $query->lockForUpdate())
+            ->orderBy('fecha_analisis')
+            ->orderBy('created_at')
+            ->orderBy('id')
+            ->get();
+
+        return self::buildResumenCicloPiezas($registros, max(1, (int) $totalComponentes));
+    }
+
+    public static function getPiezasDisponiblesParaRegistro(
+        int|string $lineaId,
+        int|string $componenteId,
+        ?string $maquina,
+        ?int $excludeId = null,
+        ?int $totalComponentes = null,
+        bool $lockForUpdate = false
+    ): array {
+        $totalComponentes = max(1, (int) ($totalComponentes ?: (Componente::find($componenteId)?->cantidad_total ?? 1)));
+        $resumen = self::getResumenCicloComponente(
+            $lineaId,
+            $componenteId,
+            $maquina,
+            $excludeId,
+            $totalComponentes,
+            $lockForUpdate
+        );
+
+        if ($resumen['tiene_ciclo_activo']) {
+            return $resumen['resumen_actual']['piezas_pendientes'];
+        }
+
+        return range(1, $totalComponentes);
+    }
+
+    public static function getPiezasBloqueadasCicloActual(
+        int|string $lineaId,
+        int|string $componenteId,
+        ?string $maquina,
+        ?int $excludeId = null,
+        ?int $totalComponentes = null
+    ): array {
+        $resumen = self::getResumenCicloComponente($lineaId, $componenteId, $maquina, $excludeId, $totalComponentes);
+
+        if (!$resumen['tiene_ciclo_activo']) {
+            return [];
+        }
+
+        return $resumen['resumen_actual']['piezas_revisadas'];
+    }
+
+    private static function resumenPiezasCiclo($piezasRevisadas, int $totalComponentes): array
+    {
+        $totalComponentes = max(1, $totalComponentes);
+        $piezasRevisadas = collect($piezasRevisadas)
+            ->map(fn ($pieza) => (int) $pieza)
+            ->filter(fn (int $pieza) => $pieza > 0 && $pieza <= $totalComponentes)
+            ->unique()
+            ->sort()
+            ->values();
+        $piezasPendientes = collect(range(1, $totalComponentes))
+            ->diff($piezasRevisadas)
+            ->values();
+
+        return [
+            'total_componentes' => $totalComponentes,
+            'cantidad_revisada' => $piezasRevisadas->count(),
+            'cantidad_pendiente' => $piezasPendientes->count(),
+            'piezas_revisadas' => $piezasRevisadas->all(),
+            'piezas_pendientes' => $piezasPendientes->all(),
+            'completado' => $piezasRevisadas->count() >= $totalComponentes,
+        ];
+    }
+
+    private static function cycleSortKey(self $registro): string
+    {
+        $fechaAnalisis = $registro->fecha_analisis?->format('Ymd') ?? '00000000';
+        $createdAt = str_pad((string) ($registro->created_at?->timestamp ?? 0), 12, '0', STR_PAD_LEFT);
+        $id = str_pad((string) ($registro->id ?? 0), 10, '0', STR_PAD_LEFT);
+
+        return $fechaAnalisis . '-' . $createdAt . '-' . $id;
+    }
+
     public static function esEstadoBueno(?string $estado): bool
     {
         return AnalisisLavadora::esEstadoBueno($estado);
