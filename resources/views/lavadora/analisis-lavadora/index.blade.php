@@ -2567,7 +2567,7 @@
                                                                 </div>
                                                                 <div class="flex items-center gap-1">
                                                                     <i class="fas fa-hashtag text-blue-600 text-xs"></i>
-                                                                    <span class="text-xs font-bold text-gray-800">Orden #{{ $registro->numero_orden }}</span>
+                                                                    <span class="text-xs font-bold text-gray-800">{{ $registro->numero_orden ? 'Orden #' . $registro->numero_orden : 'Sin orden' }}</span>
                                                                 </div>
                                                             </div>
                                                             
@@ -3147,7 +3147,7 @@
                                                             <div class="flex items-center gap-1">
                                                                 <i class="fas fa-hashtag text-blue-600 text-xs"></i>
                                                                 <span class="text-xs font-bold text-gray-800">
-                                                                    Orden #{{ $registro->numero_orden }}
+                                                                    {{ $registro->numero_orden ? 'Orden #' . $registro->numero_orden : 'Sin orden' }}
                                                                 </span>
                                                             </div>
                                                         </div>
@@ -4264,7 +4264,7 @@ function openAnalysisDetail(analysisData) {
     }
     
     document.getElementById('detail-fecha').textContent = analysisData.fecha_analisis;
-    document.getElementById('detail-orden').textContent = analysisData.numero_orden;
+    document.getElementById('detail-orden').textContent = analysisData.numero_orden || 'Sin orden';
     document.getElementById('detail-actividad').textContent = analysisData.actividad;
     document.getElementById('detail-usuario').textContent = `Realizado por: ${analysisData.usuario_nombre || 'Usuario no registrado'}`;
     

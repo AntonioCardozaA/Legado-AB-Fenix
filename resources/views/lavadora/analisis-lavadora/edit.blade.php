@@ -160,15 +160,14 @@
             <div class="mb-6">
                 <label for="numero_orden" class="block text-sm font-medium text-gray-700 mb-1">
                     <i class="fas fa-hashtag text-blue-600 mr-1"></i>
-                    Número de Orden *
+                    Numero de Orden
                 </label>
                 <input type="text" 
                        id="numero_orden"
                        name="numero_orden" 
                        value="{{ old('numero_orden', $analisisComponente->numero_orden) }}"
-                       required
                        maxlength="20"
-                       placeholder="Ej: 35221456"
+                       placeholder="Opcional"
                        class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500 shadow-sm
                        @error('numero_orden') border-red-500 @enderror">
                 @error('numero_orden')

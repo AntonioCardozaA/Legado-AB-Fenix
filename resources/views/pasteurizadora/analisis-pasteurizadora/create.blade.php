@@ -16,6 +16,10 @@
             'es_brazo_torsion' => \App\Models\AnalisisPasteurizadora::esBrazoTorsion($codigo),
         ];
     })->values();
+    $componentesSeleccionadosIniciales = old(
+        'componentes_revisados',
+        old('numero_componente') ? [old('numero_componente')] : []
+    );
 @endphp
 
 <style>
@@ -256,25 +260,27 @@
                 </div>
             </div>
 
-            <div class="rounded-xl border border-indigo-200 bg-indigo-50 p-5">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-                    <div>
-                        <label for="numero_componente" class="block text-sm font-semibold text-gray-700 mb-2">
-                            <i class="fas fa-list-ol text-blue-600 mr-1"></i>
-                            Numero especifico del componente
+            <div id="checklist-container" class="hidden">
+                <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-200">
+                    <div class="mb-4">
+                        <label class="block text-sm font-bold text-gray-800 mb-2">
+                            <i class="fas fa-clipboard-check text-blue-600 mr-2"></i>
+                            Seleccione los componentes revisados
                         </label>
-                        <select id="numero_componente" name="numero_componente"
-                                class="block w-full rounded-lg border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm @error('numero_componente') border-red-500 @enderror">
-                            <option value="">Seleccionar componente...</option>
-                        </select>
-                        @error('numero_componente')
-                            <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
-                        @enderror
                     </div>
 
-                    <div id="numero-componente-help" class="rounded-lg border border-indigo-200 bg-white px-4 py-3 text-sm text-indigo-800">
-                        Selecciona primero el componente para mostrar las piezas disponibles.
-                    </div>
+                    <div id="componentes-checklist" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3"></div>
+
+                    <input type="hidden"
+                           name="componentes_revisados"
+                           id="componentes_revisados_input"
+                           value="{{ json_encode($componentesSeleccionadosIniciales) }}">
+                    @error('componentes_revisados')
+                        <p class="text-red-500 text-sm mt-3">{{ $message }}</p>
+                    @enderror
+                    @error('numero_componente')
+                        <p class="text-red-500 text-sm mt-3">{{ $message }}</p>
+                    @enderror
                 </div>
             </div>
 
@@ -302,7 +308,7 @@
                     <input type="text"
                            name="numero_orden"
                            value="{{ old('numero_orden') }}"
-                           maxlength="50"
+                           maxlength="8"
                            inputmode="numeric"
                            pattern="[0-9]*"
                            autocomplete="off"
@@ -424,12 +430,37 @@
 const componentesConfiguracion = @json($componentesConfiguracion);
 const moduloSelect = document.getElementById('modulo');
 const componenteSelect = document.getElementById('componente');
-const numeroComponenteSelect = document.getElementById('numero_componente');
-const numeroComponenteHelp = document.getElementById('numero-componente-help');
+const ladoSelect = document.getElementById('lado');
+const nivelSelect = document.getElementById('nivel');
+const checklistContainer = document.getElementById('checklist-container');
+const componentesChecklist = document.getElementById('componentes-checklist');
+const componentesRevisadosInput = document.getElementById('componentes_revisados_input');
 const summaryModulo = document.getElementById('summary-modulo');
 const summaryComponente = document.getElementById('summary-componente');
 const summaryPieza = document.getElementById('summary-pieza');
-const oldNumeroComponente = @json(old('numero_componente'));
+const oldComponentesRevisados = @json($componentesSeleccionadosIniciales);
+
+function normalizarSeleccionComponentes(value) {
+    let valores = value;
+
+    if (typeof valores === 'string' && valores.trim() !== '') {
+        try {
+            valores = JSON.parse(valores);
+        } catch (error) {
+            valores = [];
+        }
+    }
+
+    if (!Array.isArray(valores)) {
+        return [];
+    }
+
+    return valores
+        .map((item) => parseInt(item, 10))
+        .filter((item) => Number.isInteger(item) && item > 0);
+}
+
+let componentesSeleccionados = normalizarSeleccionComponentes(oldComponentesRevisados);
 
 function obtenerComponenteSeleccionado() {
     return componentesConfiguracion.find((item) => item.codigo === componenteSelect.value) || null;
@@ -437,7 +468,6 @@ function obtenerComponenteSeleccionado() {
 
 function actualizarResumenFormulario() {
     const componente = obtenerComponenteSeleccionado();
-    const numero = numeroComponenteSelect.value;
 
     summaryModulo.textContent = moduloSelect.value ? `Modulo ${moduloSelect.value}` : 'Sin seleccionar';
     summaryComponente.textContent = componente ? componente.nombre : 'Sin seleccionar';
@@ -452,8 +482,13 @@ function actualizarResumenFormulario() {
         return;
     }
 
-    if (numero) {
-        summaryPieza.textContent = `Pieza #${numero}`;
+    if (componentesSeleccionados.length === 1) {
+        summaryPieza.textContent = `Pieza #${componentesSeleccionados[0]}`;
+        return;
+    }
+
+    if (componentesSeleccionados.length > 1) {
+        summaryPieza.textContent = `${componentesSeleccionados.length} piezas seleccionadas`;
         return;
     }
 
@@ -465,46 +500,96 @@ function actualizarResumenFormulario() {
     summaryPieza.textContent = 'Sin seleccionar';
 }
 
-function renderNumeroComponenteOptions() {
+function actualizarComponentesRevisados() {
     const componente = obtenerComponenteSeleccionado();
-    numeroComponenteSelect.innerHTML = '<option value="">Seleccionar componente...</option>';
-    numeroComponenteSelect.disabled = true;
 
     if (!componente) {
-        numeroComponenteHelp.textContent = 'Selecciona primero el componente para mostrar las piezas disponibles.';
+        componentesSeleccionados = [];
+        componentesRevisadosInput.value = JSON.stringify(componentesSeleccionados);
         actualizarResumenFormulario();
         return;
     }
 
     if (componente.es_brazo_torsion) {
-        numeroComponenteSelect.innerHTML = '<option value="1" selected>Registro unico por modulo</option>';
-        numeroComponenteSelect.disabled = true;
-        numeroComponenteHelp.textContent = 'Brazo de torsion: el modulo identifica la pieza analizada.';
+        componentesSeleccionados = [1];
+        componentesRevisadosInput.value = JSON.stringify(componentesSeleccionados);
         actualizarResumenFormulario();
         return;
     }
 
-    if (componente.cantidad <= 1) {
-        numeroComponenteSelect.innerHTML = '<option value="1" selected>Pieza unica</option>';
-        numeroComponenteSelect.disabled = true;
-        numeroComponenteHelp.textContent = 'Este componente solo tiene una pieza configurada en el modulo.';
+    const checkboxes = componentesChecklist.querySelectorAll('input.componente-checkbox:checked:not(:disabled)');
+    componentesSeleccionados = Array.from(checkboxes).map((checkbox) => parseInt(checkbox.dataset.componentValue, 10));
+    componentesRevisadosInput.value = JSON.stringify(componentesSeleccionados);
+    actualizarResumenFormulario();
+}
+
+function renderChecklistComponentes({ reiniciarSeleccion = false } = {}) {
+    const componente = obtenerComponenteSeleccionado();
+    componentesChecklist.innerHTML = '';
+
+    if (!componente) {
+        checklistContainer.classList.add('hidden');
+        componentesSeleccionados = [];
+        componentesRevisadosInput.value = JSON.stringify(componentesSeleccionados);
         actualizarResumenFormulario();
         return;
+    }
+
+    if (componente.es_brazo_torsion) {
+        checklistContainer.classList.add('hidden');
+        componentesSeleccionados = [1];
+        componentesRevisadosInput.value = JSON.stringify(componentesSeleccionados);
+        actualizarResumenFormulario();
+        return;
+    }
+
+    checklistContainer.classList.remove('hidden');
+
+    if (componente.cantidad <= 0) {
+        componentesSeleccionados = [];
+        componentesRevisadosInput.value = JSON.stringify(componentesSeleccionados);
+        componentesChecklist.innerHTML = `
+            <div class="col-span-full text-center py-8 bg-yellow-50 rounded-lg border border-yellow-200">
+                <i class="fas fa-exclamation-triangle text-yellow-500 text-3xl mb-2"></i>
+                <p class="text-yellow-700 font-medium">No se encontraron componentes disponibles para este contexto</p>
+            </div>
+        `;
+        actualizarResumenFormulario();
+        return;
+    }
+
+    if (reiniciarSeleccion) {
+        componentesSeleccionados = componente.cantidad === 1 ? [1] : [];
+    } else {
+        componentesSeleccionados = componentesSeleccionados.filter((numero) => numero <= componente.cantidad);
+
+        if (componente.cantidad === 1 && componentesSeleccionados.length === 0) {
+            componentesSeleccionados = [1];
+        }
     }
 
     for (let indice = 1; indice <= componente.cantidad; indice++) {
-        const option = document.createElement('option');
-        option.value = indice;
-        option.textContent = `Pieza #${indice}`;
-        if (String(oldNumeroComponente || '') === String(indice)) {
-            option.selected = true;
-        }
-        numeroComponenteSelect.appendChild(option);
+        const seleccionado = componentesSeleccionados.includes(indice);
+        const label = document.createElement('label');
+        label.className = 'flex items-center gap-3 p-3 bg-white rounded-lg border border-gray-200 hover:border-blue-400 hover:shadow-md transition cursor-pointer';
+        label.innerHTML = `
+            <input type="checkbox"
+                   data-component-value="${indice}"
+                   class="w-5 h-5 text-blue-600 rounded cursor-pointer focus:ring-blue-500 componente-checkbox"
+                   ${seleccionado ? 'checked' : ''}>
+            <span class="flex-1 text-gray-700 font-medium">
+                <i class="fas fa-cube text-blue-500 mr-2"></i>
+                ${componente.nombre} #${indice}
+            </span>
+        `;
+        componentesChecklist.appendChild(label);
     }
 
-    numeroComponenteSelect.disabled = false;
-    numeroComponenteHelp.textContent = `Selecciona cual de las ${componente.cantidad} piezas del modulo estas analizando.`;
-    actualizarResumenFormulario();
+    componentesChecklist.querySelectorAll('.componente-checkbox:not(:disabled)').forEach((checkbox) => {
+        checkbox.addEventListener('change', actualizarComponentesRevisados);
+    });
+
+    actualizarComponentesRevisados();
 }
 
 const evidenciaFotosInput = document.getElementById('evidencia_fotos');
@@ -675,11 +760,31 @@ if (soportaDataTransferFotos) {
     renderizarFallbackFotos();
 }
 
-componenteSelect.addEventListener('change', renderNumeroComponenteOptions);
-numeroComponenteSelect.addEventListener('change', actualizarResumenFormulario);
+componenteSelect.addEventListener('change', () => renderChecklistComponentes({ reiniciarSeleccion: true }));
 moduloSelect.addEventListener('change', actualizarResumenFormulario);
+ladoSelect.addEventListener('change', actualizarResumenFormulario);
+nivelSelect.addEventListener('change', actualizarResumenFormulario);
 
-renderNumeroComponenteOptions();
+document.getElementById('analisisNormalForm')?.addEventListener('submit', function(event) {
+    const componente = obtenerComponenteSeleccionado();
+
+    if (!componente || componente.es_brazo_torsion || componente.cantidad === 1) {
+        actualizarComponentesRevisados();
+        return;
+    }
+
+    const seleccionados = componentesChecklist.querySelectorAll('input.componente-checkbox:checked:not(:disabled)');
+
+    if (seleccionados.length === 0) {
+        event.preventDefault();
+        alert('Debe seleccionar al menos un componente revisado.');
+        return;
+    }
+
+    actualizarComponentesRevisados();
+});
+
+renderChecklistComponentes();
 actualizarResumenFormulario();
 </script>
 @endsection

@@ -219,6 +219,7 @@
                         }
                         
                         $totalImagenes = count($imagenes);
+                        $numeroOrdenEtiqueta = $item->numero_orden ? 'Orden #' . $item->numero_orden : 'Sin orden';
                     @endphp
 
                     <div class="relative pl-16 history-card">
@@ -243,7 +244,7 @@
                                                 </span>
                                             </div>
                                             <h3 class="font-bold text-lg text-gray-800">
-                                                Orden #{{ $item->numero_orden }}
+                                                {{ $numeroOrdenEtiqueta }}
                                             </h3>
                                         </div>
                                     </div>
@@ -332,6 +333,7 @@
                                                 @php
                                                     $rutaImagen = asset('storage/' . $imagen);
                                                 @endphp
+<<<<<<< HEAD
                                                 <div class="relative group cursor-pointer history-image-trigger"
                                                      role="button"
                                                      tabindex="0"
@@ -341,6 +343,9 @@
                                                      data-image-total="{{ $totalImagenes }}"
                                                      data-image-order="{{ $item->numero_orden }}"
                                                      data-image-list="{!! $imagenesJson !!}">
+=======
+                                                <div class="relative group cursor-pointer" onclick="openImageModal('{{ $rutaImagen }}', 'Evidencia {{ $imgIndex + 1 }} - {{ $numeroOrdenEtiqueta }}', {{ $imgIndex + 1 }}, {{ $totalImagenes }})">
+>>>>>>> 2dfd17a5e67a2c898ac5c2655ab1c7034d7ef7d1
                                                     <div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-lg z-10"></div>
                                                     <img src="{{ $rutaImagen }}"
                                                          alt="Evidencia {{ $imgIndex + 1 }}"
@@ -359,10 +364,15 @@
                                         {{-- Botón para ver todas las imágenes --}}
                                         @if($totalImagenes > 4)
                                             <div class="mt-4 text-center">
+<<<<<<< HEAD
                                                 <button type="button"
                                                         class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-100 text-indigo-700 rounded-lg hover:bg-indigo-200 transition text-sm font-medium history-gallery-trigger"
                                                         data-image-list="{!! $imagenesJson !!}"
                                                         data-image-order="{{ $item->numero_orden }}">
+=======
+                                                <button onclick="openAllImages(@json($imagenes), @json($numeroOrdenEtiqueta))"
+                                                        class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-100 text-indigo-700 rounded-lg hover:bg-indigo-200 transition text-sm font-medium">
+>>>>>>> 2dfd17a5e67a2c898ac5c2655ab1c7034d7ef7d1
                                                     <i class="fas fa-images"></i>
                                                     Ver todas las imágenes ({{ $totalImagenes }})
                                                 </button>
@@ -572,7 +582,7 @@ function navigateImage(direction) {
     const currentIndexSpan = document.getElementById('currentImageIndex');
     
     modalImg.src = newSrc;
-    modalCaption.textContent = `Evidencia ${currentImageIndex + 1} - Orden #${currentOrderNumber}`;
+    modalCaption.textContent = `Evidencia ${currentImageIndex + 1} - ${currentOrderNumber}`;
     currentIndexSpan.textContent = currentImageIndex + 1;
 }
 
@@ -606,7 +616,11 @@ function openAllImages(imagenes, orden) {
         `;
         item.onclick = () => {
             closeGalleryModal();
+<<<<<<< HEAD
             openImageModal(rutaImagen, `Evidencia ${index + 1} - Orden #${orden}`, index + 1, currentImages.length, currentImages, orden);
+=======
+            openImageModal(rutaImagen, `Evidencia ${index + 1} - ${orden}`, index + 1, currentImages.length);
+>>>>>>> 2dfd17a5e67a2c898ac5c2655ab1c7034d7ef7d1
         };
         grid.appendChild(item);
     });

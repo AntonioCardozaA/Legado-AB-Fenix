@@ -652,15 +652,17 @@ public function index(Request $request)
                 
                 // Crear un nuevo componente específico para esta línea
                 try {
-                    $nuevoComponente = Componente::create([
-                        'codigo' => $request->componente_codigo . '_' . str_replace('-', '_', $linea->nombre),
+                    $nuevoComponente = Componente::firstOrCreate(
+                        ['codigo' => $request->componente_codigo . '_' . str_replace('-', '_', $linea->nombre)],
+                        [
                         'nombre' => $this->getNombreComponente($request->componente_codigo),
                         'reductor' => $request->reductor,
                         'ubicacion' => $request->reductor,
                         'linea' => $linea->nombre,
                         'cantidad_total' => 1,
                         'activo' => true,
-                    ]);
+                        ]
+                    );
                     
                     $componente = $nuevoComponente;
                     Log::info('Nuevo componente creado para línea específica con ID: ' . $componente->id);
@@ -706,7 +708,7 @@ public function index(Request $request)
         'componente_id'     => 'nullable|exists:componentes,id',
         'reductor'          => 'required|string|max:255',
         'fecha_analisis'    => 'required|date',
-        'numero_orden'      => 'required|string|max:20', // 🔥 YA NO digits:8
+        'numero_orden'      => 'nullable|string|max:20',
         'estado'            => 'required|string|in:' . implode(',', AnalisisLavadora::ESTADOS),
         'actividad'         => 'required|string',
         'evidencia_fotos'   => 'nullable|array',
@@ -796,13 +798,17 @@ $componente = Componente::firstOrCreate(
      * 4️⃣ CREAR ANÁLISIS
      * ===============================
      */
+    $numeroOrden = $request->filled('numero_orden')
+        ? trim((string) $request->input('numero_orden'))
+        : null;
+
     try {
         $analisis = AnalisisLavadora::create([
             'linea_id'       => $linea->id,
             'componente_id'  => $componente->id,
             'reductor'       => $request->reductor,
             'fecha_analisis' => $request->fecha_analisis,
-            'numero_orden'   => $request->numero_orden,
+            'numero_orden'   => $numeroOrden,
             'estado'         => $request->estado,
             'actividad'      => $request->actividad,
             'lado'           => $request->lado ?? null,
@@ -814,13 +820,14 @@ $componente = Componente::firstOrCreate(
         Log::info('Análisis creado', ['id' => $analisis->id]);
         // 🚨 ENVIAR WHATSAPP SI ESTÁ DAÑADO
         if ($request->estado === AnalisisLavadora::ESTADO_DANADO) {
+            $numeroOrdenTexto = $numeroOrden ?: 'Sin orden';
 
             $mensaje = "🚨 *ALERTA DE COMPONENTE DAÑADO* 🚨\n\n"
                 . "🔧 Línea: {$linea->nombre}\n"
                 . "⚙️ Componente: {$componente->nombre}\n"
                 . "📍 Reductor: {$request->reductor}\n"
                 . "📅 Fecha: {$request->fecha_analisis}\n"
-                . "🧾 Orden: {$request->numero_orden}\n"
+                . "🧾 Orden: {$numeroOrdenTexto}\n"
                 . "📝 Actividad: {$analisis->actividad}\n";
 
             // Número en formato internacional (México: 521...)
@@ -875,7 +882,13 @@ $componente = Componente::firstOrCreate(
     }
 
     if ($request->filled('redirect_to')) {
-        return redirect($request->redirect_to)
+        $redirectTo = $request->redirect_to;
+
+        if (str_contains($redirectTo, route('analisis-lavadora.create-quick', [], false))) {
+            $redirectTo = route('analisis-lavadora.index', ['linea_id' => $linea->id]);
+        }
+
+        return redirect($redirectTo)
             ->with('success', 'Análisis rápido registrado correctamente.');
     }
 
@@ -960,7 +973,7 @@ public function update(Request $request, $id)
 
     $validator = Validator::make($request->all(), [
         'fecha_analisis'    => ['required', 'date', 'date_format:Y-m-d'],
-        'numero_orden'      => 'required|string|max:20',
+        'numero_orden'      => 'nullable|string|max:20',
         'estado'            => 'required|string|in:' . implode(',', AnalisisLavadora::ESTADOS),
         'actividad'         => 'required|string',
         'evidencia_fotos'   => 'nullable|array',
@@ -1024,12 +1037,16 @@ public function update(Request $request, $id)
     /* =====================================================
      | ACTUALIZAR REGISTRO
      ===================================================== */
-    DB::transaction(function () use ($analisis, $request, $fotosExistentes, $fechaAnterior, $fechaNueva, $fechaFueModificada) {
+    $numeroOrden = $request->filled('numero_orden')
+        ? trim((string) $request->input('numero_orden'))
+        : null;
+
+    DB::transaction(function () use ($analisis, $request, $fotosExistentes, $fechaAnterior, $fechaNueva, $fechaFueModificada, $numeroOrden) {
         $analisis->update([
             'componente_id'   => $analisis->componente_id, // Mantener el mismo
             'reductor'        => $analisis->reductor, // Mantener el mismo
             'fecha_analisis'  => $fechaNueva,
-            'numero_orden'    => $request->numero_orden,
+            'numero_orden'    => $numeroOrden,
             'estado'          => $request->estado,
             'actividad'       => $request->actividad,
             'evidencia_fotos' => $fotosExistentes,

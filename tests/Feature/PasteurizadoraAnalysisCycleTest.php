@@ -160,7 +160,66 @@ class PasteurizadoraAnalysisCycleTest extends TestCase
         ]);
     }
 
+<<<<<<< HEAD
     public function test_quick_form_stores_normal_analysis_and_syncs_historico_revisados(): void
+=======
+    public function test_normal_pasteurizadora_create_shows_visual_component_checklist(): void
+    {
+        $user = $this->userWithRole(User::ROLE_ADMIN);
+        $linea = Linea::create([
+            'nombre' => 'P-03',
+            'descripcion' => 'Pasteurizadora de prueba',
+            'activo' => true,
+        ]);
+
+        $response = $this->actingAs($user)->get(
+            route('pasteurizadora.analisis-pasteurizadora.create', $linea->id)
+        );
+
+        $response->assertOk();
+        $response->assertSee('id="checklist-container"', false);
+        $response->assertSee('id="componentes-checklist"', false);
+        $response->assertSee('id="componentes_revisados_input"', false);
+        $response->assertDontSee('id="numero_componente"', false);
+    }
+
+    public function test_normal_pasteurizadora_analysis_can_store_multiple_checked_components(): void
+    {
+        $user = $this->userWithRole(User::ROLE_ADMIN);
+        $linea = Linea::create([
+            'nombre' => 'P-03',
+            'descripcion' => 'Pasteurizadora de prueba',
+            'activo' => true,
+        ]);
+
+        $response = $this->actingAs($user)->post(
+            route('pasteurizadora.analisis-pasteurizadora.store'),
+            [
+                'linea_id' => $linea->id,
+                'modulo' => 1,
+                'nivel' => 'SUPERIOR',
+                'componente' => 'ANILLAS',
+                'lado' => 'VAPOR',
+                'fecha_analisis' => now()->toDateString(),
+                'numero_orden' => '2101',
+                'estado' => 'Buen estado',
+                'actividad' => 'Registro normal con seleccion visual de varias piezas',
+                'componentes_revisados' => json_encode([1, 2]),
+            ]
+        );
+
+        $response->assertSessionHasNoErrors();
+        $response->assertRedirect(route('pasteurizadora.analisis-pasteurizadora.index', ['linea_id' => $linea->id]));
+
+        $analisis = AnalisisPasteurizadora::where('numero_orden', '2101')->firstOrFail();
+
+        $this->assertFalse($analisis->es_registro_quick);
+        $this->assertSame([1, 2], $analisis->componentes_revisados_lista);
+        $this->assertSame(2, $analisis->cantidad_componentes_revisados);
+    }
+
+    public function test_quick_mechanical_analysis_syncs_historico_revisados(): void
+>>>>>>> 2dfd17a5e67a2c898ac5c2655ab1c7034d7ef7d1
     {
         $user = $this->userWithRole(User::ROLE_ADMIN);
         $linea = Linea::create([

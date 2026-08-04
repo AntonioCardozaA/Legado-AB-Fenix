@@ -1969,36 +1969,34 @@ class AnalisisPasteurizadoraController extends Controller
             }
         }
 
-        $numeroComponente = $contexto['numero_componente'] ?? $request->input('numero_componente');
-        $numeroComponente = is_numeric($numeroComponente) ? (int) $numeroComponente : null;
-
-        if (!$numeroComponente) {
-            $componentesCompatibles = AnalisisPasteurizadora::normalizarComponentesRevisados(
+        if (AnalisisPasteurizadora::esBrazoTorsion($componente) || $totalComponentes === 1) {
+            $componentesSeleccionados = [1];
+        } else {
+            $componentesSeleccionados = AnalisisPasteurizadora::normalizarComponentesRevisados(
                 $request->input('componentes_revisados'),
                 $totalComponentes
             );
 
-            if (count($componentesCompatibles) === 1) {
-                $numeroComponente = (int) $componentesCompatibles[0];
-            }
-        }
+            if (empty($componentesSeleccionados)) {
+                $numeroComponente = $contexto['numero_componente'] ?? $request->input('numero_componente');
+                $numeroComponente = is_numeric($numeroComponente) ? (int) $numeroComponente : null;
 
-        if (AnalisisPasteurizadora::esBrazoTorsion($componente) || $totalComponentes === 1) {
-            $componentesSeleccionados = [1];
-        } else {
-            if (!$numeroComponente) {
-                throw ValidationException::withMessages([
-                    'numero_componente' => 'Seleccione el numero especifico del componente analizado.',
-                ]);
-            }
+                if (!$numeroComponente) {
+                    throw ValidationException::withMessages([
+                        'componentes_revisados' => 'Debe seleccionar al menos un componente revisado.',
+                        'numero_componente' => 'Seleccione el numero especifico del componente analizado.',
+                    ]);
+                }
 
-            if ($numeroComponente < 1 || $numeroComponente > $totalComponentes) {
-                throw ValidationException::withMessages([
-                    'numero_componente' => 'Seleccione un numero de componente valido para la configuracion actual.',
-                ]);
-            }
+                if ($numeroComponente < 1 || $numeroComponente > $totalComponentes) {
+                    throw ValidationException::withMessages([
+                        'componentes_revisados' => 'La seleccion incluye componentes fuera del rango permitido.',
+                        'numero_componente' => 'Seleccione un numero de componente valido para la configuracion actual.',
+                    ]);
+                }
 
-            $componentesSeleccionados = [$numeroComponente];
+                $componentesSeleccionados = [$numeroComponente];
+            }
         }
 
         return [
