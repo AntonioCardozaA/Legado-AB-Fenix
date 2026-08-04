@@ -47,9 +47,6 @@
                     <i class="fas fa-ruler-combined text-2xl text-blue-600 sm:text-3xl"></i>
                     <h1 class="text-2xl font-bold text-gray-800 sm:text-3xl">Registro de elongaciones</h1>
                 </div>
-                <p class="text-gray-600">
-                    Seguimos usando el mismo cálculo de porcentajes y alertas, ahora con control por ciclo de cadena y proveedor.
-                </p>
             </div>
 
             <a href="{{ route('elongaciones.ciclos.comparacion', ['linea' => old('linea', $lineaSeleccionada)]) }}"

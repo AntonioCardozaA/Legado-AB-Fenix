@@ -324,6 +324,49 @@ class RoleAccessTest extends TestCase
             ->assertDontSee('Error 403');
     }
 
+    public function test_custom_permissions_hide_and_block_restricted_admin_module_access(): void
+    {
+        $admin = $this->userWithRole(User::ROLE_ADMIN);
+        $this->enableCustomPermissions($admin, [
+            User::PERMISSION_ACCESS_ETIQUETADORA,
+        ]);
+
+        $this->assertFalse($admin->fresh()->canAccessModule(User::MODULE_ETIQUETADORA));
+
+        $this->actingAs($admin)
+            ->get(route('dashboard'))
+            ->assertOk()
+            ->assertDontSee('Etiquetadoras')
+            ->assertDontSee(route('etiquetadora.dashboard'), false);
+
+        $this->actingAs($admin)
+            ->get(route('etiquetadora.dashboard'))
+            ->assertForbidden();
+    }
+
+    public function test_custom_permissions_hide_restricted_admin_sidebar_links(): void
+    {
+        $admin = $this->userWithRole(User::ROLE_ADMIN);
+        $this->enableCustomPermissions($admin, [
+            'gestionar usuarios',
+            User::PERMISSION_ACCESS_LAVADORA_COSTS,
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('dashboard'))
+            ->assertOk()
+            ->assertDontSee(route('admin.users.index'), false)
+            ->assertDontSee(route('admin.costos.index'), false);
+
+        $this->actingAs($admin)
+            ->get(route('admin.users.index'))
+            ->assertForbidden();
+
+        $this->actingAs($admin)
+            ->get(route('admin.costos.index'))
+            ->assertForbidden();
+    }
+
     private function userWithRole(string $role): User
     {
         Role::firstOrCreate([

@@ -241,12 +241,12 @@ public function canDeleteLegacyAnalysis(): bool
 
 private function canDeleteAnalysisWithPermission(string $permission): bool
 {
-    if ($this->hasRole(self::ROLE_ADMIN)) {
-        return true;
+    if ($this->usesCustomPermissionAccess()) {
+        return $this->canUseCustomPermission($permission);
     }
 
-    if ($this->usesCustomPermissionAccess()) {
-        return $this->hasDirectConfigurablePermission($permission);
+    if ($this->hasRole(self::ROLE_ADMIN)) {
+        return true;
     }
 
     try {
@@ -258,6 +258,10 @@ private function canDeleteAnalysisWithPermission(string $permission): bool
 
 public function canCloseLavadoraDamage(): bool
 {
+    if ($this->usesCustomPermissionAccess()) {
+        return $this->canUseCustomPermission(self::PERMISSION_CLOSE_LAVADORA_DAMAGE);
+    }
+
     if ($this->hasRole(self::ROLE_ADMIN)) {
         return true;
     }
@@ -267,51 +271,35 @@ public function canCloseLavadoraDamage(): bool
 
 public function canViewLavadoraCostModule(): bool
 {
-    if ($this->canManageLavadoraCosts()) {
-        return true;
-    }
-
-    return $this->hasDirectPermissionSafely(self::PERMISSION_VIEW_LAVADORA_COST_MODULE);
+    return $this->canUseLavadoraCostPermission(self::PERMISSION_VIEW_LAVADORA_COST_MODULE);
 }
 
 public function canAccessLavadoraCosts(): bool
 {
-    if ($this->canManageLavadoraCosts()) {
-        return true;
-    }
-
-    return $this->hasDirectPermissionSafely(self::PERMISSION_ACCESS_LAVADORA_COSTS);
+    return $this->canUseLavadoraCostPermission(self::PERMISSION_ACCESS_LAVADORA_COSTS);
 }
 
 public function canCreateLavadoraCosts(): bool
 {
-    if ($this->canManageLavadoraCosts()) {
-        return true;
-    }
-
-    return $this->hasDirectPermissionSafely(self::PERMISSION_CREATE_LAVADORA_COSTS);
+    return $this->canUseLavadoraCostPermission(self::PERMISSION_CREATE_LAVADORA_COSTS);
 }
 
 public function canEditLavadoraCosts(): bool
 {
-    if ($this->canManageLavadoraCosts()) {
-        return true;
-    }
-
-    return $this->hasDirectPermissionSafely(self::PERMISSION_EDIT_LAVADORA_COSTS);
+    return $this->canUseLavadoraCostPermission(self::PERMISSION_EDIT_LAVADORA_COSTS);
 }
 
 public function canDeleteLavadoraCosts(): bool
 {
-    if ($this->canManageLavadoraCosts()) {
-        return true;
-    }
-
-    return $this->hasDirectPermissionSafely(self::PERMISSION_DELETE_LAVADORA_COSTS);
+    return $this->canUseLavadoraCostPermission(self::PERMISSION_DELETE_LAVADORA_COSTS);
 }
 
 public function canManageLavadoraCosts(): bool
 {
+    if ($this->usesCustomPermissionAccess()) {
+        return $this->canUseCustomPermission(self::PERMISSION_MANAGE_LAVADORA_COSTS);
+    }
+
     if ($this->hasRole(self::ROLE_ADMIN)) {
         return true;
     }
@@ -351,10 +339,6 @@ public function usesCustomPermissionAccess(): bool
 
 public function canUseCustomPermission(string $permission): bool
 {
-    if ($this->hasRole(self::ROLE_ADMIN)) {
-        return true;
-    }
-
     if (!$this->usesCustomPermissionAccess()) {
         return \App\Support\AccessPermissionCatalog::defaultAllows($this, $permission);
     }
@@ -375,6 +359,30 @@ private function hasDirectPermissionSafely(string $permission): bool
     } catch (PermissionDoesNotExist) {
         return false;
     }
+}
+
+private function hasExplicitCustomRestriction(string $permission): bool
+{
+    return $this->usesCustomPermissionAccess()
+        && \App\Support\AccessPermissionCatalog::roleDefaultAllows($this, $permission)
+        && $this->hasDirectConfigurablePermission($permission);
+}
+
+private function canUseLavadoraCostPermission(string $permission): bool
+{
+    if ($this->hasExplicitCustomRestriction($permission)) {
+        return false;
+    }
+
+    if ($this->canManageLavadoraCosts()) {
+        return true;
+    }
+
+    if ($this->usesCustomPermissionAccess()) {
+        return $this->canUseCustomPermission($permission);
+    }
+
+    return $this->hasDirectPermissionSafely($permission);
 }
 
 public function usesTechnicianAccessProfile(): bool
@@ -404,10 +412,6 @@ public function canAccessModule(string $module): bool
 {
     $module = strtolower($module);
     $permission = self::modulePermissionMap()[$module] ?? null;
-
-    if ($this->hasRole(self::ROLE_ADMIN)) {
-        return true;
-    }
 
     $allowedByDefault = $this->canAccessModuleByDefault($module);
 
@@ -465,10 +469,6 @@ public function canAccessPasteurizadoraArea(string $area): bool
         return false;
     }
 
-    if ($this->hasRole(self::ROLE_ADMIN)) {
-        return true;
-    }
-
     $area = \App\Models\AnalisisPasteurizadora::normalizarArea($area);
     $permission = self::pasteurizadoraAreaPermissionMap()[$area] ?? null;
 
@@ -484,6 +484,10 @@ public function canAccessPasteurizadoraArea(string $area): bool
         }
 
         return $allowedByDefault;
+    }
+
+    if ($this->hasRole(self::ROLE_ADMIN)) {
+        return true;
     }
 
     try {

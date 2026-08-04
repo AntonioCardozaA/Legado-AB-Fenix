@@ -82,7 +82,7 @@
                         @foreach($analisisRealizados as $registroRealizado)
                             <div class="flex flex-wrap items-center gap-2 text-xs text-blue-800">
                                 <span class="rounded bg-white px-2 py-1 font-semibold">{{ $registroRealizado->fecha_analisis?->format('d/m/Y') ?? 'Sin fecha' }}</span>
-                                <span class="rounded bg-white px-2 py-1">Orden #{{ $registroRealizado->numero_orden }}</span>
+                                <span class="rounded bg-white px-2 py-1">{{ $registroRealizado->numero_orden ? 'Orden #' . $registroRealizado->numero_orden : 'Sin orden' }}</span>
                                 <span class="rounded bg-blue-100 px-2 py-1 font-semibold">Realizado por: {{ $registroRealizado->usuario?->name ?? 'Usuario no registrado' }}</span>
                             </div>
                         @endforeach
@@ -153,16 +153,14 @@
             <div>
                 <label class="block text-sm font-semibold text-gray-700 mb-2">
                     <i class="fas fa-hashtag text-blue-600 mr-1"></i>
-                    Número de Orden *
+                    Numero de Orden
                 </label>
                 <input type="text" 
                        name="numero_orden" 
-                       required
-                       maxlength="8"
-                       pattern="\d{8}"
-                       inputmode="numeric"
-                       placeholder="Ej: 12345678"
-                       title="Debe contener exactamente 8 dígitos numéricos"
+                       value="{{ old('numero_orden') }}"
+                       maxlength="20"
+                       placeholder="Opcional"
+                       title="Campo opcional. Maximo 20 caracteres"
                        class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500 shadow-sm
                        @error('numero_orden') border-red-500 @enderror">
                 @error('numero_orden')
@@ -283,7 +281,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const camaraFotosInput = document.getElementById('evidencia_fotos_camara');
     const previewFotos = document.getElementById('preview_fotos');
     const fotosResumen = document.getElementById('fotos_resumen');
-    const numeroOrdenInput = document.querySelector('input[name="numero_orden"]');
     const maxFotoSize = 12 * 1024 * 1024;
     const soportaDataTransfer = typeof DataTransfer !== 'undefined';
     const extensionesPermitidas = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'];
@@ -464,25 +461,7 @@ document.addEventListener('DOMContentLoaded', function() {
         renderizarFallback();
     }
 
-    numeroOrdenInput.addEventListener('input', function(e) {
-        // Solo permite números
-        this.value = this.value.replace(/[^0-9]/g, '');
-        // Limita a 8 caracteres
-        if (this.value.length > 8) {
-            this.value = this.value.slice(0, 8);
-        }
-    });
-    
-    // Validar que el número de orden tenga 8 dígitos al enviar el formulario
     analisisForm.addEventListener('submit', function(e) {
-        const ordenValue = numeroOrdenInput.value.trim();
-        if (ordenValue.length !== 8) {
-            e.preventDefault();
-            alert('El número de orden debe tener exactamente 8 dígitos.');
-            numeroOrdenInput.focus();
-            return;
-        }
-        
         // Validar que se haya seleccionado un lado si el selector está visible
         if (!ladoSelector.classList.contains('hidden') && !ladoInput.value) {
             e.preventDefault();

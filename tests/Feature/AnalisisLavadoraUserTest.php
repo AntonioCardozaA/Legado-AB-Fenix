@@ -48,6 +48,68 @@ class AnalisisLavadoraUserTest extends TestCase
         $this->assertTrue($analisis->usuario->is($user));
     }
 
+    public function test_store_allows_missing_order_number(): void
+    {
+        $user = User::factory()->create();
+        $linea = Linea::create([
+            'nombre' => 'L-04',
+            'descripcion' => 'Lavadora de prueba',
+            'activo' => true,
+        ]);
+
+        $response = $this->actingAs($user)->post(route('analisis-lavadora.store'), [
+            'linea_id' => $linea->id,
+            'componente_codigo' => 'SERVO_CHICO',
+            'reductor' => 'Reductor 1',
+            'fecha_analisis' => now()->toDateString(),
+            'estado' => 'Buen estado',
+            'actividad' => 'Registro sin numero de orden',
+        ]);
+
+        $response->assertRedirect(route('analisis-lavadora.index', ['linea_id' => $linea->id]));
+
+        $this->assertDatabaseHas('analisis_componentes', [
+            'linea_id' => $linea->id,
+            'numero_orden' => null,
+            'usuario_id' => $user->id,
+        ]);
+    }
+
+    public function test_quick_store_without_order_redirects_to_index_when_redirect_points_to_quick_create(): void
+    {
+        $user = User::factory()->create();
+        $linea = Linea::create([
+            'nombre' => 'L-04',
+            'descripcion' => 'Lavadora de prueba',
+            'activo' => true,
+        ]);
+
+        $quickCreateUrl = route('analisis-lavadora.create-quick', [
+            'linea_id' => $linea->id,
+            'componente_codigo' => 'SERVO_CHICO',
+            'reductor' => 'Reductor 1',
+            'fecha' => now()->format('Y-m'),
+        ]);
+
+        $response = $this->actingAs($user)->post(route('analisis-lavadora.store'), [
+            'linea_id' => $linea->id,
+            'componente_codigo' => 'SERVO_CHICO',
+            'reductor' => 'Reductor 1',
+            'fecha_analisis' => now()->toDateString(),
+            'estado' => 'Buen estado',
+            'actividad' => 'Registro rapido sin numero de orden',
+            'redirect_to' => $quickCreateUrl,
+        ]);
+
+        $response->assertRedirect(route('analisis-lavadora.index', ['linea_id' => $linea->id]));
+
+        $this->assertDatabaseHas('analisis_componentes', [
+            'linea_id' => $linea->id,
+            'numero_orden' => null,
+            'usuario_id' => $user->id,
+        ]);
+    }
+
     public function test_index_searches_component_across_all_lavadoras_with_line_suffix_codes(): void
     {
         $user = User::factory()->create();

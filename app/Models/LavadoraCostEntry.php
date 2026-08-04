@@ -13,6 +13,7 @@ class LavadoraCostEntry extends Model
 
     public const SOURCE_MANUAL = 'manual';
     public const SOURCE_CHAIN_INSTALLATION = 'instalacion_cadena';
+    public const SOURCE_DAMAGE_CLOSURE = 'cierre_dano';
 
     protected $table = 'lavadora_cost_entries';
 
@@ -92,6 +93,7 @@ class LavadoraCostEntry extends Model
         return match ($sourceType) {
             self::SOURCE_MANUAL => 'Manual',
             self::SOURCE_CHAIN_INSTALLATION => 'Instalacion de cadena',
+            self::SOURCE_DAMAGE_CLOSURE => 'Cierre administrativo',
             CostAutomationRule::TRIGGER_ESTADO_CAMBIADO => 'Cambio completo',
             CostAutomationRule::TRIGGER_ACTIVIDAD_KEYWORD => 'Actividad',
             default => Str::headline(str_replace('_', ' ', (string) $sourceType)),

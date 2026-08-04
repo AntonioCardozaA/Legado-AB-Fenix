@@ -146,18 +146,15 @@
                 <div>
                     <label for="numero_orden" class="block text-sm font-medium text-gray-700 mb-1">
                         <i class="fas fa-hashtag text-blue-600 mr-1"></i>
-                        Número de Orden *
+                        Numero de Orden
                     </label>
                     <input type="text" 
                            id="numero_orden"
                            name="numero_orden" 
                            value="{{ old('numero_orden') }}"
-                           required
-                           maxlength="8"
-                           pattern="\d{8}"
-                           inputmode="numeric"
-                           placeholder="Ej: 12345678"
-                           title="Debe contener exactamente 8 dígitos numéricos"
+                           maxlength="20"
+                           placeholder="Opcional"
+                           title="Campo opcional. Maximo 20 caracteres"
                            class="w-full rounded-lg border-gray-300 focus:border-amber-500 focus:ring-amber-500 shadow-sm
                            @error('numero_orden') border-red-500 @enderror">
                     @error('numero_orden')
@@ -279,7 +276,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const camaraFotosInput = document.getElementById('evidencia_fotos_camara');
     const previewFotos = document.getElementById('preview_fotos');
     const fotosResumen = document.getElementById('fotos_resumen');
-    const numeroOrdenInput = document.getElementById('numero_orden');
     const componenteSelect = document.getElementById('componente_codigo');
     const ladoSelector = document.getElementById('lado-selector-container');
     const ladoInput = document.getElementById('lado');
@@ -437,15 +433,6 @@ document.addEventListener('DOMContentLoaded', function() {
         camaraFotosInput.addEventListener('change', renderizarFallback);
         renderizarFallback();
     }
-
-    numeroOrdenInput.addEventListener('input', function(e) {
-        // Solo permite números
-        this.value = this.value.replace(/[^0-9]/g, '');
-        // Limita a 8 caracteres
-        if (this.value.length > 8) {
-            this.value = this.value.slice(0, 8);
-        }
-    });
 
     // Escuchar cambios en el selector de componente
     componenteSelect.addEventListener('change', function() {
