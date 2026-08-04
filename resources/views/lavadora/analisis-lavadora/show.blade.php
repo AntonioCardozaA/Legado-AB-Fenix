@@ -5,6 +5,12 @@
 @section('content')
 @php
     $evidencias = collect($analisislavadora->evidencia_fotos ?? [])->filter()->values();
+    $photoPreviewImages = $evidencias
+        ->map(fn ($foto, $index) => [
+            'url' => asset('storage/' . $foto),
+            'title' => 'Evidencia #' . ($index + 1),
+        ])
+        ->values();
     $estado = $analisislavadora->estado;
     $estadoStyles = match (true) {
         \App\Models\AnalisisLavadora::esEstadoDanado($estado) => [
@@ -60,6 +66,27 @@
     };
 @endphp
 
+<style>
+    .photo-preview-stage {
+        touch-action: pan-y;
+        user-select: none;
+        -webkit-user-select: none;
+        -webkit-user-drag: none;
+        cursor: grab;
+    }
+
+    .photo-preview-stage.is-swiping {
+        cursor: grabbing;
+    }
+
+    .photo-preview-stage img {
+        touch-action: pan-y;
+        user-select: none;
+        -webkit-user-select: none;
+        -webkit-user-drag: none;
+    }
+</style>
+
 <div class="mx-auto max-w-7xl space-y-6">
     <section class="overflow-hidden rounded-2xl border {{ $estadoStyles['surface'] }} bg-white shadow-sm">
         <div class="bg-gradient-to-r {{ $estadoStyles['header'] }} px-6 py-7 text-white sm:px-8">
@@ -92,7 +119,7 @@
 
                 <div class="flex flex-wrap gap-3">
                     @if($canAccessLavadoraCosts ?? (auth()->user()?->canAccessLavadoraCosts() ?? false))
-                        <a href="{{ route('analisis-lavadora.costos.manage', ['analisislavadora' => $analisislavadora->id]) }}"
+                        <a href="{{ route('analisis-lavadora.costos.manage', ['analisislavadora' => $analisislavadora->id], false) }}"
                            class="inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700">
                             <i class="fas fa-sack-dollar"></i>
                             Administrar costos
@@ -239,7 +266,8 @@
                         <button type="button"
                                 class="group relative block aspect-[4/3] w-full overflow-hidden bg-gray-100"
                                 data-photo-url="{{ $fotoUrl }}"
-                                data-photo-title="Evidencia #{{ $index + 1 }}">
+                                data-photo-title="Evidencia #{{ $index + 1 }}"
+                                data-photo-index="{{ $index }}">
                             <img src="{{ $fotoUrl }}" alt="Evidencia {{ $index + 1 }}" class="h-full w-full object-cover transition duration-300 group-hover:scale-105">
                             <span class="absolute left-3 top-3 rounded-full bg-black/70 px-3 py-1 text-xs font-semibold text-white">
                                 #{{ $index + 1 }}
@@ -283,54 +311,249 @@
     </form>
 @endif
 
-<div id="photoPreviewModal" class="fixed inset-0 z-[80] hidden items-center justify-center bg-black/75 p-4">
-    <div class="w-full max-w-5xl overflow-hidden rounded-2xl bg-white shadow-2xl">
-        <div class="flex items-center justify-between border-b border-gray-200 px-5 py-4">
-            <h3 id="photoPreviewTitle" class="text-base font-bold text-gray-900">Evidencia</h3>
-            <button type="button" id="photoPreviewClose" class="flex h-9 w-9 items-center justify-center rounded-full bg-gray-100 text-gray-600 transition hover:bg-gray-200">
-                <i class="fas fa-times"></i>
-            </button>
+<div id="photoPreviewModal" class="fixed inset-0 z-[80] hidden items-center justify-center bg-black/95 p-4 transition-all duration-300" onclick="closePhotoPreviewModal()">
+    <div id="photoPreviewStage" class="relative flex h-full w-full max-w-6xl items-center justify-center photo-preview-stage" onclick="event.stopPropagation()">
+        <button type="button"
+                id="photoPreviewClose"
+                class="absolute right-4 top-4 z-20 flex h-12 w-12 items-center justify-center rounded-lg border border-gray-600 bg-gray-800/60 text-2xl text-white backdrop-blur-sm transition hover:bg-gray-700/80 sm:right-6 sm:top-6">
+            <i class="fas fa-times"></i>
+        </button>
+
+        <button type="button"
+                id="photoPreviewPrev"
+                class="absolute left-2 top-1/2 z-20 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-gray-600 bg-gray-800/60 text-xl text-white backdrop-blur-sm transition hover:bg-gray-700/80 sm:left-4 sm:h-12 sm:w-12 hidden">
+            <i class="fas fa-chevron-left"></i>
+        </button>
+
+        <img id="photoPreviewImage" src="" alt="Evidencia" class="max-h-[82vh] max-w-full rounded-lg border-4 border-gray-700 object-contain shadow-2xl">
+
+        <button type="button"
+                id="photoPreviewNext"
+                class="absolute right-2 top-1/2 z-20 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-gray-600 bg-gray-800/60 text-xl text-white backdrop-blur-sm transition hover:bg-gray-700/80 sm:right-4 sm:h-12 sm:w-12 hidden">
+            <i class="fas fa-chevron-right"></i>
+        </button>
+
+        <div id="photoPreviewCounter" class="absolute bottom-6 left-1/2 z-20 -translate-x-1/2 rounded-lg border border-gray-700 bg-gray-900/80 px-4 py-2 font-mono text-sm text-white backdrop-blur-sm hidden">
+            <span id="photoPreviewCurrent">1</span> / <span id="photoPreviewTotal">1</span>
         </div>
-        <div class="bg-gray-950 p-3">
-            <img id="photoPreviewImage" src="" alt="Evidencia" class="mx-auto max-h-[75vh] w-auto rounded-lg object-contain">
-        </div>
+
+        <h3 id="photoPreviewTitle" class="absolute bottom-20 left-1/2 z-20 max-w-[calc(100vw-2rem)] -translate-x-1/2 rounded-lg border border-gray-700 bg-gray-900/80 px-4 py-2 text-center text-sm font-semibold text-white backdrop-blur-sm">Evidencia</h3>
     </div>
 </div>
 @endsection
 
 @section('scripts')
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const modal = document.getElementById('photoPreviewModal');
-    const image = document.getElementById('photoPreviewImage');
-    const title = document.getElementById('photoPreviewTitle');
-    const close = document.getElementById('photoPreviewClose');
+const PHOTO_PREVIEW_IMAGES = {{ \Illuminate\Support\Js::from($photoPreviewImages) }};
+let currentPhotoPreviewIndex = 0;
+let photoPreviewSwipe = null;
+const PHOTO_PREVIEW_SWIPE_DISTANCE = 50;
+const PHOTO_PREVIEW_SWIPE_VERTICAL_TOLERANCE = 1.25;
 
-    function closeModal() {
-        modal.classList.add('hidden');
-        modal.classList.remove('flex');
-        image.src = '';
+function photoPreviewElements() {
+    return {
+        modal: document.getElementById('photoPreviewModal'),
+        image: document.getElementById('photoPreviewImage'),
+        title: document.getElementById('photoPreviewTitle'),
+        prev: document.getElementById('photoPreviewPrev'),
+        next: document.getElementById('photoPreviewNext'),
+        counter: document.getElementById('photoPreviewCounter'),
+        current: document.getElementById('photoPreviewCurrent'),
+        total: document.getElementById('photoPreviewTotal'),
+        stage: document.getElementById('photoPreviewStage'),
+    };
+}
+
+function updatePhotoPreview() {
+    const elements = photoPreviewElements();
+    const item = PHOTO_PREVIEW_IMAGES[currentPhotoPreviewIndex];
+    const hasMultipleImages = PHOTO_PREVIEW_IMAGES.length > 1;
+
+    if (!elements.modal || !item) {
+        return;
     }
+
+    elements.image.src = item.url;
+    elements.title.textContent = item.title || `Evidencia #${currentPhotoPreviewIndex + 1}`;
+    elements.current.textContent = currentPhotoPreviewIndex + 1;
+    elements.total.textContent = PHOTO_PREVIEW_IMAGES.length;
+    elements.prev.classList.toggle('hidden', !hasMultipleImages);
+    elements.next.classList.toggle('hidden', !hasMultipleImages);
+    elements.counter.classList.toggle('hidden', !hasMultipleImages);
+}
+
+function openPhotoPreview(index) {
+    const elements = photoPreviewElements();
+
+    if (!elements.modal || PHOTO_PREVIEW_IMAGES.length === 0) {
+        return;
+    }
+
+    currentPhotoPreviewIndex = Math.max(0, Math.min(index, PHOTO_PREVIEW_IMAGES.length - 1));
+    updatePhotoPreview();
+    elements.modal.classList.remove('hidden');
+    elements.modal.classList.add('flex');
+    document.body.style.overflow = 'hidden';
+}
+
+function changePhotoPreview(direction) {
+    if (PHOTO_PREVIEW_IMAGES.length <= 1) {
+        return;
+    }
+
+    currentPhotoPreviewIndex = (currentPhotoPreviewIndex + direction + PHOTO_PREVIEW_IMAGES.length) % PHOTO_PREVIEW_IMAGES.length;
+    updatePhotoPreview();
+}
+
+function closePhotoPreviewModal() {
+    const elements = photoPreviewElements();
+
+    if (!elements.modal) {
+        return;
+    }
+
+    elements.modal.classList.add('hidden');
+    elements.modal.classList.remove('flex');
+    elements.image.src = '';
+    cancelPhotoPreviewSwipe({ currentTarget: elements.stage });
+    document.body.style.overflow = '';
+}
+
+function getPhotoPreviewSwipePoint(event) {
+    const source = event.changedTouches?.[0] || event.touches?.[0] || event;
+
+    return {
+        x: source.clientX ?? 0,
+        y: source.clientY ?? 0,
+    };
+}
+
+function startPhotoPreviewSwipe(event) {
+    if (event.target?.closest('button') || PHOTO_PREVIEW_IMAGES.length <= 1) {
+        return;
+    }
+
+    if (event.pointerId !== undefined && event.currentTarget?.setPointerCapture) {
+        try {
+            event.currentTarget.setPointerCapture(event.pointerId);
+        } catch (error) {}
+    }
+
+    const point = getPhotoPreviewSwipePoint(event);
+    photoPreviewSwipe = {
+        startX: point.x,
+        startY: point.y,
+        lastX: point.x,
+        lastY: point.y,
+    };
+
+    event.currentTarget?.classList.add('is-swiping');
+}
+
+function movePhotoPreviewSwipe(event) {
+    if (!photoPreviewSwipe) {
+        return;
+    }
+
+    const point = getPhotoPreviewSwipePoint(event);
+    const deltaX = point.x - photoPreviewSwipe.startX;
+    const deltaY = point.y - photoPreviewSwipe.startY;
+
+    photoPreviewSwipe.lastX = point.x;
+    photoPreviewSwipe.lastY = point.y;
+
+    if (Math.abs(deltaX) > Math.abs(deltaY) && event.cancelable) {
+        event.preventDefault();
+    }
+}
+
+function finishPhotoPreviewSwipe(event) {
+    if (!photoPreviewSwipe) {
+        return;
+    }
+
+    const point = getPhotoPreviewSwipePoint(event);
+    const endX = point.x ?? photoPreviewSwipe.lastX;
+    const endY = point.y ?? photoPreviewSwipe.lastY;
+    const deltaX = endX - photoPreviewSwipe.startX;
+    const deltaY = endY - photoPreviewSwipe.startY;
+    const isHorizontalSwipe = Math.abs(deltaX) >= PHOTO_PREVIEW_SWIPE_DISTANCE
+        && Math.abs(deltaX) > Math.abs(deltaY) * PHOTO_PREVIEW_SWIPE_VERTICAL_TOLERANCE;
+
+    if (isHorizontalSwipe) {
+        changePhotoPreview(deltaX < 0 ? 1 : -1);
+    }
+
+    cancelPhotoPreviewSwipe(event);
+}
+
+function cancelPhotoPreviewSwipe(event) {
+    const stage = event.currentTarget;
+
+    photoPreviewSwipe = null;
+    if (event.pointerId !== undefined && stage?.releasePointerCapture) {
+        try {
+            stage.releasePointerCapture(event.pointerId);
+        } catch (error) {}
+    }
+    stage?.classList.remove('is-swiping');
+}
+
+function setupPhotoPreviewSwipe(stage) {
+    if (!stage) {
+        return;
+    }
+
+    if (window.PointerEvent) {
+        stage.addEventListener('pointerdown', startPhotoPreviewSwipe);
+        stage.addEventListener('pointermove', movePhotoPreviewSwipe);
+        stage.addEventListener('pointerup', finishPhotoPreviewSwipe);
+        stage.addEventListener('pointercancel', cancelPhotoPreviewSwipe);
+        return;
+    }
+
+    stage.addEventListener('touchstart', startPhotoPreviewSwipe, { passive: true });
+    stage.addEventListener('touchmove', movePhotoPreviewSwipe, { passive: false });
+    stage.addEventListener('touchend', finishPhotoPreviewSwipe);
+    stage.addEventListener('touchcancel', cancelPhotoPreviewSwipe);
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const elements = photoPreviewElements();
+    const close = document.getElementById('photoPreviewClose');
+    const prev = document.getElementById('photoPreviewPrev');
+    const next = document.getElementById('photoPreviewNext');
 
     document.querySelectorAll('[data-photo-url]').forEach(function(button) {
         button.addEventListener('click', function() {
-            image.src = this.dataset.photoUrl;
-            title.textContent = this.dataset.photoTitle || 'Evidencia';
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
+            openPhotoPreview(Number(this.dataset.photoIndex || 0));
         });
     });
 
-    close.addEventListener('click', closeModal);
-    modal.addEventListener('click', function(event) {
-        if (event.target === modal) {
-            closeModal();
-        }
+    close?.addEventListener('click', closePhotoPreviewModal);
+    prev?.addEventListener('click', function() {
+        changePhotoPreview(-1);
     });
+    next?.addEventListener('click', function() {
+        changePhotoPreview(1);
+    });
+    setupPhotoPreviewSwipe(elements.stage);
 
     document.addEventListener('keydown', function(event) {
-        if (event.key === 'Escape' && !modal.classList.contains('hidden')) {
-            closeModal();
+        if (!elements.modal || elements.modal.classList.contains('hidden')) {
+            return;
+        }
+
+        if (event.key === 'Escape') {
+            closePhotoPreviewModal();
+        }
+
+        if (event.key === 'ArrowLeft') {
+            changePhotoPreview(-1);
+        }
+
+        if (event.key === 'ArrowRight') {
+            changePhotoPreview(1);
         }
     });
 

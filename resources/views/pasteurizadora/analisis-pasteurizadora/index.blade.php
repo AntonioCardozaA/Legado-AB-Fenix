@@ -27,8 +27,8 @@
     .sticky-left { position: sticky; left: 0; z-index: 20; }
     .sticky-top-left { position: sticky; top: 0; left: 0; z-index: 40; }
     .cell-ok { background-color: #f0f9ff; border-left: 4px solid var(--success-green); }
-    .cell-review { background-color: #fff7ed; border-left: 4px solid #f97316; }
-    .cell-warning { background-color: #fffbeb; border-left: 4px solid var(--warning-yellow); }
+    .cell-review { background-color: #fefce8; border-left: 4px solid var(--warning-yellow); }
+    .cell-warning { background-color: #fff7ed; border-left: 4px solid #f97316; }
     .cell-danger { background-color: #fef2f2; border-left: 4px solid var(--danger-red); }
     .cell-changed { background-color: #eff6ff; border-left: 4px solid var(--changed-blue); }
     .cell-empty { background-color: var(--light-gray); }
@@ -468,6 +468,7 @@
         letter-spacing: 0.5px;
         margin-bottom: 16px;
         display: flex;
+        flex-wrap: wrap;
         align-items: center;
         gap: 8px;
     }
@@ -543,6 +544,10 @@
     
     .linea-item.active i {
         color: white;
+    }
+
+    .linea-item--all {
+        flex-shrink: 0;
     }
     
     .filters-divider {
@@ -731,22 +736,39 @@
     
     /* Estilos para media queries responsivas */
     @media (max-width: 768px) {
+        .filters-section {
+            padding: 14px;
+            margin-bottom: 16px;
+            border-radius: 10px;
+        }
+
+        .lineas-title {
+            margin-bottom: 12px;
+        }
+
         .lineas-grid {
             gap: 8px;
         }
 
         .linea-item {
-            padding: 6px 16px;
-            font-size: 13px;
+            min-height: 32px;
+            padding: 6px 13px;
+            border-width: 1px;
+            font-size: 12px;
+            line-height: 1.1;
         }
 
         .filters-row {
             flex-direction: column;
             align-items: stretch;
+            gap: 10px;
         }
 
         .filter-link {
             width: 100%;
+            min-height: 34px;
+            padding: 8px 12px;
+            font-size: 12px;
         }
 
         .btn-apply,
@@ -754,6 +776,17 @@
             margin-left: 0;
             justify-content: center;
             width: 100%;
+            min-height: 38px;
+            padding: 8px 14px;
+            font-size: 12px;
+        }
+
+        .advanced-filters-panel {
+            padding: 14px;
+        }
+
+        .advanced-filters-grid {
+            grid-template-columns: 1fr;
         }
 
         .compact-table td, .compact-table th {
@@ -766,13 +799,18 @@
 
     @media (max-width: 480px) {
         .lineas-grid {
-            flex-direction: column;
-            align-items: stretch;
+            flex-direction: row;
+            align-items: center;
+            gap: 8px;
         }
 
         .linea-item {
-            width: 100%;
+            width: auto;
             justify-content: center;
+        }
+
+        .linea-item--all {
+            padding-inline: 14px;
         }
 
     }
@@ -856,15 +894,91 @@
     .pasteur-cell-content {
         display: flex;
         flex-direction: column;
-        gap: 0.75rem;
+        gap: 0.65rem;
         height: 100%;
+        min-height: 100%;
     }
 
-    .pasteur-cell-date-row {
+    .pasteur-analysis-table .analysis-cell :where(.inline-flex, button, a, span, p, div) {
+        max-width: 100%;
+        min-width: 0;
+    }
+
+    .pasteur-analysis-table .analysis-cell :where(.inline-flex, button, a) {
+        white-space: normal;
+        overflow-wrap: break-word;
+        word-break: normal;
+        line-height: 1.25;
+    }
+
+    .pasteur-analysis-table .analysis-cell .flex {
+        flex-wrap: wrap;
+    }
+
+    .pasteur-analysis-table .analysis-cell .mt-1.inline-flex {
+        display: flex;
+        width: 100%;
+        align-items: flex-start;
+        justify-content: flex-start;
+        text-align: left;
+    }
+
+    .pasteur-analysis-table .analysis-cell span.inline-flex:not(.mt-1) {
+        align-items: center;
+        justify-content: flex-start;
+    }
+
+    .pasteur-cell-info-card {
+        padding: 0.55rem !important;
+        margin-bottom: 0.55rem !important;
+        border: 1px solid rgba(191, 219, 254, 0.72);
+        border-radius: 0.5rem;
+        background: #eff6ff;
+    }
+
+    .pasteur-cell-info-card .info-line {
         display: flex;
         align-items: center;
-        justify-content: space-between;
-        gap: 0.5rem;
+        gap: 0.25rem;
+        color: #1f2937;
+        font-size: 0.75rem;
+        line-height: 1.35;
+    }
+
+    .pasteur-cell-info-card .info-line + .info-line {
+        margin-top: 0.18rem;
+    }
+
+    .pasteur-cell-info-card .info-label {
+        font-weight: 700;
+        color: #1e40af;
+    }
+
+    .pasteur-cell-info-card .info-value-pill {
+        border-radius: 0.25rem;
+        background: #ffffff;
+        padding: 0.125rem 0.5rem;
+        font-weight: 600;
+        color: #111827;
+    }
+
+    .pasteur-cell-components {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.25rem;
+        margin-top: 0.35rem;
+    }
+
+    .pasteur-cell-activity {
+        display: block;
+        overflow: visible;
+        color: #374151;
+        font-size: 0.78rem !important;
+        line-height: 1.4;
+        white-space: normal;
+        overflow-wrap: break-word;
+        word-break: normal;
     }
 
     .pasteur-cell-actions {
@@ -879,6 +993,14 @@
     .pasteur-cell-actions > .pasteur-cell-status {
         width: 100%;
         justify-content: center;
+    }
+
+    .pasteur-cell-actions .create-action--compact {
+        min-height: 2.35rem !important;
+        padding: 0.45rem 0.75rem !important;
+        font-size: 0.78rem !important;
+        border-radius: 0.55rem !important;
+        text-align: center;
     }
 
     .pasteur-cell-status {
@@ -1159,13 +1281,6 @@
                 <span>{{ $analisisTitulo ?? 'Análisis de Pasteurizadoras' }}</span>
             </h1>
         </div>
-
-        <div class="create-actions create-actions--end">
-            <a href="{{ $analisisRoute('select-linea') }}" class="create-action">
-                <i class="fas fa-plus-circle"></i>
-                Nuevo An&aacute;lisis
-            </a>
-        </div>
     </div>
 
     {{-- FILTROS ESTILO IMAGEN - CON VER MÁS FUNCIONAL --}}
@@ -1238,19 +1353,17 @@
     @if(isset($lineasFiltradas) && $lineasFiltradas->count() > 0)
     <div class="filters-section">
         {{-- LÍNEAS: con las pasteurizadoras específicas --}}
-        <div class="lineas-title">
-            LÍNEAS DE PASTEURIZADORA:
-        </div>
-        
         <form method="GET" action="{{ $analisisRoute('index') }}" id="filterForm">
-            <div class="lineas-grid">
-                <!-- Todas -->
+            <div class="lineas-title">
+                LÍNEAS DE PASTEURIZADORA:
                 <a href="{{ $analisisRoute('index', ['linea_id' => 'todas']) }}"
-                   class="linea-item {{ $mostrarTodas ? 'active' : '' }}">
+                   class="linea-item linea-item--all {{ $mostrarTodas ? 'active' : '' }}">
                     <i class="fas fa-globe"></i>
                     Todas
                 </a>
-                
+            </div>
+
+            <div class="lineas-grid">
                 @foreach($lineasFiltradas as $l)
                     <div class="linea-item {{ request('linea_id') == $l->id ? 'active' : '' }}" 
                          onclick="selectLinea('{{ $l->id }}')">
@@ -1677,13 +1790,10 @@
                                                 }
                                                 $procesoCompletado = (bool) ($celdaSeguimiento['completado'] ?? ($hasQuickData && !$siguienteRevision));
                                                 $mostrarProcesoCompletado = !$hasNormalAnalysis && $procesoCompletado;
-                                                $quickActionLabel = !$hasQuickData
-                                                    ? 'Crear'
-                                                    : ($procesoCompletado ? 'Nuevo analisis rapido' : 'Continuar');
-                                                $quickActionClass = $procesoCompletado
+                                                $quickActionLabel = $hasData ? 'Agregar analisis' : 'Crear';
+                                                $quickActionClass = ($hasData || $procesoCompletado)
                                                     ? 'create-action create-action--compact create-action--success'
                                                     : 'create-action create-action--compact';
-
                                                 if($hasNormalAnalysis){
                                                     $estadoActual = $registroNormal->estado ?? 'Buen estado';
                                                     if (\App\Models\AnalisisPasteurizadora::esEstadoCambiado($estadoActual)) {
@@ -1691,11 +1801,11 @@
                                                     } elseif (\App\Models\AnalisisPasteurizadora::esEstadoDanado($estadoActual)) {
                                                         $bgColor = 'cell-danger';
                                                     } elseif (\App\Models\AnalisisPasteurizadora::esEstadoRequiereRevision($estadoActual)) {
-                                                        $bgColor = 'bg-orange-50';
-                                                        $borderColor = 'border-l-4 border-orange-500';
+                                                        $bgColor = 'cell-review';
+                                                        $borderColor = '';
                                                     } elseif (\App\Models\AnalisisPasteurizadora::esEstadoDesgaste($estadoActual)) {
-                                                        $bgColor = 'bg-yellow-50';
-                                                        $borderColor = 'border-l-4 border-yellow-500';
+                                                        $bgColor = 'cell-warning';
+                                                        $borderColor = '';
                                                     } else {
                                                         $bgColor = 'cell-ok';
                                                     }
@@ -1708,11 +1818,11 @@
                                                         $bgColor = 'cell-danger';
                                                         $borderColor = '';
                                                     } elseif (\App\Models\AnalisisPasteurizadora::esEstadoRequiereRevision($estadoActual)) {
-                                                        $bgColor = 'bg-orange-50';
-                                                        $borderColor = 'border-l-4 border-orange-500';
+                                                        $bgColor = 'cell-review';
+                                                        $borderColor = '';
                                                     } elseif (\App\Models\AnalisisPasteurizadora::esEstadoDesgaste($estadoActual)) {
-                                                        $bgColor = 'bg-yellow-50';
-                                                        $borderColor = 'border-l-4 border-yellow-500';
+                                                        $bgColor = 'cell-warning';
+                                                        $borderColor = '';
                                                     } else {
                                                         $bgColor = 'cell-ok';
                                                         $borderColor = '';
@@ -1722,6 +1832,22 @@
                                                         $bgColor = 'cell-ok';
                                                         $borderColor = 'ring-1 ring-green-200';
                                                     }
+                                                }
+
+                                                $statusClass = 'bg-green-100 text-green-800 border-green-200';
+                                                $statusIcon = 'fa-check-circle';
+                                                if (\App\Models\AnalisisPasteurizadora::esEstadoCambiado($estadoActual)) {
+                                                    $statusClass = 'bg-blue-100 text-blue-800 border-blue-200';
+                                                    $statusIcon = 'fa-exchange-alt';
+                                                } elseif (\App\Models\AnalisisPasteurizadora::esEstadoDanado($estadoActual)) {
+                                                    $statusClass = 'bg-red-100 text-red-800 border-red-200';
+                                                    $statusIcon = 'fa-times-circle';
+                                                } elseif (\App\Models\AnalisisPasteurizadora::esEstadoRequiereRevision($estadoActual)) {
+                                                    $statusClass = 'bg-yellow-100 text-yellow-800 border-yellow-200';
+                                                    $statusIcon = 'fa-tools';
+                                                } elseif (\App\Models\AnalisisPasteurizadora::esEstadoDesgaste($estadoActual)) {
+                                                    $statusClass = 'bg-orange-100 text-orange-800 border-orange-200';
+                                                    $statusIcon = 'fa-exclamation-triangle';
                                                 }
                                             @endphp
 
@@ -1802,158 +1928,85 @@
                                                 @endif>
                                                 @if($hasData)
                                                     <div class="pasteur-cell-content">
-                                                        <div class="flex flex-wrap items-center gap-2">
-                                                            @if($hasNormalAnalysis)
-                                                                <span class="inline-flex items-center gap-1 rounded-full border border-slate-300 bg-white/80 px-2 py-1 text-[11px] font-semibold text-slate-700">
-                                                                    <i class="fas fa-file-medical-alt text-[10px]"></i>
-                                                                    Revisión programada
+                                                        <div class="pasteur-cell-info-card">
+                                                            <div class="info-line">
+                                                                <i class="fas fa-calendar-alt text-blue-600"></i>
+                                                                <span class="info-label">Fecha:</span>
+                                                                <span class="info-value-pill">
+                                                                    {{ $registro->fecha_analisis ? $registro->fecha_analisis->format('d/m/Y') : $registro->created_at->format('d/m/Y') }}
                                                                 </span>
-                                                            @elseif($mostrarProcesoCompletado)
-                                                                <span class="inline-flex items-center gap-1 rounded-full border border-green-200 bg-green-100 px-2 py-1 text-[11px] font-semibold text-green-800">
-                                                                    <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                                                    </svg>
-                                                                    Proceso terminado
-                                                                </span>
-                                                            @else
-                                                                <span class="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-100/80 px-2 py-1 text-[11px] font-semibold text-emerald-800">
-                                                                    <i class="fas fa-clipboard-check text-[10px]"></i>
-                                                                    Revisión de seguimiento
-                                                                </span>
-                                                            @endif
-
-                                                            @if($registro->lado)
-                                                                <span class="inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-medium {{ $registro->lado === 'VAPOR' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700' }}">
-                                                                    <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
-                                                                    </svg>
-                                                                    {{ $registro->lado }}
-                                                                </span>
-                                                            @endif
-
-                                                            @if($registro->nivel)
-                                                                <span class="inline-flex items-center gap-1 rounded-full bg-violet-100 px-2 py-1 text-[11px] font-medium text-violet-700">
-                                                                    <i class="fas fa-layer-group text-[10px]"></i>
-                                                                    {{ $registro->nivel }}
-                                                                </span>
-                                                            @endif
-                                                        </div>
-                                                        
-                                                        <div class="pasteur-cell-date-row text-xs text-gray-600">
-                                                            <span class="flex items-center gap-1">
-                                                                <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                                                                </svg>
-                                                                {{ $registro->fecha_analisis ? $registro->fecha_analisis->format('d/m/Y') : $registro->created_at->format('d/m/Y') }}
-                                                            </span>
-                                                            <span class="flex items-center gap-1 text-right">
-                                                                <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14"/>
-                                                                </svg>
-                                                                {{ $registro->numero_orden ? '#' . $registro->numero_orden : 'Sin orden' }}
-                                                            </span>
-                                                        </div>
-
-                                                        @if($componentesRevisadosAcumulados->isNotEmpty())
-                                                            <div class="flex flex-wrap items-center gap-1">
-                                                                <span class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Comp.</span>
-                                                                @foreach($componentesRevisadosAcumulados->take(4) as $numeroComponente)
-                                                                    <span class="inline-flex items-center rounded-md border border-indigo-200 bg-indigo-100 px-2 py-0.5 text-[11px] font-semibold text-indigo-700">
-                                                                        #{{ $numeroComponente }}
-                                                                    </span>
-                                                                @endforeach
-                                                                @if($componentesRevisadosAcumulados->count() > 4)
-                                                                    <span class="inline-flex items-center rounded-md border border-slate-200 bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600">
-                                                                        +{{ $componentesRevisadosAcumulados->count() - 4 }}
-                                                                    </span>
-                                                                @endif
                                                             </div>
-                                                        @endif
+                                                            <div class="info-line">
+                                                                <i class="fas fa-hashtag text-blue-600 text-xs"></i>
+                                                                <span class="font-bold text-gray-800">
+                                                                    Orden: {{ $registro->numero_orden ? '#' . $registro->numero_orden : 'Sin orden' }}
+                                                                </span>
+                                                            </div>
+                                                            <div class="info-line">
+                                                                <i class="fas fa-map-marker-alt text-blue-600 text-xs"></i>
+                                                                <span class="info-label">Ubicacion:</span>
+                                                                <span class="font-semibold text-gray-800">
+                                                                    {{ $registro->lado ? ucfirst(strtolower($registro->lado)) : 'Sin lado' }}
+                                                                    {{ $registro->nivel ? '- ' . ucfirst(strtolower($registro->nivel)) : '' }}
+                                                                </span>
+                                                            </div>
 
-                                                        <div>
-                                                            <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium
-                                                                @if(\App\Models\AnalisisPasteurizadora::esEstadoBueno($estadoActual)) bg-green-100 text-green-700
-                                                                @elseif(\App\Models\AnalisisPasteurizadora::esEstadoRequiereRevision($estadoActual)) bg-yellow-100 text-yellow-700
-                                                                @elseif(\App\Models\AnalisisPasteurizadora::esEstadoDesgaste($estadoActual)) bg-orange-100 text-orange-700
-                                                                @elseif(\App\Models\AnalisisPasteurizadora::esEstadoDanado($estadoActual)) bg-red-100 text-red-700
-                                                                @else bg-blue-100 text-blue-700
-                                                                @endif">
-                                                                @if(\App\Models\AnalisisPasteurizadora::esEstadoBueno($estadoActual))
-                                                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                                                                    </svg>
-                                                                @elseif(\App\Models\AnalisisPasteurizadora::esEstadoRequiereRevision($estadoActual))
-                                                                    <i class="fas fa-tools text-[10px]"></i>
-                                                                @elseif(\App\Models\AnalisisPasteurizadora::esEstadoDesgaste($estadoActual))
-                                                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
-                                                                    </svg>
-                                                                @elseif(\App\Models\AnalisisPasteurizadora::esEstadoDanado($estadoActual))
-                                                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                                                    </svg>
-                                                                @else
-                                                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-                                                                    </svg>
-                                                                @endif
-                                                                {{ $estadoActual }}
+                                                            @if($componentesRevisadosAcumulados->isNotEmpty())
+                                                                <div class="pasteur-cell-components">
+                                                                    <span class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Comp.</span>
+                                                                    @foreach($componentesRevisadosAcumulados->take(4) as $numeroComponente)
+                                                                        <span class="inline-flex items-center rounded-md border border-indigo-200 bg-indigo-100 px-2 py-0.5 text-[11px] font-semibold text-indigo-700">
+                                                                            #{{ $numeroComponente }}
+                                                                        </span>
+                                                                    @endforeach
+                                                                    @if($componentesRevisadosAcumulados->count() > 4)
+                                                                        <span class="inline-flex items-center rounded-md border border-slate-200 bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600">
+                                                                            +{{ $componentesRevisadosAcumulados->count() - 4 }}
+                                                                        </span>
+                                                                    @endif
+                                                                </div>
+                                                            @endif
+                                                        </div>
+
+                                                        <div class="mb-2">
+                                                            <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium border {{ $statusClass }}">
+                                                                <i class="fas {{ $statusIcon }} mr-1"></i>
+                                                                {{ \Illuminate\Support\Str::limit($estadoActual, 20) }}
+                                                            </span>
+                                                            <span class="mt-1 inline-flex items-center px-2 py-1 rounded text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200">
+                                                                <i class="fas fa-user-check mr-1"></i>
+                                                                Realizado por: {{ $registro->usuario?->name ?? $registro->responsable ?? 'Usuario no registrado' }}
                                                             </span>
                                                         </div>
 
                                                         @if(filled($registro->actividad))
-                                                            <p class="rounded-lg bg-white/70 px-2 py-2 text-xs leading-relaxed text-gray-700">
-                                                                {{ \Illuminate\Support\Str::limit(trim($registro->actividad), 110) }}
-                                                            </p>
+                                                            <div>
+                                                                <p class="pasteur-cell-activity">
+                                                                    {{ \Illuminate\Support\Str::limit(trim($registro->actividad), 80) }}
+                                                                </p>
+                                                            </div>
                                                         @endif
 
                                                         <div class="pasteur-cell-actions">
                                                             @if(count($registro->evidencia_fotos ?? []) > 0)
                                                                 <button onclick="event.stopPropagation(); openAllImages({{ Illuminate\Support\Js::from($registro->evidencia_fotos ?? []) }}, {{ Illuminate\Support\Js::from($registro->numero_orden) }})"
-                                                                        class="create-action create-action--compact create-action--secondary">
-                                                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                                                                    </svg>
-                                                                    {{ count($registro->evidencia_fotos) }} imagenes
+                                                                        class="inline-flex items-center justify-center gap-1 px-3 py-1.5 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition text-xs font-medium">
+                                                                    <i class="fas fa-images mr-1"></i>
+                                                                    {{ count($registro->evidencia_fotos) }} img
                                                                 </button>
                                                             @endif
-                                                            @if($mostrarProcesoCompletado)
-                                                                <span class="pasteur-cell-status">
-                                                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                                                                    </svg>
-                                                                    Terminado
-                                                                </span>
-                                                                    <a href="{{ $analisisRoute('create-quick', [
-                                                                    'linea_id' => $linea->id,
-                                                                    'modulo' => $moduloNumero,
-                                                                    'componente' => $codigo,
-                                                                    'lado' => $siguienteRevision['lado'] ?? '',
-                                                                    'nivel' => $siguienteRevision['nivel'] ?? ''
-                                                                ]) }}"
-                                                                   class="{{ $quickActionClass }}"
-                                                                   onclick="event.stopPropagation();">
-                                                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                                                                    </svg>
-                                                                    {{ $quickActionLabel }}
-                                                                </a>
-                                                            @else
-                                                                    <a href="{{ $analisisRoute('create-quick', [
-                                                                    'linea_id' => $linea->id,
-                                                                    'modulo' => $moduloNumero,
-                                                                    'componente' => $codigo,
-                                                                    'lado' => $siguienteRevision['lado'] ?? '',
-                                                                    'nivel' => $siguienteRevision['nivel'] ?? ''
-                                                                ]) }}"
-                                                                   class="{{ $quickActionClass }}"
-                                                                   onclick="event.stopPropagation();">
-                                                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                                                                    </svg>
-                                                                    {{ $quickActionLabel }}
-                                                                </a>
-                                                            @endif
+                                                            <a href="{{ $analisisRoute('create-quick', [
+                                                                'linea_id' => $linea->id,
+                                                                'modulo' => $moduloNumero,
+                                                                'componente' => $codigo,
+                                                                'lado' => $siguienteRevision['lado'] ?? ($registro->lado ?? ''),
+                                                                'nivel' => $siguienteRevision['nivel'] ?? ($registro->nivel ?? '')
+                                                            ]) }}"
+                                                               class="{{ $quickActionClass }}"
+                                                               onclick="event.stopPropagation();">
+                                                                <i class="fas fa-plus"></i>
+                                                                {{ $quickActionLabel }}
+                                                            </a>
                                                         </div>
                                                     </div>
                                                 @else
@@ -2066,7 +2119,7 @@
                             <i class="fas fa-arrows-alt-h text-gray-700 text-xl"></i>
                         </div>
                         <div class="flex-1">
-                            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider font-mono">Lado</p>
+                            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider font-mono">Ubicacion</p>
                             <p id="detail-lado" class="font-bold text-gray-800 text-lg mt-1"></p>
                             <div id="detail-lado-badge-container" class="mt-2"></div>
                         </div>
@@ -2079,18 +2132,8 @@
                             <i class="far fa-calendar-alt text-gray-700 text-xl"></i>
                         </div>
                         <div class="flex-1">
-                            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider font-mono">Fechas</p>
+                            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider font-mono">Fecha</p>
                             <p id="detail-fecha" class="font-bold text-gray-800 text-lg mt-1 font-mono"></p>
-                            <div class="mt-3 grid grid-cols-1 gap-2 text-sm font-mono">
-                                <div class="flex items-center justify-between gap-3 rounded-lg bg-gray-50 px-3 py-2">
-                                    <span class="text-gray-500">Inicio</span>
-                                    <span id="detail-fecha-inicio" class="font-semibold text-gray-800"></span>
-                                </div>
-                                <div class="flex items-center justify-between gap-3 rounded-lg bg-gray-50 px-3 py-2">
-                                    <span class="text-gray-500">Final</span>
-                                    <span id="detail-fecha-fin" class="font-semibold text-gray-800"></span>
-                                </div>
-                            </div>
                         </div>
                     </div>
                 </div>
@@ -2150,8 +2193,6 @@
 
             <div id="detail-niveles-section" class="mt-6 hidden"></div>
 
-            <div id="detail-actualizaciones-section" class="mt-6 hidden"></div>
-            
             <div id="detail-images-section" class="mt-6 hidden">
                 <div class=" text-gray-700 px-6 py-4">
                     <div class="flex items-center gap-3">
@@ -2252,9 +2293,41 @@
     </div>
 </div>
 
+{{-- MODAL DE IMAGEN INDIVIDUAL --}}
+<div id="singleImageModal" class="fixed inset-0 bg-black/95 hidden items-center justify-center z-[60] p-4 transition-all duration-300"
+     onclick="closeSingleImageModal()">
+    <div class="relative max-w-6xl w-full h-full flex items-center justify-center">
+        <button onclick="closeSingleImageModal()"
+                class="absolute top-6 right-6 w-12 h-12 rounded-lg bg-gray-800/50 hover:bg-gray-700/70 text-white text-2xl flex items-center justify-center backdrop-blur-sm border border-gray-600 transition-all z-10 group">
+            <i class="fas fa-times group-hover:rotate-90 transition-transform"></i>
+        </button>
+        <div id="singleImageStage" class="relative single-image-stage" style="touch-action: pan-y; user-select: none; -webkit-user-select: none;" onclick="event.stopPropagation()">
+            <button id="prevImageBtn"
+                    onclick="event.stopPropagation(); changeSingleImage(-1)"
+                    class="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-gray-800/60 hover:bg-gray-700/80 text-white text-2xl flex items-center justify-center backdrop-blur-sm border border-gray-600 transition-all z-10 hidden">
+                <i class="fas fa-chevron-left"></i>
+            </button>
+            <img id="singleModalImg" draggable="false" style="touch-action: pan-y; user-select: none; -webkit-user-drag: none;" class="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl border-4 border-gray-700">
+            <button id="nextImageBtn"
+                    onclick="event.stopPropagation(); changeSingleImage(1)"
+                    class="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-gray-800/60 hover:bg-gray-700/80 text-white text-2xl flex items-center justify-center backdrop-blur-sm border border-gray-600 transition-all z-10 hidden">
+                <i class="fas fa-chevron-right"></i>
+            </button>
+            <div class="absolute bottom-6 left-1/2 transform -translate-x-1/2 bg-gray-900/80 backdrop-blur-sm text-white px-4 py-2 rounded-lg text-sm font-mono border border-gray-700">
+                <span id="currentImageCounter"></span>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
 let currentAnalysisData = null;
 let currentEstadoData = [];
+let currentImages = [];
+let currentImageIndex = 0;
+let singleImageSwipe = null;
+const SINGLE_IMAGE_SWIPE_DISTANCE = 50;
+const SINGLE_IMAGE_SWIPE_VERTICAL_TOLERANCE = 1.25;
 const OPEN_ANALYSIS_DATA = @json($openAnalysisData ?? null);
 
 function openEstadoModal(tipo, nombre, registros) {
@@ -2430,8 +2503,6 @@ function openAnalysisDetail(data) {
     document.getElementById('detail-componente').textContent = data.componente || 'N/A';
     const fechaAnalisis = data.fecha_analisis || 'N/A';
     document.getElementById('detail-fecha').textContent = fechaAnalisis;
-    document.getElementById('detail-fecha-inicio').textContent = data.fecha_inicio || fechaAnalisis;
-    document.getElementById('detail-fecha-fin').textContent = data.fecha_fin || fechaAnalisis;
     document.getElementById('detail-orden').textContent = data.numero_orden ? `#${data.numero_orden}` : 'Sin orden';
     document.getElementById('detail-actividad').textContent = data.actividad || 'No especificada';
     document.getElementById('detail-usuario').textContent = `Realizado por: ${data.usuario_nombre || 'Usuario no registrado'}`;
@@ -2440,14 +2511,25 @@ function openAnalysisDetail(data) {
     const ladoElement = document.getElementById('detail-lado');
     const ladoBadgeContainer = document.getElementById('detail-lado-badge-container');
 
-    if (data.lado) {
+    if (data.lado || data.nivel) {
+        const ladoNombre = data.lado === 'VAPOR' ? 'Lado Vapor' : (data.lado === 'PASILLO' ? 'Lado Pasillo' : '');
+        const nivelNombre = data.nivel === 'SUPERIOR' ? 'Nivel Superior' : (data.nivel === 'INFERIOR' ? 'Nivel Inferior' : '');
+
         ladoContainer.classList.remove('hidden');
-        ladoElement.textContent = data.lado === 'VAPOR' ? 'Lado Vapor' : 'Lado Pasillo';
+        ladoElement.textContent = [ladoNombre, nivelNombre].filter(Boolean).join(' - ');
         ladoBadgeContainer.innerHTML = `
-            <span class="lado-badge ${data.lado === 'VAPOR' ? 'vapor' : 'pasillo'}">
-                <i class="fas ${data.lado === 'VAPOR' ? 'fa-wind' : 'fa-walking'}"></i>
-                ${data.lado === 'VAPOR' ? 'Vapor' : 'Pasillo'}
-            </span>
+            ${data.lado ? `
+                <span class="lado-badge ${data.lado === 'VAPOR' ? 'vapor' : 'pasillo'}">
+                    <i class="fas ${data.lado === 'VAPOR' ? 'fa-wind' : 'fa-walking'}"></i>
+                    ${data.lado === 'VAPOR' ? 'Vapor' : 'Pasillo'}
+                </span>
+            ` : ''}
+            ${data.nivel ? `
+                <span class="inline-flex items-center gap-1 rounded-full bg-purple-100 px-3 py-1 text-xs font-semibold text-purple-700">
+                    <i class="fas fa-layer-group"></i>
+                    ${nivelNombre}
+                </span>
+            ` : ''}
         `;
     } else {
         ladoContainer.classList.add('hidden');
@@ -2481,7 +2563,6 @@ function openAnalysisDetail(data) {
 
     renderComponentesRevisados(data);
     renderEstadoPorNivel(data);
-    renderActualizaciones(data);
     renderDetailImages(data.imagenes || []);
 
     const modal = document.getElementById('analysisDetailModal');
@@ -2598,72 +2679,6 @@ function renderEstadoPorNivel(data) {
     `;
 }
 
-function renderActualizaciones(data) {
-    const section = document.getElementById('detail-actualizaciones-section');
-    const actualizaciones = Array.isArray(data.actualizaciones) ? data.actualizaciones : [];
-
-    if (actualizaciones.length === 0) {
-        section.classList.add('hidden');
-        section.innerHTML = '';
-        return;
-    }
-
-    section.classList.remove('hidden');
-    section.innerHTML = `
-        <div class="bg-white rounded-lg p-5 border border-slate-200 shadow-sm">
-            <div class="flex items-center justify-between gap-3 mb-4">
-                <div class="flex items-center gap-3">
-                    <div class="bg-slate-200 p-2 rounded-lg">
-                        <i class="fas fa-clock text-slate-700"></i>
-                    </div>
-                    <h4 class="font-semibold text-gray-700 border-slate-200 border-b-2 uppercase tracking-wider text-sm">Historial de actualizaciones</h4>
-                </div>
-                <span class="text-sm font-bold text-slate-700">${actualizaciones.length}</span>
-            </div>
-            <div class="space-y-3">
-                ${actualizaciones.map((item, index) => {
-                    const estadoClass = getEstadoPillClass(item.estado || '');
-                    const ladoClass = item.lado === 'VAPOR' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700';
-                    const nivelNombre = item.nivel === 'SUPERIOR' ? 'Superior' : (item.nivel === 'INFERIOR' ? 'Inferior' : '');
-                    const ladoNombre = item.lado === 'VAPOR' ? 'Vapor' : (item.lado === 'PASILLO' ? 'Pasillo' : '');
-                    const componentes = Array.isArray(item.componentes_revisados) ? item.componentes_revisados : [];
-                    const fechaInicio = item.fecha_inicio || item.fecha || '';
-                    const fechaFin = item.fecha_fin || item.fecha || '';
-
-                    return `
-                        <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                            <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
-                                <div class="flex flex-wrap items-center gap-2 text-sm">
-                                    <span class="inline-flex items-center px-2 py-1 rounded bg-gray-200 text-gray-700 font-semibold text-xs">${index === 0 ? 'Ultimo registro' : 'Registro #' + (actualizaciones.length - index)}</span>
-                                    <span class="text-gray-700 font-medium">${item.fecha || ''} ${item.hora || ''}</span>
-                                    ${item.orden ? `<span class="text-gray-500 text-xs">Orden #${item.orden}</span>` : ''}
-                                    <span class="text-gray-600 text-xs font-semibold">Realizado por: ${item.usuario_nombre || 'Usuario no registrado'}</span>
-                                </div>
-                                <div class="flex flex-wrap items-center gap-2">
-                                    ${nivelNombre ? `<span class="text-xs px-2 py-1 rounded bg-purple-100 text-purple-700">${nivelNombre}</span>` : ''}
-                                    ${ladoNombre ? `<span class="text-xs px-2 py-1 rounded ${ladoClass}">${ladoNombre}</span>` : ''}
-                                    <span class="text-xs px-2 py-1 rounded ${estadoClass}">${item.estado || 'N/A'}</span>
-                                </div>
-                            </div>
-                            <div class="mb-2 flex flex-wrap gap-2 text-xs text-gray-600">
-                                <span class="inline-flex items-center rounded bg-white px-2 py-1 border border-gray-200">Inicio: ${fechaInicio || '-'}</span>
-                                <span class="inline-flex items-center rounded bg-white px-2 py-1 border border-gray-200">Final: ${fechaFin || '-'}</span>
-                            </div>
-                            <p class="text-sm text-gray-700 whitespace-pre-line">${item.actividad || 'Sin actividad registrada.'}</p>
-                            ${componentes.length > 0 ? `
-                                <div class="mt-2 flex flex-wrap gap-2">
-                                    <span class="text-xs text-gray-500">Componentes revisados:</span>
-                                    ${componentes.map((numeroComponente) => `<span class="inline-flex items-center px-2 py-0.5 rounded bg-indigo-100 text-indigo-700 text-xs font-medium">#${numeroComponente}</span>`).join('')}
-                                </div>
-                            ` : ''}
-                        </div>
-                    `;
-                }).join('')}
-            </div>
-        </div>
-    `;
-}
-
 function getEstadoPillClass(estado) {
     if (estado === 'Buen estado') return 'bg-green-100 text-green-700';
     if (estado === 'Requiere revisión') return 'bg-yellow-100 text-yellow-700';
@@ -2677,6 +2692,8 @@ function renderDetailImages(imagenes) {
     const imagesSection = document.getElementById('detail-images-section');
     const grid = document.getElementById('detail-image-grid');
     const normalizedImages = normalizeEvidenceImages(imagenes);
+    currentImages = normalizedImages;
+    currentImageIndex = 0;
 
     grid.innerHTML = '';
 
@@ -2692,7 +2709,7 @@ function renderDetailImages(imagenes) {
         const safePath = String(path).replace(/'/g, "\\'");
         item.innerHTML = `
             <div class="image-number">#${index + 1}</div>
-            <img src="${resolveEvidenceImageUrl(path)}" class="grid-image" onclick="openSingleImage('${safePath}')" alt="Evidencia ${index + 1}">
+            <img src="${resolveEvidenceImageUrl(path)}" class="grid-image" onclick="openSingleImage('${safePath}', ${index})" alt="Evidencia ${index + 1}">
             <div class="image-info">
                 <button class="download-image-btn" onclick="event.stopPropagation(); downloadImage('${safePath}', ${index + 1})">
                     <i class="fas fa-download"></i>
@@ -2755,10 +2772,9 @@ function closeAnalysisDetailModal() {
     document.body.style.overflow = '';
 }
 
-let currentImages = [];
-
 function openAllImages(imagenes, orden) {
     currentImages = normalizeEvidenceImages(imagenes);
+    currentImageIndex = 0;
     const modal = document.getElementById('allImagesModal');
     const grid = document.getElementById('imageGrid');
     const empty = document.getElementById('emptyImages');
@@ -2777,7 +2793,7 @@ function openAllImages(imagenes, orden) {
             item.className = 'relative group cursor-pointer';
             const safePath = String(path).replace(/'/g, "\\'");
             item.innerHTML = `
-                <img src="${resolveEvidenceImageUrl(path)}" class="w-full h-40 object-cover rounded-lg border-2 border-gray-200 hover:border-blue-500 transition" onclick="openSingleImage('${safePath}')">
+                <img src="${resolveEvidenceImageUrl(path)}" class="w-full h-40 object-cover rounded-lg border-2 border-gray-200 hover:border-blue-500 transition" onclick="openSingleImage('${safePath}', ${index})">
                 <div class="absolute bottom-2 right-2 bg-black/70 text-white text-xs w-6 h-6 rounded-full flex items-center justify-center">${index + 1}</div>
                 <button onclick="event.stopPropagation(); downloadImage('${safePath}', ${index + 1})" class="absolute top-2 right-2 flex min-h-11 min-w-11 items-center justify-center rounded-lg bg-blue-600 p-2.5 text-white transition sm:opacity-0 sm:group-hover:opacity-100">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2800,8 +2816,156 @@ function closeAllImagesModal() {
     document.body.style.overflow = '';
 }
 
-function openSingleImage(path) {
-    window.open(resolveEvidenceImageUrl(path), '_blank');
+function updateSingleImageModal() {
+    const img = document.getElementById('singleModalImg');
+    const counter = document.getElementById('currentImageCounter');
+    const prevBtn = document.getElementById('prevImageBtn');
+    const nextBtn = document.getElementById('nextImageBtn');
+    const imagePath = currentImages[currentImageIndex] ?? '';
+    const hasMultipleImages = currentImages.length > 1;
+
+    img.src = resolveEvidenceImageUrl(imagePath);
+    counter.textContent = currentImages.length > 0
+        ? `${currentImageIndex + 1} / ${currentImages.length}`
+        : '';
+
+    prevBtn.classList.toggle('hidden', !hasMultipleImages);
+    nextBtn.classList.toggle('hidden', !hasMultipleImages);
+}
+
+function openSingleImage(path, index = 0) {
+    currentImageIndex = Number.isInteger(index) ? index : 0;
+
+    if (currentImages.length === 0) {
+        currentImages = [path];
+        currentImageIndex = 0;
+    }
+
+    updateSingleImageModal();
+
+    document.getElementById('singleImageModal').classList.remove('hidden');
+    document.getElementById('singleImageModal').classList.add('flex');
+    document.body.style.overflow = 'hidden';
+}
+
+function changeSingleImage(direction) {
+    if (currentImages.length <= 1) {
+        return;
+    }
+
+    currentImageIndex = (currentImageIndex + direction + currentImages.length) % currentImages.length;
+    updateSingleImageModal();
+}
+
+function getSwipePoint(event) {
+    const source = event.changedTouches?.[0] || event.touches?.[0] || event;
+
+    return {
+        x: source.clientX ?? 0,
+        y: source.clientY ?? 0,
+    };
+}
+
+function startSingleImageSwipe(event) {
+    if (event.target?.closest('button') || currentImages.length <= 1) {
+        return;
+    }
+
+    if (event.pointerId !== undefined && event.currentTarget?.setPointerCapture) {
+        try {
+            event.currentTarget.setPointerCapture(event.pointerId);
+        } catch (error) {}
+    }
+
+    const point = getSwipePoint(event);
+    singleImageSwipe = {
+        startX: point.x,
+        startY: point.y,
+        lastX: point.x,
+        lastY: point.y,
+    };
+}
+
+function moveSingleImageSwipe(event) {
+    if (!singleImageSwipe) {
+        return;
+    }
+
+    const point = getSwipePoint(event);
+    const deltaX = point.x - singleImageSwipe.startX;
+    const deltaY = point.y - singleImageSwipe.startY;
+
+    singleImageSwipe.lastX = point.x;
+    singleImageSwipe.lastY = point.y;
+
+    if (Math.abs(deltaX) > Math.abs(deltaY) && event.cancelable) {
+        event.preventDefault();
+    }
+}
+
+function finishSingleImageSwipe(event) {
+    if (!singleImageSwipe) {
+        return;
+    }
+
+    const stage = event.currentTarget;
+    const point = getSwipePoint(event);
+    const endX = point.x || singleImageSwipe.lastX;
+    const endY = point.y || singleImageSwipe.lastY;
+    const deltaX = endX - singleImageSwipe.startX;
+    const deltaY = endY - singleImageSwipe.startY;
+    const isHorizontalSwipe = Math.abs(deltaX) >= SINGLE_IMAGE_SWIPE_DISTANCE
+        && Math.abs(deltaX) > Math.abs(deltaY) * SINGLE_IMAGE_SWIPE_VERTICAL_TOLERANCE;
+
+    if (isHorizontalSwipe) {
+        changeSingleImage(deltaX < 0 ? 1 : -1);
+    }
+
+    singleImageSwipe = null;
+    if (event.pointerId !== undefined && stage?.releasePointerCapture) {
+        try {
+            stage.releasePointerCapture(event.pointerId);
+        } catch (error) {}
+    }
+}
+
+function cancelSingleImageSwipe(event) {
+    const stage = event.currentTarget;
+
+    singleImageSwipe = null;
+    if (event.pointerId !== undefined && stage?.releasePointerCapture) {
+        try {
+            stage.releasePointerCapture(event.pointerId);
+        } catch (error) {}
+    }
+}
+
+function setupSingleImageSwipe() {
+    const stage = document.getElementById('singleImageStage');
+
+    if (!stage) {
+        return;
+    }
+
+    if (window.PointerEvent) {
+        stage.addEventListener('pointerdown', startSingleImageSwipe);
+        stage.addEventListener('pointermove', moveSingleImageSwipe);
+        stage.addEventListener('pointerup', finishSingleImageSwipe);
+        stage.addEventListener('pointercancel', cancelSingleImageSwipe);
+        return;
+    }
+
+    stage.addEventListener('touchstart', startSingleImageSwipe, { passive: true });
+    stage.addEventListener('touchmove', moveSingleImageSwipe, { passive: false });
+    stage.addEventListener('touchend', finishSingleImageSwipe);
+    stage.addEventListener('touchcancel', cancelSingleImageSwipe);
+}
+
+function closeSingleImageModal() {
+    document.getElementById('singleImageModal').classList.add('hidden');
+    document.getElementById('singleImageModal').classList.remove('flex');
+    cancelSingleImageSwipe({ currentTarget: document.getElementById('singleImageStage') });
+    document.body.style.overflow = '';
 }
 
 function downloadImage(path, index) {
@@ -2813,9 +2977,19 @@ function downloadImage(path, index) {
 
 document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') {
+        closeSingleImageModal();
         closeAnalysisDetailModal();
         closeAllImagesModal();
         closeEstadoModal();
+    }
+
+    const singleImageModal = document.getElementById('singleImageModal');
+    if (e.key === 'ArrowLeft' && !singleImageModal.classList.contains('hidden')) {
+        changeSingleImage(-1);
+    }
+
+    if (e.key === 'ArrowRight' && !singleImageModal.classList.contains('hidden')) {
+        changeSingleImage(1);
     }
 });
 
@@ -2833,6 +3007,8 @@ function toggleAdvancedFilters() {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
+    setupSingleImageSwipe();
+
     if (OPEN_ANALYSIS_DATA) {
         openAnalysisDetail(OPEN_ANALYSIS_DATA);
     }

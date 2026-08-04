@@ -562,6 +562,27 @@ class OperationsAssistantService
             return null;
         }
 
+        $hasRefactionIntent = str_contains($question, 'cuesta')
+            || str_contains($question, 'costo')
+            || str_contains($question, 'precio')
+            || str_contains($question, 'sku')
+            || str_contains($question, 'vale')
+            || str_contains($question, 'valor')
+            || str_contains($question, 'refa')
+            || str_contains($question, 'refaccion')
+            || str_contains($question, 'refacciones')
+            || str_contains($question, 'repuesto')
+            || str_contains($question, 'material')
+            || str_contains($question, 'consumible')
+            || str_contains($question, 'compatible')
+            || str_contains($question, 'aplica')
+            || str_contains($question, 'lleva')
+            || str_contains($question, 'usa');
+
+        if (!$hasRefactionIntent) {
+            return null;
+        }
+
         if (!(
             str_contains($question, 'cuesta')
             || str_contains($question, 'costo')
@@ -644,6 +665,7 @@ class OperationsAssistantService
             ->map(fn (array $item): string => $this->formatRefactionMatchSummary($item))
             ->filter()
             ->all();
+        $primarySummary = $this->formatRefactionMatchSummary($primary);
 
         $answer = $asksCost
             ? 'La refaccion de referencia para ' . $scope . ' es ' . $producto . ' (SKU ' . $sku . ')'
@@ -676,6 +698,9 @@ class OperationsAssistantService
         return $this->deterministicResponse(
             $answer,
             array_filter([
+                (count($matches) > 1 || $asksList) && $primarySummary !== ''
+                    ? 'Referencia principal: ' . $primarySummary . '.'
+                    : null,
                 $unitCost ? 'Costo unitario: ' . $unitCost . '.' : null,
                 $categoria !== '' ? 'Categoria: ' . $categoria . '.' : null,
                 $lineas !== [] ? 'Compatibilidad registrada: ' . $this->formatLineScope($lineas) . '.' : null,

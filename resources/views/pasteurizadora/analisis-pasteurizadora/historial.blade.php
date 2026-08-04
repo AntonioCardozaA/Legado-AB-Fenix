@@ -610,7 +610,14 @@
                                                 @php
                                                     $rutaImagen = asset('storage/' . ltrim(str_replace('\\', '/', $imagen), '/'));
                                                 @endphp
-                                                <div class="relative group cursor-pointer" onclick="openImageModal('{{ $rutaImagen }}', 'Evidencia {{ $imgIndex + 1 }} - Orden #{{ $item->numero_orden }}', {{ $imgIndex + 1 }}, {{ $totalImagenes }})">
+                                                <div class="relative group cursor-pointer"
+                                                     data-image-src="{{ $rutaImagen }}"
+                                                     data-image-caption="Evidencia {{ $imgIndex + 1 }} - Orden #{{ $item->numero_orden }}"
+                                                     data-image-index="{{ $imgIndex + 1 }}"
+                                                     data-image-total="{{ $totalImagenes }}"
+                                                     data-image-order="{{ $item->numero_orden }}"
+                                                     data-images="{{ base64_encode(json_encode($imagenes)) }}"
+                                                     onclick="openImageModalFromDataset(this)">
                                                     <div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-lg z-10"></div>
                                                     <img src="{{ $rutaImagen }}"
                                                          alt="Evidencia {{ $imgIndex + 1 }}"
@@ -629,7 +636,9 @@
                                         {{-- Botón para ver todas las imágenes --}}
                                         @if($totalImagenes > 4)
                                             <div class="mt-4 text-center">
-                                                <button onclick="openAllImages(@json($imagenes), '{{ $item->numero_orden }}')"
+                                                <button data-images="{{ base64_encode(json_encode($imagenes)) }}"
+                                                        data-image-order="{{ $item->numero_orden }}"
+                                                        onclick="openAllImagesFromDataset(this)"
                                                         class="responsive-action responsive-action--compact responsive-action--secondary">
                                                     <i class="fas fa-images"></i>
                                                     Ver todas las imágenes ({{ $totalImagenes }})
@@ -684,7 +693,7 @@
 
 {{-- Modal para ver imágenes ampliadas (mejorado) --}}
 <div id="imageModal" class="fixed inset-0 bg-black/90 backdrop-blur-sm hidden items-center justify-center z-50 p-4 transition-all duration-300" onclick="closeImageModal()">
-    <div class="relative max-w-6xl w-full max-h-[90vh] flex items-center justify-center modal-fade-in" onclick="event.stopPropagation()">
+    <div id="imageModalStage" class="relative max-w-6xl w-full max-h-[90vh] flex items-center justify-center modal-fade-in" style="touch-action: pan-y; user-select: none; -webkit-user-select: none;" onclick="event.stopPropagation()">
         {{-- Botón cerrar mejorado --}}
         <button onclick="closeImageModal()"
                 class="absolute top-4 right-4 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 text-white text-xl flex items-center justify-center backdrop-blur-sm border border-white/30 transition-all z-10 group">
@@ -699,7 +708,7 @@
 
         {{-- Imagen --}}
         <div class="relative">
-            <img id="modalImage" src="" alt="Imagen ampliada" class="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl border-4 border-white/20">
+            <img id="modalImage" src="" alt="Imagen ampliada" draggable="false" style="touch-action: pan-y; user-select: none; -webkit-user-drag: none;" class="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl border-4 border-white/20">
 
             {{-- Contador de imágenes --}}
             <div id="imageCounter" class="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black/50 backdrop-blur-sm text-white px-4 py-2 rounded-full text-sm font-medium border border-white/20">
@@ -750,9 +759,12 @@
 let currentImages = [];
 let currentImageIndex = 0;
 let currentOrderNumber = '';
+let imageSwipe = null;
+const IMAGE_SWIPE_DISTANCE = 50;
+const IMAGE_SWIPE_VERTICAL_TOLERANCE = 1.25;
 
 // Función mejorada para abrir imagen
-function openImageModal(imageSrc, caption, index, total) {
+function openImageModal(imageSrc, caption, index, total, imagenes = null, orden = null) {
     const modal = document.getElementById('imageModal');
     const modalImg = document.getElementById('modalImage');
     const modalCaption = document.getElementById('modalCaption');
@@ -761,6 +773,14 @@ function openImageModal(imageSrc, caption, index, total) {
     const counter = document.getElementById('imageCounter');
     const currentIndexSpan = document.getElementById('currentImageIndex');
     const totalSpan = document.getElementById('totalImages');
+
+    if (imagenes) {
+        currentImages = normalizeEvidenceImages(imagenes);
+    }
+
+    if (orden !== null) {
+        currentOrderNumber = orden;
+    }
 
     modalImg.src = imageSrc;
     modalCaption.textContent = caption;
@@ -798,9 +818,64 @@ function navigateImage(direction) {
     currentIndexSpan.textContent = currentImageIndex + 1;
 }
 
+function normalizeEvidenceImages(imagenes) {
+    if (!imagenes) return [];
+
+    if (typeof imagenes === 'string') {
+        const valor = imagenes.trim();
+        if (!valor || valor === 'null' || valor === '[]') return [];
+
+        if ((valor.startsWith('[') && valor.endsWith(']')) || (valor.startsWith('{') && valor.endsWith('}'))) {
+            try {
+                return normalizeEvidenceImages(JSON.parse(valor));
+            } catch (error) {
+                return [valor];
+            }
+        }
+
+        return [valor];
+    }
+
+    if (typeof imagenes === 'object' && !Array.isArray(imagenes)) {
+        return normalizeEvidenceImages(Object.values(imagenes));
+    }
+
+    if (!Array.isArray(imagenes)) return [];
+
+    return imagenes
+        .flatMap((item) => normalizeEvidenceImages(item))
+        .map((item) => String(item).trim().replace(/\\/g, '/'))
+        .filter((item) => item.length > 0);
+}
+
+function parseEncodedImages(payload) {
+    if (!payload) return [];
+
+    try {
+        return normalizeEvidenceImages(JSON.parse(atob(payload)));
+    } catch (error) {
+        return [];
+    }
+}
+
+function openImageModalFromDataset(element) {
+    const images = parseEncodedImages(element.dataset.images);
+    const index = parseInt(element.dataset.imageIndex || '1', 10);
+    const total = parseInt(element.dataset.imageTotal || String(images.length || 1), 10);
+    const order = element.dataset.imageOrder || '';
+    const src = element.dataset.imageSrc || buildEvidenceUrl(images[index - 1] || '');
+    const caption = element.dataset.imageCaption || `Evidencia ${index} - Orden #${order}`;
+
+    openImageModal(src, caption, index, total, images, order);
+}
+
+function openAllImagesFromDataset(element) {
+    openAllImages(parseEncodedImages(element.dataset.images), element.dataset.imageOrder || '');
+}
+
 // Función para abrir galería completa
 function openAllImages(imagenes, orden) {
-    currentImages = Array.isArray(imagenes) ? imagenes : [];
+    currentImages = normalizeEvidenceImages(imagenes);
     currentOrderNumber = orden;
 
     const modal = document.getElementById('galleryModal');
@@ -839,14 +914,129 @@ function openAllImages(imagenes, orden) {
 }
 
 function buildEvidenceUrl(path) {
-    const cleanPath = String(path || '').replace(/\\/g, '/').replace(/^\/+/, '');
+    const rawPath = String(path || '').trim().replace(/\\/g, '/');
+    if (/^https?:\/\//i.test(rawPath)) return rawPath;
+
+    const cleanPath = rawPath
+        .replace(/^\/+/, '')
+        .replace(/^public\//, '')
+        .replace(/^app\/public\//, '')
+        .replace(/^storage\/app\/public\//, '')
+        .replace(/^public\/storage\//, '')
+        .replace(/^storage\//, '');
+
     return `{{ asset('storage') }}/${cleanPath}`;
+}
+
+function getImageSwipePoint(event) {
+    const source = event.changedTouches?.[0] || event.touches?.[0] || event;
+
+    return {
+        x: source.clientX ?? 0,
+        y: source.clientY ?? 0,
+    };
+}
+
+function startImageSwipe(event) {
+    if (event.target?.closest('button') || currentImages.length <= 1) {
+        return;
+    }
+
+    if (event.pointerId !== undefined && event.currentTarget?.setPointerCapture) {
+        try {
+            event.currentTarget.setPointerCapture(event.pointerId);
+        } catch (error) {}
+    }
+
+    const point = getImageSwipePoint(event);
+    imageSwipe = {
+        startX: point.x,
+        startY: point.y,
+        lastX: point.x,
+        lastY: point.y,
+    };
+}
+
+function moveImageSwipe(event) {
+    if (!imageSwipe) {
+        return;
+    }
+
+    const point = getImageSwipePoint(event);
+    const deltaX = point.x - imageSwipe.startX;
+    const deltaY = point.y - imageSwipe.startY;
+
+    imageSwipe.lastX = point.x;
+    imageSwipe.lastY = point.y;
+
+    if (Math.abs(deltaX) > Math.abs(deltaY) && event.cancelable) {
+        event.preventDefault();
+    }
+}
+
+function finishImageSwipe(event) {
+    if (!imageSwipe) {
+        return;
+    }
+
+    const stage = event.currentTarget;
+    const point = getImageSwipePoint(event);
+    const endX = point.x || imageSwipe.lastX;
+    const endY = point.y || imageSwipe.lastY;
+    const deltaX = endX - imageSwipe.startX;
+    const deltaY = endY - imageSwipe.startY;
+    const isHorizontalSwipe = Math.abs(deltaX) >= IMAGE_SWIPE_DISTANCE
+        && Math.abs(deltaX) > Math.abs(deltaY) * IMAGE_SWIPE_VERTICAL_TOLERANCE;
+
+    if (isHorizontalSwipe) {
+        navigateImage(deltaX < 0 ? 1 : -1);
+    }
+
+    imageSwipe = null;
+    if (event.pointerId !== undefined && stage?.releasePointerCapture) {
+        try {
+            stage.releasePointerCapture(event.pointerId);
+        } catch (error) {}
+    }
+}
+
+function cancelImageSwipe(event) {
+    const stage = event.currentTarget;
+
+    imageSwipe = null;
+    if (event.pointerId !== undefined && stage?.releasePointerCapture) {
+        try {
+            stage.releasePointerCapture(event.pointerId);
+        } catch (error) {}
+    }
+}
+
+function setupImageSwipe() {
+    const stage = document.getElementById('imageModalStage');
+
+    if (!stage) {
+        return;
+    }
+
+    if (window.PointerEvent) {
+        stage.addEventListener('pointerdown', startImageSwipe);
+        stage.addEventListener('pointermove', moveImageSwipe);
+        stage.addEventListener('pointerup', finishImageSwipe);
+        stage.addEventListener('pointercancel', cancelImageSwipe);
+        return;
+    }
+
+    stage.addEventListener('touchstart', startImageSwipe, { passive: true });
+    stage.addEventListener('touchmove', moveImageSwipe, { passive: false });
+    stage.addEventListener('touchend', finishImageSwipe);
+    stage.addEventListener('touchcancel', cancelImageSwipe);
 }
 
 function closeImageModal() {
     const modal = document.getElementById('imageModal');
     modal.classList.add('hidden');
     modal.classList.remove('flex');
+    cancelImageSwipe({ currentTarget: document.getElementById('imageModalStage') });
     document.body.style.overflow = 'auto';
 }
 
@@ -878,6 +1068,8 @@ document.addEventListener('keydown', function(e) {
 
 // Prevenir scroll cuando el modal está abierto
 document.addEventListener('DOMContentLoaded', function() {
+    setupImageSwipe();
+
     const observer = new MutationObserver(function(mutations) {
         mutations.forEach(function(mutation) {
             if (mutation.attributeName === 'class') {

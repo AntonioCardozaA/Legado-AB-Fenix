@@ -586,9 +586,40 @@ class AnalisisPasteurizadoraController extends Controller
 
     public function createQuick(Request $request)
     {
-        $linea = Linea::findOrFail($request->linea_id);
+        $lineaId = $request->get('linea_id');
 
-        return $this->renderView('create-quick', $this->buildCreateViewData($linea, $request, true));
+        if (!$lineaId) {
+            return redirect()->route($this->routeName('select-linea'))
+                ->with('error', 'Debe seleccionar una linea primero');
+        }
+
+        $linea = Linea::findOrFail($lineaId);
+        $modulo = $request->get('modulo');
+        $componente = $request->get('componente');
+        $totalModulos = AnalisisPasteurizadora::getModulosPorLinea($linea->nombre);
+
+        if (
+            !$modulo
+            || filter_var($modulo, FILTER_VALIDATE_INT) === false
+            || (int) $modulo < 1
+            || (int) $modulo > $totalModulos
+            || !$componente
+            || !AnalisisPasteurizadora::resolveComponentePorLinea($linea->nombre, $componente)
+        ) {
+            return redirect()
+                ->route($this->routeName('index'), ['linea_id' => $linea->id])
+                ->with('error', 'Selecciona un recuadro de modulo y componente para capturar el analisis.');
+        }
+
+        return $this->renderView('create-quick', [
+            'linea' => $linea,
+            'fechaSugerida' => $request->get('fecha', date('Y-m-d')),
+            'modoQuick' => false,
+            'modulo' => (int) $modulo,
+            'componente' => $componente,
+            'nivel' => $request->get('nivel'),
+            'lado' => $request->get('lado'),
+        ]);
     }
 
     // ============================================================
@@ -700,9 +731,69 @@ class AnalisisPasteurizadoraController extends Controller
 
     public function storeQuick(Request $request)
     {
-        // Marcar que proviene de create-quick
-        $request->merge(['es_quick' => true]);
-        return $this->store($request);
+        $validated = $request->validate([
+            'linea_id' => 'required|exists:lineas,id',
+            'modulo' => ['required', 'integer', $this->positiveIntegerRule('El modulo debe ser un numero entero mayor a 0.')],
+            'nivel' => 'required|in:SUPERIOR,INFERIOR',
+            'componente' => 'required|string',
+            'lado' => 'required|in:VAPOR,PASILLO',
+            'fecha_analisis' => 'required|date',
+            'numero_orden' => ['nullable', 'regex:/^\d{8}$/'],
+            'estado' => 'required|in:' . implode(',', AnalisisPasteurizadora::ESTADOS),
+            'actividad' => 'required|string',
+            'evidencia_fotos' => 'nullable|array',
+            'evidencia_fotos.*' => ['nullable', 'image', $this->maxUploadedFileKilobytesRule(5120, 'Cada imagen no puede superar los 5 MB.')],
+            'componentes_revisados' => 'nullable',
+        ], [
+            'numero_orden.regex' => 'El numero de orden debe contener exactamente 8 digitos numericos.',
+        ]);
+
+        $linea = Linea::findOrFail($validated['linea_id']);
+        $seleccionComponentes = $this->resolverSeleccionComponentesRevisionLibre($request, $linea, $validated);
+        $validated['componente'] = $seleccionComponentes['componente'];
+
+        $fotosPaths = [];
+        if ($request->hasFile('evidencia_fotos')) {
+            foreach ($request->file('evidencia_fotos') as $foto) {
+                if ($foto) {
+                    $fotosPaths[] = $this->guardarEvidenciaPasteurizadora($foto);
+                }
+            }
+        }
+
+        $analisis = AnalisisPasteurizadora::create([
+            'area' => $this->currentArea(),
+            'tipo_registro' => AnalisisPasteurizadora::TIPO_REGISTRO_NORMAL,
+            'linea_id' => $validated['linea_id'],
+            'modulo' => $validated['modulo'],
+            'nivel' => $validated['nivel'],
+            'componente' => $validated['componente'],
+            'lado' => $validated['lado'],
+            'fecha_inicio' => null,
+            'fecha_fin' => null,
+            'fecha_analisis' => $validated['fecha_analisis'],
+            'numero_orden' => $validated['numero_orden'] ?? null,
+            'estado' => $validated['estado'],
+            'actividad' => $validated['actividad'],
+            'evidencia_fotos' => $fotosPaths,
+            'componentes_revisados' => $seleccionComponentes['componentes_revisados'],
+            'cantidad_componentes_revisados' => count($seleccionComponentes['componentes_revisados']),
+            'total_componentes' => $seleccionComponentes['total_componentes'],
+            'brazos_torsion' => $seleccionComponentes['brazos_torsion'],
+            'total_brazos_torsion' => $seleccionComponentes['total_brazos_torsion'],
+            'usuario_id' => $request->user()?->id,
+            'resuelto_por_cambio' => false,
+        ]);
+
+        if ($validated['estado'] === AnalisisPasteurizadora::ESTADO_CAMBIADO) {
+            $this->marcarRegistrosAnterioresComoResueltos($analisis);
+        }
+
+        $this->sincronizarHistoricoRevisados($analisis);
+
+        return redirect()
+            ->route($this->routeName('index'), ['linea_id' => $validated['linea_id']])
+            ->with('success', 'Analisis registrado correctamente.');
     }
 
     private function normalizarRangoFechasQuick(Request $request): void
@@ -1908,6 +1999,72 @@ class AnalisisPasteurizadoraController extends Controller
             }
 
             $componentesSeleccionados = [$numeroComponente];
+        }
+
+        return [
+            'componente' => $componente,
+            'componentes_revisados' => $componentesSeleccionados,
+            'total_componentes' => $totalComponentes,
+            'brazos_torsion' => AnalisisPasteurizadora::esBrazoTorsion($componente) ? $componentesSeleccionados : null,
+            'total_brazos_torsion' => AnalisisPasteurizadora::esBrazoTorsion($componente)
+                ? AnalisisPasteurizadora::getCantidadBrazosTorsionPorLinea($linea->nombre)
+                : null,
+        ];
+    }
+
+    private function resolverSeleccionComponentesRevisionLibre(
+        Request $request,
+        Linea $linea,
+        array $contexto
+    ): array {
+        $resolved = AnalisisPasteurizadora::resolveComponentePorLinea($linea->nombre, $contexto['componente'] ?? null);
+
+        if (!$resolved) {
+            throw ValidationException::withMessages([
+                'componente' => 'Seleccione un componente valido para la linea seleccionada.',
+            ]);
+        }
+
+        $componente = $resolved['key'];
+        $totalComponentes = (int) ($resolved['config']['cantidad'] ?? 0);
+        $modulo = (int) ($contexto['modulo'] ?? 0);
+        $totalModulos = AnalisisPasteurizadora::getModulosPorLinea($linea->nombre);
+
+        if ($totalComponentes <= 0) {
+            throw ValidationException::withMessages([
+                'componente' => 'El componente seleccionado no tiene piezas configuradas para esta linea.',
+            ]);
+        }
+
+        if ($modulo < 1 || $modulo > $totalModulos) {
+            throw ValidationException::withMessages([
+                'modulo' => 'Seleccione un modulo valido para la linea seleccionada.',
+            ]);
+        }
+
+        if (AnalisisPasteurizadora::esBrazoTorsion($componente)) {
+            $ultimoModuloConBrazo = AnalisisPasteurizadora::getCantidadBrazosTorsionPorLinea($linea->nombre);
+
+            if ($modulo < 1 || $modulo > $ultimoModuloConBrazo) {
+                throw ValidationException::withMessages([
+                    'modulo' => 'El Brazo de Torsion solo aplica del modulo 1 al ' . $ultimoModuloConBrazo . '. El ultimo modulo no tiene brazo.',
+                ]);
+            }
+        }
+
+        if (AnalisisPasteurizadora::esBrazoTorsion($componente) || $totalComponentes === 1) {
+            $componentesSeleccionados = [1];
+        } else {
+            $componentesSeleccionados = AnalisisPasteurizadora::normalizarComponentesRevisados(
+                $request->input('componentes_revisados'),
+                $totalComponentes
+            );
+
+            if (empty($componentesSeleccionados)) {
+                throw ValidationException::withMessages([
+                    'componentes_revisados' => 'Debe seleccionar al menos un componente revisado.',
+                ]);
+            }
         }
 
         return [

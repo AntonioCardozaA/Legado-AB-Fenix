@@ -8,6 +8,7 @@ use App\Models\AnalisisEtiquetadora;
 use App\Models\AnalisisLavadora;
 use App\Models\AnalisisPasteurizadora;
 use App\Models\Componente;
+use App\Models\CostAutomationRule;
 use App\Models\CostCatalogItem;
 use App\Models\Elongacion;
 use App\Models\LavadoraCostEntry;
@@ -1062,13 +1063,38 @@ class OperationsPlatformContextService
             }
         }
 
-        $hasSpecificComponent = $profile['component_codes'] !== [] || $profile['component_terms'] !== [];
-        $componentMatched = count(array_intersect($profile['component_codes'], $componentCodes)) > 0
+        $profileComponentCodes = array_values(array_filter(array_map(
+            fn ($code) => is_scalar($code) ? Str::upper((string) $code) : null,
+            $profile['component_codes'] ?? []
+        )));
+        $matchingComponentCodes = array_values(array_intersect($profileComponentCodes, $componentCodes));
+        $specificProfileTerms = $this->specificComponentTerms($profile['component_terms'] ?? []);
+        $componentTokenHaystack = array_values(array_unique(array_merge($componentTerms, $productTokens)));
+
+        if ($profileComponentCodes !== [] && $componentCodes !== [] && $matchingComponentCodes === []) {
+            return 0;
+        }
+
+        if (
+            $profileComponentCodes !== []
+            && $componentCodes === []
+            && $specificProfileTerms !== []
+            && !$this->tokensOverlap($specificProfileTerms, $componentTokenHaystack)
+        ) {
+            return 0;
+        }
+
+        $hasSpecificComponent = $profileComponentCodes !== [] || $profile['component_terms'] !== [];
+        $componentMatched = $matchingComponentCodes !== []
             || $this->tokensOverlap($profile['component_terms'], $componentTerms)
             || $this->tokensOverlap($profile['component_terms'], $productTokens);
 
         if ($hasSpecificComponent && !$componentMatched) {
             return 0;
+        }
+
+        if ($matchingComponentCodes !== []) {
+            $score += 18;
         }
 
         if ($componentMatched) {
@@ -1154,10 +1180,7 @@ class OperationsPlatformContextService
             || $asksCompatibility
             || $mentionsRefactionDomain
             || ($signals['terms'] !== [] && (
-                str_contains($normalized, 'cuanto')
-                || str_contains($normalized, 'cual')
-                || str_contains($normalized, 'que')
-                || str_contains($normalized, 'lleva')
+                str_contains($normalized, 'lleva')
                 || str_contains($normalized, 'usa')
                 || str_contains($normalized, 'aplica')
             ));
@@ -1244,7 +1267,8 @@ class OperationsPlatformContextService
             ->get()
             ->keyBy(fn (CostCatalogItem $item): string => (string) $item->sku);
 
-        $knowledgeReferences = $this->extractRefactionReferencesFromKnowledgeDocuments($catalogItems);
+        $automationRulesByCatalogItem = $this->automationRulesByCatalogItem($catalogItems);
+        $knowledgeReferences = $this->extractRefactionReferencesFromKnowledgeDocuments($catalogItems, $automationRulesByCatalogItem);
         $knowledgeSkus = $knowledgeReferences
             ->pluck('sku')
             ->filter()
@@ -1253,7 +1277,10 @@ class OperationsPlatformContextService
 
         $fallbackReferences = $catalogItems
             ->filter(fn (CostCatalogItem $item): bool => !in_array((string) $item->sku, $knowledgeSkus, true))
-            ->map(fn (CostCatalogItem $item): array => $this->fallbackRefactionReference($item))
+            ->map(fn (CostCatalogItem $item): array => $this->fallbackRefactionReference(
+                $item,
+                $automationRulesByCatalogItem->get($item->id, collect())
+            ))
             ->values();
 
         return $this->refactionReferenceCache = $knowledgeReferences
@@ -1263,9 +1290,10 @@ class OperationsPlatformContextService
 
     /**
      * @param  Collection<int, CostCatalogItem>  $catalogItems
+     * @param  Collection<int, Collection<int, CostAutomationRule>>  $automationRulesByCatalogItem
      * @return Collection<int, array<string, mixed>>
      */
-    private function extractRefactionReferencesFromKnowledgeDocuments(Collection $catalogItems): Collection
+    private function extractRefactionReferencesFromKnowledgeDocuments(Collection $catalogItems, Collection $automationRulesByCatalogItem): Collection
     {
         $documents = WasherKnowledgeDocument::query()
             ->where('indexing_status', 'indexed')
@@ -1281,12 +1309,15 @@ class OperationsPlatformContextService
             });
 
         return $documents
-            ->flatMap(function (WasherKnowledgeDocument $document) use ($catalogItems): array {
+            ->flatMap(function (WasherKnowledgeDocument $document) use ($catalogItems, $automationRulesByCatalogItem): array {
                 $entries = $this->parseKnowledgeCostEntries((string) $document->extracted_text);
 
-                return array_map(function (array $entry) use ($document, $catalogItems): array {
+                return array_map(function (array $entry) use ($document, $catalogItems, $automationRulesByCatalogItem): array {
                     /** @var CostCatalogItem|null $catalogItem */
                     $catalogItem = $catalogItems->get((string) ($entry['sku'] ?? ''));
+                    $ruleComponentCodes = $catalogItem
+                        ? $this->componentCodesFromAutomationRules($automationRulesByCatalogItem->get($catalogItem->id, collect()))
+                        : [];
                     $aliases = collect($catalogItem?->aliases ?? [])
                         ->map(fn ($alias) => Str::lower(Str::ascii((string) $alias)))
                         ->filter()
@@ -1300,6 +1331,13 @@ class OperationsPlatformContextService
                         (string) ($catalogItem?->categoria ?? ''),
                     ]));
                     $signals = $this->refactionComponentSignals($componentText);
+                    $componentCodes = array_values(array_unique(array_merge($signals['codes'], $ruleComponentCodes)));
+                    $componentes = array_values($entry['componentes'] ?? []);
+
+                    if ($componentes === [] && $componentCodes !== []) {
+                        $componentes = $this->componentLabelsForCodes($componentCodes);
+                    }
+
                     $unit = $catalogItem?->unidad_medida
                         ? $this->normalizeRefactionUnit((string) $catalogItem->unidad_medida)
                         : $this->normalizeRefactionUnit((string) ($entry['unidad_medida'] ?? 'PZA'));
@@ -1314,9 +1352,13 @@ class OperationsPlatformContextService
                         'unidad_medida' => $unit,
                         'costo_unitario' => round((float) ($catalogItem?->costo_unitario ?? ($entry['costo_unitario'] ?? 0)), 2),
                         'lineas' => $entry['lineas'] ?? [],
-                        'componentes' => $entry['componentes'] ?? [],
-                        'component_codes' => $signals['codes'],
-                        'component_terms' => array_values(array_unique(array_filter(array_merge($signals['terms'], $aliases)))),
+                        'componentes' => $componentes,
+                        'component_codes' => $componentCodes,
+                        'component_terms' => array_values(array_unique(array_filter(array_merge(
+                            $signals['terms'],
+                            $this->componentTermsForCodes($componentCodes),
+                            $aliases
+                        )))),
                         'cantidad_referencia' => $entry['cantidad_referencia'] ?? null,
                         'unidad_referencia' => $quantityUnit,
                         'costo_referencia' => $entry['costo_referencia'] ?? null,
@@ -1390,7 +1432,10 @@ class OperationsPlatformContextService
         }, $matches)));
     }
 
-    private function fallbackRefactionReference(CostCatalogItem $item): array
+    /**
+     * @param  Collection<int, CostAutomationRule>  $automationRules
+     */
+    private function fallbackRefactionReference(CostCatalogItem $item, Collection $automationRules): array
     {
         $aliases = collect($item->aliases ?? [])
             ->map(fn ($alias) => Str::lower(Str::ascii((string) $alias)))
@@ -1403,11 +1448,12 @@ class OperationsPlatformContextService
             (string) $item->categoria,
             implode(' ', $aliases),
         ])));
-        $componentes = $signals['codes'] !== []
-            ? array_values(array_unique(array_map(
-                fn (string $code): string => str_replace('_', ' ', Str::title(Str::lower($code))),
-                $signals['codes']
-            )))
+        $componentCodes = array_values(array_unique(array_merge(
+            $signals['codes'],
+            $this->componentCodesFromAutomationRules($automationRules)
+        )));
+        $componentes = $componentCodes !== []
+            ? $this->componentLabelsForCodes($componentCodes)
             : [(string) ($item->categoria ?: $item->nombre)];
 
         return [
@@ -1418,8 +1464,12 @@ class OperationsPlatformContextService
             'costo_unitario' => round((float) $item->costo_unitario, 2),
             'lineas' => [],
             'componentes' => $componentes,
-            'component_codes' => $signals['codes'],
-            'component_terms' => array_values(array_unique(array_filter(array_merge($signals['terms'], $aliases)))),
+            'component_codes' => $componentCodes,
+            'component_terms' => array_values(array_unique(array_filter(array_merge(
+                $signals['terms'],
+                $this->componentTermsForCodes($componentCodes),
+                $aliases
+            )))),
             'cantidad_referencia' => null,
             'unidad_referencia' => null,
             'costo_referencia' => null,
@@ -1428,6 +1478,107 @@ class OperationsPlatformContextService
             'source_document' => null,
             'source_documents' => [],
         ];
+    }
+
+    /**
+     * @param  Collection<int, CostCatalogItem>  $catalogItems
+     * @return Collection<int, Collection<int, CostAutomationRule>>
+     */
+    private function automationRulesByCatalogItem(Collection $catalogItems): Collection
+    {
+        $catalogItemIds = $catalogItems
+            ->pluck('id')
+            ->filter()
+            ->values()
+            ->all();
+
+        if ($catalogItemIds === []) {
+            return collect();
+        }
+
+        return CostAutomationRule::query()
+            ->active()
+            ->whereIn('cost_catalog_item_id', $catalogItemIds)
+            ->get()
+            ->groupBy('cost_catalog_item_id');
+    }
+
+    /**
+     * @param  Collection<int, CostAutomationRule>  $automationRules
+     * @return array<int, string>
+     */
+    private function componentCodesFromAutomationRules(Collection $automationRules): array
+    {
+        return $automationRules
+            ->pluck('component_code')
+            ->map(fn ($code): string => Str::upper(trim(Str::ascii((string) $code))))
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @param  array<int, string>  $codes
+     * @return array<int, string>
+     */
+    private function componentLabelsForCodes(array $codes): array
+    {
+        $labels = [
+            'SERVO_CHICO' => 'Servo Chico',
+            'SERVO_GRANDE' => 'Servo Grande',
+            'BUJE_ESPIGA' => 'Bujes De Baquelita - Espiga De Flecha',
+            'GUI_INF_TANQUE' => 'Guia Inferior',
+            'GUI_INT_TANQUE' => 'Guia Intermedia',
+            'GUI_SUP_TANQUE' => 'Guia Superior',
+            'CATARINAS' => 'Catarinas',
+            'RV200_SIN_FIN' => 'Reductor Rv200 Sin Fin',
+            'RV200' => 'Reductor Rv200',
+        ];
+
+        return collect($codes)
+            ->map(fn (string $code): string => $labels[$code] ?? str_replace('_', ' ', Str::title(Str::lower($code))))
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @param  array<int, string>  $codes
+     * @return array<int, string>
+     */
+    private function componentTermsForCodes(array $codes): array
+    {
+        $terms = [
+            'SERVO_CHICO' => ['servo', 'servos', 'chico'],
+            'SERVO_GRANDE' => ['servo', 'servos', 'grande'],
+            'BUJE_ESPIGA' => ['buje', 'baquelita', 'espiga', 'casquillo'],
+            'GUI_INF_TANQUE' => ['guia', 'guias', 'inferior', 'inf', 'tanque'],
+            'GUI_INT_TANQUE' => ['guia', 'guias', 'intermedia', 'inter', 'int', 'tanque'],
+            'GUI_SUP_TANQUE' => ['guia', 'guias', 'superior', 'sup', 'tanque'],
+            'CATARINAS' => ['catarina', 'catarinas', 'sprocket', 'sprockets'],
+            'RV200_SIN_FIN' => ['rv200', 'reductor', 'reductores', 'sin', 'fin', 'corona'],
+            'RV200' => ['rv200', 'reductor', 'reductores'],
+        ];
+
+        return collect($codes)
+            ->flatMap(fn (string $code): array => $terms[$code] ?? $this->tokenize($code))
+            ->filter(fn ($term): bool => is_string($term) && $this->isSearchableToken($term))
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @param  array<int, string>  $terms
+     * @return array<int, string>
+     */
+    private function specificComponentTerms(array $terms): array
+    {
+        $specificTokens = ['inferior', 'superior', 'intermedia', 'inter', 'chico', 'grande', 'sin', 'fin', 'principal', 'ppal'];
+
+        return array_values(array_intersect($terms, $specificTokens));
     }
 
     /**
@@ -1666,6 +1817,10 @@ class OperationsPlatformContextService
             $reference['component_codes'] ?? []
         )));
         $componentTerms = $this->tokenize(implode(' ', $reference['component_terms'] ?? []));
+        $productTokens = $this->tokenize(implode(' ', array_filter([
+            (string) ($reference['producto'] ?? ''),
+            (string) ($reference['uso_referencia'] ?? ''),
+        ])));
         $haystack = implode(' ', array_filter([
             (string) ($reference['sku'] ?? ''),
             (string) ($reference['producto'] ?? ''),
@@ -1691,12 +1846,38 @@ class OperationsPlatformContextService
             $score += 8;
         }
 
-        $hasSpecificComponent = $profile['component_codes'] !== [] || $profile['component_terms'] !== [];
-        $componentMatched = count(array_intersect($profile['component_codes'], $componentCodes)) > 0
-            || $this->tokensOverlap($profile['component_terms'], $componentTerms);
+        $profileComponentCodes = array_values(array_filter(array_map(
+            fn ($code) => is_scalar($code) ? Str::upper((string) $code) : null,
+            $profile['component_codes'] ?? []
+        )));
+        $matchingComponentCodes = array_values(array_intersect($profileComponentCodes, $componentCodes));
+        $specificProfileTerms = $this->specificComponentTerms($profile['component_terms'] ?? []);
+        $componentTokenHaystack = array_values(array_unique(array_merge($componentTerms, $productTokens)));
+
+        if ($profileComponentCodes !== [] && $componentCodes !== [] && $matchingComponentCodes === []) {
+            return 0;
+        }
+
+        if (
+            $profileComponentCodes !== []
+            && $componentCodes === []
+            && $specificProfileTerms !== []
+            && !$this->tokensOverlap($specificProfileTerms, $componentTokenHaystack)
+        ) {
+            return 0;
+        }
+
+        $hasSpecificComponent = $profileComponentCodes !== [] || $profile['component_terms'] !== [];
+        $componentMatched = $matchingComponentCodes !== []
+            || $this->tokensOverlap($profile['component_terms'], $componentTerms)
+            || $this->tokensOverlap($profile['component_terms'], $productTokens);
 
         if ($hasSpecificComponent && !$componentMatched) {
             return 0;
+        }
+
+        if ($matchingComponentCodes !== []) {
+            $score += 12;
         }
 
         if ($componentMatched) {

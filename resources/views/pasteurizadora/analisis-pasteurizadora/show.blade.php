@@ -388,6 +388,7 @@
                         <button type="button"
                                 class="group relative block aspect-[4/3] w-full overflow-hidden bg-gray-100"
                                 data-photo-url="{{ $fotoUrl }}"
+                                data-photo-index="{{ $index }}"
                                 data-photo-title="Evidencia #{{ $index + 1 }}">
                             <img src="{{ $fotoUrl }}" alt="Evidencia {{ $index + 1 }}" class="h-full w-full object-cover transition duration-300 group-hover:scale-105">
                             <span class="absolute left-3 top-3 rounded-full bg-black/70 px-3 py-1 text-xs font-semibold text-white">
@@ -453,8 +454,19 @@
                 <i class="fas fa-times"></i>
             </button>
         </div>
-        <div class="bg-gray-950 p-3">
-            <img id="photoPreviewImage" src="" alt="Evidencia" class="mx-auto max-h-[70vh] w-auto rounded-lg object-contain sm:max-h-[75vh]">
+        <div id="photoPreviewStage" class="relative bg-gray-950 p-3" style="touch-action: pan-y; user-select: none; -webkit-user-select: none;" onclick="event.stopPropagation()">
+            <button type="button" id="photoPreviewPrev"
+                    class="absolute left-5 top-1/2 z-10 hidden h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full border border-gray-600 bg-gray-800/60 text-2xl text-white backdrop-blur-sm transition hover:bg-gray-700/80">
+                <i class="fas fa-chevron-left"></i>
+            </button>
+            <img id="photoPreviewImage" src="" alt="Evidencia" draggable="false" style="touch-action: pan-y; user-select: none; -webkit-user-drag: none;" class="mx-auto max-h-[70vh] w-auto rounded-lg object-contain sm:max-h-[75vh]">
+            <button type="button" id="photoPreviewNext"
+                    class="absolute right-5 top-1/2 z-10 hidden h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full border border-gray-600 bg-gray-800/60 text-2xl text-white backdrop-blur-sm transition hover:bg-gray-700/80">
+                <i class="fas fa-chevron-right"></i>
+            </button>
+            <div class="absolute bottom-6 left-1/2 -translate-x-1/2 rounded-lg border border-gray-700 bg-gray-900/80 px-4 py-2 text-sm font-mono text-white backdrop-blur-sm">
+                <span id="photoPreviewCounter"></span>
+            </div>
         </div>
     </div>
 </div>
@@ -467,22 +479,162 @@ document.addEventListener('DOMContentLoaded', function() {
     const image = document.getElementById('photoPreviewImage');
     const title = document.getElementById('photoPreviewTitle');
     const close = document.getElementById('photoPreviewClose');
+    const stage = document.getElementById('photoPreviewStage');
+    const prev = document.getElementById('photoPreviewPrev');
+    const next = document.getElementById('photoPreviewNext');
+    const counter = document.getElementById('photoPreviewCounter');
     const evidencias = @json($evidencias->map(fn ($foto) => asset('storage/' . $foto))->values());
+    let currentPhotoIndex = 0;
+    let photoSwipe = null;
+    const swipeDistance = 50;
+    const swipeVerticalTolerance = 1.25;
+
+    function updatePhotoPreview() {
+        const total = evidencias.length;
+        const hasMultipleImages = total > 1;
+
+        image.src = evidencias[currentPhotoIndex] || '';
+        title.textContent = total > 0 ? `Evidencia #${currentPhotoIndex + 1}` : 'Evidencia';
+        counter.textContent = total > 0 ? `${currentPhotoIndex + 1} / ${total}` : '';
+
+        prev.classList.toggle('hidden', !hasMultipleImages);
+        next.classList.toggle('hidden', !hasMultipleImages);
+        prev.classList.toggle('flex', hasMultipleImages);
+        next.classList.toggle('flex', hasMultipleImages);
+    }
+
+    function openModal(index) {
+        currentPhotoIndex = Number.isInteger(index) ? index : 0;
+        updatePhotoPreview();
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function changePhoto(direction) {
+        if (evidencias.length <= 1) {
+            return;
+        }
+
+        currentPhotoIndex = (currentPhotoIndex + direction + evidencias.length) % evidencias.length;
+        updatePhotoPreview();
+    }
+
+    function getSwipePoint(event) {
+        const source = event.changedTouches?.[0] || event.touches?.[0] || event;
+
+        return {
+            x: source.clientX ?? 0,
+            y: source.clientY ?? 0,
+        };
+    }
+
+    function startSwipe(event) {
+        if (event.target?.closest('button') || evidencias.length <= 1) {
+            return;
+        }
+
+        if (event.pointerId !== undefined && event.currentTarget?.setPointerCapture) {
+            try {
+                event.currentTarget.setPointerCapture(event.pointerId);
+            } catch (error) {}
+        }
+
+        const point = getSwipePoint(event);
+        photoSwipe = {
+            startX: point.x,
+            startY: point.y,
+            lastX: point.x,
+            lastY: point.y,
+        };
+    }
+
+    function moveSwipe(event) {
+        if (!photoSwipe) {
+            return;
+        }
+
+        const point = getSwipePoint(event);
+        const deltaX = point.x - photoSwipe.startX;
+        const deltaY = point.y - photoSwipe.startY;
+
+        photoSwipe.lastX = point.x;
+        photoSwipe.lastY = point.y;
+
+        if (Math.abs(deltaX) > Math.abs(deltaY) && event.cancelable) {
+            event.preventDefault();
+        }
+    }
+
+    function finishSwipe(event) {
+        if (!photoSwipe) {
+            return;
+        }
+
+        const point = getSwipePoint(event);
+        const endX = point.x || photoSwipe.lastX;
+        const endY = point.y || photoSwipe.lastY;
+        const deltaX = endX - photoSwipe.startX;
+        const deltaY = endY - photoSwipe.startY;
+        const isHorizontalSwipe = Math.abs(deltaX) >= swipeDistance
+            && Math.abs(deltaX) > Math.abs(deltaY) * swipeVerticalTolerance;
+
+        if (isHorizontalSwipe) {
+            changePhoto(deltaX < 0 ? 1 : -1);
+        }
+
+        photoSwipe = null;
+        if (event.pointerId !== undefined && event.currentTarget?.releasePointerCapture) {
+            try {
+                event.currentTarget.releasePointerCapture(event.pointerId);
+            } catch (error) {}
+        }
+    }
+
+    function cancelSwipe(event) {
+        photoSwipe = null;
+        if (event.pointerId !== undefined && event.currentTarget?.releasePointerCapture) {
+            try {
+                event.currentTarget.releasePointerCapture(event.pointerId);
+            } catch (error) {}
+        }
+    }
 
     function closeModal() {
         modal.classList.add('hidden');
         modal.classList.remove('flex');
         image.src = '';
+        photoSwipe = null;
+        document.body.style.overflow = '';
     }
 
     document.querySelectorAll('[data-photo-url]').forEach(function(button) {
         button.addEventListener('click', function() {
-            image.src = this.dataset.photoUrl;
-            title.textContent = this.dataset.photoTitle || 'Evidencia';
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
+            openModal(parseInt(this.dataset.photoIndex || '0', 10));
         });
     });
+
+    prev.addEventListener('click', function(event) {
+        event.stopPropagation();
+        changePhoto(-1);
+    });
+
+    next.addEventListener('click', function(event) {
+        event.stopPropagation();
+        changePhoto(1);
+    });
+
+    if (window.PointerEvent) {
+        stage.addEventListener('pointerdown', startSwipe);
+        stage.addEventListener('pointermove', moveSwipe);
+        stage.addEventListener('pointerup', finishSwipe);
+        stage.addEventListener('pointercancel', cancelSwipe);
+    } else {
+        stage.addEventListener('touchstart', startSwipe, { passive: true });
+        stage.addEventListener('touchmove', moveSwipe, { passive: false });
+        stage.addEventListener('touchend', finishSwipe);
+        stage.addEventListener('touchcancel', cancelSwipe);
+    }
 
     close.addEventListener('click', closeModal);
     modal.addEventListener('click', function(event) {
@@ -494,6 +646,14 @@ document.addEventListener('DOMContentLoaded', function() {
     document.addEventListener('keydown', function(event) {
         if (event.key === 'Escape' && !modal.classList.contains('hidden')) {
             closeModal();
+        }
+
+        if (event.key === 'ArrowLeft' && !modal.classList.contains('hidden')) {
+            changePhoto(-1);
+        }
+
+        if (event.key === 'ArrowRight' && !modal.classList.contains('hidden')) {
+            changePhoto(1);
         }
     });
 

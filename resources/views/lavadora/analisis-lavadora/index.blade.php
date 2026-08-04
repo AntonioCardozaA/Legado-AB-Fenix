@@ -2539,7 +2539,7 @@
                                                         'responsable_trabajo' => $canCloseLavadoraDamage ? $registro->responsable_trabajo : null,
                                                         'comentarios_costos' => $canCloseLavadoraDamage ? $registro->comentarios_costos : null,
                                                         'can_close_damage' => $canCloseLavadoraDamage,
-                                                        'costs_url' => $canAccessLavadoraCosts ? route('analisis-lavadora.costos.manage', ['analisislavadora' => $registro->id]) : null,
+                                                        'costs_url' => $canAccessLavadoraCosts ? route('analisis-lavadora.costos.manage', ['analisislavadora' => $registro->id], false) : null,
                                                         'correction_url' => $canCloseLavadoraDamage ? route('analisis-lavadora.correccion.update', ['analisislavadora' => $registro->id]) : null,
                                                         'edit_url' => route('analisis-lavadora.edit', ['analisislavadora' => $registro->id]),
                                                         'delete_url' => $canDeleteAnalysis ? route('analisis-lavadora.destroy', ['analisislavadora' => $registro->id]) : null,
@@ -3111,7 +3111,7 @@
                                                     'responsable_trabajo' => $canCloseLavadoraDamage ? $registro->responsable_trabajo : null,
                                                     'comentarios_costos' => $canCloseLavadoraDamage ? $registro->comentarios_costos : null,
                                                     'can_close_damage' => $canCloseLavadoraDamage,
-                                                    'costs_url' => $canAccessLavadoraCosts ? route('analisis-lavadora.costos.manage', ['analisislavadora' => $registro->id]) : null,
+                                                    'costs_url' => $canAccessLavadoraCosts ? route('analisis-lavadora.costos.manage', ['analisislavadora' => $registro->id], false) : null,
                                                     'correction_url' => $canCloseLavadoraDamage ? route('analisis-lavadora.correccion.update', ['analisislavadora' => $registro->id]) : null,
                                                     'edit_url' => route('analisis-lavadora.edit', [
                                                         'analisislavadora' => $registro->id

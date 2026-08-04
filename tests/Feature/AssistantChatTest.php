@@ -6,6 +6,7 @@ use App\Contracts\AiProviderInterface;
 use App\Models\AnalisisLavadora;
 use App\Models\AssistantMessage;
 use App\Models\Componente;
+use App\Models\CostAutomationRule;
 use App\Models\CostCatalogItem;
 use App\Models\Elongacion;
 use App\Models\Linea;
@@ -999,6 +1000,113 @@ class AssistantChatTest extends TestCase
         $this->assertStringContainsString('PASO 125', $content);
         $this->assertStringContainsString('PASO 173', $content);
         $this->assertStringContainsString('PASO 140', $content);
+    }
+
+    public function test_chat_prioritizes_specific_guia_inferior_refaction_cost(): void
+    {
+        config([
+            'maintenance_ai.enabled' => true,
+        ]);
+
+        $capturingProvider = new class implements AiProviderInterface
+        {
+            public array $payloads = [];
+
+            public function generateStructuredActionPlan(array $payload): array
+            {
+                $this->payloads[] = $payload;
+
+                return [
+                    'data' => [
+                        'answer' => 'No deberia usarse el proveedor para esta consulta.',
+                        'key_points' => [],
+                        'next_steps' => [],
+                        'sources' => [],
+                        'confidence' => 0.5,
+                    ],
+                    'raw' => [],
+                    'meta' => [
+                        'provider' => 'fake',
+                        'model' => 'unused-model',
+                    ],
+                ];
+            }
+
+            public function createEmbedding(string $content): array
+            {
+                return [];
+            }
+
+            public function extractDocumentText(array $payload): string
+            {
+                return '';
+            }
+        };
+
+        $this->app->instance(AiProviderInterface::class, $capturingProvider);
+
+        $user = $this->authenticatedUser();
+        $guideItems = [
+            '4066459' => [
+                'nombre' => 'GUIA DE CADENA PORTACANASTILLAS BAJADA DE LOS PRELAVADOS',
+                'costo_unitario' => 9300.00,
+                'component_code' => 'GUI_SUP_TANQUE',
+            ],
+            '4066460' => [
+                'nombre' => 'GUIA DE CADENA PORTACANASTILLAS BAJADA A TANQUES CAUSTICOS',
+                'costo_unitario' => 9000.00,
+                'component_code' => 'GUI_INT_TANQUE',
+            ],
+            '4066462' => [
+                'nombre' => 'GUIA DE CADENA PORTACANASTILLAS BAJADA A LA DESCARGA',
+                'costo_unitario' => 4490.00,
+                'component_code' => 'GUI_INF_TANQUE',
+            ],
+        ];
+
+        foreach ($guideItems as $sku => $item) {
+            $catalogItem = CostCatalogItem::create([
+                'sku' => $sku,
+                'nombre' => $item['nombre'],
+                'categoria' => 'Guia',
+                'unidad_medida' => 'Pieza',
+                'costo_unitario' => $item['costo_unitario'],
+                'activo' => true,
+                'aliases' => ['GUIA', 'CADENA'],
+            ]);
+
+            CostAutomationRule::create([
+                'cost_catalog_item_id' => $catalogItem->id,
+                'component_code' => $item['component_code'],
+                'trigger_type' => CostAutomationRule::TRIGGER_ESTADO_CAMBIADO,
+                'quantity' => 1,
+                'priority' => 10,
+                'activo' => true,
+            ]);
+        }
+
+        $response = $this->actingAs($user)->postJson(route('assistant-chat.store'), [
+            'message' => 'Que precio tiene una guia inferior?',
+            'page_context' => [
+                'module' => User::MODULE_LAVADORA,
+                'page_title' => 'Chat operativo',
+                'current_path' => '/asistente/chat',
+                'section' => 'Consulta tecnica',
+            ],
+        ]);
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('message.metadata.provider', 'platform-insights');
+
+        $this->assertSame([], $capturingProvider->payloads);
+        $content = (string) $response->json('message.content');
+        $this->assertStringContainsString('SKU 4066462', $content);
+        $this->assertStringContainsString('GUIA DE CADENA PORTACANASTILLAS BAJADA A LA DESCARGA', $content);
+        $this->assertStringContainsString('$4,490.00 MXN por PZA', $content);
+        $this->assertStringContainsString('Guia Inferior', $content);
+        $this->assertStringNotContainsString('SKU 4066459', $content);
+        $this->assertStringNotContainsString('Guia Superior', $content);
     }
 
     public function test_chat_lists_related_refactions_for_component_and_line(): void

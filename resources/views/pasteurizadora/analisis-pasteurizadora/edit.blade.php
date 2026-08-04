@@ -397,12 +397,12 @@
                                      class="w-full h-32 object-cover rounded-md border border-gray-300 mb-2">
 
                                 <div class="flex items-center justify-between gap-2">
-                                    <a href="{{ $fotoUrl }}"
-                                       target="_blank"
+                                    <button type="button"
+                                       data-current-evidence-index="{{ $index }}"
                                        class="inline-flex min-h-10 items-center justify-center gap-1 rounded-lg px-3 text-sm font-semibold text-blue-600 transition hover:bg-blue-50 hover:text-blue-800">
                                         <i class="fas fa-expand text-xs"></i>
                                         <span>Ver</span>
-                                    </a>
+                                    </button>
 
                                     <label class="inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-lg px-3 transition hover:bg-red-50">
                                         <input type="checkbox"
@@ -473,6 +473,31 @@
         </form>
     </div>
 </div>
+
+<div id="editEvidenceModal" class="fixed inset-0 z-[80] hidden items-center justify-center bg-black/75 p-2 sm:p-4">
+    <div class="w-full max-w-5xl overflow-hidden rounded-2xl bg-white shadow-2xl">
+        <div class="flex items-center justify-between border-b border-gray-200 px-5 py-4">
+            <h3 id="editEvidenceTitle" class="min-w-0 break-words text-base font-bold text-gray-900">Evidencia</h3>
+            <button type="button" id="editEvidenceClose" class="flex h-9 w-9 items-center justify-center rounded-full bg-gray-100 text-gray-600 transition hover:bg-gray-200">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div id="editEvidenceStage" class="relative bg-gray-950 p-3" style="touch-action: pan-y; user-select: none; -webkit-user-select: none;" onclick="event.stopPropagation()">
+            <button type="button" id="editEvidencePrev"
+                    class="absolute left-5 top-1/2 z-10 hidden h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full border border-gray-600 bg-gray-800/60 text-2xl text-white backdrop-blur-sm transition hover:bg-gray-700/80">
+                <i class="fas fa-chevron-left"></i>
+            </button>
+            <img id="editEvidenceImage" src="" alt="Evidencia" draggable="false" style="touch-action: pan-y; user-select: none; -webkit-user-drag: none;" class="mx-auto max-h-[70vh] w-auto rounded-lg object-contain sm:max-h-[75vh]">
+            <button type="button" id="editEvidenceNext"
+                    class="absolute right-5 top-1/2 z-10 hidden h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full border border-gray-600 bg-gray-800/60 text-2xl text-white backdrop-blur-sm transition hover:bg-gray-700/80">
+                <i class="fas fa-chevron-right"></i>
+            </button>
+            <div class="absolute bottom-6 left-1/2 -translate-x-1/2 rounded-lg border border-gray-700 bg-gray-900/80 px-4 py-2 text-sm font-mono text-white backdrop-blur-sm">
+                <span id="editEvidenceCounter"></span>
+            </div>
+        </div>
+    </div>
+</div>
 @endsection
 
 @section('scripts')
@@ -488,6 +513,138 @@ document.addEventListener('DOMContentLoaded', function() {
     const editarForm = document.getElementById('editarAnalisisPasteurizadoraForm');
     const maxFotoSize = 5 * 1024 * 1024;
     const soportaDataTransfer = typeof DataTransfer !== 'undefined';
+    const evidenciaActualModal = document.getElementById('editEvidenceModal');
+    const evidenciaActualStage = document.getElementById('editEvidenceStage');
+    const evidenciaActualImage = document.getElementById('editEvidenceImage');
+    const evidenciaActualTitle = document.getElementById('editEvidenceTitle');
+    const evidenciaActualClose = document.getElementById('editEvidenceClose');
+    const evidenciaActualPrev = document.getElementById('editEvidencePrev');
+    const evidenciaActualNext = document.getElementById('editEvidenceNext');
+    const evidenciaActualCounter = document.getElementById('editEvidenceCounter');
+    const evidenciasActuales = @json(collect($evidencias)->map(fn ($foto) => asset('storage/' . ltrim(str_replace('\\', '/', $foto), '/')))->values());
+    let evidenciaActualIndex = 0;
+    let evidenciaActualSwipe = null;
+    const evidenciaActualSwipeDistance = 50;
+    const evidenciaActualSwipeVerticalTolerance = 1.25;
+
+    function updateEvidenciaActualModal() {
+        const total = evidenciasActuales.length;
+        const hasMultipleImages = total > 1;
+
+        evidenciaActualImage.src = evidenciasActuales[evidenciaActualIndex] || '';
+        evidenciaActualTitle.textContent = total > 0 ? `Evidencia #${evidenciaActualIndex + 1}` : 'Evidencia';
+        evidenciaActualCounter.textContent = total > 0 ? `${evidenciaActualIndex + 1} / ${total}` : '';
+
+        evidenciaActualPrev.classList.toggle('hidden', !hasMultipleImages);
+        evidenciaActualNext.classList.toggle('hidden', !hasMultipleImages);
+        evidenciaActualPrev.classList.toggle('flex', hasMultipleImages);
+        evidenciaActualNext.classList.toggle('flex', hasMultipleImages);
+    }
+
+    function openEvidenciaActualModal(index) {
+        evidenciaActualIndex = Number.isInteger(index) ? index : 0;
+        updateEvidenciaActualModal();
+        evidenciaActualModal.classList.remove('hidden');
+        evidenciaActualModal.classList.add('flex');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function changeEvidenciaActual(direction) {
+        if (evidenciasActuales.length <= 1) {
+            return;
+        }
+
+        evidenciaActualIndex = (evidenciaActualIndex + direction + evidenciasActuales.length) % evidenciasActuales.length;
+        updateEvidenciaActualModal();
+    }
+
+    function closeEvidenciaActualModal() {
+        evidenciaActualModal.classList.add('hidden');
+        evidenciaActualModal.classList.remove('flex');
+        evidenciaActualImage.src = '';
+        evidenciaActualSwipe = null;
+        document.body.style.overflow = '';
+    }
+
+    function getEvidenciaActualSwipePoint(event) {
+        const source = event.changedTouches?.[0] || event.touches?.[0] || event;
+
+        return {
+            x: source.clientX ?? 0,
+            y: source.clientY ?? 0,
+        };
+    }
+
+    function startEvidenciaActualSwipe(event) {
+        if (event.target?.closest('button') || evidenciasActuales.length <= 1) {
+            return;
+        }
+
+        if (event.pointerId !== undefined && event.currentTarget?.setPointerCapture) {
+            try {
+                event.currentTarget.setPointerCapture(event.pointerId);
+            } catch (error) {}
+        }
+
+        const point = getEvidenciaActualSwipePoint(event);
+        evidenciaActualSwipe = {
+            startX: point.x,
+            startY: point.y,
+            lastX: point.x,
+            lastY: point.y,
+        };
+    }
+
+    function moveEvidenciaActualSwipe(event) {
+        if (!evidenciaActualSwipe) {
+            return;
+        }
+
+        const point = getEvidenciaActualSwipePoint(event);
+        const deltaX = point.x - evidenciaActualSwipe.startX;
+        const deltaY = point.y - evidenciaActualSwipe.startY;
+
+        evidenciaActualSwipe.lastX = point.x;
+        evidenciaActualSwipe.lastY = point.y;
+
+        if (Math.abs(deltaX) > Math.abs(deltaY) && event.cancelable) {
+            event.preventDefault();
+        }
+    }
+
+    function finishEvidenciaActualSwipe(event) {
+        if (!evidenciaActualSwipe) {
+            return;
+        }
+
+        const point = getEvidenciaActualSwipePoint(event);
+        const endX = point.x || evidenciaActualSwipe.lastX;
+        const endY = point.y || evidenciaActualSwipe.lastY;
+        const deltaX = endX - evidenciaActualSwipe.startX;
+        const deltaY = endY - evidenciaActualSwipe.startY;
+        const isHorizontalSwipe = Math.abs(deltaX) >= evidenciaActualSwipeDistance
+            && Math.abs(deltaX) > Math.abs(deltaY) * evidenciaActualSwipeVerticalTolerance;
+
+        if (isHorizontalSwipe) {
+            changeEvidenciaActual(deltaX < 0 ? 1 : -1);
+        }
+
+        evidenciaActualSwipe = null;
+        if (event.pointerId !== undefined && event.currentTarget?.releasePointerCapture) {
+            try {
+                event.currentTarget.releasePointerCapture(event.pointerId);
+            } catch (error) {}
+        }
+    }
+
+    function cancelEvidenciaActualSwipe(event) {
+        evidenciaActualSwipe = null;
+        if (event.pointerId !== undefined && event.currentTarget?.releasePointerCapture) {
+            try {
+                event.currentTarget.releasePointerCapture(event.pointerId);
+            } catch (error) {}
+        }
+    }
 
     function actualizarResumenFotos(totalFotos) {
         fotosResumen.textContent = totalFotos
@@ -592,6 +749,59 @@ document.addEventListener('DOMContentLoaded', function() {
 
     botonCamara.addEventListener('click', function() {
         camaraFotosInput.click();
+    });
+
+    document.querySelectorAll('[data-current-evidence-index]').forEach(function(button) {
+        button.addEventListener('click', function() {
+            openEvidenciaActualModal(parseInt(this.dataset.currentEvidenceIndex || '0', 10));
+        });
+    });
+
+    evidenciaActualPrev.addEventListener('click', function(event) {
+        event.stopPropagation();
+        changeEvidenciaActual(-1);
+    });
+
+    evidenciaActualNext.addEventListener('click', function(event) {
+        event.stopPropagation();
+        changeEvidenciaActual(1);
+    });
+
+    evidenciaActualClose.addEventListener('click', closeEvidenciaActualModal);
+    evidenciaActualModal.addEventListener('click', function(event) {
+        if (event.target === evidenciaActualModal) {
+            closeEvidenciaActualModal();
+        }
+    });
+
+    if (window.PointerEvent) {
+        evidenciaActualStage.addEventListener('pointerdown', startEvidenciaActualSwipe);
+        evidenciaActualStage.addEventListener('pointermove', moveEvidenciaActualSwipe);
+        evidenciaActualStage.addEventListener('pointerup', finishEvidenciaActualSwipe);
+        evidenciaActualStage.addEventListener('pointercancel', cancelEvidenciaActualSwipe);
+    } else {
+        evidenciaActualStage.addEventListener('touchstart', startEvidenciaActualSwipe, { passive: true });
+        evidenciaActualStage.addEventListener('touchmove', moveEvidenciaActualSwipe, { passive: false });
+        evidenciaActualStage.addEventListener('touchend', finishEvidenciaActualSwipe);
+        evidenciaActualStage.addEventListener('touchcancel', cancelEvidenciaActualSwipe);
+    }
+
+    document.addEventListener('keydown', function(event) {
+        if (evidenciaActualModal.classList.contains('hidden')) {
+            return;
+        }
+
+        if (event.key === 'Escape') {
+            closeEvidenciaActualModal();
+        }
+
+        if (event.key === 'ArrowLeft') {
+            changeEvidenciaActual(-1);
+        }
+
+        if (event.key === 'ArrowRight') {
+            changeEvidenciaActual(1);
+        }
     });
 
     inputFotos.addEventListener('change', function() {

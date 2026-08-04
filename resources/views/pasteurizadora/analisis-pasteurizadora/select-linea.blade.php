@@ -45,7 +45,7 @@
             @endphp
 
             @if($linea)
-                <a href="{{ $analisisRoute('create', $linea->id) }}"
+                <a href="{{ $analisisRoute('index', ['linea_id' => $linea->id]) }}"
                    class="group min-w-0">
                     <div class="bg-white rounded-xl border border-gray-100 p-6 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
                         <div class="flex flex-col items-center text-center">
