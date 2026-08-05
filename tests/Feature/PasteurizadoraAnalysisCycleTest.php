@@ -160,9 +160,6 @@ class PasteurizadoraAnalysisCycleTest extends TestCase
         ]);
     }
 
-<<<<<<< HEAD
-    public function test_quick_form_stores_normal_analysis_and_syncs_historico_revisados(): void
-=======
     public function test_normal_pasteurizadora_create_shows_visual_component_checklist(): void
     {
         $user = $this->userWithRole(User::ROLE_ADMIN);
@@ -218,8 +215,7 @@ class PasteurizadoraAnalysisCycleTest extends TestCase
         $this->assertSame(2, $analisis->cantidad_componentes_revisados);
     }
 
-    public function test_quick_mechanical_analysis_syncs_historico_revisados(): void
->>>>>>> 2dfd17a5e67a2c898ac5c2655ab1c7034d7ef7d1
+    public function test_quick_form_stores_normal_analysis_and_syncs_historico_revisados(): void
     {
         $user = $this->userWithRole(User::ROLE_ADMIN);
         $linea = Linea::create([

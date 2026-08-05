@@ -26,6 +26,11 @@
     if (!is_array($evidencias)) {
         $evidencias = json_decode($evidencias, true) ?? [];
     }
+    $evidenciasActualesUrls = collect($evidencias)
+        ->map(function ($foto) {
+            return asset('storage/' . ltrim(str_replace('\\', '/', $foto), '/'));
+        })
+        ->values();
 
     $estadoBadges = [
         'Buen estado' => 'bg-green-100 text-green-800 border-green-200',
@@ -521,7 +526,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const evidenciaActualPrev = document.getElementById('editEvidencePrev');
     const evidenciaActualNext = document.getElementById('editEvidenceNext');
     const evidenciaActualCounter = document.getElementById('editEvidenceCounter');
-    const evidenciasActuales = @json(collect($evidencias)->map(fn ($foto) => asset('storage/' . ltrim(str_replace('\\', '/', $foto), '/')))->values());
+    const evidenciasActuales = @json($evidenciasActualesUrls);
     let evidenciaActualIndex = 0;
     let evidenciaActualSwipe = null;
     const evidenciaActualSwipeDistance = 50;

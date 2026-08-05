@@ -44,18 +44,6 @@
             @endphp
 
             @if($linea)
-<<<<<<< HEAD
-                <a href="{{ $analisisRoute('index', ['linea_id' => $linea->id]) }}"
-                   class="group min-w-0">
-                    <div class="bg-white rounded-xl border border-gray-100 p-6 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-                        <div class="flex flex-col items-center text-center">
-                            <div class="mb-4 flex h-24 w-24 items-center justify-center sm:h-28 sm:w-28 lg:h-32 lg:w-32">
-                                <img src="{{ asset('images/icono_pas.png') }}"
-                                     alt="Pasteurizadora"
-                                     class="h-full w-full object-contain transition-transform duration-300 group-hover:scale-105"
-                                     onerror="this.src='{{ asset('images/icono-pasteurizadora.png') }}'">
-                            </div>
-=======
                 <a href="{{ $analisisRoute('create', $linea->id) }}"
                    class="group flex min-w-0">
                     <div class="flex h-full min-w-0 flex-col overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
@@ -65,7 +53,6 @@
                                  class="h-full w-full object-contain"
                                  onerror="this.src='{{ asset('images/icono_pas.png') }}'">
                         </div>
->>>>>>> 2dfd17a5e67a2c898ac5c2655ab1c7034d7ef7d1
 
                         <div class="flex flex-1 flex-col items-center px-4 pb-5 pt-4 text-center sm:px-6 sm:pb-6">
                             <h3 class="break-words text-lg font-semibold text-gray-800 mb-1">
