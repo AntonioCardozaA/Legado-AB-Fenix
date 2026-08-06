@@ -220,6 +220,9 @@ Route::prefix('pasteurizadora')->group(function () {
             Route::get('/get-reductores-por-linea', 'getReductoresPorLineaPublic')
                 ->name('get-reductores-por-linea');
 
+            Route::get('/get-servo-reductores-por-linea', 'getReductoresPorLineaPublic')
+                ->name('get-servo-reductores-por-linea');
+
             Route::get('/{analisislavadora}/editar', 'edit')
                 ->where('analisislavadora', '[0-9]+')
                 ->name('edit');

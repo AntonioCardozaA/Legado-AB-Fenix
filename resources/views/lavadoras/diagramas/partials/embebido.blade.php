@@ -35,6 +35,119 @@
     $maskConfigPath = resource_path('configs/diagrams/lavadora-chain-masks.php');
     $chainMasks = is_file($maskConfigPath) ? include $maskConfigPath : [];
     $chainMask = $lineaMaskKey ? ($chainMasks[$lineaMaskKey] ?? null) : null;
+    $parseChainPathPoints = static function (string $path): array {
+        preg_match_all('/-?\d+(?:\.\d+)?/', $path, $matches);
+        $values = array_map('floatval', $matches[0] ?? []);
+        $points = [];
+
+        for ($index = 0; $index + 1 < count($values); $index += 2) {
+            $points[] = ['x' => $values[$index], 'y' => $values[$index + 1]];
+        }
+
+        return $points;
+    };
+    $formatChainNumber = static function (float $value): string {
+        $number = number_format(round($value, 1), 1, '.', '');
+
+        return rtrim(rtrim($number, '0'), '.');
+    };
+    $buildChainPath = static function (array $points) use ($formatChainNumber): string {
+        if (count($points) < 2) {
+            return '';
+        }
+
+        $commands = [];
+
+        foreach ($points as $index => $point) {
+            $prefix = $index === 0 ? 'M' : 'L';
+            $commands[] = $prefix . ' ' . $formatChainNumber((float) $point['x']) . ' ' . $formatChainNumber((float) $point['y']);
+        }
+
+        return implode(' ', $commands);
+    };
+    $normalizeChainPoint = static function (array $point, array $mask): array {
+        return [
+            'x' => ((float) $point['x']) / max(1, (float) ($mask['width'] ?? 1)),
+            'y' => ((float) $point['y']) / max(1, (float) ($mask['height'] ?? 1)),
+        ];
+    };
+    $buildReferenceSegments = static function (array $referenceMask) use ($parseChainPathPoints, $normalizeChainPoint): array {
+        $segments = [];
+
+        foreach (($referenceMask['center'] ?? []) as $path) {
+            $points = $parseChainPathPoints((string) $path);
+
+            for ($index = 0; $index + 1 < count($points); $index++) {
+                $start = $normalizeChainPoint($points[$index], $referenceMask);
+                $end = $normalizeChainPoint($points[$index + 1], $referenceMask);
+                $vector = ['x' => $end['x'] - $start['x'], 'y' => $end['y'] - $start['y']];
+
+                if (abs($vector['x']) + abs($vector['y']) < 0.00001) {
+                    continue;
+                }
+
+                $segments[] = [
+                    'midpoint' => [
+                        'x' => ($start['x'] + $end['x']) / 2,
+                        'y' => ($start['y'] + $end['y']) / 2,
+                    ],
+                    'vector' => $vector,
+                ];
+            }
+        }
+
+        return $segments;
+    };
+    $orientCenterPathsLikeReference = static function (array $paths, array $sourceMask, array $referenceMask) use ($parseChainPathPoints, $buildChainPath, $normalizeChainPoint, $buildReferenceSegments): array {
+        $referenceSegments = $buildReferenceSegments($referenceMask);
+
+        if (empty($referenceSegments)) {
+            return $paths;
+        }
+
+        return array_map(static function (string $path) use ($parseChainPathPoints, $buildChainPath, $normalizeChainPoint, $sourceMask, $referenceSegments): string {
+            $points = $parseChainPathPoints($path);
+
+            if (count($points) < 2) {
+                return $path;
+            }
+
+            $start = $normalizeChainPoint($points[0], $sourceMask);
+            $end = $normalizeChainPoint($points[count($points) - 1], $sourceMask);
+            $midpoint = ['x' => 0.0, 'y' => 0.0];
+
+            foreach ($points as $point) {
+                $normalized = $normalizeChainPoint($point, $sourceMask);
+                $midpoint['x'] += $normalized['x'];
+                $midpoint['y'] += $normalized['y'];
+            }
+
+            $midpoint['x'] /= count($points);
+            $midpoint['y'] /= count($points);
+            $vector = ['x' => $end['x'] - $start['x'], 'y' => $end['y'] - $start['y']];
+            $nearest = null;
+            $nearestDistance = PHP_FLOAT_MAX;
+
+            foreach ($referenceSegments as $segment) {
+                $distanceX = $midpoint['x'] - $segment['midpoint']['x'];
+                $distanceY = $midpoint['y'] - $segment['midpoint']['y'];
+                $distance = ($distanceX * $distanceX) + ($distanceY * $distanceY);
+
+                if ($distance < $nearestDistance) {
+                    $nearestDistance = $distance;
+                    $nearest = $segment;
+                }
+            }
+
+            if (!$nearest) {
+                return $path;
+            }
+
+            $dot = ($vector['x'] * $nearest['vector']['x']) + ($vector['y'] * $nearest['vector']['y']);
+
+            return $dot < 0 ? $buildChainPath(array_reverse($points)) : $path;
+        }, $paths);
+    };
 
     if ($grupo === 'l05-l12-l13') {
         $viewBox = '0 0 1468 382';
@@ -425,6 +538,10 @@
         $chainTransform = $chainMask['transform'] ?? null;
 
         if ($lineaMaskKey) {
+            if ($lineaMaskKey !== 'linea5' && isset($chainMasks['linea5'])) {
+                $centerPaths = $orientCenterPathsLikeReference($centerPaths, $chainMask, $chainMasks['linea5']);
+            }
+
             $exactBaseImage = 'images/Diagramas-Lavadoras/' . $lineaMaskKey . '.png';
             $useExactBaseImage = is_file(public_path($exactBaseImage));
             $chainTransform = $useExactBaseImage ? null : $chainTransform;
@@ -505,7 +622,7 @@
             @endif
 
             @unless ($useExactBaseImage)
-                <g class="etiquetas-reductores-overlay etiquetas-reductores-superior" @if($contentTransform) transform="{{ $contentTransform }}" @endif aria-label="Nombres visibles de reductores">
+                <g class="etiquetas-reductores-overlay etiquetas-reductores-superior" @if($contentTransform) transform="{{ $contentTransform }}" @endif aria-label="Nombres visibles de reductores o servo-reductores">
                     @foreach ($paneles as $red)
                         @if ($red['bottomLabel'] ?? null)
                             <text
@@ -530,6 +647,7 @@
                 'baseWidth' => $baseWidth,
                 'baseHeight' => $baseHeight,
                 'contentTransform' => $contentTransform,
+                'lineaNombre' => $lineaNombre,
             ])
         </svg>
     </div>

@@ -5,6 +5,8 @@
 @section('content')
 @php
     $puedeEditarFechaAnalisis = $puedeEditarFechaAnalisis ?? false;
+    $reductorLabel = \App\Support\LavadoraCatalog::etiquetaReductorParaValor($analisisComponente->linea->nombre ?? null, $analisisComponente->reductor);
+    $reductorNombre = \App\Support\LavadoraCatalog::nombreReductorParaLinea($analisisComponente->linea->nombre ?? null, $analisisComponente->reductor);
 @endphp
 <div class="max-w-4xl mx-auto py-10 px-4">
     {{-- Header --}}
@@ -84,8 +86,8 @@
 
         {{-- Reductor --}}
         <div>
-            <p class="text-gray-600 font-semibold">Reductor</p>
-            <p class="text-gray-800">{{ $analisisComponente->reductor }}</p>
+            <p class="text-gray-600 font-semibold">{{ $reductorLabel }}</p>
+            <p class="text-gray-800">{{ $reductorNombre }}</p>
         </div>
 
     </div>

@@ -8,13 +8,13 @@ use Carbon\Carbon;
 use App\Models\Linea;
 use App\Models\User;
 use App\Services\NotificationService;
+use App\Support\LavadoraCatalog;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 class PlanAccionController extends Controller
 {
-    private $lineasLavadoraIds = [4, 5, 6, 7, 8, 9, 12, 13];
     private $lineasPasteurizadoraNombres = ['P-03', 'P-04', 'P-05', 'P-06', 'P-07', 'P-08', 'P-09', 'P-10', 'P-11', 'P-12', 'P-13', 'P-14'];
     private $lineasEtiquetadoraNombres = ['L-04', 'L-05', 'L-06', 'L-10', 'L-12', 'L-13'];
     
@@ -882,7 +882,7 @@ class PlanAccionController extends Controller
         $tipo = $this->normalizarTipo($tipo);
 
         if ($tipo === 'lavadora') {
-            $query->whereIn('id', $this->lineasLavadoraIds);
+            $query->whereIn('nombre', LavadoraCatalog::LINEAS);
         } elseif ($tipo === 'etiquetadora') {
             $query->whereIn('nombre', $this->lineasEtiquetadoraNombres);
         } else {

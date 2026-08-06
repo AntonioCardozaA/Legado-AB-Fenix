@@ -614,138 +614,10 @@
                 @endauth
             </div>
             <div class="dashboard-actions">
-                @if($puedeCrearAnalisisEtiquetadora)
-                <a href="{{ $dashboardLinksEtiquetadora['nuevo_analisis'] ?? route('analisis-etiquetadora.select-linea') }}" class="px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-800 transition">
-                    <i class="fas fa-plus-circle mr-2"></i>Nuevo Analisis
-                </a>
-                @endif
-                @if($puedeVerReportes)
-                <a href="{{ $dashboardLinksEtiquetadora['reportes'] ?? route('reportes.index', ['tipo' => 'etiquetadoras']) }}" class="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition">
-                    <i class="fas fa-file-lines mr-2"></i>Reportes
-                </a>
-                @endif
                 <button onclick="refreshData()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
                     <i class="fas fa-sync-alt mr-2"></i>Actualizar
                 </button>
             </div>
-        </div>
-    </div>
-
-    <form method="GET" action="{{ route('dashboard.global.etiquetadoras') }}" class="dashboard-filter-card">
-        <div class="dashboard-filter-grid">
-            <div class="filter-field">
-                <label for="linea_id">Linea</label>
-                <select id="linea_id" name="linea_id">
-                    <option value="todas">Todas</option>
-                    @foreach($todasLasLineasEtiquetadora as $linea)
-                        <option value="{{ $linea->id }}" @selected((string) ($filtrosEtiquetadora['linea_id'] ?? '') === (string) $linea->id)>
-                            {{ $linea->nombre }}
-                        </option>
-                    @endforeach
-                </select>
-            </div>
-            <div class="filter-field">
-                <label for="maquina">Maquina</label>
-                <select id="maquina" name="maquina">
-                    <option value="">Todas</option>
-                    @foreach($maquinasEtiquetadora as $maquina)
-                        <option value="{{ $maquina }}" @selected(($filtrosEtiquetadora['maquina'] ?? null) === $maquina)>
-                            Maquina {{ $maquina }}
-                        </option>
-                    @endforeach
-                </select>
-            </div>
-            <div class="filter-field">
-                <label for="fecha_desde">Desde</label>
-                <input id="fecha_desde" type="date" name="fecha_desde" value="{{ $filtrosEtiquetadora['fecha_desde_input'] ?? '' }}">
-            </div>
-            <div class="filter-field">
-                <label for="fecha_hasta">Hasta</label>
-                <input id="fecha_hasta" type="date" name="fecha_hasta" value="{{ $filtrosEtiquetadora['fecha_hasta_input'] ?? '' }}">
-            </div>
-            <div class="filter-actions">
-                <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
-                    <i class="fas fa-filter mr-2"></i>Aplicar
-                </button>
-                <a href="{{ route('dashboard.global.etiquetadoras') }}" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition">
-                    <i class="fas fa-xmark mr-2"></i>Limpiar
-                </a>
-            </div>
-        </div>
-    </form>
-
-    <div class="quick-access-card">
-        <div class="quick-actions-grid">
-            @if($puedeVerAnalisisEtiquetadora)
-            <a class="quick-action" href="{{ $dashboardLinksEtiquetadora['analisis'] ?? route('analisis-etiquetadora.index') }}">
-                <span class="quick-action-icon"><i class="fas fa-chart-pie"></i></span>
-                <span>
-                    <span class="quick-action-title">Analisis</span>
-                    <span class="quick-action-meta block">{{ $resumenEtiquetadora['total_analisis'] ?? 0 }} registros</span>
-                </span>
-            </a>
-            @endif
-            @if($puedeVerAnalisisEtiquetadora)
-            <a class="quick-action" href="{{ $dashboardLinksEtiquetadora['historico'] ?? route('analisis-etiquetadora.historial') }}">
-                <span class="quick-action-icon"><i class="fas fa-history"></i></span>
-                <span>
-                    <span class="quick-action-title">Historico</span>
-                    <span class="quick-action-meta block">{{ $resumenEtiquetadora['avance'] ?? 0 }}% componentes</span>
-                </span>
-            </a>
-            @endif
-            @if($puedeVerAnalisisEtiquetadora)
-            <a class="quick-action" href="{{ $dashboardLinksEtiquetadora['catalogo'] ?? route('analisis-etiquetadora.index') }}">
-                <span class="quick-action-icon"><i class="fas fa-sitemap"></i></span>
-                <span>
-                    <span class="quick-action-title">Catalogo</span>
-                    <span class="quick-action-meta block">{{ $catalogoEtiquetadoraResumen['componentes'] ?? 0 }} componentes</span>
-                </span>
-            </a>
-            @endif
-            @if($puedeVerAnalisisEtiquetadora)
-            <a class="quick-action" href="{{ $dashboardLinksEtiquetadora['evidencias'] ?? route('analisis-etiquetadora.historial') }}">
-                <span class="quick-action-icon"><i class="fas fa-images"></i></span>
-                <span>
-                    <span class="quick-action-title">Evidencias</span>
-                    <span class="quick-action-meta block">{{ $evidenciasEtiquetadora['total_fotos'] ?? 0 }} fotos</span>
-                </span>
-            </a>
-            @endif
-            @if($puedeVerPlanesEtiquetadora)
-            <a class="quick-action" href="{{ $dashboardLinksEtiquetadora['plan_accion'] ?? route('plan-accion.index', ['tipo' => 'etiquetadora']) }}">
-                <span class="quick-action-icon"><i class="fas fa-tasks"></i></span>
-                <span>
-                    <span class="quick-action-title">Plan de accion</span>
-                    <span class="quick-action-meta block">{{ $resumenEtiquetadora['pendientes_accion'] ?? 0 }} pendientes</span>
-                </span>
-            </a>
-            @endif
-            @if($puedeVerReportes)
-            <a class="quick-action" href="{{ $dashboardLinksEtiquetadora['reportes'] ?? route('reportes.index', ['tipo' => 'etiquetadoras']) }}">
-                <span class="quick-action-icon"><i class="fas fa-file-lines"></i></span>
-                <span>
-                    <span class="quick-action-title">Reportes</span>
-                    <span class="quick-action-meta block">{{ $catalogoEtiquetadoraResumen['equipos'] ?? 0 }} equipos</span>
-                </span>
-            </a>
-            @endif
-            @if($puedeVerNotificaciones)
-            <a class="quick-action" href="{{ $dashboardLinksEtiquetadora['notificaciones'] ?? route('notifications.index') }}">
-                <span class="quick-action-icon"><i class="fas fa-bell"></i></span>
-                <span>
-                    <span class="quick-action-title">Notificaciones</span>
-                    <span class="quick-action-meta block">{{ $notificacionesEtiquetadora['no_leidas'] ?? 0 }} nuevas</span>
-                </span>
-            </a>
-            @endif
-            <span class="quick-action disabled">
-                <span class="quick-action-icon"><i class="fas fa-wallet"></i></span>
-                <span>
-                    <span class="quick-action-title">Costos</span>
-                    <span class="quick-action-meta block">No aplica</span>
-                </span>
-            </span>
         </div>
     </div>
 
@@ -754,16 +626,6 @@
             <div class="stat-icon"><i class="fas fa-industry"></i></div>
             <div class="stat-label">Total Etiquetadoras</div>
             <div class="stat-value">{{ $resumenEtiquetadora['total_etiquetadoras'] }}</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-icon"><i class="fas fa-clipboard-list"></i></div>
-            <div class="stat-label">Analisis</div>
-            <div class="stat-value">{{ $resumenEtiquetadora['total_analisis'] ?? 0 }}</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-icon"><i class="fas fa-sitemap"></i></div>
-            <div class="stat-label">Componentes Catalogo</div>
-            <div class="stat-value">{{ $resumenEtiquetadora['componentes_catalogo'] ?? 0 }}</div>
         </div>
         <div class="stat-card" style="border-top: 4px solid var(--primary-blue);">
             <div class="stat-icon"><i class="fas fa-percent"></i></div>
@@ -789,26 +651,6 @@
             <div class="stat-icon"><i class="fas fa-check-circle"></i></div>
             <div class="stat-label">Buen Estado</div>
             <div class="stat-value" style="color: var(--success-green);">{{ $resumenEtiquetadora['buen_estado'] }}</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-icon"><i class="fas fa-tasks"></i></div>
-            <div class="stat-label">Pendientes Accion</div>
-            <div class="stat-value">{{ $resumenEtiquetadora['pendientes_accion'] }}</div>
-        </div>
-        <div class="stat-card" style="border-top: 4px solid #94a3b8;">
-            <div class="stat-icon"><i class="fas fa-circle-question"></i></div>
-            <div class="stat-label">Equipos Sin Analisis</div>
-            <div class="stat-value" style="color: #475569;">{{ $resumenEtiquetadora['equipos_sin_analisis'] ?? 0 }}</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-icon"><i class="fas fa-images"></i></div>
-            <div class="stat-label">Evidencias</div>
-            <div class="stat-value">{{ $resumenEtiquetadora['fotos_evidencia'] ?? 0 }}</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-icon"><i class="fas fa-bell"></i></div>
-            <div class="stat-label">Notificaciones</div>
-            <div class="stat-value">{{ $notificacionesEtiquetadora['no_leidas'] ?? 0 }}</div>
         </div>
     </div>
 

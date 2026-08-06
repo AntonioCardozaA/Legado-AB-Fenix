@@ -470,7 +470,7 @@ class OperationsAssistantService
                 . ($highestLine['linea'] ?? 'Sin linea')
                 . ', con '
                 . (int) ($highestLine['problematic_components'] ?? 0)
-                . ' componentes comprometidos segun el ultimo analisis disponible por componente/reductor/lado.',
+                . ' componentes comprometidos segun el ultimo analisis disponible por componente/reductor o servo-reductor/lado.',
             array_filter([
                 'Componentes criticos dentro de esa lavadora: ' . (int) ($highestLine['critical_components'] ?? 0) . '.',
                 $components !== [] ? 'Componentes mas repetidos: ' . implode(' | ', $components) . '.' : null,

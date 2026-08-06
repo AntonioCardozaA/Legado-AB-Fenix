@@ -2808,7 +2808,7 @@ class OperationsPlatformContextService
             ->values();
 
         return [
-            'label' => 'Estado actual por ultimo analisis de cada componente/reductor/lado.',
+            'label' => 'Estado actual por ultimo analisis de cada componente/reductor o servo-reductor/lado.',
             'top_lines' => $topLines->take(8)->all(),
             'highest_line' => $topLines->first(),
         ];

@@ -136,7 +136,7 @@ class WasherMaintenanceAiFlowTest extends TestCase
 
         $this->assertSame('ai', $plan->source);
         $this->assertSame('pending_review', $plan->estado);
-        $this->assertSame('Cambiar servo principal', $plan->actividad);
+        $this->assertSame('CAMBIAR SERVO PRINCIPAL', $plan->actividad);
         $this->assertSame('corrective', $plan->maintenance_type);
         $this->assertSame(2200.0, $plan->estimated_cost_total);
         $this->assertNull($plan->estimated_hours);
@@ -427,7 +427,7 @@ class WasherMaintenanceAiFlowTest extends TestCase
         AnalisisLavadora::create([
             'linea_id' => $linea->id,
             'componente_id' => $component->id,
-            'reductor' => 'Reductor Principal',
+            'reductor' => 'Reductor 1',
             'lado' => 'bombas',
             'fecha_analisis' => '2026-07-21',
             'numero_orden' => 'OT-200',
@@ -459,7 +459,7 @@ class WasherMaintenanceAiFlowTest extends TestCase
         return AnalisisLavadora::create([
             'linea_id' => $linea->id,
             'componente_id' => $component->id,
-            'reductor' => 'Reductor Principal',
+            'reductor' => 'Reductor 1',
             'lado' => 'bombas',
             'fecha_analisis' => '2026-07-16',
             'numero_orden' => 'OT-100',
@@ -571,7 +571,7 @@ class WasherMaintenanceAiFlowTest extends TestCase
             [
                 'linea' => 'L-04',
                 'nombre' => 'Servo Chico Test',
-                'reductor' => 'Reductor Principal',
+                'reductor' => 'Reductor 1',
                 'ubicacion' => 'Lavadora',
                 'cantidad_total' => 1,
                 'activo' => true,

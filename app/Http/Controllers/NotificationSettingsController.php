@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Linea;
 use App\Models\UserNotificationSetting;
+use App\Support\LavadoraCatalog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -43,7 +44,9 @@ class NotificationSettingsController extends Controller
             ]
         );
 
-        $lineas = Linea::whereIn('id', [4, 5, 6, 7, 8, 9, 12, 13])->get();
+        $lineas = Linea::whereIn('nombre', LavadoraCatalog::LINEAS)
+            ->orderBy('nombre')
+            ->get();
 
         return view('notificaciones.configuracion', compact('settings', 'lineas'));
     }

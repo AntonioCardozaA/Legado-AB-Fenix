@@ -3,6 +3,10 @@
 @section('title', 'Agregar Análisis')
 
 @section('content')
+@php
+    $reductorLabel = \App\Support\LavadoraCatalog::etiquetaReductorParaValor($linea->nombre ?? null, $reductor);
+    $reductorNombre = \App\Support\LavadoraCatalog::nombreReductorParaLinea($linea->nombre ?? null, $reductor);
+@endphp
 <div class="max-w-2xl mx-auto px-4 py-8">
     <div class="bg-white rounded-2xl shadow-lg p-8">
         {{-- Encabezado --}}
@@ -53,9 +57,9 @@
                         <div class="text-center md:text-left">
                             <p class="text-gray-600 font-semibold text-sm mb-1">
                                 <i class="fas fa-sliders-h mr-1"></i>
-                                Reductor
+                                {{ $reductorLabel }}
                             </p>
-                            <p class="text-gray-800 font-medium">{{ $reductor }}</p>
+                            <p class="text-gray-800 font-medium">{{ $reductorNombre }}</p>
                         </div>
                     </div>
                 </div>

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\LavadoraCatalog;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -59,7 +60,23 @@ class Componente extends Model
 
     public function getReductoresAttribute()
     {
-        return $this->reductor ? explode(',', $this->reductor) : [];
+        return $this->reductor
+            ? collect(explode(',', $this->reductor))
+                ->map(fn ($reductor) => LavadoraCatalog::normalizarReductor($reductor))
+                ->filter()
+                ->values()
+                ->all()
+            : [];
+    }
+
+    public function setReductorAttribute($value): void
+    {
+        $this->attributes['reductor'] = LavadoraCatalog::normalizarReductor($value);
+    }
+
+    public function setUbicacionAttribute($value): void
+    {
+        $this->attributes['ubicacion'] = LavadoraCatalog::normalizarReductor($value) ?? $value;
     }
 
     public function scopeActivos($query)

@@ -1153,7 +1153,7 @@ function cargarInfoReset() {
 function confirmarResetEstadisticas(event) {
     if (confirm('⚠️ ¿Estás seguro de restablecer las estadísticas?\n\n' +
                 '• Componentes de 4 meses: CATARINAS, GUÍAS\n' +
-                '• Componentes anuales: SERVOS, BUJES, REDUCTORES\n\n' +
+                '• Componentes anuales: SERVOS, BUJES, SERVO-REDUCTORES\n\n' +
                 'Los análisis fuera del periodo serán movidos al historial.')) {
         
         const btn = event.target.closest('button');

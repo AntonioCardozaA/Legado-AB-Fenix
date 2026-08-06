@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use Illuminate\Database\Seeder;
 use App\Models\Componente;
 use App\Models\Linea;
+use App\Support\LavadoraCatalog;
 use Illuminate\Support\Str;
 
 class LavadorasSeeder extends Seeder
@@ -106,19 +107,7 @@ class LavadorasSeeder extends Seeder
      */
     private function getNombreComponente(string $sufijo): string
     {
-        $nombres = [
-            'SERVO_CHICO' => 'Servo Chico',
-            'SERVO_GRANDE' => 'Servo Grande',
-            'BUJE_ESPIGA' => 'Buje Baquelita-Espiga',
-            'GUI_INF_TANQUE' => 'Guía Inf Tanque',
-            'GUI_INT_TANQUE' => 'Guía Int Tanque',
-            'GUI_SUP_TANQUE' => 'Guía Sup Tanque',
-            'CATARINAS' => 'Catarinas',
-            'RV200' => 'Reductor RV200',
-            'RV200_SIN_FIN' => 'Reductor Sin Fin-Corona RV200',
-        ];
-
-        return $nombres[$sufijo] ?? $sufijo;
+        return LavadoraCatalog::nombreComponente($sufijo);
     }
 
     /**
@@ -126,13 +115,7 @@ class LavadorasSeeder extends Seeder
      */
     private function seedLinea4(Linea $linea): void
     {
-        $reductoresLinea4 = [
-            'Reductor 1', 'Reductor 9', 'Reductor 10', 
-            'Reductor 11', 'Reductor 12', 'Reductor 13', 
-            'Reductor 14', 'Reductor 15', 'Reductor 16', 
-            'Reductor 17', 'Reductor 18', 'Reductor 19', 
-            'Reductor Loca', 'Reductor Principal'
-        ];
+        $reductoresLinea4 = LavadoraCatalog::reductoresPorLinea('L-04');
 
         foreach ($reductoresLinea4 as $reductor) {
             // Servo chico
@@ -219,19 +202,13 @@ class LavadorasSeeder extends Seeder
      */
     private function seedLinea5(Linea $linea): void
     {
-        $reductoresLinea5 = [
-            'Reductor 1', 'Reductor 2', 'Reductor 3', 
-            'Reductor 4', 'Reductor 5', 'Reductor 6', 
-            'Reductor 7', 'Reductor 8', 'Reductor 9', 
-            'Reductor 10', 'Reductor 11', 'Reductor 12', 
-            'Reductor Principal', 'Reductor Loca'
-        ];
+        $reductoresLinea5 = LavadoraCatalog::reductoresPorLinea('L-05');
 
         foreach ($reductoresLinea5 as $reductor) {
             // Reductor RV200
             $this->createComponente([
                 'codigo' => $this->generateCodigo('L05', $reductor, 'RV200'),
-                'nombre' => 'Reductor RV200', // SIN reductor
+                'nombre' => 'Reductor RV200',
                 'reductor' => $reductor,
                 'ubicacion' => $reductor,
                 'linea' => $linea->nombre,
@@ -301,14 +278,7 @@ class LavadorasSeeder extends Seeder
      */
     private function seedLinea6(Linea $linea): void
     {
-        $reductoresLinea6 = [
-            'Reductor 1', 'Reductor 9', 'Reductor 10', 
-            'Reductor 11', 'Reductor 12', 'Reductor 13', 
-            'Reductor 14', 'Reductor 15', 'Reductor 16', 
-            'Reductor 17', 'Reductor 18', 'Reductor 19', 
-            'Reductor 20', 'Reductor 21', 'Reductor 22',
-            'Reductor Principal'
-        ];
+        $reductoresLinea6 = LavadoraCatalog::reductoresPorLinea('L-06');
 
         foreach ($reductoresLinea6 as $reductor) {
             // Servo chico
@@ -395,14 +365,7 @@ class LavadorasSeeder extends Seeder
      */
     private function seedLinea7(Linea $linea): void
     {
-        $reductoresLinea7 = [
-            'Reductor 1', 'Reductor 9', 'Reductor 10', 
-            'Reductor 11', 'Reductor 12', 'Reductor 13', 
-            'Reductor 14', 'Reductor 15', 'Reductor 16', 
-            'Reductor 17', 'Reductor 18', 'Reductor 19', 
-            'Reductor 20', 'Reductor 21', 'Reductor 22',
-            'Reductor Principal'
-        ];
+        $reductoresLinea7 = LavadoraCatalog::reductoresPorLinea('L-07');
 
         foreach ($reductoresLinea7 as $reductor) {
             // Servo chico
@@ -489,13 +452,7 @@ class LavadorasSeeder extends Seeder
      */
     private function seedLinea8(Linea $linea): void
     {
-        $reductoresLinea8 = [
-            'Reductor 1', 'Reductor 9', 'Reductor 10', 
-            'Reductor 11', 'Reductor 12', 'Reductor 13', 
-            'Reductor 14', 'Reductor 15', 'Reductor 16', 
-            'Reductor 17', 'Reductor 18', 'Reductor 19', 
-            'Reductor Loca'
-        ];
+        $reductoresLinea8 = LavadoraCatalog::reductoresPorLinea('L-08');
 
         foreach ($reductoresLinea8 as $reductor) {
             // Servo chico
@@ -582,13 +539,7 @@ class LavadorasSeeder extends Seeder
      */
     private function seedLinea9(Linea $linea): void
     {
-        $reductoresLinea9 = [
-            'Reductor 1', 'Reductor 9', 'Reductor 10', 
-            'Reductor 11', 'Reductor 12', 'Reductor 13', 
-            'Reductor 14', 'Reductor 15', 'Reductor 16', 
-            'Reductor 17', 'Reductor 18', 'Reductor 19', 
-            'Reductor Loca', 'Reductor Principal'
-        ];
+        $reductoresLinea9 = LavadoraCatalog::reductoresPorLinea('L-09');
 
         foreach ($reductoresLinea9 as $reductor) {
             // Servo chico
@@ -675,19 +626,13 @@ class LavadorasSeeder extends Seeder
      */
     private function seedLinea12(Linea $linea): void
     {
-        $reductoresLinea12 = [
-            'Reductor 1', 'Reductor 2', 'Reductor 3', 
-            'Reductor 4', 'Reductor 5', 'Reductor 6', 
-            'Reductor 7', 'Reductor 8', 'Reductor 9', 
-            'Reductor 10', 'Reductor 11', 'Reductor 12', 
-            'Reductor Loca', 'Reductor Principal'
-        ];
+        $reductoresLinea12 = LavadoraCatalog::reductoresPorLinea('L-12');
 
         foreach ($reductoresLinea12 as $reductor) {
             // Reductor sin fin-corona RV200
             $this->createComponente([
                 'codigo' => $this->generateCodigo('L12', $reductor, 'RV200_SIN_FIN'),
-                'nombre' => 'Reductor Sin Fin-Corona RV200', // SIN reductor
+                'nombre' => 'Reductor Sin Fin-Corona RV200',
                 'reductor' => $reductor,
                 'ubicacion' => $reductor,
                 'linea' => $linea->nombre,
@@ -757,19 +702,13 @@ class LavadorasSeeder extends Seeder
      */
     private function seedLinea13(Linea $linea): void
     {
-        $reductoresLinea13 = [
-            'Reductor 1', 'Reductor 2', 'Reductor 3', 
-            'Reductor 4', 'Reductor 5', 'Reductor 6', 
-            'Reductor 7', 'Reductor 8', 'Reductor 9', 
-            'Reductor 10', 'Reductor 11', 'Reductor 12', 
-            'Reductor Loca', 'Reductor Principal'
-        ];
+        $reductoresLinea13 = LavadoraCatalog::reductoresPorLinea('L-13');
 
         foreach ($reductoresLinea13 as $reductor) {
             // Reductor RV200
             $this->createComponente([
                 'codigo' => $this->generateCodigo('L13', $reductor, 'RV200'),
-                'nombre' => 'Reductor RV200', // SIN reductor
+                'nombre' => 'Reductor RV200',
                 'reductor' => $reductor,
                 'ubicacion' => $reductor,
                 'linea' => $linea->nombre,

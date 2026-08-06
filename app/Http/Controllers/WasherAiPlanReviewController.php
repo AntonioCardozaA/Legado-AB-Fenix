@@ -8,6 +8,7 @@ use App\Models\Linea;
 use App\Models\PlanAccion;
 use App\Models\User;
 use App\Services\Maintenance\StructuredActionPlanValidator;
+use App\Support\LavadoraCatalog;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -15,8 +16,6 @@ use Illuminate\Support\Facades\DB;
 
 class WasherAiPlanReviewController extends Controller
 {
-    private array $washerLineIds = [4, 5, 6, 7, 8, 9, 12, 13];
-
     public function __construct(
         private readonly StructuredActionPlanValidator $validator
     ) {
@@ -62,7 +61,7 @@ class WasherAiPlanReviewController extends Controller
         ];
 
         $lineas = Linea::query()
-            ->whereIn('id', $this->washerLineIds)
+            ->whereIn('nombre', LavadoraCatalog::LINEAS)
             ->where('activo', true)
             ->orderBy('nombre')
             ->get();
@@ -259,6 +258,18 @@ class WasherAiPlanReviewController extends Controller
             ])
             ->aiSuggested()
             ->where('tipo_equipo', User::MODULE_LAVADORA)
-            ->whereIn('linea_id', $this->washerLineIds);
+            ->whereIn('linea_id', $this->washerLineIds());
+    }
+
+    /**
+     * @return array<int, int>
+     */
+    private function washerLineIds(): array
+    {
+        return Linea::query()
+            ->whereIn('nombre', LavadoraCatalog::LINEAS)
+            ->pluck('id')
+            ->map(static fn ($id): int => (int) $id)
+            ->all();
     }
 }

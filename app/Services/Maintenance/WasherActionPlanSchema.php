@@ -120,7 +120,7 @@ class WasherActionPlanSchema
             $dot . 'knowledge_sources.*.section' => ['nullable', 'string'],
             $dot . 'confidence' => ['required', 'numeric', 'between:0,1'],
             $dot . 'requires_human_approval' => ['required', 'accepted'],
-            $dot . 'missing_information' => ['required', 'array'],
+            $dot . 'missing_information' => ['present', 'array'],
             $dot . 'missing_information.*' => ['string'],
         ];
     }

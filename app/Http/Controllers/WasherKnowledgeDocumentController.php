@@ -8,6 +8,7 @@ use App\Models\Linea;
 use App\Models\User;
 use App\Models\WasherKnowledgeDocument;
 use App\Services\Maintenance\DocumentIndexer;
+use App\Support\LavadoraCatalog;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -16,8 +17,6 @@ use Illuminate\Validation\ValidationException;
 
 class WasherKnowledgeDocumentController extends Controller
 {
-    private array $washerLineIds = [4, 5, 6, 7, 8, 9, 12, 13];
-
     public function __construct(
         private readonly DocumentIndexer $documentIndexer
     ) {
@@ -142,7 +141,12 @@ class WasherKnowledgeDocumentController extends Controller
             return;
         }
 
-        if (!in_array($lineaId, $this->washerLineIds, true)) {
+        $linea = Linea::query()
+            ->whereKey($lineaId)
+            ->whereIn('nombre', LavadoraCatalog::LINEAS)
+            ->exists();
+
+        if (!$linea) {
             throw ValidationException::withMessages([
                 'linea_id' => 'Solo se permiten documentos asociados a lineas de lavadora.',
             ]);
@@ -152,7 +156,10 @@ class WasherKnowledgeDocumentController extends Controller
     private function ensureDocumentBelongsToScope(WasherKnowledgeDocument $document): void
     {
         abort_unless(
-            $document->linea_id === null || in_array((int) $document->linea_id, $this->washerLineIds, true),
+            $document->linea_id === null || Linea::query()
+                ->whereKey((int) $document->linea_id)
+                ->whereIn('nombre', LavadoraCatalog::LINEAS)
+                ->exists(),
             404
         );
     }
@@ -160,7 +167,7 @@ class WasherKnowledgeDocumentController extends Controller
     private function lavadoraLineas()
     {
         return Linea::query()
-            ->whereIn('id', $this->washerLineIds)
+            ->whereIn('nombre', LavadoraCatalog::LINEAS)
             ->where('activo', true)
             ->orderBy('nombre')
             ->get(['id', 'nombre']);

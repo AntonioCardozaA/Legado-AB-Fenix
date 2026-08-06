@@ -22,7 +22,7 @@
         <tr><th>Componente</th><td>{{ optional($analisis->componente)->nombre ?? 'Sin componente' }}</td></tr>
         <tr><th>Fecha</th><td>{{ optional($analisis->fecha_analisis)->format('d/m/Y') ?? 'Sin fecha' }}</td></tr>
         <tr><th>Numero de orden</th><td>{{ $analisis->numero_orden ?? 'N/A' }}</td></tr>
-        <tr><th>Reductor</th><td>{{ $analisis->reductor ?? 'N/A' }}</td></tr>
+        <tr><th>{{ \App\Support\LavadoraCatalog::etiquetaReductorParaValor($analisis->linea->nombre ?? null, $analisis->reductor) }}</th><td>{{ \App\Support\LavadoraCatalog::nombreReductorParaLinea($analisis->linea->nombre ?? null, $analisis->reductor) ?? 'N/A' }}</td></tr>
         <tr><th>Categoria</th><td>{{ optional($analisis->categoria)->nombre ?? 'N/A' }}</td></tr>
         <tr><th>Numero R</th><td>{{ optional($analisis->numeroR)->codigo ?? 'N/A' }}</td></tr>
     </table>

@@ -1475,109 +1475,15 @@
         $analisis = $analisis ?? collect([]);
         $reductoresMostrar = $reductoresMostrar ?? [];
         
-        // Arrays de componentes por línea (basados en los datos proporcionados)
-        $componentesPorLineaArray = [
-            'L-04' => [
-                'SERVO_CHICO' => 'Servo Chico',
-                'SERVO_GRANDE' => 'Servo Grande',
-                'BUJE_ESPIGA' => 'Buje Baquelita-Espiga de flecha',
-                'GUI_INF_TANQUE' => 'Guía Inferior ',
-                'GUI_INT_TANQUE' => 'Guía Intermedia ',
-                'GUI_SUP_TANQUE' => 'Guía Superior ',
-                'CATARINAS' => 'Catarinas',
-            ],
-            'L-05' => [
-                'RV200' => 'Reductor RV200',
-                'BUJE_ESPIGA' => 'Buje Baquelita-Espiga de flecha',
-                'GUI_INF_TANQUE' => 'Guía Inferior ',
-                'GUI_INT_TANQUE' => 'Guía Intermedia ',
-                'GUI_SUP_TANQUE' => 'Guía Superior ',
-                'CATARINAS' => 'Catarinas',
-            ],
-            'L-06' => [
-                'SERVO_CHICO' => 'Servo Chico',
-                'SERVO_GRANDE' => 'Servo Grande',
-                'BUJE_ESPIGA' => 'Buje Baquelita-Espiga de flecha',
-                'GUI_INF_TANQUE' => 'Guía Inferior ',
-                'GUI_INT_TANQUE' => 'Guía Intermedia ',
-                'GUI_SUP_TANQUE' => 'Guía Superior ',
-                'CATARINAS' => 'Catarinas',
-            ],
-            'L-07' => [
-                'SERVO_CHICO' => 'Servo Chico',
-                'SERVO_GRANDE' => 'Servo Grande',
-                'BUJE_ESPIGA' => 'Buje Baquelita-Espiga de flecha',
-                'GUI_INF_TANQUE' => 'Guía Inferior ',
-                'GUI_INT_TANQUE' => 'Guía Intermedia ',
-                'GUI_SUP_TANQUE' => 'Guía Superior ',
-                'CATARINAS' => 'Catarinas',
-            ],
-            'L-08' => [
-                'SERVO_CHICO' => 'Servo Chico',
-                'SERVO_GRANDE' => 'Servo Grande',
-                'BUJE_ESPIGA' => 'Buje Baquelita-Espiga de flecha',
-                'GUI_INF_TANQUE' => 'Guía Inferior ',
-                'GUI_INT_TANQUE' => 'Guía Intermedia ',
-                'GUI_SUP_TANQUE' => 'Guía Superior ',
-                'CATARINAS' => 'Catarinas',
-            ],
-            'L-09' => [
-                'SERVO_CHICO' => 'Servo Chico',
-                'SERVO_GRANDE' => 'Servo Grande',
-                'BUJE_ESPIGA' => 'Buje Baquelita-Espiga de flecha',
-                'GUI_INF_TANQUE' => 'Guía Inferior ',
-                'GUI_INT_TANQUE' => 'Guía Intermedia ',
-                'GUI_SUP_TANQUE' => 'Guía Superior ',
-                'CATARINAS' => 'Catarinas',
-            ],
-            'L-12' => [
-                'RV200_SIN_FIN' => 'Reductor Sin Fin-Corona RV200',
-                'BUJE_ESPIGA' => 'Buje Baquelita-Espiga de flecha',
-                'GUI_INF_TANQUE' => 'Guía Inferior ',
-                'GUI_INT_TANQUE' => 'Guía Intermedia ',
-                'GUI_SUP_TANQUE' => 'Guía Superior ',
-                'CATARINAS' => 'Catarinas',
-            ],
-            'L-13' => [
-                'RV200' => 'Reductor RV200',
-                'BUJE_ESPIGA' => 'Buje Baquelita-Espiga de flecha',
-                'GUI_INF_TANQUE' => 'Guía Inferior',
-                'GUI_INT_TANQUE' => 'Guía Intermedia',
-                'GUI_SUP_TANQUE' => 'Guía Superior',
-                'CATARINAS' => 'Catarinas',
-            ],
-        ];
+        $componentesPorLineaArray = \App\Support\LavadoraCatalog::COMPONENTES_POR_LINEA;
 
-        // Arrays de reductores por línea (basados en los datos proporcionados)
-        $reductoresPorLineaArray = [
-            'L-04' => ['Reductor 1', 'Reductor 9', 'Reductor 10', 'Reductor 11', 'Reductor 12', 
-                      'Reductor 13', 'Reductor 14', 'Reductor 15', 'Reductor 16', 'Reductor 17', 
-                      'Reductor 18', 'Reductor 19', 'Reductor Loca', 'Reductor Principal'],
-            'L-05' => ['Reductor 1', 'Reductor 2', 'Reductor 3', 'Reductor 4', 'Reductor 5', 
-                      'Reductor 6', 'Reductor 7', 'Reductor 8', 'Reductor 9', 'Reductor 10', 
-                      'Reductor 11', 'Reductor 12', 'Reductor Principal', 'Reductor Loca'],
-            'L-06' => ['Reductor 1', 'Reductor 9', 'Reductor 10', 'Reductor 11', 'Reductor 12', 
-                      'Reductor 13', 'Reductor 14', 'Reductor 15', 'Reductor 16', 'Reductor 17', 
-                      'Reductor 18', 'Reductor 19', 'Reductor 20', 'Reductor 21', 'Reductor 22', 'Reductor Principal'],
-            'L-07' => ['Reductor 1', 'Reductor 9', 'Reductor 10', 'Reductor 11', 'Reductor 12', 
-                      'Reductor 13', 'Reductor 14', 'Reductor 15', 'Reductor 16', 'Reductor 17', 
-                      'Reductor 18', 'Reductor 19', 'Reductor 20', 'Reductor 21', 'Reductor 22', 'Reductor Principal'],
-            'L-08' => ['Reductor 1', 'Reductor 9', 'Reductor 10', 'Reductor 11', 'Reductor 12', 
-                      'Reductor 13', 'Reductor 14', 'Reductor 15', 'Reductor 16', 'Reductor 17', 
-                      'Reductor 18', 'Reductor 19', 'Reductor Loca'],
-            'L-09' => ['Reductor 1', 'Reductor 9', 'Reductor 10', 'Reductor 11', 'Reductor 12', 
-                      'Reductor 13', 'Reductor 14', 'Reductor 15', 'Reductor 16', 'Reductor 17', 
-                      'Reductor 18', 'Reductor 19', 'Reductor Loca', 'Reductor Principal'],
-            'L-12' => ['Reductor 1', 'Reductor 2', 'Reductor 3', 'Reductor 4', 'Reductor 5', 
-                      'Reductor 6', 'Reductor 7', 'Reductor 8', 'Reductor 9', 'Reductor 10', 
-                      'Reductor 11', 'Reductor 12', 'Reductor Loca', 'Reductor Principal'],
-            'L-13' => ['Reductor 1', 'Reductor 2', 'Reductor 3', 'Reductor 4', 'Reductor 5', 
-                      'Reductor 6', 'Reductor 7', 'Reductor 8', 'Reductor 9', 'Reductor 10', 
-                      'Reductor 11', 'Reductor 12', 'Reductor Loca', 'Reductor Principal']
-        ];
+        $reductoresPorLineaArray = \App\Support\LavadoraCatalog::REDUCTORES_POR_LINEA;
+        $etiquetaReductorLinea = fn ($lineaNombre = null, bool $plural = false, bool $uppercase = false) => \App\Support\LavadoraCatalog::etiquetaReductor($lineaNombre, $plural, $uppercase);
+        $etiquetaReductorValorLinea = fn ($lineaNombre, $reductor, bool $uppercase = false) => \App\Support\LavadoraCatalog::etiquetaReductorParaValor($lineaNombre, $reductor, $uppercase);
+        $nombreReductorLinea = fn ($lineaNombre, $reductor) => \App\Support\LavadoraCatalog::nombreReductorParaLinea($lineaNombre, $reductor) ?? $reductor;
         
         // Filtrar solo las lavadoras que queremos mostrar siempre
-        $lavadorasPermitidas = ['L-04', 'L-05', 'L-06', 'L-07', 'L-08', 'L-09', 'L-12', 'L-13'];
+        $lavadorasPermitidas = \App\Support\LavadoraCatalog::LINEAS;
         $analisisCollection = isset($analisis) ? collect($analisis) : collect([]);
         $componenteBuscado = request()->filled('componente_id')
             ? strtoupper(trim((string) request('componente_id')))
@@ -1687,21 +1593,15 @@
                         </div>
 
                         <div class="filter-group">
-                            <label><i class="fas fa-compress-alt mr-1"></i> Reductor</label>
+                            <label><i class="fas fa-compress-alt mr-1"></i> {{ $etiquetaReductorLinea($lineaSeleccionada->nombre ?? null) }}</label>
                             <select name="reductor" class="filter-select">
-                                <option value="">Todos los reductores</option>
+                                <option value="">Todos los {{ strtolower($etiquetaReductorLinea($lineaSeleccionada->nombre ?? null, true)) }}</option>
                                 @php
-                                    $todosReductores = [
-                                        'Reductor 1', 'Reductor 2', 'Reductor 3', 'Reductor 4', 'Reductor 5',
-                                        'Reductor 6', 'Reductor 7', 'Reductor 8', 'Reductor 9', 'Reductor 10',
-                                        'Reductor 11', 'Reductor 12', 'Reductor 13', 'Reductor 14', 'Reductor 15',
-                                        'Reductor 16', 'Reductor 17', 'Reductor 18', 'Reductor 19', 'Reductor 20',
-                                        'Reductor 21', 'Reductor 22', 'Reductor Principal', 'Reductor Loca'
-                                    ];
+                                    $todosReductores = collect(\App\Support\LavadoraCatalog::REDUCTORES_POR_LINEA)->flatten()->unique()->values();
                                 @endphp
                                 @foreach($todosReductores as $reductor)
                                     <option value="{{ $reductor }}" {{ request('reductor') == $reductor ? 'selected' : '' }}>
-                                        {{ $reductor }}
+                                        {{ $nombreReductorLinea($lineaSeleccionada->nombre ?? null, $reductor) }}
                                     </option>
                                 @endforeach
                             </select>
@@ -1758,14 +1658,14 @@
                         $valorUpper = strtoupper($valor);
 
                         if (str_contains($valorUpper, 'LOCA')) {
-                            return 'Reductor Loca';
+                            return \App\Support\LavadoraCatalog::FLECHA_LOCA;
                         }
 
                         if (str_contains($valorUpper, 'PRINCIPAL')) {
-                            return 'Reductor Principal';
+                            return \App\Support\LavadoraCatalog::REDUCTOR_PRINCIPAL;
                         }
 
-                        if (preg_match('/(?:REDUCTOR|RED)\s*0*([0-9]+)/i', $valor, $matches)) {
+                        if (preg_match('/(?:SERVO-REDUCTOR|REDUCTOR|RED)\s*0*([0-9]+)/i', $valor, $matches)) {
                             return 'Reductor ' . (int) $matches[1];
                         }
 
@@ -2364,7 +2264,7 @@
                                     <tr class="bg-gray-50 border-b border-gray-200">
                                         <th class="sticky-left cell-header text-blue-900 font-bold px-3 py-2 border text-center whitespace-nowrap text-sm">
                                             <div class="reductor-header">
-                                                <div class="reductor-name">REDUCTOR</div>
+                                                <div class="reductor-name">{{ $etiquetaReductorLinea($linea->nombre, false, true) }}</div>
                                                 <div class="reductor-label">COMPONENTE</div>
                                             </div>
                                         </th>
@@ -2438,8 +2338,8 @@
                                         <tr>
                                             <th class="sticky-left cell-header text-blue-900 font-bold px-3 py-2 border text-center whitespace-nowrap text-sm align-top">
                                                 <div class="reductor-header">
-                                                    <div class="reductor-name">{{ $r }}</div>
-                                                    <div class="reductor-label">Reductor</div>
+                                                    <div class="reductor-name">{{ $nombreReductorLinea($linea->nombre, $r) }}</div>
+                                                    <div class="reductor-label">{{ $etiquetaReductorValorLinea($linea->nombre, $r) }}</div>
                                                     <div class="text-xs text-gray-500 mt-1">
                                                         {{ $conteoReductor['total'] }}/{{ count($componentesLinea) }}
                                                     </div>
@@ -2500,9 +2400,12 @@
                                                     onclick="openAnalysisDetail({{ json_encode([
                                                         'id' => $registro->id,
                                                         'linea' => $registro->linea->nombre ?? $linea->nombre,
+                                                        'linea_nombre' => $registro->linea->nombre ?? $linea->nombre,
                                                         'componente' => $registro->componente->nombre ?? $c->nombre,
                                                         'componente_codigo' => $registro->componente->codigo ?? $c->id,
                                                         'reductor' => $registro->reductor,
+                                                        'reductor_label' => $nombreReductorLinea($registro->linea->nombre ?? $linea->nombre, $registro->reductor),
+                                                        'reductor_tipo_label' => $etiquetaReductorValorLinea($registro->linea->nombre ?? $linea->nombre, $registro->reductor),
                                                         'lado' => $registro->lado ?? null,
                                                         'fecha_analisis' => isset($registro->fecha_analisis) ? $registro->fecha_analisis->format('d/m/Y') : '',
                                                         'numero_orden' => $registro->numero_orden,
@@ -2718,7 +2621,7 @@
             }
 
             /* ===============================
-            REDUCTORES PARA TABLA
+            REDUCTORES / SERVO-REDUCTORES PARA TABLA
             =============================== */
             $reductoresParaTabla = collect();
 
@@ -2743,15 +2646,7 @@
             }
 
             if (request('reductor')) {
-                $reductorRequest = request('reductor');
-                // Normalizar el reductor del request
-                if (is_numeric($reductorRequest)) {
-                    // Si es solo número, buscar "Reductor X"
-                    $reductorRequest = "Reductor {$reductorRequest}";
-                } elseif (!str_contains($reductorRequest, 'Reductor')) {
-                    // Si no tiene "Reductor", agregarlo
-                    $reductorRequest = "Reductor {$reductorRequest}";
-                }
+                $reductorRequest = \App\Support\LavadoraCatalog::normalizarReductor(request('reductor')) ?? request('reductor');
                 
                 $reductoresParaTabla = $reductoresParaTabla
                     ->filter(fn($r) => $r === $reductorRequest || str_contains($r, $reductorRequest))
@@ -2901,7 +2796,7 @@
                                 <tr class="bg-gray-50 border-b border-gray-200">
                                     <th class="sticky-top-left sticky-top cell-header text-blue-900 font-bold px-3 py-2 border text-center whitespace-nowrap text-sm table-corner">
                                         <div class="reductor-header">
-                                            <div class="reductor-name">REDUCTOR</div>
+                                            <div class="reductor-name">{{ $etiquetaReductorLinea($lineaMostrar->nombre ?? null, false, true) }}</div>
                                             <div class="reductor-label">COMPONENTE</div>
                                         </div>
                                     </th>
@@ -3014,8 +2909,8 @@
                                     <tr>
                                         <th class="sticky-left cell-header text-blue-900 font-bold px-3 py-2 border text-center whitespace-nowrap text-sm align-top">
                                             <div class="reductor-header">
-                                                <div class="reductor-name">{{ $r }}</div>
-                                                <div class="reductor-label">Reductor</div>
+                                                <div class="reductor-name">{{ $nombreReductorLinea($lineaMostrar->nombre ?? null, $r) }}</div>
+                                                <div class="reductor-label">{{ $etiquetaReductorValorLinea($lineaMostrar->nombre ?? null, $r) }}</div>
                                                 <div class="text-xs text-gray-500 mt-1">
                                                     {{ $conteoReductor['total'] }}/{{ count($componentesParaTabla) }}
                                                 </div>
@@ -3072,9 +2967,12 @@
                                                 onclick="openAnalysisDetail({{ json_encode([
                                                     'id' => $registro->id,
                                                     'linea' => $registro->linea->nombre ?? 'Sin nombre',
+                                                    'linea_nombre' => $registro->linea->nombre ?? ($lineaMostrar->nombre ?? null),
                                                     'componente' => $registro->componente->nombre ?? 'Sin nombre',
                                                     'componente_codigo' => $registro->componente->codigo ?? '',
                                                     'reductor' => $registro->reductor,
+                                                    'reductor_label' => $nombreReductorLinea($registro->linea->nombre ?? ($lineaMostrar->nombre ?? null), $registro->reductor),
+                                                    'reductor_tipo_label' => $etiquetaReductorValorLinea($registro->linea->nombre ?? ($lineaMostrar->nombre ?? null), $registro->reductor),
                                                     'lado' => $registro->lado ?? null,
                                                     'fecha_analisis' => isset($registro->fecha_analisis) ? $registro->fecha_analisis->format('d/m/Y') : '',
                                                     'numero_orden' => $registro->numero_orden,
@@ -3250,7 +3148,7 @@
                 @elseif(!$mostrarTodas)
                     <div class="p-8 text-center text-gray-500">
                         <i class="fas fa-info-circle text-3xl mb-4"></i>
-                        <p>No hay componentes o reductores para mostrar</p>
+                        <p>No hay componentes, reductores o servo-reductores para mostrar</p>
                         <p class="text-sm text-gray-400 mt-2">Selecciona una lavadora para ver sus análisis</p>
                     </div>
                 @endif
@@ -3309,7 +3207,7 @@
                                             <tr class="bg-gray-50 border-b border-gray-200">
                                                 <th class="sticky-left cell-header text-blue-900 font-bold px-3 py-2 border text-center whitespace-nowrap text-sm">
                                                     <div class="reductor-header">
-                                                        <div class="reductor-name">REDUCTOR</div>
+                                                        <div class="reductor-name">{{ $etiquetaReductorLinea($linea->nombre, false, true) }}</div>
                                                         <div class="reductor-label">COMPONENTE</div>
                                                     </div>
                                                 </th>
@@ -3330,8 +3228,8 @@
                                                 <tr>
                                                     <th class="sticky-left cell-header text-blue-900 font-bold px-3 py-2 border text-center whitespace-nowrap text-sm align-top">
                                                         <div class="reductor-header">
-                                                            <div class="reductor-name">{{ $r }}</div>
-                                                            <div class="reductor-label">Reductor</div>
+                                                            <div class="reductor-name">{{ $nombreReductorLinea($linea->nombre, $r) }}</div>
+                                                            <div class="reductor-label">{{ $etiquetaReductorValorLinea($linea->nombre, $r) }}</div>
                                                             <div class="text-xs text-gray-500 mt-1">
                                                                 0/{{ count($componentesLinea) }}
                                                             </div>
@@ -3520,7 +3418,7 @@
                             <i class="fas fa-compress-alt text-gray-700 text-xl"></i>
                         </div>
                         <div class="flex-1">
-                            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider font-mono">Reductor</p>
+                            <p id="detail-reductor-label" class="text-xs font-semibold text-gray-500 uppercase tracking-wider font-mono">Reductor / Servo-Reductor</p>
                             <p id="detail-reductor" class="font-bold text-gray-800 text-lg mt-1"></p>
                         </div>
                     </div>
@@ -4089,7 +3987,7 @@ function openEstadoModal(tipo, titulo, items) {
                         <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                             <div class="space-y-3">
                                 <div class="flex flex-wrap items-center gap-2 text-sm text-slate-500">
-                                    <span class="px-3 py-1 rounded-full bg-white text-slate-700 border border-slate-200">${escapeHtml(item.reductor || 'Sin reductor')}</span>
+                                    <span class="px-3 py-1 rounded-full bg-white text-slate-700 border border-slate-200">${escapeHtml(item.reductor || 'Sin reductor / servo-reductor')}</span>
                                     <span class="px-3 py-1 rounded-full bg-white text-slate-700 border border-slate-200">${escapeHtml(item.fecha || 'Sin fecha')}</span>
                                 </div>
                                 <div class="flex items-center gap-2 text-base font-semibold text-slate-900">
@@ -4224,13 +4122,24 @@ function closePreviewModal() {
 }
 
 // FUNCIONES PRINCIPALES MEJORADAS
+const REAL_REDUCTOR_LINES = @json(\App\Support\LavadoraCatalog::LINEAS_CON_REDUCTOR);
+
+function reductorUiLabel(lineaNombre, reductorValue) {
+    if (String(reductorValue || '').trim().toLowerCase() === 'flecha loca') {
+        return 'Flecha Loca';
+    }
+
+    return REAL_REDUCTOR_LINES.includes(String(lineaNombre || '').trim()) ? 'Reductor' : 'Servo-Reductor';
+}
+
 function openAnalysisDetail(analysisData) {
     showLoading();
     currentAnalysisData = analysisData;
     
     document.getElementById('detail-linea').textContent = analysisData.linea;
     document.getElementById('detail-componente').textContent = analysisData.componente;
-    document.getElementById('detail-reductor').textContent = analysisData.reductor;
+    document.getElementById('detail-reductor-label').textContent = analysisData.reductor_tipo_label || reductorUiLabel(analysisData.linea_nombre || analysisData.linea, analysisData.reductor_label || analysisData.reductor);
+    document.getElementById('detail-reductor').textContent = analysisData.reductor_label || analysisData.reductor;
     
     // MANEJO DEL CAMPO LADO - OCULTAR SI NO APLICA
     const ladoContainer = document.getElementById('detail-lado-container');

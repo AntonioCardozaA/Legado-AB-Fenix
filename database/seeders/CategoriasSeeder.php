@@ -15,7 +15,7 @@ class CategoriasSeeder extends Seeder
             ['nombre' => 'Mantenimiento Preventivo', 'descripcion' => 'Mantenimiento preventivo programado'],
             ['nombre' => 'Mantenimiento Correctivo', 'descripcion' => 'Mantenimiento correctivo por falla'],
             ['nombre' => 'Lubricación', 'descripcion' => 'Lubricación de componentes'],
-            ['nombre' => 'Cambio de Aceite', 'descripcion' => 'Cambio de aceite de servos o reductores'],
+            ['nombre' => 'Cambio de Aceite', 'descripcion' => 'Cambio de aceite de servos o servo-reductores'],
             ['nombre' => 'Ajuste de Holguras', 'descripcion' => 'Ajuste de holguras y tolerancias'],
             ['nombre' => 'Verificación de Desgaste', 'descripcion' => 'Verificación de desgaste de componentes'],
             ['nombre' => 'Inspección Visual', 'descripcion' => 'Inspección visual de estado'],
