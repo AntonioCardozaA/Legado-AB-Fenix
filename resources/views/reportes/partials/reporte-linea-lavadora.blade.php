@@ -18,6 +18,7 @@
     
     // Usar los datos que ya vienen del controlador
     $analisisTendencia = $reporte['analisis_tendencia'] ?? collect([]);
+    $reductorLabelReporte = \App\Support\LavadoraCatalog::etiquetaReductor($reporte['linea']->nombre ?? null);
     $analisis52124Reporte = $reporte['analisis_52124'] ?? [];
     $analisis30147Reporte = $reporte['analisis_30147'] ?? [];
     $ventanas52124Reporte = collect($analisis52124Reporte['ventanas'] ?? []);
@@ -953,7 +954,7 @@
                         <tr>
                             <th>Fecha</th>
                             <th>Componente</th>
-                            <th>Reductor</th>
+                            <th>{{ $reductorLabelReporte }}</th>
                             <th>Lado</th>
                             <th>Estado</th>
                         </tr>
@@ -963,7 +964,7 @@
                             <tr>
                                 <td>{{ $evento['fecha'] ?? '-' }}</td>
                                 <td>{{ $evento['componente'] ?? '-' }}</td>
-                                <td>{{ $evento['reductor'] ?? '-' }}</td>
+                                <td>{{ \App\Support\LavadoraCatalog::nombreReductorParaLinea($reporte['linea']->nombre ?? null, $evento['reductor'] ?? null) ?? '-' }}</td>
                                 <td>{{ $evento['lado'] ?? '-' }}</td>
                                 <td>{{ $evento['estado'] ?? '-' }}</td>
                             </tr>
@@ -1113,7 +1114,7 @@
                         <tr>
                             <th>Fecha</th>
                             <th>Componente</th>
-                            <th>Reductor</th>
+                            <th>{{ $reductorLabelReporte }}</th>
                             <th>Lado</th>
                             <th>Estado</th>
                         </tr>
@@ -1123,7 +1124,7 @@
                             <tr>
                                 <td>{{ $evento['fecha'] ?? '-' }}</td>
                                 <td>{{ $evento['componente'] ?? '-' }}</td>
-                                <td>{{ $evento['reductor'] ?? '-' }}</td>
+                                <td>{{ \App\Support\LavadoraCatalog::nombreReductorParaLinea($reporte['linea']->nombre ?? null, $evento['reductor'] ?? null) ?? '-' }}</td>
                                 <td>{{ $evento['lado'] ?? '-' }}</td>
                                 <td>{{ $evento['estado'] ?? '-' }}</td>
                             </tr>
@@ -1193,7 +1194,7 @@
                 <tr>
                     <th>Fecha</th>
                     <th>Componente</th>
-                    <th>Reductor</th>
+                    <th>{{ $reductorLabelReporte }}</th>
                     <th>Lado</th>
                     <th>Estado</th>
                     <th>Orden</th>
@@ -1222,7 +1223,7 @@
                                 <span>{{ $item->componente->nombre ?? 'N/A' }}</span>
                             </div>
                         </td>
-                        <td>{{ $item->reductor }}</td>
+                        <td>{{ \App\Support\LavadoraCatalog::nombreReductorParaLinea($reporte['linea']->nombre ?? null, $item->reductor) }}</td>
                         <td>{{ $item->lado ?: '-' }}</td>
                         <td>
                             <span class="estado-badge estado-{{ $estadoColor }}">
@@ -1249,7 +1250,7 @@
 </div>
 @endif
 
-{{-- SECCIÓN 5: REDUCTORES (Parte del Módulo 1) --}}
+{{-- SECCIÓN 5: SERVO-REDUCTORES (Parte del Módulo 1) --}}
 @if(false && count($reductores) > 0)
 <div class="modulo-section">
     <div class="modulo-header">
@@ -1259,7 +1260,7 @@
             </div>
             <div>
                 <div class="modulo-titulo">ANÁLISIS POR REDUCTOR</div>
-                <div class="modulo-subtitulo">Estado de componentes por reductor</div>
+                <div class="modulo-subtitulo">Estado de componentes por {{ strtolower($reductorLabelReporte) }}</div>
             </div>
         </div>
     </div>

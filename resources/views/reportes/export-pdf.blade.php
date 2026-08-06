@@ -287,7 +287,7 @@
             
             @if($filtros['reductor'])
                 <div class="filtro-item">
-                    <span class="filtro-label">Reductor:</span>
+                    <span class="filtro-label">Reductor / Servo-Reductor:</span>
                     <span class="filtro-value">{{ $filtros['reductor'] }}</span>
                 </div>
             @endif
@@ -328,7 +328,7 @@
                     <tr>
                         <th width="5%">#</th>
                         <th width="15%">Componente</th>
-                        <th width="10%">Reductor</th>
+                        <th width="10%">{{ \App\Support\LavadoraCatalog::etiquetaReductor($lavadora) }}</th>
                         <th width="12%">Fecha Análisis</th>
                         <th width="10%">N° Orden</th>
                         <th width="18%">Estado</th>
@@ -350,7 +350,7 @@
                         <tr>
                             <td class="text-center">{{ $index + 1 }}</td>
                             <td>{{ $item->componente->nombre ?? 'N/A' }}</td>
-                            <td>{{ $item->reductor }}</td>
+                            <td>{{ \App\Support\LavadoraCatalog::nombreReductorParaLinea($lavadora, $item->reductor) }}</td>
                             <td>{{ $item->fecha_analisis->format('d/m/Y') }}</td>
                             <td class="text-center">{{ $item->numero_orden }}</td>
                             <td>

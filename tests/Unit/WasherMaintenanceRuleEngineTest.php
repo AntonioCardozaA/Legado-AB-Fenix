@@ -37,7 +37,7 @@ class WasherMaintenanceRuleEngineTest extends TestCase
         $analysis = AnalisisLavadora::create([
             'linea_id' => $linea->id,
             'componente_id' => $component->id,
-            'reductor' => 'Reductor Principal',
+            'reductor' => 'Reductor 1',
             'lado' => 'bombas',
             'fecha_analisis' => '2026-07-16',
             'numero_orden' => 'OT-220',
@@ -197,7 +197,7 @@ class WasherMaintenanceRuleEngineTest extends TestCase
             [
                 'linea' => 'L-04',
                 'nombre' => 'Servo Rule Test',
-                'reductor' => 'Reductor Principal',
+                'reductor' => 'Reductor 1',
                 'ubicacion' => 'Lavadora',
                 'cantidad_total' => 1,
                 'activo' => true,

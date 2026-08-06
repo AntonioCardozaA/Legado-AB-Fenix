@@ -19,7 +19,7 @@
                     <tr>
                         <th class="px-4 py-3">Fecha</th>
                         <th class="px-4 py-3">Componente</th>
-                        <th class="px-4 py-3">Reductor</th>
+                        <th class="px-4 py-3">{{ \App\Support\LavadoraCatalog::etiquetaReductor($linea->nombre ?? null) }}</th>
                         <th class="px-4 py-3">Orden</th>
                         <th class="px-4 py-3 text-right">Acciones</th>
                     </tr>
@@ -29,7 +29,7 @@
                         <tr>
                             <td class="px-4 py-3">{{ optional($item->fecha_analisis)->format('d/m/Y') ?? 'Sin fecha' }}</td>
                             <td class="px-4 py-3">{{ optional($item->componente)->nombre ?? 'Sin componente' }}</td>
-                            <td class="px-4 py-3">{{ $item->reductor ?? 'N/A' }}</td>
+                            <td class="px-4 py-3">{{ \App\Support\LavadoraCatalog::nombreReductorParaLinea($linea->nombre ?? null, $item->reductor) ?? 'N/A' }}</td>
                             <td class="px-4 py-3">{{ $item->numero_orden ?? 'N/A' }}</td>
                             <td class="px-4 py-3 text-right">
                                 <a href="{{ route('analisis.show', $item) }}" class="font-semibold text-blue-600 hover:text-blue-800">Ver</a>

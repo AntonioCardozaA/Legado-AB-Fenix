@@ -303,11 +303,11 @@
                                 </div>
                             </div>
                         @elseif(($reporteLinea['reductores_count'] ?? 0) > 0)
-                            <!-- 6. REDUCTORES -->
+                            <!-- 6. REDUCTORES / SERVO-REDUCTORES -->
                             <div class="bg-indigo-50 rounded-lg p-3 border border-indigo-200">
                                 <div class="flex items-center gap-2">
                                     <i class="fas fa-compress-alt text-indigo-600 text-sm"></i>
-                                    <span class="text-xs font-semibold text-indigo-800">REDUCTORES</span>
+                                    <span class="text-xs font-semibold text-indigo-800">REDUCTORES / SERVO-REDUCTORES</span>
                                     <span class="ml-auto text-sm font-bold text-indigo-900">{{ $reporteLinea['reductores_count'] }}</span>
                                 </div>
                             </div>

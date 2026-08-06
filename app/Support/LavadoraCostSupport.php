@@ -6,19 +6,9 @@ use Illuminate\Support\Str;
 
 class LavadoraCostSupport
 {
-    public const COMPONENT_CODES = [
-        'SERVO_CHICO',
-        'SERVO_GRANDE',
-        'BUJE_ESPIGA',
-        'GUI_INF_TANQUE',
-        'GUI_INT_TANQUE',
-        'GUI_SUP_TANQUE',
-        'CATARINAS',
-        'RV200_SIN_FIN',
-        'RV200',
-    ];
+    public const COMPONENT_CODES = LavadoraCatalog::COMPONENTE_CODIGOS_BASE;
 
-    public const LAVADORA_LINEAS = ['L-04', 'L-05', 'L-06', 'L-07', 'L-08', 'L-09', 'L-12', 'L-13'];
+    public const LAVADORA_LINEAS = LavadoraCatalog::LINEAS;
 
     public static function normalizeText(?string $value): string
     {

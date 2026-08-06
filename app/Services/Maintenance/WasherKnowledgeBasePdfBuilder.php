@@ -14,6 +14,7 @@ use App\Models\User;
 use App\Models\WasherKnowledgeChunk;
 use App\Models\WasherKnowledgeDocument;
 use App\Services\ElongacionChainCostService;
+use App\Support\LavadoraCatalog;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use Dompdf\Dompdf;
@@ -22,8 +23,6 @@ use Illuminate\Support\Str;
 
 class WasherKnowledgeBasePdfBuilder
 {
-    private const WASHER_LINE_IDS = [4, 5, 6, 7, 8, 9, 12, 13];
-
     private const DEFAULT_TITLE = 'Base de conocimiento tecnico de lavadoras';
 
     private const DIAGRAM_GROUPS = [
@@ -591,7 +590,7 @@ class WasherKnowledgeBasePdfBuilder
     private function washerLines(): Collection
     {
         return Linea::query()
-            ->whereIn('id', self::WASHER_LINE_IDS)
+            ->whereIn('nombre', LavadoraCatalog::LINEAS)
             ->where('activo', true)
             ->orderBy('nombre')
             ->get(['id', 'nombre']);
@@ -602,12 +601,14 @@ class WasherKnowledgeBasePdfBuilder
      */
     private function washerPlanQuery()
     {
+        $lineIds = $this->washerLineIds();
+
         return PlanAccion::query()
-            ->where(function ($query): void {
+            ->where(function ($query) use ($lineIds): void {
                 $query->where('tipo_equipo', User::MODULE_LAVADORA)
-                    ->orWhere(function ($legacyQuery): void {
+                    ->orWhere(function ($legacyQuery) use ($lineIds): void {
                         $legacyQuery->whereNull('tipo_equipo')
-                            ->whereIn('linea_id', self::WASHER_LINE_IDS);
+                            ->whereIn('linea_id', $lineIds);
                     });
             });
     }
@@ -617,11 +618,25 @@ class WasherKnowledgeBasePdfBuilder
      */
     private function washerEventQuery()
     {
+        $lineIds = $this->washerLineIds();
+
         return MaintenanceEvent::query()
-            ->where(function ($query): void {
+            ->where(function ($query) use ($lineIds): void {
                 $query->whereIn('source_type', ['analisis_lavadora', 'elongacion', 'washer_knowledge_document', 'lavadora_cost_entry'])
-                    ->orWhereIn('linea_id', self::WASHER_LINE_IDS);
+                    ->orWhereIn('linea_id', $lineIds);
             });
+    }
+
+    /**
+     * @return array<int, int>
+     */
+    private function washerLineIds(): array
+    {
+        return Linea::query()
+            ->whereIn('nombre', LavadoraCatalog::LINEAS)
+            ->pluck('id')
+            ->map(static fn ($id): int => (int) $id)
+            ->all();
     }
 
     /**
@@ -832,7 +847,7 @@ class WasherKnowledgeBasePdfBuilder
             'Catarina' => ['catarina'],
             'Rodaja' => ['rodaja'],
             'Guia' => ['guia'],
-            'Reductor' => ['reductor'],
+            'Reductor / Servo-Reductor' => ['reductor'],
             'Flecha' => ['flecha', 'espiga'],
             'Buje' => ['buje'],
             'Tanque' => ['tanque'],

@@ -1056,6 +1056,7 @@
             $parosLinea = collect($lineaReporte['paros'] ?? []);
             $elongacionesLinea = collect($lineaReporte['elongaciones'] ?? []);
             $reductoresLinea = collect($lineaReporte['reductores'] ?? []);
+            $reductorLabelLinea = \App\Support\LavadoraCatalog::etiquetaReductor($nombreLinea);
             $totalComponentesLinea = $totalComponentesResumen($resumen);
             $observacionesCount = $analisisPlanos->filter(fn ($registro) => trim((string) data_get($registro, 'observaciones', '')) !== '')->count();
         @endphp
@@ -1248,12 +1249,12 @@
         @if(!$esPasteurizadora && $reductoresLinea->isNotEmpty())
             <div class="section">
                 <div class="section-header">
-                    <div class="section-title">{{ $esEtiquetadora ? 'Resumen por maquina' : 'Resumen por reductor' }}</div>
+                    <div class="section-title">{{ $esEtiquetadora ? 'Resumen por maquina' : 'Resumen por ' . strtolower($reductorLabelLinea) }}</div>
                 </div>
                 <table class="data-table">
                     <thead>
                         <tr>
-                            <th>{{ $esEtiquetadora ? 'Maquina' : 'Reductor' }}</th>
+                            <th>{{ $esEtiquetadora ? 'Maquina' : $reductorLabelLinea }}</th>
                             <th>Analisis</th>
                             <th>Ultima revision</th>
                             <th>{{ $esEtiquetadora ? 'Unidades' : 'Referencia elongacion' }}</th>
@@ -1262,7 +1263,7 @@
                     <tbody>
                         @foreach($reductoresLinea as $reductor)
                             <tr>
-                                <td><span class="strong">{{ data_get($reductor, 'nombre', $esEtiquetadora ? 'Sin maquina' : 'Sin reductor') }}</span></td>
+                                <td><span class="strong">{{ $esEtiquetadora ? data_get($reductor, 'nombre', 'Sin maquina') : (\App\Support\LavadoraCatalog::nombreReductorParaLinea($nombreLinea, data_get($reductor, 'nombre')) ?? 'Sin ' . strtolower($reductorLabelLinea)) }}</span></td>
                                 <td>{{ data_get($reductor, 'total_analisis', 0) }}</td>
                                 <td>{{ $formatDate(data_get($reductor, 'ultima_fecha')) }}</td>
                                 <td>{{ $esEtiquetadora ? $formatValue(data_get($reductor, 'total_unidades')) : $formatValue(data_get($reductor, 'ultima_elongacion')) }}</td>
@@ -1517,7 +1518,7 @@
                     } else {
                         $analysisFacts = array_values(array_filter([
                             $makeFact('Componente', trim($componenteNombre . ' (' . ($componenteCodigo ?: 'N/A') . ')')),
-                            $makeFact('Reductor', data_get($registro, 'reductor')),
+                            $makeFact(\App\Support\LavadoraCatalog::etiquetaReductorParaValor($nombreLinea, data_get($registro, 'reductor')), \App\Support\LavadoraCatalog::nombreReductorParaLinea($nombreLinea, data_get($registro, 'reductor'))),
                             $makeFact('Lado', data_get($registro, 'lado')),
                             $makeFact('Orden', data_get($registro, 'numero_orden')),
                             $makeFact('Responsable', $responsableRegistro),

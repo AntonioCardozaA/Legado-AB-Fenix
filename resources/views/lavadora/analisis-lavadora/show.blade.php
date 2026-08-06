@@ -12,6 +12,8 @@
         ])
         ->values();
     $estado = $analisislavadora->estado;
+    $reductorLabel = \App\Support\LavadoraCatalog::etiquetaReductorParaValor($analisislavadora->linea->nombre ?? null, $analisislavadora->reductor);
+    $reductorNombre = \App\Support\LavadoraCatalog::nombreReductorParaLinea($analisislavadora->linea->nombre ?? null, $analisislavadora->reductor);
     $estadoStyles = match (true) {
         \App\Models\AnalisisLavadora::esEstadoDanado($estado) => [
             'class' => 'bg-red-50 text-red-700 border-red-200',
@@ -187,8 +189,8 @@
                     <p class="mt-2 text-base font-semibold text-gray-900">{{ $analisislavadora->componente->nombre ?? 'N/A' }}</p>
                 </div>
                 <div class="rounded-xl border p-4 {{ $estadoStyles['card'] }}">
-                    <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Reductor</p>
-                    <p class="mt-2 text-base font-semibold text-gray-900">{{ $analisislavadora->reductor ?: 'Sin reductor' }}</p>
+                    <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">{{ $reductorLabel }}</p>
+                    <p class="mt-2 text-base font-semibold text-gray-900">{{ $reductorNombre ?: 'Sin ' . strtolower($reductorLabel) }}</p>
                 </div>
                 <div class="rounded-xl border p-4 {{ $estadoStyles['card'] }}">
                     <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Registrado por</p>

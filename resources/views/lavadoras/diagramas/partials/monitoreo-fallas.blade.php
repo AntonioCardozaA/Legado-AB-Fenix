@@ -2,6 +2,7 @@
     $monitorAlertas = collect($monitorAlertas ?? []);
     $catarinas = $catarinas ?? [];
     $paneles = $paneles ?? [];
+    $lineaNombre = $lineaNombre ?? null;
     $baseWidth = $baseWidth ?? ($svgWidth ?? 1468);
     $baseHeight = $baseHeight ?? ($svgHeight ?? 382);
     $contentTransform = $contentTransform ?? null;
@@ -16,11 +17,11 @@
         $valorUpper = strtoupper($valor);
 
         if ($valorUpper === 'LOCA' || str_contains($valorUpper, 'LOCA')) {
-            return 'Reductor Loca';
+            return \App\Support\LavadoraCatalog::FLECHA_LOCA;
         }
 
         if (str_contains($valorUpper, 'PRINCIPAL')) {
-            return 'Reductor Principal';
+            return \App\Support\LavadoraCatalog::REDUCTOR_PRINCIPAL;
         }
 
         if (preg_match('/(?:REDUCTOR|RED)\s*0*([0-9]+)/i', $valor, $matches)) {
@@ -195,6 +196,7 @@
                 $fechaTooltip = data_get($primerItem, 'fecha', 'Sin fecha');
                 $observacionesTooltip = data_get($primerItem, 'observaciones', 'Sin observaciones');
                 $nivelTooltip = $severityLabel[$severity] ?? $severity;
+                $reductorTooltip = \App\Support\LavadoraCatalog::nombreReductorParaLinea($lineaNombre, $grupo['reductor']) ?? $grupo['reductor'];
                 $ringRadius = max(24, ($posicion['r'] ?? 18) + 14);
             @endphp
 
@@ -202,7 +204,7 @@
                 class="monitor-reductor monitor-severity-{{ $severity }} {{ $rank > 0 ? 'has-alerts' : 'is-healthy' }}"
                 data-monitor-tooltip
                 data-monitor-kind="reductor"
-                data-monitor-reductor="{{ e($grupo['reductor']) }}"
+                data-monitor-reductor="{{ e($reductorTooltip) }}"
                 data-monitor-componente="{{ e($componentesTooltip) }}"
                 data-monitor-lado="{{ e($ladosTooltip) }}"
                 data-monitor-dano="{{ e($nivelTooltip) }}"
@@ -249,6 +251,7 @@
                         $connectorX = $labelX + ($labelWidth / 2);
                         $connectorY = $labelY + ($labelHeight / 2);
                         $nombreComponente = data_get($item, 'componente', 'Componente');
+                        $reductorItemTooltip = \App\Support\LavadoraCatalog::nombreReductorParaLinea($lineaNombre, data_get($item, 'reductor', $grupo['reductor'])) ?? data_get($item, 'reductor', $grupo['reductor']);
                         $nombreCorto = \Illuminate\Support\Str::limit($nombreComponente, 18);
                         $nivelItem = $severityLabel[$itemSeverity] ?? data_get($item, 'nivel', 'Advertencia');
                         $ladoItem = $formatearLadoMonitor(data_get($item, 'lado'));
@@ -258,7 +261,7 @@
                         class="monitor-componente monitor-severity-{{ $itemSeverity }} monitor-rank-{{ $itemRank }}"
                         data-monitor-tooltip
                         data-monitor-kind="componente"
-                        data-monitor-reductor="{{ e(data_get($item, 'reductor', $grupo['reductor'])) }}"
+                        data-monitor-reductor="{{ e($reductorItemTooltip) }}"
                         data-monitor-componente="{{ e($nombreComponente) }}"
                         data-monitor-lado="{{ e($ladoItem) }}"
                         data-monitor-dano="{{ e(data_get($item, 'estado', $nivelItem)) }}"

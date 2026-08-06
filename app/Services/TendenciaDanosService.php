@@ -1167,7 +1167,7 @@ class TendenciaDanosService
                     'data' => $serie['data'] ?? [],
                     'meta' => $serie['meta'] ?? [],
                 ])->values()->all(),
-                'descripcion' => 'Barras apiladas de fallas: reductores o ubicaciones al lateral, componentes abajo por color y conteo de daños en cada cruce con detalle en el tooltip.',
+                'descripcion' => 'Barras apiladas de fallas: reductores, servo-reductores o ubicaciones al lateral, componentes abajo por color y conteo de daños en cada cruce con detalle en el tooltip.',
             ],
             'barras_ubicaciones' => [
                 'labels' => $ubicaciones->pluck('ubicacion')->values()->all(),
@@ -1178,7 +1178,7 @@ class TendenciaDanosService
                     'componentes' => $item['componentes'] ?? [],
                     'danos' => $item['danos'] ?? [],
                 ])->values()->all(),
-                'descripcion' => 'Ranking de ubicaciones o reductores con mas fallas acumuladas.',
+                'descripcion' => 'Ranking de ubicaciones, reductores o servo-reductores con mas fallas acumuladas.',
             ],
             'barras_ventanas' => [
                 'labels' => $resumenVentanas->pluck('label')->values()->all(),

@@ -709,6 +709,7 @@
             $componentStatsLavadora = $esPasteurizadora
                 ? collect()
                 : $buildLavadoraComponentStats($lineaReporte['componentes_lista'] ?? [], $analisisPlanos);
+            $reductorLabelLinea = \App\Support\LavadoraCatalog::etiquetaReductor($nombreLinea);
         @endphp
 
         <div class="machine-title">
@@ -1063,8 +1064,8 @@
                                 <tr>
                                     <td class="label">Componente</td>
                                     <td>{{ $componenteNombre }} <span class="muted">({{ data_get($registro, 'componente.codigo', 'N/A') }})</span></td>
-                                    <td class="label">Reductor</td>
-                                    <td>{{ $formatValue(data_get($registro, 'reductor')) }}</td>
+                                    <td class="label">{{ \App\Support\LavadoraCatalog::etiquetaReductorParaValor($nombreLinea, data_get($registro, 'reductor')) }}</td>
+                                    <td>{{ $formatValue(\App\Support\LavadoraCatalog::nombreReductorParaLinea($nombreLinea, data_get($registro, 'reductor'))) }}</td>
                                 </tr>
                                 <tr>
                                     <td class="label">Lado</td>

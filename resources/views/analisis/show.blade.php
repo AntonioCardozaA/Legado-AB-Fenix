@@ -39,8 +39,8 @@
                 <dd class="text-gray-900">{{ optional($analisis->numeroR)->codigo ?? 'N/A' }}</dd>
             </div>
             <div>
-                <dt class="text-xs font-semibold uppercase text-gray-500">Reductor</dt>
-                <dd class="text-gray-900">{{ $analisis->reductor ?? 'N/A' }}</dd>
+                <dt class="text-xs font-semibold uppercase text-gray-500">{{ \App\Support\LavadoraCatalog::etiquetaReductorParaValor($analisis->linea->nombre ?? null, $analisis->reductor) }}</dt>
+                <dd class="text-gray-900">{{ \App\Support\LavadoraCatalog::nombreReductorParaLinea($analisis->linea->nombre ?? null, $analisis->reductor) ?? 'N/A' }}</dd>
             </div>
             <div>
                 <dt class="text-xs font-semibold uppercase text-gray-500">Orden</dt>

@@ -10,20 +10,20 @@ class ComponentesSeeder extends Seeder
     public function run()
     {
         $componentes = [
-            // Reductores (RED 9 a RED 20)
-            ['nombre' => 'Reductor RED-1', 'tipo' => 'REDUCTOR', 'codigo' => 'RED-1', 'descripcion' => 'Reductor número 1 - LAV L-06'],
-            ['nombre' => 'Reductor RED-9', 'tipo' => 'REDUCTOR', 'codigo' => 'RED-9', 'descripcion' => 'Reductor número 9 - LAV L-06'],
-            ['nombre' => 'Reductor RED-10', 'tipo' => 'REDUCTOR', 'codigo' => 'RED-10', 'descripcion' => 'Reductor número 10 - LAV L-06'],
-            ['nombre' => 'Reductor RED-11', 'tipo' => 'REDUCTOR', 'codigo' => 'RED-11', 'descripcion' => 'Reductor número 11 - LAV L-06'],
-            ['nombre' => 'Reductor RED-12', 'tipo' => 'REDUCTOR', 'codigo' => 'RED-12', 'descripcion' => 'Reductor número 12 - LAV L-06'],
-            ['nombre' => 'Reductor RED-13', 'tipo' => 'REDUCTOR', 'codigo' => 'RED-13', 'descripcion' => 'Reductor número 13 - LAV L-06'],
-            ['nombre' => 'Reductor RED-14', 'tipo' => 'REDUCTOR', 'codigo' => 'RED-14', 'descripcion' => 'Reductor número 14 - LAV L-06'],
-            ['nombre' => 'Reductor RED-15', 'tipo' => 'REDUCTOR', 'codigo' => 'RED-15', 'descripcion' => 'Reductor número 15 - LAV L-06'],
-            ['nombre' => 'Reductor RED-16', 'tipo' => 'REDUCTOR', 'codigo' => 'RED-16', 'descripcion' => 'Reductor número 16 - LAV L-06'],
-            ['nombre' => 'Reductor RED-17', 'tipo' => 'REDUCTOR', 'codigo' => 'RED-17', 'descripcion' => 'Reductor número 17 - LAV L-06'],
-            ['nombre' => 'Reductor RED-18', 'tipo' => 'REDUCTOR', 'codigo' => 'RED-18', 'descripcion' => 'Reductor número 18 - LAV L-06'],
-            ['nombre' => 'Reductor RED-19', 'tipo' => 'REDUCTOR', 'codigo' => 'RED-19', 'descripcion' => 'Reductor número 19 - LAV L-06'],
-            ['nombre' => 'Reductor RED-20', 'tipo' => 'REDUCTOR', 'codigo' => 'RED-20', 'descripcion' => 'Reductor número 20 - LAV L-06'],
+            // Servo-Reductores (RED 1 a RED 20)
+            ['nombre' => 'Servo-Reductor RED-1', 'tipo' => 'REDUCTOR', 'codigo' => 'RED-1', 'descripcion' => 'Servo-Reductor número 1 - LAV L-06'],
+            ['nombre' => 'Servo-Reductor RED-9', 'tipo' => 'REDUCTOR', 'codigo' => 'RED-9', 'descripcion' => 'Servo-Reductor número 9 - LAV L-06'],
+            ['nombre' => 'Servo-Reductor RED-10', 'tipo' => 'REDUCTOR', 'codigo' => 'RED-10', 'descripcion' => 'Servo-Reductor número 10 - LAV L-06'],
+            ['nombre' => 'Servo-Reductor RED-11', 'tipo' => 'REDUCTOR', 'codigo' => 'RED-11', 'descripcion' => 'Servo-Reductor número 11 - LAV L-06'],
+            ['nombre' => 'Servo-Reductor RED-12', 'tipo' => 'REDUCTOR', 'codigo' => 'RED-12', 'descripcion' => 'Servo-Reductor número 12 - LAV L-06'],
+            ['nombre' => 'Servo-Reductor RED-13', 'tipo' => 'REDUCTOR', 'codigo' => 'RED-13', 'descripcion' => 'Servo-Reductor número 13 - LAV L-06'],
+            ['nombre' => 'Servo-Reductor RED-14', 'tipo' => 'REDUCTOR', 'codigo' => 'RED-14', 'descripcion' => 'Servo-Reductor número 14 - LAV L-06'],
+            ['nombre' => 'Servo-Reductor RED-15', 'tipo' => 'REDUCTOR', 'codigo' => 'RED-15', 'descripcion' => 'Servo-Reductor número 15 - LAV L-06'],
+            ['nombre' => 'Servo-Reductor RED-16', 'tipo' => 'REDUCTOR', 'codigo' => 'RED-16', 'descripcion' => 'Servo-Reductor número 16 - LAV L-06'],
+            ['nombre' => 'Servo-Reductor RED-17', 'tipo' => 'REDUCTOR', 'codigo' => 'RED-17', 'descripcion' => 'Servo-Reductor número 17 - LAV L-06'],
+            ['nombre' => 'Servo-Reductor RED-18', 'tipo' => 'REDUCTOR', 'codigo' => 'RED-18', 'descripcion' => 'Servo-Reductor número 18 - LAV L-06'],
+            ['nombre' => 'Servo-Reductor RED-19', 'tipo' => 'REDUCTOR', 'codigo' => 'RED-19', 'descripcion' => 'Servo-Reductor número 19 - LAV L-06'],
+            ['nombre' => 'Servo-Reductor RED-20', 'tipo' => 'REDUCTOR', 'codigo' => 'RED-20', 'descripcion' => 'Servo-Reductor número 20 - LAV L-06'],
 
             // Servos
             ['nombre' => 'Servo Chico', 'tipo' => 'SERVO', 'codigo' => 'SERVO-CHICO', 'descripcion' => 'Servo chico para mantenimiento'],

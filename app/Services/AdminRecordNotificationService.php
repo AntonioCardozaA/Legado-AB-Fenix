@@ -12,6 +12,7 @@ use App\Models\Linea;
 use App\Models\PlanAccion;
 use App\Models\User;
 use App\Notifications\AdminRegistroCreadoNotification;
+use App\Support\LavadoraCatalog;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Log;
@@ -409,11 +410,11 @@ class AdminRecordNotificationService
         }
 
         if ($record instanceof AnalisisLavadora) {
-            $record->loadMissing('componente');
+            $record->loadMissing(['componente', 'linea']);
 
             return $this->joinDetails([
                 'Componente: ' . ($record->componente?->nombre ?? 'Sin componente'),
-                $record->reductor ? 'Reductor: ' . $record->reductor : null,
+                $record->reductor ? $this->lavadoraReductorDetail($record) : null,
                 $record->lado ? 'Lado: ' . $record->lado : null,
                 $record->estado ? 'Estado: ' . $record->estado : null,
                 $record->numero_orden ? 'Orden: ' . $record->numero_orden : null,
@@ -433,11 +434,11 @@ class AdminRecordNotificationService
         }
 
         if ($record instanceof Analisis) {
-            $record->loadMissing('componente');
+            $record->loadMissing(['componente', 'linea']);
 
             return $this->joinDetails([
                 'Componente: ' . ($record->componente?->nombre ?? 'Sin componente'),
-                $record->reductor ? 'Reductor: ' . $record->reductor : null,
+                $record->reductor ? $this->lavadoraReductorDetail($record) : null,
                 $record->numero_orden ? 'Orden: ' . $record->numero_orden : null,
             ]);
         }
@@ -460,6 +461,15 @@ class AdminRecordNotificationService
         }
 
         return null;
+    }
+
+    private function lavadoraReductorDetail(AnalisisLavadora|Analisis $record): string
+    {
+        $lineaNombre = $record->linea?->nombre;
+        $label = LavadoraCatalog::etiquetaReductorParaValor($lineaNombre, $record->reductor);
+        $value = LavadoraCatalog::nombreReductorParaLinea($lineaNombre, $record->reductor) ?? $record->reductor;
+
+        return $label . ': ' . $value;
     }
 
     private function resolveComponentName(Model $record): string
@@ -495,8 +505,10 @@ class AdminRecordNotificationService
         }
 
         if ($record instanceof AnalisisLavadora) {
+            $record->loadMissing('linea');
+
             return $this->joinDetails([
-                $record->reductor ? 'Reductor: ' . $record->reductor : null,
+                $record->reductor ? $this->lavadoraReductorDetail($record) : null,
                 $record->lado ? 'Lado: ' . $record->lado : null,
                 $record->numero_orden ? 'Orden: ' . $record->numero_orden : null,
                 $this->formatDate($record->fecha_analisis) ? 'Fecha analisis: ' . $this->formatDate($record->fecha_analisis) : null,

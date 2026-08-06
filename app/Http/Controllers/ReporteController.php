@@ -20,102 +20,24 @@ use App\Models\HistorialRestablecimiento;
 use App\Services\AdminRecordNotificationService;
 use App\Services\TendenciaDanosService;
 use App\Support\EtiquetadoraCatalog;
+use App\Support\LavadoraCatalog;
 use Illuminate\Support\Facades\DB;
 
 class ReporteController extends Controller
 {
     // Líneas de lavadoras
-    protected $lavadoras = ['L-04','L-05','L-06','L-07','L-08','L-09','L-12','L-13'];
+    protected $lavadoras = LavadoraCatalog::LINEAS;
 
     // Líneas pasteurizadoras
     protected $pasteurizadoras = ['P-03','P-04','P-05','P-06','P-07','P-08','P-09','P-10','P-11','P-12','P-13','P-14'];
 
     protected $etiquetadoras = ['L-04','L-05','L-06','L-10','L-12','L-13'];
 
-    // Componentes por línea
-    protected $componentesPorLinea = [
-        'L-04' => [
-            'SERVO_CHICO' => 'Servo Chico',
-            'SERVO_GRANDE' => 'Servo Grande',
-            'BUJE_ESPIGA' => 'Buje Baquelita-Espiga de flecha',
-            'GUI_INF_TANQUE' => 'Guía Inferior',
-            'GUI_INT_TANQUE' => 'Guía Intermedia',
-            'GUI_SUP_TANQUE' => 'Guía Superior',
-            'CATARINAS' => 'Catarinas',
-        ],
-        'L-05' => [
-            'RV200' => 'Reductor RV200',
-            'BUJE_ESPIGA' => 'Buje Baquelita-Espiga de flecha',
-            'GUI_INF_TANQUE' => 'Guía Inferior',
-            'GUI_INT_TANQUE' => 'Guía Intermedia',
-            'GUI_SUP_TANQUE' => 'Guía Superior',
-            'CATARINAS' => 'Catarinas',
-        ],
-        'L-06' => [
-            'SERVO_CHICO' => 'Servo Chico',
-            'SERVO_GRANDE' => 'Servo Grande',
-            'BUJE_ESPIGA' => 'Buje Baquelita-Espiga de flecha',
-            'GUI_INF_TANQUE' => 'Guía Inferior',
-            'GUI_INT_TANQUE' => 'Guía Intermedia',
-            'GUI_SUP_TANQUE' => 'Guía Superior',
-            'CATARINAS' => 'Catarinas',
-        ],
-        'L-07' => [
-            'SERVO_CHICO' => 'Servo Chico',
-            'SERVO_GRANDE' => 'Servo Grande',
-            'BUJE_ESPIGA' => 'Buje Baquelita-Espiga de flecha',
-            'GUI_INF_TANQUE' => 'Guía Inferior',
-            'GUI_INT_TANQUE' => 'Guía Intermedia',
-            'GUI_SUP_TANQUE' => 'Guía Superior',
-            'CATARINAS' => 'Catarinas',
-        ],
-        'L-08' => [
-            'SERVO_CHICO' => 'Servo Chico',
-            'SERVO_GRANDE' => 'Servo Grande',
-            'BUJE_ESPIGA' => 'Buje Baquelita-Espiga de flecha',
-            'GUI_INF_TANQUE' => 'Guía Inferior',
-            'GUI_INT_TANQUE' => 'Guía Intermedia',
-            'GUI_SUP_TANQUE' => 'Guía Superior',
-            'CATARINAS' => 'Catarinas',
-        ],
-        'L-09' => [
-            'SERVO_CHICO' => 'Servo Chico',
-            'SERVO_GRANDE' => 'Servo Grande',
-            'BUJE_ESPIGA' => 'Buje Baquelita-Espiga de flecha',
-            'GUI_INF_TANQUE' => 'Guía Inferior',
-            'GUI_INT_TANQUE' => 'Guía Intermedia',
-            'GUI_SUP_TANQUE' => 'Guía Superior',
-            'CATARINAS' => 'Catarinas',
-        ],
-        'L-12' => [
-            'RV200_SIN_FIN' => 'Reductor Sin Fin-Corona RV200',
-            'BUJE_ESPIGA' => 'Buje Baquelita-Espiga de flecha',
-            'GUI_INF_TANQUE' => 'Guía Inferior',
-            'GUI_INT_TANQUE' => 'Guía Intermedia',
-            'GUI_SUP_TANQUE' => 'Guía Superior',
-            'CATARINAS' => 'Catarinas',
-        ],
-        'L-13' => [
-            'RV200' => 'Reductor RV200',
-            'BUJE_ESPIGA' => 'Buje Baquelita-Espiga de flecha',
-            'GUI_INF_TANQUE' => 'Guía Inferior',
-            'GUI_INT_TANQUE' => 'Guía Intermedia',
-            'GUI_SUP_TANQUE' => 'Guía Superior',
-            'CATARINAS' => 'Catarinas',
-        ],
-    ];
+    // Componentes por linea
+    protected $componentesPorLinea = LavadoraCatalog::COMPONENTES_POR_LINEA;
 
-    // Reductores por línea
-    protected $reductoresPorLinea = [
-        'L-04' => ['Reductor 1','Reductor 9','Reductor 10','Reductor 11','Reductor 12','Reductor 13','Reductor 14','Reductor 15','Reductor 16','Reductor 17','Reductor 18','Reductor 19','Reductor Loca','Reductor Principal'],
-        'L-05' => ['Reductor 1','Reductor 2','Reductor 3','Reductor 4','Reductor 5','Reductor 6','Reductor 7','Reductor 8','Reductor 9','Reductor 10','Reductor 11','Reductor 12','Reductor Principal','Reductor Loca'],
-        'L-06' => ['Reductor 1','Reductor 9','Reductor 10','Reductor 11','Reductor 12','Reductor 13','Reductor 14','Reductor 15','Reductor 16','Reductor 17','Reductor 18','Reductor 19','Reductor 20','Reductor 21','Reductor 22','Reductor Principal'],
-        'L-07' => ['Reductor 1','Reductor 9','Reductor 10','Reductor 11','Reductor 12','Reductor 13','Reductor 14','Reductor 15','Reductor 16','Reductor 17','Reductor 18','Reductor 19','Reductor 20','Reductor 21','Reductor 22','Reductor Principal'],
-        'L-08' => ['Reductor 1','Reductor 9','Reductor 10','Reductor 11','Reductor 12','Reductor 13','Reductor 14','Reductor 15','Reductor 16','Reductor 17','Reductor 18','Reductor 19','Reductor Loca'],
-        'L-09' => ['Reductor 1','Reductor 9','Reductor 10','Reductor 11','Reductor 12','Reductor 13','Reductor 14','Reductor 15','Reductor 16','Reductor 17','Reductor 18','Reductor 19','Reductor Loca','Reductor Principal'],
-        'L-12' => ['Reductor 1','Reductor 2','Reductor 3','Reductor 4','Reductor 5','Reductor 6','Reductor 7','Reductor 8','Reductor 9','Reductor 10','Reductor 11','Reductor 12','Reductor Loca','Reductor Principal'],
-        'L-13' => ['Reductor 1','Reductor 2','Reductor 3','Reductor 4','Reductor 5','Reductor 6','Reductor 7','Reductor 8','Reductor 9','Reductor 10','Reductor 11','Reductor 12','Reductor Loca','Reductor Principal']
-    ];
+    // Servo-reductores por linea
+    protected $reductoresPorLinea = LavadoraCatalog::REDUCTORES_POR_LINEA;
 
     public function index(Request $request)
     {
@@ -958,107 +880,12 @@ class ReporteController extends Controller
         ->groupBy('linea');
 
     /* =========================
-       COMPONENTES POR LÍNEA (del array definido)
+       COMPONENTES POR LINEA
     ========================= */
-    $componentesPorLineaArray = [
-        'L-04' => [
-            'SERVO_CHICO' => 'Servo Chico',
-            'SERVO_GRANDE' => 'Servo Grande',
-            'BUJE_ESPIGA' => 'Buje Baquelita-Espiga de flecha',
-            'GUI_INF_TANQUE' => 'Guía Inferior',
-            'GUI_INT_TANQUE' => 'Guía Intermedia',
-            'GUI_SUP_TANQUE' => 'Guía Superior',
-            'CATARINAS' => 'Catarinas',
-        ],
-        'L-05' => [
-            'RV200' => 'Reductor RV200',
-            'BUJE_ESPIGA' => 'Buje Baquelita-Espiga de flecha',
-            'GUI_INF_TANQUE' => 'Guía Inferior',
-            'GUI_INT_TANQUE' => 'Guía Intermedia',
-            'GUI_SUP_TANQUE' => 'Guía Superior',
-            'CATARINAS' => 'Catarinas',
-        ],
-        'L-06' => [
-            'SERVO_CHICO' => 'Servo Chico',
-            'SERVO_GRANDE' => 'Servo Grande',
-            'BUJE_ESPIGA' => 'Buje Baquelita-Espiga de flecha',
-            'GUI_INF_TANQUE' => 'Guía Inferior',
-            'GUI_INT_TANQUE' => 'Guía Intermedia',
-            'GUI_SUP_TANQUE' => 'Guía Superior',
-            'CATARINAS' => 'Catarinas',
-        ],
-        'L-07' => [
-            'SERVO_CHICO' => 'Servo Chico',
-            'SERVO_GRANDE' => 'Servo Grande',
-            'BUJE_ESPIGA' => 'Buje Baquelita-Espiga de flecha',
-            'GUI_INF_TANQUE' => 'Guía Inferior',
-            'GUI_INT_TANQUE' => 'Guía Intermedia',
-            'GUI_SUP_TANQUE' => 'Guía Superior',
-            'CATARINAS' => 'Catarinas',
-        ],
-        'L-08' => [
-            'SERVO_CHICO' => 'Servo Chico',
-            'SERVO_GRANDE' => 'Servo Grande',
-            'BUJE_ESPIGA' => 'Buje Baquelita-Espiga de flecha',
-            'GUI_INF_TANQUE' => 'Guía Inferior',
-            'GUI_INT_TANQUE' => 'Guía Intermedia',
-            'GUI_SUP_TANQUE' => 'Guía Superior',
-            'CATARINAS' => 'Catarinas',
-        ],
-        'L-09' => [
-            'SERVO_CHICO' => 'Servo Chico',
-            'SERVO_GRANDE' => 'Servo Grande',
-            'BUJE_ESPIGA' => 'Buje Baquelita-Espiga de flecha',
-            'GUI_INF_TANQUE' => 'Guía Inferior',
-            'GUI_INT_TANQUE' => 'Guía Intermedia',
-            'GUI_SUP_TANQUE' => 'Guía Superior',
-            'CATARINAS' => 'Catarinas',
-        ],
-        'L-12' => [
-            'RV200_SIN_FIN' => 'Reductor Sin Fin-Corona RV200',
-            'BUJE_ESPIGA' => 'Buje Baquelita-Espiga de flecha',
-            'GUI_INF_TANQUE' => 'Guía Inferior',
-            'GUI_INT_TANQUE' => 'Guía Intermedia',
-            'GUI_SUP_TANQUE' => 'Guía Superior',
-            'CATARINAS' => 'Catarinas',
-        ],
-        'L-13' => [
-            'RV200' => 'Reductor RV200',
-            'BUJE_ESPIGA' => 'Buje Baquelita-Espiga de flecha',
-            'GUI_INF_TANQUE' => 'Guía Inferior',
-            'GUI_INT_TANQUE' => 'Guía Intermedia',
-            'GUI_SUP_TANQUE' => 'Guía Superior',
-            'CATARINAS' => 'Catarinas',
-        ],
-    ];
+    $componentesPorLineaArray = LavadoraCatalog::COMPONENTES_POR_LINEA;
 
-    // Reductores por línea
-    $reductoresPorLineaArray = [
-        'L-04' => ['Reductor 1', 'Reductor 9', 'Reductor 10', 'Reductor 11', 'Reductor 12', 
-                  'Reductor 13', 'Reductor 14', 'Reductor 15', 'Reductor 16', 'Reductor 17', 
-                  'Reductor 18', 'Reductor 19', 'Reductor Loca', 'Reductor Principal'],
-        'L-05' => ['Reductor 1', 'Reductor 2', 'Reductor 3', 'Reductor 4', 'Reductor 5', 
-                  'Reductor 6', 'Reductor 7', 'Reductor 8', 'Reductor 9', 'Reductor 10', 
-                  'Reductor 11', 'Reductor 12', 'Reductor Principal', 'Reductor Loca'],
-        'L-06' => ['Reductor 1', 'Reductor 9', 'Reductor 10', 'Reductor 11', 'Reductor 12', 
-                  'Reductor 13', 'Reductor 14', 'Reductor 15', 'Reductor 16', 'Reductor 17', 
-                  'Reductor 18', 'Reductor 19', 'Reductor 20', 'Reductor 21', 'Reductor 22', 'Reductor Principal'],
-        'L-07' => ['Reductor 1', 'Reductor 9', 'Reductor 10', 'Reductor 11', 'Reductor 12', 
-                  'Reductor 13', 'Reductor 14', 'Reductor 15', 'Reductor 16', 'Reductor 17', 
-                  'Reductor 18', 'Reductor 19', 'Reductor 20', 'Reductor 21', 'Reductor 22', 'Reductor Principal'],
-        'L-08' => ['Reductor 1', 'Reductor 9', 'Reductor 10', 'Reductor 11', 'Reductor 12', 
-                  'Reductor 13', 'Reductor 14', 'Reductor 15', 'Reductor 16', 'Reductor 17', 
-                  'Reductor 18', 'Reductor 19', 'Reductor Loca'],
-        'L-09' => ['Reductor 1', 'Reductor 9', 'Reductor 10', 'Reductor 11', 'Reductor 12', 
-                  'Reductor 13', 'Reductor 14', 'Reductor 15', 'Reductor 16', 'Reductor 17', 
-                  'Reductor 18', 'Reductor 19', 'Reductor Loca', 'Reductor Principal'],
-        'L-12' => ['Reductor 1', 'Reductor 2', 'Reductor 3', 'Reductor 4', 'Reductor 5', 
-                  'Reductor 6', 'Reductor 7', 'Reductor 8', 'Reductor 9', 'Reductor 10', 
-                  'Reductor 11', 'Reductor 12', 'Reductor Loca', 'Reductor Principal'],
-        'L-13' => ['Reductor 1', 'Reductor 2', 'Reductor 3', 'Reductor 4', 'Reductor 5', 
-                  'Reductor 6', 'Reductor 7', 'Reductor 8', 'Reductor 9', 'Reductor 10', 
-                  'Reductor 11', 'Reductor 12', 'Reductor Loca', 'Reductor Principal']
-    ];
+    // Servo-reductores por linea
+    $reductoresPorLineaArray = LavadoraCatalog::REDUCTORES_POR_LINEA;
 
     /* =========================
        REPORTE FINAL CON ANÁLISIS DETALLADOS
@@ -2279,7 +2106,7 @@ class ReporteController extends Controller
         $agrupados = [];
 
         foreach (collect($analisis) as $item) {
-            $reductor = $item->reductor ?: 'Sin reductor';
+            $reductor = $item->reductor ?: 'Sin reductor / servo-reductor';
             $componenteCodigo = $this->normalizarCodigoComponenteLavadora(
                 $item->componente?->codigo,
                 $linea

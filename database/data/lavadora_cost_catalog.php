@@ -354,7 +354,7 @@ return [
         ],
         [
             'sku' => '4071766',
-            'nombre' => 'REDUCTOR PRINCIPAL TIPO MRC2I200U02, 197, B7, I=32 Para L-5 y 9 DIAM. 60-450, PN=53 KW, MCA. ROSSI.',
+            'nombre' => 'REDUCTOR PRINCIPAL TIPO MRC2I200U02, 197, B7, I=32 Para L-5 DIAM. 60-450, PN=53 KW, MCA. ROSSI.',
             'unidad_medida' => 'Pieza',
             'costo_unitario' => 252011.61,
             'source_rows' => [62],

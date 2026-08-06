@@ -280,9 +280,9 @@
                                     <div class="bg-gradient-to-br" style="background: linear-gradient(to bottom right, rgba(31, 35, 72, 0.05), white); border-color: rgba(31, 35, 72, 0.2); border-width: 1px; border-style: solid; border-radius: 0.75rem; padding: 1rem;">
                                         <div class="flex items-center gap-2 mb-2">
                                             <i class="fas fa-compress-alt" style="color: rgb(31, 35, 72);"></i>
-                                            <span class="text-xs font-semibold uppercase tracking-wider" style="color: rgb(31, 35, 72);">Reductor</span>
+                                            <span class="text-xs font-semibold uppercase tracking-wider" style="color: rgb(31, 35, 72);">{{ \App\Support\LavadoraCatalog::etiquetaReductorParaValor($item->linea->nombre ?? null, $item->reductor) }}</span>
                                         </div>
-                                        <p class="font-medium text-gray-800">{{ $item->reductor }}</p>
+                                        <p class="font-medium text-gray-800">{{ \App\Support\LavadoraCatalog::nombreReductorParaLinea($item->linea->nombre ?? null, $item->reductor) }}</p>
                                     </div>
 
                                     <div class="bg-gradient-to-br" style="background: linear-gradient(to bottom right, rgba(31, 35, 72, 0.05), white); border-color: rgba(31, 35, 72, 0.2); border-width: 1px; border-style: solid; border-radius: 0.75rem; padding: 1rem;">

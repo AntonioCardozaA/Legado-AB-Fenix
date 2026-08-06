@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\UppercasesActividad;
+use App\Support\LavadoraCatalog;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Builder;
@@ -16,17 +17,7 @@ class AnalisisLavadora extends Model
     use HasFactory, UppercasesActividad;
 
     public const TIPO_EQUIPO = 'lavadora';
-    public const COMPONENTE_CODIGOS_BASE = [
-        'RV200_SIN_FIN',
-        'SERVO_CHICO',
-        'SERVO_GRANDE',
-        'BUJE_ESPIGA',
-        'GUI_INF_TANQUE',
-        'GUI_INT_TANQUE',
-        'GUI_SUP_TANQUE',
-        'CATARINAS',
-        'RV200',
-    ];
+    public const COMPONENTE_CODIGOS_BASE = LavadoraCatalog::COMPONENTE_CODIGOS_BASE;
     public const ESTADO_BUENO = 'Buen estado';
     public const ESTADO_REQUIERE_REVISION = 'Requiere revisión';
     public const ESTADOS_DESGASTE = ['Desgaste moderado', 'Desgaste severo'];
@@ -237,6 +228,11 @@ class AnalisisLavadora extends Model
         }
 
         $this->attributes['evidencia_fotos'] = json_encode([$value]);
+    }
+
+    public function setReductorAttribute($value): void
+    {
+        $this->attributes['reductor'] = LavadoraCatalog::normalizarReductor($value) ?? $value;
     }
 
     public function getEvidenciasReparacionAttribute($value): array

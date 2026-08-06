@@ -54,9 +54,9 @@
                         </select>
                     </div>
 
-                    {{-- Reductor --}}
+                    {{-- Reductor / Servo-Reductor --}}
                     <div class="col-md-2">
-                        <label class="form-label fw-semibold">Reductor</label>
+                        <label class="form-label fw-semibold">Reductor / Servo-Reductor</label>
                         <input type="text" name="reductor"
                                value="{{ request('reductor') }}"
                                class="form-control"
@@ -109,7 +109,7 @@
                             <tr>
                                 <th>ID</th>
                                 <th>Componente</th>
-                                <th>Reductor</th>
+                                <th>{{ \App\Support\LavadoraCatalog::etiquetaReductor($lavadora) }}</th>
                                 <th>Fecha</th>
                                 <th>N° Orden</th>
                                 <th>Actividad</th>
@@ -120,7 +120,7 @@
                                 <tr>
                                     <td>{{ $item->id }}</td>
                                     <td>{{ $item->componente->nombre ?? 'N/A' }}</td>
-                                    <td>{{ $item->reductor }}</td>
+                                    <td>{{ \App\Support\LavadoraCatalog::nombreReductorParaLinea($lavadora, $item->reductor) }}</td>
                                     <td>{{ $item->fecha_analisis->format('d/m/Y') }}</td>
                                     <td>{{ $item->numero_orden }}</td>
                                     <td>{{ Str::limit($item->actividad, 60) }}</td>

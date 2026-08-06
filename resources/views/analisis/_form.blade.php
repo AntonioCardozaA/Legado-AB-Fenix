@@ -62,7 +62,7 @@
             <input type="text" name="numero_orden" value="{{ old('numero_orden', $analisis->numero_orden ?? '') }}" class="w-full rounded border-gray-300 text-sm" required>
         </div>
         <div>
-            <label class="mb-1 block text-sm font-medium text-gray-700">Reductor</label>
+            <label class="mb-1 block text-sm font-medium text-gray-700">Reductor / Servo-Reductor</label>
             <input type="text" name="reductor" value="{{ old('reductor', $analisis->reductor ?? '') }}" class="w-full rounded border-gray-300 text-sm" required>
         </div>
     </div>

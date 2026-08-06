@@ -20,6 +20,7 @@ use App\Exports\AnalisisLavadoraExport;
 use App\Services\AnalysisDeletionLogger;
 use App\Services\LavadoraCostSyncService;
 use App\Services\Maintenance\WasherMaintenanceOrchestrator;
+use App\Support\LavadoraCatalog;
 use Maatwebsite\Excel\Facades\Excel;
 use Barryvdh\DomPDF\Facade\Pdf;
 use App\Services\WhatsAppService;
@@ -64,12 +65,7 @@ public function index(Request $request)
     }
 
     if ($request->filled('reductor')) {
-        // Si viene de la búsqueda de detalles, buscar el reductor exacto o con patrón
-        if (is_numeric($request->reductor)) {
-            $query->where('reductor', $request->reductor);
-        } else {
-            $query->where('reductor', 'like', '%' . $request->reductor . '%');
-        }
+        $this->aplicarFiltroReductor($query, $request->reductor);
     }
 
     if ($request->filled('estado')) {
@@ -110,11 +106,7 @@ public function index(Request $request)
     }
     
     if ($request->filled('reductor')) {
-        if (is_numeric($request->reductor)) {
-            $queryEstadisticas->where('reductor', $request->reductor);
-        } else {
-            $queryEstadisticas->where('reductor', 'like', '%' . $request->reductor . '%');
-        }
+        $this->aplicarFiltroReductor($queryEstadisticas, $request->reductor);
     }
     
     // Para estadísticas, no filtrar por estado ni fecha, ya que queremos el estado actual
@@ -174,11 +166,7 @@ public function index(Request $request)
         'diagramasPorLinea' => $diagramasPorLinea,
         'componentesPorLinea' => $this->getComponentesPorLinea(),
         'todosComponentes' => $this->getTodosComponentes(),
-        'reductores' => AnalisisLavadora::select('reductor')
-            ->whereNotNull('reductor')
-            ->distinct()
-            ->orderBy('reductor')
-            ->pluck('reductor'),
+        'reductores' => $this->getReductoresFiltroGlobal(),
         'reductoresMostrar' => $reductoresMostrar,
         'lineaMostrar' => $lineaMostrar,
         'filtros' => $request->all(),
@@ -408,6 +396,23 @@ public function index(Request $request)
         });
     }
 
+    private function aplicarFiltroReductor($query, mixed $reductor): void
+    {
+        $reductorNormalizado = LavadoraCatalog::normalizarReductor((string) $reductor);
+
+        if ($reductorNormalizado) {
+            $query->where('reductor', $reductorNormalizado);
+
+            return;
+        }
+
+        $reductor = trim((string) $reductor);
+
+        if ($reductor !== '') {
+            $query->where('reductor', 'like', '%' . $reductor . '%');
+        }
+    }
+
     private function resolverComponenteIdsPorCodigoBase(string $codigoBase)
     {
         return Componente::query()
@@ -430,140 +435,28 @@ public function index(Request $request)
      */
     private function getComponentesPorLinea(): array
     {
-        return [
-            'L-04' => [
-                'SERVO_CHICO' => 'Servo Chico',
-                'SERVO_GRANDE' => 'Servo Grande',
-                'BUJE_ESPIGA' => 'Buje Baquelita-Espiga de flecha',
-                'GUI_INF_TANQUE' => 'Guía Inferior ',
-                'GUI_INT_TANQUE' => 'Guía Intermedia ',
-                'GUI_SUP_TANQUE' => 'Guía Superior ',
-                'CATARINAS' => 'Catarinas',
-            ],
-            'L-05' => [
-                'RV200' => 'Reductor RV200',
-                'BUJE_ESPIGA' => 'Buje Baquelita-Espiga de flecha',
-                'GUI_INF_TANQUE' => 'Guía Inferior ',
-                'GUI_INT_TANQUE' => 'Guía Intermedia ',
-                'GUI_SUP_TANQUE' => 'Guía Superior ',
-                'CATARINAS' => 'Catarinas',
-            ],
-            'L-06' => [
-                'SERVO_CHICO' => 'Servo Chico',
-                'SERVO_GRANDE' => 'Servo Grande',
-                'BUJE_ESPIGA' => 'Buje Baquelita-Espiga de flecha',
-                'GUI_INF_TANQUE' => 'Guía Inferior ',
-                'GUI_INT_TANQUE' => 'Guía Intermedia ',
-                'GUI_SUP_TANQUE' => 'Guía Superior ',
-                'CATARINAS' => 'Catarinas',
-            ],
-            'L-07' => [
-                'SERVO_CHICO' => 'Servo Chico',
-                'SERVO_GRANDE' => 'Servo Grande',
-                'BUJE_ESPIGA' => 'Buje Baquelita-Espiga de flecha',
-                'GUI_INF_TANQUE' => 'Guía Inferior ',
-                'GUI_INT_TANQUE' => 'Guía Intermedia ',
-                'GUI_SUP_TANQUE' => 'Guía Superior ',
-                'CATARINAS' => 'Catarinas',
-            ],
-            'L-08' => [
-                'SERVO_CHICO' => 'Servo Chico',
-                'SERVO_GRANDE' => 'Servo Grande',
-                'BUJE_ESPIGA' => 'Buje Baquelita-Espiga de flecha',
-                'GUI_INF_TANQUE' => 'Guía Inferior ',
-                'GUI_INT_TANQUE' => 'Guía Intermedia ',
-                'GUI_SUP_TANQUE' => 'Guía Superior ',
-                'CATARINAS' => 'Catarinas',
-            ],
-            'L-09' => [
-                'SERVO_CHICO' => 'Servo Chico',
-                'SERVO_GRANDE' => 'Servo Grande',
-                'BUJE_ESPIGA' => 'Buje Baquelita-Espiga de flecha',
-                'GUI_INF_TANQUE' => 'Guía Inferior ',
-                'GUI_INT_TANQUE' => 'Guía Intermedia ',
-                'GUI_SUP_TANQUE' => 'Guía Superior ',
-                'CATARINAS' => 'Catarinas',
-            ],
-            'L-12' => [
-                'RV200_SIN_FIN' => 'Reductor Sin Fin-Corona RV200',
-                'BUJE_ESPIGA' => 'Buje Baquelita-Espiga de flecha',
-                'GUI_INF_TANQUE' => 'Guía Inferior ',
-                'GUI_INT_TANQUE' => 'Guía Intermedia ',
-                'GUI_SUP_TANQUE' => 'Guía Superior ',
-                'CATARINAS' => 'Catarinas',
-            ],
-            'L-13' => [
-                'RV200' => 'Reductor RV200',
-                'BUJE_ESPIGA' => 'Buje Baquelita-Espiga de flecha',
-                'GUI_INF_TANQUE' => 'Guía Inferior',
-                'GUI_INT_TANQUE' => 'Guía Intermedia',
-                'GUI_SUP_TANQUE' => 'Guía Superior',
-                'CATARINAS' => 'Catarinas',
-            ],
-        ];
+        return LavadoraCatalog::componentesPorLinea();
     }
-    
     /**
      * Obtener todos los componentes posibles para el filtro.
      */
     private function getTodosComponentes(): array
     {
-        return [
-            'SERVO_CHICO' => 'Servo Chico',
-            'SERVO_GRANDE' => 'Servo Grande',
-            'BUJE_ESPIGA' => 'Buje Baquelita-Espiga de flecha',
-            'GUI_INF_TANQUE' => 'Guía Inferior ',
-            'GUI_INT_TANQUE' => 'Guía Intermedia ',
-            'GUI_SUP_TANQUE' => 'Guía Superior',
-            'CATARINAS' => 'Catarinas',
-            'RV200' => 'Reductor RV200',
-            'RV200_SIN_FIN' => 'Reductor Sin Fin-Corona RV200'
-        ];
+        return LavadoraCatalog::todosComponentes();
     }
-
-    /**
+/**
      * Obtener todos los reductores posibles para una línea específica
      */
     private function getReductoresPorLinea(string $lineaNombre): array
     {
-        $reductoresPorLinea = [
-            'L-04' => ['Reductor 1', 'Reductor 9', 'Reductor 10', 'Reductor 11', 'Reductor 12', 
-                      'Reductor 13', 'Reductor 14', 'Reductor 15', 'Reductor 16', 'Reductor 17', 
-                      'Reductor 18', 'Reductor 19', 'Reductor Loca', 'Reductor Principal'],
-            'L-05' => ['Reductor 1', 'Reductor 2', 'Reductor 3', 'Reductor 4', 'Reductor 5', 
-                      'Reductor 6', 'Reductor 7', 'Reductor 8', 'Reductor 9', 'Reductor 10', 
-                      'Reductor 11', 'Reductor 12', 'Reductor Principal', 'Reductor Loca'],
-            'L-06' => ['Reductor 1', 'Reductor 9', 'Reductor 10', 'Reductor 11', 'Reductor 12', 
-                      'Reductor 13', 'Reductor 14', 'Reductor 15', 'Reductor 16', 'Reductor 17', 
-                      'Reductor 18', 'Reductor 19', 'Reductor 20', 'Reductor 21', 'Reductor 22', 'Reductor Principal'],
-            'L-07' => ['Reductor 1', 'Reductor 9', 'Reductor 10', 'Reductor 11', 'Reductor 12', 
-                      'Reductor 13', 'Reductor 14', 'Reductor 15', 'Reductor 16', 'Reductor 17', 
-                      'Reductor 18', 'Reductor 19', 'Reductor 20', 'Reductor 21', 'Reductor 22', 'Reductor Principal'],
-            'L-08' => ['Reductor 1', 'Reductor 9', 'Reductor 10', 'Reductor 11', 'Reductor 12', 
-                      'Reductor 13', 'Reductor 14', 'Reductor 15', 'Reductor 16', 'Reductor 17', 
-                      'Reductor 18', 'Reductor 19', 'Reductor Loca'],
-            'L-09' => ['Reductor 1', 'Reductor 9', 'Reductor 10', 'Reductor 11', 'Reductor 12', 
-                      'Reductor 13', 'Reductor 14', 'Reductor 15', 'Reductor 16', 'Reductor 17', 
-                      'Reductor 18', 'Reductor 19', 'Reductor Loca', 'Reductor Principal'],
-            'L-12' => ['Reductor 1', 'Reductor 2', 'Reductor 3', 'Reductor 4', 'Reductor 5', 
-                      'Reductor 6', 'Reductor 7', 'Reductor 8', 'Reductor 9', 'Reductor 10', 
-                      'Reductor 11', 'Reductor 12', 'Reductor Loca', 'Reductor Principal'],
-            'L-13' => ['Reductor 1', 'Reductor 2', 'Reductor 3', 'Reductor 4', 'Reductor 5', 
-                      'Reductor 6', 'Reductor 7', 'Reductor 8', 'Reductor 9', 'Reductor 10', 
-                      'Reductor 11', 'Reductor 12', 'Reductor Loca', 'Reductor Principal']
-        ];
-
-        return $reductoresPorLinea[$lineaNombre] ?? ['Reductor 1', 'Reductor 2', 'Reductor 3'];
+        return LavadoraCatalog::reductoresPorLinea($lineaNombre);
     }
-
-    /**
+/**
      * SELECCIONAR LÍNEA (LAVADORA)
      */
     public function selectLinea()
     {
-        $lineas = Linea::whereIn('nombre', [
-            'L-04','L-05','L-06','L-07','L-08','L-09','L-12','L-13'
-        ])->get();
+        $lineas = Linea::whereIn('nombre', LavadoraCatalog::lineas())->get();
 
         return view('lavadora/analisis-lavadora.select-linea', compact('lineas'));
     }
@@ -604,6 +497,10 @@ public function index(Request $request)
         Log::info('Creando análisis rápido con:', $request->all());
 
         $linea = Linea::findOrFail($request->linea_id);
+
+        if ($redirect = $this->normalizarReductorRequest($request, $linea)) {
+            return $redirect;
+        }
         
         // Buscar el componente por código (sin filtrar por línea primero)
         $componente = Componente::where('codigo', $request->componente_codigo)
@@ -735,6 +632,11 @@ public function index(Request $request)
      * ===============================
      */
     $linea = Linea::findOrFail($request->linea_id);
+
+    if ($redirect = $this->normalizarReductorRequest($request, $linea)) {
+        return $redirect;
+    }
+
     Log::info('Línea:', [$linea->nombre]);
 
     $componente = null;
@@ -906,21 +808,8 @@ $componente = Componente::firstOrCreate(
      */
     private function getNombreComponente($codigo)
     {
-        $nombres = [
-            'SERVO_CHICO' => 'Servo Chico',
-            'SERVO_GRANDE' => 'Servo Grande',
-            'BUJE_ESPIGA' => 'Buje Baquelita-Espiga',
-            'GUI_INT_TANQUE' => 'Guía Int Tanque',
-            'GUI_INT_TAQNQUE' => 'Guía Int Tanque',
-            'GUI_SUP_TANQUE' => 'Guía Sup Tanque',
-            'CATARINAS' => 'Catarinas',
-            'RV200' => 'Reductor RV200',
-            'RV200_SIN_FIN' => 'Reductor Sin Fin-Corona RV200',
-        ];
-
-        return $nombres[$codigo] ?? $codigo;
+        return LavadoraCatalog::nombreComponente((string) $codigo);
     }
-
     private function getReductoresDisponiblesPorLinea(Linea $linea)
     {
         $reductoresBase = collect($this->getReductoresPorLinea($linea->nombre));
@@ -935,11 +824,56 @@ $componente = Componente::firstOrCreate(
 
         return $reductoresBase
             ->merge($reductoresDb)
-            ->filter()
+            ->map(fn ($reductor) => LavadoraCatalog::normalizarReductor($reductor))
+            ->filter(fn ($reductor) => LavadoraCatalog::reductorValidoParaLinea($linea->nombre, $reductor))
             ->unique()
             ->values();
     }
 
+    private function getReductoresFiltroGlobal()
+    {
+        $reductoresCatalogo = collect(LavadoraCatalog::REDUCTORES_POR_LINEA)
+            ->flatten();
+
+        $reductoresDb = AnalisisLavadora::query()
+            ->with('linea:id,nombre')
+            ->whereNotNull('reductor')
+            ->get(['id', 'linea_id', 'reductor'])
+            ->map(function (AnalisisLavadora $analisis) {
+                $reductor = LavadoraCatalog::normalizarReductor($analisis->reductor);
+                $lineaNombre = $analisis->linea?->nombre;
+
+                return $lineaNombre && LavadoraCatalog::reductorValidoParaLinea($lineaNombre, $reductor)
+                    ? $reductor
+                    : null;
+            });
+
+        return $reductoresCatalogo
+            ->merge($reductoresDb)
+            ->filter()
+            ->unique()
+            ->sort()
+            ->values();
+    }
+
+    private function normalizarReductorRequest(Request $request, Linea $linea)
+    {
+        $reductor = LavadoraCatalog::normalizarReductor($request->input('reductor'));
+
+        if ($reductor) {
+            $request->merge(['reductor' => $reductor]);
+        }
+
+        if (!LavadoraCatalog::reductorValidoParaLinea($linea->nombre, $reductor)) {
+            $etiqueta = strtolower(LavadoraCatalog::etiquetaReductor($linea->nombre));
+
+            return back()->withErrors([
+                'reductor' => "El {$etiqueta} seleccionado no pertenece a {$linea->nombre}.",
+            ])->withInput();
+        }
+
+        return null;
+    }
 /**
  * EDITAR ANÁLISIS
  */
@@ -1659,38 +1593,13 @@ public function historicoRevisados(Request $request)
  */
 public function getEstadisticasProgreso(Request $request)
 {
-    $lineas = Linea::whereIn('nombre', ['L-04', 'L-05', 'L-06', 'L-07', 'L-08', 'L-09', 'L-12', 'L-13'])
+    $lineas = Linea::whereIn('nombre', LavadoraCatalog::lineas())
         ->where('activo', true)
         ->orderBy('nombre')
         ->get();
     
     $componentesPorLinea = $this->getComponentesPorLinea();
-    $reductoresPorLineaArray = [
-        'L-04' => ['Reductor 1', 'Reductor 9', 'Reductor 10', 'Reductor 11', 'Reductor 12', 
-                  'Reductor 13', 'Reductor 14', 'Reductor 15', 'Reductor 16', 'Reductor 17', 
-                  'Reductor 18', 'Reductor 19', 'Reductor Loca', 'Reductor Principal'],
-        'L-05' => ['Reductor 1', 'Reductor 2', 'Reductor 3', 'Reductor 4', 'Reductor 5', 
-                  'Reductor 6', 'Reductor 7', 'Reductor 8', 'Reductor 9', 'Reductor 10', 
-                  'Reductor 11', 'Reductor 12', 'Reductor Principal', 'Reductor Loca'],
-        'L-06' => ['Reductor 1', 'Reductor 9', 'Reductor 10', 'Reductor 11', 'Reductor 12', 
-                  'Reductor 13', 'Reductor 14', 'Reductor 15', 'Reductor 16', 'Reductor 17', 
-                  'Reductor 18', 'Reductor 19', 'Reductor 20', 'Reductor 21', 'Reductor 22', 'Reductor Principal'],
-        'L-07' => ['Reductor 1', 'Reductor 9', 'Reductor 10', 'Reductor 11', 'Reductor 12', 
-                  'Reductor 13', 'Reductor 14', 'Reductor 15', 'Reductor 16', 'Reductor 17', 
-                  'Reductor 18', 'Reductor 19', 'Reductor 20', 'Reductor 21', 'Reductor 22', 'Reductor Principal'],
-        'L-08' => ['Reductor 1', 'Reductor 9', 'Reductor 10', 'Reductor 11', 'Reductor 12', 
-                  'Reductor 13', 'Reductor 14', 'Reductor 15', 'Reductor 16', 'Reductor 17', 
-                  'Reductor 18', 'Reductor 19', 'Reductor Loca'],
-        'L-09' => ['Reductor 1', 'Reductor 9', 'Reductor 10', 'Reductor 11', 'Reductor 12', 
-                  'Reductor 13', 'Reductor 14', 'Reductor 15', 'Reductor 16', 'Reductor 17', 
-                  'Reductor 18', 'Reductor 19', 'Reductor Loca', 'Reductor Principal'],
-        'L-12' => ['Reductor 1', 'Reductor 2', 'Reductor 3', 'Reductor 4', 'Reductor 5', 
-                  'Reductor 6', 'Reductor 7', 'Reductor 8', 'Reductor 9', 'Reductor 10', 
-                  'Reductor 11', 'Reductor 12', 'Reductor Loca', 'Reductor Principal'],
-        'L-13' => ['Reductor 1', 'Reductor 2', 'Reductor 3', 'Reductor 4', 'Reductor 5', 
-                  'Reductor 6', 'Reductor 7', 'Reductor 8', 'Reductor 9', 'Reductor 10', 
-                  'Reductor 11', 'Reductor 12', 'Reductor Loca', 'Reductor Principal']
-    ];
+    $reductoresPorLineaArray = LavadoraCatalog::REDUCTORES_POR_LINEA;
     
     $estadisticas = [];
     

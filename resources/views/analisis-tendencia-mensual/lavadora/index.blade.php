@@ -2253,7 +2253,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         ...responsiveTooltipOptions(),
                         callbacks: {
                             title: (context) => {
-                                return context[0]?.label || 'Sin reductor';
+                                return context[0]?.label || 'Sin reductor / servo-reductor';
                             },
                             label: (context) => wrapTooltipLines(`${context.dataset.label || 'Sin componente'}: ${Number(context.raw || 0)} daños`),
                             afterLabel: (context) => {
@@ -2306,7 +2306,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         grid: { color: 'rgba(148, 163, 184, 0.14)' },
                         title: {
                             display: true,
-                            text: 'Reductores / ubicaciones',
+                            text: 'Reductor / Servo-Reductor / ubicaciones',
                             color: '#64748b',
                             font: { size: 12, weight: '800' }
                         },

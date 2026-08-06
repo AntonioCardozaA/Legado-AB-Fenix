@@ -9,6 +9,7 @@ use App\Models\Componente;
 use App\Models\HistorialRestablecimiento;
 use App\Models\HistoricoRevisados;
 use App\Models\User;
+use App\Support\LavadoraCatalog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
@@ -19,79 +20,9 @@ class HistoricoRevisadosController extends Controller
     /**
      * Configuración de componentes por línea de lavadora
      */
-    private $componentesLavadora = [
-        'L-04' => [
-            'SERVO_CHICO' => 'Servo Chico',
-            'SERVO_GRANDE' => 'Servo Grande',
-            'BUJE_ESPIGA' => 'Buje Baquelita-Espiga de flecha',
-            'GUI_INF_TANQUE' => 'Guía Inferior',
-            'GUI_INT_TANQUE' => 'Guía Intermedia',
-            'GUI_SUP_TANQUE' => 'Guía Superior',
-            'CATARINAS' => 'Catarinas',
-        ],
-        'L-05' => [
-            'RV200' => 'Reductor RV200',
-            'BUJE_ESPIGA' => 'Buje Baquelita-Espiga de flecha',
-            'GUI_INF_TANQUE' => 'Guía Inferior',
-            'GUI_INT_TANQUE' => 'Guía Intermedia',
-            'GUI_SUP_TANQUE' => 'Guía Superior',
-            'CATARINAS' => 'Catarinas',
-        ],
-        'L-06' => [
-            'SERVO_CHICO' => 'Servo Chico',
-            'SERVO_GRANDE' => 'Servo Grande',
-            'BUJE_ESPIGA' => 'Buje Baquelita-Espiga de flecha',
-            'GUI_INF_TANQUE' => 'Guía Inferior',
-            'GUI_INT_TANQUE' => 'Guía Intermedia',
-            'GUI_SUP_TANQUE' => 'Guía Superior',
-            'CATARINAS' => 'Catarinas',
-        ],
-        'L-07' => [
-            'SERVO_CHICO' => 'Servo Chico',
-            'SERVO_GRANDE' => 'Servo Grande',
-            'BUJE_ESPIGA' => 'Buje Baquelita-Espiga de flecha',
-            'GUI_INF_TANQUE' => 'Guía Inferior',
-            'GUI_INT_TANQUE' => 'Guía Intermedia',
-            'GUI_SUP_TANQUE' => 'Guía Superior',
-            'CATARINAS' => 'Catarinas',
-        ],
-        'L-08' => [
-            'SERVO_CHICO' => 'Servo Chico',
-            'SERVO_GRANDE' => 'Servo Grande',
-            'BUJE_ESPIGA' => 'Buje Baquelita-Espiga de flecha',
-            'GUI_INF_TANQUE' => 'Guía Inferior',
-            'GUI_INT_TANQUE' => 'Guía Intermedia',
-            'GUI_SUP_TANQUE' => 'Guía Superior',
-            'CATARINAS' => 'Catarinas',
-        ],
-        'L-09' => [
-            'SERVO_CHICO' => 'Servo Chico',
-            'SERVO_GRANDE' => 'Servo Grande',
-            'BUJE_ESPIGA' => 'Buje Baquelita-Espiga de flecha',
-            'GUI_INF_TANQUE' => 'Guía Inferior',
-            'GUI_INT_TANQUE' => 'Guía Intermedia',
-            'GUI_SUP_TANQUE' => 'Guía Superior',
-            'CATARINAS' => 'Catarinas',
-        ],
-        'L-12' => [
-            'RV200_SIN_FIN' => 'Reductor Sin Fin-Corona RV200',
-            'BUJE_ESPIGA' => 'Buje Baquelita-Espiga de flecha',
-            'GUI_INF_TANQUE' => 'Guía Inferior',
-            'GUI_INT_TANQUE' => 'Guía Intermedia',
-            'GUI_SUP_TANQUE' => 'Guía Superior',
-            'CATARINAS' => 'Catarinas',
-        ],
-        'L-13' => [
-            'RV200' => 'Reductor RV200',
-            'BUJE_ESPIGA' => 'Buje Baquelita-Espiga de flecha',
-            'GUI_INF_TANQUE' => 'Guía Inferior',
-            'GUI_INT_TANQUE' => 'Guía Intermedia',
-            'GUI_SUP_TANQUE' => 'Guía Superior',
-            'CATARINAS' => 'Catarinas',
-        ],
-    ];
+    private $componentesLavadora = LavadoraCatalog::COMPONENTES_POR_LINEA;
 
-    /**
+/**
      * Configuración de cantidades totales POR LÍNEA (según lo especificado)
      */
     private $cantidadesPorLinea = [

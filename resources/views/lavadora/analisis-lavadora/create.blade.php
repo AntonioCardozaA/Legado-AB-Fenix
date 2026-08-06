@@ -3,6 +3,9 @@
 @section('title', 'Crear Análisis de Componente')
 
 @section('content')
+@php
+    $reductorLabel = \App\Support\LavadoraCatalog::etiquetaReductor($linea->nombre ?? null);
+@endphp
 <div class="max-w-4xl mx-auto py-10 px-4">
     {{-- Header mejorado --}}
     <div class="mb-8">
@@ -35,7 +38,7 @@
                     <p id="componente-nombre" class="text-gray-800"></p>
                 </div>
                 <div id="reductor-info" class="hidden">
-                    <p class="text-gray-600 font-semibold">Reductor</p>
+                    <p id="reductor-info-label" class="text-gray-600 font-semibold">{{ $reductorLabel }}</p>
                     <p id="reductor-nombre" class="text-gray-800"></p>
                 </div>
             </div>
@@ -84,18 +87,18 @@
                 <div>
                     <label for="reductor" class="block text-sm font-medium text-gray-700 mb-1">
                         <i class="fas fa-compress-alt text-blue-600 mr-1"></i>
-                        Reductor *
+                        {{ $reductorLabel }} *
                     </label>
                     <select id="reductor" name="reductor"
                             class="block w-full rounded-lg border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm
                                    @error('reductor') border-red-500 @enderror"
                             required
                             onchange="actualizarInformacion()">
-                        <option value="">Seleccionar reductor...</option>
+                        <option value="">Seleccionar {{ strtolower($reductorLabel) }}...</option>
                         @foreach($reductores as $reductor)
                             <option value="{{ $reductor }}"
                                 {{ old('reductor') == $reductor ? 'selected' : '' }}>
-                                {{ $reductor }}
+                                {{ \App\Support\LavadoraCatalog::nombreReductorParaLinea($linea->nombre ?? null, $reductor) }}
                             </option>
                         @endforeach
                     </select>
@@ -146,15 +149,15 @@
                 <div>
                     <label for="numero_orden" class="block text-sm font-medium text-gray-700 mb-1">
                         <i class="fas fa-hashtag text-blue-600 mr-1"></i>
-                        Numero de Orden
+                        Número de Orden
                     </label>
-                    <input type="text" 
+                    <input type="number"
                            id="numero_orden"
                            name="numero_orden" 
                            value="{{ old('numero_orden') }}"
-                           maxlength="20"
+                           maxlength="8"
                            placeholder="Opcional"
-                           title="Campo opcional. Maximo 20 caracteres"
+                           title="Campo opcional. Maximo 8 caracteres"
                            class="w-full rounded-lg border-gray-300 focus:border-amber-500 focus:ring-amber-500 shadow-sm
                            @error('numero_orden') border-red-500 @enderror">
                     @error('numero_orden')
@@ -456,11 +459,13 @@ document.addEventListener('DOMContentLoaded', function() {
 window.actualizarInformacion = function() {
     const componenteSelect = document.getElementById('componente_codigo');
     const reductorSelect = document.getElementById('reductor');
+    const defaultReductorLabel = @json($reductorLabel);
     
     const componenteInfo = document.getElementById('componente-info');
     const reductorInfo = document.getElementById('reductor-info');
     
     const componenteNombre = document.getElementById('componente-nombre');
+    const reductorInfoLabel = document.getElementById('reductor-info-label');
     const reductorNombre = document.getElementById('reductor-nombre');
     
     if (componenteSelect.value) {
@@ -473,6 +478,7 @@ window.actualizarInformacion = function() {
     
     if (reductorSelect.value) {
         reductorNombre.textContent = reductorSelect.options[reductorSelect.selectedIndex].textContent;
+        reductorInfoLabel.textContent = reductorSelect.value === 'Flecha Loca' ? 'Flecha Loca' : defaultReductorLabel;
         reductorInfo.classList.remove('hidden');
     } else {
         reductorInfo.classList.add('hidden');
