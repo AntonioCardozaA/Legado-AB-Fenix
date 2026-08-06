@@ -142,6 +142,7 @@ class AnalisisPasteurizadora extends Model
         'RODAJAS' => ['nombre' => 'Rodajas', 'cantidad' => 2],
         'PLACAS_PERNO' => ['nombre' => 'Placas Perno', 'cantidad' => 5],
         'VIGAS_MOVIMIENTO' => ['nombre' => 'Vigas de Movimiento', 'cantidad' => 2],
+        'VIGAS_FIJAS' => ['nombre' => 'Viga Fija', 'cantidad' => 1],
         'PISTAS' => ['nombre' => 'Pistas', 'cantidad' => 4],
         'ESPARRAGOS' => ['nombre' => 'Esparragos', 'cantidad' => 4],
     ];
@@ -781,8 +782,16 @@ class AnalisisPasteurizadora extends Model
         }
 
         $registros = self::queryForArea($area)
-            ->quick()
-            ->select(['linea_id', 'componente', 'modulo', 'nivel', 'lado', 'componentes_revisados'])
+            ->select([
+                'linea_id',
+                'componente',
+                'modulo',
+                'nivel',
+                'lado',
+                'componentes_revisados',
+                'cantidad_componentes_revisados',
+                'total_componentes',
+            ])
             ->whereIn('linea_id', $lineaIds)
             ->orderBy('created_at', 'desc')
             ->get();
@@ -801,18 +810,25 @@ class AnalisisPasteurizadora extends Model
         foreach ($agrupado as $clave => $items) {
             $componentesUnicos = collect();
             foreach ($items as $item) {
-                if (!empty($item->componentes_revisados)) {
-                    if (is_array($item->componentes_revisados)) {
-                        $componentesUnicos = $componentesUnicos->merge($item->componentes_revisados);
-                    } elseif (is_string($item->componentes_revisados)) {
-                        $decoded = json_decode($item->componentes_revisados, true);
-                        if (is_array($decoded)) {
-                            $componentesUnicos = $componentesUnicos->merge($decoded);
-                        }
-                    }
+                $totalComponentes = (int) ($item->total_componentes ?? 0);
+                $componentes = self::normalizarComponentesRevisados(
+                    $item->componentes_revisados,
+                    $totalComponentes > 0 ? $totalComponentes : null
+                );
+
+                if (empty($componentes)) {
+                    $cantidad = (int) ($item->cantidad_componentes_revisados ?? 0);
+                    $limite = $totalComponentes > 0 ? min($cantidad, $totalComponentes) : $cantidad;
+                    $componentes = $limite > 0 ? range(1, $limite) : [];
                 }
+
+                $componentesUnicos = $componentesUnicos->merge($componentes);
             }
-            $resultado[$clave] = $componentesUnicos->unique()->count();
+            $resultado[$clave] = $componentesUnicos
+                ->map(fn ($componente) => (int) $componente)
+                ->filter(fn ($componente) => $componente > 0)
+                ->unique()
+                ->count();
         }
 
         return $resultado;
@@ -825,7 +841,6 @@ class AnalisisPasteurizadora extends Model
     public static function getUltimoRegistro($lineaId, $modulo, $componente, $nivel, $lado, ?string $area = null)
     {
         return self::queryForArea($area)
-            ->quick()
             ->where('linea_id', $lineaId)
             ->where('modulo', $modulo)
             ->where('componente', $componente)

@@ -1699,7 +1699,6 @@ document.addEventListener('DOMContentLoaded', function() {
     function renderPlanActionDetail(data, options = {}) {
         if (!detalleActividad) return;
 
-        const usuarioNombre = usuario => usuario && usuario.name ? usuario.name : null;
         const formatMultiline = value => escapeHtml(value || '').replace(/\n/g, '<br>');
         const normalizeObject = value => value && typeof value === 'object' && !Array.isArray(value) ? value : {};
         const humanize = value => {
@@ -1786,11 +1785,6 @@ document.addEventListener('DOMContentLoaded', function() {
         const headerChipClasses = data.completado
             ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200'
             : 'bg-blue-50 text-blue-700 ring-1 ring-blue-200';
-        const responsable = usuarioNombre(data.responsable) || 'Sin responsable';
-        const registradoPor = usuarioNombre(data.registrado_por) || 'Sin dato historico';
-        const ejecutadoPor = usuarioNombre(data.ejecutado_por) || (data.completado ? 'Sin dato historico' : 'Pendiente');
-        const fechaRegistro = formatDateTime(data.created_at) || 'N/A';
-        const fechaEjecucion = formatDateTime(data.fecha_ejecucion) || (data.completado ? 'Sin dato historico' : 'Pendiente');
         const estadoClasses = data.completado ? 'border-emerald-200 bg-emerald-50 text-emerald-700 shadow-sm shadow-emerald-100' : 'border-blue-200 bg-blue-50 text-blue-800 shadow-sm shadow-blue-100';
         const estadoIcon = data.completado ? 'fa-circle-check' : 'fa-hourglass-half';
         const estadoLabel = data.completado ? 'Actividad completada' : 'Actividad pendiente';
@@ -1935,31 +1929,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
 
                 <div class="space-y-4 bg-zinc-50 p-5">
-                    <div class="grid gap-3 md:grid-cols-3">
-                        <div class="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
-                            <p class="text-xs font-bold uppercase tracking-wide text-zinc-500">Responsable</p>
-                            <p class="mt-2 font-bold text-zinc-950">${escapeHtml(responsable)}</p>
-                        </div>
-                        <div class="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
-                            <p class="text-xs font-bold uppercase tracking-wide text-zinc-500">Registrado por</p>
-                            <p class="mt-2 font-bold text-zinc-950">${escapeHtml(registradoPor)}</p>
-                            <p class="mt-1 text-xs text-zinc-500">${escapeHtml(fechaRegistro)}</p>
-                        </div>
-                        <div class="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
-                            <p class="text-xs font-bold uppercase tracking-wide text-zinc-500">Ejecutado por</p>
-                            <p class="mt-2 font-bold text-zinc-950">${escapeHtml(ejecutadoPor)}</p>
-                            <p class="mt-1 text-xs text-zinc-500">${escapeHtml(fechaEjecucion)}</p>
-                        </div>
-                    </div>
-
                     ${executionFeedbackHtml}
 
                     ${hasAiDetails ? `
                         <section class="space-y-4 rounded-2xl border border-amber-200 bg-amber-50/80 p-4 shadow-sm">
                             <div>
-                                <p class="text-xs font-bold uppercase tracking-wide text-amber-700">Plan aprobado</p>
-                                <p class="mt-1 text-sm text-amber-900">Se muestra solo el resumen operativo con los puntos importantes del plan.</p>
-                            </div>
                             ${planSummaryHtml}
                             <div class="grid gap-4 xl:grid-cols-2">
                                 ${recommendedActionsHtml}

@@ -1287,7 +1287,6 @@ document.addEventListener('DOMContentLoaded', function() {
     function renderPlanActionDetail(data, options = {}) {
         if (!detalleActividad) return;
 
-        const usuarioNombre = usuario => usuario && usuario.name ? usuario.name : null;
         const icon = 'fa-clipboard-list';
         const headerGradient = data.completado
             ? 'linear-gradient(135deg, #065f46 0%, #059669 52%, #34d399 100%)'
@@ -1295,11 +1294,6 @@ document.addEventListener('DOMContentLoaded', function() {
         const iconPanelClasses = data.completado
             ? 'bg-emerald-500/15 text-emerald-50 ring-1 ring-emerald-300/25'
             : 'bg-blue-500/15 text-blue-50 ring-1 ring-blue-300/25';
-        const responsable = usuarioNombre(data.responsable) || 'Sin responsable';
-        const registradoPor = usuarioNombre(data.registrado_por) || 'Sin dato historico';
-        const ejecutadoPor = usuarioNombre(data.ejecutado_por) || (data.completado ? 'Sin dato historico' : 'Pendiente');
-        const fechaRegistro = formatDateTime(data.created_at) || 'N/A';
-        const fechaEjecucion = formatDateTime(data.fecha_ejecucion) || (data.completado ? 'Sin dato historico' : 'Pendiente');
         const formatCurrencyValue = value => {
             if (value === null || value === undefined || value === '') {
                 return 'No registrado';
@@ -1402,23 +1396,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
 
                 <div class="space-y-4 bg-zinc-50 p-5">
-                    <div class="grid gap-3 md:grid-cols-3">
-                        <div class="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
-                            <p class="text-xs font-bold uppercase tracking-wide text-zinc-500">Responsable</p>
-                            <p class="mt-2 font-bold text-zinc-950">${escapeHtml(responsable)}</p>
-                        </div>
-                        <div class="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
-                            <p class="text-xs font-bold uppercase tracking-wide text-zinc-500">Registrado por</p>
-                            <p class="mt-2 font-bold text-zinc-950">${escapeHtml(registradoPor)}</p>
-                            <p class="mt-1 text-xs text-zinc-500">${escapeHtml(fechaRegistro)}</p>
-                        </div>
-                        <div class="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
-                            <p class="text-xs font-bold uppercase tracking-wide text-zinc-500">Ejecutado por</p>
-                            <p class="mt-2 font-bold text-zinc-950">${escapeHtml(ejecutadoPor)}</p>
-                            <p class="mt-1 text-xs text-zinc-500">${escapeHtml(fechaEjecucion)}</p>
-                        </div>
-                    </div>
-
                     ${executionFeedbackHtml}
 
                     ${pcmCards ? `<div class="grid gap-3 md:grid-cols-2">${pcmCards}</div>` : ''}
