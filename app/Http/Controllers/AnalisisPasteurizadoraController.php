@@ -7,6 +7,7 @@ use App\Models\HistoricoRevisados;
 use App\Models\Linea;
 use App\Exports\AnalisisPasteurizadoraExport;
 use App\Services\AnalysisDeletionLogger;
+use App\Services\ImageEvidenceOptimizer;
 use App\Services\TendenciaDanosService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -647,7 +648,7 @@ class AnalisisPasteurizadoraController extends Controller
             'estado' => 'required|in:' . implode(',', AnalisisPasteurizadora::ESTADOS),
             'actividad' => 'required|string',
             'evidencia_fotos' => 'nullable|array',
-            'evidencia_fotos.*' => ['nullable', 'image', $this->maxUploadedFileKilobytesRule(5120, 'Cada imagen no puede superar los 5 MB.')],
+            'evidencia_fotos.*' => ['nullable', 'image', $this->maxUploadedFileKilobytesRule(ImageEvidenceOptimizer::UPLOAD_MAX_KILOBYTES, 'Cada imagen no puede superar los 12 MB.')],
             'componentes_revisados' => 'nullable',
             'numero_componente' => ['nullable', 'integer', $this->positiveIntegerRule('Seleccione un numero de componente valido.')],
         ], [
@@ -742,7 +743,7 @@ class AnalisisPasteurizadoraController extends Controller
             'estado' => 'required|in:' . implode(',', AnalisisPasteurizadora::ESTADOS),
             'actividad' => 'required|string',
             'evidencia_fotos' => 'nullable|array',
-            'evidencia_fotos.*' => ['nullable', 'image', $this->maxUploadedFileKilobytesRule(5120, 'Cada imagen no puede superar los 5 MB.')],
+            'evidencia_fotos.*' => ['nullable', 'image', $this->maxUploadedFileKilobytesRule(ImageEvidenceOptimizer::UPLOAD_MAX_KILOBYTES, 'Cada imagen no puede superar los 12 MB.')],
             'componentes_revisados' => 'nullable',
         ], [
             'numero_orden.regex' => 'El numero de orden debe contener exactamente 8 digitos numericos.',
@@ -816,17 +817,7 @@ class AnalisisPasteurizadoraController extends Controller
 
     private function guardarEvidenciaPasteurizadora($foto): string
     {
-        $directorioRelativo = $this->evidenciasDir;
-        $directorioPublico = public_path('storage/' . $directorioRelativo);
-
-        if (!is_dir($directorioPublico)) {
-            mkdir($directorioPublico, 0755, true);
-        }
-
-        $nombreArchivo = $foto->hashName();
-        $foto->move($directorioPublico, $nombreArchivo);
-
-        return $directorioRelativo . '/' . $nombreArchivo;
+        return app(ImageEvidenceOptimizer::class)->store($foto, $this->evidenciasDir);
     }
 
     private function eliminarEvidenciaPasteurizadora(?string $foto): void
