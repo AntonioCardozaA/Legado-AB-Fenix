@@ -84,7 +84,10 @@
         .mini-stat-value,
         .mini-stat-meta,
         .status-banner,
-        .legend-item
+        .legend-item,
+        .historico-user,
+        .historico-activity,
+        .historico-location
     ) {
         overflow-wrap: anywhere;
         word-break: normal;
@@ -1112,6 +1115,21 @@
         white-space: nowrap;
     }
 
+    .trend-card-side {
+        align-self: start;
+        height: auto;
+    }
+
+    .trend-card-side .chart-shell {
+        flex: 0 0 auto;
+    }
+
+    .trend-card-side .chart-shell .chart-container,
+    .trend-card-side .chart-container.tall {
+        min-height: 220px;
+        height: 220px;
+    }
+
     .historico-card .subpanel-title {
         margin-top: 14px !important;
         font-size: 12px;
@@ -1120,6 +1138,10 @@
     .historico-card .subpanel-copy {
         font-size: 11px;
         margin-bottom: 10px;
+    }
+
+    .chart-card.historico-card > .overflow-x-auto {
+        display: none;
     }
 
     .historico-card table th {
@@ -1146,6 +1168,143 @@
     .historico-card table td .text-xs {
         font-size: 10px;
         margin-top: 2px;
+    }
+
+    .historico-card .severity-pill {
+        max-width: 100%;
+        min-width: 0;
+        white-space: normal;
+        line-height: 1.15;
+        text-align: center;
+    }
+
+    .historico-user {
+        display: block;
+        color: var(--primary-blue);
+        font-weight: 800;
+        line-height: 1.25;
+    }
+
+    .historico-activity {
+        display: -webkit-box;
+        margin-top: 4px;
+        color: var(--text-secondary);
+        font-size: 10px;
+        line-height: 1.3;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+        overflow: hidden;
+    }
+
+    .historico-review-list {
+        display: grid;
+        gap: 10px;
+        min-width: 0;
+    }
+
+    .historico-review-item {
+        display: grid;
+        gap: 10px;
+        padding: 12px;
+        background: #ffffff;
+        border: 1px solid rgba(148, 163, 184, 0.18);
+        border-left: 4px solid rgba(59, 130, 246, 0.65);
+        border-radius: 10px;
+        box-shadow: 0 8px 18px rgba(15, 23, 42, 0.05);
+        min-width: 0;
+    }
+
+    .historico-review-top {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: start;
+        justify-content: space-between;
+        min-width: 0;
+    }
+
+    .historico-review-date,
+    .historico-review-linea {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        min-width: 0;
+        color: var(--text-primary);
+        font-size: 11px;
+        font-weight: 800;
+        line-height: 1.25;
+        overflow-wrap: anywhere;
+        flex: 1 1 88px;
+    }
+
+    .historico-review-date i {
+        color: var(--primary-blue);
+        font-size: 11px;
+    }
+
+    .historico-review-top .severity-pill {
+        flex: 0 1 auto;
+        max-width: 100%;
+    }
+
+    .historico-review-main {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr));
+        gap: 10px;
+        min-width: 0;
+    }
+
+    .historico-review-activity {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 160px), 1fr));
+        gap: 10px;
+        padding-top: 10px;
+        border-top: 1px solid rgba(226, 232, 240, 0.9);
+        min-width: 0;
+    }
+
+    .historico-review-field {
+        display: grid;
+        gap: 3px;
+        min-width: 0;
+    }
+
+    .historico-review-label {
+        color: var(--text-secondary);
+        font-size: 9px;
+        font-weight: 800;
+        letter-spacing: 0.4px;
+        line-height: 1.2;
+        text-transform: uppercase;
+    }
+
+    .historico-review-value {
+        color: var(--text-primary);
+        font-size: 12px;
+        font-weight: 800;
+        line-height: 1.25;
+        overflow-wrap: anywhere;
+    }
+
+    .historico-review-activity .historico-activity {
+        font-size: 11px;
+        -webkit-line-clamp: 3;
+    }
+
+    .historico-review-empty {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        min-height: 88px;
+        padding: 16px;
+        color: var(--text-secondary);
+        background: #ffffff;
+        border: 1px dashed rgba(148, 163, 184, 0.35);
+        border-radius: 10px;
+        font-size: 12px;
+        font-weight: 700;
+        text-align: center;
     }
 
     .historico-card .overflow-x-auto {
@@ -1544,8 +1703,8 @@
         }
         .trend-card-side .chart-shell .chart-container,
         .trend-card-side .chart-container.tall {
-            min-height: 250px;
-            height: 250px;
+            min-height: 210px;
+            height: 210px;
         }
         .section-title {
             font-size: 20px;
@@ -2506,12 +2665,13 @@
 
     .trend-executive-brief {
         display: grid;
-        grid-template-columns: minmax(230px, 0.95fr) minmax(0, 1.45fr);
+        grid-template-columns: minmax(0, 1fr);
         gap: 16px;
         align-items: stretch;
     }
 
     .trend-executive-status {
+        display: none !important;
         position: relative;
         overflow: hidden;
         border-radius: 24px;
@@ -2590,8 +2750,9 @@
 
     .trend-executive-window-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(min(100%, 185px), 1fr));
-        gap: 14px;
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 220px));
+        justify-content: start;
+        gap: 10px;
         min-width: 0;
     }
 
@@ -2599,49 +2760,49 @@
         position: relative;
         overflow: hidden;
         min-width: 0;
-        border-radius: 20px;
+        border-radius: 12px;
         border: 1px solid rgba(148, 163, 184, 0.14);
         background: white;
-        padding: 18px;
-        box-shadow: 0 14px 28px rgba(15, 23, 42, 0.06);
+        padding: 12px 14px;
+        box-shadow: 0 8px 18px rgba(15, 23, 42, 0.05);
     }
 
     .trend-executive-window-card::before {
         content: '';
         position: absolute;
         inset: 0 0 auto 0;
-        height: 4px;
+        height: 3px;
         background: var(--trend-accent, #0f172a);
     }
 
     .trend-executive-window-value {
-        margin-top: 12px;
+        margin-top: 8px;
         color: #0f172a;
-        font-size: 30px;
+        font-size: 24px;
         line-height: 1.1;
         font-weight: 900;
         font-family: 'JetBrains Mono', 'Courier New', monospace;
     }
 
     .trend-executive-window-role {
-        margin-top: 8px;
+        margin-top: 4px;
         color: #64748b;
-        font-size: 12px;
+        font-size: 11px;
         font-weight: 700;
-        line-height: 1.4;
+        line-height: 1.3;
     }
 
     .trend-executive-window-delta {
         display: inline-flex;
         align-items: center;
-        gap: 8px;
+        gap: 6px;
         flex-wrap: wrap;
-        margin-top: 14px;
-        border-radius: 999px;
-        padding: 10px 12px;
-        font-size: 12px;
+        margin-top: 10px;
+        border-radius: 10px;
+        padding: 6px 9px;
+        font-size: 10px;
         font-weight: 800;
-        line-height: 1.35;
+        line-height: 1.25;
         max-width: 100%;
     }
 
@@ -2660,9 +2821,218 @@
         color: #92400e;
     }
 
+    .trend-card-side .trend-executive-shell {
+        gap: 10px;
+        margin-bottom: 10px;
+    }
+
+    .trend-card-side .trend-executive-topbar {
+        gap: 10px;
+        align-items: center;
+    }
+
+    .trend-card-side .trend-executive-caption {
+        flex: 1 1 180px;
+        font-size: 11px;
+    }
+
+    .trend-card-side .trend-executive-view-selector {
+        border-radius: 12px;
+        padding: 3px;
+    }
+
+    .trend-card-side .trend-executive-view-btn {
+        border-radius: 9px;
+        padding: 8px 12px;
+        font-size: 11px;
+    }
+
+    .trend-card-side .trend-executive-brief {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+
+    .trend-card-side .trend-executive-status {
+        border-radius: 14px;
+        padding: 12px 14px;
+        min-height: 0;
+    }
+
+    .trend-card-side .trend-executive-status::after {
+        display: none;
+    }
+
+    .trend-card-side .trend-executive-eyebrow,
+    .trend-card-side .trend-executive-window-label {
+        font-size: 10px;
+        letter-spacing: 0.06em;
+    }
+
+    .trend-card-side .trend-executive-status-title {
+        margin-top: 6px;
+        font-size: 20px;
+        line-height: 1.12;
+    }
+
+    .trend-card-side .trend-executive-status-copy {
+        margin-top: 6px;
+        font-size: 12px;
+        line-height: 1.4;
+        max-width: 620px;
+    }
+
+    .trend-card-side .trend-executive-window-grid {
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 125px), 1fr));
+        gap: 8px;
+    }
+
+    .trend-card-side .trend-executive-window-card {
+        border-radius: 12px;
+        padding: 12px;
+        box-shadow: 0 8px 18px rgba(15, 23, 42, 0.05);
+    }
+
+    .trend-card-side .trend-executive-window-card::before {
+        height: 3px;
+    }
+
+    .trend-card-side .trend-executive-window-value {
+        margin-top: 8px;
+        font-size: 22px;
+    }
+
+    .trend-card-side .trend-executive-window-role {
+        margin-top: 4px;
+        font-size: 10px;
+        line-height: 1.25;
+    }
+
+    .trend-card-side .trend-executive-window-delta {
+        margin-top: 8px;
+        gap: 6px;
+        padding: 6px 8px;
+        font-size: 10px;
+        line-height: 1.25;
+        border-radius: 10px;
+    }
+
+    .trend-card-primary .trend-filter-form {
+        display: grid;
+        grid-template-columns: minmax(120px, 150px) repeat(2, minmax(170px, 260px)) auto;
+        gap: 10px;
+        align-items: end;
+        justify-content: start;
+        margin-bottom: 12px !important;
+    }
+
+    .trend-card-primary .trend-date-field,
+    .trend-card-primary .panel-select,
+    .trend-card-primary .panel-date-input {
+        min-width: 0;
+    }
+
+    .trend-card-primary .panel-select,
+    .trend-card-primary .panel-date-input,
+    .trend-card-primary .panel-button {
+        min-height: 42px;
+    }
+
+    .trend-card-primary .trend-executive-shell {
+        gap: 10px;
+        margin-bottom: 12px;
+    }
+
+    .trend-card-primary .trend-executive-topbar {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 10px;
+        padding: 9px 10px;
+        border: 1px solid rgba(148, 163, 184, 0.14);
+        border-radius: 12px;
+        background: rgba(248, 250, 252, 0.72);
+    }
+
+    .trend-card-primary .trend-executive-caption {
+        font-size: 12px;
+        line-height: 1.3;
+    }
+
+    .trend-card-primary .trend-executive-view-selector {
+        border-radius: 12px;
+        padding: 3px;
+    }
+
+    .trend-card-primary .trend-executive-view-btn {
+        border-radius: 9px;
+        padding: 8px 12px;
+        font-size: 11px;
+    }
+
+    .trend-card-primary .trend-executive-brief {
+        gap: 10px;
+    }
+
+    .trend-card-primary .trend-executive-window-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+    }
+
+    .trend-card-primary .trend-executive-window-card {
+        display: grid;
+        grid-template-columns: minmax(78px, auto) minmax(0, 1fr);
+        grid-template-areas:
+            "label delta"
+            "value role";
+        align-items: center;
+        column-gap: 12px;
+        row-gap: 5px;
+        min-height: 84px;
+        padding: 11px 12px;
+        border-radius: 10px;
+    }
+
+    .trend-card-primary .trend-executive-window-label {
+        grid-area: label;
+        font-size: 10px;
+        letter-spacing: 0.06em;
+    }
+
+    .trend-card-primary .trend-executive-window-value {
+        grid-area: value;
+        margin-top: 0;
+        font-size: 24px;
+    }
+
+    .trend-card-primary .trend-executive-window-role {
+        grid-area: role;
+        margin-top: 0;
+        font-size: 11px;
+        line-height: 1.25;
+    }
+
+    .trend-card-primary .trend-executive-window-delta {
+        grid-area: delta;
+        justify-self: end;
+        margin-top: 0;
+        padding: 6px 9px;
+        border-radius: 10px;
+        font-size: 10px;
+        line-height: 1.2;
+    }
+
     @media (max-width: 1024px) {
         .trend-executive-brief {
             grid-template-columns: 1fr;
+        }
+
+        .trend-card-primary .trend-filter-form {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            justify-content: stretch;
+        }
+
+        .trend-card-primary .panel-button {
+            width: 100%;
         }
     }
 
@@ -2690,6 +3060,54 @@
         }
 
         .trend-executive-window-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .trend-card-side .trend-executive-window-grid {
+            grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr));
+        }
+
+        .trend-card-primary .trend-executive-topbar {
+            grid-template-columns: 1fr;
+        }
+
+        .trend-card-primary .trend-executive-view-selector {
+            width: 100%;
+            justify-content: space-between;
+        }
+
+        .trend-card-primary .trend-executive-view-btn {
+            flex: 1 1 0;
+        }
+
+        .trend-card-primary .trend-executive-window-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .trend-card-primary .trend-executive-window-card {
+            grid-template-columns: minmax(72px, auto) minmax(0, 1fr);
+        }
+    }
+
+    @media (max-width: 520px) {
+        .trend-card-primary .trend-filter-form {
+            grid-template-columns: 1fr;
+        }
+
+        .trend-card-primary .trend-executive-window-card {
+            grid-template-columns: 1fr;
+            grid-template-areas:
+                "label"
+                "value"
+                "role"
+                "delta";
+        }
+
+        .trend-card-primary .trend-executive-window-delta {
+            justify-self: stretch;
+        }
+
+        .trend-card-side .trend-executive-window-grid {
             grid-template-columns: 1fr;
         }
     }
@@ -4081,9 +4499,19 @@
             case 'historico': {
                 const body = document.getElementById('historicoTableBody');
                 const footer = body?.closest('.chart-card')?.querySelector('.table-footer');
+                const reviewList = document.getElementById('historicoReviewList');
 
                 if (body) {
                     body.innerHTML = `<tr><td colspan="6" class="text-center text-gray-500 py-6">No fue posible cargar el historico de revisiones.</td></tr>`;
+                }
+
+                if (reviewList) {
+                    reviewList.innerHTML = `
+                        <div class="historico-review-empty">
+                            <i class="fas fa-triangle-exclamation"></i>
+                            <span>No fue posible cargar el historico de revisiones.</span>
+                        </div>
+                    `;
                 }
 
                 if (footer) {
@@ -4140,7 +4568,6 @@
                     <span class="legend-item"><span class="legend-swatch" style="background: rgba(239, 68, 68, 0.92);"></span> Crítico</span>
                     <span class="legend-item"><span class="legend-swatch" style="background: rgba(245, 158, 11, 0.92);"></span> Requiere revisión</span>
                     <span class="legend-item"><span class="legend-swatch" style="background: rgba(249, 115, 22, 0.9);"></span> Severo / Moderado</span>
-                    <span class="legend-item"><span class="legend-swatch" style="background: rgba(16, 185, 129, 0.9);"></span> Estable</span>
                 </div>
             `);
             description.insertAdjacentHTML('afterend', `
@@ -4259,6 +4686,7 @@
                     </div>
                 </div>
                 <div class="subpanel-title" style="margin-top: 18px;">Ultimas revisiones registradas</div>
+                <div class="historico-review-list" id="historicoReviewList" aria-live="polite"></div>
             `);
         }
 
@@ -4373,13 +4801,6 @@
                     </div>
                 </div>
                 <div class="trend-executive-brief">
-                    <div id="${config.prefix}StatusCard" class="trend-executive-status trend-executive-status--neutral">
-                        <div class="trend-executive-eyebrow">Control inmediato</div>
-                        <div id="${config.prefix}StatusTitle" class="trend-executive-status-title">Leyendo tendencia reciente...</div>
-                        <p id="${config.prefix}StatusCopy" class="trend-executive-status-copy">
-                            Estamos comparando las ventanas recientes para mostrar si la baja de daños ya se refleja en la operacion.
-                        </p>
-                    </div>
                     <div id="${config.prefix}WindowCards" class="trend-executive-window-grid"></div>
                 </div>
             </div>
@@ -4393,14 +4814,12 @@
                     <div class="trend-chart-grid two-up">
                         <div class="trend-mini-chart">
                             <div class="subpanel-title">${escapeHtml(config.analysisLabel || 'Analisis')} - componentes criticos</div>
-                            <div class="subpanel-copy">Barras: total acumulado por componente; el tooltip muestra participacion, daño principal, ubicaciones y ultima falla.</div>
                             <div class="trend-mini-chart-container horizontal tall">
                                 <canvas id="${config.prefix}ComponentBar"></canvas>
                             </div>
                         </div>
                         <div class="trend-mini-chart">
                             <div class="subpanel-title">${escapeHtml(config.analysisLabel || 'Analisis')} - tipos de daño frecuentes</div>
-                            <div class="subpanel-copy">Barras: ultimo registro por componente/ubicacion; el tooltip conserva el historial del periodo, componentes afectados y ultima falla.</div>
                             <div class="trend-mini-chart-container horizontal tall">
                                 <canvas id="${config.prefix}DamageBar"></canvas>
                             </div>
@@ -4560,8 +4979,7 @@
             ? [
                 { label: 'Críticas', data: sorted.map((item) => Number(item.criticas || 0)), backgroundColor: 'rgba(239, 68, 68, 0.92)', borderColor: '#dc2626', borderWidth: 2, borderRadius: 10, borderSkipped: false },
                 { label: 'Requiere revisión', data: sorted.map((item) => Number(item.requiere_revision || 0)), backgroundColor: 'rgba(245, 158, 11, 0.92)', borderColor: '#d97706', borderWidth: 2, borderRadius: 10, borderSkipped: false },
-                { label: 'Severo / Moderado', data: sorted.map((item) => Number(item.severas_moderadas || 0)), backgroundColor: 'rgba(249, 115, 22, 0.88)', borderColor: '#ea580c', borderWidth: 2, borderRadius: 10, borderSkipped: false },
-                { label: 'Estables', data: sorted.map((item) => Number(item.estables || 0)), backgroundColor: 'rgba(16, 185, 129, 0.24)', borderColor: '#10b981', borderWidth: 1, borderRadius: 10, borderSkipped: false }
+                { label: 'Severo / Moderado', data: sorted.map((item) => Number(item.severas_moderadas || 0)), backgroundColor: 'rgba(249, 115, 22, 0.88)', borderColor: '#ea580c', borderWidth: 2, borderRadius: 10, borderSkipped: false }
             ]
             : [{
                 label: (singleDatasetMeta[state.fallasFilter] || singleDatasetMeta.severas_moderadas).label,
@@ -5180,6 +5598,7 @@
         const stats = document.getElementById('historicoStats');
         const footer = document.getElementById('historicoTableBody')?.closest('.chart-card')?.querySelector('.table-footer');
         const body = document.getElementById('historicoTableBody');
+        const reviewList = document.getElementById('historicoReviewList');
         const labels = Array.isArray(data.historico?.labels) ? data.historico.labels : [];
         const series = data.historico?.series || {};
         const values = Array.isArray(series[state.historicoScope]) ? series[state.historicoScope] : (Array.isArray(series.Todas) ? series.Todas : []);
@@ -5207,6 +5626,14 @@
 
         if (!values.length && !registros.length) {
             if (body) body.innerHTML = `<tr><td colspan="6" class="text-center text-gray-500 py-6">No hay historial disponible para el filtro seleccionado.</td></tr>`;
+            if (reviewList) {
+                reviewList.innerHTML = `
+                    <div class="historico-review-empty">
+                        <i class="fas fa-history"></i>
+                        <span>No hay historial disponible para el filtro seleccionado.</span>
+                    </div>
+                `;
+            }
             if (footer) footer.innerHTML = '<i class="fas fa-info-circle"></i> Se mostrara la trazabilidad cuando existan revisiones registradas.';
             destroy(charts.historico);
             setChartState('historico', true, 'Sin historico disponible', 'No existen revisiones suficientes para construir la tendencia mensual.', 'fa-history');
@@ -5220,12 +5647,61 @@
                         <td data-label="Fecha">${escapeHtml(item.fecha_humana || '-')}</td>
                         <td data-label="Lavadora">${escapeHtml(item.linea || '-')}</td>
                         <td data-label="Componente">${escapeHtml(item.componente || '-')}</td>
-                        <td data-label="Ubicación">${escapeHtml(item.reductor || '-')}${item.lado ? ` · ${escapeHtml(item.lado)}` : ''}</td>
+                        <td data-label="Ubicacion"><span class="historico-location">${escapeHtml(item.reductor || '-')}${item.lado ? ` - ${escapeHtml(item.lado)}` : ''}</span></td>
                         <td data-label="Estado"><span class="severity-pill ${severityFromEstado(item.estado)}" style="${severityPillStyle(item.estado, item.estado_color)}">${escapeHtml(item.estado || 'Sin estado')}</span></td>
-                        <td data-label="Revisión">${escapeHtml(item.usuario || 'Sin usuario')}${item.actividad ? `<div class="text-xs text-gray-500 mt-1">${escapeHtml(item.actividad)}</div>` : ''}</td>
+                        <td data-label="Revision"><span class="historico-user">${escapeHtml(item.usuario || 'Sin usuario')}</span>${item.actividad ? `<span class="historico-activity">${escapeHtml(item.actividad)}</span>` : ''}</td>
                     </tr>
                 `).join('')
                 : `<tr><td colspan="6" class="text-center text-gray-500 py-6">No hay registros recientes para este alcance.</td></tr>`;
+        }
+
+        if (reviewList) {
+            reviewList.innerHTML = registros.length
+                ? registros.map((item) => {
+                    const ubicacion = `${escapeHtml(item.reductor || '-')}${item.lado ? ` - ${escapeHtml(item.lado)}` : ''}`;
+                    const actividad = item.actividad ? escapeHtml(item.actividad) : 'Sin actividad registrada';
+
+                    return `
+                        <article class="historico-review-item">
+                            <div class="historico-review-top">
+                                <span class="historico-review-date">
+                                    <i class="fas fa-calendar-day"></i>
+                                    <span>${escapeHtml(item.fecha_humana || '-')}</span>
+                                </span>
+                                <span class="historico-review-linea">
+                                    <span>${escapeHtml(item.linea || '-')}</span>
+                                </span>
+                                <span class="severity-pill ${severityFromEstado(item.estado)}" style="${severityPillStyle(item.estado, item.estado_color)}">${escapeHtml(item.estado || 'Sin estado')}</span>
+                            </div>
+                            <div class="historico-review-main">
+                                <div class="historico-review-field">
+                                    <span class="historico-review-label">Componente</span>
+                                    <span class="historico-review-value">${escapeHtml(item.componente || '-')}</span>
+                                </div>
+                                <div class="historico-review-field">
+                                    <span class="historico-review-label">Ubicacion</span>
+                                    <span class="historico-review-value">${ubicacion}</span>
+                                </div>
+                            </div>
+                            <div class="historico-review-activity">
+                                <div class="historico-review-field">
+                                    <span class="historico-review-label">Revision</span>
+                                    <span class="historico-user">${escapeHtml(item.usuario || 'Sin usuario')}</span>
+                                </div>
+                                <div class="historico-review-field">
+                                    <span class="historico-review-label">Actividad</span>
+                                    <span class="historico-activity">${actividad}</span>
+                                </div>
+                            </div>
+                        </article>
+                    `;
+                }).join('')
+                : `
+                    <div class="historico-review-empty">
+                        <i class="fas fa-filter"></i>
+                        <span>No hay registros recientes para este alcance.</span>
+                    </div>
+                `;
         }
 
         if (footer) {
@@ -5673,9 +6149,6 @@
     }
 
     function renderTrendExecutiveBlock(config, item, series) {
-        const statusCard = document.getElementById(`${config.prefix}StatusCard`);
-        const statusTitle = document.getElementById(`${config.prefix}StatusTitle`);
-        const statusCopy = document.getElementById(`${config.prefix}StatusCopy`);
         const windowCards = document.getElementById(`${config.prefix}WindowCards`);
         const caption = document.getElementById(`${config.prefix}Caption`);
         const chartType = state[config.chartTypeKey] || 'bar';
@@ -5684,50 +6157,18 @@
             button.classList.toggle('active', button.dataset.trendType === chartType);
         });
 
-        if (!statusCard || !statusTitle || !statusCopy || !windowCards || !caption) {
+        if (!windowCards || !caption) {
             return;
         }
 
         if (!item || !Array.isArray(item.labels) || !item.labels.length || !series.length) {
-            statusCard.className = 'trend-executive-status trend-executive-status--neutral';
-            statusTitle.textContent = 'Sin tendencia disponible';
-            statusCopy.textContent = 'Esta lavadora todavia no tiene historial suficiente para mostrar la tendencia en este dashboard.';
             windowCards.innerHTML = '';
             caption.textContent = 'Sin corte disponible.';
             return;
         }
 
         const latestLabel = item.labels[item.labels.length - 1] || 'Sin corte';
-        const baseWindow = series[0];
-        const midWindow = series[1];
-        const recentWindow = series[2];
-        const midDelta = trendCompareSeries(midWindow?.data || []);
-        const recentDelta = trendCompareSeries(recentWindow?.data || []);
-        const recentZeroRun = trendZeroStreak(recentWindow?.data || []);
 
-        let tone = 'neutral';
-        let title = 'Monitoreo en curso';
-        let copy = `${recentWindow?.label || 'Ventana corta'} no presenta repunte, pero todavia se requiere continuidad para que ${baseWindow?.label || 'el historico'} refleje una mejora mas amplia.`;
-
-        if ((recentWindow?.data?.length > 1 && recentDelta.diff <= 0 && midDelta.diff < 0) || (recentDelta.current === 0 && recentZeroRun >= 2 && midDelta.diff <= 0)) {
-            tone = 'positive';
-
-            if (recentDelta.current === 0 && recentZeroRun >= 2) {
-                title = 'Implementacion funcionando';
-                copy = `${recentWindow.label} se mantiene en 0 daños durante ${recentZeroRun} periodos y ${midWindow.label} sigue bajando frente al corte anterior.`;
-            } else {
-                title = 'Tendencia de baja confirmada';
-                copy = `${recentWindow.label} ${trendExecutiveDeltaCopy(recentDelta).toLowerCase()} y ${midWindow.label} tambien viene a la baja.`;
-            }
-        } else if (recentDelta.diff > 0 || midDelta.diff > 0) {
-            tone = 'alert';
-            title = 'Repunte reciente';
-            copy = `${recentWindow.label} o ${midWindow.label} subieron frente al corte anterior.`;
-        }
-
-        statusCard.className = `trend-executive-status trend-executive-status--${tone}`;
-        statusTitle.textContent = title;
-        statusCopy.textContent = copy;
         caption.textContent = `Corte actual: ${latestLabel}.`;
 
         windowCards.innerHTML = series.map((windowItem) => {
