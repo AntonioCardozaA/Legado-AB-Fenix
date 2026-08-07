@@ -274,6 +274,7 @@
 @endsection
 
 @section('scripts')
+<script src="{{ asset('js/evidence-image-compression.js') }}"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const analisisForm = document.querySelector('form');
@@ -287,8 +288,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const componenteSelect = document.getElementById('componente_codigo');
     const ladoSelector = document.getElementById('lado-selector-container');
     const ladoInput = document.getElementById('lado');
-    const maxFotoSize = 5 * 1024 * 1024;
+    const imageCompression = window.EvidenceImageCompression;
+    const maxFotoSize = imageCompression?.MAX_INPUT_BYTES ?? 12 * 1024 * 1024;
+    const maxFotoSizeMb = Math.round(maxFotoSize / 1024 / 1024);
     const soportaDataTransfer = typeof DataTransfer !== 'undefined';
+    let procesandoFotos = false;
 
     // Función para mostrar/ocultar el selector de lado
     window.toggleLadoSelector = function() {
@@ -375,33 +379,45 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    function agregarFotos(files) {
+    async function agregarFotos(files) {
+        if (procesandoFotos) {
+            alert('Espera a que terminen de optimizarse las imagenes.');
+            return;
+        }
+
         const fotosActuales = getFotosPrincipales();
         const firmas = new Set(fotosActuales.map((file) => `${file.name}-${file.size}-${file.lastModified}`));
         const nuevasFotos = [...fotosActuales];
+        procesandoFotos = true;
+        fotosResumen.textContent = 'Optimizando imagenes...';
 
-        Array.from(files || []).forEach((file) => {
+        for (const file of Array.from(files || [])) {
             if (!file.type.startsWith('image/')) {
                 alert(`El archivo ${file.name} no es una imagen vÃ¡lida.`);
-                return;
+                continue;
             }
 
             if (file.size > maxFotoSize) {
-                alert(`La imagen ${file.name} supera el tamaÃ±o mÃ¡ximo de 5MB.`);
-                return;
+                alert(`La imagen ${file.name} supera el tamano maximo de ${maxFotoSizeMb}MB.`);
+                continue;
             }
 
             const firma = `${file.name}-${file.size}-${file.lastModified}`;
             if (firmas.has(firma)) {
-                return;
+                continue;
             }
 
+            const fotoOptimizada = imageCompression
+                ? await imageCompression.compressImageFile(file)
+                : file;
+
             firmas.add(firma);
-            nuevasFotos.push(file);
-        });
+            nuevasFotos.push(fotoOptimizada);
+        }
 
         inputFotos.files = crearDataTransfer(nuevasFotos).files;
         renderPreview(getFotosPrincipales(), true);
+        procesandoFotos = false;
     }
 
     botonGaleria.addEventListener('click', function() {
@@ -447,7 +463,13 @@ document.addEventListener('DOMContentLoaded', function() {
         toggleLadoSelector();
     });
 
-    analisisForm.addEventListener('submit', function() {
+    analisisForm.addEventListener('submit', function(e) {
+        if (procesandoFotos) {
+            e.preventDefault();
+            alert('Espera a que terminen de optimizarse las imagenes.');
+            return;
+        }
+
         if (soportaDataTransfer) {
             inputFotos.disabled = getFotosPrincipales().length === 0;
         }

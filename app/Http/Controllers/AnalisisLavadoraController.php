@@ -18,6 +18,7 @@ use Illuminate\Support\Str;
 use App\Exports\AnalisisComponentesExport;
 use App\Exports\AnalisisLavadoraExport;
 use App\Services\AnalysisDeletionLogger;
+use App\Services\ImageEvidenceOptimizer;
 use App\Services\LavadoraCostSyncService;
 use App\Services\Maintenance\WasherMaintenanceOrchestrator;
 use App\Support\LavadoraCatalog;
@@ -1226,7 +1227,7 @@ private function procesarMantenimientoAutomaticoSafely(AnalisisLavadora $analisi
             'file',
             'mimetypes:image/jpeg,image/png,image/gif,image/webp,image/bmp,image/x-ms-bmp',
             'extensions:jpg,jpeg,png,gif,webp,bmp',
-            'max:12288',
+            'max:' . ImageEvidenceOptimizer::UPLOAD_MAX_KILOBYTES,
         ];
     }
 
@@ -1239,50 +1240,10 @@ private function procesarMantenimientoAutomaticoSafely(AnalisisLavadora $analisi
                 continue;
             }
 
-            $extension = strtolower($archivo->getClientOriginalExtension() ?: $archivo->extension() ?: 'jpg');
-            $nombreArchivo = now()->format('Ymd_His') . '_' . uniqid() . '.' . $extension;
-
-            /*
-             |------------------------------------------------------------
-             | Guardado principal visible en producción
-             | public/storage/analisis-evidencias
-             |------------------------------------------------------------
-             */
-            $rutaPublica = public_path('storage/' . self::EVIDENCIA_FOTOS_PATH);
-
-            if (!file_exists($rutaPublica)) {
-                mkdir($rutaPublica, 0755, true);
-            }
-
-            $archivo->move($rutaPublica, $nombreArchivo);
-
-            $rutaGuardar = self::EVIDENCIA_FOTOS_PATH . '/' . $nombreArchivo;
-            $rutas[] = $rutaGuardar;
-
-            /*
-             |------------------------------------------------------------
-             | Copia extra para mantener compatibilidad con Laravel storage
-             | storage/app/public/analisis-evidencias
-             |------------------------------------------------------------
-             */
-            try {
-                $rutaStorage = storage_path('app/public/' . self::EVIDENCIA_FOTOS_PATH);
-
-                if (!file_exists($rutaStorage)) {
-                    mkdir($rutaStorage, 0755, true);
-                }
-
-                $origen = public_path('storage/' . $rutaGuardar);
-                $destino = $rutaStorage . '/' . $nombreArchivo;
-
-                if (file_exists($origen) && !file_exists($destino)) {
-                    copy($origen, $destino);
-                }
-            } catch (\Exception $e) {
-                Log::warning('No se pudo copiar evidencia a storage/app/public', [
-                    'error' => $e->getMessage(),
-                ]);
-            }
+            $rutas[] = app(ImageEvidenceOptimizer::class)->store($archivo, self::EVIDENCIA_FOTOS_PATH, [
+                'base_name' => now()->format('Ymd_His') . '_' . uniqid(),
+                'mirror_to_storage' => true,
+            ]);
         }
 
         return $rutas;

@@ -398,7 +398,7 @@
                 <div class="mt-4 rounded-lg border border-dashed border-gray-300 bg-white p-3">
                     <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                         <p id="fotos_resumen" class="text-sm font-medium text-gray-600">Sin imagenes seleccionadas</p>
-                        <p class="text-xs text-gray-500">JPG, PNG, WEBP, GIF o BMP. Max. 5MB por imagen.</p>
+                        <p class="text-xs text-gray-500">JPG, PNG, WEBP, GIF o BMP. Max. 12MB por imagen.</p>
                     </div>
                     <div id="preview_fotos" class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-4"></div>
                 </div>
@@ -426,6 +426,7 @@
     </div>
 </div>
 
+<script src="{{ asset('js/evidence-image-compression.js') }}"></script>
 <script>
 const componentesConfiguracion = @json($componentesConfiguracion);
 const moduloSelect = document.getElementById('modulo');
@@ -599,8 +600,11 @@ const fotosResumen = document.getElementById('fotos_resumen');
 const previewFotos = document.getElementById('preview_fotos');
 const btnGaleria = document.getElementById('btn_evidencia_fotos_galeria');
 const btnCamara = document.getElementById('btn_evidencia_fotos_camara');
-const maxFotoSize = 5 * 1024 * 1024;
+const imageCompression = window.EvidenceImageCompression;
+const maxFotoSize = imageCompression?.MAX_INPUT_BYTES ?? 12 * 1024 * 1024;
+const maxFotoSizeMb = Math.round(maxFotoSize / 1024 / 1024);
 const extensionesPermitidasFotos = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'];
+let procesandoFotos = false;
 
 function crearDataTransferFotos(files = []) {
     if (typeof DataTransfer === 'undefined') {
@@ -680,43 +684,56 @@ function renderFotoPreview(files, permitirEliminar) {
     });
 }
 
-function agregarArchivos(files) {
+async function agregarArchivos(files) {
     if (!soportaDataTransferFotos) {
         renderFotoPreview(getFotosFallback(), false);
+        return;
+    }
+
+    if (procesandoFotos) {
+        alert('Espera a que terminen de optimizarse las imagenes.');
         return;
     }
 
     const fotosActuales = getFotosPrincipales();
     const firmas = new Set(fotosActuales.map((file) => `${file.name}-${file.size}-${file.lastModified}`));
     const nuevasFotos = [...fotosActuales];
+    procesandoFotos = true;
+    fotosResumen.textContent = 'Optimizando imagenes...';
 
-    Array.from(files || []).forEach((file) => {
+    for (const file of Array.from(files || [])) {
         if (!esImagenSeleccionable(file)) {
             alert(`El archivo ${file.name} no es una imagen valida.`);
-            return;
+            continue;
         }
 
         if (file.size > maxFotoSize) {
-            alert(`La imagen ${file.name} supera el tamano maximo de 5MB.`);
-            return;
+            alert(`La imagen ${file.name} supera el tamano maximo de ${maxFotoSizeMb}MB.`);
+            continue;
         }
 
         const firma = `${file.name}-${file.size}-${file.lastModified}`;
         if (firmas.has(firma)) {
-            return;
+            continue;
         }
 
+        const fotoOptimizada = imageCompression
+            ? await imageCompression.compressImageFile(file)
+            : file;
+
         firmas.add(firma);
-        nuevasFotos.push(file);
-    });
+        nuevasFotos.push(fotoOptimizada);
+    }
 
     const dataTransfer = crearDataTransferFotos(nuevasFotos);
     if (!dataTransfer) {
+        procesandoFotos = false;
         return;
     }
 
     evidenciaFotosInput.files = dataTransfer.files;
     renderFotoPreview(getFotosPrincipales(), true);
+    procesandoFotos = false;
 }
 
 previewFotos.addEventListener('click', (event) => {
@@ -766,6 +783,12 @@ ladoSelect.addEventListener('change', actualizarResumenFormulario);
 nivelSelect.addEventListener('change', actualizarResumenFormulario);
 
 document.getElementById('analisisNormalForm')?.addEventListener('submit', function(event) {
+    if (procesandoFotos) {
+        event.preventDefault();
+        alert('Espera a que terminen de optimizarse las imagenes.');
+        return;
+    }
+
     const componente = obtenerComponenteSeleccionado();
 
     if (!componente || componente.es_brazo_torsion || componente.cantidad === 1) {
