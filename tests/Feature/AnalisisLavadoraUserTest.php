@@ -28,7 +28,7 @@ class AnalisisLavadoraUserTest extends TestCase
             'componente_codigo' => 'SERVO_CHICO',
             'reductor' => 'Reductor 1',
             'fecha_analisis' => now()->toDateString(),
-            'numero_orden' => 'OT-LAV-001',
+            'numero_orden' => '12345678',
             'estado' => 'Buen estado',
             'actividad' => 'Registro de prueba para usuario',
         ]);
@@ -37,12 +37,12 @@ class AnalisisLavadoraUserTest extends TestCase
 
         $this->assertDatabaseHas('analisis_componentes', [
             'linea_id' => $linea->id,
-            'numero_orden' => 'OT-LAV-001',
+            'numero_orden' => '12345678',
             'usuario_id' => $user->id,
         ]);
 
         $analisis = AnalisisLavadora::with('usuario')
-            ->where('numero_orden', 'OT-LAV-001')
+            ->where('numero_orden', '12345678')
             ->firstOrFail();
 
         $this->assertTrue($analisis->usuario->is($user));
@@ -72,6 +72,36 @@ class AnalisisLavadoraUserTest extends TestCase
             'linea_id' => $linea->id,
             'numero_orden' => null,
             'usuario_id' => $user->id,
+        ]);
+    }
+
+    public function test_store_rejects_order_number_that_is_not_exactly_eight_digits(): void
+    {
+        $user = User::factory()->create();
+        $linea = Linea::create([
+            'nombre' => 'L-04',
+            'descripcion' => 'Lavadora de prueba',
+            'activo' => true,
+        ]);
+
+        $response = $this->actingAs($user)
+            ->from(route('analisis-lavadora.create', $linea->id))
+            ->post(route('analisis-lavadora.store'), [
+                'linea_id' => $linea->id,
+                'componente_codigo' => 'SERVO_CHICO',
+                'reductor' => 'Reductor 1',
+                'fecha_analisis' => now()->toDateString(),
+                'numero_orden' => 'OT-12345',
+                'estado' => 'Buen estado',
+                'actividad' => 'Registro con numero de orden invalido',
+            ]);
+
+        $response->assertRedirect(route('analisis-lavadora.create', $linea->id));
+        $response->assertSessionHasErrors('numero_orden');
+
+        $this->assertDatabaseMissing('analisis_componentes', [
+            'linea_id' => $linea->id,
+            'actividad' => 'Registro con numero de orden invalido',
         ]);
     }
 

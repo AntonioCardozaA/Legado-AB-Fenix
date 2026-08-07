@@ -77,9 +77,7 @@
             <p class="text-gray-800">
                 {{ $analisisComponente->componente->nombre ?? 'Componente no encontrado' }}
                 @if($analisisComponente->componente->codigo ?? false)
-                    <span class="text-gray-500">
-                        ({{ $analisisComponente->componente->codigo }})
-                    </span>
+                  
                 @endif
             </p>
         </div>

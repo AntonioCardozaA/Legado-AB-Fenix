@@ -35,13 +35,13 @@ class AdminRecordNotificationTest extends TestCase
                 'componente_codigo' => 'SERVO_CHICO',
                 'reductor' => 'Reductor 1',
                 'fecha_analisis' => '2026-06-24',
-                'numero_orden' => 'OT-NOTIF-001',
+                'numero_orden' => '24681357',
                 'estado' => AnalisisLavadora::ESTADO_BUENO,
                 'actividad' => 'Registro para notificar administrador',
             ])
             ->assertRedirect(route('analisis-lavadora.index', ['linea_id' => $linea->id]));
 
-        $analisis = AnalisisLavadora::where('numero_orden', 'OT-NOTIF-001')->firstOrFail();
+        $analisis = AnalisisLavadora::where('numero_orden', '24681357')->firstOrFail();
         $notification = $admin->fresh()->notifications()->firstOrFail();
 
         $this->assertNull($notification->read_at);

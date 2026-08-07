@@ -149,15 +149,20 @@
                 <div>
                     <label for="numero_orden" class="block text-sm font-medium text-gray-700 mb-1">
                         <i class="fas fa-hashtag text-blue-600 mr-1"></i>
-                        Número de Orden
+                        Numero de Orden (opcional)
                     </label>
-                    <input type="number"
+                    <input type="text"
                            id="numero_orden"
                            name="numero_orden" 
                            value="{{ old('numero_orden') }}"
+                           minlength="8"
                            maxlength="8"
-                           placeholder="Opcional"
-                           title="Campo opcional. Maximo 8 caracteres"
+                           inputmode="numeric"
+                           pattern="[0-9]{8}"
+                           autocomplete="off"
+                           placeholder="Ej: 35221456"
+                           title="Opcional. Si se captura, debe contener exactamente 8 digitos numericos"
+                           oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 8)"
                            class="w-full rounded-lg border-gray-300 focus:border-amber-500 focus:ring-amber-500 shadow-sm
                            @error('numero_orden') border-red-500 @enderror">
                     @error('numero_orden')

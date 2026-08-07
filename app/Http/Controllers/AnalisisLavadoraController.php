@@ -605,13 +605,15 @@ public function index(Request $request)
         'componente_id'     => 'nullable|exists:componentes,id',
         'reductor'          => 'required|string|max:255',
         'fecha_analisis'    => 'required|date',
-        'numero_orden'      => 'nullable|string|max:20',
+        'numero_orden'      => ['nullable', 'regex:/^\d{8}$/'],
         'estado'            => 'required|string|in:' . implode(',', AnalisisLavadora::ESTADOS),
         'actividad'         => 'required|string',
         'evidencia_fotos'   => 'nullable|array',
         'evidencia_fotos.*' => $this->evidenciaFotoRules(),
         'redirect_to'       => 'nullable|string',
         'lado'               => 'nullable|string|in:VAPOR,PASILLO',
+    ], [
+        'numero_orden.regex' => 'El numero de orden debe contener exactamente 8 digitos numericos.',
     ]);
 
     if ($validator->fails()) {

@@ -39,14 +39,14 @@ class LavadoraCostModuleTest extends TestCase
             'componente_id' => $componente->id,
             'reductor' => 'Reductor 1',
             'fecha_analisis' => '2026-07-06',
-            'numero_orden' => 'OT-COST-001',
+            'numero_orden' => '10000001',
             'estado' => AnalisisLavadora::ESTADO_CAMBIADO,
             'actividad' => 'REEMPLAZO TOTAL DEL COMPONENTE',
         ]);
 
         $response->assertRedirect(route('analisis-lavadora.index', ['linea_id' => $linea->id]));
 
-        $analysis = AnalisisLavadora::query()->where('numero_orden', 'OT-COST-001')->firstOrFail();
+        $analysis = AnalisisLavadora::query()->where('numero_orden', '10000001')->firstOrFail();
 
         $this->assertDatabaseHas('lavadora_cost_entries', [
             'analisis_lavadora_id' => $analysis->id,
@@ -79,7 +79,7 @@ class LavadoraCostModuleTest extends TestCase
             'componente_id' => $componente->id,
             'reductor' => 'Reductor 1',
             'fecha_analisis' => '2026-07-06',
-            'numero_orden' => 'OT-COST-002',
+            'numero_orden' => '10000002',
             'estado' => AnalisisLavadora::ESTADO_BUENO,
             'actividad' => 'CAMBIO DE ACEITE 2 LITROS EN REDUCTOR',
         ])->assertRedirect(route('analisis-lavadora.index', ['linea_id' => $linea->id]));
@@ -134,12 +134,12 @@ class LavadoraCostModuleTest extends TestCase
             'componente_id' => $componente->id,
             'reductor' => 'Reductor 1',
             'fecha_analisis' => '2026-07-06',
-            'numero_orden' => 'OT-COST-003',
+            'numero_orden' => '10000003',
             'estado' => AnalisisLavadora::ESTADO_BUENO,
             'actividad' => 'INSPECCION GENERAL',
         ])->assertRedirect(route('analisis-lavadora.index', ['linea_id' => $linea->id]));
 
-        $analysis = AnalisisLavadora::query()->where('numero_orden', 'OT-COST-003')->firstOrFail();
+        $analysis = AnalisisLavadora::query()->where('numero_orden', '10000003')->firstOrFail();
 
         $this->actingAs($user)->post(route('analisis-lavadora.costos.manual.store', ['analisislavadora' => $analysis->id]), [
             'items' => [
@@ -161,7 +161,7 @@ class LavadoraCostModuleTest extends TestCase
 
         $this->actingAs($user)->put(route('analisis-lavadora.update', $analysis->id), [
             'fecha_analisis' => '2026-07-06',
-            'numero_orden' => 'OT-COST-003',
+            'numero_orden' => '10000003',
             'estado' => AnalisisLavadora::ESTADO_BUENO,
             'actividad' => 'INSPECCION GENERAL AJUSTADA',
         ])->assertRedirect(route('analisis-lavadora.index'));
@@ -199,12 +199,12 @@ class LavadoraCostModuleTest extends TestCase
             'componente_id' => $componente->id,
             'reductor' => 'Reductor 1',
             'fecha_analisis' => '2026-07-06',
-            'numero_orden' => 'OT-COST-004',
+            'numero_orden' => '10000004',
             'estado' => AnalisisLavadora::ESTADO_CAMBIADO,
             'actividad' => 'REEMPLAZO TOTAL DEL COMPONENTE',
         ])->assertRedirect(route('analisis-lavadora.index', ['linea_id' => $linea->id]));
 
-        $analysis = AnalisisLavadora::query()->where('numero_orden', 'OT-COST-004')->firstOrFail();
+        $analysis = AnalisisLavadora::query()->where('numero_orden', '10000004')->firstOrFail();
 
         $this->assertDatabaseHas('lavadora_cost_entries', [
             'analisis_lavadora_id' => $analysis->id,
