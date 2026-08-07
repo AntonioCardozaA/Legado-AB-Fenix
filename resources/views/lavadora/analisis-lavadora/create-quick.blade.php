@@ -159,7 +159,7 @@
                     <i class="fas fa-hashtag text-blue-600 mr-1"></i>
                     Numero de orden (opcional)
                 </label>
-                <input type="text"
+                <input type="number"
                        name="numero_orden"
                        value="{{ old('numero_orden') }}"
                        minlength="8"
