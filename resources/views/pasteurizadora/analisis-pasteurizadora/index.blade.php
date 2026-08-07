@@ -1085,6 +1085,326 @@
         background: #94a3b8;
     }
 
+    .analysis-detail-modal {
+        padding: clamp(0.5rem, 2vw, 1rem);
+    }
+
+    .analysis-detail-dialog {
+        display: flex;
+        max-height: min(92vh, calc(100dvh - 1rem));
+        max-width: min(64rem, calc(100vw - 1rem));
+        flex-direction: column;
+    }
+
+    .analysis-detail-header {
+        flex: 0 0 auto;
+    }
+
+    .analysis-detail-body {
+        flex: 1 1 auto;
+        max-height: none !important;
+        min-height: 0;
+        overflow: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .analysis-detail-dialog *,
+    .analysis-detail-dialog *::before,
+    .analysis-detail-dialog *::after {
+        box-sizing: border-box;
+        min-width: 0;
+    }
+
+    .analysis-detail-summary-grid,
+    .analysis-detail-secondary-grid {
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)) !important;
+    }
+
+    .analysis-detail-dialog :where(
+        .analysis-detail-card,
+        .analysis-detail-summary-grid > div,
+        .analysis-detail-secondary-grid > div,
+        #detail-componentes-section > div,
+        #detail-niveles-section > div
+    ) {
+        min-height: 105px;
+        overflow: hidden;
+    }
+
+    .analysis-detail-dialog :where(
+        .analysis-detail-card,
+        .analysis-detail-summary-grid > div,
+        .analysis-detail-secondary-grid > div,
+        #detail-componentes-section > div,
+        #detail-niveles-section > div
+    ) .flex {
+        min-width: 0;
+    }
+
+    .analysis-detail-dialog :where(
+        .analysis-detail-card,
+        .analysis-detail-summary-grid > div,
+        .analysis-detail-secondary-grid > div,
+        #detail-componentes-section > div,
+        #detail-niveles-section > div
+    ) [id^="detail-"] {
+        max-width: 100%;
+        overflow-wrap: anywhere;
+        word-break: normal;
+    }
+
+    .analysis-detail-dialog :where(
+        .analysis-detail-card,
+        .analysis-detail-summary-grid > div,
+        .analysis-detail-secondary-grid > div,
+        #detail-componentes-section > div,
+        #detail-niveles-section > div
+    ) :where(h4, p) {
+        overflow-wrap: anywhere;
+    }
+
+    .analysis-detail-dialog :where(
+        .analysis-detail-card,
+        .analysis-detail-summary-grid > div,
+        .analysis-detail-secondary-grid > div,
+        #detail-componentes-section > div,
+        #detail-niveles-section > div
+    ) :where(.bg-gray-100, .bg-blue-100, .bg-green-100, .bg-gray-200) {
+        flex: 0 0 auto;
+    }
+
+    #detail-lado-badge-container,
+    #detail-componentes-section .flex,
+    #detail-niveles-section .grid {
+        min-width: 0;
+    }
+
+    #detail-lado-badge-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.45rem;
+    }
+
+    #detail-lado-badge-container :where(span, .lado-badge),
+    #detail-componentes-section :where(span, a, button),
+    #detail-niveles-section :where(span, p, div),
+    #detail-images-section :where(h4, span, p) {
+        max-width: 100%;
+        white-space: normal;
+        overflow-wrap: anywhere;
+    }
+
+    #detail-usuario,
+    #detail-estado {
+        display: flex;
+        min-height: 3rem;
+        align-items: center;
+        justify-content: center;
+        line-height: 1.35;
+        overflow-wrap: anywhere;
+        white-space: normal;
+    }
+
+    #detail-actividad {
+        overflow-wrap: anywhere;
+        word-break: normal;
+    }
+
+    .analysis-detail-actions {
+        flex-wrap: wrap;
+        gap: 0.75rem;
+    }
+
+    .analysis-detail-actions > .responsive-action {
+        flex: 1 1 11rem;
+        min-width: min(100%, 11rem);
+        justify-content: center;
+        white-space: normal;
+        text-align: center;
+    }
+
+    @media (max-width: 768px) {
+        .analysis-detail-modal {
+            align-items: stretch;
+            padding: 0.5rem;
+        }
+
+        .analysis-detail-dialog {
+            width: 100%;
+            max-height: calc(100dvh - 1rem);
+            max-width: none;
+            border-radius: 0.85rem;
+        }
+
+        .analysis-detail-header {
+            padding: 0.8rem 0.95rem !important;
+        }
+
+        .analysis-detail-header > div {
+            gap: 0.75rem;
+        }
+
+        .analysis-detail-header h3 {
+            font-size: 0.98rem;
+            line-height: 1.25;
+        }
+
+        .analysis-detail-body {
+            padding: 1rem !important;
+        }
+
+        .analysis-detail-summary-grid,
+        .analysis-detail-secondary-grid {
+            gap: 0.75rem !important;
+            grid-template-columns: 1fr !important;
+        }
+
+        .analysis-detail-dialog :where(
+            .analysis-detail-card,
+            .analysis-detail-summary-grid > div,
+            .analysis-detail-secondary-grid > div,
+            #detail-componentes-section > div,
+            #detail-niveles-section > div
+        ) {
+            min-height: auto;
+            padding: 0.95rem !important;
+        }
+
+        .analysis-detail-dialog :where(
+            .analysis-detail-card,
+            .analysis-detail-summary-grid > div,
+            .analysis-detail-secondary-grid > div,
+            #detail-componentes-section > div,
+            #detail-niveles-section > div
+        ) .flex {
+            gap: 0.75rem !important;
+        }
+
+        .analysis-detail-dialog :where(
+            .analysis-detail-card,
+            .analysis-detail-summary-grid > div,
+            .analysis-detail-secondary-grid > div,
+            #detail-componentes-section > div,
+            #detail-niveles-section > div
+        ) :where(.bg-gray-100, .bg-blue-100, .bg-green-100, .bg-gray-200) {
+            padding: 0.62rem !important;
+        }
+
+        .analysis-detail-dialog :where(
+            .analysis-detail-card,
+            .analysis-detail-summary-grid > div,
+            .analysis-detail-secondary-grid > div,
+            #detail-componentes-section > div,
+            #detail-niveles-section > div
+        ) i {
+            font-size: 1rem !important;
+        }
+
+        .analysis-detail-dialog :where(
+            .analysis-detail-card,
+            .analysis-detail-summary-grid > div,
+            .analysis-detail-secondary-grid > div,
+            #detail-componentes-section > div,
+            #detail-niveles-section > div
+        ) p[id^="detail-"] {
+            font-size: 1rem !important;
+            line-height: 1.35;
+        }
+
+        .analysis-detail-dialog :where(
+            .analysis-detail-card,
+            .analysis-detail-summary-grid > div,
+            .analysis-detail-secondary-grid > div,
+            #detail-componentes-section > div,
+            #detail-niveles-section > div
+        ) h4 {
+            font-size: 0.78rem !important;
+            line-height: 1.25;
+        }
+
+        #detail-usuario,
+        #detail-estado {
+            min-height: 2.65rem;
+            padding: 0.7rem 0.85rem !important;
+        }
+
+        #detail-images-section > div {
+            padding-inline: 1rem !important;
+        }
+
+        .analysis-detail-actions {
+            margin-top: 1.25rem !important;
+        }
+
+        .analysis-detail-actions > .responsive-action {
+            flex-basis: 100%;
+            width: 100%;
+        }
+    }
+
+    @media (max-width: 420px) {
+        .analysis-detail-modal {
+            padding: 0;
+        }
+
+        .analysis-detail-dialog {
+            min-height: 100dvh;
+            max-height: 100dvh;
+            border-radius: 0;
+        }
+
+        .analysis-detail-header {
+            padding: 0.7rem 0.8rem !important;
+        }
+
+        .analysis-detail-header .w-11,
+        .analysis-detail-header button {
+            width: 2.25rem !important;
+            height: 2.25rem !important;
+        }
+
+        .analysis-detail-body {
+            padding: 0.75rem !important;
+        }
+
+        .analysis-detail-dialog :where(
+            .analysis-detail-card,
+            .analysis-detail-summary-grid > div,
+            .analysis-detail-secondary-grid > div,
+            #detail-componentes-section > div,
+            #detail-niveles-section > div
+        ) {
+            padding: 0.85rem !important;
+            border-left-width: 3px !important;
+        }
+
+        .analysis-detail-dialog :where(
+            .analysis-detail-card,
+            .analysis-detail-summary-grid > div,
+            .analysis-detail-secondary-grid > div,
+            #detail-componentes-section > div,
+            #detail-niveles-section > div
+        ) p.text-xs {
+            font-size: 0.68rem !important;
+        }
+
+        .analysis-detail-dialog :where(
+            .analysis-detail-card,
+            .analysis-detail-summary-grid > div,
+            .analysis-detail-secondary-grid > div,
+            #detail-componentes-section > div,
+            #detail-niveles-section > div
+        ) p[id^="detail-"] {
+            font-size: 0.95rem !important;
+        }
+
+        #detail-componentes-section,
+        #detail-niveles-section,
+        #detail-images-section {
+            margin-top: 0.9rem !important;
+        }
+    }
+
     .pasteur-index-shell {
         width: 100%;
         max-width: 100%;
@@ -1125,6 +1445,88 @@
         border: 0;
         border-radius: 0;
         padding: 0;
+    }
+
+    .pasteur-index-shell .pasteur-stats-grid {
+        grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)) !important;
+        gap: 0.75rem !important;
+    }
+
+    .pasteur-index-shell .pasteur-stats-grid > * {
+        min-height: auto;
+        padding: 0.8rem !important;
+        border-radius: 0.75rem !important;
+    }
+
+    .pasteur-index-shell .pasteur-stats-grid h3 {
+        font-size: 1.35rem !important;
+        line-height: 1.1;
+    }
+
+    .pasteur-index-shell .pasteur-stats-grid p {
+        line-height: 1.15;
+    }
+
+    .pasteur-index-shell .pasteur-stats-grid .rounded-full {
+        padding: 0.45rem !important;
+    }
+
+    .pasteur-index-shell .compact-table {
+        table-layout: fixed;
+    }
+
+    .pasteur-index-shell .compact-table tr > :first-child {
+        min-width: 132px;
+        width: 140px;
+        max-width: 150px;
+    }
+
+    .pasteur-index-shell .compact-table thead th {
+        height: 160px;
+        vertical-align: middle;
+    }
+
+    .pasteur-index-shell .compact-table tbody th,
+    .pasteur-index-shell .compact-table tbody td {
+        height: auto;
+        min-height: 190px;
+        vertical-align: top;
+    }
+
+    .pasteur-index-shell .analysis-cell {
+        color: #1f2937;
+        line-height: 1.35;
+        overflow-wrap: normal;
+        word-break: normal;
+    }
+
+    .pasteur-index-shell .pasteur-cell-info-card .info-line {
+        display: grid;
+        grid-template-columns: auto auto minmax(0, 1fr);
+        align-items: center;
+    }
+
+    .pasteur-index-shell .pasteur-cell-info-card .info-line > :last-child {
+        min-width: 0;
+        overflow-wrap: anywhere;
+    }
+
+    .pasteur-index-shell .pasteur-cell-info-card .info-line > .font-bold,
+    .pasteur-index-shell .pasteur-cell-info-card .info-line > .font-semibold {
+        grid-column: 2 / -1;
+    }
+
+    .pasteur-index-shell .pasteur-cell-info-card .info-value-pill {
+        width: fit-content;
+        max-width: 100%;
+    }
+
+    .pasteur-index-shell .pasteur-cell-actions .inline-flex,
+    .pasteur-index-shell .pasteur-cell-actions .create-action,
+    .pasteur-index-shell .pasteur-cell-actions .responsive-action {
+        min-width: 0;
+        max-width: 100%;
+        white-space: normal;
     }
 
     /* Grid de imagenes mejorado para el modal monocromatico */
@@ -1236,6 +1638,45 @@
             padding: 16px;
         }
 
+        .pasteur-index-shell .compact-table td,
+        .pasteur-index-shell .compact-table th {
+            min-width: 166px;
+            width: 176px;
+            max-width: 198px;
+            padding: 10px !important;
+            font-size: 0.76rem !important;
+        }
+
+        .pasteur-index-shell .compact-table tr > :first-child {
+            min-width: 110px;
+            width: 116px;
+            max-width: 124px;
+        }
+
+        .pasteur-index-shell .pasteurizadora-card .component-header {
+            min-height: 132px;
+        }
+
+        .pasteur-index-shell .pasteurizadora-card .component-header img {
+            width: 4.35rem !important;
+            height: 4.35rem !important;
+        }
+
+        .pasteur-index-shell .compact-table thead th {
+            height: 148px;
+        }
+
+        .pasteur-index-shell .analysis-cell,
+        .pasteur-index-shell .empty-cell {
+            min-height: 162px;
+        }
+
+        .pasteur-index-shell .compact-table tbody th,
+        .pasteur-index-shell .compact-table tbody td {
+            height: auto;
+            min-height: 170px;
+        }
+
         .image-grid-enhanced {
             grid-template-columns: repeat(2, 1fr);
             gap: 12px;
@@ -1254,6 +1695,75 @@
         .pasteur-index-shell h1 {
             font-size: 1.35rem;
             line-height: 1.25;
+        }
+
+        .pasteur-index-shell .pasteur-stats-grid {
+            grid-template-columns: repeat(auto-fit, minmax(118px, 1fr)) !important;
+        }
+
+        .pasteur-index-shell .compact-table td,
+        .pasteur-index-shell .compact-table th {
+            min-width: 148px;
+            width: 156px;
+            max-width: 176px;
+            padding: 9px !important;
+        }
+
+        .pasteur-index-shell .compact-table tr > :first-child {
+            min-width: 96px;
+            width: 102px;
+            max-width: 110px;
+        }
+
+        .pasteur-index-shell .component-name,
+        .pasteur-index-shell .reductor-name {
+            font-size: 9px;
+        }
+
+        .pasteur-index-shell .pasteurizadora-card .component-header {
+            min-height: 118px;
+        }
+
+        .pasteur-index-shell .pasteurizadora-card .component-header img {
+            width: 3.75rem !important;
+            height: 3.75rem !important;
+        }
+
+        .pasteur-index-shell .compact-table thead th {
+            height: 136px;
+        }
+
+        .pasteur-index-shell .analysis-cell,
+        .pasteur-index-shell .empty-cell {
+            min-height: 150px;
+        }
+
+        .pasteur-index-shell .compact-table tbody th,
+        .pasteur-index-shell .compact-table tbody td {
+            height: auto;
+            min-height: 158px;
+        }
+
+        .pasteur-index-shell .pasteur-cell-info-card .info-line {
+            grid-template-columns: auto minmax(0, 1fr);
+        }
+
+        .pasteur-index-shell .pasteur-cell-info-card .info-line > i {
+            align-self: start;
+            padding-top: 0.13rem;
+        }
+
+        .pasteur-index-shell .pasteur-cell-info-card .info-line > .info-label,
+        .pasteur-index-shell .pasteur-cell-info-card .info-line > .info-value-pill,
+        .pasteur-index-shell .pasteur-cell-info-card .info-line > .font-bold,
+        .pasteur-index-shell .pasteur-cell-info-card .info-line > .font-semibold {
+            grid-column: 2;
+        }
+
+        .pasteur-index-shell .pasteur-cell-actions .create-action--compact {
+            min-height: 2.15rem !important;
+            padding: 0.38rem 0.55rem !important;
+            font-size: 0.72rem !important;
         }
 
         .advanced-filters-panel {
@@ -1516,7 +2026,7 @@
             ];
         @endphp
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4 mb-6">
+        <div class="pasteur-stats-grid grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4 mb-6">
             {{-- TOTAL ANÁLISIS --}}
             <div class="bg-white rounded-xl shadow-sm p-4 border-t-4 border-gray-600 hover:shadow-lg transition-all">
                 <div class="flex items-center justify-between">
@@ -2057,11 +2567,11 @@
 </div>
 
 {{-- MODAL DE DETALLES --}}
-<div id="analysisDetailModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50 p-4"
+<div id="analysisDetailModal" class="analysis-detail-modal fixed inset-0 bg-black/50 hidden items-center justify-center z-50 p-4"
      onclick="if(event.target === this) closeAnalysisDetailModal()">
-    <div class="bg-white rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
+    <div class="analysis-detail-dialog bg-white rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
         
-        <div class="px-6 py-4 border-b border-gray-100">
+        <div class="analysis-detail-header px-6 py-4 border-b border-gray-100">
             <div class="flex justify-between items-center">
                 <div class="flex items-center gap-3">
                     <div class="w-11 h-11 bg-gray-100 rounded-lg flex items-center justify-center">
@@ -2078,8 +2588,8 @@
             </div>
         </div>
         
-        <div class="p-8 overflow-auto max-h-[calc(90vh-100px)] bg-gray-50">
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div class="analysis-detail-body p-8 overflow-auto max-h-[calc(90vh-100px)] bg-gray-50">
+            <div class="analysis-detail-summary-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div class="bg-white rounded-lg p-5 border-l-4 border-gray-700 shadow-sm hover:shadow-md transition-all">
                     <div class="flex items-start gap-3">
                         <div class="flex-1">
@@ -2151,7 +2661,7 @@
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+            <div class="analysis-detail-secondary-grid grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                 <div class="bg-white rounded-lg p-5 border border-blue-200 shadow-sm">
                     <div class="flex items-center gap-3 mb-4">
                         <div class="bg-blue-100 p-2 rounded-lg">
@@ -2209,7 +2719,7 @@
                 </div>
             </div>
 
-            <div class="responsive-actions responsive-actions--end mt-8 pt-4 border-t border-gray-200">
+            <div class="analysis-detail-actions responsive-actions responsive-actions--end mt-8 pt-4 border-t border-gray-200">
                 <a id="detail-edit-btn" 
                 href="#" 
                 class="responsive-action">

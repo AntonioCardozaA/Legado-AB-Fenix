@@ -1847,6 +1847,7 @@
                         'linea' => $lineaNombre,
                         'componente' => $componenteNombre,
                         'reductor' => $reductor,
+                        'estado' => $estado,
                         'fecha' => isset($item->fecha_analisis) ? $item->fecha_analisis->format('d/m/Y') : '-',
                         'id' => $item->id
                     ];
@@ -1855,6 +1856,7 @@
                         'linea' => $lineaNombre,
                         'componente' => $componenteNombre,
                         'reductor' => $reductor,
+                        'estado' => $estado,
                         'fecha' => isset($item->fecha_analisis) ? $item->fecha_analisis->format('d/m/Y') : '-',
                         'id' => $item->id
                     ];
@@ -2029,6 +2031,7 @@
                             'linea' => $lineaNombre,
                             'componente' => $componenteNombre,
                             'reductor' => $reductor,
+                            'estado' => $estado,
                             'fecha' => isset($item->fecha_analisis) ? $item->fecha_analisis->format('d/m/Y') : '-',
                             'id' => $item->id
                         ];
@@ -2038,6 +2041,7 @@
                             'linea' => $lineaNombre,
                             'componente' => $componenteNombre,
                             'reductor' => $reductor,
+                            'estado' => $estado,
                             'fecha' => isset($item->fecha_analisis) ? $item->fecha_analisis->format('d/m/Y') : '-',
                             'id' => $item->id
                         ];
