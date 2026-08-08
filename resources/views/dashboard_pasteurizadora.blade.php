@@ -3384,16 +3384,12 @@
 
         if (statusCard && statusTitle && statusCopy) {
             let tone = 'neutral';
-            let title = 'Monitoreo en curso';
-            let copy = `La tendencia ${config.title} se mantiene en observación con datos de Pasteurizadora.`;
 
             if (!rows.length || !sourceSeries.length) {
                 title = 'Sin datos en el periodo';
                 copy = 'No hay daños registrados para construir esta tendencia con el filtro actual.';
             } else if ((recent?.current || 0) === 0) {
                 tone = 'positive';
-                title = 'Sin daños recientes';
-                copy = `${recent.label} está en 0 daños al corte actual. Conviene mantener el seguimiento para confirmar estabilidad.`;
             } else if ((recent?.diff || 0) > 0 || (mid?.diff || 0) > 0) {
                 tone = 'alert';
                 title = 'Repunte reciente';
