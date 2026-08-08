@@ -451,6 +451,234 @@ class WasherMaintenanceAiFlowTest extends TestCase
         Storage::disk('local')->assertExists('washer-knowledge/base-conocimiento-tecnico-lavadoras.pdf');
     }
 
+    public function test_action_plan_prompt_includes_prioritized_technical_context_for_detected_failure(): void
+    {
+        Notification::fake();
+
+        config([
+            'maintenance_ai.enabled' => true,
+            'maintenance_ai.provider' => 'openai',
+            'maintenance_ai.technical_context.history_limit_per_bucket' => 3,
+            'maintenance_ai.technical_context.document_limit' => 3,
+        ]);
+
+        $this->userWithRole(User::ROLE_ADMIN, true);
+
+        $capturingProvider = new class implements AiProviderInterface
+        {
+            public array $payloads = [];
+
+            public function generateStructuredActionPlan(array $payload): array
+            {
+                $this->payloads[] = $payload;
+
+                return [
+                    'data' => [
+                        'title' => 'Corregir fuga de aceite en reductor RV200 L-13',
+                        'priority' => 'critical',
+                        'maintenance_type' => 'corrective',
+                        'detected_problem' => 'Fuga de aceite detectada en reductor RV200 de L-13.',
+                        'technical_justification' => 'El historial indica casos asociados a retenes y respiradero.',
+                        'recommended_actions' => [
+                            [
+                                'order' => 1,
+                                'activity' => 'Identificar punto exacto de fuga',
+                                'technical_detail' => 'Limpiar carcasa y revisar retenes, empaques y respiradero antes de operar.',
+                            ],
+                        ],
+                        'suggested_due_date' => '2026-08-08',
+                        'risk_if_not_executed' => 'Perdida de lubricacion y dano interno del reductor.',
+                        'estimated_cost' => [
+                            'minimum' => 0,
+                            'maximum' => 0,
+                            'currency' => 'MXN',
+                            'based_on_historical_data' => false,
+                        ],
+                        'knowledge_sources' => [
+                            [
+                                'type' => 'historical_plan',
+                                'reference' => 'Plan historico de fuga en reductor',
+                                'document_id' => null,
+                                'page' => null,
+                                'section' => null,
+                            ],
+                        ],
+                        'confidence' => 0.82,
+                        'requires_human_approval' => true,
+                        'missing_information' => [],
+                    ],
+                    'raw' => ['provider' => 'fake'],
+                    'meta' => [
+                        'provider' => 'openai',
+                        'model' => 'technical-context-plan-test',
+                    ],
+                ];
+            }
+
+            public function createEmbedding(string $content): array
+            {
+                return [];
+            }
+
+            public function extractDocumentText(array $payload): string
+            {
+                return '';
+            }
+        };
+
+        $this->app->instance(AiProviderInterface::class, $capturingProvider);
+
+        $linea13 = Linea::create([
+            'nombre' => 'L-13',
+            'descripcion' => 'Linea 13',
+            'tipo' => User::MODULE_LAVADORA,
+            'activo' => true,
+        ]);
+        $reductorPrincipal = Componente::create([
+            'linea' => 'L-13',
+            'nombre' => 'Reductor RV200',
+            'codigo' => 'L13_REDUCTOR_1_RV200',
+            'reductor' => 'Reductor 1',
+            'ubicacion' => 'Reductor 1',
+            'cantidad_total' => 1,
+            'activo' => true,
+            'tipo_equipo' => User::MODULE_LAVADORA,
+        ]);
+        $reductorSecundario = Componente::create([
+            'linea' => 'L-13',
+            'nombre' => 'Reductor RV200',
+            'codigo' => 'L13_REDUCTOR_2_RV200',
+            'reductor' => 'Reductor 2',
+            'ubicacion' => 'Reductor 2',
+            'cantidad_total' => 1,
+            'activo' => true,
+            'tipo_equipo' => User::MODULE_LAVADORA,
+        ]);
+
+        $pastAnalysis = AnalisisLavadora::create([
+            'linea_id' => $linea13->id,
+            'componente_id' => $reductorPrincipal->id,
+            'reductor' => 'Reductor 1',
+            'lado' => 'salida',
+            'fecha_analisis' => '2026-07-10',
+            'numero_orden' => 'OT-L13-ANT',
+            'estado' => AnalisisLavadora::ESTADO_DANADO,
+            'actividad' => 'Fuga de aceite en eje de salida del reductor RV200.',
+            'observaciones_reparacion' => 'Reten de salida reemplazado y respiradero limpiado; fuga corregida.',
+            'tipo_intervencion' => 'Cambio de reten',
+            'usuario_id' => $this->userWithRole(User::ROLE_TECNICO, true)->id,
+            'tipo_equipo' => User::MODULE_LAVADORA,
+        ]);
+
+        AnalisisLavadora::create([
+            'linea_id' => $linea13->id,
+            'componente_id' => $reductorSecundario->id,
+            'reductor' => 'Reductor 2',
+            'lado' => 'entrada',
+            'fecha_analisis' => '2026-07-12',
+            'numero_orden' => 'OT-L13-ANT-2',
+            'estado' => AnalisisLavadora::ESTADO_REQUIERE_REVISION,
+            'actividad' => 'Fuga de aceite menor por empaque de carcasa.',
+            'usuario_id' => $pastAnalysis->usuario_id,
+            'tipo_equipo' => User::MODULE_LAVADORA,
+        ]);
+
+        $historicalEvent = MaintenanceEvent::create([
+            'linea_id' => $linea13->id,
+            'componente_id' => $reductorPrincipal->id,
+            'source_type' => 'analisis_lavadora',
+            'source_id' => $pastAnalysis->id,
+            'event_type' => 'component_damaged',
+            'severity' => 'critical',
+            'title' => 'Fuga de aceite en reductor RV200',
+            'description' => 'Fuga relacionada con reten de salida.',
+            'context_data' => ['falla' => 'fuga aceite reten'],
+            'status' => MaintenanceEvent::STATUS_RESOLVED,
+            'fingerprint' => 'historical-oil-leak-plan',
+            'detected_at' => '2026-07-10 08:00:00',
+        ]);
+
+        PlanAccion::create([
+            'linea_id' => $linea13->id,
+            'actividad' => 'Cambiar reten y validar respiradero',
+            'source' => 'manual',
+            'maintenance_event_id' => $historicalEvent->id,
+            'tipo_equipo' => User::MODULE_LAVADORA,
+            'priority_level' => 'critical',
+            'maintenance_type' => 'corrective',
+            'detected_problem' => 'Fuga de aceite por reten de salida.',
+            'technical_justification' => 'El cambio de reten detuvo la fuga en revision posterior.',
+            'risk_if_not_executed' => 'Perdida de lubricacion en reductor.',
+            'estado' => 'approved',
+            'completado' => true,
+            'fecha_ejecucion' => '2026-07-11',
+            'execution_result' => 'La fuga no reaparecio despues de operar la lavadora.',
+            'effectiveness' => PlanAccion::EFFECTIVENESS_EFFECTIVE,
+        ]);
+
+        $document = WasherKnowledgeDocument::create([
+            'linea_id' => $linea13->id,
+            'componente_id' => $reductorPrincipal->id,
+            'title' => 'Manual tecnico reductores L-13',
+            'document_type' => 'manual tecnico',
+            'lifecycle_status' => 'vigente',
+            'storage_disk' => 'local',
+            'indexing_status' => 'indexed',
+            'extracted_text' => 'Ante fugas de aceite revisar retenes, empaques, respiradero y nivel de aceite del reductor.',
+            'indexed_at' => now(),
+        ]);
+
+        WasherKnowledgeChunk::create([
+            'document_id' => $document->id,
+            'chunk_index' => 1,
+            'content' => 'Ante fugas de aceite revisar retenes, empaques, respiradero y nivel de aceite del reductor.',
+            'searchable_text' => 'fugas aceite retenes empaques respiradero nivel aceite reductor',
+            'token_count' => 12,
+        ]);
+
+        $currentAnalysis = AnalisisLavadora::create([
+            'linea_id' => $linea13->id,
+            'componente_id' => $reductorPrincipal->id,
+            'reductor' => 'Reductor 1',
+            'lado' => 'salida',
+            'fecha_analisis' => '2026-08-07',
+            'numero_orden' => 'OT-L13-ACT',
+            'estado' => AnalisisLavadora::ESTADO_DANADO,
+            'actividad' => 'Fuga de aceite activa en reductor RV200 de L-13.',
+            'usuario_id' => $pastAnalysis->usuario_id,
+            'tipo_equipo' => User::MODULE_LAVADORA,
+        ]);
+
+        $event = MaintenanceEvent::create([
+            'linea_id' => $linea13->id,
+            'componente_id' => $reductorPrincipal->id,
+            'source_type' => 'analisis_lavadora',
+            'source_id' => $currentAnalysis->id,
+            'event_type' => 'component_damaged',
+            'severity' => 'critical',
+            'detected_value' => $currentAnalysis->estado,
+            'title' => 'Componente danado en lavadora',
+            'description' => 'Fuga de aceite activa en reductor RV200.',
+            'context_data' => ['event_type' => 'component_damaged'],
+            'status' => MaintenanceEvent::STATUS_DETECTED,
+            'fingerprint' => 'current-oil-leak-plan',
+            'detected_at' => now(),
+        ]);
+
+        $plan = app(WasherActionPlanGenerator::class)->generate($event);
+
+        $this->assertSame('ai', $plan->source);
+
+        $prompt = (string) ($capturingProvider->payloads[0]['user_prompt'] ?? '');
+
+        $this->assertStringContainsString('"technical_context"', $prompt);
+        $this->assertStringContainsString('"same_component_same_washer"', $prompt);
+        $this->assertStringContainsString('"same_type_same_washer"', $prompt);
+        $this->assertStringContainsString('Reten de salida reemplazado', $prompt);
+        $this->assertStringContainsString('La fuga no reaparecio', $prompt);
+        $this->assertStringContainsString('Manual tecnico reductores L-13', $prompt);
+    }
+
     private function createDamagedAnalysis(): AnalisisLavadora
     {
         $linea = $this->washerLine();

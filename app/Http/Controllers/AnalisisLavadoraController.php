@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use App\Exports\AnalisisComponentesExport;
 use App\Exports\AnalisisLavadoraExport;
+use App\Jobs\SendLavadoraDamageWhatsApp;
 use App\Services\AnalysisDeletionLogger;
 use App\Services\ImageEvidenceOptimizer;
 use App\Services\LavadoraCostSyncService;
@@ -24,7 +25,6 @@ use App\Services\Maintenance\WasherMaintenanceOrchestrator;
 use App\Support\LavadoraCatalog;
 use Maatwebsite\Excel\Facades\Excel;
 use Barryvdh\DomPDF\Facade\Pdf;
-use App\Services\WhatsAppService;
 use Throwable;
 
 class AnalisisLavadoraController extends Controller
@@ -739,10 +739,20 @@ $componente = Componente::firstOrCreate(
             $numero = "5214981239090"; // numero
 
             try {
-                WhatsAppService::enviarMensaje($numero, $mensaje);
-                Log::info('WhatsApp enviado correctamente');
+                SendLavadoraDamageWhatsApp::dispatch($numero, $mensaje, [
+                    'analisis_id' => $analisis->id,
+                    'linea_id' => $linea->id,
+                    'componente_id' => $componente->id,
+                ])->onQueue((string) config('services.ultramsg.queue', 'default'));
+
+                Log::info('WhatsApp automatico de lavadora encolado', [
+                    'analisis_id' => $analisis->id,
+                    'linea_id' => $linea->id,
+                    'componente_id' => $componente->id,
+                ]);
             } catch (\Exception $e) {
-                Log::error('Error al enviar WhatsApp', [
+                Log::error('Error al encolar WhatsApp automatico de lavadora', [
+                    'analisis_id' => $analisis->id,
                     'error' => $e->getMessage()
                 ]);
             }

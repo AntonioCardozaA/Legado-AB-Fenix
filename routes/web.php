@@ -25,6 +25,7 @@ use App\Http\Controllers\LavadoraCostController;
 use App\Http\Controllers\ControlGastosController;
 use App\Http\Controllers\AssistantChatController;
 use App\Http\Controllers\AiObservabilityController;
+use App\Http\Controllers\CronQueueController;
 use App\Http\Controllers\WasherAiPlanReviewController;
 use App\Http\Controllers\WasherKnowledgeDocumentController;
 
@@ -36,6 +37,10 @@ use App\Http\Controllers\WasherKnowledgeDocumentController;
 Route::get('/', function () {
     return view('welcome');
 })->name('welcome');
+
+Route::get('/cron/queue/{token}', [CronQueueController::class, 'queue'])
+    ->where('token', '[A-Za-z0-9._-]+')
+    ->name('cron.queue');
 
 /*
 |--------------------------------------------------------------------------

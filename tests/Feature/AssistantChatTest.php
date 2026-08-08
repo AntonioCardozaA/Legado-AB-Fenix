@@ -1385,6 +1385,215 @@ class AssistantChatTest extends TestCase
         $this->assertStringContainsString('confirmar el uso de Glygoyle_30', $userPrompt);
     }
 
+    public function test_chat_includes_prioritized_technical_context_for_oil_leak_solution(): void
+    {
+        config([
+            'maintenance_ai.enabled' => true,
+            'maintenance_ai.technical_context.history_limit_per_bucket' => 3,
+            'maintenance_ai.technical_context.document_limit' => 3,
+        ]);
+
+        $capturingProvider = new class implements AiProviderInterface
+        {
+            public array $payloads = [];
+
+            public function generateStructuredActionPlan(array $payload): array
+            {
+                $this->payloads[] = $payload;
+
+                return [
+                    'data' => [
+                        'answer' => 'Recomendacion contextual para fuga de aceite en reductores de L-13.',
+                        'key_points' => [],
+                        'next_steps' => [],
+                        'sources' => [],
+                        'confidence' => 0.86,
+                    ],
+                    'raw' => [],
+                    'meta' => [
+                        'provider' => 'fake',
+                        'model' => 'technical-context-test',
+                    ],
+                ];
+            }
+
+            public function createEmbedding(string $content): array
+            {
+                return [];
+            }
+
+            public function extractDocumentText(array $payload): string
+            {
+                return '';
+            }
+        };
+
+        $this->app->instance(AiProviderInterface::class, $capturingProvider);
+
+        $user = $this->authenticatedUser();
+        $linea13 = Linea::create([
+            'nombre' => 'L-13',
+            'tipo' => User::MODULE_LAVADORA,
+            'activo' => true,
+        ]);
+        $linea05 = Linea::create([
+            'nombre' => 'L-05',
+            'tipo' => User::MODULE_LAVADORA,
+            'activo' => true,
+        ]);
+        $reductor13 = Componente::create([
+            'nombre' => 'Reductor RV200',
+            'codigo' => 'L13_REDUCTOR_1_RV200',
+            'linea' => 'L-13',
+            'reductor' => 'Reductor 1',
+            'ubicacion' => 'Reductor 1',
+            'tipo_equipo' => User::MODULE_LAVADORA,
+            'activo' => true,
+        ]);
+        $reductor13Secundario = Componente::create([
+            'nombre' => 'Reductor RV200',
+            'codigo' => 'L13_REDUCTOR_2_RV200',
+            'linea' => 'L-13',
+            'reductor' => 'Reductor 2',
+            'ubicacion' => 'Reductor 2',
+            'tipo_equipo' => User::MODULE_LAVADORA,
+            'activo' => true,
+        ]);
+        $reductor05 = Componente::create([
+            'nombre' => 'Reductor RV200',
+            'codigo' => 'L05_REDUCTOR_1_RV200',
+            'linea' => 'L-05',
+            'reductor' => 'Reductor 1',
+            'ubicacion' => 'Reductor 1',
+            'tipo_equipo' => User::MODULE_LAVADORA,
+            'activo' => true,
+        ]);
+
+        AnalisisLavadora::create([
+            'linea_id' => $linea13->id,
+            'componente_id' => $reductor13->id,
+            'reductor' => 'Reductor 1',
+            'lado' => 'salida',
+            'fecha_analisis' => '2026-07-10',
+            'numero_orden' => 'OT-L13-RETEN',
+            'estado' => AnalisisLavadora::ESTADO_DANADO,
+            'actividad' => 'Fuga de aceite en reductor RV200; se observo aceite en eje de salida.',
+            'observaciones_reparacion' => 'Se cambio reten del eje de salida y se libero respiradero.',
+            'tipo_intervencion' => 'Cambio de reten',
+            'componente_instalado' => 'Reten de salida RV200',
+            'fecha_cambio' => '2026-07-11',
+            'usuario_id' => $user->id,
+            'tipo_equipo' => User::MODULE_LAVADORA,
+        ]);
+
+        AnalisisLavadora::create([
+            'linea_id' => $linea13->id,
+            'componente_id' => $reductor13Secundario->id,
+            'reductor' => 'Reductor 2',
+            'lado' => 'entrada',
+            'fecha_analisis' => '2026-07-12',
+            'numero_orden' => 'OT-L13-RESP',
+            'estado' => AnalisisLavadora::ESTADO_REQUIERE_REVISION,
+            'actividad' => 'Fuga leve de aceite por respiradero bloqueado en reductor.',
+            'usuario_id' => $user->id,
+            'tipo_equipo' => User::MODULE_LAVADORA,
+        ]);
+
+        AnalisisLavadora::create([
+            'linea_id' => $linea05->id,
+            'componente_id' => $reductor05->id,
+            'reductor' => 'Reductor 1',
+            'lado' => 'salida',
+            'fecha_analisis' => '2026-07-08',
+            'numero_orden' => 'OT-L05-EMP',
+            'estado' => AnalisisLavadora::ESTADO_DANADO,
+            'actividad' => 'Fuga de aceite en carcasa por empaque deteriorado.',
+            'usuario_id' => $user->id,
+            'tipo_equipo' => User::MODULE_LAVADORA,
+        ]);
+
+        $historicalEvent = MaintenanceEvent::create([
+            'linea_id' => $linea13->id,
+            'componente_id' => $reductor13->id,
+            'source_type' => 'analisis_lavadora',
+            'source_id' => 999,
+            'event_type' => 'component_damaged',
+            'severity' => 'critical',
+            'title' => 'Fuga de aceite en reductor',
+            'description' => 'Antecedente de fuga por reten y respiradero.',
+            'status' => MaintenanceEvent::STATUS_RESOLVED,
+            'fingerprint' => 'oil-leak-chat-history',
+            'detected_at' => '2026-07-10 08:00:00',
+        ]);
+
+        PlanAccion::create([
+            'linea_id' => $linea13->id,
+            'maintenance_event_id' => $historicalEvent->id,
+            'actividad' => 'Sustituir reten y limpiar respiradero de reductor RV200',
+            'source' => 'manual',
+            'tipo_equipo' => User::MODULE_LAVADORA,
+            'priority_level' => 'critical',
+            'maintenance_type' => 'corrective',
+            'detected_problem' => 'Fuga de aceite por reten del eje de salida.',
+            'technical_justification' => 'El aceite se acumulaba en la base del reductor durante operacion.',
+            'risk_if_not_executed' => 'Perdida de lubricacion y dano interno del reductor.',
+            'estado' => 'approved',
+            'completado' => true,
+            'fecha_ejecucion' => '2026-07-11',
+            'execution_result' => 'Despues del cambio de reten y limpieza del respiradero no reaparecio la fuga.',
+            'effectiveness' => PlanAccion::EFFECTIVENESS_EFFECTIVE,
+        ]);
+
+        $document = WasherKnowledgeDocument::create([
+            'linea_id' => $linea13->id,
+            'componente_id' => $reductor13->id,
+            'title' => 'Manual reductores RV200 L-13',
+            'document_type' => 'manual tecnico',
+            'lifecycle_status' => 'vigente',
+            'storage_disk' => 'local',
+            'uploaded_by' => $user->id,
+            'uploaded_at' => now(),
+            'indexing_status' => 'indexed',
+            'extracted_text' => 'Para fugas de aceite en reductores RV200 revisar retenes, empaques, nivel de aceite y respiradero.',
+            'indexed_at' => now(),
+        ]);
+
+        WasherKnowledgeChunk::create([
+            'document_id' => $document->id,
+            'chunk_index' => 1,
+            'content' => 'Para fugas de aceite en reductores RV200 revisar retenes, empaques, nivel de aceite y respiradero.',
+            'searchable_text' => 'fugas aceite reductores rv200 retenes empaques nivel aceite respiradero',
+            'token_count' => 12,
+        ]);
+
+        $response = $this->actingAs($user)->postJson(route('assistant-chat.store'), [
+            'message' => 'Dame una solucion para la fuga de aceite de los reductores de la Linea 13',
+            'page_context' => [
+                'module' => User::MODULE_LAVADORA,
+                'page_title' => 'Chat tecnico',
+                'current_path' => '/asistente/chat',
+                'section' => 'Consulta tecnica',
+            ],
+        ]);
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('message.metadata.provider', 'fake');
+
+        $this->assertGreaterThanOrEqual(5, (int) $response->json('message.metadata.technical_context_records'));
+        $this->assertSame(1, (int) $response->json('message.metadata.technical_context_sources'));
+
+        $prompt = (string) ($capturingProvider->payloads[0]['user_prompt'] ?? '');
+
+        $this->assertStringContainsString('"technical_recommendation_context"', $prompt);
+        $this->assertStringContainsString('"same_type_same_washer"', $prompt);
+        $this->assertStringContainsString('"same_component_other_washers"', $prompt);
+        $this->assertStringContainsString('Se cambio reten del eje de salida', $prompt);
+        $this->assertStringContainsString('respiradero bloqueado', $prompt);
+        $this->assertStringContainsString('Manual reductores RV200 L-13', $prompt);
+        $this->assertStringContainsString('Despues del cambio de reten', $prompt);
+    }
+
     private function authenticatedUser(): User
     {
         Role::firstOrCreate([

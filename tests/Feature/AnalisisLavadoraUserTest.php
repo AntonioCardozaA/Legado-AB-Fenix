@@ -2,11 +2,13 @@
 
 namespace Tests\Feature;
 
+use App\Jobs\SendLavadoraDamageWhatsApp;
 use App\Models\AnalisisLavadora;
 use App\Models\Componente;
 use App\Models\Linea;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Queue;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
@@ -138,6 +140,36 @@ class AnalisisLavadoraUserTest extends TestCase
             'numero_orden' => null,
             'usuario_id' => $user->id,
         ]);
+    }
+
+    public function test_store_queues_damage_whatsapp_alert(): void
+    {
+        Queue::fake();
+
+        $user = User::factory()->create();
+        $linea = Linea::create([
+            'nombre' => 'L-04',
+            'descripcion' => 'Lavadora de prueba',
+            'activo' => true,
+        ]);
+
+        $response = $this->actingAs($user)->post(route('analisis-lavadora.store'), [
+            'linea_id' => $linea->id,
+            'componente_codigo' => 'SERVO_CHICO',
+            'reductor' => 'Reductor 1',
+            'fecha_analisis' => now()->toDateString(),
+            'numero_orden' => '87654321',
+            'estado' => AnalisisLavadora::ESTADO_DANADO,
+            'actividad' => 'Registro de dano para alerta automatica',
+        ]);
+
+        $response->assertRedirect(route('analisis-lavadora.index', ['linea_id' => $linea->id]));
+
+        Queue::assertPushed(SendLavadoraDamageWhatsApp::class, function (SendLavadoraDamageWhatsApp $job) use ($linea): bool {
+            return $job->number === '5214981239090'
+                && str_contains($job->message, $linea->nombre)
+                && ($job->context['linea_id'] ?? null) === $linea->id;
+        });
     }
 
     public function test_index_searches_component_across_all_lavadoras_with_line_suffix_codes(): void

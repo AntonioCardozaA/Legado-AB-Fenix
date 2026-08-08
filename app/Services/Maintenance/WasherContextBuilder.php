@@ -12,6 +12,7 @@ class WasherContextBuilder
 {
     public function __construct(
         private readonly KnowledgeRetriever $knowledgeRetriever,
+        private readonly WasherTechnicalContextRetriever $technicalContextRetriever,
         private readonly PromptSafetySanitizer $sanitizer
     ) {
     }
@@ -24,6 +25,7 @@ class WasherContextBuilder
         $current = $this->buildCurrentContext($event);
         $history = $this->buildHistory($event);
         $costs = $this->buildCosts($event);
+        $technicalContext = $this->technicalContextRetriever->forEvent($event, $current);
         $knowledge = $this->knowledgeRetriever->retrieveForEvent($event, [
             'component_name' => $current['component_name'] ?? null,
             'linea_nombre' => $current['linea_nombre'] ?? null,
@@ -42,6 +44,7 @@ class WasherContextBuilder
             ],
             'current' => $current,
             'history' => $history,
+            'technical_context' => $technicalContext,
             'risk' => [
                 'severity' => $event->severity,
                 'status' => $event->status,

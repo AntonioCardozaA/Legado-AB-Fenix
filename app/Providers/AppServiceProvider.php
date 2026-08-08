@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Services\AdminRecordNotificationService;
 use App\Services\Maintenance\FailoverAiProvider;
 use App\Services\Maintenance\GeminiProvider;
+use App\Services\Maintenance\MaintenanceHistoryIndexer;
 use App\Services\Maintenance\NullAiProvider;
 use App\Services\Maintenance\OpenAiProvider;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -39,6 +40,7 @@ class AppServiceProvider extends ServiceProvider
 
         Paginator::useTailwind();
         app(AdminRecordNotificationService::class)->registerModelEvents();
+        app(MaintenanceHistoryIndexer::class)->registerModelEvents();
         
         // Compartir datos comunes con todas las vistas
         view()->composer('*', function ($view) {

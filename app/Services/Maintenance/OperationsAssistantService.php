@@ -15,6 +15,7 @@ class OperationsAssistantService
         private readonly PromptSafetySanitizer $sanitizer,
         private readonly AssistantKnowledgeSearchService $knowledgeSearch,
         private readonly OperationsPlatformContextService $platformContext,
+        private readonly WasherTechnicalContextRetriever $technicalContext,
         private readonly AiInteractionLogger $interactionLogger
     ) {
     }
@@ -71,11 +72,12 @@ class OperationsAssistantService
             ];
         }
 
+        $technicalContext = $this->technicalContext->forQuestion($question, $safePageContext, $user);
         $knowledge = $this->knowledgeSearch->search($question, $safePageContext, $user);
 
         $payload = [
             'system_prompt' => $this->systemPrompt(),
-            'user_prompt' => $this->userPrompt($user, $question, $conversation, $safePageContext, $knowledge, $platformContext),
+            'user_prompt' => $this->userPrompt($user, $question, $conversation, $safePageContext, $knowledge, $platformContext, $technicalContext),
             'schema_name' => 'operations_assistant_reply',
             'schema' => $this->schema(),
         ];
@@ -98,6 +100,8 @@ class OperationsAssistantService
                 'knowledge_count' => count($knowledge),
                 'platform_query_matches' => count($platformContext['query_matches'] ?? []),
                 'platform_recent_evidence' => count($platformContext['recent_evidence'] ?? []),
+                'technical_context_records' => (int) data_get($technicalContext, 'coverage.historical_records_count', 0),
+                'technical_context_sources' => (int) data_get($technicalContext, 'coverage.technical_sources_count', 0),
                 'page_context' => $safePageContext,
             ],
         ]);
@@ -113,6 +117,8 @@ class OperationsAssistantService
                 'knowledge_count' => count($knowledge),
                 'platform_query_matches' => count($platformContext['query_matches'] ?? []),
                 'platform_recent_evidence' => count($platformContext['recent_evidence'] ?? []),
+                'technical_context_records' => (int) data_get($technicalContext, 'coverage.historical_records_count', 0),
+                'technical_context_sources' => (int) data_get($technicalContext, 'coverage.technical_sources_count', 0),
             ],
         ];
     }
@@ -122,8 +128,9 @@ class OperationsAssistantService
      * @param  array<string, mixed>  $pageContext
      * @param  array<int, array<string, mixed>>  $knowledge
      * @param  array<string, mixed>  $platformContext
+     * @param  array<string, mixed>  $technicalContext
      */
-    private function userPrompt(User $user, string $question, array $history, array $pageContext, array $knowledge, array $platformContext): string
+    private function userPrompt(User $user, string $question, array $history, array $pageContext, array $knowledge, array $platformContext, array $technicalContext): string
     {
         $payload = [
             'user' => [
@@ -135,11 +142,16 @@ class OperationsAssistantService
             'recent_conversation' => $history,
             'relevant_context' => $knowledge,
             'platform_context' => $platformContext,
+            'technical_recommendation_context' => $technicalContext,
             'instructions' => [
                 'Responder en espanol.',
                 'Ser concreto, practico y confiable.',
                 'Usar solo el contexto dado para afirmar datos especificos del sistema o del mantenimiento.',
                 'Tomar como prioridad el bloque platform_context para responder con vision global de la plataforma y no solo de la pagina actual.',
+                'Para soluciones tecnicas o diagnosticos, usar technical_recommendation_context como fuente principal de antecedentes, respetando su orden de prioridad.',
+                'Diferenciar claramente entre historial de la plataforma, informacion de manuales/base de conocimiento y recomendaciones inferidas.',
+                'No inventar antecedentes, reparaciones, resultados, refacciones, costos ni evidencia que no aparezcan en el contexto.',
+                'Si no hay antecedentes suficientes, indicarlo y apoyarse primero en technical_sources o relevant_context; si tampoco alcanzan, decir que falta evidencia interna.',
                 'Priorizar module_insights cuando exista, porque resume comparativos, rankings y estados actuales listos para responder.',
                 'Si module_insights contiene lubrication_lookup o coincidencias de documentos indexados, usarlos antes de concluir que falta informacion.',
                 'Si module_insights contiene refaction_cost_lookup, usarlo como fuente principal para responder costos, SKUs, compatibilidad por linea y refacciones de lavadora.',
@@ -162,6 +174,9 @@ class OperationsAssistantService
             'El bloque platform_context contiene contexto vivo de toda la plataforma, incluyendo modulos, tablas relevantes, resumen de base de datos, actividad reciente, coincidencias por consulta y evidencias con fotos.',
             'No te limites a la pagina actual si platform_context aporta datos mas amplios y vigentes.',
             'Si existe module_insights, usalo como fuente primaria para rankings, comparativos, tendencias y estado actual de componentes o lineas.',
+            'Si la pregunta pide una solucion tecnica, diagnostico o plan de intervencion, usa technical_recommendation_context antes que conocimiento general.',
+            'Respeta el orden de antecedentes: mismo componente/misma lavadora, mismo tipo/misma lavadora, mismo componente en otras lavadoras, fallas similares, manuales/base de conocimiento.',
+            'Separa en la respuesta lo observado en historial, lo encontrado en documentos y lo que recomiendas como inferencia tecnica.',
             'Si module_insights incluye refaction_cost_lookup, tomalo como referencia estructurada valida para responder refacciones, costos unitarios, SKUs, compatibilidad por linea y consumibles de lavadora.',
             'Si module_insights incluye lubrication_lookup, tomalo como una referencia estructurada valida para responder preguntas de aceite, lubricante, litros, SKU y consumibles de lavadora.',
             'Cuando existan coincidencias de documentos de conocimiento indexados, usalas para complementar o confirmar la respuesta operativa.',
