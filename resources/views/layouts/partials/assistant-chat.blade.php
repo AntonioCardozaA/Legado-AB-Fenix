@@ -161,6 +161,43 @@
         color: #94a3b8;
     }
 
+    #assistant-chat-widget .assistant-chat-artifacts {
+        margin-top: 12px;
+        display: grid;
+        gap: 10px;
+    }
+
+    #assistant-chat-widget .assistant-chat-artifact-image {
+        display: block;
+        width: 100%;
+        max-height: 220px;
+        border-radius: 14px;
+        border: 1px solid rgba(148, 163, 184, 0.35);
+        background: #ffffff;
+        object-fit: contain;
+    }
+
+    #assistant-chat-widget .assistant-chat-artifact-link {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        width: fit-content;
+        max-width: 100%;
+        border-radius: 999px;
+        border: 1px solid rgba(22, 163, 74, 0.28);
+        background: #f0fdf4;
+        padding: 8px 12px;
+        font-size: 12px;
+        font-weight: 800;
+        color: #166534;
+        text-decoration: none;
+    }
+
+    #assistant-chat-widget .assistant-chat-artifact-link:hover {
+        background: #dcfce7;
+    }
+
     #assistant-chat-widget .assistant-chat-dot--1 {
         background: #f59e0b;
     }
@@ -237,6 +274,57 @@
             .join(' | ');
     }
 
+    function hasArtifacts(message) {
+        return Array.isArray(message?.metadata?.artifacts) && message.metadata.artifacts.length > 0;
+    }
+
+    function artifactUrl(artifact, download) {
+        const url = String(artifact?.url || '');
+
+        if (!download || url === '') {
+            return url;
+        }
+
+        return url + (url.includes('?') ? '&' : '?') + 'download=1';
+    }
+
+    function renderArtifacts(message) {
+        if (!hasArtifacts(message)) {
+            return '';
+        }
+
+        const items = message.metadata.artifacts.map((artifact) => {
+            const url = artifactUrl(artifact, false);
+            const downloadUrl = artifactUrl(artifact, true);
+            const mimeType = String(artifact?.mime_type || '');
+            const kind = String(artifact?.kind || '');
+            const label = artifact?.label || artifact?.file_name || 'Adjunto';
+
+            if (url === '') {
+                return '';
+            }
+
+            if (kind === 'image') {
+                return `
+                    <a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer" title="${escapeHtml(label)}">
+                        <img class="assistant-chat-artifact-image" src="${escapeHtml(url)}" alt="${escapeHtml(label)}">
+                    </a>
+                `;
+            }
+
+            const icon = kind === 'svg' || mimeType === 'image/svg+xml' ? 'fa-file-image' : 'fa-file-excel';
+
+            return `
+                <a class="assistant-chat-artifact-link" href="${escapeHtml(downloadUrl)}" download>
+                    <i class="fas ${icon}"></i>
+                    <span>${escapeHtml(label)}</span>
+                </a>
+            `;
+        }).join('');
+
+        return `<div class="assistant-chat-artifacts">${items}</div>`;
+    }
+
     function currentMessages() {
         return messages.length > 0 ? messages : [introMessage];
     }
@@ -264,6 +352,7 @@
                             <span>${label}</span>
                         </div>
                         <div class="mt-2 whitespace-normal break-words">${formatMessage(message.content)}</div>
+                        ${hasArtifacts(message) ? renderArtifacts(message) : ''}
                         ${hasSources(message) ? `
                             <p class="assistant-chat-source mt-3 text-[11px] font-medium">
                                 Base usada: ${escapeHtml(formatSources(message))}

@@ -4,16 +4,22 @@ namespace App\Http\Controllers;
 
 use App\Models\CadenaCiclo;
 use App\Models\Elongacion;
+use App\Models\ElongacionReminderNotification;
 use App\Models\Linea;
+use App\Models\User;
+use App\Models\UserNotificationSetting;
+use App\Services\ElongacionReminderService;
 use App\Services\ElongacionChainCostService;
 use App\Services\ElongacionStatusNotificationService;
 use App\Services\Maintenance\WasherMaintenanceOrchestrator;
 use App\Services\WhatsAppService;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use InvalidArgumentException;
 use Throwable;
 
 class ElongacionController extends Controller
@@ -88,6 +94,92 @@ class ElongacionController extends Controller
             'latestAlertableRecordIds' => $latestAlertableRecordIds,
             'lineas' => array_keys(Elongacion::PASOS_INICIALES),
         ]);
+    }
+
+    public function alertasWhatsapp(Request $request, ElongacionReminderService $reminderService, WhatsAppService $whatsAppService)
+    {
+        $this->ensureSystemAdmin($request);
+
+        $request->validate([
+            'date' => ['nullable', 'date'],
+        ]);
+
+        $referenceDate = $this->resolveReminderReferenceDate($request, 'date');
+        $pendingAlerts = $reminderService->getPendingAlerts($referenceDate);
+        $notifications = ElongacionReminderNotification::query()
+            ->whereDate('notification_date', $referenceDate->toDateString())
+            ->whereIn('channel', ['whatsapp', 'whatsapp_manual'])
+            ->orderByDesc('updated_at')
+            ->get();
+
+        $automaticNotifications = $notifications
+            ->where('channel', 'whatsapp')
+            ->values();
+        $manualNotifications = $notifications
+            ->where('channel', 'whatsapp_manual')
+            ->values();
+
+        return view('elongaciones.alertas-whatsapp', [
+            'referenceDate' => $referenceDate,
+            'pendingAlerts' => $pendingAlerts,
+            'notifications' => $notifications,
+            'automaticNotifications' => $automaticNotifications,
+            'manualNotifications' => $manualNotifications,
+            'hasAutomaticSent' => $automaticNotifications->contains('status', 'sent'),
+            'hasAnySent' => $notifications->contains('status', 'sent'),
+            'recipientOptions' => $this->resolveManualWhatsappRecipients($whatsAppService),
+        ]);
+    }
+
+    public function enviarAlertaWhatsappManual(Request $request, ElongacionReminderService $reminderService)
+    {
+        $this->ensureSystemAdmin($request);
+
+        $validated = $request->validate([
+            'notification_date' => ['required', 'date'],
+            'recipient' => ['nullable', 'string', 'max:40'],
+            'custom_recipient' => ['nullable', 'string', 'max:40'],
+        ]);
+
+        $referenceDate = $this->resolveReminderReferenceDate($request, 'notification_date');
+        $customRecipient = trim((string) ($validated['custom_recipient'] ?? ''));
+        $selectedRecipient = trim((string) ($validated['recipient'] ?? ''));
+        $recipient = $customRecipient !== '' ? $customRecipient : $selectedRecipient;
+
+        if ($recipient === '') {
+            throw ValidationException::withMessages([
+                'recipient' => 'Selecciona o captura un numero de WhatsApp.',
+            ]);
+        }
+
+        try {
+            $result = $reminderService->sendManualAlert(
+                $recipient,
+                $referenceDate,
+                $request->user()?->id
+            );
+        } catch (InvalidArgumentException $exception) {
+            throw ValidationException::withMessages([
+                'recipient' => $exception->getMessage(),
+            ]);
+        }
+
+        $redirect = redirect()->route('elongaciones.alertas-whatsapp.index', [
+            'date' => $referenceDate->toDateString(),
+        ]);
+
+        if ($result['status'] === 'no_pending') {
+            return $redirect->with('warning', 'No hay lineas pendientes para esa fecha; no se envio WhatsApp.');
+        }
+
+        if (!$result['sent']) {
+            return $redirect->with('error', 'No se pudo enviar el WhatsApp: ' . ($result['error'] ?? 'error desconocido'));
+        }
+
+        return $redirect->with(
+            'success',
+            'WhatsApp manual enviado a ' . $this->maskPhoneNumber($result['recipient']) . '.'
+        );
     }
 
     public function create(Request $request)
@@ -624,5 +716,99 @@ class ElongacionController extends Controller
 
             return 'La sugerencia IA no pudo generarse en este momento; revisa la configuracion SSL/API.';
         }
+    }
+
+    private function ensureSystemAdmin(Request $request): void
+    {
+        abort_unless(
+            $request->user()?->hasRole(User::ROLE_ADMIN),
+            403,
+            'Solo los administradores del sistema pueden gestionar alertas WhatsApp de elongacion.'
+        );
+    }
+
+    private function resolveReminderReferenceDate(Request $request, string $field): CarbonImmutable
+    {
+        $timezone = (string) config('elongacion-alerts.timezone', 'America/Mexico_City');
+        $value = trim((string) $request->input($field, ''));
+
+        if ($value === '') {
+            return CarbonImmutable::now($timezone)->startOfDay();
+        }
+
+        return CarbonImmutable::parse($value, $timezone)->startOfDay();
+    }
+
+    private function resolveManualWhatsappRecipients(WhatsAppService $whatsAppService): array
+    {
+        $recipients = collect();
+
+        foreach ((array) config('elongacion-alerts.whatsapp_recipients', []) as $configuredRecipient) {
+            $this->addManualWhatsappRecipient(
+                $recipients,
+                $whatsAppService,
+                (string) $configuredRecipient,
+                'Configuracion general'
+            );
+        }
+
+        UserNotificationSetting::query()
+            ->with('user')
+            ->where('whatsapp_notifications', true)
+            ->whereNotNull('whatsapp_number')
+            ->where('whatsapp_number', '!=', '')
+            ->orderBy('whatsapp_number')
+            ->get()
+            ->each(function (UserNotificationSetting $setting) use ($recipients, $whatsAppService): void {
+                $source = $setting->user?->name
+                    ? 'Usuario: ' . $setting->user->name
+                    : 'Preferencias de usuario';
+
+                $this->addManualWhatsappRecipient(
+                    $recipients,
+                    $whatsAppService,
+                    (string) $setting->whatsapp_number,
+                    $source
+                );
+            });
+
+        return $recipients
+            ->groupBy('number')
+            ->map(function ($group, string $number): array {
+                return [
+                    'number' => $number,
+                    'masked' => $this->maskPhoneNumber($number),
+                    'sources' => $group->pluck('source')->unique()->values()->all(),
+                ];
+            })
+            ->sortBy('number')
+            ->values()
+            ->all();
+    }
+
+    private function addManualWhatsappRecipient($recipients, WhatsAppService $whatsAppService, string $number, string $source): void
+    {
+        try {
+            $recipients->push([
+                'number' => $whatsAppService->normalizeNumber($number),
+                'source' => $source,
+            ]);
+        } catch (InvalidArgumentException) {
+            // Los numeros invalidos se ignoran en la lista, igual que en el flujo automatico.
+        }
+    }
+
+    private function maskPhoneNumber(string $number): string
+    {
+        $digits = preg_replace('/\D+/', '', $number) ?? '';
+        $length = strlen($digits);
+
+        if ($length <= 5) {
+            return str_repeat('*', $length);
+        }
+
+        return substr($digits, 0, 3)
+            . str_repeat('*', max($length - 5, 0))
+            . substr($digits, -2);
     }
 }
