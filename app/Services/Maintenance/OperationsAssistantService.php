@@ -13,6 +13,7 @@ class OperationsAssistantService
     public function __construct(
         private readonly AiProviderInterface $aiProvider,
         private readonly PromptSafetySanitizer $sanitizer,
+        private readonly AssistantAnalyticsArtifactService $analyticsArtifacts,
         private readonly AssistantKnowledgeSearchService $knowledgeSearch,
         private readonly OperationsPlatformContextService $platformContext,
         private readonly WasherTechnicalContextRetriever $technicalContext,
@@ -38,6 +39,44 @@ class OperationsAssistantService
 
         $safePageContext = $this->sanitizePageContext($pageContext);
         $conversation = $this->sanitizeHistory($history);
+
+        if ($this->analyticsArtifacts->looksLikeArtifactRequest($question)) {
+            if (!(bool) config('maintenance_ai.enabled', false)) {
+                $this->interactionLogger->fallback($user, 'assistant_chat', [
+                    'input_chars' => mb_strlen($question),
+                    'metadata' => [
+                        'mode' => 'analytics_artifact_disabled',
+                    ],
+                ]);
+
+                return [
+                    'content' => 'El asistente no esta disponible porque la IA del sistema esta deshabilitada en este momento.',
+                    'metadata' => ['fallback' => true, 'disabled' => true],
+                ];
+            }
+
+            if ($artifactReply = $this->analyticsArtifacts->tryGenerate($user, $question, $safePageContext)) {
+                $this->interactionLogger->success($user, 'assistant_chat', [
+                    'meta' => [
+                        'provider' => data_get($artifactReply, 'metadata.provider'),
+                        'model' => data_get($artifactReply, 'metadata.model'),
+                    ],
+                ], [
+                    'input_chars' => mb_strlen($question),
+                    'output_chars' => mb_strlen((string) $artifactReply['content']),
+                    'metadata' => [
+                        'mode' => 'analytics_artifact',
+                        'artifacts_count' => count((array) data_get($artifactReply, 'metadata.artifacts', [])),
+                        'dataset' => data_get($artifactReply, 'metadata.intent.dataset'),
+                        'outputs' => data_get($artifactReply, 'metadata.intent.outputs', []),
+                        'page_context' => $safePageContext,
+                    ],
+                ]);
+
+                return $artifactReply;
+            }
+        }
+
         $platformContext = $this->buildPlatformContext($user, $question, $safePageContext);
 
         if ($deterministicReply = $this->resolveDeterministicReply($question, $platformContext)) {

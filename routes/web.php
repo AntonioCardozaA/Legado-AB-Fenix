@@ -60,6 +60,10 @@ Route::middleware(['auth', 'throttle:assistant-chat'])
         Route::get('/', 'index')->name('index');
         Route::post('/', 'store')->name('store');
         Route::delete('/', 'destroy')->name('destroy');
+        Route::get('/{message}/artefactos/{artifact}', 'artifact')
+            ->whereNumber('message')
+            ->whereNumber('artifact')
+            ->name('artifact');
     });
 
 Route::prefix('lavadoras/diagramas')->name('lavadoras.diagramas.')->group(function () {
@@ -698,6 +702,8 @@ Route::middleware(['web', 'auth', 'custom.permission.access'])
     ->controller(ElongacionController::class)
     ->group(function () {
         Route::get('/', 'index')->name('index');
+        Route::get('/alertas-whatsapp', 'alertasWhatsapp')->name('alertas-whatsapp.index');
+        Route::post('/alertas-whatsapp/enviar', 'enviarAlertaWhatsappManual')->name('alertas-whatsapp.send');
         Route::get('/create', 'create')->name('create');
         Route::post('/', 'store')->name('store');
         Route::get('/comparacion-ciclos', 'comparacionCiclos')->name('ciclos.comparacion');

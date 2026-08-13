@@ -5,10 +5,12 @@ namespace Tests\Feature;
 use App\Contracts\AiProviderInterface;
 use App\Models\AnalisisLavadora;
 use App\Models\AssistantMessage;
+use App\Models\CadenaCiclo;
 use App\Models\Componente;
 use App\Models\CostAutomationRule;
 use App\Models\CostCatalogItem;
 use App\Models\Elongacion;
+use App\Models\LavadoraCostEntry;
 use App\Models\Linea;
 use App\Models\MaintenanceEvent;
 use App\Models\PlanAccion;
@@ -16,8 +18,10 @@ use App\Models\User;
 use App\Models\WasherKnowledgeChunk;
 use App\Models\WasherKnowledgeDocument;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use PhpOffice\PhpSpreadsheet\IOFactory;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
@@ -199,6 +203,788 @@ class AssistantChatTest extends TestCase
             ]);
 
         $this->assertDatabaseCount('assistant_messages', 0);
+    }
+
+    public function test_chat_generates_elongation_chart_and_excel_artifacts_from_prompt(): void
+    {
+        config([
+            'maintenance_ai.enabled' => true,
+            'maintenance_ai.chat.model' => 'gemini-3.6-flash',
+        ]);
+
+        Storage::fake('local');
+
+        $capturingProvider = new class implements AiProviderInterface
+        {
+            public array $payloads = [];
+
+            public function generateStructuredActionPlan(array $payload): array
+            {
+                $this->payloads[] = $payload;
+
+                return [
+                    'data' => [
+                        'should_generate' => true,
+                        'dataset' => 'elongaciones',
+                        'metric' => 'max_porcentaje',
+                        'chart_type' => 'line',
+                        'aggregation' => 'monthly',
+                        'outputs' => ['image', 'excel'],
+                        'lineas' => ['L-05'],
+                        'date_range' => [
+                            'preset' => 'last_12_months',
+                            'from' => '',
+                            'to' => '',
+                        ],
+                        'title' => 'Tendencia de elongaciones L-05',
+                        'confidence' => 0.94,
+                    ],
+                    'raw' => [],
+                    'meta' => [
+                        'provider' => 'gemini',
+                        'model' => $payload['model'] ?? 'gemini-3.6-flash',
+                    ],
+                ];
+            }
+
+            public function createEmbedding(string $content): array
+            {
+                return [];
+            }
+
+            public function extractDocumentText(array $payload): string
+            {
+                return '';
+            }
+        };
+
+        $this->app->instance(AiProviderInterface::class, $capturingProvider);
+
+        $user = $this->authenticatedUser();
+        $linea = Linea::create([
+            'nombre' => 'L-05',
+            'tipo' => User::MODULE_LAVADORA,
+            'activo' => true,
+        ]);
+
+        foreach ([3 => [1.12, 1.18], 2 => [1.24, 1.31], 1 => [1.37, 1.42]] as $monthsAgo => [$bombas, $vapor]) {
+            Elongacion::create([
+                'linea_id' => $linea->id,
+                'linea' => 'L-05',
+                'bombas_promedio' => 140 + $bombas,
+                'bombas_porcentaje' => $bombas,
+                'vapor_promedio' => 140 + $vapor,
+                'vapor_porcentaje' => $vapor,
+                'estado' => $vapor >= 1.3 ? 'alerta' : 'normal',
+                'estado_detallado' => $vapor >= 1.3 ? 'comprar' : 'normal',
+                'paso_inicial' => 140,
+                'hodometro' => 1000 + $monthsAgo,
+                'created_at' => now()->subMonths($monthsAgo),
+                'updated_at' => now()->subMonths($monthsAgo),
+            ]);
+        }
+
+        $response = $this->actingAs($user)->postJson(route('assistant-chat.store'), [
+            'message' => 'Graficame la tendencia de elongaciones de la linea 5 y mandamela en imagen y Excel',
+            'page_context' => [
+                'module' => User::MODULE_LAVADORA,
+                'page_title' => 'Chat operativo',
+                'current_path' => '/dashboard/lavadoras',
+                'section' => 'Resumen global',
+            ],
+        ]);
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('message.role', 'assistant')
+            ->assertJsonPath('message.metadata.provider', 'gemini')
+            ->assertJsonPath('message.metadata.model', 'gemini-3.6-flash')
+            ->assertJsonPath('message.metadata.artifact_request', true)
+            ->assertJsonCount(3, 'message.metadata.artifacts');
+
+        $this->assertSame('assistant_analytics_intent', $capturingProvider->payloads[0]['schema_name'] ?? null);
+        $this->assertStringContainsString('Genere PNG y SVG y Excel', (string) $response->json('message.content'));
+
+        $serializedArtifacts = $response->json('message.metadata.artifacts');
+        $this->assertSame(['image', 'svg', 'excel'], array_column($serializedArtifacts, 'kind'));
+        $this->assertNotEmpty($serializedArtifacts[0]['url'] ?? null);
+        $this->assertNotEmpty($serializedArtifacts[1]['url'] ?? null);
+        $this->assertNotEmpty($serializedArtifacts[2]['url'] ?? null);
+
+        $assistantMessage = AssistantMessage::query()
+            ->where('user_id', $user->id)
+            ->where('role', 'assistant')
+            ->latest('id')
+            ->firstOrFail();
+        $storedArtifacts = $assistantMessage->metadata['artifacts'];
+
+        Storage::disk('local')->assertExists($storedArtifacts[0]['path']);
+        Storage::disk('local')->assertExists($storedArtifacts[1]['path']);
+        Storage::disk('local')->assertExists($storedArtifacts[2]['path']);
+
+        $imageResponse = $this->actingAs($user)->get($serializedArtifacts[0]['url']);
+        $imageResponse->assertOk();
+        $this->assertStringContainsString('image/png', (string) $imageResponse->headers->get('content-type'));
+        $this->assertStringStartsWith("\x89PNG", Storage::disk('local')->get($storedArtifacts[0]['path']));
+
+        $svgResponse = $this->actingAs($user)->get($serializedArtifacts[1]['url']);
+        $svgResponse->assertOk();
+        $this->assertStringContainsString('image/svg+xml', (string) $svgResponse->headers->get('content-type'));
+        $this->assertStringContainsString('<svg', Storage::disk('local')->get($storedArtifacts[1]['path']));
+
+        $this->actingAs($this->authenticatedUser())
+            ->get($serializedArtifacts[0]['url'])
+            ->assertNotFound();
+
+        $excelResponse = $this->actingAs($user)->get($serializedArtifacts[2]['url'].'?download=1');
+        $excelResponse->assertOk();
+        $this->assertStringContainsString('attachment', (string) $excelResponse->headers->get('content-disposition'));
+
+        $spreadsheet = IOFactory::load(Storage::disk('local')->path($storedArtifacts[2]['path']));
+
+        $this->assertSame([
+            'Dashboard',
+            'Resumen',
+            'Tendencia',
+            'Alertas',
+            'Datos',
+            'Filtros',
+        ], $spreadsheet->getSheetNames());
+        $dashboard = $spreadsheet->getSheetByName('Dashboard');
+        $this->assertNotNull($dashboard);
+        $this->assertSame('LEGADO AB FENIX', $dashboard?->getCell('A1')->getValue());
+        $this->assertGreaterThan(0, count($dashboard?->getDrawingCollection() ?? []));
+        $this->assertSame('Prompt original', $spreadsheet->getSheetByName('Filtros')?->getCell('A2')->getValue());
+    }
+
+    public function test_chat_recovers_typo_prompt_and_incomplete_artifact_intent_json(): void
+    {
+        config([
+            'maintenance_ai.enabled' => true,
+            'maintenance_ai.chat.model' => 'gemini-3.6-flash',
+        ]);
+
+        Storage::fake('local');
+
+        $capturingProvider = new class implements AiProviderInterface
+        {
+            public array $payloads = [];
+
+            public function generateStructuredActionPlan(array $payload): array
+            {
+                $this->payloads[] = $payload;
+
+                return [
+                    'data' => [
+                        'should_generate' => true,
+                    ],
+                    'raw' => [],
+                    'meta' => [
+                        'provider' => 'gemini',
+                        'model' => $payload['model'] ?? 'gemini-3.6-flash',
+                    ],
+                ];
+            }
+
+            public function createEmbedding(string $content): array
+            {
+                return [];
+            }
+
+            public function extractDocumentText(array $payload): string
+            {
+                return '';
+            }
+        };
+
+        $this->app->instance(AiProviderInterface::class, $capturingProvider);
+
+        $user = $this->authenticatedUser();
+        $linea = Linea::create([
+            'nombre' => 'L-05',
+            'tipo' => User::MODULE_LAVADORA,
+            'activo' => true,
+        ]);
+
+        Elongacion::create([
+            'linea_id' => $linea->id,
+            'linea' => 'L-05',
+            'bombas_promedio' => 141.10,
+            'bombas_porcentaje' => 1.36,
+            'vapor_promedio' => 141.40,
+            'vapor_porcentaje' => 1.44,
+            'estado' => 'critico',
+            'estado_detallado' => 'cambio',
+            'paso_inicial' => 140,
+            'hodometro' => 1440,
+            'created_at' => now()->subDays(5),
+            'updated_at' => now()->subDays(5),
+        ]);
+
+        $response = $this->actingAs($user)->postJson(route('assistant-chat.store'), [
+            'message' => 'Graficae longaciones de linea 5 en ecxel de ultimos 30 dias',
+            'page_context' => [
+                'module' => User::MODULE_LAVADORA,
+                'page_title' => 'Chat operativo',
+                'current_path' => '/dashboard/lavadoras',
+            ],
+        ]);
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('message.metadata.artifact_request', true)
+            ->assertJsonPath('message.metadata.intent.dataset', 'elongaciones')
+            ->assertJsonPath('message.metadata.intent.date_range.preset', 'last_30_days')
+            ->assertJsonCount(3, 'message.metadata.artifacts');
+
+        $serializedArtifacts = $response->json('message.metadata.artifacts');
+        $this->assertSame(['image', 'svg', 'excel'], array_column($serializedArtifacts, 'kind'));
+        $this->assertSame('assistant_analytics_intent', $capturingProvider->payloads[0]['schema_name'] ?? null);
+    }
+
+    public function test_chat_elongation_trend_uses_current_cycle_unless_history_is_requested(): void
+    {
+        config([
+            'maintenance_ai.enabled' => true,
+            'maintenance_ai.chat.model' => 'gemini-3.6-flash',
+        ]);
+
+        Storage::fake('local');
+
+        $capturingProvider = new class implements AiProviderInterface
+        {
+            public array $payloads = [];
+
+            public function generateStructuredActionPlan(array $payload): array
+            {
+                $this->payloads[] = $payload;
+
+                return [
+                    'data' => [
+                        'should_generate' => true,
+                        'dataset' => 'elongaciones',
+                        'metric' => 'max_porcentaje',
+                        'chart_type' => 'line',
+                        'aggregation' => 'daily',
+                        'outputs' => ['excel'],
+                        'lineas' => ['L-05'],
+                        'date_range' => [
+                            'preset' => 'all',
+                            'from' => '',
+                            'to' => '',
+                        ],
+                        'title' => 'Tendencia de elongaciones L-05',
+                        'confidence' => 0.91,
+                    ],
+                    'raw' => [],
+                    'meta' => [
+                        'provider' => 'gemini',
+                        'model' => $payload['model'] ?? 'gemini-3.6-flash',
+                    ],
+                ];
+            }
+
+            public function createEmbedding(string $content): array
+            {
+                return [];
+            }
+
+            public function extractDocumentText(array $payload): string
+            {
+                return '';
+            }
+        };
+
+        $this->app->instance(AiProviderInterface::class, $capturingProvider);
+
+        $user = $this->authenticatedUser();
+        $linea = Linea::create([
+            'nombre' => 'L-05',
+            'tipo' => User::MODULE_LAVADORA,
+            'activo' => true,
+        ]);
+        $cicloAnterior = CadenaCiclo::create([
+            'linea_id' => $linea->id,
+            'linea' => 'L-05',
+            'codigo' => 'L-05-C001',
+            'numero_ciclo' => 1,
+            'proveedor' => 'Proveedor anterior',
+            'paso_inicial' => 140,
+            'hodometro_inicial' => 0,
+            'instalada_en' => now()->subMonths(8),
+            'retirada_en' => now()->subMonths(3),
+            'activa' => false,
+        ]);
+        $cicloActual = CadenaCiclo::create([
+            'linea_id' => $linea->id,
+            'linea' => 'L-05',
+            'codigo' => 'L-05-C002',
+            'numero_ciclo' => 2,
+            'proveedor' => 'Proveedor actual',
+            'paso_inicial' => 140,
+            'hodometro_inicial' => 0,
+            'instalada_en' => now()->subMonths(2),
+            'activa' => true,
+        ]);
+
+        foreach ([
+            [$cicloAnterior, now()->subMonths(5), 1.55, 1.62],
+            [$cicloAnterior, now()->subMonths(4), 1.61, 1.67],
+            [$cicloActual, now()->subWeeks(3), 0.31, 0.42],
+            [$cicloActual, now()->subWeek(), 0.46, 0.58],
+        ] as [$ciclo, $date, $bombas, $vapor]) {
+            $elongacion = Elongacion::create([
+                'linea_id' => $linea->id,
+                'linea' => 'L-05',
+                'cadena_ciclo_id' => $ciclo->id,
+                'proveedor' => $ciclo->proveedor,
+                'bombas_promedio' => 140 + $bombas,
+                'bombas_porcentaje' => $bombas,
+                'vapor_promedio' => 140 + $vapor,
+                'vapor_porcentaje' => $vapor,
+                'estado' => $vapor >= 1.46 ? 'critico' : 'normal',
+                'estado_detallado' => $vapor >= 1.46 ? 'cambio' : 'normal',
+                'paso_inicial' => 140,
+                'hodometro' => 1000,
+                'hodometro_ciclo' => 100,
+            ]);
+            $elongacion->forceFill([
+                'created_at' => $date,
+                'updated_at' => $date,
+            ])->saveQuietly();
+        }
+
+        $response = $this->actingAs($user)->postJson(route('assistant-chat.store'), [
+            'message' => 'Dame Excel de tendencia de elongaciones de la linea 5',
+            'page_context' => [
+                'module' => User::MODULE_LAVADORA,
+                'page_title' => 'Chat operativo',
+                'current_path' => '/dashboard/lavadoras',
+            ],
+        ]);
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('message.metadata.intent.dataset', 'elongaciones')
+            ->assertJsonCount(1, 'message.metadata.artifacts');
+
+        $assistantMessage = AssistantMessage::findOrFail((int) $response->json('message.id'));
+        $storedArtifacts = $assistantMessage->metadata['artifacts'];
+        $spreadsheet = IOFactory::load(Storage::disk('local')->path($storedArtifacts[0]['path']));
+        $datos = $spreadsheet->getSheetByName('Datos');
+        $datosText = json_encode($datos?->rangeToArray('A1:'.$datos?->getHighestColumn().$datos?->getHighestRow()), JSON_UNESCAPED_UNICODE);
+
+        $this->assertSame(3, $datos?->getHighestRow());
+        $this->assertStringContainsString('L-05-C002', (string) $datosText);
+        $this->assertStringNotContainsString('L-05-C001', (string) $datosText);
+        $this->assertSame('Alcance de ciclo', $spreadsheet->getSheetByName('Filtros')?->getCell('A10')->getValue());
+        $this->assertSame('Ciclo actual por lavadora', $spreadsheet->getSheetByName('Filtros')?->getCell('B10')->getValue());
+
+        $historyResponse = $this->actingAs($user)->postJson(route('assistant-chat.store'), [
+            'message' => 'Dame Excel de tendencia de elongaciones de la linea 5 con todos los ciclos',
+            'page_context' => [
+                'module' => User::MODULE_LAVADORA,
+                'page_title' => 'Chat operativo',
+                'current_path' => '/dashboard/lavadoras',
+            ],
+        ]);
+
+        $historyResponse
+            ->assertOk()
+            ->assertJsonPath('message.metadata.intent.dataset', 'elongaciones')
+            ->assertJsonCount(1, 'message.metadata.artifacts');
+
+        $historyMessage = AssistantMessage::findOrFail((int) $historyResponse->json('message.id'));
+        $historyArtifact = $historyMessage->metadata['artifacts'][0];
+        $historySpreadsheet = IOFactory::load(Storage::disk('local')->path($historyArtifact['path']));
+        $historyDatos = $historySpreadsheet->getSheetByName('Datos');
+        $historyText = json_encode($historyDatos?->rangeToArray('A1:'.$historyDatos?->getHighestColumn().$historyDatos?->getHighestRow()), JSON_UNESCAPED_UNICODE);
+
+        $this->assertSame(5, $historyDatos?->getHighestRow());
+        $this->assertStringContainsString('L-05-C001', (string) $historyText);
+        $this->assertStringContainsString('L-05-C002', (string) $historyText);
+        $this->assertSame('Todos los ciclos solicitados', $historySpreadsheet->getSheetByName('Filtros')?->getCell('B10')->getValue());
+    }
+
+    public function test_chat_explains_when_artifact_dataset_has_no_data(): void
+    {
+        config([
+            'maintenance_ai.enabled' => true,
+            'maintenance_ai.chat.model' => 'gemini-3.6-flash',
+        ]);
+
+        Storage::fake('local');
+
+        $capturingProvider = new class implements AiProviderInterface
+        {
+            public array $payloads = [];
+
+            public function generateStructuredActionPlan(array $payload): array
+            {
+                $this->payloads[] = $payload;
+
+                return [
+                    'data' => [
+                        'should_generate' => true,
+                        'dataset' => 'elongaciones',
+                        'metric' => 'max_porcentaje',
+                        'chart_type' => 'line',
+                        'aggregation' => 'monthly',
+                        'outputs' => ['excel'],
+                        'lineas' => ['L-05'],
+                        'date_range' => [
+                            'preset' => 'last_30_days',
+                            'from' => '',
+                            'to' => '',
+                        ],
+                        'title' => 'Tendencia de elongaciones L-05',
+                        'confidence' => 0.8,
+                    ],
+                    'raw' => [],
+                    'meta' => [
+                        'provider' => 'gemini',
+                        'model' => $payload['model'] ?? 'gemini-3.6-flash',
+                    ],
+                ];
+            }
+
+            public function createEmbedding(string $content): array
+            {
+                return [];
+            }
+
+            public function extractDocumentText(array $payload): string
+            {
+                return '';
+            }
+        };
+
+        $this->app->instance(AiProviderInterface::class, $capturingProvider);
+
+        $user = $this->authenticatedUser();
+        Linea::create([
+            'nombre' => 'L-05',
+            'tipo' => User::MODULE_LAVADORA,
+            'activo' => true,
+        ]);
+
+        $response = $this->actingAs($user)->postJson(route('assistant-chat.store'), [
+            'message' => 'Dame un ecxel de elongaciones de la linea 5 de los ultimos 30 dias',
+            'page_context' => [
+                'module' => User::MODULE_LAVADORA,
+                'page_title' => 'Chat operativo',
+                'current_path' => '/dashboard/lavadoras',
+            ],
+        ]);
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('message.metadata.empty_artifact_dataset', true);
+
+        $this->assertStringContainsString('No encontre datos', (string) $response->json('message.content'));
+        $this->assertSame([], $response->json('message.metadata.artifacts') ?? []);
+    }
+
+    public function test_chat_generates_templated_excels_for_supported_artifact_reports(): void
+    {
+        config([
+            'maintenance_ai.enabled' => true,
+            'maintenance_ai.chat.model' => 'gemini-3.6-flash',
+        ]);
+
+        Storage::fake('local');
+
+        $capturingProvider = new class implements AiProviderInterface
+        {
+            public array $payloads = [];
+
+            public function generateStructuredActionPlan(array $payload): array
+            {
+                $this->payloads[] = $payload;
+                $decodedPrompt = json_decode((string) ($payload['user_prompt'] ?? ''), true);
+                $prompt = Str::lower(Str::ascii((string) data_get($decodedPrompt, 'question', '')));
+                $dataset = match (true) {
+                    str_contains($prompt, 'costos') => 'costos_lavadora',
+                    str_contains($prompt, 'planes') => 'plan_accion',
+                    default => 'analisis_lavadora',
+                };
+
+                return [
+                    'data' => [
+                        'should_generate' => true,
+                        'dataset' => $dataset,
+                        'metric' => $dataset === 'costos_lavadora' ? 'costos' : 'registros',
+                        'chart_type' => str_contains($prompt, 'ranking') || str_contains($prompt, 'por linea') ? 'bar' : 'line',
+                        'aggregation' => str_contains($prompt, 'por linea') ? 'by_line' : 'monthly',
+                        'outputs' => ['excel'],
+                        'lineas' => ['L-05'],
+                        'date_range' => [
+                            'preset' => 'current_year',
+                            'from' => '',
+                            'to' => '',
+                        ],
+                        'title' => 'Reporte operativo',
+                        'confidence' => 0.86,
+                    ],
+                    'raw' => [],
+                    'meta' => [
+                        'provider' => 'gemini',
+                        'model' => $payload['model'] ?? 'gemini-3.6-flash',
+                    ],
+                ];
+            }
+
+            public function createEmbedding(string $content): array
+            {
+                return [];
+            }
+
+            public function extractDocumentText(array $payload): string
+            {
+                return '';
+            }
+        };
+
+        $this->app->instance(AiProviderInterface::class, $capturingProvider);
+
+        $user = $this->authenticatedUser();
+        $linea = Linea::create([
+            'nombre' => 'L-05',
+            'tipo' => User::MODULE_LAVADORA,
+            'activo' => true,
+        ]);
+        $componente = Componente::create([
+            'nombre' => 'Servo Chico',
+            'codigo' => 'SERVO_CHICO',
+            'tipo_equipo' => User::MODULE_LAVADORA,
+            'activo' => true,
+        ]);
+        $analisis = AnalisisLavadora::create([
+            'linea_id' => $linea->id,
+            'componente_id' => $componente->id,
+            'reductor' => 'R-14',
+            'lado' => 'BOMBAS',
+            'fecha_analisis' => now()->toDateString(),
+            'estado' => AnalisisLavadora::ESTADO_DANADO,
+            'actividad' => 'CAMBIAR SERVO CHICO',
+            'usuario_id' => $user->id,
+            'tipo_equipo' => User::MODULE_LAVADORA,
+        ]);
+
+        LavadoraCostEntry::create([
+            'linea_id' => $linea->id,
+            'analisis_lavadora_id' => $analisis->id,
+            'componente_id' => $componente->id,
+            'source_type' => LavadoraCostEntry::SOURCE_MANUAL,
+            'source_reference' => 'OC-100',
+            'cost_date' => now()->toDateString(),
+            'quantity' => 2,
+            'unit_cost' => 1500,
+            'total_cost' => 3000,
+            'component_snapshot' => 'Servo Chico',
+            'catalog_name_snapshot' => 'Servo chico refaccion',
+            'catalog_sku_snapshot' => 'SKU-100',
+            'catalog_category_snapshot' => 'Servo',
+            'unidad_medida_snapshot' => 'PZA',
+            'sync_key' => 'manual-test-100',
+        ]);
+
+        PlanAccion::create([
+            'linea_id' => $linea->id,
+            'actividad' => 'CAMBIAR SERVO CHICO',
+            'source' => 'manual',
+            'tipo_equipo' => User::MODULE_LAVADORA,
+            'priority_level' => 'alta',
+            'maintenance_type' => 'correctivo',
+            'estado' => 'approved',
+            'fecha_pcm1' => now()->subDay()->toDateString(),
+            'completado' => false,
+        ]);
+
+        foreach ([
+            'Dame Excel de analisis de lavadora linea 5 este año',
+            'Dame Excel de costos de lavadora por linea este año',
+            'Dame Excel de planes de accion linea 5 este año',
+        ] as $prompt) {
+            $response = $this->actingAs($user)->postJson(route('assistant-chat.store'), [
+                'message' => $prompt,
+                'page_context' => [
+                    'module' => User::MODULE_LAVADORA,
+                    'page_title' => 'Chat operativo',
+                    'current_path' => '/dashboard/lavadoras',
+                ],
+            ]);
+
+            $response
+                ->assertOk()
+                ->assertJsonCount(1, 'message.metadata.artifacts')
+                ->assertJsonPath('message.metadata.artifacts.0.kind', 'excel');
+
+            $assistantMessage = AssistantMessage::findOrFail((int) $response->json('message.id'));
+            $storedArtifacts = $assistantMessage->metadata['artifacts'];
+            $spreadsheet = IOFactory::load(Storage::disk('local')->path($storedArtifacts[0]['path']));
+
+            $this->assertSame([
+                'Dashboard',
+                'Resumen',
+                'Tendencia',
+                'Alertas',
+                'Datos',
+                'Filtros',
+            ], $spreadsheet->getSheetNames());
+            $dashboard = $spreadsheet->getSheetByName('Dashboard');
+            $this->assertNotNull($dashboard);
+            $this->assertGreaterThan(0, count($dashboard?->getDrawingCollection() ?? []));
+            $this->assertSame('Prompt original', $spreadsheet->getSheetByName('Filtros')?->getCell('A2')->getValue());
+        }
+    }
+
+    public function test_chat_explains_when_requested_artifact_dataset_is_not_configured(): void
+    {
+        config([
+            'maintenance_ai.enabled' => true,
+            'maintenance_ai.chat.model' => 'gemini-3.6-flash',
+        ]);
+
+        $capturingProvider = new class implements AiProviderInterface
+        {
+            public array $payloads = [];
+
+            public function generateStructuredActionPlan(array $payload): array
+            {
+                $this->payloads[] = $payload;
+
+                return [
+                    'data' => [
+                        'should_generate' => true,
+                        'dataset' => 'unsupported',
+                        'metric' => 'registros',
+                        'chart_type' => 'line',
+                        'aggregation' => 'monthly',
+                        'outputs' => ['excel'],
+                        'lineas' => [],
+                        'date_range' => [
+                            'preset' => 'last_12_months',
+                            'from' => '',
+                            'to' => '',
+                        ],
+                        'title' => 'Tendencia de donaciones',
+                        'confidence' => 0.88,
+                    ],
+                    'raw' => [],
+                    'meta' => [
+                        'provider' => 'gemini',
+                        'model' => $payload['model'] ?? 'gemini-3.6-flash',
+                    ],
+                ];
+            }
+
+            public function createEmbedding(string $content): array
+            {
+                return [];
+            }
+
+            public function extractDocumentText(array $payload): string
+            {
+                return '';
+            }
+        };
+
+        $this->app->instance(AiProviderInterface::class, $capturingProvider);
+
+        $user = $this->authenticatedUser();
+
+        $response = $this->actingAs($user)->postJson(route('assistant-chat.store'), [
+            'message' => 'Grafica la tendencia de donaciones en Excel',
+            'page_context' => [
+                'module' => User::MODULE_LAVADORA,
+                'page_title' => 'Chat operativo',
+                'current_path' => '/dashboard/lavadoras',
+            ],
+        ]);
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('message.metadata.unsupported_artifact_dataset', true);
+
+        $this->assertSame('assistant_analytics_intent', $capturingProvider->payloads[0]['schema_name'] ?? null);
+        $this->assertStringContainsString('datasets operativos configurados', (string) $response->json('message.content'));
+        $this->assertSame([], $response->json('message.metadata.artifacts') ?? []);
+    }
+
+    public function test_chat_rejects_artifact_requests_for_invalid_washer_lines(): void
+    {
+        config([
+            'maintenance_ai.enabled' => true,
+            'maintenance_ai.chat.model' => 'gemini-3.6-flash',
+        ]);
+
+        Storage::fake('local');
+
+        $capturingProvider = new class implements AiProviderInterface
+        {
+            public array $payloads = [];
+
+            public function generateStructuredActionPlan(array $payload): array
+            {
+                $this->payloads[] = $payload;
+
+                return [
+                    'data' => [
+                        'should_generate' => true,
+                        'dataset' => 'elongaciones',
+                        'metric' => 'max_porcentaje',
+                        'chart_type' => 'line',
+                        'aggregation' => 'monthly',
+                        'outputs' => ['image', 'excel'],
+                        'lineas' => ['L-99'],
+                        'date_range' => [
+                            'preset' => 'last_12_months',
+                            'from' => '',
+                            'to' => '',
+                        ],
+                        'title' => 'Tendencia de elongaciones L-99',
+                        'confidence' => 0.9,
+                    ],
+                    'raw' => [],
+                    'meta' => [
+                        'provider' => 'gemini',
+                        'model' => $payload['model'] ?? 'gemini-3.6-flash',
+                    ],
+                ];
+            }
+
+            public function createEmbedding(string $content): array
+            {
+                return [];
+            }
+
+            public function extractDocumentText(array $payload): string
+            {
+                return '';
+            }
+        };
+
+        $this->app->instance(AiProviderInterface::class, $capturingProvider);
+
+        $user = $this->authenticatedUser();
+
+        $response = $this->actingAs($user)->postJson(route('assistant-chat.store'), [
+            'message' => 'Graficame elongaciones de la linea 99 en imagen y ecxel',
+            'page_context' => [
+                'module' => User::MODULE_LAVADORA,
+                'page_title' => 'Chat operativo',
+                'current_path' => '/dashboard/lavadoras',
+            ],
+        ]);
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('message.metadata.invalid_artifact_filter', true)
+            ->assertJsonPath('message.metadata.invalid_lineas.0', 'L-99');
+
+        $this->assertStringContainsString('Lineas validas', (string) $response->json('message.content'));
+        $this->assertSame([], $response->json('message.metadata.artifacts') ?? []);
     }
 
     public function test_widget_is_rendered_on_authenticated_layout_pages(): void
@@ -1618,7 +2404,7 @@ class AssistantChatTest extends TestCase
             ['sku' => '4065310', 'nombre' => 'CATARINA DE ACERO COLADO PASO 140', 'categoria' => 'Catarina', 'unidad_medida' => 'Pieza', 'costo_unitario' => 48000.00, 'aliases' => ['CATARINA', 'SPROCKET']],
             ['sku' => '4153062', 'nombre' => 'DADO TRIBLOCK N.P. HHC420 MCA. SIMONAZZI', 'categoria' => 'Tornilleria', 'unidad_medida' => 'Pieza', 'costo_unitario' => 69.18, 'aliases' => ['DADO', 'TRIBLOCK', 'CATARINA']],
             ['sku' => '4073113', 'nombre' => 'TORNILLO CAB. HEX. GALV. 8.8 DE M20X2.5X65 R. CORRIDA.', 'categoria' => 'Tornilleria', 'unidad_medida' => 'Pieza', 'costo_unitario' => 150.00, 'aliases' => ['TORNILLO', 'CATARINA']],
-            ] as $item) {
+        ] as $item) {
             CostCatalogItem::query()->updateOrCreate(
                 ['sku' => $item['sku']],
                 [

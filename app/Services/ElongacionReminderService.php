@@ -158,6 +158,103 @@ class ElongacionReminderService
     /**
      * @return array{
      *     date: string,
+     *     recipient: string,
+     *     pending_lines: int,
+     *     status: string,
+     *     sent: bool,
+     *     error: string|null,
+     *     notification: ElongacionReminderNotification|null
+     * }
+     */
+    public function sendManualAlert(string $number, ?CarbonImmutable $referenceTime = null, ?int $triggeredByUserId = null): array
+    {
+        $timezone = $this->timezone();
+        $referenceDay = ($referenceTime ?? CarbonImmutable::now($timezone))
+            ->setTimezone($timezone)
+            ->startOfDay();
+        $now = CarbonImmutable::now($timezone);
+        $pendingAlerts = $this->getPendingAlerts($referenceDay);
+        $normalizedNumber = $this->whatsAppService->normalizeNumber($number);
+
+        $result = [
+            'date' => $referenceDay->toDateString(),
+            'recipient' => $normalizedNumber,
+            'pending_lines' => $pendingAlerts->count(),
+            'status' => 'no_pending',
+            'sent' => false,
+            'error' => null,
+            'notification' => null,
+        ];
+
+        if ($pendingAlerts->isEmpty()) {
+            return $result;
+        }
+
+        $notification = ElongacionReminderNotification::query()
+            ->whereDate('notification_date', $referenceDay->toDateString())
+            ->where('recipient', $normalizedNumber)
+            ->where('channel', 'whatsapp_manual')
+            ->first()
+            ?? new ElongacionReminderNotification([
+                'notification_date' => $referenceDay->toDateString(),
+                'recipient' => $normalizedNumber,
+                'channel' => 'whatsapp_manual',
+            ]);
+
+        $message = $this->buildMessage($pendingAlerts);
+
+        $this->markAsProcessing(
+            $notification,
+            $referenceDay,
+            $now,
+            [
+                'number' => $normalizedNumber,
+                'line_ids' => null,
+                'sources' => ['manual'],
+            ],
+            $pendingAlerts,
+            $message,
+            'whatsapp_manual'
+        );
+
+        $metadata = $notification->metadata ?? [];
+        $metadata['manual'] = true;
+        $metadata['triggered_by_user_id'] = $triggeredByUserId;
+        $metadata['triggered_at'] = $now->toIso8601String();
+        $notification->fill(['metadata' => $metadata])->save();
+
+        try {
+            $response = $this->whatsAppService->sendMessage($normalizedNumber, $message);
+
+            if ($response->failed()) {
+                throw new RuntimeException(sprintf(
+                    'UltraMsg respondio con HTTP %d: %s',
+                    $response->status(),
+                    $this->summarizeResponse($response)
+                ));
+            }
+
+            $this->markAsSent($notification, $now, $pendingAlerts, $response);
+
+            $result['status'] = 'sent';
+            $result['sent'] = true;
+            $result['notification'] = $notification->fresh();
+
+            return $result;
+        } catch (Throwable $exception) {
+            $this->markAsFailed($notification, $now, $exception);
+
+            $result['status'] = 'failed';
+            $result['error'] = $exception->getMessage();
+            $result['notification'] = $notification->fresh();
+
+            return $result;
+        }
+    }
+
+    /**
+     * @return array{
+     *     date: string,
      *     pending_lines: int,
      *     recipients: int,
      *     simulated: int,
@@ -432,7 +529,7 @@ class ElongacionReminderService
 
         return implode("\n", [
             '⚠️ Recordatorio de elongacion:',
-            'Las siguientes lineas/lavadoras requieren nuevo registro de elongacion:',
+            'Las siguientes lavadoras requieren nuevo registro de elongacion:',
             '',
             $lines->implode("\n\n"),
             '',
@@ -450,12 +547,13 @@ class ElongacionReminderService
         CarbonImmutable $now,
         array $recipient,
         Collection $alerts,
-        string $message
+        string $message,
+        string $channel = 'whatsapp'
     ): void {
         $notification->fill([
             'notification_date' => $today->toDateString(),
             'recipient' => $recipient['number'],
-            'channel' => 'whatsapp',
+            'channel' => $channel,
             'status' => 'processing',
             'message' => $message,
             'lines_snapshot' => $this->buildSnapshot($alerts),

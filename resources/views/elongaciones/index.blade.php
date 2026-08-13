@@ -133,6 +133,13 @@
                 </h1>
             </div>      
             <div class="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+                @if(auth()->user()?->hasRole(\App\Models\User::ROLE_ADMIN))
+                    <a href="{{ route('elongaciones.alertas-whatsapp.index') }}"
+                       class="inline-flex items-center gap-2 px-5 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition shadow-md">
+                        <i class="fab fa-whatsapp"></i>
+                        Alertas WhatsApp
+                    </a>
+                @endif
                 <a href="{{ route('elongaciones.ciclos.comparacion', ['linea' => request('linea')]) }}"
                    class="inline-flex items-center gap-2 px-5 py-3 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition shadow-md">
                     <i class="fas fa-code-compare"></i>
