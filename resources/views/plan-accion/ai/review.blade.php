@@ -121,16 +121,6 @@
                         </div>
 
                         <div>
-                            <label for="responsable_id" class="mb-2 block text-sm font-semibold text-slate-700">Responsable</label>
-                            <select id="responsable_id" name="responsable_id" class="w-full rounded-xl border-slate-300 text-sm focus:border-blue-500 focus:ring-blue-500">
-                                <option value="">Sin asignar</option>
-                                @foreach($usuariosResponsables as $usuario)
-                                    <option value="{{ $usuario->id }}" @selected((string) old('responsable_id', $plan->responsable_id) === (string) $usuario->id)>{{ $usuario->name }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-
-                        <div>
                             <label for="suggested_due_date" class="mb-2 block text-sm font-semibold text-slate-700">Fecha sugerida</label>
                             <input id="suggested_due_date" name="suggested_due_date" type="date" value="{{ old('suggested_due_date', $structured['suggested_due_date'] ?? optional($plan->fecha_pcm1)->toDateString()) }}" class="w-full rounded-xl border-slate-300 text-sm focus:border-blue-500 focus:ring-blue-500">
                         </div>

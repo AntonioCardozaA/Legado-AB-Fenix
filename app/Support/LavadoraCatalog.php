@@ -33,8 +33,8 @@ class LavadoraCatalog
         'GUI_INT_TAQNQUE' => 'Guia Int Tanque',
         'GUI_SUP_TANQUE' => 'Guia Sup Tanque',
         'CATARINAS' => 'Catarinas',
-        'RV200' => 'Reductor RV200',
-        'RV200_SIN_FIN' => 'Reductor Sin Fin-Corona RV200',
+        'RV200' => 'RV250 Sin Fin Corona',
+        'RV200_SIN_FIN' => 'RV250 Sin Fin Corona',
     ];
 
     public const COMPONENTES_POR_LINEA = [
@@ -48,7 +48,7 @@ class LavadoraCatalog
             'CATARINAS' => 'Catarinas',
         ],
         'L-05' => [
-            'RV200' => 'Reductor RV200',
+            'RV200' => 'RV250 Sin Fin Corona',
             'BUJE_ESPIGA' => 'Buje Baquelita-Espiga de flecha',
             'GUI_INF_TANQUE' => 'Guia Inferior',
             'GUI_INT_TANQUE' => 'Guia Intermedia',
@@ -92,7 +92,7 @@ class LavadoraCatalog
             'CATARINAS' => 'Catarinas',
         ],
         'L-12' => [
-            'RV200_SIN_FIN' => 'Reductor Sin Fin-Corona RV200',
+            'RV200_SIN_FIN' => 'RV250 Sin Fin Corona',
             'BUJE_ESPIGA' => 'Buje Baquelita-Espiga de flecha',
             'GUI_INF_TANQUE' => 'Guia Inferior',
             'GUI_INT_TANQUE' => 'Guia Intermedia',
@@ -100,7 +100,7 @@ class LavadoraCatalog
             'CATARINAS' => 'Catarinas',
         ],
         'L-13' => [
-            'RV200' => 'Reductor RV200',
+            'RV200' => 'RV250 Sin Fin Corona',
             'BUJE_ESPIGA' => 'Buje Baquelita-Espiga de flecha',
             'GUI_INF_TANQUE' => 'Guia Inferior',
             'GUI_INT_TANQUE' => 'Guia Intermedia',

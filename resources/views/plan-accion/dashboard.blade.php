@@ -53,7 +53,6 @@
                         <div class="font-semibold text-gray-900">{{ optional($plan->linea)->nombre ?? 'Sin linea' }}</div>
                         <div class="mt-1 text-sm text-gray-700">{{ $plan->actividad }}</div>
                         <div class="mt-2 space-y-1 text-xs text-gray-500">
-                            <div><span class="font-semibold text-gray-700">Responsable:</span> {{ $plan->responsable?->name ?? 'Sin responsable' }}</div>
                             <div>
                                 <span class="font-semibold text-gray-700">Registrado por:</span>
                                 {{ $plan->registradoPor?->name ?? 'Sin dato historico' }}

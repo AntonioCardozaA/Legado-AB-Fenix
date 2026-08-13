@@ -21,6 +21,7 @@ use App\Jobs\SendLavadoraDamageWhatsApp;
 use App\Services\AnalysisDeletionLogger;
 use App\Services\ImageEvidenceOptimizer;
 use App\Services\LavadoraCostSyncService;
+use App\Services\LavadoraRevisionPeriodicityService;
 use App\Services\Maintenance\WasherMaintenanceOrchestrator;
 use App\Support\LavadoraCatalog;
 use Maatwebsite\Excel\Facades\Excel;
@@ -696,6 +697,16 @@ $componente = Componente::firstOrCreate(
             'id' => $componente->id,
             'codigo' => $componente->codigo
         ]);
+    }
+
+    $codigoBaseComponente = AnalisisLavadora::codigoBaseComponente($componente->codigo);
+    if (
+        in_array($codigoBaseComponente, LavadoraRevisionPeriodicityService::COMPONENTES_CON_LADO, true)
+        && !$request->filled('lado')
+    ) {
+        return back()->withErrors([
+            'lado' => 'Debe seleccionar el lado Vapor o Pasillo para este componente.',
+        ])->withInput();
     }
 
     /**
@@ -1409,6 +1420,44 @@ public function analisis52124 (Request $request)
 }
 public function historicoRevisados(Request $request)
 {
+    $lineas = Linea::where('activo', true)
+        ->orderBy('nombre')
+        ->get();
+
+    $lineasLavadora = $lineas
+        ->filter(fn (Linea $linea): bool => in_array($linea->nombre, LavadoraCatalog::LINEAS, true))
+        ->values();
+
+    $lineasPasteurizadora = $lineas
+        ->filter(fn (Linea $linea): bool => str_starts_with($linea->nombre, 'P-'))
+        ->values();
+
+    $lineaSeleccionadaId = $request->input('linea_id', $lineasLavadora->first()->id ?? null);
+    $lineaSeleccionada = $lineas->firstWhere('id', $lineaSeleccionadaId);
+    $tipoSeleccionado = $request->input('tipo', 'lavadora');
+
+    $estadisticas = $lineaSeleccionada
+        ? app(LavadoraRevisionPeriodicityService::class)->estadisticasLinea($lineaSeleccionada)
+        : [];
+
+    $totalGeneral = collect($estadisticas)->sum('cantidad_total');
+    $revisadoGeneral = collect($estadisticas)->sum('cantidad_revisada');
+    $resumen = [
+        'total_general' => $totalGeneral,
+        'revisado_general' => $revisadoGeneral,
+        'porcentaje_general' => $totalGeneral > 0 ? round(($revisadoGeneral / $totalGeneral) * 100, 1) : 0,
+    ];
+
+    return view('historico-revisados.index', compact(
+        'lineas',
+        'lineasLavadora',
+        'lineasPasteurizadora',
+        'lineaSeleccionada',
+        'tipoSeleccionado',
+        'estadisticas',
+        'resumen'
+    ));
+
     // Obtener todas las líneas activas
     $lineas = Linea::where('activo', true)
         ->orderBy('nombre')
@@ -1461,12 +1510,12 @@ public function historicoRevisados(Request $request)
             'icono' => 'catarinas.png'
         ],
         'RV200' => [
-            'nombre' => 'REDUCTOR RV200',
+            'nombre' => 'RV250 SIN FIN CORONA',
             'cantidad_total' => 15,
             'icono' => 'reductor-rv200.png'
         ],
         'RV200_SIN_FIN' => [
-            'nombre' => 'REDUCTOR SIN FIN-CORONA',
+            'nombre' => 'RV250 SIN FIN CORONA',
             'cantidad_total' => 15,
             'icono' => 'reductor-sin-fin.png'
         ],

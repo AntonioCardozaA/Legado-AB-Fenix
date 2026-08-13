@@ -137,7 +137,6 @@ class PlanAccionController extends Controller
             ? $plan->tipo_maquina
             : ($plan->tipo_maquina ? json_decode($plan->tipo_maquina, true) : []);
         $areasPasteurizadora = PlanAccion::areasPasteurizadoraOpciones();
-        $usuariosResponsables = $this->obtenerUsuariosResponsables();
 
         $lavadoras = $lineas;
         $structuredContent = $plan->currentStructuredContent();
@@ -148,7 +147,6 @@ class PlanAccionController extends Controller
             'lavadoras',
             'tiposMaquinaSeleccionados',
             'areasPasteurizadora',
-            'usuariosResponsables',
             'tipo',
             'structuredContent'
         ));
@@ -273,15 +271,13 @@ class PlanAccionController extends Controller
         $lineas = $this->obtenerLineasPorTipo($tipo, true);
         $linea = $lineaSeleccionada ? $lineas->firstWhere('id', (int) $lineaSeleccionada) : null;
         $areasPasteurizadora = PlanAccion::areasPasteurizadoraOpciones();
-        $usuariosResponsables = $this->obtenerUsuariosResponsables();
 
         return view($this->obtenerVistaPorTipo($tipo, 'create'), compact(
             'lineas',
             'tipo',
             'lineaSeleccionada',
             'linea',
-            'areasPasteurizadora',
-            'usuariosResponsables'
+            'areasPasteurizadora'
         ));
     }
 
@@ -940,13 +936,6 @@ class PlanAccionController extends Controller
     private function relacionesTrazabilidad(): array
     {
         return ['linea', 'responsable', 'registradoPor', 'ejecutadoPor'];
-    }
-
-    private function obtenerUsuariosResponsables()
-    {
-        return User::query()
-            ->orderBy('name')
-            ->get(['id', 'name', 'email']);
     }
 
     private function tipoDesdeLinea(Linea $linea): string

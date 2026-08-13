@@ -18,6 +18,7 @@ use Carbon\Carbon;
 use App\Models\Elongacion;
 use App\Models\HistorialRestablecimiento;
 use App\Services\AdminRecordNotificationService;
+use App\Services\LavadoraRevisionPeriodicityService;
 use App\Services\TendenciaDanosService;
 use App\Support\EtiquetadoraCatalog;
 use App\Support\LavadoraCatalog;
@@ -533,85 +534,7 @@ class ReporteController extends Controller
 
     private function calcularHistoricoRevisadosLavadora(Linea $linea): array
     {
-        $componentesLinea = $this->componentesPorLinea[$linea->nombre] ?? [];
-        $cantidadesPorLinea = [
-            'L-04' => 14,
-            'L-05' => 14,
-            'L-06' => 16,
-            'L-07' => 16,
-            'L-08' => 15,
-            'L-09' => 14,
-            'L-12' => 14,
-            'L-13' => 14,
-        ];
-        $periodicidad = [
-            'CATARINAS' => 4,
-            'GUI_INF_TANQUE' => 4,
-            'GUI_INT_TANQUE' => 4,
-            'GUI_SUP_TANQUE' => 4,
-            'SERVO_CHICO' => 12,
-            'SERVO_GRANDE' => 12,
-            'BUJE_ESPIGA' => 12,
-            'RV200' => 12,
-            'RV200_SIN_FIN' => 12,
-        ];
-
-        $fechaActual = Carbon::now();
-        $cantidadTotalLinea = $cantidadesPorLinea[$linea->nombre] ?? count($this->reductoresPorLinea[$linea->nombre] ?? []);
-        $totalGeneral = 0;
-        $revisadoGeneral = 0;
-        $ultimaRevision = null;
-
-        foreach (array_keys($componentesLinea) as $codigo) {
-            $cantidadTotal = $cantidadTotalLinea;
-            $mesesPeriodo = $periodicidad[$codigo] ?? 12;
-            $fechaLimite = $fechaActual->copy()->subMonths($mesesPeriodo);
-            $componenteIds = Componente::where('codigo', 'like', '%' . $codigo . '%')
-                ->where('activo', true)
-                ->pluck('id')
-                ->all();
-
-            if (empty($componenteIds)) {
-                $totalGeneral += $cantidadTotal;
-                continue;
-            }
-
-            $consultaBase = AnalisisLavadora::where('linea_id', $linea->id)
-                ->whereIn('componente_id', $componenteIds)
-                ->where('created_at', '>=', $fechaLimite)
-                ->whereNotExists(function ($query) {
-                    $query->select(DB::raw(1))
-                        ->from('historial_restablecimientos')
-                        ->whereRaw('analisis_id = analisis_componentes.id');
-                });
-
-            $revisados = (clone $consultaBase)
-                ->whereNotNull('reductor')
-                ->distinct('reductor')
-                ->count('reductor');
-            $ultimoAnalisis = (clone $consultaBase)
-                ->orderByDesc('created_at')
-                ->first(['fecha_analisis', 'created_at']);
-
-            $revisadoGeneral += min($revisados, $cantidadTotal);
-            $totalGeneral += $cantidadTotal;
-
-            if (
-                $ultimoAnalisis
-                && (!$ultimaRevision || $ultimoAnalisis->created_at->gt($ultimaRevision->created_at))
-            ) {
-                $ultimaRevision = $ultimoAnalisis;
-            }
-        }
-
-        return [
-            'total_general' => $totalGeneral,
-            'revisado_general' => $revisadoGeneral,
-            'porcentaje_general' => $totalGeneral > 0 ? round(($revisadoGeneral / $totalGeneral) * 100, 1) : 0,
-            'ultima_revision' => $ultimaRevision?->fecha_analisis
-                ? Carbon::parse($ultimaRevision->fecha_analisis)->format('d/m/Y')
-                : null,
-        ];
+        return app(LavadoraRevisionPeriodicityService::class)->resumenLinea($linea);
     }
 
     private function generarReporteIndexOptimizado($tipoEquipo, $fechaInicio, $fechaFin)

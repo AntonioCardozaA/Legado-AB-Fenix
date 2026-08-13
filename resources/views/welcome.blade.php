@@ -356,13 +356,6 @@
             }
         }
 
-        /* Modo oscuro automático (si el sistema lo prefiere) */
-        @media (prefers-color-scheme: dark) {
-            :root {
-                --bg: #0f172a;
-            }
-        }
-
         @media (prefers-reduced-motion: reduce) {
             * {
                 animation-duration: 0.01ms !important;
@@ -380,6 +373,7 @@
             outline-offset: 4px;
         }
     </style>
+
 </head>
 <body>
 

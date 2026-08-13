@@ -975,10 +975,6 @@
                                         </div>
                                         <div class="trazabilidad">
                                             <div class="trazabilidad-item">
-                                                <i class="fas fa-user-check"></i>
-                                                <span><strong>Responsable:</strong> {{ $plan->responsable?->name ?? 'Sin responsable' }}</span>
-                                            </div>
-                                            <div class="trazabilidad-item">
                                                 <i class="fas fa-user-plus"></i>
                                                 <span>
                                                     <strong>Registrado por:</strong> {{ $plan->registradoPor?->name ?? 'Sin dato historico' }}
@@ -1448,7 +1444,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     const fechaHora = value => value
                         ? new Date(value).toLocaleString('es-MX', { dateStyle: 'short', timeStyle: 'short' })
                         : null;
-                    const responsable = usuarioNombre(data.responsable) || 'Sin responsable';
                     const registradoPor = usuarioNombre(data.registrado_por) || 'Sin dato historico';
                     const fechaRegistro = fechaHora(data.created_at) || 'N/A';
                     const ejecutadoPor = usuarioNombre(data.ejecutado_por) || (data.completado ? 'Sin dato historico' : 'Pendiente');
@@ -1469,7 +1464,6 @@ document.addEventListener('DOMContentLoaded', function() {
                             <div class="bg-gray-50 p-4 rounded-xl">
                                 <label class="text-xs text-gray-500 uppercase font-semibold">Trazabilidad</label>
                                 <div class="mt-2 space-y-1 text-sm text-gray-700">
-                                    <p><span class="font-semibold">Responsable:</span> ${responsable}</p>
                                     <p><span class="font-semibold">Registrado por:</span> ${registradoPor} | ${fechaRegistro}</p>
                                     <p><span class="font-semibold">Ejecutado por:</span> ${ejecutadoPor} | ${fechaEjecucion}</p>
                                 </div>
@@ -1575,7 +1569,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 const fechaHora = value => value
                     ? new Date(value).toLocaleString('es-MX', { dateStyle: 'short', timeStyle: 'short' })
                     : null;
-                const responsable = data.responsable && data.responsable.name ? data.responsable.name : 'Sin responsable';
                 const registradoPor = data.registrado_por && data.registrado_por.name ? data.registrado_por.name : 'Sin dato historico';
                 const ejecutadoPor = data.ejecutado_por && data.ejecutado_por.name
                     ? data.ejecutado_por.name
@@ -1606,7 +1599,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         <div class="bg-gray-50 p-4 rounded-xl">
                             <label class="text-xs text-gray-500 uppercase font-semibold">Trazabilidad</label>
                             <div class="mt-2 space-y-1 text-sm text-gray-700">
-                                <p><span class="font-semibold">Responsable:</span> ${responsable}</p>
                                 <p><span class="font-semibold">Registrado por:</span> ${registradoPor} | ${fechaHora(data.created_at) || 'N/A'}</p>
                                 <p><span class="font-semibold">Ejecutado por:</span> ${ejecutadoPor} | ${fechaHora(data.fecha_ejecucion) || (data.completado ? 'Sin dato historico' : 'Pendiente')}</p>
                             </div>

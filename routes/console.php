@@ -19,3 +19,9 @@ Schedule::command('notifications:send-activities')
     ->timezone(config('elongacion-alerts.timezone', 'America/Mexico_City'))
     ->name('notifications-send-activities')
     ->withoutOverlapping(30);
+
+Schedule::command('componentes:reset-estadisticas')
+    ->dailyAt('00:10')
+    ->timezone(config('elongacion-alerts.timezone', 'America/Mexico_City'))
+    ->name('componentes-reset-estadisticas')
+    ->withoutOverlapping(60);

@@ -25,6 +25,10 @@
     $globalDetalle = $analisisDetalle['global'] ?? [];
     $periodoDetalle = $analisisDetalle['periodo']['label'] ?? 'Historico disponible';
     $graficasDetalle = $detalleLinea['graficas'] ?? [];
+    $mostrarPanelLateralDanos = filled($lineaSeleccionada)
+        && $detalleLinea
+        && isset($analisis)
+        && $analisis->isNotEmpty();
 @endphp
 @extends('layouts.app')
 
@@ -1009,6 +1013,30 @@
         grid-column: 1 / -1;
     }
 
+    .analysis-component-side-layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr);
+        gap: 20px;
+        align-items: stretch;
+        margin-bottom: 24px;
+    }
+
+    .analysis-chart-grid--component-side {
+        display: block;
+        height: 100%;
+        margin-bottom: 0;
+        min-width: 0;
+    }
+
+    .analysis-chart-grid--component-side .analysis-panel,
+    .executive-brief--side {
+        height: 100%;
+    }
+
+    .analysis-chart-grid--component-side .analysis-panel--wide {
+        grid-column: auto;
+    }
+
     .mini-chart-container {
         position: relative;
         height: 280px;
@@ -1026,6 +1054,66 @@
 
     .mini-chart-container--combined {
         height: 440px;
+    }
+
+    .mini-chart-container--pie {
+        height: 420px;
+        max-width: 760px;
+        margin: 0;
+    }
+
+    .analysis-component-side-layout .mini-chart-container--pie {
+        height: 520px;
+        max-width: none;
+    }
+
+    .executive-brief--side {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto minmax(0, 1fr);
+        align-content: stretch;
+        gap: 14px;
+        margin: 0;
+        min-width: 0;
+    }
+
+    .executive-brief--side .executive-status {
+        border-radius: 18px;
+        padding: 18px;
+    }
+
+    .executive-brief--side .executive-status-title {
+        font-size: 24px;
+    }
+
+    .executive-brief--side .executive-status-copy {
+        max-width: none;
+        font-size: 13px;
+    }
+
+    .executive-brief--side .executive-window-grid {
+        grid-template-columns: 1fr;
+        grid-auto-rows: minmax(0, 1fr);
+        align-content: stretch;
+        gap: 12px;
+        height: 100%;
+    }
+
+    .executive-brief--side .executive-window-card {
+        display: flex;
+        flex-direction: column;
+        border-radius: 18px;
+        padding: 16px;
+        min-height: 0;
+    }
+
+    .executive-brief--side .executive-window-value {
+        font-size: 26px;
+    }
+
+    .executive-brief--side .executive-window-delta {
+        border-radius: 14px;
+        margin-top: auto;
+        padding: 8px 10px;
     }
 
     .chart-hint {
@@ -1079,6 +1167,18 @@
         }
 
         .executive-window-grid {
+            grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+        }
+
+        .analysis-component-side-layout {
+            grid-template-columns: 1fr;
+        }
+
+        .analysis-component-side-layout .mini-chart-container--pie {
+            height: 430px;
+        }
+
+        .executive-brief--side .executive-window-grid {
             grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
         }
 
@@ -1167,6 +1267,10 @@
 
         .mini-chart-container {
             height: 250px;
+        }
+
+        .analysis-component-side-layout .mini-chart-container--pie {
+            height: 320px;
         }
 
         .analysis-summary-value {
@@ -1567,14 +1671,18 @@
             </div>
         </div>
 
-        <div class="analysis-chart-grid">
+        @if($mostrarPanelLateralDanos)
+            <div class="analysis-component-side-layout">
+        @endif
+
+        <div class="analysis-chart-grid {{ $mostrarPanelLateralDanos ? 'analysis-chart-grid--component-side' : '' }}">
             <div class="analysis-panel analysis-panel--wide">
                 <div class="analysis-panel-title">
-                    <i class="fas fa-layer-group"></i>
+                    <i class="fas fa-chart-pie"></i>
                     {{ $tituloAnalisis }} - daños por componente
                 </div>
 
-                <div class="mini-chart-container mini-chart-container--bar mini-chart-container--combined">
+                <div class="mini-chart-container mini-chart-container--pie">
                     <canvas id="damageComponentChart"></canvas>
                 </div>
             </div>
@@ -1589,7 +1697,7 @@
                     return $item->anio . '-' . str_pad($item->mes, 2, '0', STR_PAD_LEFT);
                 });
             @endphp
-            <div class="executive-brief">
+            <div class="executive-brief {{ $mostrarPanelLateralDanos ? 'executive-brief--side' : '' }}">
                 <div id="implementationStatusCard" class="executive-status executive-status--neutral">
                     <div class="executive-eyebrow">Control inmediato</div>
                     <div id="implementationStatusTitle" class="executive-status-title">Leyendo tendencia reciente...</div>
@@ -1599,6 +1707,9 @@
                 </div>
                 <div id="executiveWindowCards" class="executive-window-grid"></div>
             </div>
+            @if($mostrarPanelLateralDanos)
+                </div>
+            @endif
             <div class="industrial-chart">
                 <div class="chart-header chart-header--executive">
                     <div class="chart-title-block">
@@ -2069,7 +2180,8 @@ document.addEventListener('DOMContentLoaded', function() {
             datasetLabel: 'Daños por tipo de daño',
             damageMode: true
         });
-        damageComponentChart = createStackedHorizontalBarChart('damageComponentChart', graphData.barras_danos_componentes || {}, '');
+        const damageComponentData = graphData.barras_danos_componentes || {};
+        damageComponentChart = createDamageComponentPieChart('damageComponentChart', damageComponentData, '');
         windowTrendChart = createWindowTrendChart();
     }
 
@@ -2174,6 +2286,156 @@ document.addEventListener('DOMContentLoaded', function() {
                             color: '#334155',
                             font: { size: 10, weight: '700' }
                         }
+                    }
+                }
+            }
+        });
+    }
+
+    function createDamageComponentPieChart(canvasId, chartData, title) {
+        const canvas = document.getElementById(canvasId);
+        const componentLabels = Array.isArray(chartData?.labels) ? chartData.labels : [];
+        const series = Array.isArray(chartData?.series) ? chartData.series : [];
+        const metaComponents = Array.isArray(chartData?.meta?.componentes) ? chartData.meta.componentes : [];
+
+        if (!canvas || !componentLabels.length || !series.length) {
+            return null;
+        }
+
+        const slices = componentLabels
+            .map((componentLabel, componentIndex) => {
+                const locations = series
+                    .map((serie) => {
+                        const value = Number(serie.data?.[componentIndex] || 0);
+                        const segmentMeta = serie.meta?.[componentIndex] || null;
+
+                        return {
+                            label: segmentMeta?.ubicacion || serie.label || 'Sin ubicacion',
+                            total: value,
+                            meta: segmentMeta
+                        };
+                    })
+                    .filter((item) => item.total > 0);
+                const total = locations.reduce((sum, item) => sum + item.total, 0);
+
+                if (total <= 0) {
+                    return null;
+                }
+
+                const componentMeta = metaComponents[componentIndex] || null;
+                const indicatorKey = componentMeta?.dano_principal
+                    || locations.find((item) => item.meta?.ultimo_dano)?.meta?.ultimo_dano
+                    || locations.find((item) => Array.isArray(item.meta?.danos) && item.meta.danos.length)?.meta?.danos?.[0]?.estado
+                    || componentLabel
+                    || '';
+                const palette = indicatorChartPalette(indicatorKey);
+
+                return {
+                    label: componentLabel || `Componente ${componentIndex + 1}`,
+                    total,
+                    componentMeta,
+                    locations,
+                    palette
+                };
+            })
+            .filter(Boolean);
+
+        if (!slices.length) {
+            return null;
+        }
+
+        const totalGlobal = slices.reduce((sum, slice) => sum + slice.total, 0);
+
+        return new Chart(canvas.getContext('2d'), {
+            type: 'pie',
+            data: {
+                labels: slices.map((slice) => slice.label),
+                datasets: [{
+                    label: 'Daños por componente',
+                    data: slices.map((slice) => slice.total),
+                    backgroundColor: slices.map((slice) => slice.palette.background),
+                    borderColor: slices.map((slice) => slice.palette.border),
+                    borderWidth: 2,
+                    hoverOffset: 12
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                layout: {
+                    padding: {
+                        top: 8,
+                        right: 16,
+                        bottom: 8,
+                        left: 16
+                    }
+                },
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            usePointStyle: true,
+                            pointStyle: 'circle',
+                            boxWidth: 10,
+                            color: '#334155',
+                            font: { size: 11, weight: '700' }
+                        }
+                    },
+                    title: {
+                        display: true,
+                        text: title,
+                        color: '#0f172a',
+                        font: { size: 12, weight: '800' }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(15, 23, 42, 0.96)',
+                        titleColor: '#fff',
+                        bodyColor: '#e2e8f0',
+                        ...responsiveTooltipOptions(),
+                        callbacks: {
+                            title: (context) => context[0]?.label || 'Sin componente',
+                            label: (context) => {
+                                const value = Number(context.raw || 0);
+                                const pct = totalGlobal > 0 ? (value / totalGlobal) * 100 : 0;
+
+                                return wrapTooltipLines(`${value} daños (${pct.toFixed(1)}%)`);
+                            },
+                            afterLabel: (context) => {
+                                const slice = slices[context.dataIndex] || null;
+
+                                if (!slice) {
+                                    return [];
+                                }
+
+                                const lines = [];
+                                const locationCopy = slice.locations
+                                    .slice(0, 4)
+                                    .map((item) => `${item.label}: ${item.total}`)
+                                    .join(', ');
+                                const lastDamage = slice.locations.find((item) => item.meta?.ultimo_dano)?.meta?.ultimo_dano;
+                                const lastFailure = slice.locations.find((item) => item.meta?.ultima_falla)?.meta?.ultima_falla;
+
+                                if (locationCopy) lines.push(`Ubicaciones: ${locationCopy}`);
+                                if (lastDamage) lines.push(`Ultimo daño: ${lastDamage}`);
+                                if (lastFailure) lines.push(`Ultimo registro: ${lastFailure}`);
+
+                                return wrapTooltipLines([
+                                    ...lines,
+                                    ...componentTooltipLines(slice.componentMeta)
+                                ]);
+                            }
+                        }
+                    },
+                    datalabels: {
+                        display: (context) => Number(context.raw || 0) > 0,
+                        formatter: (value) => {
+                            const pct = totalGlobal > 0 ? (Number(value || 0) / totalGlobal) * 100 : 0;
+
+                            return `${Number(value || 0)}\n${pct.toFixed(1)}%`;
+                        },
+                        color: '#ffffff',
+                        textAlign: 'center',
+                        font: { size: 10, weight: '800' }
                     }
                 }
             }
@@ -2322,14 +2584,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const executiveWindows = @json($isAnalisis30147)
         ? [
-            { label: '30 dias', data: data30, role: 'referencia operativa', color: '#16a34a', fill: 'rgba(34, 197, 94, 0.18)', dashed: true },
-            { label: '14 dias', data: data14, role: 'respuesta reciente', color: '#dc2626', fill: 'rgba(239, 68, 68, 0.16)' },
-            { label: '7 dias', data: data7, role: 'control inmediato', color: '#f97316', fill: 'rgba(249, 115, 22, 0.18)' }
+            { label: '30 dias', data: data30, role: 'referencia operativa', color: '#047857', fill: 'rgba(5, 150, 105, 0.28)', barFill: 'rgba(5, 150, 105, 0.82)', dashed: true },
+            { label: '14 dias', data: data14, role: 'respuesta reciente', color: '#dc2626', fill: 'rgba(220, 38, 38, 0.26)', barFill: 'rgba(220, 38, 38, 0.82)' },
+            { label: '7 dias', data: data7, role: 'control inmediato', color: '#ea580c', fill: 'rgba(234, 88, 12, 0.28)', barFill: 'rgba(234, 88, 12, 0.84)' }
         ]
         : [
-            { label: '52 semanas', data: data52, role: 'historico acumulado', color: '#16a34a', fill: 'rgba(34, 197, 94, 0.18)', dashed: true },
-            { label: '12 semanas', data: data12, role: 'impacto trimestral', color: '#dc2626', fill: 'rgba(239, 68, 68, 0.16)' },
-            { label: '4 semanas', data: data4, role: 'control inmediato', color: '#f97316', fill: 'rgba(249, 115, 22, 0.18)' }
+            { label: '52 semanas', data: data52, role: 'historico acumulado', color: '#047857', fill: 'rgba(5, 150, 105, 0.28)', barFill: 'rgba(5, 150, 105, 0.82)', dashed: true },
+            { label: '12 semanas', data: data12, role: 'impacto trimestral', color: '#dc2626', fill: 'rgba(220, 38, 38, 0.26)', barFill: 'rgba(220, 38, 38, 0.82)' },
+            { label: '4 semanas', data: data4, role: 'control inmediato', color: '#ea580c', fill: 'rgba(234, 88, 12, 0.28)', barFill: 'rgba(234, 88, 12, 0.84)' }
         ];
 
     const executiveMobileQuery = window.matchMedia('(max-width: 640px)');
@@ -2478,8 +2740,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     label: windowItem.label,
                     data: windowItem.data.map((value) => Number(value || 0)),
                     borderColor: windowItem.color,
-                    backgroundColor: windowItem.fill,
-                    borderWidth: executiveIsBar ? 0 : (datasetIndex === executiveWindows.length - 1 ? 4 : 3),
+                    backgroundColor: executiveIsBar ? (windowItem.barFill || windowItem.color) : windowItem.fill,
+                    hoverBackgroundColor: windowItem.color,
+                    borderWidth: executiveIsBar ? 1 : (datasetIndex === executiveWindows.length - 1 ? 4 : 3),
                     borderDash: executiveIsBar ? [] : (windowItem.dashed ? [8, 6] : []),
                     pointBackgroundColor: windowItem.color,
                     pointBorderColor: '#ffffff',

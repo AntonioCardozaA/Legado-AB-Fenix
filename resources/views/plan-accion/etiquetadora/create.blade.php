@@ -62,22 +62,6 @@
 
                 <div>
                     <label class="mb-1 block text-sm font-medium text-gray-700">
-                        <i class="fas fa-user-check mr-1 text-blue-600"></i>
-                        Responsable
-                    </label>
-                    <select name="responsable_id" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                        <option value="">Usuario actual</option>
-                        @foreach(($usuariosResponsables ?? collect()) as $usuario)
-                            <option value="{{ $usuario->id }}" @selected((int) old('responsable_id', auth()->id()) === $usuario->id)>
-                                {{ $usuario->name }}{{ $usuario->email ? ' - ' . $usuario->email : '' }}
-                            </option>
-                        @endforeach
-                    </select>
-                    @error('responsable_id') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
-                </div>
-
-                <div>
-                    <label class="mb-1 block text-sm font-medium text-gray-700">
                         <i class="fas fa-sticky-note mr-1 text-blue-600"></i>
                         Actividad *
                     </label>

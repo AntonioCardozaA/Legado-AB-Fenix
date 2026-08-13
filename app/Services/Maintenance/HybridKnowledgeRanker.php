@@ -301,7 +301,7 @@ class HybridKnowledgeRanker
         }
 
         if (str_contains($normalized, 'reductor') || str_contains($normalized, 'reductores') || str_contains($normalized, 'sin fin')) {
-            $terms = array_merge($terms, ['reductor', 'reductores', 'rv200', 'sin', 'fin']);
+            $terms = array_merge($terms, ['reductor', 'reductores', 'rv250', 'rv200', 'sin', 'fin', 'corona']);
         }
 
         if (str_contains($normalized, 'red ppal') || str_contains($normalized, 'red principal')) {

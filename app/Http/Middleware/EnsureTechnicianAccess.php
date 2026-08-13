@@ -53,6 +53,7 @@ class EnsureTechnicianAccess
         $allowedExactRoutes = [
             'dashboard',
             'tecnico.dashboard',
+            'global-search.index',
 
             'dashboard.global.lavadoras',
             'dashboard.global.etiquetadoras',

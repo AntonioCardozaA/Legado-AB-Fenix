@@ -200,13 +200,41 @@
     }
 
     .stat-card {
+        --stat-accent: var(--primary-blue);
+        --stat-soft: #dbeafe;
         background: white;
         border-radius: 12px;
         padding: 12px 14px;
         box-shadow: var(--shadow-sm);
-        border: 1px solid var(--medium-gray);
+        border: 1px solid var(--medium-gray) !important;
+        border-top: 4px solid var(--stat-accent) !important;
         transition: var(--transition);
         min-width: 0;
+    }
+
+    .stat-card.stat-card--primary {
+        --stat-accent: var(--primary-blue);
+        --stat-soft: #dbeafe;
+    }
+
+    .stat-card.stat-card--danger {
+        --stat-accent: var(--danger-red);
+        --stat-soft: #fee2e2;
+    }
+
+    .stat-card.stat-card--risk {
+        --stat-accent: var(--operational-orange);
+        --stat-soft: #ffedd5;
+    }
+
+    .stat-card.stat-card--warning {
+        --stat-accent: var(--warning-yellow);
+        --stat-soft: #fef3c7;
+    }
+
+    .stat-card.stat-card--success {
+        --stat-accent: var(--success-green);
+        --stat-soft: #d1fae5;
     }
 
     .stat-card:hover {
@@ -216,8 +244,16 @@
 
     .stat-icon {
         float: right;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 34px;
+        height: 34px;
+        border-radius: 10px;
+        background: var(--stat-soft) !important;
         font-size: 20px;
-        color: var(--dark-gray);
+        color: var(--stat-accent) !important;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
     }
 
     .stat-label {
@@ -232,7 +268,7 @@
     .stat-value {
         font-size: 22px;
         font-weight: 800;
-        color: var(--text-primary);
+        color: var(--stat-accent) !important;
     }
 
     .section-title {
@@ -622,35 +658,35 @@
     </div>
 
     <div class="stats-grid">
-        <div class="stat-card">
+        <div class="stat-card stat-card--primary">
             <div class="stat-icon"><i class="fas fa-industry"></i></div>
             <div class="stat-label">Total Etiquetadoras</div>
             <div class="stat-value">{{ $resumenEtiquetadora['total_etiquetadoras'] }}</div>
         </div>
-        <div class="stat-card" style="border-top: 4px solid var(--primary-blue);">
+        <div class="stat-card stat-card--primary">
             <div class="stat-icon"><i class="fas fa-percent"></i></div>
             <div class="stat-label">Avance Componentes</div>
-            <div class="stat-value" style="color: var(--primary-blue);">{{ number_format((float) ($resumenEtiquetadora['avance'] ?? 0), 1) }}%</div>
+            <div class="stat-value">{{ number_format((float) ($resumenEtiquetadora['avance'] ?? 0), 1) }}%</div>
         </div>
-        <div class="stat-card" style="border-top: 4px solid var(--danger-red);">
+        <div class="stat-card stat-card--danger">
             <div class="stat-icon"><i class="fas fa-exclamation-triangle"></i></div>
             <div class="stat-label">Alertas Criticas</div>
-            <div class="stat-value" style="color: var(--danger-red);">{{ $resumenEtiquetadora['alertas_criticas'] }}</div>
+            <div class="stat-value">{{ $resumenEtiquetadora['alertas_criticas'] }}</div>
         </div>
-        <div class="stat-card" style="border-top: 4px solid var(--operational-orange);">
+        <div class="stat-card stat-card--risk">
             <div class="stat-icon"><i class="fas fa-chart-line"></i></div>
             <div class="stat-label">Severo / Moderado</div>
-            <div class="stat-value" style="color: var(--operational-orange);">{{ $resumenEtiquetadora['en_riesgo'] }}</div>
+            <div class="stat-value">{{ $resumenEtiquetadora['en_riesgo'] }}</div>
         </div>
-        <div class="stat-card" style="border-top: 4px solid var(--warning-yellow);">
+        <div class="stat-card stat-card--warning">
             <div class="stat-icon"><i class="fas fa-tools"></i></div>
             <div class="stat-label">Requiere Revision</div>
-            <div class="stat-value" style="color: var(--warning-yellow);">{{ $resumenEtiquetadora['requiere_revision'] }}</div>
+            <div class="stat-value">{{ $resumenEtiquetadora['requiere_revision'] }}</div>
         </div>
-        <div class="stat-card" style="border-top: 4px solid var(--success-green);">
+        <div class="stat-card stat-card--success">
             <div class="stat-icon"><i class="fas fa-check-circle"></i></div>
             <div class="stat-label">Buen Estado</div>
-            <div class="stat-value" style="color: var(--success-green);">{{ $resumenEtiquetadora['buen_estado'] }}</div>
+            <div class="stat-value">{{ $resumenEtiquetadora['buen_estado'] }}</div>
         </div>
     </div>
 

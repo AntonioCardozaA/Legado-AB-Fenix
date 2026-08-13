@@ -413,32 +413,100 @@ class AnalisisLavadora extends Model
     public static function codigoBaseComponente(?string $codigo): string
     {
         $codigo = strtoupper(trim((string) $codigo));
+        $codigoNormalizado = self::normalizarCodigoBusqueda($codigo);
+        $codigosBase = self::COMPONENTE_CODIGOS_BASE;
 
-        foreach (self::COMPONENTE_CODIGOS_BASE as $codigoBase) {
+        usort($codigosBase, fn (string $left, string $right): int => strlen($right) <=> strlen($left));
+
+        foreach ($codigosBase as $codigoBase) {
+            $codigoBaseNormalizado = self::normalizarCodigoBusqueda($codigoBase);
             if (
-                $codigo === $codigoBase
-                || str_starts_with($codigo, $codigoBase . '_')
-                || str_ends_with($codigo, '_' . $codigoBase)
-                || str_contains($codigo, '_' . $codigoBase . '_')
-                || str_contains($codigo, $codigoBase)
+                $codigoNormalizado === $codigoBaseNormalizado
+                || str_contains('_' . $codigoNormalizado . '_', '_' . $codigoBaseNormalizado . '_')
+                || str_contains($codigoNormalizado, $codigoBaseNormalizado)
             ) {
                 return $codigoBase;
             }
+
+            foreach (self::aliasCodigoBase($codigoBase) as $alias) {
+                $aliasNormalizado = self::normalizarCodigoBusqueda($alias);
+
+                if (
+                    $codigoNormalizado === $aliasNormalizado
+                    || str_contains('_' . $codigoNormalizado . '_', '_' . $aliasNormalizado . '_')
+                    || str_contains($codigoNormalizado, $aliasNormalizado)
+                ) {
+                    return $codigoBase;
+                }
+            }
         }
 
-        return $codigo;
+        return $codigoNormalizado ?: $codigo;
+    }
+
+    public function getFechaRevisionHistoricoAttribute(): ?Carbon
+    {
+        if ($this->fecha_analisis) {
+            return Carbon::parse($this->fecha_analisis)->startOfDay();
+        }
+
+        return $this->created_at
+            ? Carbon::parse($this->created_at)->startOfDay()
+            : null;
+    }
+
+    public function getCodigoBaseComponenteAttribute(): string
+    {
+        return self::codigoBaseComponente($this->componente?->codigo);
     }
 
     private static function sqlCodigoBaseComponente(string $alias): string
     {
         $codigo = 'UPPER(COALESCE(' . $alias . ".codigo, ''))";
+        $codigoNormalizado = "REPLACE(REPLACE(REPLACE({$codigo}, '-', '_'), ' ', '_'), '__', '_')";
         $cases = [];
 
         foreach (self::COMPONENTE_CODIGOS_BASE as $codigoBase) {
-            $cases[] = "WHEN {$codigo} = '{$codigoBase}' OR {$codigo} LIKE '%{$codigoBase}%' THEN '{$codigoBase}'";
+            $conditions = [
+                "{$codigo} = '{$codigoBase}'",
+                "{$codigo} LIKE '%{$codigoBase}%'",
+                "{$codigoNormalizado} LIKE '%{$codigoBase}%'",
+            ];
+
+            foreach (self::aliasCodigoBase($codigoBase) as $aliasCodigo) {
+                $aliasNormalizado = self::normalizarCodigoBusqueda($aliasCodigo);
+                $conditions[] = "{$codigoNormalizado} LIKE '%{$aliasNormalizado}%'";
+            }
+
+            $cases[] = 'WHEN ' . implode(' OR ', $conditions) . " THEN '{$codigoBase}'";
         }
 
         return 'CASE ' . implode(' ', $cases) . ' ELSE ' . $codigo . ' END';
+    }
+
+    private static function normalizarCodigoBusqueda(?string $codigo): string
+    {
+        $codigo = strtoupper(trim((string) $codigo));
+        $codigo = preg_replace('/[^A-Z0-9]+/', '_', $codigo) ?? '';
+        $codigo = preg_replace('/_+/', '_', $codigo) ?? '';
+
+        return trim($codigo, '_');
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private static function aliasCodigoBase(string $codigoBase): array
+    {
+        return match ($codigoBase) {
+            'CATARINAS' => ['CATARINA'],
+            'GUI_INF_TANQUE' => ['GUIA_INF', 'GUIA_INFERIOR', 'GUIA_TANQUE_INFERIOR'],
+            'GUI_INT_TANQUE' => ['GUIA_INT', 'GUIA_INTERMEDIA', 'GUIA_TANQUE_INTERMEDIA', 'GUI_INT_TAQNQUE'],
+            'GUI_SUP_TANQUE' => ['GUIA_SUP', 'GUIA_SUPERIOR', 'GUIA_TANQUE_SUPERIOR'],
+            'BUJE_ESPIGA' => ['BUE_BAQ', 'BUJE_BAQUELITA', 'ESPIGA_FLECHA'],
+            'RV200_SIN_FIN' => ['SIN_FIN_CORONA_RV200', 'RV200_SINFIN', 'RV200_SIN_FIN_CORONA'],
+            default => [],
+        };
     }
 
     public function planAccion(): HasMany

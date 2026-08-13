@@ -211,11 +211,10 @@
                             <table class="etq-plan-table">
                                 <thead>
                                     <tr>
-                                        <th style="width: 34%;">Actividad</th>
-                                        <th style="width: 16%;">Responsable</th>
-                                        <th style="width: 26%;">Fechas PCM</th>
-                                        <th style="width: 12%;">Estado</th>
-                                        <th style="width: 12%;" class="text-center">Acciones</th>
+                                        <th style="width: 44%;">Actividad</th>
+                                        <th style="width: 30%;">Fechas PCM</th>
+                                        <th style="width: 13%;">Estado</th>
+                                        <th style="width: 13%;" class="text-center">Acciones</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -248,11 +247,6 @@
                                                         @endif
                                                     </div>
                                                 </div>
-                                            </td>
-                                            <td data-label="Responsable">
-                                                <span class="font-semibold text-slate-700">
-                                                    {{ $plan->responsable->name ?? 'Usuario actual' }}
-                                                </span>
                                             </td>
                                             <td data-label="Fechas PCM">
                                                 <div class="etq-date-row">

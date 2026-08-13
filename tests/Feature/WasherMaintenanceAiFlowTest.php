@@ -245,7 +245,7 @@ class WasherMaintenanceAiFlowTest extends TestCase
     {
         $admin = $this->userWithRole(User::ROLE_ADMIN, true);
         $technician = $this->userWithRole(User::ROLE_TECNICO, true);
-        $responsable = User::factory()->create(['activo' => true]);
+        $ignoredResponsable = User::factory()->create(['activo' => true]);
         $plan = $this->createPendingAiPlan();
 
         $this->actingAs($technician)
@@ -256,7 +256,7 @@ class WasherMaintenanceAiFlowTest extends TestCase
             'title' => 'Cambiar servo validado',
             'priority' => 'high',
             'maintenance_type' => 'corrective',
-            'responsable_id' => $responsable->id,
+            'responsable_id' => $ignoredResponsable->id,
             'suggested_due_date' => '2026-07-22',
             'detected_problem' => 'Desgaste critico confirmado por revision humana.',
             'technical_justification' => 'Se verifico riesgo de paro y holgura excesiva.',
@@ -277,7 +277,7 @@ class WasherMaintenanceAiFlowTest extends TestCase
 
         $this->assertSame('approved', $plan->estado);
         $this->assertSame($admin->id, $plan->reviewed_by);
-        $this->assertSame($responsable->id, $plan->responsable_id);
+        $this->assertNull($plan->responsable_id);
         $this->assertSame('Cambiar servo validado', $plan->approved_content['title']);
         $this->assertSame('Se ajusto fecha y prioridad despues de revisar historico.', $plan->final_observations);
         $this->assertSame([
@@ -291,6 +291,7 @@ class WasherMaintenanceAiFlowTest extends TestCase
         $this->actingAs($admin)
             ->get(route('plan-accion.ai.review', ['planAccion' => $plan->id]))
             ->assertOk()
+            ->assertDontSee('Responsable')
             ->assertDontSee('Duracion estimada (horas)')
             ->assertDontSee('Costo estimado')
             ->assertDontSee('Fuentes usadas por la IA')

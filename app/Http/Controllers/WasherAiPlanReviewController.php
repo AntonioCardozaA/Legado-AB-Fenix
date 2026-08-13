@@ -79,14 +79,10 @@ class WasherAiPlanReviewController extends Controller
     {
         $plan = $this->resolvePlan($request->user(), $planAccion);
         $structured = $plan->currentStructuredContent() ?? [];
-        $usuariosResponsables = User::query()
-            ->orderBy('name')
-            ->get(['id', 'name', 'email']);
 
         return view('plan-accion.ai.review', compact(
             'plan',
-            'structured',
-            'usuariosResponsables'
+            'structured'
         ));
     }
 
@@ -115,7 +111,6 @@ class WasherAiPlanReviewController extends Controller
                 'reviewed_by' => $request->user()->id,
                 'reviewed_at' => $reviewedAt,
                 'rejection_reason' => null,
-                'responsable_id' => $request->validated('responsable_id') ?: $plan->responsable_id,
                 'observaciones' => $request->validated('review_notes') ?: $structured['technical_justification'],
                 'final_observations' => $request->validated('review_notes'),
             ]);
@@ -225,7 +220,6 @@ class WasherAiPlanReviewController extends Controller
 
         $plan->loadMissing([
             'linea',
-            'responsable',
             'reviewedBy',
             'maintenanceEvent.componente',
             'maintenanceEvent.linea',
@@ -252,7 +246,6 @@ class WasherAiPlanReviewController extends Controller
         return PlanAccion::query()
             ->with([
                 'linea',
-                'responsable',
                 'reviewedBy',
                 'maintenanceEvent.componente',
             ])

@@ -21,6 +21,15 @@
         padding: 24px;
     }
 
+    .historico-container *,
+    .historico-container *::before,
+    .historico-container *::after,
+    .modal *,
+    .modal *::before,
+    .modal *::after {
+        box-sizing: border-box;
+    }
+
     /* LÍNEAS EN FORMA DE BOTONES */
     .lineas-section {
         background: white;
@@ -62,6 +71,7 @@
         transition: all 0.2s ease;
         cursor: pointer;
         text-decoration: none;
+        white-space: nowrap;
     }
 
     .linea-btn i {
@@ -123,11 +133,31 @@
 
     .table-responsive {
         overflow-x: auto;
+        width: 100%;
     }
 
     .table {
         width: 100%;
         border-collapse: collapse;
+    }
+
+    .table th:nth-child(1),
+    .table td:nth-child(1) {
+        width: 50%;
+    }
+
+    .table th:nth-child(2),
+    .table td:nth-child(2),
+    .table th:nth-child(3),
+    .table td:nth-child(3) {
+        width: 16%;
+    }
+
+    .table th:nth-child(4),
+    .table td:nth-child(4) {
+        width: 18%;
+        min-width: 132px;
+        white-space: nowrap;
     }
 
     .table th {
@@ -140,12 +170,19 @@
         letter-spacing: 0.5px;
         border-bottom: 2px solid #e2e8f0;
         text-align: left;
+        overflow-wrap: normal;
+        word-break: normal;
     }
 
     .table td {
         padding: 16px;
         border-bottom: 1px solid #e2e8f0;
         vertical-align: middle;
+    }
+
+    .table td:last-child .btn {
+        justify-content: center;
+        min-width: 84px;
     }
 
     .table tbody tr:hover {
@@ -189,11 +226,13 @@
     .componente-info {
         display: flex;
         flex-direction: column;
+        min-width: 0;
     }
 
     .componente-nombre-texto {
         font-weight: 600;
         color: #1f2937;
+        overflow-wrap: anywhere;
     }
 
     .componente-icono {
@@ -503,6 +542,7 @@
     /* BOTONES DE ACCIÓN */
     .acciones {
         display: flex;
+        flex-wrap: wrap;
         gap: 12px;
         margin-top: 24px;
     }
@@ -518,6 +558,31 @@
         cursor: pointer;
         transition: all 0.2s ease;
         border: none;
+        text-decoration: none;
+    }
+
+    .periodicidad-panel {
+        overflow: hidden;
+    }
+
+    .periodicidad-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        align-items: center;
+    }
+
+    .periodicidad-auto-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 14px;
+        border-radius: 8px;
+        background: #ecfdf5;
+        color: #047857;
+        font-size: 13px;
+        font-weight: 700;
+        border: 1px solid #a7f3d0;
     }
 
     .btn-primary {
@@ -596,6 +661,8 @@
         max-height: 80vh;
         overflow: hidden;
         box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+        display: flex;
+        flex-direction: column;
     }
 
     .modal-header {
@@ -615,6 +682,8 @@
         display: flex;
         align-items: center;
         gap: 10px;
+        min-width: 0;
+        overflow-wrap: anywhere;
     }
 
     .modal-body {
@@ -635,6 +704,7 @@
         justify-content: center;
         cursor: pointer;
         transition: all 0.2s ease;
+        flex: 0 0 36px;
     }
 
     .modal-close:hover {
@@ -650,25 +720,331 @@
     .text-danger { color: #ef4444 !important; }
 
     @media (max-width: 768px) {
-        .lineas-grid {
-            justify-content: center;
-        }
-        
-        .table td, .table th {
+        .historico-container {
             padding: 12px;
         }
-        
+
+        .lineas-section,
+        .componentes-table,
+        .grafica-section {
+            border-radius: 10px;
+        }
+
+        .lineas-section {
+            padding: 14px;
+            margin-bottom: 16px;
+        }
+
+        .lineas-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 8px;
+        }
+
+        .linea-btn {
+            justify-content: center;
+            width: 100%;
+            min-height: 44px;
+            padding: 10px 12px;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
         .resumen-grid {
             grid-template-columns: 1fr;
+            gap: 12px;
+            margin-bottom: 16px;
         }
-        
+
+        .resumen-card {
+            align-items: flex-start;
+            padding: 14px;
+            border-radius: 10px;
+        }
+
+        .resumen-icono {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            font-size: 20px;
+        }
+
+        .resumen-info h4 {
+            font-size: 12px;
+        }
+
+        .resumen-info .valor {
+            font-size: 24px;
+        }
+
+        .table-header {
+            align-items: flex-start;
+            flex-direction: column;
+            gap: 8px;
+            padding: 14px;
+        }
+
+        .table-header h3 {
+            align-items: flex-start;
+            font-size: 15px;
+            line-height: 1.35;
+        }
+
+        .table-responsive {
+            overflow-x: visible;
+        }
+
+        .table,
+        .table tbody,
+        .table tr,
+        .table td {
+            display: block;
+        }
+
+        .table th:nth-child(1),
+        .table td:nth-child(1),
+        .table th:nth-child(2),
+        .table td:nth-child(2),
+        .table th:nth-child(3),
+        .table td:nth-child(3),
+        .table th:nth-child(4),
+        .table td:nth-child(4) {
+            min-width: 0;
+            white-space: normal;
+            width: 100%;
+        }
+
+        .table thead {
+            display: none;
+        }
+
+        .table tbody {
+            padding: 12px;
+            background: #f8fafc;
+        }
+
+        .table tbody tr {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+            margin-bottom: 12px;
+            padding: 12px;
+        }
+
+        .table tbody tr:last-child {
+            margin-bottom: 0;
+        }
+
+        .table tbody tr:hover {
+            background: white;
+        }
+
+        .table td {
+            align-items: flex-start;
+            border-bottom: 1px solid #edf2f7;
+            display: flex;
+            gap: 12px;
+            justify-content: space-between;
+            padding: 10px 0;
+            width: 100%;
+        }
+
+        .table td::before {
+            color: #64748b;
+            content: attr(data-label);
+            flex: 0 0 112px;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            line-height: 1.3;
+            text-transform: uppercase;
+        }
+
+        .table td:first-child {
+            display: block;
+            padding-top: 0;
+        }
+
+        .table td:first-child::before {
+            display: block;
+            flex: none;
+            margin-bottom: 8px;
+            max-width: none;
+        }
+
+        .table td:last-child {
+            align-items: center;
+            border-bottom: 0;
+            padding-bottom: 0;
+        }
+
+        .table td:last-child .btn {
+            justify-content: center;
+            min-height: 40px;
+            width: 100%;
+        }
+
+        .table td[colspan] {
+            display: block;
+            text-align: center;
+        }
+
+        .table td[colspan]::before {
+            display: none;
+        }
+
+        .componente-nombre {
+            align-items: flex-start;
+            gap: 10px;
+        }
+
+        .componente-imagen {
+            width: 44px;
+            height: 44px;
+        }
+
+        .componente-nombre-texto {
+            font-size: 14px;
+            line-height: 1.3;
+        }
+
+        .cantidad-badge,
+        .progreso-numerico {
+            text-align: right;
+        }
+
+        .grafica-section {
+            padding: 16px 12px;
+        }
+
+        .grafica-title {
+            align-items: flex-start;
+            font-size: 16px;
+            line-height: 1.35;
+            margin-bottom: 18px;
+        }
+
         .grafica-vertical-container {
-            flex-wrap: wrap;
-            gap: 20px;
+            flex-wrap: nowrap;
+            gap: 14px;
+            justify-content: flex-start;
+            min-height: 250px;
+            overflow-x: auto;
+            padding: 16px 12px;
+            scroll-snap-type: x proximity;
+            -webkit-overflow-scrolling: touch;
         }
-        
+
         .grafica-columna {
-            min-width: 100px;
+            flex: 0 0 86px;
+            max-width: 86px;
+            min-width: 86px;
+            scroll-snap-align: start;
+        }
+
+        .grafica-barra-vertical {
+            height: 180px;
+            width: 50px;
+        }
+
+        .grafica-etiqueta {
+            font-size: 11px;
+            max-width: 84px;
+        }
+
+        .grafica-referencias {
+            padding: 10px 4px;
+        }
+
+        .grafica-leyenda {
+            gap: 12px;
+            justify-content: flex-start;
+        }
+
+        .acciones,
+        .periodicidad-actions {
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .acciones .btn,
+        .periodicidad-actions .btn,
+        .periodicidad-auto-badge {
+            justify-content: center;
+            min-height: 44px;
+            text-align: center;
+            width: 100%;
+        }
+
+        .periodicidad-panel {
+            border-radius: 10px;
+            padding: 14px !important;
+        }
+
+        .modal {
+            align-items: flex-end;
+            padding: 10px;
+        }
+
+        .modal-content {
+            border-radius: 16px 16px 0 0;
+            max-height: 92vh;
+            max-width: none;
+        }
+
+        .modal-header {
+            align-items: flex-start;
+            gap: 12px;
+            padding: 14px 16px;
+        }
+
+        .modal-header h3 {
+            font-size: 16px;
+            line-height: 1.35;
+        }
+
+        .modal-body {
+            max-height: calc(92vh - 65px);
+            padding: 16px;
+        }
+    }
+
+    @media (max-width: 420px) {
+        .historico-container {
+            padding: 10px;
+        }
+
+        .lineas-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .table tbody {
+            padding: 10px;
+        }
+
+        .table tbody tr {
+            padding: 10px;
+        }
+
+        .table td {
+            align-items: stretch;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .table td::before {
+            flex: none;
+            max-width: none;
+        }
+
+        .cantidad-badge {
+            align-self: flex-start;
+        }
+
+        .cantidad-badge,
+        .progreso-numerico {
+            text-align: left;
         }
     }
 </style>
@@ -784,7 +1160,7 @@ $rutasImagenes = [
                 <tbody>
                     @forelse($estadisticas as $codigo => $data)
                         <tr>
-                            <td>
+                            <td data-label="Componente">
                                 <div class="componente-nombre">
                                     <div class="componente-imagen">
                                         <img src="{{ $rutasImagenes[$codigo] ?? asset('images/componentes-lavadora/default.png') }}" 
@@ -797,24 +1173,42 @@ $rutasImagenes = [
                                         @if(isset($data['periodo_meses']))
                                             <span class="text-xs text-gray-500">
                                                 <i class="fas fa-clock"></i> Cada {{ $data['periodo_meses'] }} meses
+                                                @if(!empty($data['ultima_revision_formateada']))
+                                                    - Ultima: {{ $data['ultima_revision_formateada'] }}
+                                                @endif
+                                                @if(($data['pendientes_reset'] ?? 0) > 0)
+                                                    - <span class="text-red-600">{{ $data['pendientes_reset'] }} reset pendiente</span>
+                                                @elseif(!empty($data['estado_periodicidad_label']))
+                                                    - {{ $data['estado_periodicidad_label'] }}
+                                                @endif
                                                 @if(isset($data['proximo_vencimiento']))
                                                     · Vence: {{ \Carbon\Carbon::parse($data['proximo_vencimiento'])->format('d/m/Y') }}
                                                 @endif
                                             </span>
                                         @endif
+                                        @if(!empty($data['desglose_lados']))
+                                            <div class="mt-1 flex flex-wrap gap-2 text-xs text-gray-600">
+                                                @foreach($data['desglose_lados'] as $lado => $ladoData)
+                                                    <span class="inline-flex items-center gap-1 rounded border border-gray-200 bg-gray-50 px-2 py-0.5">
+                                                        {{ $lado === 'VAPOR' ? 'Vapor' : 'Pasillo' }}:
+                                                        {{ $ladoData['revisados'] ?? 0 }}/{{ $ladoData['total'] ?? 0 }}
+                                                    </span>
+                                                @endforeach
+                                            </div>
+                                        @endif
                                     </div>
                                 </div>
                             </td>
-                            <td>
+                            <td data-label="Cantidad total">
                                 <span class="cantidad-badge">{{ $data['cantidad_total'] }}</span>
                             </td>
-                            <td>
+                            <td data-label="Revisados">
                                 <span class="progreso-numerico text-{{ $data['color'] }}">
                                     {{ $data['cantidad_revisada'] }} / {{ $data['cantidad_total'] }}
                                 </span>
                             </td>
                       
-                            <td>
+                            <td data-label="Acciones">
                                 <button class="btn btn-sm btn-primary" 
                                         style="padding: 6px 12px; font-size: 12px; background: #3b82f6; color: white; border: none; border-radius: 6px;"
                                         onclick="verDetalleComponente('{{ $codigo }}', '{{ $data['nombre'] }}', {{ $data['cantidad_revisada'] }}, {{ $data['cantidad_total'] }})">
@@ -824,7 +1218,7 @@ $rutasImagenes = [
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="5" class="text-center py-8 text-gray-500">
+                            <td colspan="4" data-label="Estado" class="text-center py-8 text-gray-500">
                                 <i class="fas fa-info-circle text-3xl mb-2"></i>
                                 <p>No hay componentes configurados para esta línea</p>
                             </td>
@@ -859,8 +1253,8 @@ $rutasImagenes = [
                         $nombreCorto = 'Buje Baquelita';
                     } elseif (strpos($nombreCorto, 'Sin Fin') !== false) {
                         $nombreCorto = 'Reductor S/F';
-                    } elseif (strpos($nombreCorto, 'RV200') !== false) {
-                        $nombreCorto = 'Red. RV200';
+                    } elseif (strpos($nombreCorto, 'RV250') !== false || strpos($nombreCorto, 'RV200') !== false) {
+                        $nombreCorto = 'RV250 S/F';
                     }
                 }
             @endphp
@@ -922,7 +1316,7 @@ $rutasImagenes = [
 
     {{-- GESTIÓN DE PERIODICIDAD (Solo para administradores e ingenieros de mantenimiento) --}}
     @if(auth()->user()?->hasAnyRole(\App\Models\User::elevatedMaintenanceRoles()))
-    <div class="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+    <div class="periodicidad-panel mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
         <h4 class="font-semibold text-gray-700 mb-3 flex items-center gap-2">
             <i class="fas fa-history text-blue-600"></i>
             Gestión de Periodicidad
@@ -937,17 +1331,16 @@ $rutasImagenes = [
             </div>
         </div>
         
-        <div class="flex gap-3">
-            <button class="btn btn-warning" onclick="confirmarResetEstadisticas(event)" 
-                    style="background: linear-gradient(135deg, #f59e0b, #d97706); color: white;">
-                <i class="fas fa-sync-alt"></i>
-                Restablecer Estadísticas
-            </button>
-            
+        <div class="periodicidad-actions">
+            <span class="periodicidad-auto-badge">
+                <i class="fas fa-check-circle"></i>
+                Reset automático activo
+            </span>
+
             <button class="btn btn-info" onclick="verProximosResets()"
                     style="background: linear-gradient(135deg, #3b82f6, #2563eb); color: white;">
                 <i class="fas fa-calendar-alt"></i>
-                Ver Próximos Resets
+                Actualizar estado de resets
             </button>
         </div>
     </div>
@@ -1092,101 +1485,75 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // Funciones para gestión de periodicidad
+function escapeHtml(value) {
+    return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
 function cargarInfoReset() {
-    fetch('{{ route("historico-revisados.check-reset-status") }}')
+    const resetInfo = document.getElementById('resetInfo');
+    const statusUrl = new URL('{{ route("historico-revisados.check-reset-status") }}', window.location.origin);
+    const lineaId = @json($lineaSeleccionada->id ?? null);
+
+    if (lineaId) {
+        statusUrl.searchParams.set('linea_id', lineaId);
+    }
+
+    fetch(statusUrl)
         .then(response => response.json())
         .then(data => {
-            if (data.success) {
-                let html = `
-                    <div class="grid grid-cols-2 gap-3">
-                        <div class="bg-white p-3 rounded-lg border">
-                            <div class="text-xs text-gray-500">Último Reset</div>
-                            <div class="font-semibold">${data.ultimo_reset || 'Nunca'}</div>
-                        </div>
-                `;
-                
-                for (const [key, reset] of Object.entries(data.proximos_resets)) {
-                    const nombre = key === '4_meses' ? '4 Meses' : 'Anual';
-                    let colorClass = 'text-gray-600';
-                    
-                    if (reset.color === 'success') colorClass = 'text-green-600';
-                    else if (reset.color === 'info') colorClass = 'text-blue-600';
-                    else if (reset.color === 'warning') colorClass = 'text-yellow-600';
-                    else if (reset.color === 'danger') colorClass = 'text-red-600';
-                    
-                    html += `
-                        <div class="bg-white p-3 rounded-lg border">
-                            <div class="text-xs text-gray-500">Próximo Reset ${nombre}</div>
-                            <div class="font-semibold">${reset.fecha}</div>
-                            <div class="text-xs ${colorClass}">
-                                ${reset.dias_restantes > 0 ? reset.dias_restantes + ' días' : 'Pendiente'}
-                            </div>
-                        </div>
-                    `;
-                }
-                
-                html += '</div>';
-                
-                if (data.estadisticas && data.estadisticas.total_restablecidos > 0) {
-                    html += `
-                        <div class="mt-2 text-xs text-gray-600">
-                            Total restablecidos: ${data.estadisticas.total_restablecidos} 
-                            (${data.estadisticas.ultimos_30_dias} en últimos 30 días)
-                        </div>
-                    `;
-                }
-                
-                document.getElementById('resetInfo').innerHTML = html;
+            if (!data.success) {
+                return;
             }
+
+            const resumen = data.resumen || {};
+
+            let html = `
+                <div class="grid grid-cols-1 gap-3 md:grid-cols-4">
+                    <div class="bg-white p-3 rounded-lg border">
+                        <div class="text-xs text-gray-500">Ultimo reset de componente</div>
+                        <div class="font-semibold">${escapeHtml(resumen.ultimo_reset || 'Nunca')}</div>
+                    </div>
+                    <div class="bg-white p-3 rounded-lg border">
+                        <div class="text-xs text-gray-500">Pendientes</div>
+                        <div class="font-semibold text-red-600">${Number(resumen.pendientes || 0)}</div>
+                    </div>
+                    <div class="bg-white p-3 rounded-lg border">
+                        <div class="text-xs text-gray-500">Programados</div>
+                        <div class="font-semibold text-green-600">${Number(resumen.programados || 0)}</div>
+                    </div>
+                    <div class="bg-white p-3 rounded-lg border">
+                        <div class="text-xs text-gray-500">Sin revision</div>
+                        <div class="font-semibold text-gray-600">${Number(resumen.sin_revision || 0)}</div>
+                    </div>
+                </div>
+            `;
+
+            if (data.estadisticas && data.estadisticas.total_restablecidos > 0) {
+                html += `
+                    <div class="mt-2 text-xs text-gray-600">
+                        Total restablecidos: ${Number(data.estadisticas.total_restablecidos || 0)}
+                        (${Number(data.estadisticas.ultimos_30_dias || 0)} en ultimos 30 dias)
+                    </div>
+                `;
+            }
+
+            resetInfo.innerHTML = html;
         })
         .catch(error => {
-            document.getElementById('resetInfo').innerHTML = `
+            resetInfo.innerHTML = `
                 <div class="text-red-600 text-sm">
                     <i class="fas fa-exclamation-triangle"></i>
-                    Error al cargar información
+                    Error al cargar informacion
                 </div>
             `;
             console.error('Error:', error);
         });
-}
 
-function confirmarResetEstadisticas(event) {
-    if (confirm('⚠️ ¿Estás seguro de restablecer las estadísticas?\n\n' +
-                '• Componentes de 4 meses: CATARINAS, GUÍAS\n' +
-                '• Componentes anuales: SERVOS, BUJES, SERVO-REDUCTORES\n\n' +
-                'Los análisis fuera del periodo serán movidos al historial.')) {
-        
-        const btn = event.target.closest('button');
-        const originalHtml = btn.innerHTML;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Procesando...';
-        btn.disabled = true;
-        
-        fetch('{{ route("historico-revisados.reset-estadisticas") }}', {
-            method: 'POST',
-            headers: {
-                'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                alert('✅ Estadísticas restablecidas correctamente');
-                location.reload();
-            } else {
-                alert('❌ Error: ' + data.message);
-                btn.innerHTML = originalHtml;
-                btn.disabled = false;
-            }
-        })
-        .catch(error => {
-            alert('❌ Error al restablecer estadísticas');
-            console.error(error);
-            btn.innerHTML = originalHtml;
-            btn.disabled = false;
-        });
-    }
 }
 
 function verProximosResets() {

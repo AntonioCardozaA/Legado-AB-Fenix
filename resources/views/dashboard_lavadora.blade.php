@@ -145,13 +145,46 @@
     }
 
     .stat-card {
+        --stat-accent: var(--primary-blue);
+        --stat-soft: #dbeafe;
         background: white;
         border-radius: 12px;
         padding: 12px 14px;
         box-shadow: var(--shadow-sm);
-        border: 1px solid var(--medium-gray);
+        border: 1px solid var(--medium-gray) !important;
+        border-top: 4px solid var(--stat-accent) !important;
         transition: var(--transition);
         min-width: 0;
+    }
+
+    .stat-card.stat-card--primary {
+        --stat-accent: var(--primary-blue);
+        --stat-soft: #dbeafe;
+    }
+
+    .stat-card.stat-card--danger {
+        --stat-accent: var(--danger-red);
+        --stat-soft: #fee2e2;
+    }
+
+    .stat-card.stat-card--risk {
+        --stat-accent: var(--operational-orange);
+        --stat-soft: #ffedd5;
+    }
+
+    .stat-card.stat-card--warning {
+        --stat-accent: var(--warning-yellow);
+        --stat-soft: #fef3c7;
+    }
+
+    .stat-card.stat-card--success {
+        --stat-accent: var(--success-green);
+        --stat-soft: #d1fae5;
+    }
+
+    .stat-card.stat-card--action {
+        --stat-accent: #6366f1;
+        --stat-soft: #e0e7ff;
     }
 
     .stat-card:hover {
@@ -171,13 +204,21 @@
     .stat-card .stat-value {
         font-size: 22px;
         font-weight: 700;
-        color: var(--text-primary);
+        color: var(--stat-accent) !important;
     }
 
     .stat-card .stat-icon {
         float: right;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 34px;
+        height: 34px;
+        border-radius: 10px;
+        background: var(--stat-soft) !important;
         font-size: 20px;
-        color: var(--dark-gray);
+        color: var(--stat-accent) !important;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
     }
 
     /* Grid de tarjetas de lavadoras */
@@ -3111,6 +3152,7 @@
             grid-template-columns: 1fr;
         }
     }
+
 </style>
 
 <div class="dashboard-container">
@@ -3144,32 +3186,32 @@
 
     {{-- Tarjetas de Resumen --}}
     <div class="stats-grid">
-        <div class="stat-card">
+        <div class="stat-card stat-card--primary">
             <div class="stat-icon"><i class="fas fa-industry"></i></div>
             <div class="stat-label">Total Lavadoras</div>
             <div class="stat-value">{{ $resumenGeneral['total_lavadoras'] }}</div>
         </div>
-        <div class="stat-card" style="border-top: 4px solid var(--danger-red);">
+        <div class="stat-card stat-card--danger">
             <div class="stat-icon"><i class="fas fa-exclamation-triangle"></i></div>
             <div class="stat-label">Alertas Críticas</div>
-            <div class="stat-value" style="color: var(--danger-red);">{{ $resumenGeneral['alertas_criticas'] }}</div>
+            <div class="stat-value">{{ $resumenGeneral['alertas_criticas'] }}</div>
         </div>
-        <div class="stat-card" style="border-top: 4px solid var(--operational-orange);">
+        <div class="stat-card stat-card--risk">
             <div class="stat-icon"><i class="fas fa-chart-line"></i></div>
             <div class="stat-label">Severo / Moderado</div>
-            <div class="stat-value" style="color: var(--operational-orange);">{{ $resumenGeneral['en_riesgo'] }}</div>
+            <div class="stat-value">{{ $resumenGeneral['en_riesgo'] }}</div>
         </div>
-        <div class="stat-card" style="border-top: 4px solid var(--warning-yellow);">
+        <div class="stat-card stat-card--warning">
             <div class="stat-icon"><i class="fas fa-tools"></i></div>
             <div class="stat-label">Requiere Revisión</div>
-            <div class="stat-value" style="color: var(--warning-yellow);">{{ $resumenGeneral['requiere_revision'] }}</div>
+            <div class="stat-value">{{ $resumenGeneral['requiere_revision'] }}</div>
         </div>
-        <div class="stat-card" style="border-top: 4px solid var(--success-green);">
+        <div class="stat-card stat-card--success">
             <div class="stat-icon"><i class="fas fa-check-circle"></i></div>
             <div class="stat-label">Buen Estado</div>
-            <div class="stat-value" style="color: var(--success-green);">{{ $resumenGeneral['buen_estado'] }}</div>
+            <div class="stat-value">{{ $resumenGeneral['buen_estado'] }}</div>
         </div>
-        <div class="stat-card">
+        <div class="stat-card stat-card--action">
             <div class="stat-icon"><i class="fas fa-tasks"></i></div>
             <div class="stat-label">Pendientes Acción</div>
             <div class="stat-value">{{ $resumenGeneral['pendientes_accion'] }}</div>

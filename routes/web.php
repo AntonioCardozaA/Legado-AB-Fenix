@@ -26,6 +26,7 @@ use App\Http\Controllers\ControlGastosController;
 use App\Http\Controllers\AssistantChatController;
 use App\Http\Controllers\AiObservabilityController;
 use App\Http\Controllers\CronQueueController;
+use App\Http\Controllers\GlobalSearchController;
 use App\Http\Controllers\WasherAiPlanReviewController;
 use App\Http\Controllers\WasherKnowledgeDocumentController;
 
@@ -139,6 +140,9 @@ Route::prefix('pasteurizadora')->group(function () {
 
     Route::get('/dashboard-alias', [DashboardController::class, 'index'])
         ->name('dashboard.alias');
+
+    Route::get('/global-search', GlobalSearchController::class)
+        ->name('global-search.index');
 
     Route::get('/api/danos-tendencia', [DashboardController::class, 'getDanosTendenciaApi'])
         ->name('api.danos-tendencia');

@@ -20,7 +20,7 @@
             </div>
 
             <div class="etq-context-strip">
-                <div class="grid grid-cols-1 gap-4 text-sm md:grid-cols-4">
+                <div class="grid grid-cols-1 gap-4 text-sm md:grid-cols-3">
                     <div class="flex justify-center md:justify-start">
                         <div class="flex min-h-20 min-w-20 items-center justify-center rounded-xl bg-white p-2 shadow-sm">
                             @include('etiquetadora.partials.presentation-icons', ['linea' => $plan->linea ?? $plan->linea_id, 'size' => 'sm'])
@@ -33,10 +33,6 @@
                     <div>
                         <p class="font-semibold text-gray-600">Linea</p>
                         <p class="text-gray-800">{{ $plan->linea->nombre ?? 'Linea ' . $plan->linea_id }}</p>
-                    </div>
-                    <div>
-                        <p class="font-semibold text-gray-600">Responsable actual</p>
-                        <p class="text-gray-800">{{ $plan->responsable->name ?? 'Usuario actual' }}</p>
                     </div>
                 </div>
             </div>
@@ -59,22 +55,6 @@
                         @endforeach
                     </select>
                     @error('linea_id') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
-                </div>
-
-                <div>
-                    <label class="mb-1 block text-sm font-medium text-gray-700">
-                        <i class="fas fa-user-check mr-1 text-blue-600"></i>
-                        Responsable
-                    </label>
-                    <select name="responsable_id" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                        <option value="">Usuario actual</option>
-                        @foreach(($usuariosResponsables ?? collect()) as $usuario)
-                            <option value="{{ $usuario->id }}" @selected((int) old('responsable_id', $plan->responsable_id ?? auth()->id()) === $usuario->id)>
-                                {{ $usuario->name }}{{ $usuario->email ? ' - ' . $usuario->email : '' }}
-                            </option>
-                        @endforeach
-                    </select>
-                    @error('responsable_id') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                 </div>
 
                 <div>

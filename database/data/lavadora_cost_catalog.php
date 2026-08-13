@@ -454,13 +454,13 @@ return [
             'clasificacion' => 'Lubricante liquido',
             'lineas' => ['L-05', 'L-12', 'L-13'],
             'component_codes' => ['RV200', 'RV200_SIN_FIN'],
-            'componentes' => ['Reductor Rv 250 Sin Fin', 'Reductor Rv200 Sin Fin'],
-            'component_terms' => ['reductor', 'reductores', 'rv200', 'sin fin', 'reductor rv200'],
+            'componentes' => ['RV250 Sin Fin Corona'],
+            'component_terms' => ['reductor', 'reductores', 'rv250', 'rv200', 'sin fin', 'sin fin corona'],
             'uso_referencia' => 'Lubricacion de reductores',
             'cantidad_referencia' => 20,
             'unidad_referencia' => 'LT',
             'costo_referencia' => 9305.00,
-            'palabras_clave' => ['aceite', 'lubricante', 'glygoyle 460', 'glygoyle_460', 'reductor', 'rv200', 'sin fin'],
+            'palabras_clave' => ['aceite', 'lubricante', 'glygoyle 460', 'glygoyle_460', 'reductor', 'rv250', 'rv200', 'sin fin', 'sin fin corona'],
         ],
         [
             'sku' => '4056964',
@@ -581,7 +581,7 @@ return [
             'trigger_type' => 'estado_cambiado',
             'quantity' => 1,
             'priority' => 20,
-            'notas' => 'Costo sugerido para reductor RV200.',
+            'notas' => 'Costo sugerido para RV250 Sin Fin Corona.',
         ],
         [
             'catalog_sku' => '4067643',
@@ -589,7 +589,7 @@ return [
             'trigger_type' => 'estado_cambiado',
             'quantity' => 1,
             'priority' => 21,
-            'notas' => 'Costo sugerido para reductor sinfin-corona.',
+            'notas' => 'Costo sugerido para RV250 Sin Fin Corona.',
         ],
         [
             'catalog_sku' => '4057131',
@@ -598,7 +598,7 @@ return [
             'trigger_keyword' => 'ACEITE',
             'quantity' => 1,
             'priority' => 50,
-            'notas' => 'Consumible detectado por actividad de lubricacion en RV200.',
+            'notas' => 'Consumible detectado por actividad de lubricacion en RV250 Sin Fin Corona.',
         ],
         [
             'catalog_sku' => '4057131',
@@ -607,7 +607,7 @@ return [
             'trigger_keyword' => 'ACEITE',
             'quantity' => 1,
             'priority' => 51,
-            'notas' => 'Consumible detectado por actividad de lubricacion en RV200 sin fin.',
+            'notas' => 'Consumible detectado por actividad de lubricacion en RV250 Sin Fin Corona.',
         ],
         [
             'catalog_sku' => '4055893',
@@ -616,7 +616,7 @@ return [
             'trigger_keyword' => 'FILTRO',
             'quantity' => 1,
             'priority' => 52,
-            'notas' => 'Filtro detectado en mantenimiento de RV200.',
+            'notas' => 'Filtro detectado en mantenimiento de RV250 Sin Fin Corona.',
         ],
         [
             'catalog_sku' => '4055893',
@@ -625,7 +625,7 @@ return [
             'trigger_keyword' => 'FILTRO',
             'quantity' => 1,
             'priority' => 53,
-            'notas' => 'Filtro detectado en mantenimiento de RV200 sin fin.',
+            'notas' => 'Filtro detectado en mantenimiento de RV250 Sin Fin Corona.',
         ],
         [
             'catalog_sku' => '4066010',
@@ -634,7 +634,7 @@ return [
             'trigger_keyword' => 'RESPIRADOR',
             'quantity' => 1,
             'priority' => 54,
-            'notas' => 'Respirador detectado en actividad de reductor.',
+            'notas' => 'Respirador detectado en actividad de RV250 Sin Fin Corona.',
         ],
         [
             'catalog_sku' => '4066010',
@@ -643,7 +643,7 @@ return [
             'trigger_keyword' => 'RESPIRADOR',
             'quantity' => 1,
             'priority' => 55,
-            'notas' => 'Respirador detectado en actividad de reductor sin fin.',
+            'notas' => 'Respirador detectado en actividad de RV250 Sin Fin Corona.',
         ],
         [
             'catalog_sku' => '4048475',
@@ -652,7 +652,7 @@ return [
             'trigger_keyword' => 'RETEN',
             'quantity' => 1,
             'priority' => 56,
-            'notas' => 'Reten detectado en actividad de reductor.',
+            'notas' => 'Reten detectado en actividad de RV250 Sin Fin Corona.',
         ],
         [
             'catalog_sku' => '4048475',
@@ -661,7 +661,7 @@ return [
             'trigger_keyword' => 'RETEN',
             'quantity' => 1,
             'priority' => 57,
-            'notas' => 'Reten detectado en actividad de reductor sin fin.',
+            'notas' => 'Reten detectado en actividad de RV250 Sin Fin Corona.',
         ],
         [
             'catalog_sku' => '4048230',

@@ -98,26 +98,6 @@
                         </div>
 
                         <div class="mb-4">
-                            <label for="responsable_id" class="block text-sm font-medium text-gray-700 mb-2">
-                                Responsable
-                            </label>
-                            <select
-                                name="responsable_id"
-                                id="responsable_id"
-                                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500 @error('responsable_id') border-red-500 @enderror">
-                                <option value="">Usuario actual</option>
-                                @foreach(($usuariosResponsables ?? collect()) as $usuario)
-                                    <option value="{{ $usuario->id }}" {{ (int) old('responsable_id', auth()->id()) === $usuario->id ? 'selected' : '' }}>
-                                        {{ $usuario->name }}{{ $usuario->email ? ' - ' . $usuario->email : '' }}
-                                    </option>
-                                @endforeach
-                            </select>
-                            @error('responsable_id')
-                                <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
-                            @enderror
-                        </div>
-
-                        <div class="mb-4">
                             <label class="block text-sm font-medium text-gray-700 mb-2">
                                 Actividad <span class="text-red-500">*</span>
                             </label>

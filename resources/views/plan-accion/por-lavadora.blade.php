@@ -42,7 +42,6 @@
                             <td class="px-4 py-3">
                                 <div class="font-medium text-gray-900">{{ $plan->actividad }}</div>
                                 <div class="mt-2 space-y-1 text-xs text-gray-500">
-                                    <div><span class="font-semibold text-gray-700">Responsable:</span> {{ $plan->responsable?->name ?? 'Sin responsable' }}</div>
                                     <div>
                                         <span class="font-semibold text-gray-700">Registrado por:</span>
                                         {{ $plan->registradoPor?->name ?? 'Sin dato historico' }}

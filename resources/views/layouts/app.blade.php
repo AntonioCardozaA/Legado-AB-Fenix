@@ -19,6 +19,15 @@
             --accent-red: #ef4444;
         }
 
+        body,
+        .sidebar,
+        header,
+        .card,
+        .notification-elegant-panel,
+        .global-search-panel {
+            transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+        }
+
         [x-cloak] {
             display: none !important;
         }
@@ -81,6 +90,54 @@
 
         .notification-bell-button {
             transform: translateZ(0);
+        }
+
+        .notification-elegant-panel,
+        .global-search-panel {
+            border: 1px solid rgba(209, 213, 219, 0.9);
+            box-shadow: 0 24px 60px rgba(15, 23, 42, 0.16);
+        }
+
+        .notification-elegant-item {
+            position: relative;
+        }
+
+        .notification-elegant-item::before {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 0.75rem;
+            bottom: 0.75rem;
+            width: 3px;
+            border-radius: 999px;
+            background: transparent;
+        }
+
+        .notification-elegant-item.is-unread::before {
+            background: linear-gradient(180deg, #2563eb, #60a5fa);
+        }
+
+        .global-search-button {
+            min-height: 2.5rem;
+            border: 1px solid #e5e7eb;
+            box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+        }
+
+        .global-search-button:hover,
+        .global-search-button.is-open {
+            border-color: #bfdbfe;
+            background: #eff6ff;
+            color: #1d4ed8;
+        }
+
+        .global-search-result {
+            transition: background-color 0.15s ease, transform 0.15s ease;
+        }
+
+        .global-search-result:hover,
+        .global-search-result.is-active {
+            background: #eff6ff;
+            transform: translateX(2px);
         }
 
         .notification-bell-icon {
@@ -477,6 +534,7 @@
             }
         }
     </style>
+
 </head>
 
 <body class="bg-gray-100 overflow-x-hidden">
@@ -715,6 +773,93 @@
                 </div>
 
                 <div class="flex shrink-0 items-center space-x-2 sm:space-x-4">
+                    @auth
+                    <div class="relative" x-data="globalSearch()" @click.away="close()" @keydown.escape.window="close()">
+                        <button type="button"
+                                @click="toggle()"
+                                :class="{ 'is-open': open }"
+                                aria-label="Busqueda global"
+                                class="global-search-button inline-flex items-center justify-center gap-2 rounded-full bg-white px-3 py-2 text-sm font-semibold text-gray-600 transition">
+                            <i class="fas fa-magnifying-glass text-sm"></i>
+                            <span class="hidden md:inline">Buscar</span>
+                        </button>
+
+                        <div x-show="open"
+                             x-transition:enter="transition ease-out duration-150"
+                             x-transition:enter-start="transform opacity-0 scale-95"
+                             x-transition:enter-end="transform opacity-100 scale-100"
+                             x-transition:leave="transition ease-in duration-100"
+                             x-transition:leave-start="transform opacity-100 scale-100"
+                             x-transition:leave-end="transform opacity-0 scale-95"
+                             class="global-search-panel absolute right-0 z-50 mt-3 w-[min(32rem,calc(100vw-2rem))] overflow-hidden rounded-2xl bg-white"
+                             style="display: none;">
+                            <div class="border-b border-gray-100 bg-gray-50/80 p-3">
+                                <div class="flex items-center gap-3 rounded-xl border border-gray-200 bg-white px-3 py-2 shadow-sm">
+                                    <i class="fas fa-magnifying-glass text-sm text-blue-600"></i>
+                                    <input x-ref="searchInput"
+                                           x-model="query"
+                                           @input.debounce.220ms="search()"
+                                           @keydown.arrow-down.prevent="next()"
+                                           @keydown.arrow-up.prevent="previous()"
+                                           @keydown.enter.prevent="openActive()"
+                                           type="search"
+                                           class="w-full border-0 p-0 text-sm font-medium text-gray-800 placeholder:text-gray-400 focus:ring-0"
+                                           placeholder="Buscar en el sistema">
+                                    <button type="button"
+                                            x-show="query"
+                                            @click="clear()"
+                                            aria-label="Limpiar busqueda"
+                                            class="rounded-full p-1 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600"
+                                            style="display: none;">
+                                        <i class="fas fa-xmark text-xs"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="max-h-[26rem] overflow-y-auto py-2">
+                                <template x-if="loading">
+                                    <div class="flex items-center gap-3 px-4 py-4 text-sm text-gray-500">
+                                        <i class="fas fa-spinner fa-spin text-blue-600"></i>
+                                        Buscando...
+                                    </div>
+                                </template>
+
+                                <template x-if="error">
+                                    <div class="px-4 py-4 text-sm font-medium text-red-600" x-text="error"></div>
+                                </template>
+
+                                <template x-if="!loading && !error && results.length === 0">
+                                    <div class="px-4 py-8 text-center text-sm text-gray-500">
+                                        <i class="fas fa-magnifying-glass text-2xl text-gray-300"></i>
+                                        <p class="mt-2 font-semibold">Sin resultados</p>
+                                    </div>
+                                </template>
+
+                                <template x-for="(item, index) in results" :key="item.key || item.url || index">
+                                    <a :href="item.url"
+                                       @mouseenter="activeIndex = index"
+                                       :class="{ 'is-active': activeIndex === index }"
+                                       class="global-search-result mx-2 flex items-start gap-3 rounded-xl px-3 py-3 text-left">
+                                        <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+                                            <i :class="'fas ' + (item.icon || 'fa-magnifying-glass')"></i>
+                                        </span>
+                                        <span class="min-w-0 flex-1">
+                                            <span class="flex items-start justify-between gap-3">
+                                                <span class="truncate text-sm font-bold text-gray-900" x-text="item.title"></span>
+                                                <span x-show="item.badge"
+                                                      class="shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-gray-500"
+                                                      x-text="item.badge"></span>
+                                            </span>
+                                            <span class="mt-0.5 block truncate text-xs text-gray-500" x-text="item.description"></span>
+                                            <span class="mt-1 inline-flex items-center rounded-full bg-gray-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-gray-400" x-text="item.section"></span>
+                                        </span>
+                                    </a>
+                                </template>
+                            </div>
+                        </div>
+                    </div>
+                    @endauth
+
                     <!-- NOTIFICACIONES DROPDOWN -->
                     @auth
                     @php
@@ -729,7 +874,7 @@
                                 :class="{ 'is-open': open }"
                                 id="notification-button"
                                 aria-label="Notificaciones"
-                                class="notification-bell-button p-2 rounded-full bg-gray-100 hover:bg-gray-200 transition relative {{ $unreadCount > 0 ? 'has-unread' : '' }}">
+                                class="notification-bell-button relative inline-flex h-10 w-10 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-600 shadow-sm transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600 {{ $unreadCount > 0 ? 'has-unread' : '' }}">
                             <i class="notification-bell-icon fas fa-bell text-gray-600"></i>
                             <span id="notification-badge"
                                   class="notification-badge-pulse absolute top-0 right-0 inline-flex items-center justify-center px-1 py-0.5 text-xs font-bold leading-none text-white transform translate-x-1/2 -translate-y-1/2 bg-red-600 rounded-full {{ $unreadCount > 0 ? '' : 'hidden' }}">
@@ -744,26 +889,31 @@
                              x-transition:leave="transition ease-in duration-75"
                              x-transition:leave-start="transform opacity-100 scale-100"
                              x-transition:leave-end="transform opacity-0 scale-95"
-                             class="absolute right-0 mt-2 w-72 max-w-[calc(100vw-2rem)] sm:w-80 bg-white rounded-md shadow-lg overflow-hidden z-50 border border-gray-200"
+                             class="notification-elegant-panel absolute right-0 z-50 mt-3 w-80 max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl bg-white"
                              style="display: none;">
 
-                            <div class="px-4 py-3 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
-                                <span class="text-sm font-semibold text-gray-700">Notificaciones</span>
+                            <div class="flex items-center justify-between gap-3 border-b border-gray-100 bg-gray-50/80 px-4 py-3">
+                                <span class="inline-flex items-center gap-2 text-sm font-bold text-gray-800">
+                                    <span class="flex h-8 w-8 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+                                        <i class="fas fa-bell"></i>
+                                    </span>
+                                    Notificaciones
+                                </span>
                                 <form id="notification-read-all-form" action="{{ route('notifications.read-all') }}" method="POST" class="inline {{ $unreadCount > 0 ? '' : 'hidden' }}">
                                     @csrf
-                                    <button type="submit" class="text-xs text-blue-600 hover:text-blue-800">
+                                    <button type="submit" class="rounded-full bg-white px-3 py-1 text-xs font-bold text-blue-600 shadow-sm ring-1 ring-blue-100 transition hover:bg-blue-50">
                                         Marcar todas como leídas
                                     </button>
                                 </form>
                             </div>
 
-                            <div id="notifications-list" class="max-h-96 overflow-y-auto">
+                            <div id="notifications-list" class="max-h-96 overflow-y-auto py-2">
                                 @forelse($notificationItems as $notification)
                                     @php($notificationOpenUrl = route('notifications.open', $notification->id, false))
                                     <a href="{{ $notificationOpenUrl }}"
-                                       class="block px-4 py-3 hover:bg-gray-50 border-b border-gray-100 {{ $notification->read_at ? '' : 'bg-blue-50' }}">
-                                        <div class="flex items-start space-x-3">
-                                            <div class="flex-shrink-0">
+                                       class="notification-elegant-item mx-2 block rounded-xl px-3 py-3 transition hover:bg-gray-50 {{ $notification->read_at ? '' : 'is-unread bg-blue-50/70' }}">
+                                        <div class="flex items-start gap-3">
+                                            <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl {{ $notification->read_at ? 'bg-gray-100' : 'bg-white shadow-sm ring-1 ring-blue-100' }}">
                                                 @if(($notification->data['prioridad'] ?? 'baja') == 'alta')
                                                     <i class="fas fa-exclamation-circle text-red-500"></i>
                                                 @elseif(($notification->data['prioridad'] ?? 'baja') == 'media')
@@ -780,32 +930,34 @@
                                                     @endif
                                                 </div>
                                                 @if(!empty($notification->data['area_pasteurizadora_label']))
-                                                    <span class="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-700">
+                                                    <span class="inline-flex items-center gap-1 rounded-full bg-white px-2 py-0.5 text-xs font-semibold text-blue-700 shadow-sm ring-1 ring-blue-100">
                                                         <i class="fas fa-tools"></i>
                                                         Parte: {{ $notification->data['area_pasteurizadora_label'] }}
                                                     </span>
                                                 @endif
-                                                <p class="text-xs text-gray-500">{{ $notification->created_at->diffForHumans() }}</p>
+                                                <p class="mt-1 text-xs font-medium text-gray-500">{{ $notification->created_at->diffForHumans() }}</p>
                                             </div>
                                         </div>
                                     </a>
                                 @empty
-                                    <div class="px-4 py-6 text-center text-gray-500">
-                                        <i class="fas fa-bell-slash text-gray-400 text-2xl mb-2"></i>
-                                        <p class="text-sm">No hay notificaciones</p>
+                                    <div class="px-4 py-8 text-center text-gray-500">
+                                        <span class="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-gray-50 text-gray-300">
+                                            <i class="fas fa-bell-slash text-2xl"></i>
+                                        </span>
+                                        <p class="mt-3 text-sm font-semibold">No hay notificaciones</p>
                                     </div>
                                 @endforelse
                             </div>
 
                             @if($notificationsCount > 0)
-                                <div id="notifications-view-all-wrapper" class="px-4 py-2 bg-gray-50 border-t border-gray-200 text-center">
-                                    <a href="{{ route('notifications.index') }}" class="text-xs text-blue-600 hover:text-blue-800">
+                                <div id="notifications-view-all-wrapper" class="border-t border-gray-100 bg-gray-50/80 px-4 py-3 text-center">
+                                    <a href="{{ route('notifications.index') }}" class="text-xs font-bold text-blue-600 hover:text-blue-800">
                                         Ver todas las notificaciones
                                     </a>
                                 </div>
                             @else
-                                <div id="notifications-view-all-wrapper" class="hidden px-4 py-2 bg-gray-50 border-t border-gray-200 text-center">
-                                    <a href="{{ route('notifications.index') }}" class="text-xs text-blue-600 hover:text-blue-800">
+                                <div id="notifications-view-all-wrapper" class="hidden border-t border-gray-100 bg-gray-50/80 px-4 py-3 text-center">
+                                    <a href="{{ route('notifications.index') }}" class="text-xs font-bold text-blue-600 hover:text-blue-800">
                                         Ver todas las notificaciones
                                     </a>
                                 </div>
@@ -882,8 +1034,134 @@
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <script>
+const globalSearchUrl = @json(route('global-search.index', [], false));
 const notificationReadUrlTemplate = @json(route('notifications.read', ['id' => '__ID__'], false));
 const notificationsUnreadCountUrl = @json(route('notifications.unread-count', [], false));
+
+function globalSearch() {
+    return {
+        open: false,
+        query: '',
+        results: [],
+        loading: false,
+        error: '',
+        activeIndex: 0,
+        abortController: null,
+
+        init() {
+            document.addEventListener('global-search:open', () => this.openSearch());
+        },
+
+        toggle() {
+            this.open ? this.close() : this.openSearch();
+        },
+
+        openSearch() {
+            this.open = true;
+
+            this.$nextTick(() => {
+                this.$refs.searchInput?.focus();
+
+                if (this.results.length === 0) {
+                    this.search();
+                }
+            });
+        },
+
+        close() {
+            this.open = false;
+        },
+
+        clear() {
+            this.query = '';
+            this.search();
+            this.$refs.searchInput?.focus();
+        },
+
+        search() {
+            if (this.abortController) {
+                this.abortController.abort();
+            }
+
+            this.loading = true;
+            this.error = '';
+            this.abortController = new AbortController();
+
+            const url = new URL(globalSearchUrl, window.location.origin);
+            const term = this.query.trim();
+
+            if (term) {
+                url.searchParams.set('q', term);
+            }
+
+            fetch(url, {
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Accept': 'application/json'
+                },
+                signal: this.abortController.signal
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('No se pudo buscar en este momento.');
+                    }
+
+                    return response.json();
+                })
+                .then(data => {
+                    this.results = data.items || [];
+                    this.activeIndex = 0;
+                })
+                .catch(error => {
+                    if (error.name === 'AbortError') {
+                        return;
+                    }
+
+                    this.error = error.message || 'No se pudo buscar en este momento.';
+                })
+                .finally(() => {
+                    this.loading = false;
+                });
+        },
+
+        next() {
+            if (this.results.length === 0) {
+                return;
+            }
+
+            this.activeIndex = (this.activeIndex + 1) % this.results.length;
+        },
+
+        previous() {
+            if (this.results.length === 0) {
+                return;
+            }
+
+            this.activeIndex = (this.activeIndex - 1 + this.results.length) % this.results.length;
+        },
+
+        openActive() {
+            const item = this.results[this.activeIndex];
+
+            if (item?.url) {
+                window.location.href = item.url;
+            }
+        }
+    };
+}
+
+document.addEventListener('keydown', function(event) {
+    const target = event.target;
+    const isTyping = target instanceof HTMLInputElement
+        || target instanceof HTMLTextAreaElement
+        || target instanceof HTMLSelectElement
+        || target?.isContentEditable;
+
+    if (event.key === '/' && !event.ctrlKey && !event.metaKey && !event.altKey && !isTyping) {
+        event.preventDefault();
+        document.dispatchEvent(new CustomEvent('global-search:open'));
+    }
+});
 
 function markAsRead(notificationId, url) {
     fetch(notificationReadUrlTemplate.replace('__ID__', encodeURIComponent(notificationId)), {
@@ -928,16 +1206,20 @@ function notificationIconClasses(priority) {
 
 function emptyNotificationsNode() {
     const empty = document.createElement('div');
-    empty.className = 'px-4 py-6 text-center text-gray-500';
+    empty.className = 'px-4 py-8 text-center text-gray-500';
+
+    const iconWrap = document.createElement('span');
+    iconWrap.className = 'mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-gray-50 text-gray-300';
 
     const icon = document.createElement('i');
-    icon.className = 'fas fa-bell-slash text-gray-400 text-2xl mb-2';
+    icon.className = 'fas fa-bell-slash text-2xl';
+    iconWrap.appendChild(icon);
 
     const text = document.createElement('p');
-    text.className = 'text-sm';
+    text.className = 'mt-3 text-sm font-semibold';
     text.textContent = 'No hay notificaciones';
 
-    empty.append(icon, text);
+    empty.append(iconWrap, text);
 
     return empty;
 }
@@ -946,13 +1228,13 @@ function notificationItemNode(item) {
     const targetUrl = item.open_url || item.url || '#';
     const link = document.createElement('a');
     link.href = targetUrl;
-    link.className = 'block px-4 py-3 hover:bg-gray-50 border-b border-gray-100 ' + (item.is_read ? '' : 'bg-blue-50');
+    link.className = 'notification-elegant-item mx-2 block rounded-xl px-3 py-3 transition hover:bg-gray-50 ' + (item.is_read ? '' : 'is-unread bg-blue-50/70');
 
     const row = document.createElement('div');
-    row.className = 'flex items-start space-x-3';
+    row.className = 'flex items-start gap-3';
 
     const iconWrap = document.createElement('div');
-    iconWrap.className = 'flex-shrink-0';
+    iconWrap.className = 'flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl ' + (item.is_read ? 'bg-gray-100' : 'bg-white shadow-sm ring-1 ring-blue-100');
     const icon = document.createElement('i');
     icon.className = notificationIconClasses(item.prioridad || 'baja');
     iconWrap.appendChild(icon);
@@ -964,7 +1246,7 @@ function notificationItemNode(item) {
     messageRow.className = 'flex items-start justify-between gap-2';
 
     const message = document.createElement('p');
-    message.className = 'text-sm text-gray-900 mb-1';
+    message.className = 'mb-1 text-sm font-semibold leading-snug text-gray-900';
     message.textContent = item.message || item.title || 'Nueva notificacion';
     messageRow.appendChild(message);
 
@@ -979,7 +1261,7 @@ function notificationItemNode(item) {
 
     if (item.area_pasteurizadora_label) {
         const area = document.createElement('span');
-        area.className = 'inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-700';
+        area.className = 'inline-flex items-center gap-1 rounded-full bg-white px-2 py-0.5 text-xs font-semibold text-blue-700 shadow-sm ring-1 ring-blue-100';
 
         const areaIcon = document.createElement('i');
         areaIcon.className = 'fas fa-tools';
@@ -990,7 +1272,7 @@ function notificationItemNode(item) {
     }
 
     const time = document.createElement('p');
-    time.className = 'text-xs text-gray-500';
+    time.className = 'mt-1 text-xs font-medium text-gray-500';
     time.textContent = item.created_at_human || '';
     body.appendChild(time);
 

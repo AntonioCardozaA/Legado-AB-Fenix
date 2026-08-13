@@ -14,6 +14,11 @@ class EnsurePasteurizadoraAccess
     public function handle(Request $request, Closure $next): Response
     {
         $user = $request->user();
+        $routeName = $request->route()?->getName();
+
+        if ($routeName === 'global-search.index') {
+            return $next($request);
+        }
 
         if (
             !$user

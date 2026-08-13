@@ -1532,8 +1532,8 @@ class OperationsPlatformContextService
             'GUI_INT_TANQUE' => 'Guia Intermedia',
             'GUI_SUP_TANQUE' => 'Guia Superior',
             'CATARINAS' => 'Catarinas',
-            'RV200_SIN_FIN' => 'Reductor Rv200 Sin Fin',
-            'RV200' => 'Reductor Rv200',
+            'RV200_SIN_FIN' => 'RV250 Sin Fin Corona',
+            'RV200' => 'RV250 Sin Fin Corona',
         ];
 
         return collect($codes)
@@ -1558,8 +1558,8 @@ class OperationsPlatformContextService
             'GUI_INT_TANQUE' => ['guia', 'guias', 'intermedia', 'inter', 'int', 'tanque'],
             'GUI_SUP_TANQUE' => ['guia', 'guias', 'superior', 'sup', 'tanque'],
             'CATARINAS' => ['catarina', 'catarinas', 'sprocket', 'sprockets'],
-            'RV200_SIN_FIN' => ['rv200', 'reductor', 'reductores', 'sin', 'fin', 'corona'],
-            'RV200' => ['rv200', 'reductor', 'reductores'],
+            'RV200_SIN_FIN' => ['rv250', 'rv200', 'reductor', 'reductores', 'sin', 'fin', 'corona'],
+            'RV200' => ['rv250', 'rv200', 'reductor', 'reductores', 'sin', 'fin', 'corona'],
         ];
 
         return collect($codes)
@@ -1638,14 +1638,19 @@ class OperationsPlatformContextService
             $terms = array_merge($terms, ['buje', 'baquelita', 'espiga', 'casquillo']);
         }
 
-        if (str_contains($normalized, 'rv200 sin fin') || str_contains($normalized, 'sin fin-corona')) {
+        if (
+            str_contains($normalized, 'rv250')
+            || str_contains($normalized, 'rv200 sin fin')
+            || str_contains($normalized, 'sin fin-corona')
+            || str_contains($normalized, 'sin fin corona')
+        ) {
             $codes[] = 'RV200_SIN_FIN';
-            $terms = array_merge($terms, ['rv200', 'sin', 'fin', 'corona', 'reductor']);
+            $terms = array_merge($terms, ['rv250', 'rv200', 'sin', 'fin', 'corona', 'reductor']);
         }
 
-        if (str_contains($normalized, 'rv200') || str_contains($normalized, 'reductor')) {
+        if (str_contains($normalized, 'rv250') || str_contains($normalized, 'rv200') || str_contains($normalized, 'reductor')) {
             $codes[] = 'RV200';
-            $terms = array_merge($terms, ['rv200', 'reductor', 'reductores']);
+            $terms = array_merge($terms, ['rv250', 'rv200', 'reductor', 'reductores', 'sin', 'fin', 'corona']);
         }
 
         if (str_contains($normalized, 'red principal') || str_contains($normalized, 'red ppal')) {
@@ -1915,9 +1920,9 @@ class OperationsPlatformContextService
             $componentTerms = array_merge($componentTerms, ['servo', 'grande', 'servos']);
         }
 
-        if (str_contains($normalized, 'reductor') || str_contains($normalized, 'reductores') || str_contains($normalized, 'sin fin')) {
+        if (str_contains($normalized, 'rv250') || str_contains($normalized, 'reductor') || str_contains($normalized, 'reductores') || str_contains($normalized, 'sin fin')) {
             $componentCodes = array_merge($componentCodes, ['RV200', 'RV200_SIN_FIN']);
-            $componentTerms = array_merge($componentTerms, ['reductor', 'reductores', 'rv200', 'sin', 'fin']);
+            $componentTerms = array_merge($componentTerms, ['reductor', 'reductores', 'rv250', 'rv200', 'sin', 'fin', 'corona']);
         }
 
         if (str_contains($normalized, 'red ppal') || str_contains($normalized, 'red principal')) {

@@ -35,7 +35,6 @@ class ReviewWasherAiPlanRequest extends FormRequest
         return array_merge(
             WasherActionPlanSchema::rules(),
             [
-                'responsable_id' => ['nullable', 'exists:users,id'],
                 'review_notes' => ['nullable', 'string', 'max:2000'],
             ]
         );

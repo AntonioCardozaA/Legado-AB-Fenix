@@ -3,12 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\Linea;
-use App\Models\AnalisisLavadora;
 use App\Models\AnalisisPasteurizadora;
-use App\Models\Componente;
 use App\Models\HistorialRestablecimiento;
 use App\Models\HistoricoRevisados;
 use App\Models\User;
+use App\Services\LavadoraRevisionPeriodicityService;
 use App\Support\LavadoraCatalog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -17,6 +16,11 @@ use Carbon\Carbon;
 
 class HistoricoRevisadosController extends Controller
 {
+    public function __construct(
+        private readonly LavadoraRevisionPeriodicityService $periodicityService
+    ) {
+    }
+
     /**
      * Configuración de componentes por línea de lavadora
      */
@@ -26,12 +30,12 @@ class HistoricoRevisadosController extends Controller
      * Configuración de cantidades totales POR LÍNEA (según lo especificado)
      */
     private $cantidadesPorLinea = [
-        'L-04' => 14,
+        'L-04' => 13,
         'L-05' => 14,
-        'L-06' => 16,
-        'L-07' => 16,
+        'L-06' => 15,
+        'L-07' => 15,
         'L-08' => 15, // Línea 8 no se mencionó, se deja con 15 como valor por defecto
-        'L-09' => 14,
+        'L-09' => 13,
         'L-12' => 14,
         'L-13' => 14,
     ];
@@ -133,110 +137,11 @@ class HistoricoRevisadosController extends Controller
      */
     private function getEstadisticasLavadora($linea)
     {
-        $estadisticas = [];
-        
-        if (!isset($this->componentesLavadora[$linea->nombre])) {
-            return $estadisticas;
-        }
-        
-        $componentesLinea = $this->componentesLavadora[$linea->nombre];
-        
-        // Obtener la cantidad total para esta línea específica
-        $cantidadTotalLinea = $this->cantidadesPorLinea[$linea->nombre] ?? 15; // Por defecto 15 si no está definida
-        
-        // Configuración de periodicidad (en meses)
-        $periodicidad = [
-            'CATARINAS' => 4,
-            'GUI_INF_TANQUE' => 4,
-            'GUI_INT_TANQUE' => 4,
-            'GUI_SUP_TANQUE' => 4,
-            'SERVO_CHICO' => 12,
-            'SERVO_GRANDE' => 12,
-            'BUJE_ESPIGA' => 12,
-            'RV200' => 12,
-            'RV200_SIN_FIN' => 12,
-        ];
-        
-        $fechaActual = Carbon::now();
-        
-        foreach ($componentesLinea as $codigo => $nombre) {
-            // Usar la cantidad total de la línea para todos los componentes
-            $cantidadTotal = $cantidadTotalLinea;
-            $mesesPeriodo = $periodicidad[$codigo] ?? 12; // Por defecto anual
-            
-            // Fecha límite para considerar análisis vigentes
-            $fechaLimite = $fechaActual->copy()->subMonths($mesesPeriodo);
-            
-            // Obtener IDs de componentes que coincidan con el código
-            $componenteIds = Componente::where('codigo', 'like', '%' . $codigo . '%')
-                ->where('activo', true)
-                ->pluck('id')
-                ->toArray();
-            
-            // Calcular cantidad revisada solo de análisis en el periodo vigente
-            // y que no hayan sido restablecidos
-            $revisados = AnalisisLavadora::where('linea_id', $linea->id)
-                ->whereIn('componente_id', $componenteIds)
-                ->where('created_at', '>=', $fechaLimite)
-                ->whereNotExists(function ($query) {
-                    $query->select(DB::raw(1))
-                          ->from('historial_restablecimientos')
-                          ->whereRaw('analisis_id = analisis_componentes.id');
-                })
-                ->distinct('reductor')
-                ->count('reductor');
-            
-            $revisados = min($revisados, $cantidadTotal);
-            $porcentaje = $cantidadTotal > 0 ? round(($revisados / $cantidadTotal) * 100, 1) : 0;
-            $color = $this->getColorPorcentaje($porcentaje);
-            
-            // Calcular próximos vencimientos
-            $proximoVencimiento = $this->calcularProximoVencimiento($linea->id, $componenteIds, $mesesPeriodo);
-            
-            $estadisticas[$codigo] = [
-                'nombre' => $nombre,
-                'codigo' => $codigo,
-                'cantidad_total' => $cantidadTotal,
-                'cantidad_revisada' => $revisados,
-                'porcentaje' => $porcentaje,
-                'color' => $color,
-                'reductores_detectados' => $revisados,
-                'periodo_meses' => $mesesPeriodo,
-                'fecha_inicio_periodo' => $fechaLimite->format('Y-m-d'),
-                'fecha_fin_periodo' => $fechaActual->format('Y-m-d'),
-                'proximo_vencimiento' => $proximoVencimiento,
-            ];
-        }
-        
-        return $estadisticas;
+        return $this->periodicityService->estadisticasLinea($linea);
     }
 
     /**
-     * Calcular próximo vencimiento para un componente
-     */
-    private function calcularProximoVencimiento($lineaId, $componenteIds, $periodoMeses)
-    {
-        $ultimoAnalisis = AnalisisLavadora::where('linea_id', $lineaId)
-            ->whereIn('componente_id', $componenteIds)
-            ->whereNotExists(function ($query) {
-                $query->select(DB::raw(1))
-                      ->from('historial_restablecimientos')
-                      ->whereRaw('analisis_id = analisis_componentes.id');
-            })
-            ->orderBy('created_at', 'desc')
-            ->first();
-        
-        if ($ultimoAnalisis) {
-            return Carbon::parse($ultimoAnalisis->created_at)
-                ->addMonths($periodoMeses)
-                ->format('Y-m-d');
-        }
-        
-        return null;
-    }
-    
-    /**
-     * Obtener estadísticas para pasteurizadora desde la tabla histórico_revisados
+     * Obtener estadisticas para pasteurizadora desde la tabla historico_revisados
      */
     private function getEstadisticasPasteurizadora($linea)
     {
@@ -327,39 +232,21 @@ class HistoricoRevisadosController extends Controller
     /**
      * Verificar estado de restablecimiento programado
      */
-    public function checkResetStatus()
+    public function checkResetStatus(Request $request)
     {
-        $ultimoReset = DB::table('configuraciones')
-            ->where('clave', 'ultimo_reset_estadisticas')
-            ->first();
-        
-        $proximosResets = [];
-        $fechaActual = Carbon::now();
-        
-        // Calcular próximos resets para cada periodicidad
-        $periodicidades = [
-            '4_meses' => 4,
-            'anual' => 12
-        ];
-        
-        foreach ($periodicidades as $nombre => $meses) {
-            $ultimoResetPeriodo = $ultimoReset 
-                ? Carbon::parse($ultimoReset->valor) 
-                : $fechaActual->copy()->subMonths($meses);
-            
-            $proximoReset = $ultimoResetPeriodo->copy()->addMonths($meses);
-            
-            $diasRestantes = $fechaActual->diffInDays($proximoReset, false);
-            
-            $proximosResets[$nombre] = [
-                'fecha' => $proximoReset->format('d/m/Y'),
-                'dias_restantes' => $diasRestantes,
-                'estado' => $diasRestantes <= 0 ? 'pendiente' : 'programado',
-                'color' => $this->getColorDiasRestantes($diasRestantes)
-            ];
+        $linea = null;
+
+        if ($request->filled('linea_id')) {
+            $linea = Linea::find($request->integer('linea_id'));
         }
-        
-        // Estadísticas de restablecimientos
+
+        $componentes = $this->periodicityService->estadosComponentes($linea);
+        $ultimoReset = $componentes
+            ->pluck('ultimo_reset')
+            ->filter()
+            ->sortDesc()
+            ->first();
+
         $statsRestablecimientos = [
             'total_restablecidos' => HistorialRestablecimiento::count(),
             'ultimos_30_dias' => HistorialRestablecimiento::where('created_at', '>=', Carbon::now()->subDays(30))->count(),
@@ -376,12 +263,20 @@ class HistoricoRevisadosController extends Controller
                     ];
                 })
         ];
-        
+
         return response()->json([
             'success' => true,
-            'ultimo_reset' => $ultimoReset ? Carbon::parse($ultimoReset->valor)->format('d/m/Y H:i:s') : null,
-            'proximos_resets' => $proximosResets,
-            'estadisticas' => $statsRestablecimientos
+            'ultimo_reset' => $ultimoReset,
+            'componentes' => $componentes,
+            'resumen' => [
+                'total_componentes' => $componentes->count(),
+                'pendientes' => $componentes->where('estado', 'pendiente')->count(),
+                'programados' => $componentes->where('estado', 'programado')->count(),
+                'restablecidos' => $componentes->where('estado', 'restablecido')->count(),
+                'sin_revision' => $componentes->where('estado', 'sin_revision')->count(),
+                'ultimo_reset' => $ultimoReset,
+            ],
+            'estadisticas' => $statsRestablecimientos,
         ]);
     }
 
