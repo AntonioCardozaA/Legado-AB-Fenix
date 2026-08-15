@@ -103,7 +103,7 @@ class AssistantAnalyticsArtifactService
         $dataset = $this->buildDataset($datasetKey, $intent, $lineas, $dateRange, $chartType, $question);
 
         if ($dataset === null || ($dataset['rows'] ?? []) === []) {
-            return $this->emptyReply($datasetKey, $lineas, $dateRange, $intentResult);
+            return $this->emptyReply($datasetKey, $lineas, $dateRange, $intentResult, $question);
         }
 
         $dataset = $this->withRuntimeFilters($dataset, $question, $datasetKey, $outputs, $lineas, $dateRange, $chartType);
@@ -111,7 +111,7 @@ class AssistantAnalyticsArtifactService
         $artifacts = [];
 
         if (in_array('image', $outputs, true)) {
-            array_push($artifacts, ...$this->storeChartImages($user, $dataset, $chartType));
+            array_push($artifacts, ...$this->storeChartImages($user, $dataset, $chartType, $question));
         }
 
         if (in_array('excel', $outputs, true)) {
@@ -119,7 +119,7 @@ class AssistantAnalyticsArtifactService
         }
 
         if ($artifacts === []) {
-            array_push($artifacts, ...$this->storeChartImages($user, $dataset, $chartType));
+            array_push($artifacts, ...$this->storeChartImages($user, $dataset, $chartType, $question));
         }
 
         return [
@@ -177,6 +177,7 @@ class AssistantAnalyticsArtifactService
                         'excel si pide excel, xlsx, exportar, descargar, archivo o tabla.',
                         'Trata errores comunes como ecxel, exel, excell o xlxs como Excel.',
                         'Usa ambos outputs cuando pida imagen y Excel.',
+                        'No obligues al usuario a pedir PNG o SVG; imagen natural es suficiente.',
                         'Usa line si pide tendencia/evolucion, bar si pide comparativo/ranking/por linea.',
                         'Normaliza lineas como L-04, L-05, L-06, L-07, L-08, L-09, L-12 o L-13.',
                     ],
@@ -308,7 +309,7 @@ class AssistantAnalyticsArtifactService
     ): ?array {
         return match ($datasetKey) {
             'elongaciones' => $this->buildElongacionesDataset($intent, $lineas, $dateRange, $chartType, $question),
-            'analisis_lavadora' => $this->buildAnalisisLavadoraDataset($lineas, $dateRange, (string) ($intent['aggregation'] ?? 'monthly'), $question),
+            'analisis_lavadora' => $this->buildAnalisisLavadoraDataset($lineas, $dateRange, (string) ($intent['aggregation'] ?? 'monthly'), $question, $chartType),
             'costos_lavadora' => $this->buildCostosLavadoraDataset($lineas, $dateRange, (string) ($intent['aggregation'] ?? 'monthly'), $question),
             'plan_accion' => $this->buildPlanAccionDataset($lineas, $dateRange, (string) ($intent['aggregation'] ?? 'monthly'), $question),
             default => null,
@@ -489,7 +490,7 @@ class AssistantAnalyticsArtifactService
             $max = max((float) $record->bombas_porcentaje, (float) $record->vapor_porcentaje);
 
             return [
-                $record->linea,
+                $this->displayLineName((string) $record->linea),
                 $record->created_at?->format('d/m/Y') ?? '',
                 round((float) $record->bombas_porcentaje, 2),
                 round((float) $record->vapor_porcentaje, 2),
@@ -511,7 +512,7 @@ class AssistantAnalyticsArtifactService
                 [
                     'name' => 'Maximo %',
                     'points' => $latest->map(fn (Elongacion $record): array => [
-                        'label' => $record->linea,
+                        'label' => $this->displayLineName((string) $record->linea),
                         'value' => round(max((float) $record->bombas_porcentaje, (float) $record->vapor_porcentaje), 2),
                     ])->all(),
                 ],
@@ -536,14 +537,14 @@ class AssistantAnalyticsArtifactService
         $dataset = [
             'type' => 'elongaciones',
             'report_version' => 'elongaciones-v2',
-            'title' => 'Tendencia de elongacion '.$linea,
+            'title' => 'Tendencia de elongacion '.$this->displayLineName($linea),
             'subtitle' => $dateRange['label'],
             'source_reference' => 'elongaciones '.$linea,
             'headings' => ['Fecha', 'Linea', 'Bombas %', 'Vapor %', 'Maximo %', 'Estado', 'Hodometro'],
             'rows' => $limited->map(function (Elongacion $record): array {
                 return [
                     $record->created_at?->format('d/m/Y') ?? '',
-                    $record->linea,
+                    $this->displayLineName((string) $record->linea),
                     round((float) $record->bombas_porcentaje, 2),
                     round((float) $record->vapor_porcentaje, 2),
                     round(max((float) $record->bombas_porcentaje, (float) $record->vapor_porcentaje), 2),
@@ -660,20 +661,59 @@ class AssistantAnalyticsArtifactService
         $latest = $sortedRecords->last();
         $peak = $sortedRecords->sortByDesc(fn (Elongacion $record): float => $this->elongacionMaxValue($record))->first();
         $lineScope = $lineas === []
-            ? $sortedRecords->pluck('linea')->filter()->unique()->sort()->values()->implode(', ')
-            : implode(', ', $lineas);
+            ? $sortedRecords->pluck('linea')->filter()->unique()->sort()->values()->map(fn ($linea): string => $this->displayLineName((string) $linea))->implode(', ')
+            : $this->displayLineScope($lineas);
         $rawLimit = 2000;
         $rawRecords = $sortedRecords
-            ->sortByDesc(fn (Elongacion $record): string => ($record->created_at?->format('Y-m-d H:i:s') ?? '').'-'.str_pad((string) $record->id, 10, '0', STR_PAD_LEFT))
+            ->sortBy(fn (Elongacion $record): string => Str::upper((string) $record->linea).'|'.($record->created_at?->format('Y-m-d H:i:s') ?? '').'|'.str_pad((string) $record->id, 10, '0', STR_PAD_LEFT))
             ->take($rawLimit)
             ->values();
 
-        $dataset['summary_cards'] = [
-            ['label' => 'Registros', 'value' => (string) $sortedRecords->count(), 'tone' => 'neutral'],
-            ['label' => 'Promedio max.', 'value' => $this->formatChartNumber(round((float) $maxValues->avg(), 2)).'%', 'tone' => 'normal'],
-            ['label' => 'Pico max.', 'value' => $this->formatChartNumber(round((float) $maxValues->max(), 2)).'%', 'tone' => $this->elongacionTone((float) $maxValues->max())],
-            ['label' => 'Criticos', 'value' => (string) $criticalRecords->count(), 'tone' => $criticalRecords->isNotEmpty() ? 'critical' : 'normal'],
-        ];
+        if (($dataset['source_reference'] ?? null) === 'elongaciones por linea') {
+            $latestByLine = $sortedRecords
+                ->sortByDesc(fn (Elongacion $record): string => ($record->created_at?->format('Y-m-d H:i:s') ?? '').'-'.str_pad((string) $record->id, 10, '0', STR_PAD_LEFT))
+                ->unique('linea')
+                ->values();
+            $highest = $latestByLine
+                ->sortByDesc(fn (Elongacion $record): float => $this->elongacionMaxValue($record))
+                ->first();
+            $lowest = $latestByLine
+                ->sortBy(fn (Elongacion $record): float => $this->elongacionMaxValue($record))
+                ->first();
+
+            $dataset['summary_cards'] = [
+                [
+                    'label' => 'Mayor elongacion',
+                    'value' => $highest
+                        ? $this->displayLineName((string) $highest->linea).' '.$this->formatChartNumber($this->elongacionMaxValue($highest)).'%'
+                        : 'Sin lectura',
+                    'tone' => $highest ? $this->elongacionTone($this->elongacionMaxValue($highest)) : 'neutral',
+                ],
+                [
+                    'label' => 'Menor elongacion',
+                    'value' => $lowest
+                        ? $this->displayLineName((string) $lowest->linea).' '.$this->formatChartNumber($this->elongacionMaxValue($lowest)).'%'
+                        : 'Sin lectura',
+                    'tone' => $lowest ? $this->elongacionTone($this->elongacionMaxValue($lowest)) : 'neutral',
+                ],
+                [
+                    'label' => 'Lavadoras criticas',
+                    'value' => (string) $criticalRecords
+                        ->pluck('linea')
+                        ->filter()
+                        ->unique()
+                        ->count(),
+                    'tone' => $criticalRecords->isNotEmpty() ? 'critical' : 'normal',
+                ],
+            ];
+        } else {
+            $dataset['summary_cards'] = [
+                ['label' => 'Lecturas usadas', 'value' => (string) $sortedRecords->count(), 'tone' => 'neutral'],
+                ['label' => 'Promedio max.', 'value' => $this->formatChartNumber(round((float) $maxValues->avg(), 2)).'%', 'tone' => 'normal'],
+                ['label' => 'Mayor elongacion', 'value' => $this->formatChartNumber(round((float) $maxValues->max(), 2)).'%', 'tone' => $this->elongacionTone((float) $maxValues->max())],
+                ['label' => 'Criticos', 'value' => (string) $criticalRecords->count(), 'tone' => $criticalRecords->isNotEmpty() ? 'critical' : 'normal'],
+            ];
+        }
 
         $dataset['summary_rows'] = [
             ['Reporte', (string) ($dataset['title'] ?? 'Elongaciones')],
@@ -687,8 +727,8 @@ class AssistantAnalyticsArtifactService
             ['Registros en cambio/critico', $criticalRecords->count()],
             ['Umbral compra %', $warningThreshold],
             ['Umbral cambio %', $criticalThreshold],
-            ['Ultima lectura', $latest ? (($latest->linea ?: 'Sin linea').' | '.($latest->created_at?->format('d/m/Y') ?? 'Sin fecha').' | max '.$this->formatChartNumber($this->elongacionMaxValue($latest)).'%') : 'Sin lectura'],
-            ['Pico registrado', $peak ? (($peak->linea ?: 'Sin linea').' | '.($peak->created_at?->format('d/m/Y') ?? 'Sin fecha').' | max '.$this->formatChartNumber($this->elongacionMaxValue($peak)).'%') : 'Sin pico'],
+            ['Ultima lectura', $latest ? (($this->displayLineName((string) $latest->linea) ?: 'Sin linea').' | '.($latest->created_at?->format('d/m/Y') ?? 'Sin fecha').' | max '.$this->formatChartNumber($this->elongacionMaxValue($latest)).'%') : 'Sin lectura'],
+            ['Pico registrado', $peak ? (($this->displayLineName((string) $peak->linea) ?: 'Sin linea').' | '.($peak->created_at?->format('d/m/Y') ?? 'Sin fecha').' | max '.$this->formatChartNumber($this->elongacionMaxValue($peak)).'%') : 'Sin pico'],
         ];
 
         $dataset['raw_headings'] = [
@@ -780,7 +820,7 @@ class AssistantAnalyticsArtifactService
 
         return [
             $record->created_at?->format('d/m/Y H:i') ?? '',
-            $record->linea,
+            $this->displayLineName((string) $record->linea),
             $this->elongacionCycleLabel($record),
             round((float) $record->bombas_porcentaje, 2),
             round((float) $record->vapor_porcentaje, 2),
@@ -816,7 +856,7 @@ class AssistantAnalyticsArtifactService
 
         return [
             $record->created_at?->format('d/m/Y') ?? '',
-            $record->linea,
+            $this->displayLineName((string) $record->linea),
             $this->elongacionCriticalSide($record),
             round((float) $record->bombas_porcentaje, 2),
             round((float) $record->vapor_porcentaje, 2),
@@ -856,9 +896,9 @@ class AssistantAnalyticsArtifactService
             ->first();
 
         $dataset['summary_cards'] = [
-            ['label' => 'Registros', 'value' => (string) $sortedRecords->count(), 'tone' => 'neutral'],
-            ['label' => 'Danados', 'value' => (string) $damagedRecords->count(), 'tone' => $damagedRecords->isNotEmpty() ? 'critical' : 'normal'],
-            ['label' => 'Revision/desgaste', 'value' => (string) ($reviewRecords->count() + $wearRecords->count()), 'tone' => ($reviewRecords->isNotEmpty() || $wearRecords->isNotEmpty()) ? 'warning' : 'normal'],
+            ['label' => 'Danados / criticos', 'value' => (string) $damagedRecords->count(), 'tone' => $damagedRecords->isNotEmpty() ? 'critical' : 'normal'],
+            ['label' => 'Requieren revision', 'value' => (string) $reviewRecords->count(), 'tone' => $reviewRecords->isNotEmpty() ? 'warning' : 'normal'],
+            ['label' => 'Desgaste severo/mod.', 'value' => (string) $wearRecords->count(), 'tone' => $wearRecords->isNotEmpty() ? 'warning' : 'normal'],
             ['label' => 'Cambiados', 'value' => (string) $changedRecords->count(), 'tone' => 'normal'],
         ];
         $dataset['summary_rows'] = [
@@ -872,7 +912,30 @@ class AssistantAnalyticsArtifactService
             ['Requieren revision', $reviewRecords->count()],
             ['Con desgaste', $wearRecords->count()],
             ['Cambiados', $changedRecords->count()],
-            ['Lavadora con mas alertas', $topAlertLine ?: 'Sin alertas'],
+            ['Lavadora con mas alertas', $topAlertLine ? $this->displayLineName((string) $topAlertLine) : 'Sin alertas'],
+        ];
+        $dataset['pie_series'] = $dataset['pie_series'] ?? [
+            'title' => 'Distribucion de hallazgos',
+            'points' => [
+                [
+                    'label' => 'Danados / criticos',
+                    'value' => $damagedRecords->count(),
+                    'color' => '#dc2626',
+                    'tone' => 'critical',
+                ],
+                [
+                    'label' => 'Requieren revision',
+                    'value' => $reviewRecords->count(),
+                    'color' => '#f59e0b',
+                    'tone' => 'warning',
+                ],
+                [
+                    'label' => 'Desgaste severo/mod.',
+                    'value' => $wearRecords->count(),
+                    'color' => '#ea580c',
+                    'tone' => 'warning',
+                ],
+            ],
         ];
         $dataset['raw_headings'] = ['Fecha', 'Linea', 'Componente', 'Reductor', 'Lado', 'Estado operativo', 'Estado original', 'Correccion', 'Actividad', 'Orden'];
         $dataset['raw_rows'] = $rawRecords
@@ -895,7 +958,7 @@ class AssistantAnalyticsArtifactService
     {
         return [
             $record->fecha_analisis?->format('d/m/Y') ?? '',
-            $this->recordLineName($record),
+            $this->displayLineName($this->recordLineName($record)),
             $this->componentName($record),
             (string) ($record->reductor ?? ''),
             (string) ($record->lado ?? ''),
@@ -916,7 +979,7 @@ class AssistantAnalyticsArtifactService
 
         return [
             $record->fecha_analisis?->format('d/m/Y') ?? '',
-            $this->recordLineName($record),
+            $this->displayLineName($this->recordLineName($record)),
             $this->componentName($record),
             (string) ($record->reductor ?? ''),
             (string) ($record->lado ?? ''),
@@ -1165,6 +1228,29 @@ class AssistantAnalyticsArtifactService
         return 'Sin linea';
     }
 
+    private function displayLineName(string $linea): string
+    {
+        $linea = trim($linea);
+
+        if ($linea === '') {
+            return 'Sin linea';
+        }
+
+        return preg_match('/^L-\d{2}$/', Str::upper($linea)) === 1
+            ? 'Lavadora '.Str::upper($linea)
+            : $linea;
+    }
+
+    /**
+     * @param  array<int, string>  $lineas
+     */
+    private function displayLineScope(array $lineas): string
+    {
+        return collect($lineas)
+            ->map(fn (string $linea): string => $this->displayLineName($linea))
+            ->implode(', ');
+    }
+
     /**
      * @param  Collection<int, mixed>  $records
      * @param  array<int, string>  $lineas
@@ -1172,11 +1258,11 @@ class AssistantAnalyticsArtifactService
     private function lineScopeFromRecords(Collection $records, array $lineas): string
     {
         if ($lineas !== []) {
-            return implode(', ', $lineas);
+            return $this->displayLineScope($lineas);
         }
 
         $scope = $records
-            ->map(fn (mixed $record): string => $this->recordLineName($record))
+            ->map(fn (mixed $record): string => $this->displayLineName($this->recordLineName($record)))
             ->reject(fn (string $linea): bool => $linea === 'Sin linea')
             ->unique()
             ->sort()
@@ -1259,7 +1345,7 @@ class AssistantAnalyticsArtifactService
      * @param  array{from: CarbonImmutable|null, to: CarbonImmutable|null, label: string, preset: string}  $dateRange
      * @return array<string, mixed>|null
      */
-    private function buildAnalisisLavadoraDataset(array $lineas, array $dateRange, string $aggregation, string $question): ?array
+    private function buildAnalisisLavadoraDataset(array $lineas, array $dateRange, string $aggregation, string $question, string $chartType): ?array
     {
         $lineIds = $this->lineIdsFor($lineas);
         $records = AnalisisLavadora::with(['linea:id,nombre', 'componente:id,nombre,codigo'])
@@ -1279,17 +1365,39 @@ class AssistantAnalyticsArtifactService
             return null;
         }
 
+        if ($this->wantsAnalisisStateChart($question, $chartType)) {
+            $stateScope = $this->analisisStateScope($question);
+            $stateRecords = $stateScope === 'current'
+                ? $this->scopeAnalisisRecordsToCurrentState($records)
+                : $records->values();
+
+            if ($stateRecords->isEmpty()) {
+                return null;
+            }
+
+            return $this->buildAnalisisLavadoraStateDataset($stateRecords, $lineas, $dateRange, $stateScope);
+        }
+
         $rows = [];
         $totalPoints = [];
         $damagedPoints = [];
         $reviewPoints = [];
+        $wearPoints = [];
 
         $groups = $aggregation === 'by_line'
             ? $records->groupBy(fn (AnalisisLavadora $record): string => $this->recordLineName($record))
             : $records->groupBy(fn (AnalisisLavadora $record): string => $this->datePeriodKey($record->fecha_analisis, $aggregation));
 
+        if ($aggregation === 'by_line') {
+            $groups = $groups->sortByDesc(fn (Collection $items): int => $items
+                ->filter(fn (AnalisisLavadora $record): bool => AnalisisLavadora::esEstadoDanado($record->estado_operativo))
+                ->count());
+        }
+
         foreach ($groups as $period => $items) {
-            $label = $this->formatPeriodLabel((string) $period);
+            $label = $aggregation === 'by_line'
+                ? $this->displayLineName((string) $period)
+                : $this->formatPeriodLabel((string) $period);
             $damaged = $items->filter(fn (AnalisisLavadora $record): bool => AnalisisLavadora::esEstadoDanado($record->estado_operativo))->count();
             $review = $items->filter(fn (AnalisisLavadora $record): bool => AnalisisLavadora::esEstadoRequiereRevision($record->estado_operativo))->count();
             $wear = $items->filter(fn (AnalisisLavadora $record): bool => AnalisisLavadora::esEstadoDesgaste($record->estado_operativo))->count();
@@ -1299,6 +1407,7 @@ class AssistantAnalyticsArtifactService
             $totalPoints[] = ['label' => $label, 'value' => $items->count()];
             $damagedPoints[] = ['label' => $label, 'value' => $damaged];
             $reviewPoints[] = ['label' => $label, 'value' => $review];
+            $wearPoints[] = ['label' => $label, 'value' => $wear];
         }
 
         $dataset = [
@@ -1311,8 +1420,9 @@ class AssistantAnalyticsArtifactService
             'rows' => $rows,
             'series' => [
                 ['name' => 'Registros', 'points' => $totalPoints],
-                ['name' => 'Danados', 'points' => $damagedPoints],
-                ['name' => 'Revision', 'points' => $reviewPoints],
+                ['name' => 'Danados / criticos', 'points' => $damagedPoints],
+                ['name' => 'Requieren revision', 'points' => $reviewPoints],
+                ['name' => 'Desgaste severo/mod.', 'points' => $wearPoints],
             ],
             'x_label' => 'Periodo',
             'y_label' => 'Cantidad',
@@ -1322,10 +1432,157 @@ class AssistantAnalyticsArtifactService
         if ($aggregation === 'by_line') {
             $dataset['title'] = 'Comparativo de analisis por lavadora';
             $dataset['x_label'] = 'Lavadora';
+            $dataset['y_label'] = 'Componentes danados';
+            $dataset['series'] = [
+                ['name' => 'Danados / criticos', 'points' => $damagedPoints],
+            ];
             $dataset['source_reference'] = 'analisis_componentes por linea';
         }
 
         return $this->withAnalisisLavadoraDetails($dataset, $records, $lineas, $dateRange);
+    }
+
+    /**
+     * @param  Collection<int, AnalisisLavadora>  $records
+     * @return Collection<int, AnalisisLavadora>
+     */
+    private function scopeAnalisisRecordsToCurrentState(Collection $records): Collection
+    {
+        return $records
+            ->groupBy(fn (AnalisisLavadora $record): string => $this->analisisCurrentStateKey($record))
+            ->map(function (Collection $items): ?AnalisisLavadora {
+                return $items
+                    ->sortByDesc(fn (AnalisisLavadora $record): string => $this->analisisRecencyKey($record))
+                    ->first();
+            })
+            ->filter()
+            ->sortBy(fn (AnalisisLavadora $record): string => $this->analisisRecencyKey($record))
+            ->values();
+    }
+
+    private function analisisCurrentStateKey(AnalisisLavadora $record): string
+    {
+        $componentCode = (string) ($record->componente?->codigo ?? $record->componente_id ?? '');
+
+        return implode('|', [
+            (string) ($record->linea_id ?? ''),
+            $this->normalize((string) ($record->reductor ?? '')),
+            $this->normalize((string) ($record->lado ?? '')),
+            AnalisisLavadora::codigoBaseComponente($componentCode),
+        ]);
+    }
+
+    private function analisisRecencyKey(AnalisisLavadora $record): string
+    {
+        $date = $record->fecha_analisis?->format('Y-m-d')
+            ?? $record->created_at?->format('Y-m-d H:i:s')
+            ?? '1000-01-01';
+
+        return $date.'-'.str_pad((string) $record->id, 10, '0', STR_PAD_LEFT);
+    }
+
+    /**
+     * @param  Collection<int, AnalisisLavadora>  $records
+     * @param  array<int, string>  $lineas
+     * @param  array{from: CarbonImmutable|null, to: CarbonImmutable|null, label: string, preset: string}  $dateRange
+     * @return array<string, mixed>
+     */
+    private function buildAnalisisLavadoraStateDataset(Collection $records, array $lineas, array $dateRange, string $stateScope): array
+    {
+        $states = [
+            [
+                'label' => 'Buen estado',
+                'color' => '#16a34a',
+                'tone' => 'normal',
+                'matches' => fn (AnalisisLavadora $record): bool => AnalisisLavadora::esEstadoBueno($record->estado_operativo),
+            ],
+            [
+                'label' => 'Requieren revision',
+                'color' => '#f59e0b',
+                'tone' => 'warning',
+                'matches' => fn (AnalisisLavadora $record): bool => AnalisisLavadora::esEstadoRequiereRevision($record->estado_operativo),
+            ],
+            [
+                'label' => 'Severo / Moderado',
+                'color' => '#ea580c',
+                'tone' => 'warning',
+                'matches' => fn (AnalisisLavadora $record): bool => AnalisisLavadora::esEstadoDesgaste($record->estado_operativo),
+            ],
+            [
+                'label' => 'Danados',
+                'color' => '#dc2626',
+                'tone' => 'critical',
+                'matches' => fn (AnalisisLavadora $record): bool => AnalisisLavadora::esEstadoDanado($record->estado_operativo),
+            ],
+            [
+                'label' => 'Cambiados',
+                'color' => '#16a34a',
+                'tone' => 'normal',
+                'matches' => fn (AnalisisLavadora $record): bool => AnalisisLavadora::esEstadoCambiado($record->estado_operativo),
+            ],
+        ];
+        $total = max(1, $records->count());
+        $rows = [];
+        $points = [];
+        $piePoints = [];
+
+        foreach ($states as $state) {
+            $count = $records->filter($state['matches'])->count();
+            $percentage = round(($count / $total) * 100, 1);
+
+            $rows[] = [$state['label'], $count, $percentage.'%'];
+            $points[] = [
+                'label' => $state['label'],
+                'value' => $count,
+                'color' => $state['color'],
+                'tone' => $state['tone'],
+            ];
+
+            if (in_array($state['label'], ['Requieren revision', 'Severo / Moderado', 'Danados'], true)) {
+                $piePoints[] = [
+                    'label' => $state['label'] === 'Danados' ? 'Danados / criticos' : $state['label'],
+                    'value' => $count,
+                    'color' => $state['color'],
+                    'tone' => $state['tone'],
+                ];
+            }
+        }
+
+        $dataset = [
+            'type' => 'analisis_lavadora',
+            'report_version' => 'analisis-lavadora-estados-v2',
+            'title' => $stateScope === 'current'
+                ? 'Estado actual de componentes de lavadora'
+                : 'Estado total de componentes de lavadora',
+            'subtitle' => $this->scopeSubtitle($lineas, $dateRange).' | '.($stateScope === 'current' ? 'Ultimos registros vigentes' : 'Historico total'),
+            'source_reference' => 'analisis_componentes por estado operativo',
+            'headings' => ['Estado operativo', 'Componentes', 'Participacion'],
+            'rows' => $rows,
+            'series' => [
+                [
+                    'name' => 'Componentes',
+                    'points' => $points,
+                ],
+            ],
+            'pie_series' => [
+                'title' => $stateScope === 'current' ? 'Distribucion actual' : 'Distribucion historica',
+                'points' => $piePoints,
+            ],
+            'x_label' => 'Estado operativo',
+            'y_label' => 'Componentes',
+            'thresholds' => [],
+            'state_scope' => $stateScope,
+            'state_scope_label' => $stateScope === 'current'
+                ? 'Actuales / presentes: ultimos registros vigentes'
+                : 'Total historico: incluye registros pasados',
+        ];
+
+        $dataset = $this->withAnalisisLavadoraDetails($dataset, $records, $lineas, $dateRange);
+        $summaryRows = (array) ($dataset['summary_rows'] ?? []);
+        $summaryRows[] = ['Alcance de estados', (string) $dataset['state_scope_label']];
+        $dataset['summary_rows'] = $summaryRows;
+
+        return $dataset;
     }
 
     /**
@@ -1480,12 +1737,18 @@ class AssistantAnalyticsArtifactService
      * @param  array<string, mixed>  $dataset
      * @return array<int, array<string, mixed>>
      */
-    private function storeChartImages(User $user, array $dataset, string $chartType): array
+    private function storeChartImages(User $user, array $dataset, string $chartType, string $question): array
     {
         $baseName = $this->fileBaseName((string) $dataset['title']);
         $artifacts = [];
+        $normalizedQuestion = $this->normalize($question);
+        $explicitSvg = str_contains($normalizedQuestion, 'svg');
+        $explicitPng = str_contains($normalizedQuestion, 'png');
+        $canRenderPng = extension_loaded('gd');
+        $shouldRenderPng = $canRenderPng && (! $explicitSvg || $explicitPng);
+        $shouldRenderSvg = $explicitSvg || ! $shouldRenderPng;
 
-        if (extension_loaded('gd')) {
+        if ($shouldRenderPng) {
             $pngFileName = $baseName.'.png';
             $pngPath = $this->artifactPath($user, $pngFileName);
 
@@ -1493,11 +1756,13 @@ class AssistantAnalyticsArtifactService
             $artifacts[] = $this->artifactMetadata('image', $pngPath, $pngFileName, 'image/png', 'PNG');
         }
 
-        $svgFileName = $baseName.'.svg';
-        $svgPath = $this->artifactPath($user, $svgFileName);
+        if ($shouldRenderSvg) {
+            $svgFileName = $baseName.'.svg';
+            $svgPath = $this->artifactPath($user, $svgFileName);
 
-        Storage::disk('local')->put($svgPath, $this->buildSvg($dataset, $chartType));
-        $artifacts[] = $this->artifactMetadata('svg', $svgPath, $svgFileName, 'image/svg+xml', 'SVG');
+            Storage::disk('local')->put($svgPath, $this->buildSvg($dataset, $chartType));
+            $artifacts[] = $this->artifactMetadata('svg', $svgPath, $svgFileName, 'image/svg+xml', 'SVG');
+        }
 
         return $artifacts;
     }
@@ -1592,7 +1857,6 @@ class AssistantAnalyticsArtifactService
             'subtitle' => (string) ($dataset['subtitle'] ?? ''),
             'conclusion' => $this->dashboardConclusion($dataset),
             'summary_cards' => array_values((array) ($dataset['summary_cards'] ?? [])),
-            'filter_rows' => array_values((array) ($dataset['filter_rows'] ?? [])),
             'chart_type' => $chartType,
             'chart_image_path' => $dashboardImagePath,
             'generated_at' => now()->format('d/m/Y H:i:s'),
@@ -1604,6 +1868,12 @@ class AssistantAnalyticsArtifactService
      */
     private function dashboardConclusion(array $dataset): string
     {
+        $warnings = array_values(array_filter((array) ($dataset['analysis_warnings'] ?? []), fn ($item): bool => is_string($item) && trim($item) !== ''));
+
+        if ($warnings !== []) {
+            return (string) $warnings[0];
+        }
+
         $alerts = count((array) ($dataset['alert_rows'] ?? []));
         $rows = count((array) ($dataset['rows'] ?? []));
         $type = (string) ($dataset['type'] ?? '');
@@ -1662,10 +1932,12 @@ class AssistantAnalyticsArtifactService
     {
         $series = array_values(array_filter((array) ($dataset['series'] ?? []), fn ($item): bool => is_array($item)));
         $chartType = $chartType === 'bar' && count($series) === 1 ? 'bar' : 'line';
+        $piePoints = $this->piePointsFromDataset($dataset);
+        $hasPie = $chartType === 'bar' && $piePoints !== [];
         $width = 1100;
         $height = 680;
         $left = 88;
-        $right = 44;
+        $right = $hasPie ? 338 : 44;
         $top = 252;
         $bottom = 104;
         $plotWidth = $width - $left - $right;
@@ -1763,11 +2035,13 @@ class AssistantAnalyticsArtifactService
                 continue;
             }
 
-            $x = $count === 1
-                ? $left + ($plotWidth / 2)
-                : $left + ($plotWidth / ($count - 1)) * $index;
+            $x = $this->axisLabelX($chartType, $index, $count, $left, $plotWidth);
 
-            $svg[] = '<text x="'.round($x, 2).'" y="'.($height - 62).'" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#475569">'.$this->svgText(Str::limit((string) $label, 12, '')).'</text>';
+            $svg[] = '<text x="'.round($x, 2).'" y="'.($height - 62).'" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#475569">'.$this->svgText($this->axisLabel((string) $label)).'</text>';
+        }
+
+        if ($hasPie) {
+            $svg = array_merge($svg, $this->pieSvg($dataset, $width - 178, $top + 118, 88));
         }
 
         $legendX = $left;
@@ -1796,10 +2070,12 @@ class AssistantAnalyticsArtifactService
     {
         $series = array_values(array_filter((array) ($dataset['series'] ?? []), fn ($item): bool => is_array($item)));
         $chartType = $chartType === 'bar' && count($series) === 1 ? 'bar' : 'line';
+        $piePoints = $this->piePointsFromDataset($dataset);
+        $hasPie = $chartType === 'bar' && $piePoints !== [];
         $width = 1100;
         $height = 680;
         $left = 88;
-        $right = 44;
+        $right = $hasPie ? 338 : 44;
         $top = 252;
         $bottom = 104;
         $plotWidth = $width - $left - $right;
@@ -1908,11 +2184,15 @@ class AssistantAnalyticsArtifactService
                 continue;
             }
 
-            $x = $count === 1
-                ? $left + ($plotWidth / 2)
-                : $left + ($plotWidth / ($count - 1)) * $index;
+            $axisLabel = $this->axisLabel((string) $label);
+            $x = $this->axisLabelX($chartType, $index, $count, $left, $plotWidth);
+            $textX = (int) round($x - ((strlen($axisLabel) * 6) / 2));
 
-            imagestring($image, 2, (int) round($x - 22), $height - 66, $this->pngSafeText((string) $label, 12), $slate);
+            imagestring($image, 2, $textX, $height - 66, $this->pngSafeText($axisLabel, 18), $slate);
+        }
+
+        if ($hasPie) {
+            $this->drawPngPie($image, $dataset, $width - 178, $top + 118, 88);
         }
 
         $legendX = $left;
@@ -1990,10 +2270,52 @@ class AssistantAnalyticsArtifactService
             $x = (int) round($left + ($slotWidth * $index) + (($slotWidth - $barWidth) / 2));
             $y = (int) round($top + $plotHeight - (($value - $minValue) / ($maxValue - $minValue)) * $plotHeight);
             $barHeight = max(2, $top + $plotHeight - $y);
-            $color = $this->pngColor($image, $this->valueHex($value, $datasetType));
+            $color = $this->pngColor($image, $this->pointHex($point, $value, $datasetType));
 
             imagefilledrectangle($image, $x, $y, (int) round($x + $barWidth), $y + $barHeight, $color);
             imagestring($image, 2, $x, max($top + 4, $y - 16), $this->formatChartNumber($value), $this->pngColor($image, '#0f172a'));
+        }
+    }
+
+    /**
+     * @param  resource|\GdImage  $image
+     * @param  array<string, mixed>  $dataset
+     */
+    private function drawPngPie($image, array $dataset, int $cx, int $cy, int $radius): void
+    {
+        $points = $this->piePointsFromDataset($dataset);
+        $total = array_sum(array_map(fn (array $point): float => (float) ($point['value'] ?? 0), $points));
+
+        if ($points === [] || $total <= 0) {
+            return;
+        }
+
+        $navy = $this->pngColor($image, '#0f172a');
+        $muted = $this->pngColor($image, '#64748b');
+        $white = $this->pngColor($image, '#ffffff');
+        $start = -90.0;
+
+        imagestring($image, 3, $cx - 78, $cy - $radius - 42, $this->pngSafeText($this->pieSeriesTitle($dataset), 28), $navy);
+
+        foreach ($points as $point) {
+            $value = (float) ($point['value'] ?? 0);
+            $end = $start + (($value / $total) * 360);
+            $color = $this->pngColor($image, $this->pointHex($point, $value, ''));
+
+            imagefilledarc($image, $cx, $cy, $radius * 2, $radius * 2, (int) round($start), (int) round($end), $color, IMG_ARC_PIE);
+            $start = $end;
+        }
+
+        imageellipse($image, $cx, $cy, $radius * 2, $radius * 2, $white);
+
+        $legendY = $cy + $radius + 24;
+        foreach ($points as $index => $point) {
+            $value = (float) ($point['value'] ?? 0);
+            $color = $this->pngColor($image, $this->pointHex($point, $value, ''));
+            $label = $this->pngSafeText((string) ($point['label'] ?? 'Estado'), 25);
+
+            imagefilledrectangle($image, $cx - 122, $legendY + ($index * 22), $cx - 108, $legendY + 14 + ($index * 22), $color);
+            imagestring($image, 2, $cx - 102, $legendY + ($index * 22), $label.' '.$this->formatChartNumber($value), $muted);
         }
     }
 
@@ -2071,6 +2393,18 @@ class AssistantAnalyticsArtifactService
     }
 
     /**
+     * @param  array<string, mixed>  $point
+     */
+    private function pointHex(array $point, float $value, string $datasetType): string
+    {
+        $color = (string) ($point['color'] ?? '');
+
+        return preg_match('/^#[0-9a-fA-F]{6}$/', $color) === 1
+            ? $color
+            : $this->valueHex($value, $datasetType);
+    }
+
+    /**
      * @param  array<string, mixed>  $series
      * @return array<int, string>
      */
@@ -2123,11 +2457,99 @@ class AssistantAnalyticsArtifactService
             $y = $top + $plotHeight - (($value - $minValue) / ($maxValue - $minValue)) * $plotHeight;
             $height = max(2, $top + $plotHeight - $y);
 
-            $svg[] = '<rect x="'.round($x, 2).'" y="'.round($y, 2).'" width="'.round($barWidth, 2).'" height="'.round($height, 2).'" rx="6" fill="'.$this->valueHex($value, $datasetType).'"/>';
+            $svg[] = '<rect x="'.round($x, 2).'" y="'.round($y, 2).'" width="'.round($barWidth, 2).'" height="'.round($height, 2).'" rx="6" fill="'.$this->pointHex($point, $value, $datasetType).'"/>';
             $svg[] = '<text x="'.round($x + $barWidth / 2, 2).'" y="'.round($y - 7, 2).'" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#0f172a">'.$this->svgText($this->formatChartNumber($value)).'</text>';
         }
 
         return $svg;
+    }
+
+    /**
+     * @param  array<string, mixed>  $dataset
+     * @return array<int, string>
+     */
+    private function pieSvg(array $dataset, int $cx, int $cy, int $radius): array
+    {
+        $points = $this->piePointsFromDataset($dataset);
+        $total = array_sum(array_map(fn (array $point): float => (float) ($point['value'] ?? 0), $points));
+
+        if ($points === [] || $total <= 0) {
+            return [];
+        }
+
+        $svg = [
+            '<text x="'.$cx.'" y="'.($cy - $radius - 34).'" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" font-weight="700" fill="#0f172a">'.$this->svgText($this->pieSeriesTitle($dataset)).'</text>',
+        ];
+        $start = -90.0;
+
+        foreach ($points as $point) {
+            $value = (float) ($point['value'] ?? 0);
+            $end = $start + (($value / $total) * 360);
+            $color = $this->pointHex($point, $value, '');
+
+            if (count($points) === 1) {
+                $svg[] = '<circle cx="'.$cx.'" cy="'.$cy.'" r="'.$radius.'" fill="'.$color.'" stroke="#ffffff" stroke-width="2"/>';
+                break;
+            }
+
+            [$startX, $startY] = $this->polarPoint($cx, $cy, $radius, $start);
+            [$endX, $endY] = $this->polarPoint($cx, $cy, $radius, $end);
+            $largeArc = ($end - $start) > 180 ? 1 : 0;
+
+            $svg[] = '<path d="M '.$cx.' '.$cy.' L '.round($startX, 2).' '.round($startY, 2).' A '.$radius.' '.$radius.' 0 '.$largeArc.' 1 '.round($endX, 2).' '.round($endY, 2).' Z" fill="'.$color.'" stroke="#ffffff" stroke-width="2"/>';
+            $start = $end;
+        }
+
+        $legendY = $cy + $radius + 24;
+        foreach ($points as $index => $point) {
+            $value = (float) ($point['value'] ?? 0);
+            $color = $this->pointHex($point, $value, '');
+            $label = (string) ($point['label'] ?? 'Estado');
+            $y = $legendY + ($index * 22);
+
+            $svg[] = '<rect x="'.($cx - 126).'" y="'.($y - 12).'" width="13" height="13" rx="3" fill="'.$color.'"/>';
+            $svg[] = '<text x="'.($cx - 106).'" y="'.$y.'" font-family="Arial, sans-serif" font-size="11" fill="#475569">'.$this->svgText(Str::limit($label, 26, '')).' '.$this->svgText($this->formatChartNumber($value)).'</text>';
+        }
+
+        return $svg;
+    }
+
+    /**
+     * @return array{0: float, 1: float}
+     */
+    private function polarPoint(int $cx, int $cy, int $radius, float $angle): array
+    {
+        $radians = deg2rad($angle);
+
+        return [
+            $cx + ($radius * cos($radians)),
+            $cy + ($radius * sin($radians)),
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $dataset
+     * @return array<int, array<string, mixed>>
+     */
+    private function piePointsFromDataset(array $dataset): array
+    {
+        $pieSeries = is_array($dataset['pie_series'] ?? null) ? (array) $dataset['pie_series'] : [];
+
+        return collect((array) ($pieSeries['points'] ?? []))
+            ->filter(fn ($point): bool => is_array($point) && (float) ($point['value'] ?? 0) > 0)
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @param  array<string, mixed>  $dataset
+     */
+    private function pieSeriesTitle(array $dataset): string
+    {
+        $pieSeries = is_array($dataset['pie_series'] ?? null) ? (array) $dataset['pie_series'] : [];
+        $title = trim((string) ($pieSeries['title'] ?? 'Distribucion'));
+
+        return $title !== '' ? $title : 'Distribucion';
     }
 
     /**
@@ -2161,6 +2583,28 @@ class AssistantAnalyticsArtifactService
             ->map(fn ($point): string => is_array($point) ? (string) ($point['label'] ?? '') : '')
             ->values()
             ->all();
+    }
+
+    private function axisLabelX(string $chartType, int $index, int $count, int $left, int $plotWidth): float
+    {
+        if ($chartType === 'bar') {
+            return $left + (($plotWidth / max(1, $count)) * ($index + 0.5));
+        }
+
+        return $count === 1
+            ? $left + ($plotWidth / 2)
+            : $left + ($plotWidth / ($count - 1)) * $index;
+    }
+
+    private function axisLabel(string $label): string
+    {
+        $label = trim($label);
+
+        if (preg_match('/Lavadora\s+(L-\d{2})/i', $label, $matches) === 1) {
+            return Str::upper($matches[1]);
+        }
+
+        return (string) Str::limit($label, 18, '');
     }
 
     private function niceUpperBound(float $value): float
@@ -2264,7 +2708,7 @@ class AssistantAnalyticsArtifactService
      */
     private function scopeSubtitle(array $lineas, array $dateRange): string
     {
-        $scope = $lineas === [] ? 'Todas las lineas' : implode(', ', $lineas);
+        $scope = $lineas === [] ? 'Todas las lavadoras' : $this->displayLineScope($lineas);
 
         return $scope.' | '.$dateRange['label'];
     }
@@ -2561,11 +3005,122 @@ class AssistantAnalyticsArtifactService
     {
         $normalized = $this->normalize($chartType.' '.$question);
 
-        if (str_contains($normalized, 'bar') || str_contains($normalized, 'barra') || str_contains($normalized, 'ranking') || str_contains($normalized, 'por linea')) {
+        if (
+            str_contains($normalized, 'bar')
+            || str_contains($normalized, 'barra')
+            || str_contains($normalized, 'ranking')
+            || str_contains($normalized, 'por linea')
+            || $this->containsAnalisisStateTerms($normalized)
+        ) {
             return 'bar';
         }
 
         return 'line';
+    }
+
+    private function wantsAnalisisStateChart(string $question, string $chartType): bool
+    {
+        $normalized = $this->normalize($question);
+
+        if ($chartType !== 'bar') {
+            return false;
+        }
+
+        if (
+            str_contains($normalized, 'ranking')
+            || str_contains($normalized, 'comparativo')
+            || str_contains($normalized, 'comparacion')
+            || str_contains($normalized, 'por lavadora')
+            || str_contains($normalized, 'por linea')
+        ) {
+            return false;
+        }
+
+        return str_contains($normalized, 'estado')
+            || str_contains($normalized, 'actuales')
+            || str_contains($normalized, 'actual')
+            || str_contains($normalized, 'vigentes')
+            || str_contains($normalized, 'vigente')
+            || $this->countAnalisisStateTerms($normalized) >= 2;
+    }
+
+    private function countAnalisisStateTerms(string $normalized): int
+    {
+        $matches = 0;
+
+        foreach ([
+            'requiere revision',
+            'revision',
+            'severo',
+            'moderado',
+            'desgaste',
+            'danado',
+            'danados',
+            'dano',
+            'danos',
+            'cambiado',
+            'cambiados',
+        ] as $term) {
+            if (str_contains($normalized, $term)) {
+                $matches++;
+            }
+        }
+
+        return $matches;
+    }
+
+    private function analisisStateScope(string $question): string
+    {
+        $normalized = $this->normalize($question);
+
+        foreach ([
+            'en total',
+            'total historico',
+            'historico',
+            'historial',
+            'pasados',
+            'registros pasados',
+            'todos los registros',
+            'acumulado',
+            'acumulados',
+        ] as $term) {
+            if (str_contains($normalized, $term)) {
+                return 'total';
+            }
+        }
+
+        return 'current';
+    }
+
+    private function containsAnalisisStateTerms(string $normalized): bool
+    {
+        foreach ([
+            'estado',
+            'componentes',
+            'actuales',
+            'actual',
+            'presentes',
+            'presente',
+            'vigentes',
+            'vigente',
+            'requiere revision',
+            'revision',
+            'severo',
+            'moderado',
+            'desgaste',
+            'danado',
+            'danados',
+            'dano',
+            'danos',
+            'cambiado',
+            'cambiados',
+        ] as $term) {
+            if (str_contains($normalized, $term)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function normalizeAggregation(string $aggregation, string $question, string $chartType): string
@@ -2666,7 +3221,20 @@ class AssistantAnalyticsArtifactService
         }
 
         if ($hasExcel) {
-            $message .= ' El Excel incluye Dashboard, Resumen, Tendencia, Alertas, Datos y Filtros.';
+            $sheetNames = ['Dashboard', 'Tendencia'];
+
+            if ($alertCount > 0) {
+                $sheetNames[] = 'Alertas';
+            }
+
+            $sheetNames[] = 'Datos';
+            $message .= ' El Excel incluye '.implode(', ', $sheetNames).'.';
+        }
+
+        foreach ((array) ($dataset['analysis_warnings'] ?? []) as $warning) {
+            if (is_string($warning) && trim($warning) !== '') {
+                $message .= ' '.$warning;
+            }
         }
 
         return $message.' Puedes abrir la imagen o descargar el Excel desde los adjuntos del mensaje.';
@@ -2703,10 +3271,38 @@ class AssistantAnalyticsArtifactService
             $filterRows[] = ['Alcance de ciclo', (string) ($dataset['cycle_scope_label'] ?? 'Ciclo actual por lavadora')];
         }
 
+        if (($dataset['type'] ?? null) === 'analisis_lavadora' && isset($dataset['state_scope_label'])) {
+            $filterRows[] = ['Alcance de estados', (string) $dataset['state_scope_label']];
+        }
+
         $dataset['filter_rows'] = $filterRows;
+        $dataset['analysis_warnings'] = $this->analysisWarnings($dataset, $question, $datasetKey, $dateRange);
         $dataset['workbook_sheets'] = $this->analyticsWorkbookSheets($dataset);
 
         return $dataset;
+    }
+
+    /**
+     * @param  array<string, mixed>  $dataset
+     * @param  array{from: CarbonImmutable|null, to: CarbonImmutable|null, label: string, preset: string}  $dateRange
+     * @return array<int, string>
+     */
+    private function analysisWarnings(array $dataset, string $question, string $datasetKey, array $dateRange): array
+    {
+        $warnings = array_values(array_filter((array) ($dataset['analysis_warnings'] ?? []), fn ($item): bool => is_string($item) && trim($item) !== ''));
+        $normalized = $this->normalize($question);
+
+        if ($datasetKey === 'elongaciones') {
+            if (($dateRange['preset'] ?? '') === 'last_30_days' && (str_contains($normalized, 'tendencia') || str_contains($normalized, 'evolucion'))) {
+                $warnings[] = 'Nota: 30 dias puede ser un periodo corto para tendencia de elongacion, porque estas lecturas suelen registrarse aproximadamente cada dos meses.';
+            }
+
+            if ((str_contains($normalized, 'tendencia') || str_contains($normalized, 'evolucion')) && count((array) ($dataset['rows'] ?? [])) < 2) {
+                $warnings[] = 'Con menos de dos lecturas, el reporte muestra el estado disponible pero todavia no permite ver una tendencia real.';
+            }
+        }
+
+        return array_values(array_unique($warnings));
     }
 
     /**
@@ -2715,38 +3311,32 @@ class AssistantAnalyticsArtifactService
      */
     private function analyticsWorkbookSheets(array $dataset): array
     {
-        return [
-            [
-                'title' => 'Resumen',
-                'headings' => ['Metrica', 'Valor'],
-                'rows' => (array) ($dataset['summary_rows'] ?? []),
-                'tone' => 'default',
-            ],
+        $sheets = [
             [
                 'title' => 'Tendencia',
                 'headings' => (array) ($dataset['headings'] ?? []),
                 'rows' => (array) ($dataset['rows'] ?? []),
                 'tone' => 'success',
             ],
-            [
+        ];
+
+        if (! empty($dataset['alert_rows'])) {
+            $sheets[] = [
                 'title' => 'Alertas',
                 'headings' => (array) ($dataset['alert_headings'] ?? []),
                 'rows' => (array) ($dataset['alert_rows'] ?? []),
-                'tone' => ! empty($dataset['alert_rows']) ? 'danger' : 'muted',
-            ],
-            [
-                'title' => 'Datos',
-                'headings' => (array) ($dataset['raw_headings'] ?? $dataset['headings'] ?? []),
-                'rows' => (array) ($dataset['raw_rows'] ?? $dataset['rows'] ?? []),
-                'tone' => 'muted',
-            ],
-            [
-                'title' => 'Filtros',
-                'headings' => ['Filtro', 'Valor'],
-                'rows' => (array) ($dataset['filter_rows'] ?? []),
-                'tone' => 'warning',
-            ],
+                'tone' => 'danger',
+            ];
+        }
+
+        $sheets[] = [
+            'title' => 'Datos',
+            'headings' => (array) ($dataset['raw_headings'] ?? $dataset['headings'] ?? []),
+            'rows' => (array) ($dataset['raw_rows'] ?? $dataset['rows'] ?? []),
+            'tone' => 'muted',
         ];
+
+        return $sheets;
     }
 
     /**
@@ -2798,18 +3388,28 @@ class AssistantAnalyticsArtifactService
      * @param  array{data: array<string, mixed>, meta: array<string, mixed>}  $intentResult
      * @return array{content: string, metadata: array<string, mixed>}
      */
-    private function emptyReply(string $datasetKey, array $lineas, array $dateRange, array $intentResult): array
+    private function emptyReply(string $datasetKey, array $lineas, array $dateRange, array $intentResult, string $question = ''): array
     {
-        $scope = $lineas === [] ? 'todas las lineas' : implode(', ', $lineas);
+        $scope = $lineas === [] ? 'todas las lavadoras' : $this->displayLineScope($lineas);
+        $content = 'No encontre datos para generar el archivo solicitado en '
+            .$this->readableDatasetName($datasetKey)
+            .' para '
+            .$scope
+            .' en el periodo '
+            .$dateRange['label']
+            .'.';
+
+        if ($datasetKey === 'elongaciones' && $this->wantsCriticalOnly($question)) {
+            $criticalThreshold = (float) config('maintenance_ai.rules.elongacion_critical_threshold', Elongacion::LIMITE_CAMBIO);
+            $content = 'Actualmente ninguna lavadora presenta elongacion critica con el criterio de cambio >= '
+                .$this->formatChartNumber($criticalThreshold)
+                .'%. No genere archivos vacios porque no hay registros que cumplan ese criterio.';
+        } elseif ($datasetKey === 'elongaciones' && ($dateRange['preset'] ?? '') === 'last_30_days') {
+            $content .= ' Nota: 30 dias puede ser un periodo corto para tendencia de elongacion, porque estas lecturas suelen registrarse aproximadamente cada dos meses. Prueba con ultimos 6 meses, ultimo ano, ciclo actual completo o todo el historial.';
+        }
 
         return [
-            'content' => 'No encontre datos para generar el archivo solicitado en '
-                .$this->readableDatasetName($datasetKey)
-                .' con el filtro '
-                .$scope
-                .' y periodo '
-                .$dateRange['label']
-                .'.',
+            'content' => $content,
             'metadata' => [
                 'provider' => Arr::get($intentResult, 'meta.provider'),
                 'model' => Arr::get($intentResult, 'meta.model'),

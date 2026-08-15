@@ -300,16 +300,18 @@ class AssistantChatTest extends TestCase
             ->assertJsonPath('message.metadata.provider', 'gemini')
             ->assertJsonPath('message.metadata.model', 'gemini-3.6-flash')
             ->assertJsonPath('message.metadata.artifact_request', true)
-            ->assertJsonCount(3, 'message.metadata.artifacts');
+            ->assertJsonCount(2, 'message.metadata.artifacts');
 
         $this->assertSame('assistant_analytics_intent', $capturingProvider->payloads[0]['schema_name'] ?? null);
-        $this->assertStringContainsString('Genere PNG y SVG y Excel', (string) $response->json('message.content'));
+        $this->assertStringContainsString('Genere', (string) $response->json('message.content'));
+        $this->assertStringContainsString('Excel', (string) $response->json('message.content'));
+        $this->assertStringNotContainsString('PNG y SVG y Excel', (string) $response->json('message.content'));
 
         $serializedArtifacts = $response->json('message.metadata.artifacts');
-        $this->assertSame(['image', 'svg', 'excel'], array_column($serializedArtifacts, 'kind'));
+        $this->assertContains($serializedArtifacts[0]['kind'], ['image', 'svg']);
+        $this->assertSame('excel', $serializedArtifacts[1]['kind']);
         $this->assertNotEmpty($serializedArtifacts[0]['url'] ?? null);
         $this->assertNotEmpty($serializedArtifacts[1]['url'] ?? null);
-        $this->assertNotEmpty($serializedArtifacts[2]['url'] ?? null);
 
         $assistantMessage = AssistantMessage::query()
             ->where('user_id', $user->id)
@@ -320,41 +322,61 @@ class AssistantChatTest extends TestCase
 
         Storage::disk('local')->assertExists($storedArtifacts[0]['path']);
         Storage::disk('local')->assertExists($storedArtifacts[1]['path']);
-        Storage::disk('local')->assertExists($storedArtifacts[2]['path']);
 
         $imageResponse = $this->actingAs($user)->get($serializedArtifacts[0]['url']);
         $imageResponse->assertOk();
-        $this->assertStringContainsString('image/png', (string) $imageResponse->headers->get('content-type'));
-        $this->assertStringStartsWith("\x89PNG", Storage::disk('local')->get($storedArtifacts[0]['path']));
-
-        $svgResponse = $this->actingAs($user)->get($serializedArtifacts[1]['url']);
-        $svgResponse->assertOk();
-        $this->assertStringContainsString('image/svg+xml', (string) $svgResponse->headers->get('content-type'));
-        $this->assertStringContainsString('<svg', Storage::disk('local')->get($storedArtifacts[1]['path']));
+        if (($serializedArtifacts[0]['kind'] ?? null) === 'image') {
+            $this->assertStringContainsString('image/png', (string) $imageResponse->headers->get('content-type'));
+            $this->assertStringStartsWith("\x89PNG", Storage::disk('local')->get($storedArtifacts[0]['path']));
+        } else {
+            $this->assertStringContainsString('image/svg+xml', (string) $imageResponse->headers->get('content-type'));
+            $this->assertStringContainsString('<svg', Storage::disk('local')->get($storedArtifacts[0]['path']));
+        }
 
         $this->actingAs($this->authenticatedUser())
             ->get($serializedArtifacts[0]['url'])
             ->assertNotFound();
 
-        $excelResponse = $this->actingAs($user)->get($serializedArtifacts[2]['url'].'?download=1');
+        $excelResponse = $this->actingAs($user)->get($serializedArtifacts[1]['url'].'?download=1');
         $excelResponse->assertOk();
         $this->assertStringContainsString('attachment', (string) $excelResponse->headers->get('content-disposition'));
 
-        $spreadsheet = IOFactory::load(Storage::disk('local')->path($storedArtifacts[2]['path']));
+        $spreadsheet = IOFactory::load(Storage::disk('local')->path($storedArtifacts[1]['path']));
 
         $this->assertSame([
             'Dashboard',
-            'Resumen',
             'Tendencia',
             'Alertas',
             'Datos',
-            'Filtros',
         ], $spreadsheet->getSheetNames());
         $dashboard = $spreadsheet->getSheetByName('Dashboard');
         $this->assertNotNull($dashboard);
         $this->assertSame('LEGADO AB FENIX', $dashboard?->getCell('A1')->getValue());
-        $this->assertGreaterThan(0, count($dashboard?->getDrawingCollection() ?? []));
-        $this->assertSame('Prompt original', $spreadsheet->getSheetByName('Filtros')?->getCell('A2')->getValue());
+        if (extension_loaded('gd')) {
+            $this->assertGreaterThan(0, count($dashboard?->getDrawingCollection() ?? []));
+        }
+        $this->assertNull($spreadsheet->getSheetByName('Filtros'));
+        $this->assertNull($spreadsheet->getSheetByName('Resumen'));
+
+        $explicitSvgResponse = $this->actingAs($user)->postJson(route('assistant-chat.store'), [
+            'message' => 'Graficame la tendencia de elongaciones de la linea 5 en PNG, SVG y Excel',
+            'page_context' => [
+                'module' => User::MODULE_LAVADORA,
+                'page_title' => 'Chat operativo',
+                'current_path' => '/dashboard/lavadoras',
+                'section' => 'Resumen global',
+            ],
+        ]);
+
+        $explicitSvgResponse
+            ->assertOk()
+            ->assertJsonCount(extension_loaded('gd') ? 3 : 2, 'message.metadata.artifacts');
+
+        $explicitArtifacts = $explicitSvgResponse->json('message.metadata.artifacts');
+        $this->assertSame(
+            extension_loaded('gd') ? ['image', 'svg', 'excel'] : ['svg', 'excel'],
+            array_column($explicitArtifacts, 'kind')
+        );
     }
 
     public function test_chat_recovers_typo_prompt_and_incomplete_artifact_intent_json(): void
@@ -435,10 +457,11 @@ class AssistantChatTest extends TestCase
             ->assertJsonPath('message.metadata.artifact_request', true)
             ->assertJsonPath('message.metadata.intent.dataset', 'elongaciones')
             ->assertJsonPath('message.metadata.intent.date_range.preset', 'last_30_days')
-            ->assertJsonCount(3, 'message.metadata.artifacts');
+            ->assertJsonCount(2, 'message.metadata.artifacts');
 
         $serializedArtifacts = $response->json('message.metadata.artifacts');
-        $this->assertSame(['image', 'svg', 'excel'], array_column($serializedArtifacts, 'kind'));
+        $this->assertContains($serializedArtifacts[0]['kind'], ['image', 'svg']);
+        $this->assertSame('excel', $serializedArtifacts[1]['kind']);
         $this->assertSame('assistant_analytics_intent', $capturingProvider->payloads[0]['schema_name'] ?? null);
     }
 
@@ -577,8 +600,8 @@ class AssistantChatTest extends TestCase
         $this->assertSame(3, $datos?->getHighestRow());
         $this->assertStringContainsString('L-05-C002', (string) $datosText);
         $this->assertStringNotContainsString('L-05-C001', (string) $datosText);
-        $this->assertSame('Alcance de ciclo', $spreadsheet->getSheetByName('Filtros')?->getCell('A10')->getValue());
-        $this->assertSame('Ciclo actual por lavadora', $spreadsheet->getSheetByName('Filtros')?->getCell('B10')->getValue());
+        $this->assertNull($spreadsheet->getSheetByName('Filtros'));
+        $this->assertNull($spreadsheet->getSheetByName('Resumen'));
 
         $historyResponse = $this->actingAs($user)->postJson(route('assistant-chat.store'), [
             'message' => 'Dame Excel de tendencia de elongaciones de la linea 5 con todos los ciclos',
@@ -603,7 +626,8 @@ class AssistantChatTest extends TestCase
         $this->assertSame(5, $historyDatos?->getHighestRow());
         $this->assertStringContainsString('L-05-C001', (string) $historyText);
         $this->assertStringContainsString('L-05-C002', (string) $historyText);
-        $this->assertSame('Todos los ciclos solicitados', $historySpreadsheet->getSheetByName('Filtros')?->getCell('B10')->getValue());
+        $this->assertNull($historySpreadsheet->getSheetByName('Filtros'));
+        $this->assertNull($historySpreadsheet->getSheetByName('Resumen'));
     }
 
     public function test_chat_explains_when_artifact_dataset_has_no_data(): void
@@ -824,19 +848,282 @@ class AssistantChatTest extends TestCase
             $storedArtifacts = $assistantMessage->metadata['artifacts'];
             $spreadsheet = IOFactory::load(Storage::disk('local')->path($storedArtifacts[0]['path']));
 
-            $this->assertSame([
-                'Dashboard',
-                'Resumen',
-                'Tendencia',
-                'Alertas',
-                'Datos',
-                'Filtros',
-            ], $spreadsheet->getSheetNames());
+            $this->assertContains('Dashboard', $spreadsheet->getSheetNames());
+            $this->assertContains('Tendencia', $spreadsheet->getSheetNames());
+            $this->assertContains('Datos', $spreadsheet->getSheetNames());
+            $this->assertNotContains('Resumen', $spreadsheet->getSheetNames());
+            $this->assertNotContains('Filtros', $spreadsheet->getSheetNames());
             $dashboard = $spreadsheet->getSheetByName('Dashboard');
             $this->assertNotNull($dashboard);
-            $this->assertGreaterThan(0, count($dashboard?->getDrawingCollection() ?? []));
-            $this->assertSame('Prompt original', $spreadsheet->getSheetByName('Filtros')?->getCell('A2')->getValue());
+            if (extension_loaded('gd')) {
+                $this->assertGreaterThan(0, count($dashboard?->getDrawingCollection() ?? []));
+            }
         }
+    }
+
+    public function test_chat_graphs_washer_component_states_as_bar_chart(): void
+    {
+        config([
+            'maintenance_ai.enabled' => true,
+            'maintenance_ai.chat.model' => 'gemini-3.6-flash',
+        ]);
+
+        Storage::fake('local');
+
+        $capturingProvider = new class implements AiProviderInterface
+        {
+            public array $payloads = [];
+
+            public function generateStructuredActionPlan(array $payload): array
+            {
+                $this->payloads[] = $payload;
+
+                return [
+                    'data' => [
+                        'should_generate' => true,
+                        'dataset' => 'analisis_lavadora',
+                        'metric' => 'danos',
+                        'chart_type' => 'line',
+                        'aggregation' => 'monthly',
+                        'outputs' => ['image', 'excel'],
+                        'lineas' => ['L-05'],
+                        'date_range' => [
+                            'preset' => 'current_year',
+                            'from' => '',
+                            'to' => '',
+                        ],
+                        'title' => 'Estado de componentes L-05',
+                        'confidence' => 0.9,
+                    ],
+                    'raw' => [],
+                    'meta' => [
+                        'provider' => 'gemini',
+                        'model' => $payload['model'] ?? 'gemini-3.6-flash',
+                    ],
+                ];
+            }
+
+            public function createEmbedding(string $content): array
+            {
+                return [];
+            }
+
+            public function extractDocumentText(array $payload): string
+            {
+                return '';
+            }
+        };
+
+        $this->app->instance(AiProviderInterface::class, $capturingProvider);
+
+        $user = $this->authenticatedUser();
+        $linea = Linea::create([
+            'nombre' => 'L-05',
+            'tipo' => User::MODULE_LAVADORA,
+            'activo' => true,
+        ]);
+        $componente = Componente::create([
+            'nombre' => 'Servo Chico',
+            'codigo' => 'SERVO_CHICO',
+            'tipo_equipo' => User::MODULE_LAVADORA,
+            'activo' => true,
+        ]);
+
+        foreach ([
+            AnalisisLavadora::ESTADO_REQUIERE_REVISION,
+            'Desgaste severo',
+            'Desgaste moderado',
+            AnalisisLavadora::ESTADO_DANADO,
+            AnalisisLavadora::ESTADO_CAMBIADO,
+        ] as $index => $estado) {
+            AnalisisLavadora::create([
+                'linea_id' => $linea->id,
+                'componente_id' => $componente->id,
+                'reductor' => 'R-'.(10 + $index),
+                'lado' => 'BOMBAS',
+                'fecha_analisis' => now()->subDays($index)->toDateString(),
+                'estado' => $estado,
+                'actividad' => 'REVISION DE ESTADO '.$index,
+                'usuario_id' => $user->id,
+                'tipo_equipo' => User::MODULE_LAVADORA,
+            ]);
+        }
+
+        $response = $this->actingAs($user)->postJson(route('assistant-chat.store'), [
+            'message' => 'Grafica el estado de componentes requiere revision severo moderado danados y cambiados de la linea 5 en imagen y Excel',
+            'page_context' => [
+                'module' => User::MODULE_LAVADORA,
+                'page_title' => 'Chat operativo',
+                'current_path' => '/dashboard/lavadoras',
+            ],
+        ]);
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('message.metadata.intent.dataset', 'analisis_lavadora')
+            ->assertJsonPath('message.metadata.intent.chart_type', 'bar')
+            ->assertJsonCount(2, 'message.metadata.artifacts');
+
+        $assistantMessage = AssistantMessage::findOrFail((int) $response->json('message.id'));
+        $storedArtifacts = $assistantMessage->metadata['artifacts'];
+        $this->assertContains($storedArtifacts[0]['kind'], ['image', 'svg']);
+        $this->assertSame('excel', $storedArtifacts[1]['kind']);
+        if (($storedArtifacts[0]['kind'] ?? null) === 'image') {
+            $this->assertStringStartsWith("\x89PNG", Storage::disk('local')->get($storedArtifacts[0]['path']));
+        } else {
+            $this->assertStringContainsString('<svg', Storage::disk('local')->get($storedArtifacts[0]['path']));
+        }
+
+        $spreadsheet = IOFactory::load(Storage::disk('local')->path($storedArtifacts[1]['path']));
+        $tendencia = $spreadsheet->getSheetByName('Tendencia');
+
+        $this->assertSame('Estado operativo', $tendencia?->getCell('A1')->getValue());
+        $this->assertSame('Buen estado', $tendencia?->getCell('A2')->getValue());
+        $this->assertSame('Requieren revision', $tendencia?->getCell('A3')->getValue());
+        $this->assertSame('Severo / Moderado', $tendencia?->getCell('A4')->getValue());
+        $this->assertSame('Danados', $tendencia?->getCell('A5')->getValue());
+        $this->assertSame('Cambiados', $tendencia?->getCell('A6')->getValue());
+        $this->assertNull($spreadsheet->getSheetByName('Filtros'));
+        $this->assertNull($spreadsheet->getSheetByName('Resumen'));
+    }
+
+    public function test_chat_component_state_chart_distinguishes_current_from_total_history(): void
+    {
+        config([
+            'maintenance_ai.enabled' => true,
+            'maintenance_ai.chat.model' => 'gemini-3.6-flash',
+        ]);
+
+        Storage::fake('local');
+
+        $capturingProvider = new class implements AiProviderInterface
+        {
+            public array $payloads = [];
+
+            public function generateStructuredActionPlan(array $payload): array
+            {
+                $this->payloads[] = $payload;
+
+                return [
+                    'data' => [
+                        'should_generate' => true,
+                        'dataset' => 'analisis_lavadora',
+                        'metric' => 'danos',
+                        'chart_type' => 'bar',
+                        'aggregation' => 'by_line',
+                        'outputs' => ['excel'],
+                        'lineas' => ['L-05'],
+                        'date_range' => [
+                            'preset' => 'all',
+                            'from' => '',
+                            'to' => '',
+                        ],
+                        'title' => 'Estado de componentes L-05',
+                        'confidence' => 0.9,
+                    ],
+                    'raw' => [],
+                    'meta' => [
+                        'provider' => 'gemini',
+                        'model' => $payload['model'] ?? 'gemini-3.6-flash',
+                    ],
+                ];
+            }
+
+            public function createEmbedding(string $content): array
+            {
+                return [];
+            }
+
+            public function extractDocumentText(array $payload): string
+            {
+                return '';
+            }
+        };
+
+        $this->app->instance(AiProviderInterface::class, $capturingProvider);
+
+        $user = $this->authenticatedUser();
+        $linea = Linea::create([
+            'nombre' => 'L-05',
+            'tipo' => User::MODULE_LAVADORA,
+            'activo' => true,
+        ]);
+        $servo = Componente::create([
+            'nombre' => 'Servo Chico',
+            'codigo' => 'SERVO_CHICO',
+            'tipo_equipo' => User::MODULE_LAVADORA,
+            'activo' => true,
+        ]);
+        $rodaja = Componente::create([
+            'nombre' => 'Rodaja',
+            'codigo' => 'RODAJA',
+            'tipo_equipo' => User::MODULE_LAVADORA,
+            'activo' => true,
+        ]);
+
+        foreach ([
+            [$servo, 'R-10', 'BOMBAS', AnalisisLavadora::ESTADO_DANADO, now()->subDays(20)],
+            [$servo, 'R-10', 'BOMBAS', AnalisisLavadora::ESTADO_CAMBIADO, now()->subDays(2)],
+            [$rodaja, 'R-11', 'VAPOR', 'Desgaste moderado', now()->subDay()],
+        ] as [$component, $reductor, $lado, $estado, $date]) {
+            AnalisisLavadora::create([
+                'linea_id' => $linea->id,
+                'componente_id' => $component->id,
+                'reductor' => $reductor,
+                'lado' => $lado,
+                'fecha_analisis' => $date->toDateString(),
+                'estado' => $estado,
+                'actividad' => 'REVISION '.$estado,
+                'usuario_id' => $user->id,
+                'tipo_equipo' => User::MODULE_LAVADORA,
+            ]);
+        }
+
+        $currentResponse = $this->actingAs($user)->postJson(route('assistant-chat.store'), [
+            'message' => 'Grafica el estado de componentes actuales de la linea 5 en Excel',
+            'page_context' => [
+                'module' => User::MODULE_LAVADORA,
+                'page_title' => 'Chat operativo',
+                'current_path' => '/dashboard/lavadoras',
+            ],
+        ]);
+
+        $currentResponse
+            ->assertOk()
+            ->assertJsonPath('message.metadata.intent.chart_type', 'bar')
+            ->assertJsonCount(2, 'message.metadata.artifacts');
+
+        $currentMessage = AssistantMessage::findOrFail((int) $currentResponse->json('message.id'));
+        $currentSpreadsheet = IOFactory::load(Storage::disk('local')->path($currentMessage->metadata['artifacts'][1]['path']));
+        $currentTrend = $currentSpreadsheet->getSheetByName('Tendencia');
+
+        $this->assertSame(0, (int) $currentTrend?->getCell('B5')->getValue());
+        $this->assertSame(1, (int) $currentTrend?->getCell('B6')->getValue());
+        $this->assertNull($currentSpreadsheet->getSheetByName('Filtros'));
+        $this->assertNull($currentSpreadsheet->getSheetByName('Resumen'));
+
+        $totalResponse = $this->actingAs($user)->postJson(route('assistant-chat.store'), [
+            'message' => 'Grafica el estado de componentes en total de la linea 5 en Excel',
+            'page_context' => [
+                'module' => User::MODULE_LAVADORA,
+                'page_title' => 'Chat operativo',
+                'current_path' => '/dashboard/lavadoras',
+            ],
+        ]);
+
+        $totalResponse
+            ->assertOk()
+            ->assertJsonPath('message.metadata.intent.chart_type', 'bar')
+            ->assertJsonCount(2, 'message.metadata.artifacts');
+
+        $totalMessage = AssistantMessage::findOrFail((int) $totalResponse->json('message.id'));
+        $totalSpreadsheet = IOFactory::load(Storage::disk('local')->path($totalMessage->metadata['artifacts'][1]['path']));
+        $totalTrend = $totalSpreadsheet->getSheetByName('Tendencia');
+
+        $this->assertSame(1, (int) $totalTrend?->getCell('B5')->getValue());
+        $this->assertSame(1, (int) $totalTrend?->getCell('B6')->getValue());
+        $this->assertNull($totalSpreadsheet->getSheetByName('Filtros'));
+        $this->assertNull($totalSpreadsheet->getSheetByName('Resumen'));
     }
 
     public function test_chat_explains_when_requested_artifact_dataset_is_not_configured(): void
