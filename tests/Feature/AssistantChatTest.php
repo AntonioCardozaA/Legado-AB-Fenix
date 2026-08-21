@@ -853,6 +853,28 @@ class AssistantChatTest extends TestCase
             $this->assertContains('Datos', $spreadsheet->getSheetNames());
             $this->assertNotContains('Resumen', $spreadsheet->getSheetNames());
             $this->assertNotContains('Filtros', $spreadsheet->getSheetNames());
+
+            if (str_contains(Str::lower(Str::ascii($prompt)), 'costos')) {
+                $this->assertNotContains('Alertas', $spreadsheet->getSheetNames());
+
+                $tendencia = $spreadsheet->getSheetByName('Tendencia');
+                $this->assertSame('Linea', $tendencia?->getCell('A1')->getValue());
+                $this->assertSame('Registros', $tendencia?->getCell('B1')->getValue());
+                $this->assertSame('Costo total MXN', $tendencia?->getCell('C1')->getValue());
+                $this->assertSame('Componente principal', $tendencia?->getCell('D1')->getValue());
+                $this->assertSame('Refaccion principal', $tendencia?->getCell('E1')->getValue());
+
+                $datos = $spreadsheet->getSheetByName('Datos');
+                $this->assertSame('Lavadora / Linea', $datos?->getCell('B1')->getValue());
+                $this->assertSame('Maquina', $datos?->getCell('C1')->getValue());
+                $this->assertSame('Componente', $datos?->getCell('D1')->getValue());
+                $this->assertSame('Refaccion', $datos?->getCell('E1')->getValue());
+                $this->assertSame('Lavadora L-05', $datos?->getCell('B2')->getValue());
+                $this->assertSame('Lavadora', $datos?->getCell('C2')->getValue());
+                $this->assertSame('Servo Chico', $datos?->getCell('D2')->getValue());
+                $this->assertSame('Servo chico refaccion', $datos?->getCell('E2')->getValue());
+            }
+
             $dashboard = $spreadsheet->getSheetByName('Dashboard');
             $this->assertNotNull($dashboard);
             if (extension_loaded('gd')) {

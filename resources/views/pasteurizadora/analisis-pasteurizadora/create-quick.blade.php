@@ -19,6 +19,7 @@
     $moduloSeleccionado = old('modulo', $modulo ?? '');
     $componenteSeleccionado = old('componente', $componente ?? '');
     $componenteSeleccionadoConfig = $componentesLinea[$componenteSeleccionado] ?? null;
+    $requiereLado = $requiereLado ?? \App\Models\AnalisisPasteurizadora::requiereLado($linea->nombre, $componenteSeleccionado);
 @endphp
 
 <style>
@@ -178,6 +179,7 @@
             <input type="hidden" id="componente" name="componente" value="{{ $componenteSeleccionado }}">
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                @if($requiereLado)
                 <div>
                     <label for="lado" class="block text-sm font-semibold text-gray-700 mb-2">
                         <i class="fas fa-arrows-alt-h text-blue-600 mr-1"></i>
@@ -194,6 +196,7 @@
                         <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
                     @enderror
                 </div>
+                @endif
 
                 <div>
                     <label for="nivel" class="block text-sm font-semibold text-gray-700 mb-2">

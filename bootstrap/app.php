@@ -56,6 +56,7 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Spatie\Permission\Middleware\RoleMiddleware;
 use Spatie\Permission\Middleware\PermissionMiddleware;
 use Spatie\Permission\Middleware\RoleOrPermissionMiddleware;
@@ -81,6 +82,26 @@ return Application::configure(basePath: dirname(__DIR__))
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->render(function (HttpExceptionInterface $exception, Request $request) {
+            if ($exception->getStatusCode() === 419) {
+                $message = 'Tu sesion expiro. Vuelve a iniciar sesion para continuar.';
+
+                if ($request->expectsJson()) {
+                    return response()->json([
+                        'message' => $message,
+                    ], 419);
+                }
+
+                if ($request->hasSession()) {
+                    Auth::guard('web')->logout();
+                    $request->session()->invalidate();
+                    $request->session()->regenerateToken();
+                }
+
+                return redirect()
+                    ->guest(route('login', absolute: false))
+                    ->with('status', $message);
+            }
+
             if ($exception->getStatusCode() !== 403 || $request->expectsJson()) {
                 return null;
             }

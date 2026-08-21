@@ -1001,18 +1001,15 @@ class AssistantAnalyticsArtifactService
     private function withCostosLavadoraDetails(array $dataset, Collection $records, array $lineas, array $dateRange): array
     {
         $sortedRecords = $records
-            ->sortBy(fn (LavadoraCostEntry $record): string => ($record->cost_date?->format('Y-m-d') ?? '').'-'.str_pad((string) $record->id, 10, '0', STR_PAD_LEFT))
+            ->sortBy(fn (LavadoraCostEntry $record): string => implode('|', [
+                $this->recordLineName($record),
+                $this->costMachineName($record),
+                $record->cost_date?->format('Y-m-d') ?? '',
+                str_pad((string) $record->id, 10, '0', STR_PAD_LEFT),
+            ]))
             ->values();
         $totalCost = round((float) $sortedRecords->sum(fn (LavadoraCostEntry $record): float => (float) $record->total_cost), 2);
-        $averageCost = round((float) $sortedRecords->avg(fn (LavadoraCostEntry $record): float => (float) $record->total_cost), 2);
-        $recordWarningThreshold = max(1, $averageCost * 1.25);
-        $recordCriticalThreshold = max($recordWarningThreshold, $averageCost * 2);
-        $alertRecords = $sortedRecords
-            ->filter(fn (LavadoraCostEntry $record): bool => (float) $record->total_cost >= $recordWarningThreshold)
-            ->sortByDesc(fn (LavadoraCostEntry $record): float => (float) $record->total_cost)
-            ->values();
         $rawRecords = $sortedRecords
-            ->sortByDesc(fn (LavadoraCostEntry $record): string => ($record->cost_date?->format('Y-m-d') ?? '').'-'.str_pad((string) $record->id, 10, '0', STR_PAD_LEFT))
             ->take(2000)
             ->values();
         $topLine = $sortedRecords
@@ -1027,23 +1024,24 @@ class AssistantAnalyticsArtifactService
             ->sortDesc()
             ->keys()
             ->first();
-        $groupAverage = (float) collect((array) ($dataset['rows'] ?? []))
-            ->map(fn (array $row): float => (float) ($row[2] ?? 0))
-            ->filter(fn (float $value): bool => $value > 0)
-            ->avg();
-
-        if ($groupAverage > 0) {
-            $dataset['thresholds'] = [
-                ['value' => round($groupAverage * 1.25, 2), 'label' => 'Alerta costo', 'color' => '#d97706'],
-                ['value' => round($groupAverage * 2, 2), 'label' => 'Critico costo', 'color' => '#dc2626'],
-            ];
-        }
+        $topComponent = $sortedRecords
+            ->groupBy(fn (LavadoraCostEntry $record): string => $this->costComponentName($record))
+            ->map(fn (Collection $items): float => (float) $items->sum(fn (LavadoraCostEntry $record): float => (float) $record->total_cost))
+            ->sortDesc()
+            ->keys()
+            ->first();
+        $topRefaction = $sortedRecords
+            ->groupBy(fn (LavadoraCostEntry $record): string => $this->costRefactionName($record))
+            ->map(fn (Collection $items): float => (float) $items->sum(fn (LavadoraCostEntry $record): float => (float) $record->total_cost))
+            ->sortDesc()
+            ->keys()
+            ->first();
 
         $dataset['summary_cards'] = [
             ['label' => 'Registros', 'value' => (string) $sortedRecords->count(), 'tone' => 'neutral'],
             ['label' => 'Costo total', 'value' => '$'.number_format($totalCost, 2), 'tone' => $totalCost > 0 ? 'warning' : 'normal'],
-            ['label' => 'Promedio', 'value' => '$'.number_format($averageCost, 2), 'tone' => 'neutral'],
-            ['label' => 'Montos altos', 'value' => (string) $alertRecords->count(), 'tone' => $alertRecords->isNotEmpty() ? 'critical' : 'normal'],
+            ['label' => 'Lavadora mayor costo', 'value' => $topLine ? $this->displayLineName((string) $topLine) : 'Sin linea', 'tone' => 'neutral'],
+            ['label' => 'Refaccion principal', 'value' => $topRefaction ?: 'Sin refaccion', 'tone' => 'neutral'],
         ];
         $dataset['summary_rows'] = [
             ['Reporte', (string) ($dataset['title'] ?? 'Costos de lavadora')],
@@ -1052,20 +1050,17 @@ class AssistantAnalyticsArtifactService
             ['Registros usados', $sortedRecords->count()],
             ['Registros exportados en Datos', $rawRecords->count()],
             ['Costo total MXN', $totalCost],
-            ['Costo promedio por registro MXN', $averageCost],
-            ['Costo maximo por registro MXN', round((float) $sortedRecords->max(fn (LavadoraCostEntry $record): float => (float) $record->total_cost), 2)],
-            ['Registros sobre umbral alto', $alertRecords->count()],
-            ['Lavadora con mayor costo', $topLine ?: 'Sin linea'],
+            ['Lavadora con mayor costo', $topLine ? $this->displayLineName((string) $topLine) : 'Sin linea'],
+            ['Componente con mayor costo', $topComponent ?: 'Sin componente'],
+            ['Refaccion con mayor costo', $topRefaction ?: 'Sin refaccion'],
             ['Concepto con mayor costo', $topItem ?: 'Sin concepto'],
         ];
-        $dataset['raw_headings'] = ['Fecha', 'Linea', 'Concepto', 'SKU', 'Categoria', 'Cantidad', 'Costo unitario', 'Costo total', 'Fuente', 'Referencia'];
+        $dataset['raw_headings'] = ['Fecha', 'Lavadora / Linea', 'Maquina', 'Componente', 'Refaccion', 'SKU', 'Categoria', 'Cantidad', 'Costo unitario', 'Costo total', 'Fuente', 'Referencia'];
         $dataset['raw_rows'] = $rawRecords
             ->map(fn (LavadoraCostEntry $record): array => $this->costosLavadoraRawRow($record))
             ->all();
-        $dataset['alert_headings'] = ['Fecha', 'Linea', 'Concepto', 'Costo total', 'Promedio base', 'Nivel', 'Accion sugerida'];
-        $dataset['alert_rows'] = $alertRecords
-            ->map(fn (LavadoraCostEntry $record): array => $this->costosLavadoraAlertRow($record, $averageCost, $recordCriticalThreshold))
-            ->all();
+        $dataset['alert_headings'] = [];
+        $dataset['alert_rows'] = [];
 
         return $dataset;
     }
@@ -1077,33 +1072,17 @@ class AssistantAnalyticsArtifactService
     {
         return [
             $record->cost_date?->format('d/m/Y') ?? '',
-            $this->recordLineName($record),
-            $this->costConcept($record),
-            (string) ($record->catalog_sku_snapshot ?: $record->catalogItem?->sku ?: ''),
+            $this->displayLineName($this->recordLineName($record)),
+            $this->costMachineName($record),
+            $this->costComponentName($record),
+            $this->costRefactionName($record),
+            $this->costSku($record),
             (string) ($record->catalog_category_snapshot ?: $record->catalogItem?->categoria ?: ''),
             round((float) $record->quantity, 2),
             round((float) $record->unit_cost, 2),
             round((float) $record->total_cost, 2),
             LavadoraCostEntry::sourceLabel($record->source_type),
             (string) ($record->source_reference ?? ''),
-        ];
-    }
-
-    /**
-     * @return array<int, mixed>
-     */
-    private function costosLavadoraAlertRow(LavadoraCostEntry $record, float $averageCost, float $criticalThreshold): array
-    {
-        $total = (float) $record->total_cost;
-
-        return [
-            $record->cost_date?->format('d/m/Y') ?? '',
-            $this->recordLineName($record),
-            $this->costConcept($record),
-            round($total, 2),
-            round($averageCost, 2),
-            $total >= $criticalThreshold ? 'Critico' : 'Alerta',
-            'Validar causa, presupuesto y recurrencia del concepto.',
         ];
     }
 
@@ -1292,6 +1271,110 @@ class AssistantAnalyticsArtifactService
             ?: $this->componentName($record)
             ?: 'Sin concepto'
         );
+    }
+
+    private function costComponentName(LavadoraCostEntry $record): string
+    {
+        $component = trim($this->componentName($record));
+
+        return $component !== '' ? $component : 'Sin componente';
+    }
+
+    private function costRefactionName(LavadoraCostEntry $record): string
+    {
+        $refaction = trim((string) ($record->catalog_name_snapshot ?: $record->catalogItem?->nombre ?: ''));
+
+        return $refaction !== '' ? $refaction : 'Sin refaccion';
+    }
+
+    private function costSku(LavadoraCostEntry $record): string
+    {
+        return trim((string) ($record->catalog_sku_snapshot ?: $record->catalogItem?->sku ?: ''));
+    }
+
+    private function costMachineName(LavadoraCostEntry $record): string
+    {
+        $metadata = $this->costMetadata($record);
+
+        foreach (['maquina', 'machine', 'tipo_maquina', 'equipo.maquina'] as $path) {
+            $value = trim((string) data_get($metadata, $path, ''));
+
+            if ($value !== '') {
+                return $this->formatMachineName($value);
+            }
+        }
+
+        $analysisMachine = trim((string) ($record->analisisLavadora?->maquina ?? ''));
+
+        return $analysisMachine !== '' ? $this->formatMachineName($analysisMachine) : 'Lavadora';
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function costMetadata(LavadoraCostEntry $record): array
+    {
+        $metadata = $record->metadata ?? [];
+
+        if (is_string($metadata)) {
+            $decoded = json_decode($metadata, true);
+
+            return is_array($decoded) ? $decoded : [];
+        }
+
+        return is_array($metadata) ? $metadata : [];
+    }
+
+    private function formatMachineName(string $machine): string
+    {
+        $machine = trim($machine);
+
+        if ($machine === '') {
+            return 'Lavadora';
+        }
+
+        if (preg_match('/^maquina\b/i', $machine) === 1) {
+            return $machine;
+        }
+
+        return 'Maquina '.$machine;
+    }
+
+    /**
+     * @param  Collection<int, LavadoraCostEntry>  $records
+     * @return array{component: string, refaction: string, chart_label: string}
+     */
+    private function costTopAssignmentSummary(Collection $records): array
+    {
+        $topAssignment = $records
+            ->groupBy(fn (LavadoraCostEntry $record): string => sha1(implode('|', [
+                $this->costComponentName($record),
+                $this->costRefactionName($record),
+                $this->costSku($record),
+            ])))
+            ->map(function (Collection $items): array {
+                /** @var LavadoraCostEntry|null $first */
+                $first = $items->first();
+
+                return [
+                    'component' => $first ? $this->costComponentName($first) : 'Sin componente',
+                    'refaction' => $first ? $this->costRefactionName($first) : 'Sin refaccion',
+                    'sku' => $first ? $this->costSku($first) : '',
+                    'total' => (float) $items->sum(fn (LavadoraCostEntry $record): float => (float) $record->total_cost),
+                ];
+            })
+            ->sortByDesc(fn (array $item): float => (float) ($item['total'] ?? 0))
+            ->first();
+
+        $component = (string) ($topAssignment['component'] ?? 'Sin componente');
+        $refaction = (string) ($topAssignment['refaction'] ?? 'Sin refaccion');
+        $sku = trim((string) ($topAssignment['sku'] ?? ''));
+
+        return [
+            'component' => $component,
+            'refaction' => $sku !== '' ? $refaction.' ('.$sku.')' : $refaction,
+            'chart_label' => $component.' / '.$refaction,
+        ];
     }
 
     private function isHighPriority(?string $priority): bool
@@ -1595,6 +1678,7 @@ class AssistantAnalyticsArtifactService
         $lineIds = $this->lineIdsFor($lineas);
         $records = LavadoraCostEntry::with([
             'linea:id,nombre',
+            'analisisLavadora:id,maquina',
             'componente:id,nombre,codigo',
             'catalogItem:id,nombre,sku,categoria,unidad_medida',
         ])
@@ -1604,29 +1688,36 @@ class AssistantAnalyticsArtifactService
             ->orderBy('cost_date')
             ->get();
 
-        if ($this->wantsCriticalOnly($question) && $records->isNotEmpty()) {
-            $averageCost = (float) $records->avg(fn (LavadoraCostEntry $record): float => (float) $record->total_cost);
-            $records = $records
-                ->filter(fn (LavadoraCostEntry $record): bool => (float) $record->total_cost >= max(1, $averageCost * 1.25))
-                ->values();
-        }
-
         if ($records->isEmpty()) {
             return null;
         }
 
         $rows = [];
         $points = [];
-        $groups = $aggregation === 'by_line'
+        $isByLine = $aggregation === 'by_line';
+        $groups = $isByLine
             ? $records->groupBy(fn (LavadoraCostEntry $record): string => $this->recordLineName($record))
             : $records->groupBy(fn (LavadoraCostEntry $record): string => $this->datePeriodKey($record->cost_date, $aggregation));
+        $groups = $isByLine
+            ? $groups->sortByDesc(fn (Collection $items): float => (float) $items->sum(fn (LavadoraCostEntry $record): float => (float) $record->total_cost))
+            : $groups;
 
         foreach ($groups as $period => $items) {
-            $label = $this->formatPeriodLabel((string) $period);
+            $label = $isByLine ? $this->displayLineName((string) $period) : $this->formatPeriodLabel((string) $period);
             $total = round((float) $items->sum(fn (LavadoraCostEntry $record): float => (float) $record->total_cost), 2);
+            $assignment = $this->costTopAssignmentSummary($items);
 
-            $rows[] = [$label, $items->count(), $total, round((float) $items->avg(fn (LavadoraCostEntry $record): float => (float) $record->total_cost), 2)];
-            $points[] = ['label' => $label, 'value' => $total];
+            if ($isByLine) {
+                $rows[] = [$label, $items->count(), $total, $assignment['component'], $assignment['refaction']];
+            } else {
+                $rows[] = [$label, $items->count(), $total];
+            }
+
+            $points[] = [
+                'label' => $label,
+                'value' => $total,
+                'detail' => $assignment['chart_label'],
+            ];
         }
 
         $dataset = [
@@ -1635,7 +1726,9 @@ class AssistantAnalyticsArtifactService
             'title' => 'Tendencia de costos de lavadora',
             'subtitle' => $this->scopeSubtitle($lineas, $dateRange),
             'source_reference' => 'lavadora_cost_entries',
-            'headings' => ['Periodo', 'Registros', 'Costo total MXN', 'Costo promedio MXN'],
+            'headings' => $isByLine
+                ? ['Linea', 'Registros', 'Costo total MXN', 'Componente principal', 'Refaccion principal']
+                : ['Periodo', 'Registros', 'Costo total MXN'],
             'rows' => $rows,
             'series' => [
                 ['name' => 'Costo total MXN', 'points' => $points],
@@ -1645,9 +1738,8 @@ class AssistantAnalyticsArtifactService
             'thresholds' => [],
         ];
 
-        if ($aggregation === 'by_line') {
+        if ($isByLine) {
             $dataset['title'] = 'Ranking de costos por lavadora';
-            $dataset['headings'][0] = 'Linea';
             $dataset['x_label'] = 'Lavadora';
             $dataset['source_reference'] = 'lavadora_cost_entries por linea';
         }
@@ -1877,6 +1969,10 @@ class AssistantAnalyticsArtifactService
         $alerts = count((array) ($dataset['alert_rows'] ?? []));
         $rows = count((array) ($dataset['rows'] ?? []));
         $type = (string) ($dataset['type'] ?? '');
+
+        if ($type === 'costos_lavadora') {
+            return "Se generaron {$rows} puntos de costo con los registros reales disponibles. Revisa Datos para validar lavadora, maquina, componente y refaccion.";
+        }
 
         if ($alerts > 0) {
             $subject = match ($type) {
@@ -2271,9 +2367,15 @@ class AssistantAnalyticsArtifactService
             $y = (int) round($top + $plotHeight - (($value - $minValue) / ($maxValue - $minValue)) * $plotHeight);
             $barHeight = max(2, $top + $plotHeight - $y);
             $color = $this->pngColor($image, $this->pointHex($point, $value, $datasetType));
+            $detail = $this->pointDetailLabel($point, 24);
+            $valueY = $detail !== '' ? $y - 30 : $y - 16;
 
             imagefilledrectangle($image, $x, $y, (int) round($x + $barWidth), $y + $barHeight, $color);
-            imagestring($image, 2, $x, max($top + 4, $y - 16), $this->formatChartNumber($value), $this->pngColor($image, '#0f172a'));
+            imagestring($image, 2, $x, max($top + 4, (int) round($valueY)), $this->formatChartNumber($value), $this->pngColor($image, '#0f172a'));
+
+            if ($detail !== '') {
+                imagestring($image, 1, $x, max($top + 17, $y - 14), $this->pngSafeText($detail, 24), $this->pngColor($image, '#475569'));
+            }
         }
     }
 
@@ -2369,6 +2471,16 @@ class AssistantAnalyticsArtifactService
         return Str::limit(Str::ascii($value), $limit, '');
     }
 
+    /**
+     * @param  array<string, mixed>  $point
+     */
+    private function pointDetailLabel(array $point, int $limit): string
+    {
+        $detail = trim((string) ($point['detail'] ?? ''));
+
+        return $detail !== '' ? Str::limit($detail, $limit, '') : '';
+    }
+
     private function toneHex(string $tone): string
     {
         return match ($tone) {
@@ -2456,9 +2568,15 @@ class AssistantAnalyticsArtifactService
             $x = $left + ($slotWidth * $index) + (($slotWidth - $barWidth) / 2);
             $y = $top + $plotHeight - (($value - $minValue) / ($maxValue - $minValue)) * $plotHeight;
             $height = max(2, $top + $plotHeight - $y);
+            $detail = $this->pointDetailLabel($point, 28);
+            $valueY = $detail !== '' ? $y - 20 : $y - 7;
 
             $svg[] = '<rect x="'.round($x, 2).'" y="'.round($y, 2).'" width="'.round($barWidth, 2).'" height="'.round($height, 2).'" rx="6" fill="'.$this->pointHex($point, $value, $datasetType).'"/>';
-            $svg[] = '<text x="'.round($x + $barWidth / 2, 2).'" y="'.round($y - 7, 2).'" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#0f172a">'.$this->svgText($this->formatChartNumber($value)).'</text>';
+            $svg[] = '<text x="'.round($x + $barWidth / 2, 2).'" y="'.round(max($top + 12, $valueY), 2).'" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#0f172a">'.$this->svgText($this->formatChartNumber($value)).'</text>';
+
+            if ($detail !== '') {
+                $svg[] = '<text x="'.round($x + $barWidth / 2, 2).'" y="'.round(max($top + 25, $y - 6), 2).'" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" fill="#475569">'.$this->svgText($detail).'</text>';
+            }
         }
 
         return $svg;

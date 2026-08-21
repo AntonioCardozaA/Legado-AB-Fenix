@@ -166,6 +166,8 @@ class AnalisisPasteurizadoraController extends Controller
             $moduleTotal = 0;
             $moduleRevisado = 0;
             $moduleSides = [];
+            $primerNivel = AnalisisPasteurizadora::NIVELES[0] ?? null;
+            $primerLado = AnalisisPasteurizadora::LADOS[0] ?? null;
 
             foreach (AnalisisPasteurizadora::NIVELES as $nivel) {
                 $nivelTotal = 0;
@@ -185,9 +187,20 @@ class AnalisisPasteurizadoraController extends Controller
                             continue;
                         }
 
+                        $usaModuloCompleto = AnalisisPasteurizadora::usaRevisionPorModuloCompleto($linea->nombre, $codigo);
+                        if ($usaModuloCompleto && ($nivel !== $primerNivel || $lado !== $primerLado)) {
+                            continue;
+                        }
+
                         $total = (int) ($compData['cantidad'] ?? 0);
                         $revisadas = min(
-                            $revisionesAgrupadas[$this->buildHistoricoKey($linea->id, $codigo, $modulo, $nivel, $lado)] ?? 0,
+                            $revisionesAgrupadas[$this->buildHistoricoKey(
+                                $linea->id,
+                                $codigo,
+                                $modulo,
+                                $usaModuloCompleto ? '' : $nivel,
+                                $usaModuloCompleto ? '' : $lado
+                            )] ?? 0,
                             $total
                         );
                         $porcentaje = $total > 0 ? round(($revisadas / $total) * 100) : 0;
@@ -206,8 +219,8 @@ class AnalisisPasteurizadoraController extends Controller
                             'codigo' => $codigo,
                             'nombre' => $compData['nombre'],
                             'modulo' => $modulo,
-                            'nivel' => $nivel,
-                            'lado' => $lado,
+                            'nivel' => $usaModuloCompleto ? null : $nivel,
+                            'lado' => $usaModuloCompleto ? null : $lado,
                             'cantidad_total' => $total,
                         ]);
 
@@ -598,6 +611,7 @@ class AnalisisPasteurizadoraController extends Controller
         $modulo = $request->get('modulo');
         $componente = $request->get('componente');
         $totalModulos = AnalisisPasteurizadora::getModulosPorLinea($linea->nombre);
+        $resolved = AnalisisPasteurizadora::resolveComponentePorLinea($linea->nombre, $componente);
 
         if (
             !$modulo
@@ -605,21 +619,25 @@ class AnalisisPasteurizadoraController extends Controller
             || (int) $modulo < 1
             || (int) $modulo > $totalModulos
             || !$componente
-            || !AnalisisPasteurizadora::resolveComponentePorLinea($linea->nombre, $componente)
+            || !$resolved
         ) {
             return redirect()
                 ->route($this->routeName('index'), ['linea_id' => $linea->id])
                 ->with('error', 'Selecciona un recuadro de modulo y componente para capturar el analisis.');
         }
 
+        $componenteKey = $resolved['key'];
+        $requiereLado = AnalisisPasteurizadora::requiereLado($linea->nombre, $componenteKey);
+
         return $this->renderView('create-quick', [
             'linea' => $linea,
             'fechaSugerida' => $request->get('fecha', date('Y-m-d')),
             'modoQuick' => false,
             'modulo' => (int) $modulo,
-            'componente' => $componente,
+            'componente' => $componenteKey,
             'nivel' => $request->get('nivel'),
-            'lado' => $request->get('lado'),
+            'lado' => $requiereLado ? $request->get('lado') : null,
+            'requiereLado' => $requiereLado,
         ]);
     }
 
@@ -737,7 +755,7 @@ class AnalisisPasteurizadoraController extends Controller
             'modulo' => ['required', 'integer', $this->positiveIntegerRule('El modulo debe ser un numero entero mayor a 0.')],
             'nivel' => 'required|in:SUPERIOR,INFERIOR',
             'componente' => 'required|string',
-            'lado' => 'required|in:VAPOR,PASILLO',
+            'lado' => 'nullable|in:VAPOR,PASILLO',
             'fecha_analisis' => 'required|date',
             'numero_orden' => ['nullable', 'regex:/^\d{8}$/'],
             'estado' => 'required|in:' . implode(',', AnalisisPasteurizadora::ESTADOS),
@@ -752,6 +770,7 @@ class AnalisisPasteurizadoraController extends Controller
         $linea = Linea::findOrFail($validated['linea_id']);
         $seleccionComponentes = $this->resolverSeleccionComponentesRevisionLibre($request, $linea, $validated);
         $validated['componente'] = $seleccionComponentes['componente'];
+        $validated['lado'] = $this->resolverLadoValidado($linea, $validated['componente'], $validated['lado'] ?? null);
 
         $fotosPaths = [];
         if ($request->hasFile('evidencia_fotos')) {
@@ -813,6 +832,21 @@ class AnalisisPasteurizadoraController extends Controller
             'fecha_fin' => $fechaFin,
             'fecha_analisis' => $fechaFin ?: $fechaAnalisis,
         ]);
+    }
+
+    private function resolverLadoValidado(Linea $linea, string $componente, ?string $lado): ?string
+    {
+        if (!AnalisisPasteurizadora::requiereLado($linea->nombre, $componente)) {
+            return null;
+        }
+
+        if (!$lado) {
+            throw ValidationException::withMessages([
+                'lado' => 'Seleccione el lado de la revision.',
+            ]);
+        }
+
+        return $lado;
     }
 
     private function guardarEvidenciaPasteurizadora($foto): string
@@ -1780,7 +1814,8 @@ class AnalisisPasteurizadoraController extends Controller
                         ->values();
                     $resumenCiclo = AnalisisPasteurizadora::buildResumenCicloComponenteFromCollection(
                         $registrosComponente,
-                        $totalComponentes
+                        $totalComponentes,
+                        AnalisisPasteurizadora::getAlcanceRevisionPorLineaYComponente($linea->nombre, $codigo)
                     );
                     $estadoVisible = $resumenCiclo['resumen_visible'];
                     $completado = (bool) ($estadoVisible['completado'] ?? false);
