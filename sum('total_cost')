@@ -1,1 +1,0 @@
-"Total: $" . number_format($resultado['entries']-, 2) . "\n";

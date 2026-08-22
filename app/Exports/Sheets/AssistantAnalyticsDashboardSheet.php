@@ -35,7 +35,6 @@ class AssistantAnalyticsDashboardSheet implements FromArray, ShouldAutoSize, Wit
     public function array(): array
     {
         $summaryCards = array_values(array_filter((array) ($this->dashboard['summary_cards'] ?? []), fn ($item): bool => is_array($item)));
-        $filterRows = array_values(array_filter((array) ($this->dashboard['filter_rows'] ?? []), fn ($item): bool => is_array($item)));
         $rows = [
             ['LEGADO AB FENIX'],
             [$this->text('title', 'Reporte operativo')],
@@ -50,16 +49,6 @@ class AssistantAnalyticsDashboardSheet implements FromArray, ShouldAutoSize, Wit
                 (string) ($card['label'] ?? ''),
                 (string) ($card['value'] ?? ''),
                 $this->toneLabel((string) ($card['tone'] ?? 'neutral')),
-            ];
-        }
-
-        $rows[] = [];
-        $rows[] = ['Filtro', 'Valor'];
-
-        foreach ($filterRows as $filter) {
-            $rows[] = [
-                (string) ($filter[0] ?? ''),
-                (string) ($filter[1] ?? ''),
             ];
         }
 
@@ -95,7 +84,6 @@ class AssistantAnalyticsDashboardSheet implements FromArray, ShouldAutoSize, Wit
             AfterSheet::class => function (AfterSheet $event): void {
                 $sheet = $event->sheet->getDelegate();
                 $summaryCount = min(8, count((array) ($this->dashboard['summary_cards'] ?? [])));
-                $filterHeaderRow = 8 + $summaryCount;
                 $highestRow = max(1, $sheet->getHighestRow());
 
                 foreach ([1, 2, 3, 4] as $row) {
@@ -123,13 +111,11 @@ class AssistantAnalyticsDashboardSheet implements FromArray, ShouldAutoSize, Wit
                     ],
                 ]);
 
-                foreach ([6, $filterHeaderRow] as $headerRow) {
-                    $sheet->getStyle("A{$headerRow}:C{$headerRow}")->applyFromArray([
-                        'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
-                        'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '0F172A']],
-                        'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
-                    ]);
-                }
+                $sheet->getStyle('A6:C6')->applyFromArray([
+                    'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+                    'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '0F172A']],
+                    'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
+                ]);
 
                 $sheet->getStyle("A1:J{$highestRow}")->applyFromArray([
                     'alignment' => [
