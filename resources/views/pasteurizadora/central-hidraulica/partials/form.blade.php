@@ -14,6 +14,7 @@
 
     $selectedPiso = $selectedPiso ?: \App\Models\CentralHidraulicaConfiguracion::PISO_SUPERIOR;
     $selectedPiezas = old('componentes_revisados', $analisis->componentes_revisados_lista ?? []);
+    $selectedEstado = old('estado', $analisis->estado ?? \App\Models\AnalisisCentralHidraulica::ESTADO_BUENO);
 
     if (is_string($selectedPiezas)) {
         $decoded = json_decode($selectedPiezas, true);
@@ -278,8 +279,8 @@
                 required>
             <option value="">Seleccionar estado...</option>
             @foreach($estadoOpciones as $estado => $label)
-                <option value="{{ $estado }}" {{ old('estado', $analisis->estado ?? \App\Models\AnalisisCentralHidraulica::ESTADO_BUENO) === $estado ? 'selected' : '' }}>
-                    {{ preg_replace('/^[^\\w]+\\s*/u', '', $label) }}
+                <option value="{{ $estado }}" {{ $selectedEstado === $estado ? 'selected' : '' }}>
+                    {{ $label }}
                 </option>
             @endforeach
         </select>
@@ -423,7 +424,7 @@ document.addEventListener('DOMContentLoaded', () => {
             .forEach((config) => {
                 const option = document.createElement('option');
                 option.value = config.id;
-                option.textContent = `${config.nombre} (${config.cantidad_label})`;
+                option.textContent = config.nombre;
                 if (String(config.id) === String(previousValue)) {
                     option.selected = true;
                 }

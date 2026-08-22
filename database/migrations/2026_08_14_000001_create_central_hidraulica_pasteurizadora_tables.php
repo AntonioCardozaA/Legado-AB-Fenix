@@ -100,7 +100,7 @@ return new class extends Migration
             ['DEPOSITO', 'Deposito', 'Deposito hidraulico por piso.', 'pza', false, false],
             ['ELECTROVALVULAS', 'Electrovalvulas', 'Electrovalvulas por lado.', 'pza', true, false],
             ['BOMBAS_HIDRAULICAS_INUNDADAS', 'Bombas hidraulicas inundadas', 'Bomba hidraulica inundada.', 'pza', false, false],
-            ['BOMBAS_HIDRAULICAS_EXTERNAS', 'Bombas hidraulicas externas', 'Bombas externas distribuidas por lado.', 'pza', true, false],
+            ['BOMBAS_HIDRAULICAS_EXTERNAS', 'Bombas hidraulicas externas', 'Bombas externas distribuidas por piso y lado.', 'pza', true, false],
             ['VALVULAS_DIRECCIONALES', 'Valvulas direccionales', 'Valvulas direccionales por lado.', 'pza', true, false],
             ['MANGUERAS_3_4_CONEXIONES', 'Mangueras de 3/4 con conexiones', 'Mangueras de 3/4 con conexiones por lado.', 'pza', true, false],
             ['TUBERIA_1_PULGADA', 'Tuberia de una pulgada', 'Componente registrado sin cantidad definida en el Excel.', 'pza', false, true],
@@ -147,7 +147,7 @@ return new class extends Migration
                 $configs = $this->baseConfigs();
 
                 if (in_array($pasteurizador, $pasteurizadoresConBombaExterna, true)) {
-                    $configs[] = ['BOMBAS_HIDRAULICAS_EXTERNAS', 1, 'pza', '2 bombas (1*lado)', true, 4];
+                    $configs[] = ['BOMBAS_HIDRAULICAS_EXTERNAS', 1, 'pza', '2 bombas por piso (1 por lado)', true, 4];
                 } else {
                     $configs[] = ['BOMBAS_HIDRAULICAS_INUNDADAS', 1, 'pza', '1* bomba', false, 4];
                 }

@@ -40,15 +40,22 @@ class CentralHidraulicaPasteurizadoraTest extends TestCase
         $this->assertSame('lts', $p03Superior['ACEITE']->unidad);
         $this->assertFalse($p03Superior['ACEITE']->es_contabilizable);
 
-        $p06Superior = CentralHidraulicaConfiguracion::with('componente')
-            ->where('pasteurizador', 'P-06')
-            ->where('piso', CentralHidraulicaConfiguracion::PISO_SUPERIOR)
-            ->get()
-            ->keyBy(fn (CentralHidraulicaConfiguracion $config) => $config->componente->codigo);
+        foreach (['P-06', 'P-07', 'P-11'] as $pasteurizadorDoble) {
+            foreach (CentralHidraulicaConfiguracion::PISOS as $piso => $pisoLabel) {
+                $configsDoble = CentralHidraulicaConfiguracion::with('componente')
+                    ->where('pasteurizador', $pasteurizadorDoble)
+                    ->where('piso', $piso)
+                    ->get()
+                    ->keyBy(fn (CentralHidraulicaConfiguracion $config) => $config->componente->codigo);
 
-        $this->assertTrue($p06Superior->has('BOMBAS_HIDRAULICAS_EXTERNAS'));
-        $this->assertFalse($p06Superior->has('BOMBAS_HIDRAULICAS_INUNDADAS'));
-        $this->assertTrue((bool) $p06Superior['BOMBAS_HIDRAULICAS_EXTERNAS']->lado_requerido);
+                $this->assertTrue($configsDoble->has('BOMBAS_HIDRAULICAS_EXTERNAS'), "{$pasteurizadorDoble} {$pisoLabel} debe tener bombas externas.");
+                $this->assertFalse($configsDoble->has('BOMBAS_HIDRAULICAS_INUNDADAS'), "{$pasteurizadorDoble} {$pisoLabel} no debe usar bombas inundadas.");
+                $this->assertSame(1, $configsDoble['BOMBAS_HIDRAULICAS_EXTERNAS']->cantidad);
+                $this->assertSame('pza', $configsDoble['BOMBAS_HIDRAULICAS_EXTERNAS']->unidad);
+                $this->assertSame('2 bombas por piso (1 por lado)', $configsDoble['BOMBAS_HIDRAULICAS_EXTERNAS']->detalle_excel);
+                $this->assertTrue((bool) $configsDoble['BOMBAS_HIDRAULICAS_EXTERNAS']->lado_requerido);
+            }
+        }
     }
 
     public function test_central_index_displays_component_name_only_once(): void
