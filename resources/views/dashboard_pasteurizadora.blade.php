@@ -4,7 +4,20 @@
 
 @section('content')
 @php
+    $estadoPasteurizadoras = $estadoPasteurizadoras ?? [];
+    $dashboardPasteurizadoraParte = $dashboardPasteurizadoraParte ?? \App\Models\AnalisisPasteurizadora::AREA_MECANICA;
+    $dashboardPasteurizadoraParte = \App\Models\AnalisisPasteurizadora::normalizarArea($dashboardPasteurizadoraParte);
+    $esDashboardMecanica = $dashboardPasteurizadoraParte === \App\Models\AnalisisPasteurizadora::AREA_MECANICA;
+    $esDashboardCentral = $dashboardPasteurizadoraParte === \App\Models\AnalisisPasteurizadora::AREA_CENTRAL_HIDRAULICA;
+    $dashboardParteBaseQuery = request()->except('parte');
+    $dashboardParteMecanicaUrl = route('dashboard.global.pasteurizadoras', array_merge($dashboardParteBaseQuery, [
+        'parte' => \App\Models\AnalisisPasteurizadora::AREA_MECANICA,
+    ]));
+    $dashboardParteCentralUrl = route('dashboard.global.pasteurizadoras', array_merge($dashboardParteBaseQuery, [
+        'parte' => \App\Models\AnalisisPasteurizadora::AREA_CENTRAL_HIDRAULICA,
+    ]));
     $pasteurizadoras = collect($estadoPasteurizadoras);
+    $resumenPasteurizadora = $resumenPasteurizadora ?? [];
     $fallasPorLineaPasteurizadora = collect($fallasPorLineaPasteurizadora ?? []);
     $historicoRevisionesPasteurizadora = collect($historicoRevisionesPasteurizadora ?? []);
     $analisis52124Pasteurizadora = $analisis52124Pasteurizadora ?? ['lineas' => [], 'criterios' => []];
@@ -16,7 +29,10 @@
     $trendFilters = $trendFilters ?? [];
     $usuarioActual = auth()->user();
     $puedeVerMecanicaPasteurizadora = $usuarioActual?->canAccessPasteurizadoraArea(\App\Models\AnalisisPasteurizadora::AREA_MECANICA) ?? false;
+    $puedeVerCentralHidraulicaPasteurizadora = $usuarioActual?->canAccessPasteurizadoraArea(\App\Models\AnalisisPasteurizadora::AREA_CENTRAL_HIDRAULICA) ?? false;
     $puedeVerPlanesPasteurizadora = $puedeVerMecanicaPasteurizadora
+        && ($usuarioActual?->canViewPlanActionType(\App\Models\User::MODULE_PASTEURIZADORA) ?? false);
+    $puedeVerPlanesCentralHidraulica = $puedeVerCentralHidraulicaPasteurizadora
         && ($usuarioActual?->canViewPlanActionType(\App\Models\User::MODULE_PASTEURIZADORA) ?? false);
     $puedeVerTendenciasPasteurizadora = ($usuarioActual?->canAccessModule(\App\Models\User::MODULE_PASTEURIZADORA) ?? false)
         && ($usuarioActual?->canUseCustomPermission('ver tendencias pasteurizadora') ?? false);
@@ -29,7 +45,25 @@
     ];
     $avancePromedio = (int) ($avanceRevisionPasteurizadora['promedio'] ?? round($pasteurizadoras->avg('estado.progreso_revision.porcentaje') ?? 0));
     $totalRevisados = (int) ($avanceRevisionPasteurizadora['total_revisados'] ?? $pasteurizadoras->sum(fn($item) => (int) data_get($item, 'estado.progreso_revision.revisados', 0)));
-    $totalConfigurados = (int) ($avanceRevisionPasteurizadora['total_configurado'] ?? $pasteurizadoras->sum(fn($item) => (int) data_get($item, 'estado.progreso_revision.total', 0)));
+    $centralesHidraulicasPasteurizadora = collect($estadoCentralHidraulicaPasteurizadora ?? []);
+    $fallasPorLineaCentralHidraulica = collect($fallasPorLineaCentralHidraulica ?? []);
+    $historicoRevisionesCentralHidraulica = collect($historicoRevisionesCentralHidraulica ?? []);
+    $analisis52124CentralHidraulica = $analisis52124CentralHidraulica ?? ['lineas' => [], 'criterios' => []];
+    $analisis30147CentralHidraulica = $analisis30147CentralHidraulica ?? ['lineas' => [], 'criterios' => []];
+    $planesAccionDashboardCentralHidraulica = $planesAccionDashboardCentralHidraulica ?? ['resumen' => [], 'estado_general' => [], 'por_linea' => [], 'planes' => []];
+    $rankingDanosCentralHidraulica = collect($rankingDanosCentralHidraulica ?? []);
+    $avanceRevisionCentralHidraulica = $avanceRevisionCentralHidraulica ?? ['labels' => [], 'porcentajes' => [], 'revisados' => [], 'totales' => [], 'lineas' => []];
+    $resumenCentralHidraulicaPasteurizadora = $resumenCentralHidraulicaPasteurizadora ?? [
+        'total_pasteurizadoras' => $centralesHidraulicasPasteurizadora->count(),
+        'total_analisis' => 0,
+        'alertas_criticas' => 0,
+        'en_riesgo' => 0,
+        'requiere_revision' => 0,
+        'buen_estado' => 0,
+        'pendientes_accion' => 0,
+    ];
+    $avanceCentralPromedio = (int) ($avanceRevisionCentralHidraulica['promedio'] ?? round($centralesHidraulicasPasteurizadora->avg('estado.progreso_revision.porcentaje') ?? 0));
+    $totalCentralRevisados = (int) ($avanceRevisionCentralHidraulica['total_revisados'] ?? $centralesHidraulicasPasteurizadora->sum(fn($item) => (int) data_get($item, 'estado.progreso_revision.revisados', 0)));
 @endphp
 
 <style>
@@ -118,6 +152,49 @@
         align-items: center;
         gap: 10px;
         flex-wrap: wrap;
+    }
+
+    .dashboard-part-switch {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px;
+        border: 1px solid var(--border-light);
+        border-radius: 10px;
+        background: #edf2f7;
+    }
+
+    .dashboard-part-btn {
+        display: inline-flex;
+        min-height: 36px;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        border-radius: 8px;
+        padding: 8px 12px;
+        color: #475569;
+        font-size: 13px;
+        font-weight: 700;
+        line-height: 1.1;
+        text-decoration: none;
+        transition: var(--transition);
+        white-space: nowrap;
+    }
+
+    .dashboard-part-btn:hover {
+        background: #ffffff;
+        color: #1d4ed8;
+        box-shadow: var(--shadow-sm);
+    }
+
+    .dashboard-part-btn.active {
+        background: #2563eb;
+        color: #ffffff;
+        box-shadow: var(--shadow-md);
+    }
+
+    .dashboard-part-btn.dashboard-part-btn--central.active {
+        background: #0f766e;
     }
 
     @keyframes blink {
@@ -1952,8 +2029,9 @@
     .modal-content {
         background: white;
         border-radius: 24px;
-        max-width: min(600px, 100%);
+        max-width: 600px;
         width: 100%;
+        min-width: 0;
         max-height: 80vh;
         overflow: hidden;
         box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
@@ -1972,6 +2050,7 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
+        gap: 12px;
     }
 
     .modal-header h3 {
@@ -1979,12 +2058,20 @@
         font-weight: 700;
         color: var(--text-primary);
         margin: 0;
+        min-width: 0;
+        overflow-wrap: anywhere;
     }
 
     .modal-body {
         padding: 24px;
         overflow-y: auto;
         max-height: calc(80vh - 80px);
+        overflow-wrap: anywhere;
+    }
+
+    .modal-body .flex,
+    .modal-body .flex > * {
+        min-width: 0;
     }
 
     .modal-close {
@@ -1992,16 +2079,52 @@
         height: 36px;
         border-radius: 50%;
         background: white;
-        border: 1px solid var(--medium-gray);
-        color: var(--dark-gray);
+        border: 1px solid var(--border-light);
+        color: var(--text-secondary);
         cursor: pointer;
         transition: var(--transition);
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
 
     .modal-close:hover {
         background: var(--danger-red);
         color: white;
         border-color: var(--danger-red);
+        transform: rotate(90deg);
+    }
+
+    .componente-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 8px;
+        min-width: 0;
+    }
+
+    .componente-icono {
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #f1f5f9;
+        border-radius: 8px;
+        padding: 4px;
+        flex: 0 0 auto;
+    }
+
+    .componente-icono img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+    }
+
+    .componente-nombre {
+        font-weight: 600;
+        color: var(--text-primary);
+        overflow-wrap: anywhere;
     }
 
     @media (min-width: 1280px) {
@@ -2140,6 +2263,17 @@
             justify-content: center;
         }
 
+        .dashboard-part-switch {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            width: 100%;
+        }
+
+        .dashboard-part-btn {
+            width: 100%;
+            white-space: normal;
+        }
+
         .stats-grid {
             grid-template-columns: repeat(2, 1fr);
             gap: 10px;
@@ -2215,6 +2349,10 @@
             padding: 10px;
         }
 
+        .modal-content {
+            max-height: calc(100vh - 24px);
+        }
+
         .modal-header {
             align-items: flex-start;
             gap: 12px;
@@ -2227,6 +2365,17 @@
 
         .modal-body {
             padding: 16px;
+            max-height: calc(100vh - 104px);
+        }
+
+        .modal-body .grid {
+            grid-template-columns: 1fr !important;
+        }
+
+        .modal-body .justify-end,
+        .modal-body .justify-between {
+            flex-wrap: wrap;
+            gap: 10px;
         }
 
         .historico-dashboard-card .overflow-x-auto {
@@ -2320,6 +2469,18 @@
             font-size: 16px;
             line-height: 1.25;
         }
+
+        .modal-content {
+            border-radius: 18px;
+        }
+
+        .modal-body .justify-end > * {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            text-align: center;
+        }
     }
 </style>
 
@@ -2348,11 +2509,30 @@
                 <button onclick="refreshData()" class="inline-flex min-h-11 items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-white transition hover:bg-blue-700">
                     <i class="fas fa-sync-alt mr-2"></i>Actualizar
                 </button>
+                <div class="dashboard-part-switch" aria-label="Vistas del dashboard de Pasteurizadora">
+                    @if($puedeVerMecanicaPasteurizadora)
+                        <a href="{{ $dashboardParteMecanicaUrl }}"
+                           class="dashboard-part-btn {{ $esDashboardMecanica ? 'active' : '' }}"
+                           aria-current="{{ $esDashboardMecanica ? 'page' : 'false' }}">
+                            <i class="fas fa-cogs"></i>
+                            <span>Parte Mecanica</span>
+                        </a>
+                    @endif
+                    @if($puedeVerCentralHidraulicaPasteurizadora)
+                        <a href="{{ $dashboardParteCentralUrl }}"
+                           class="dashboard-part-btn dashboard-part-btn--central {{ $esDashboardCentral ? 'active' : '' }}"
+                           aria-current="{{ $esDashboardCentral ? 'page' : 'false' }}">
+                            <i class="fas fa-droplet"></i>
+                            <span>Central Hidraulica</span>
+                        </a>
+                    @endif
+                </div>
             </div>
         </div>
 
     </div>
 
+    @if($esDashboardMecanica)
     <div class="stats-grid">
         <div class="stat-card stat-card--primary">
             <div class="stat-icon"><i class="fas fa-layer-group"></i></div>
@@ -2703,11 +2883,7 @@
                     <div class="mini-stat-value">{{ number_format($totalRevisados) }}</div>
                     <div class="mini-stat-meta">posiciones revisadas</div>
                 </div>
-                <div class="mini-stat warning">
-                    <div class="mini-stat-label">Configurados</div>
-                    <div class="mini-stat-value">{{ number_format($totalConfigurados) }}</div>
-                    <div class="mini-stat-meta">posiciones totales</div>
-                </div>
+        
             </div>
             <div class="chart-container">
                 <canvas id="avanceRevisionPasteurizadoraChart"></canvas>
@@ -2793,6 +2969,7 @@
                 </div>
             </div>
             <form method="GET" action="{{ route('dashboard.global.pasteurizadoras') }}" class="trend-filter-form dashboard-trend-filters">
+                <input type="hidden" name="parte" value="{{ \App\Models\AnalisisPasteurizadora::AREA_MECANICA }}">
                 <select id="analisis52124PasteurizadoraLineaSelect" class="panel-select pasteur-trend-line-select" data-pasteur-trend-card="52124">
                     @forelse(($analisis52124Pasteurizadora['lineas'] ?? []) as $lineaTrend)
                         <option value="{{ $lineaTrend['linea_id'] }}" @selected((int) data_get($analisis52124Pasteurizadora, 'default_linea_id') === (int) $lineaTrend['linea_id'])>{{ $lineaTrend['linea'] }}</option>
@@ -2815,7 +2992,7 @@
                     Aplicar
                 </button>
                 @if($puedeVerTendenciasPasteurizadora)
-                    <a href="{{ route('analisis-tendencia-mensual.pasteurizadora.analisis-52-12-4') }}" class="trend-open-link">
+                    <a href="{{ route('analisis-tendencia-mensual.pasteurizadora.analisis-52-12-4', ['area' => \App\Models\AnalisisPasteurizadora::AREA_MECANICA]) }}" class="trend-open-link">
                         <i class="fas fa-up-right-from-square"></i>
                         Abrir
                     </a>
@@ -2879,6 +3056,7 @@
                 </div>
             </div>
             <form method="GET" action="{{ route('dashboard.global.pasteurizadoras') }}" class="trend-filter-form dashboard-trend-filters">
+                <input type="hidden" name="parte" value="{{ \App\Models\AnalisisPasteurizadora::AREA_MECANICA }}">
                 <select id="analisis30147PasteurizadoraLineaSelect" class="panel-select pasteur-trend-line-select" data-pasteur-trend-card="30147">
                     @forelse(($analisis30147Pasteurizadora['lineas'] ?? []) as $lineaTrend)
                         <option value="{{ $lineaTrend['linea_id'] }}" @selected((int) data_get($analisis30147Pasteurizadora, 'default_linea_id') === (int) $lineaTrend['linea_id'])>{{ $lineaTrend['linea'] }}</option>
@@ -2901,7 +3079,7 @@
                     Aplicar
                 </button>
                 @if($puedeVerTendenciasPasteurizadora)
-                    <a href="{{ route('analisis-tendencia-mensual.pasteurizadora.analisis-30-14-7') }}" class="trend-open-link">
+                    <a href="{{ route('analisis-tendencia-mensual.pasteurizadora.analisis-30-14-7', ['area' => \App\Models\AnalisisPasteurizadora::AREA_MECANICA]) }}" class="trend-open-link">
                         <i class="fas fa-up-right-from-square"></i>
                         Abrir
                     </a>
@@ -2952,6 +3130,615 @@
     </div>
 </div>
 
+    @elseif($esDashboardCentral)
+        @php
+            $planesCentralResumen = $planesAccionDashboardCentralHidraulica['resumen'] ?? [];
+            $planesCentralEstado = $planesAccionDashboardCentralHidraulica['estado_general'] ?? [];
+            $planesCentralActivos = collect($planesAccionDashboardCentralHidraulica['planes'] ?? []);
+            $avanceCentralLineas = collect($avanceRevisionCentralHidraulica['lineas'] ?? [])->sortBy('porcentaje')->values();
+        @endphp
+
+        <div class="stats-grid">
+            <div class="stat-card stat-card--primary">
+                <div class="stat-icon"><i class="fas fa-oil-can"></i></div>
+                <div class="stat-label">Centrales Configuradas</div>
+                <div class="stat-value">{{ $resumenCentralHidraulicaPasteurizadora['total_pasteurizadoras'] }}</div>
+            </div>
+            <div class="stat-card stat-card--danger">
+                <div class="stat-icon"><i class="fas fa-exclamation-triangle"></i></div>
+                <div class="stat-label">Alertas Criticas</div>
+                <div class="stat-value">{{ $resumenCentralHidraulicaPasteurizadora['alertas_criticas'] }}</div>
+            </div>
+            <div class="stat-card stat-card--risk">
+                <div class="stat-icon"><i class="fas fa-chart-line"></i></div>
+                <div class="stat-label">Severo / Moderado</div>
+                <div class="stat-value">{{ $resumenCentralHidraulicaPasteurizadora['en_riesgo'] }}</div>
+            </div>
+            <div class="stat-card stat-card--warning">
+                <div class="stat-icon"><i class="fas fa-tools"></i></div>
+                <div class="stat-label">Requiere Revision</div>
+                <div class="stat-value">{{ $resumenCentralHidraulicaPasteurizadora['requiere_revision'] }}</div>
+            </div>
+            <div class="stat-card stat-card--success">
+                <div class="stat-icon"><i class="fas fa-check-circle"></i></div>
+                <div class="stat-label">Buen Estado</div>
+                <div class="stat-value">{{ $resumenCentralHidraulicaPasteurizadora['buen_estado'] }}</div>
+            </div>
+            <div class="stat-card stat-card--action">
+                <div class="stat-icon"><i class="fas fa-tasks"></i></div>
+                <div class="stat-label">Pendientes Accion</div>
+                <div class="stat-value">{{ $resumenCentralHidraulicaPasteurizadora['pendientes_accion'] }}</div>
+            </div>
+        </div>
+
+        <div class="section-title">
+            <i class="fas fa-droplet"></i>
+            CENTRAL HIDRAULICA DE PASTEURIZADORAS
+        </div>
+
+        <div class="lavadoras-grid">
+            @forelse($centralesHidraulicasPasteurizadora as $central)
+                @php
+                    $estado = $central['estado'];
+                    $nivel = $estado['nivel'] ?? 'bueno';
+                    $isCritical = $nivel === 'critico';
+                    $cardClass = $nivel === 'bueno'
+                        ? 'buen-estado'
+                        : ($nivel === 'operativo' ? 'operativo-estado' : ($nivel === 'riesgo' ? 'riesgo-estado' : 'critico-estado'));
+                    if ($isCritical) {
+                        $cardClass .= ' alert-critical';
+                    }
+                    $progreso = $estado['progreso_revision'] ?? ['porcentaje' => 0];
+                    $porcentaje = (int) ($progreso['porcentaje'] ?? 0);
+                    $conteoAlertas = $estado['conteo_alertas'] ?? [];
+                    $totalAlertas = array_sum($conteoAlertas);
+                @endphp
+                <div class="lavadora-card {{ $cardClass }}">
+                    <div class="lavadora-card-header">
+                        <div class="lavadora-nombre">
+                            <i class="fas fa-oil-can status-icon"></i>
+                            {{ $central['nombre'] }}
+                        </div>
+                        <div>
+                            <span class="status-tag {{ $nivel === 'bueno' ? 'bueno' : ($nivel === 'operativo' ? 'operativo' : ($nivel === 'riesgo' ? 'riesgo' : 'critico')) }}">
+                                <i class="fas {{ $nivel === 'bueno' ? 'fa-check-circle' : ($nivel === 'operativo' ? 'fa-tools' : ($nivel === 'riesgo' ? 'fa-exclamation-triangle' : 'fa-times-circle')) }}"></i>
+                                {{ $nivel === 'bueno' ? 'Buen estado' : ($nivel === 'operativo' ? 'Requiere revision' : ($nivel === 'riesgo' ? 'Severo / Moderado' : 'Critico')) }}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="lavadora-card-body">
+                        <div class="lavadora-mensaje">
+                            <i class="fas fa-info-circle mr-1 text-gray-400"></i>
+                            {{ $estado['mensaje'] }}
+                        </div>
+
+                        @if(isset($estado['alert_carousel']) && count($estado['alert_carousel']) > 0)
+                            <div class="lavadora-carousel" id="central-carousel-{{ $central['id'] }}">
+                                <div class="lavadora-carousel-track">
+                                    @foreach($estado['alert_carousel'] as $carouselIndex => $item)
+                                        <div class="carousel-slide {{ $carouselIndex === 0 ? 'active' : '' }}" data-slide="{{ $carouselIndex }}">
+                                            <div class="carousel-slide-content">
+                                                <div class="carousel-slide-icon">
+                                                    <i class="fas {{ $item['icon'] ?? 'fa-droplet' }}"></i>
+                                                </div>
+                                                <div class="carousel-slide-info">
+                                                    @if(!empty($item['estado_label']))
+                                                        <div class="mb-1">
+                                                            <span class="severity-pill {{ $item['estado_key'] ?? 'estable' }}">
+                                                                {{ $item['estado_label'] }}
+                                                            </span>
+                                                        </div>
+                                                    @endif
+                                                    <div class="carousel-slide-title">{{ $item['title'] }}</div>
+                                                    @if(!empty($item['subtitle']) && $item['subtitle'] !== ($item['meta'] ?? null))
+                                                        <div class="carousel-slide-subtitle">{{ $item['subtitle'] }}</div>
+                                                    @endif
+                                                    @if(!empty($item['detail']) || !empty($item['description']))
+                                                        <div class="carousel-slide-detail">{{ $item['detail'] ?? $item['description'] }}</div>
+                                                    @endif
+                                                    @if(!empty($item['meta']))
+                                                        <div class="carousel-slide-meta">Orden: {{ $item['meta'] }}</div>
+                                                    @endif
+                                                    @if(!empty($item['fecha']))
+                                                        <div class="carousel-slide-meta">Fecha: {{ $item['fecha'] }}</div>
+                                                    @endif
+                                                </div>
+                                            </div>
+                                        </div>
+                                    @endforeach
+                                </div>
+
+                                @if(count($estado['alert_carousel']) > 1)
+                                    <div class="carousel-controls">
+                                        <button type="button" class="carousel-button carousel-prev" aria-label="Anterior">
+                                            <i class="fas fa-chevron-left"></i>
+                                        </button>
+                                        <div class="carousel-dots">
+                                            @foreach($estado['alert_carousel'] as $carouselIndex => $item)
+                                                <span class="carousel-dot {{ $carouselIndex === 0 ? 'active' : '' }}" data-index="{{ $carouselIndex }}"></span>
+                                            @endforeach
+                                        </div>
+                                        <button type="button" class="carousel-button carousel-next" aria-label="Siguiente">
+                                            <i class="fas fa-chevron-right"></i>
+                                        </button>
+                                    </div>
+                                @endif
+                            </div>
+                        @endif
+
+                        @if($totalAlertas > 0)
+                            <div class="flex flex-wrap gap-2 mb-3">
+                                @if(($conteoAlertas['critico'] ?? 0) > 0)
+                                    <span class="severity-pill critico">{{ $conteoAlertas['critico'] }} requiere cambio</span>
+                                @endif
+                                @if(($conteoAlertas['severo'] ?? 0) > 0)
+                                    <span class="severity-pill severo">{{ $conteoAlertas['severo'] }} severo</span>
+                                @endif
+                                @if(($conteoAlertas['moderado'] ?? 0) > 0)
+                                    <span class="severity-pill moderado">{{ $conteoAlertas['moderado'] }} moderado</span>
+                                @endif
+                                @if(($conteoAlertas['revision'] ?? 0) > 0)
+                                    <span class="severity-pill revision">{{ $conteoAlertas['revision'] }} revision</span>
+                                @endif
+                            </div>
+                        @endif
+
+                        @if(!empty($estado['pisos']))
+                            <div class="flex flex-wrap gap-2 mb-3">
+                                @foreach($estado['pisos'] as $piso)
+                                    <span class="severity-pill {{ ($piso['alertas'] ?? 0) > 0 ? 'revision' : 'estable' }}">
+                                        {{ $piso['label'] }} {{ (int) ($piso['porcentaje'] ?? 0) }}%
+                                    </span>
+                                @endforeach
+                            </div>
+                        @endif
+
+                        <div class="lavadora-metricas">
+                            <div class="metric-item">
+                                <div class="metric-label">Avance</div>
+                                <div class="metric-value" style="color: var(--primary-blue);">{{ $porcentaje }}%</div>
+                            </div>
+                            <div class="metric-item">
+                                <div class="metric-label">Revisados</div>
+                                <div class="metric-value" style="color: var(--success-green);">
+                                    {{ $progreso['revisados'] ?? $progreso['componentes_revisados'] ?? 0 }}
+                                </div>
+                            </div>
+                            <div class="metric-item">
+                                <div class="metric-label">Pendientes</div>
+                                <div class="metric-value" style="color: {{ ($estado['acciones_pendientes'] ?? 0) > 0 ? 'var(--danger-red)' : 'var(--success-green)' }};">
+                                    {{ $estado['acciones_pendientes'] ?? 0 }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="lavadora-card-footer">
+                        <button onclick='showCentralHidraulicaDetail(@json($central))'
+                                class="lavadora-card-action">
+                            <i class="fas fa-chart-simple mr-1"></i> Ver Detalle Completo
+                        </button>
+                    </div>
+                </div>
+            @empty
+                <div class="chart-card">
+                    <h3>
+                        <i class="fas fa-oil-can"></i>
+                        <span>Sin centrales configuradas</span>
+                    </h3>
+                    <div class="chart-description">
+                        <i class="fas fa-info-circle"></i>
+                        Aun no hay lineas con configuracion de Central Hidraulica.
+                    </div>
+                </div>
+            @endforelse
+        </div>
+
+        <div class="dashboard-panels-grid">
+            <div class="chart-card fallas-card">
+                <h3>
+                    <i class="fas fa-chart-bar"></i>
+                    <span>Fallas por Linea</span>
+                </h3>
+                <div class="chart-container">
+                    <canvas id="fallasCentralHidraulicaChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="dashboard-panels-grid">
+            <div class="chart-card ranking-card">
+                <h3>
+                    <i class="fas fa-trophy"></i>
+                    <span>Ranking de Daño Hidraulico</span>
+                </h3>
+                <ul class="ranking-list">
+                    @forelse($rankingDanosCentralHidraulica->take(8) as $index => $item)
+                        @php
+                            $estado = $item['estado'];
+                            $nivelEstado = $estado['nivel'] ?? 'bueno';
+                            $estadoLabel = $nivelEstado === 'bueno'
+                                ? 'Buen estado'
+                                : ($nivelEstado === 'operativo'
+                                    ? 'Requiere revision'
+                                    : ($nivelEstado === 'riesgo' ? 'Severo / Moderado' : 'Critico'));
+                            $pendientes = (int) ($estado['acciones_pendientes'] ?? 0);
+                        @endphp
+                        <li class="ranking-item">
+                            <div class="ranking-position {{ $index === 0 ? 'top-1' : ($index === 1 ? 'top-2' : ($index === 2 ? 'top-3' : '')) }}">
+                                {{ $index + 1 }}
+                            </div>
+                            <div class="ranking-asset">
+                                <div class="asset-media">
+                                    <i class="fas fa-oil-can" style="font-size: 18px; color: #0f766e;"></i>
+                                </div>
+                                <div class="ranking-info">
+                                    <div class="ranking-linea">{{ $item['linea'] ?? $item['nombre'] }}</div>
+                                    <div class="ranking-puntaje">
+                                        <i class="fas fa-triangle-exclamation"></i>
+                                        Criticas: {{ $item['criticas'] ?? 0 }} - Severo / Moderado: {{ ($item['severos'] ?? 0) + ($item['moderados'] ?? 0) }} - Revision: {{ $item['requiere_revision'] ?? 0 }}
+                                    </div>
+                                    <div class="ranking-meta">
+                                        Pisos: {{ $item['pisos_afectados'] ?? 'Sin alertas' }} - Impacto {{ number_format((float) ($item['porcentaje_impacto'] ?? 0), 1) }}% - Revision: {{ $item['fecha_analisis_humana'] ?? 'Sin fecha' }}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="ranking-status-stack">
+                                <span class="severity-pill {{ $item['prioridad'] ?? 'estable' }}">{{ $item['prioridad_label'] ?? $estadoLabel }}</span>
+                                <div class="ranking-badge">
+                                    <i class="fas fa-bolt"></i>
+                                    {{ number_format((float) ($item['total_danos'] ?? $pendientes), 0) }} danos
+                                </div>
+                            </div>
+                        </li>
+                    @empty
+                        <li class="ranking-item">
+                            <div class="ranking-position">0</div>
+                            <div class="ranking-asset">
+                                <div class="ranking-info">
+                                    <div class="ranking-linea">Sin datos</div>
+                                    <div class="ranking-puntaje">No hay centrales para priorizar</div>
+                                </div>
+                            </div>
+                        </li>
+                    @endforelse
+                </ul>
+                <div class="ranking-footer">
+                    <div>
+                        <i class="fas fa-info-circle"></i>
+                        Daños activos de Central Hidraulica
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="dashboard-panels-grid">
+            <div class="chart-card planes-card">
+                <h3>
+                    <i class="fas fa-tasks"></i>
+                    <span>Plan de Accion</span>
+                </h3>
+                <div class="status-banner {{ $planesCentralEstado['nivel'] ?? 'estable' }}">
+                    <i class="fas fa-clipboard-check"></i>
+                    <span>{{ $planesCentralEstado['label'] ?? 'Controlado' }}: {{ $planesCentralEstado['mensaje'] ?? 'Sin planes abiertos con riesgo inmediato.' }}</span>
+                </div>
+                <div class="mini-stats-grid">
+                    <div class="mini-stat info">
+                        <div class="mini-stat-label">Activos</div>
+                        <div class="mini-stat-value">{{ $planesCentralResumen['activos'] ?? 0 }}</div>
+                    </div>
+                    <div class="mini-stat danger">
+                        <div class="mini-stat-label">Alta prioridad</div>
+                        <div class="mini-stat-value">{{ $planesCentralResumen['prioridad_alta'] ?? 0 }}</div>
+                    </div>
+                    <div class="mini-stat warning">
+                        <div class="mini-stat-label">Prox. 7 dias</div>
+                        <div class="mini-stat-value">{{ $planesCentralResumen['proximos_7_dias'] ?? 0 }}</div>
+                    </div>
+                    <div class="mini-stat success">
+                        <div class="mini-stat-label">Cierre</div>
+                        <div class="mini-stat-value">{{ $planesCentralResumen['avance'] ?? 0 }}%</div>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="planesCentralHidraulicaChart"></canvas>
+                </div>
+                <div class="worklist">
+                    @forelse($planesCentralActivos->take(4) as $plan)
+                        <div class="work-item">
+                            <div class="work-item-top">
+                                <div>
+                                    <div class="work-title">{{ $plan['linea'] }} - {{ Str::limit($plan['actividad'] ?? 'Sin actividad', 62) }}</div>
+                                    <div class="work-meta">Proxima fecha: {{ $plan['proxima_fecha_humana'] ?? 'Sin fecha' }}</div>
+                                </div>
+                                <span class="severity-pill {{ ($plan['prioridad'] ?? 'baja') === 'alta' ? 'critico' : (($plan['prioridad'] ?? 'baja') === 'media' ? 'severo' : 'estable') }}">
+                                    {{ $plan['prioridad_label'] ?? 'Baja' }}
+                                </span>
+                            </div>
+                        </div>
+                    @empty
+                        <div class="work-item">
+                            <div class="work-title">Sin planes activos</div>
+                            <div class="work-meta">No hay actividades abiertas de plan de accion hidraulico.</div>
+                        </div>
+                    @endforelse
+                </div>
+                <div class="table-footer">
+                    <i class="fas fa-info-circle"></i>
+                    <span>Planes reales del modulo Pasteurizadora filtrados por Central Hidraulica.</span>
+                    @if($puedeVerPlanesCentralHidraulica)
+                        <a href="{{ route('plan-accion.index', [
+                            'tipo' => \App\Models\User::MODULE_PASTEURIZADORA,
+                            'area_pasteurizadora' => \App\Models\AnalisisPasteurizadora::AREA_CENTRAL_HIDRAULICA,
+                        ]) }}">Abrir plan</a>
+                    @endif
+                </div>
+            </div>
+
+            <div class="chart-card avance-card">
+                <h3>
+                    <i class="fas fa-chart-line"></i>
+                    <span>Avance de Revision Hidraulica</span>
+                </h3>
+                <div class="mini-stats-grid compact">
+                    <div class="mini-stat info">
+                        <div class="mini-stat-label">Promedio</div>
+                        <div class="mini-stat-value">{{ $avanceCentralPromedio }}%</div>
+                        <div class="mini-stat-meta">avance global</div>
+                    </div>
+                    <div class="mini-stat success">
+                        <div class="mini-stat-label">Revisados</div>
+                        <div class="mini-stat-value">{{ number_format($totalCentralRevisados) }}</div>
+                        <div class="mini-stat-meta">posiciones revisadas</div>
+                    </div>
+                
+                </div>
+                <div class="chart-container">
+                    <canvas id="avanceRevisionCentralHidraulicaChart"></canvas>
+                </div>
+                <div class="linea-breakdown">
+                    @forelse($avanceCentralLineas->take(4) as $lineaAvance)
+                        <div class="breakdown-item">
+                            <div class="breakdown-item-top">
+                                <div>
+                                    <div class="breakdown-title">{{ $lineaAvance['linea'] }}</div>
+                                    <div class="breakdown-meta">{{ number_format((int) ($lineaAvance['revisados'] ?? 0)) }} de {{ number_format((int) ($lineaAvance['total'] ?? 0)) }} posiciones revisadas</div>
+                                </div>
+                                <span class="severity-pill {{ (int) ($lineaAvance['porcentaje'] ?? 0) >= 90 ? 'estable' : ((int) ($lineaAvance['porcentaje'] ?? 0) >= 60 ? 'revision' : 'severo') }}">
+                                    {{ (int) ($lineaAvance['porcentaje'] ?? 0) }}%
+                                </span>
+                            </div>
+                            <div class="progress-track">
+                                <div class="progress-bar" style="width: {{ min(100, max(0, (int) ($lineaAvance['porcentaje'] ?? 0))) }}%"></div>
+                            </div>
+                        </div>
+                    @empty
+                        <div class="breakdown-item">
+                            <div class="breakdown-title">Sin avance registrado</div>
+                            <div class="breakdown-meta">Aun no hay revisiones hidraulicas para graficar.</div>
+                        </div>
+                    @endforelse
+                </div>
+            </div>
+        </div>
+
+        <div class="dashboard-panels-grid dashboard-history-trend-grid">
+            <div class="chart-card historico-card historico-dashboard-card">
+                <h3>
+                    <i class="fas fa-history"></i>
+                    <span>Historico de Revisiones</span>
+                </h3>
+                <div class="overflow-x-auto">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th><i class="fas fa-layer-group" style="color: #3b82f6;"></i> Piso / Componente</th>
+                                <th><i class="fas fa-calendar-alt" style="color: #8b5cf6;"></i> Ultimo analisis</th>
+                                <th class="text-right"><i class="fas fa-hashtag" style="color: #10b981;"></i> Analisis</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse($historicoRevisionesCentralHidraulica as $item)
+                                <tr>
+                                    <td data-label="Piso / Componente"><i class="fas fa-oil-can mr-2 text-gray-400"></i>{{ $item['componente'] }}</td>
+                                    <td data-label="Ultimo analisis">{{ $item['ultimo_analisis'] }}</td>
+                                    <td data-label="Analisis">{{ $item['total_analisis'] }}</td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="3">Sin analisis registrados</td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+                <div class="table-footer">
+                    <i class="fas fa-info-circle"></i>
+                    <span>Informacion conectada con el historial de Central Hidraulica</span>
+                    @if($puedeVerCentralHidraulicaPasteurizadora)
+                        <a href="{{ route('pasteurizadora.central-hidraulica.historico-revisados') }}">Abrir historico</a>
+                    @endif
+                </div>
+            </div>
+
+            <div class="chart-card trend-card trend-card-primary dashboard-panel dashboard-trend-card">
+                <h3>
+                    <i class="fas fa-chart-line"></i>
+                    <span>Central Hidraulica 52-12-4 | Tendencia de Daños</span>
+                </h3>
+                <div class="dashboard-trend-main-header">
+                    <div class="dashboard-trend-title-block">
+                        <i class="fas fa-droplet"></i>
+                        <div>
+                            <div class="dashboard-trend-eyebrow">Analisis de tendencia Central Hidraulica</div>
+                            <h3 class="dashboard-trend-heading">Analisis 52-12-4</h3>
+                            <p class="dashboard-trend-subcopy">Lectura ejecutiva por central con ventanas de 52, 12 y 4 semanas.</p>
+                        </div>
+                    </div>
+                </div>
+                <form method="GET" action="{{ route('dashboard.global.pasteurizadoras') }}" class="trend-filter-form dashboard-trend-filters">
+                    <input type="hidden" name="parte" value="{{ \App\Models\AnalisisPasteurizadora::AREA_CENTRAL_HIDRAULICA }}">
+                    <select id="analisis52124CentralHidraulicaLineaSelect" class="panel-select pasteur-trend-line-select" data-pasteur-trend-card="central52124">
+                        @forelse(($analisis52124CentralHidraulica['lineas'] ?? []) as $lineaTrend)
+                            <option value="{{ $lineaTrend['linea_id'] }}" @selected((int) data_get($analisis52124CentralHidraulica, 'default_linea_id') === (int) $lineaTrend['linea_id'])>{{ $lineaTrend['linea'] }}</option>
+                        @empty
+                            <option value="">Sin centrales</option>
+                        @endforelse
+                    </select>
+                    <input type="hidden" name="{{ data_get($trendFilters, 'tendencia30147.from_param', 'trend_30147_desde') }}" value="{{ data_get($trendFilters, 'tendencia30147.from_input', '') }}">
+                    <input type="hidden" name="{{ data_get($trendFilters, 'tendencia30147.to_param', 'trend_30147_hasta') }}" value="{{ data_get($trendFilters, 'tendencia30147.to_input', '') }}">
+                    <div class="trend-filter-field">
+                        <label>Desde</label>
+                        <input type="date" name="{{ data_get($trendFilters, 'tendencia.from_param', 'trend_52124_desde') }}" value="{{ data_get($trendFilters, 'tendencia.from_input', '') }}">
+                    </div>
+                    <div class="trend-filter-field">
+                        <label>Hasta</label>
+                        <input type="date" name="{{ data_get($trendFilters, 'tendencia.to_param', 'trend_52124_hasta') }}" value="{{ data_get($trendFilters, 'tendencia.to_input', '') }}">
+                    </div>
+                    <button type="submit" class="trend-filter-button">
+                        <i class="fas fa-filter"></i>
+                        Aplicar
+                    </button>
+                    @if($puedeVerTendenciasPasteurizadora)
+                        <a href="{{ route('analisis-tendencia-mensual.pasteurizadora.analisis-52-12-4', ['area' => \App\Models\AnalisisPasteurizadora::AREA_CENTRAL_HIDRAULICA]) }}" class="trend-open-link">
+                            <i class="fas fa-up-right-from-square"></i>
+                            Abrir
+                        </a>
+                    @endif
+                </form>
+                <div class="dashboard-trend-machine-strip">
+                    <div class="dashboard-trend-machine-header">
+                        <i class="fas fa-industry"></i>
+                        <span>Centrales incluidas</span>
+                    </div>
+                    <div id="trendCentral52124MachineGrid" class="dashboard-trend-machine-grid"></div>
+                </div>
+                <div class="dashboard-trend-brief">
+                    <div id="trendCentral52124StatusCard" class="dashboard-trend-status dashboard-trend-status--neutral">
+                        <div class="dashboard-trend-eyebrow">Estado de seguimiento</div>
+                        <div id="trendCentral52124StatusTitle" class="dashboard-trend-status-title">Leyendo tendencia reciente...</div>
+                        <p id="trendCentral52124StatusCopy" class="dashboard-trend-status-copy">
+                            Se esta calculando el comportamiento reciente con informacion de Central Hidraulica.
+                        </p>
+                        <div id="trendCentral52124StatusNote" class="dashboard-trend-status-note">Ventanas: 52, 12 y 4 semanas.</div>
+                    </div>
+                    <div id="trendCentral52124WindowCards" class="dashboard-trend-window-grid"></div>
+                </div>
+                <div class="dashboard-trend-chart-shell">
+                    <div class="dashboard-trend-chart-header">
+                        <div class="dashboard-trend-chart-title">
+                            <i class="fas fa-chart-column"></i>
+                            <div>
+                                <h4>Comparativo por central</h4>
+                                <p>Ultimo corte disponible para cada ventana de analisis.</p>
+                            </div>
+                        </div>
+                        <div class="dashboard-trend-view-selector">
+                            <button type="button" class="dashboard-trend-view-btn active" data-pasteur-trend-card="central52124" data-pasteur-trend-type="bar">Barras</button>
+                            <button type="button" class="dashboard-trend-view-btn" data-pasteur-trend-card="central52124" data-pasteur-trend-type="line">Linea</button>
+                        </div>
+                        <div id="trendCentral52124Caption" class="dashboard-trend-caption">Corte actual de tendencia 52-12-4.</div>
+                    </div>
+                    <div class="chart-container dashboard-trend-chart-container">
+                        <canvas id="analisis52124CentralHidraulicaChart"></canvas>
+                    </div>
+                </div>
+                <div class="chart-description">
+                    <i class="fas fa-info-circle"></i>
+                    <span>Tendencia calculada solo con registros de Central Hidraulica</span>
+                </div>
+            </div>
+
+            <div class="chart-card trend-card trend-card-side dashboard-panel dashboard-trend-card">
+                <h3>
+                    <i class="fas fa-chart-line"></i>
+                    <span>Central Hidraulica 30-14-7 | Tendencia de Daños</span>
+                </h3>
+                <div class="dashboard-trend-main-header">
+                    <div class="dashboard-trend-title-block">
+                        <i class="fas fa-bolt"></i>
+                        <div>
+                            <div class="dashboard-trend-eyebrow">Analisis de tendencia Central Hidraulica</div>
+                            <h3 class="dashboard-trend-heading">Analisis 30-14-7</h3>
+                            <p class="dashboard-trend-subcopy">Lectura ejecutiva por central con ventanas de 30, 14 y 7 dias.</p>
+                        </div>
+                    </div>
+                </div>
+                <form method="GET" action="{{ route('dashboard.global.pasteurizadoras') }}" class="trend-filter-form dashboard-trend-filters">
+                    <input type="hidden" name="parte" value="{{ \App\Models\AnalisisPasteurizadora::AREA_CENTRAL_HIDRAULICA }}">
+                    <select id="analisis30147CentralHidraulicaLineaSelect" class="panel-select pasteur-trend-line-select" data-pasteur-trend-card="central30147">
+                        @forelse(($analisis30147CentralHidraulica['lineas'] ?? []) as $lineaTrend)
+                            <option value="{{ $lineaTrend['linea_id'] }}" @selected((int) data_get($analisis30147CentralHidraulica, 'default_linea_id') === (int) $lineaTrend['linea_id'])>{{ $lineaTrend['linea'] }}</option>
+                        @empty
+                            <option value="">Sin centrales</option>
+                        @endforelse
+                    </select>
+                    <input type="hidden" name="{{ data_get($trendFilters, 'tendencia.from_param', 'trend_52124_desde') }}" value="{{ data_get($trendFilters, 'tendencia.from_input', '') }}">
+                    <input type="hidden" name="{{ data_get($trendFilters, 'tendencia.to_param', 'trend_52124_hasta') }}" value="{{ data_get($trendFilters, 'tendencia.to_input', '') }}">
+                    <div class="trend-filter-field">
+                        <label>Desde</label>
+                        <input type="date" name="{{ data_get($trendFilters, 'tendencia30147.from_param', 'trend_30147_desde') }}" value="{{ data_get($trendFilters, 'tendencia30147.from_input', '') }}">
+                    </div>
+                    <div class="trend-filter-field">
+                        <label>Hasta</label>
+                        <input type="date" name="{{ data_get($trendFilters, 'tendencia30147.to_param', 'trend_30147_hasta') }}" value="{{ data_get($trendFilters, 'tendencia30147.to_input', '') }}">
+                    </div>
+                    <button type="submit" class="trend-filter-button">
+                        <i class="fas fa-filter"></i>
+                        Aplicar
+                    </button>
+                    @if($puedeVerTendenciasPasteurizadora)
+                        <a href="{{ route('analisis-tendencia-mensual.pasteurizadora.analisis-30-14-7', ['area' => \App\Models\AnalisisPasteurizadora::AREA_CENTRAL_HIDRAULICA]) }}" class="trend-open-link">
+                            <i class="fas fa-up-right-from-square"></i>
+                            Abrir
+                        </a>
+                    @endif
+                </form>
+                <div class="dashboard-trend-machine-strip">
+                    <div class="dashboard-trend-machine-header">
+                        <i class="fas fa-industry"></i>
+                        <span>Centrales incluidas</span>
+                    </div>
+                    <div id="trendCentral30147MachineGrid" class="dashboard-trend-machine-grid"></div>
+                </div>
+                <div class="dashboard-trend-brief">
+                    <div id="trendCentral30147StatusCard" class="dashboard-trend-status dashboard-trend-status--neutral">
+                        <div class="dashboard-trend-eyebrow">Estado de seguimiento</div>
+                        <div id="trendCentral30147StatusTitle" class="dashboard-trend-status-title">Leyendo tendencia reciente...</div>
+                        <p id="trendCentral30147StatusCopy" class="dashboard-trend-status-copy">
+                            Se esta calculando el comportamiento reciente con informacion de Central Hidraulica.
+                        </p>
+                        <div id="trendCentral30147StatusNote" class="dashboard-trend-status-note">Ventanas: 30, 14 y 7 dias.</div>
+                    </div>
+                    <div id="trendCentral30147WindowCards" class="dashboard-trend-window-grid"></div>
+                </div>
+                <div class="dashboard-trend-chart-shell">
+                    <div class="dashboard-trend-chart-header">
+                        <div class="dashboard-trend-chart-title">
+                            <i class="fas fa-chart-column"></i>
+                            <div>
+                                <h4>Comparativo por central</h4>
+                                <p>Ultimo corte disponible para cada ventana de analisis.</p>
+                            </div>
+                        </div>
+                        <div class="dashboard-trend-view-selector">
+                            <button type="button" class="dashboard-trend-view-btn active" data-pasteur-trend-card="central30147" data-pasteur-trend-type="bar">Barras</button>
+                            <button type="button" class="dashboard-trend-view-btn" data-pasteur-trend-card="central30147" data-pasteur-trend-type="line">Linea</button>
+                        </div>
+                        <div id="trendCentral30147Caption" class="dashboard-trend-caption">Corte actual de tendencia 30-14-7.</div>
+                    </div>
+                    <div class="chart-container dashboard-trend-chart-container">
+                        <canvas id="analisis30147CentralHidraulicaChart"></canvas>
+                    </div>
+                </div>
+                <div class="chart-description">
+                    <i class="fas fa-info-circle"></i>
+                    <span>Seguimiento calculado solo con registros de Central Hidraulica</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
+
 <div id="alertModal" class="modal">
     <div class="modal-content">
         <div class="modal-header">
@@ -2967,15 +3754,24 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
     let fallasPasteurizadoraChart, planesPasteurizadoraChart, avanceRevisionPasteurizadoraChart, analisis52124PasteurizadoraChart, analisis30147PasteurizadoraChart;
-    const pasteurizadorasData = @json($pasteurizadoras->values());
-    const fallasPorLineaPasteurizadora = @json($fallasPorLineaPasteurizadora->values());
-    const planesAccionDashboardPasteurizadora = @json($planesAccionDashboardPasteurizadora);
-    const avanceRevisionPasteurizadora = @json($avanceRevisionPasteurizadora);
-    const analisis52124Pasteurizadora = @json($analisis52124Pasteurizadora);
-    const analisis30147Pasteurizadora = @json($analisis30147Pasteurizadora);
+    let fallasCentralHidraulicaChart, planesCentralHidraulicaChart, avanceRevisionCentralHidraulicaChart, analisis52124CentralHidraulicaChart, analisis30147CentralHidraulicaChart;
+    const pasteurizadorasData = @json($esDashboardMecanica ? $pasteurizadoras->values() : []);
+    const fallasPorLineaPasteurizadora = @json($esDashboardMecanica ? $fallasPorLineaPasteurizadora->values() : []);
+    const planesAccionDashboardPasteurizadora = @json($esDashboardMecanica ? $planesAccionDashboardPasteurizadora : ['por_linea' => []]);
+    const avanceRevisionPasteurizadora = @json($esDashboardMecanica ? $avanceRevisionPasteurizadora : ['labels' => [], 'porcentajes' => []]);
+    const analisis52124Pasteurizadora = @json($esDashboardMecanica ? $analisis52124Pasteurizadora : ['lineas' => []]);
+    const analisis30147Pasteurizadora = @json($esDashboardMecanica ? $analisis30147Pasteurizadora : ['lineas' => []]);
+    const centralesHidraulicasData = @json($esDashboardCentral ? $centralesHidraulicasPasteurizadora->values() : []);
+    const fallasPorLineaCentralHidraulica = @json($esDashboardCentral ? $fallasPorLineaCentralHidraulica->values() : []);
+    const planesAccionDashboardCentralHidraulica = @json($esDashboardCentral ? $planesAccionDashboardCentralHidraulica : ['por_linea' => []]);
+    const avanceRevisionCentralHidraulica = @json($esDashboardCentral ? $avanceRevisionCentralHidraulica : ['labels' => [], 'porcentajes' => []]);
+    const analisis52124CentralHidraulica = @json($esDashboardCentral ? $analisis52124CentralHidraulica : ['lineas' => []]);
+    const analisis30147CentralHidraulica = @json($esDashboardCentral ? $analisis30147CentralHidraulica : ['lineas' => []]);
     const pasteurTrendChartTypes = {
         '52124': 'bar',
-        '30147': 'bar'
+        '30147': 'bar',
+        'central52124': 'bar',
+        'central30147': 'bar'
     };
     const pasteurTrendCards = {
         '52124': {
@@ -3017,6 +3813,46 @@
                 ['rgba(239, 68, 68, 0.88)', '#dc2626', 'rgba(239, 68, 68, 0.22)'],
                 ['rgba(245, 158, 11, 0.9)', '#d97706', 'rgba(245, 158, 11, 0.24)']
             ]
+        },
+        'central52124': {
+            key: 'central52124',
+            canvasId: 'analisis52124CentralHidraulicaChart',
+            selectId: 'analisis52124CentralHidraulicaLineaSelect',
+            dataset: analisis52124CentralHidraulica,
+            statusCardId: 'trendCentral52124StatusCard',
+            statusTitleId: 'trendCentral52124StatusTitle',
+            statusCopyId: 'trendCentral52124StatusCopy',
+            statusNoteId: 'trendCentral52124StatusNote',
+            windowsId: 'trendCentral52124WindowCards',
+            machineGridId: 'trendCentral52124MachineGrid',
+            captionId: 'trendCentral52124Caption',
+            title: 'Central Hidraulica 52-12-4',
+            windowRoles: ['Historico anual', 'Impacto trimestral', 'Control inmediato'],
+            colors: [
+                ['rgba(20, 184, 166, 0.88)', '#0f766e', 'rgba(20, 184, 166, 0.22)'],
+                ['rgba(239, 68, 68, 0.88)', '#dc2626', 'rgba(239, 68, 68, 0.22)'],
+                ['rgba(245, 158, 11, 0.9)', '#d97706', 'rgba(245, 158, 11, 0.24)']
+            ]
+        },
+        'central30147': {
+            key: 'central30147',
+            canvasId: 'analisis30147CentralHidraulicaChart',
+            selectId: 'analisis30147CentralHidraulicaLineaSelect',
+            dataset: analisis30147CentralHidraulica,
+            statusCardId: 'trendCentral30147StatusCard',
+            statusTitleId: 'trendCentral30147StatusTitle',
+            statusCopyId: 'trendCentral30147StatusCopy',
+            statusNoteId: 'trendCentral30147StatusNote',
+            windowsId: 'trendCentral30147WindowCards',
+            machineGridId: 'trendCentral30147MachineGrid',
+            captionId: 'trendCentral30147Caption',
+            title: 'Central Hidraulica 30-14-7',
+            windowRoles: ['Ventana amplia', 'Seguimiento intermedio', 'Control inmediato'],
+            colors: [
+                ['rgba(20, 184, 166, 0.88)', '#0f766e', 'rgba(20, 184, 166, 0.22)'],
+                ['rgba(239, 68, 68, 0.88)', '#dc2626', 'rgba(239, 68, 68, 0.22)'],
+                ['rgba(245, 158, 11, 0.9)', '#d97706', 'rgba(245, 158, 11, 0.24)']
+            ]
         }
     };
 
@@ -3028,8 +3864,11 @@
     });
 
     function initCharts() {
-        const fallasCtx = document.getElementById('fallasPasteurizadoraChart').getContext('2d');
-        fallasPasteurizadoraChart = new Chart(fallasCtx, {
+        const fallasCanvas = document.getElementById('fallasPasteurizadoraChart');
+
+        if (fallasCanvas) {
+            const fallasCtx = fallasCanvas.getContext('2d');
+            fallasPasteurizadoraChart = new Chart(fallasCtx, {
             type: 'bar',
             data: {
                 labels: fallasPorLineaPasteurizadora.map(item => item.linea),
@@ -3104,7 +3943,8 @@
                     }
                 }
             }
-        });
+            });
+        }
 
         planesPasteurizadoraChart = buildPlanesPasteurizadoraChart();
         avanceRevisionPasteurizadoraChart = buildAvanceRevisionPasteurizadoraChart();
@@ -3117,6 +3957,19 @@
             'analisis30147PasteurizadoraChart',
             analisis30147Pasteurizadora,
             pasteurTrendCards['30147']
+        );
+        fallasCentralHidraulicaChart = buildFallasCentralHidraulicaChart();
+        planesCentralHidraulicaChart = buildPlanesCentralHidraulicaChart();
+        avanceRevisionCentralHidraulicaChart = buildAvanceRevisionCentralHidraulicaChart();
+        analisis52124CentralHidraulicaChart = buildPasteurizadoraTrendChart(
+            'analisis52124CentralHidraulicaChart',
+            analisis52124CentralHidraulica,
+            pasteurTrendCards['central52124']
+        );
+        analisis30147CentralHidraulicaChart = buildPasteurizadoraTrendChart(
+            'analisis30147CentralHidraulicaChart',
+            analisis30147CentralHidraulica,
+            pasteurTrendCards['central30147']
         );
     }
 
@@ -3251,6 +4104,217 @@
         });
     }
 
+    function buildFallasCentralHidraulicaChart() {
+        const canvas = document.getElementById('fallasCentralHidraulicaChart');
+        if (!canvas) return null;
+
+        return new Chart(canvas.getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: fallasPorLineaCentralHidraulica.map(item => item.linea),
+                datasets: [
+                    {
+                        label: 'Criticos',
+                        data: fallasPorLineaCentralHidraulica.map(item => item.criticos || 0),
+                        backgroundColor: 'rgba(239, 68, 68, 0.9)',
+                        borderColor: '#dc2626',
+                        borderWidth: 2,
+                        borderRadius: 12,
+                        borderSkipped: false
+                    },
+                    {
+                        label: 'Requiere revision',
+                        data: fallasPorLineaCentralHidraulica.map(item => item.requiere_revision || 0),
+                        backgroundColor: 'rgba(245, 158, 11, 0.9)',
+                        borderColor: '#d97706',
+                        borderWidth: 2,
+                        borderRadius: 12,
+                        borderSkipped: false
+                    },
+                    {
+                        label: 'Severo / Moderado',
+                        data: fallasPorLineaCentralHidraulica.map(item => item.desgaste || 0),
+                        backgroundColor: 'rgba(20, 184, 166, 0.86)',
+                        borderColor: '#0f766e',
+                        borderWidth: 2,
+                        borderRadius: 12,
+                        borderSkipped: false
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        stacked: true,
+                        grid: { color: 'rgba(0, 0, 0, 0.05)', drawBorder: false, drawTicks: false },
+                        ticks: { font: { size: 12, weight: 600 }, color: '#64748b', padding: 8 }
+                    },
+                    x: {
+                        stacked: true,
+                        grid: { display: false, drawBorder: false },
+                        ticks: { font: { size: 13, weight: 600 }, color: '#334155', padding: 8 }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top',
+                        labels: { usePointStyle: true, padding: 18, font: { size: 12, weight: 'bold' }, color: '#334155' }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                        titleColor: '#ffffff',
+                        bodyColor: '#ccfbf1',
+                        borderColor: '#0f766e',
+                        borderWidth: 2,
+                        padding: 14,
+                        callbacks: {
+                            label: context => `${context.dataset.label}: ${context.raw}`,
+                            footer: function(items) {
+                                const item = fallasPorLineaCentralHidraulica[items[0]?.dataIndex];
+                                return item ? `Total: ${item.total_fallas || 0}` : '';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    function buildPlanesCentralHidraulicaChart() {
+        const canvas = document.getElementById('planesCentralHidraulicaChart');
+        if (!canvas) return null;
+
+        const rows = Array.isArray(planesAccionDashboardCentralHidraulica?.por_linea)
+            ? planesAccionDashboardCentralHidraulica.por_linea
+            : [];
+
+        return new Chart(canvas.getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: rows.map(item => item.linea || 'N/A'),
+                datasets: [
+                    {
+                        label: 'Abiertos',
+                        data: rows.map(item => Number(item.abiertos || 0)),
+                        backgroundColor: 'rgba(239, 68, 68, 0.86)',
+                        borderColor: '#dc2626',
+                        borderWidth: 2,
+                        borderRadius: 10,
+                        borderSkipped: false
+                    },
+                    {
+                        label: 'Completados',
+                        data: rows.map(item => Number(item.completados || 0)),
+                        backgroundColor: 'rgba(20, 184, 166, 0.86)',
+                        borderColor: '#0f766e',
+                        borderWidth: 2,
+                        borderRadius: 10,
+                        borderSkipped: false
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: 'rgba(0, 0, 0, 0.05)', drawBorder: false, drawTicks: false },
+                        ticks: { font: { size: 12, weight: 600 }, color: '#64748b', precision: 0 }
+                    },
+                    x: {
+                        grid: { display: false, drawBorder: false },
+                        ticks: { font: { size: 12, weight: 600 }, color: '#334155' }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        labels: { usePointStyle: true, padding: 18, font: { size: 12, weight: 'bold' }, color: '#334155' }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                        titleColor: '#ffffff',
+                        bodyColor: '#ccfbf1',
+                        borderColor: '#0f766e',
+                        borderWidth: 2,
+                        padding: 14
+                    }
+                }
+            }
+        });
+    }
+
+    function buildAvanceRevisionCentralHidraulicaChart() {
+        const canvas = document.getElementById('avanceRevisionCentralHidraulicaChart');
+        if (!canvas) return null;
+
+        const labels = Array.isArray(avanceRevisionCentralHidraulica?.labels)
+            ? avanceRevisionCentralHidraulica.labels
+            : [];
+        const values = Array.isArray(avanceRevisionCentralHidraulica?.porcentajes)
+            ? avanceRevisionCentralHidraulica.porcentajes.map(value => Number(value || 0))
+            : [];
+
+        return new Chart(canvas.getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels,
+                datasets: [{
+                    label: 'Avance de revision hidraulica',
+                    data: values,
+                    backgroundColor: values.map(value => value >= 90
+                        ? 'rgba(20, 184, 166, 0.88)'
+                        : (value >= 60 ? 'rgba(245, 158, 11, 0.88)' : 'rgba(249, 115, 22, 0.88)')),
+                    borderColor: values.map(value => value >= 90
+                        ? '#0f766e'
+                        : (value >= 60 ? '#d97706' : '#ea580c')),
+                    borderWidth: 2,
+                    borderRadius: 10,
+                    borderSkipped: false
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        grid: { color: 'rgba(0, 0, 0, 0.05)', drawBorder: false, drawTicks: false },
+                        ticks: {
+                            font: { size: 12, weight: 600 },
+                            color: '#64748b',
+                            callback: value => `${value}%`
+                        }
+                    },
+                    x: {
+                        grid: { display: false, drawBorder: false },
+                        ticks: { font: { size: 12, weight: 600 }, color: '#334155' }
+                    }
+                },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                        titleColor: '#ffffff',
+                        bodyColor: '#ccfbf1',
+                        borderColor: '#0f766e',
+                        borderWidth: 2,
+                        padding: 14,
+                        callbacks: {
+                            label: context => `${context.raw}% revisado`
+                        }
+                    }
+                }
+            }
+        });
+    }
+
     function initPasteurizadoraTrendSelectors() {
         document.querySelectorAll('[data-pasteur-trend-type]').forEach((button) => {
             button.addEventListener('click', () => {
@@ -3274,6 +4338,10 @@
                     analisis52124PasteurizadoraChart = chart;
                 } else if (cardKey === '30147') {
                     analisis30147PasteurizadoraChart = chart;
+                } else if (cardKey === 'central52124') {
+                    analisis52124CentralHidraulicaChart = chart;
+                } else if (cardKey === 'central30147') {
+                    analisis30147CentralHidraulicaChart = chart;
                 }
             });
         });
@@ -3292,6 +4360,10 @@
                     analisis52124PasteurizadoraChart = chart;
                 } else if (config.key === '30147') {
                     analisis30147PasteurizadoraChart = chart;
+                } else if (config.key === 'central52124') {
+                    analisis52124CentralHidraulicaChart = chart;
+                } else if (config.key === 'central30147') {
+                    analisis30147CentralHidraulicaChart = chart;
                 }
             });
         });
@@ -3425,6 +4497,8 @@
 
         if (statusCard && statusTitle && statusCopy) {
             let tone = 'neutral';
+            let title = 'Sin danos recientes';
+            let copy = 'La ventana reciente no registra danos para esta seleccion.';
 
             if (!rows.length || !sourceSeries.length) {
                 title = 'Sin datos en el periodo';
@@ -3623,13 +4697,152 @@
         });
     }
 
+    function formatModalDate(value) {
+        if (!value) {
+            return 'Sin fecha';
+        }
+
+        const date = new Date(value);
+
+        if (Number.isNaN(date.getTime())) {
+            return escapeHtml(value);
+        }
+
+        return date.toLocaleDateString('es-MX');
+    }
+
+    function pasteurizadoraAnalisisPorEstado(estado) {
+        const porEstado = estado.analisis_por_estado || {};
+
+        return {
+            critico: Array.isArray(porEstado.critico) ? porEstado.critico : (Array.isArray(estado.analisis_criticos) ? estado.analisis_criticos : []),
+            severo: Array.isArray(porEstado.severo) ? porEstado.severo : [],
+            moderado: Array.isArray(porEstado.moderado) ? porEstado.moderado : [],
+            revision: Array.isArray(porEstado.revision) ? porEstado.revision : (Array.isArray(estado.analisis_revision) ? estado.analisis_revision : [])
+        };
+    }
+
+    function pasteurizadoraAlertSections(estado) {
+        const porEstado = pasteurizadoraAnalisisPorEstado(estado);
+
+        return [
+            { key: 'critico', title: 'Requiere cambio', tone: 'critico' },
+            { key: 'severo', title: 'Daño severo', tone: 'severo' },
+            { key: 'moderado', title: 'Daño moderado', tone: 'moderado' },
+            { key: 'revision', title: 'Requiere revision', tone: 'revision' }
+        ].filter((section) => Array.isArray(porEstado[section.key]) && porEstado[section.key].length > 0);
+    }
+
+    function pasteurizadoraAnalysisLocation(analysis, mode) {
+        if (mode === 'central') {
+            return [
+                analysis.piso ? `Piso: ${analysis.piso}` : null,
+                analysis.lado || null
+            ].filter(Boolean).join(' · ');
+        }
+
+        return [
+            analysis.modulo ? `Modulo: ${analysis.modulo}` : null,
+            analysis.nivel ? `Nivel: ${analysis.nivel}` : null,
+            analysis.lado || null
+        ].filter(Boolean).join(' · ');
+    }
+
+    function renderPasteurizadoraAnalisisSection(title, tone, analyses, mode = 'mecanica') {
+        if (!Array.isArray(analyses) || analyses.length === 0) {
+            return '';
+        }
+
+        const toneClasses = {
+            critico: 'bg-red-100 text-red-700',
+            severo: 'bg-orange-100 text-orange-700',
+            moderado: 'bg-amber-100 text-amber-700',
+            revision: 'bg-yellow-100 text-yellow-700'
+        };
+        const badgeClass = toneClasses[tone] || 'bg-slate-100 text-slate-700';
+
+        const cards = analyses.map((analysis) => {
+            const fallback = mode === 'central' ? '/images/icono_pas.png' : '/images/icono_pas.png';
+            const image = analysis.image || analysis.fallback_image || fallback;
+            const location = pasteurizadoraAnalysisLocation(analysis, mode);
+            const componentName = analysis.componente_nombre || analysis.componente?.nombre || 'Componente';
+            const dateLabel = analysis.fecha_formateada || formatModalDate(analysis.fecha_analisis);
+            const orderLabel = analysis.numero_orden ? `Orden: ${analysis.numero_orden}` : null;
+
+            return `
+                <div class="bg-white rounded-lg p-3 border border-gray-200">
+                    <div class="flex justify-between items-start gap-3">
+                        <div class="min-w-0 flex-1">
+                            <div class="componente-header">
+                                <div class="componente-icono">
+                                    <img src="${escapeHtml(image)}" class="w-8 h-8 object-contain" onerror="this.src='${escapeHtml(analysis.fallback_image || fallback)}'">
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <div class="componente-nombre">${escapeHtml(componentName)}</div>
+                                </div>
+                            </div>
+                            ${location ? `<p class="text-sm text-gray-600 mt-2">${escapeHtml(location)}</p>` : ''}
+                            <p class="text-xs text-gray-500 mt-1">
+                                Fecha: ${escapeHtml(dateLabel)}${orderLabel ? ` · ${escapeHtml(orderLabel)}` : ''}
+                            </p>
+                        </div>
+                        <span class="px-2 py-1 rounded text-xs font-semibold ${badgeClass}">
+                            ${escapeHtml(analysis.estado_label || analysis.estado || title)}
+                        </span>
+                    </div>
+                    <p class="text-sm text-gray-700 mt-2">
+                        ${escapeHtml(analysis.actividad || 'Sin descripcion')}
+                    </p>
+                </div>
+            `;
+        }).join('');
+
+        return `
+            <div class="mb-4">
+                <div class="flex items-center justify-between gap-3 mb-2">
+                    <h4 class="font-bold text-gray-800">${escapeHtml(title)}</h4>
+                    <span class="severity-pill ${tone}">${analyses.length}</span>
+                </div>
+                <div class="space-y-3">
+                    ${cards}
+                </div>
+            </div>
+        `;
+    }
+
+    function renderPasteurizadoraAlertChips(conteo) {
+        const total = Object.values(conteo || {}).reduce((sum, value) => sum + Number(value || 0), 0);
+
+        if (total <= 0) {
+            return '';
+        }
+
+        return `
+            <div class="mb-4 flex flex-wrap gap-2">
+                ${Number(conteo.critico || 0) > 0 ? `<span class="severity-pill critico">${Number(conteo.critico || 0)} requiere cambio</span>` : ''}
+                ${Number(conteo.severo || 0) > 0 ? `<span class="severity-pill severo">${Number(conteo.severo || 0)} severo</span>` : ''}
+                ${Number(conteo.moderado || 0) > 0 ? `<span class="severity-pill moderado">${Number(conteo.moderado || 0)} moderado</span>` : ''}
+                ${Number(conteo.revision || 0) > 0 ? `<span class="severity-pill revision">${Number(conteo.revision || 0)} revision</span>` : ''}
+            </div>
+        `;
+    }
+
+    function renderPasteurizadoraEmptyDetail(message) {
+        return `
+            <div class="bg-slate-50 rounded-lg p-4 border border-slate-200 text-sm text-slate-600">
+                ${escapeHtml(message)}
+            </div>
+        `;
+    }
+
     function showPasteurizadoraDetail(pasteurizadora) {
         const modal = document.getElementById('alertModal');
         const modalTitle = document.getElementById('modalTitle');
         const modalBody = document.getElementById('modalBody');
         const estado = pasteurizadora.estado || {};
-        const progreso = estado.progreso_revision || {};
-        const criticos = estado.analisis_criticos || [];
+        const porEstado = pasteurizadoraAnalisisPorEstado(estado);
+        const sections = pasteurizadoraAlertSections(estado);
+        const conteoAlertas = estado.conteo_alertas || {};
 
         modalTitle.innerHTML = `Detalle - ${escapeHtml(pasteurizadora.nombre)}`;
 
@@ -3638,54 +4851,24 @@
                 <h4 class="font-bold text-lg mb-2">Estado: ${escapeHtml((estado.nivel || 'bueno').toUpperCase())}</h4>
                 <p class="text-gray-700">${escapeHtml(estado.mensaje || 'Sin mensaje de estado')}</p>
             </div>
-
-            <div class="mb-4">
-                <h4 class="font-bold text-gray-800 mb-2">Avance de Revisión</h4>
-                <div class="bg-white rounded-lg p-3 border border-gray-200">
-                    <div class="grid grid-cols-3 gap-2 text-center">
-                        <div>
-                            <p class="text-sm text-gray-600">Avance</p>
-                            <p class="font-semibold text-blue-600">${progreso.porcentaje || 0}%</p>
-                        </div>
-                        <div>
-                            <p class="text-sm text-gray-600">Revisados</p>
-                            <p class="font-semibold text-green-600">${progreso.revisados || progreso.componentes_revisados || 0}</p>
-                        </div>
-                        <div>
-                            <p class="text-sm text-gray-600">Total</p>
-                            <p class="font-semibold text-gray-700">${progreso.total || progreso.total_componentes || 0}</p>
-                        </div>
-                    </div>
-                    <div class="progress-track">
-                        <div class="progress-fill" style="width: ${progreso.porcentaje || 0}%"></div>
-                    </div>
-                    <p class="text-xs text-gray-500 mt-2">Último análisis: ${escapeHtml(estado.ultimo_analisis?.fecha || 'Sin registro')}</p>
-                </div>
-            </div>
         `;
 
-        if (criticos.length > 0) {
+        html += renderPasteurizadoraAlertChips(conteoAlertas);
+
+        sections.forEach((section) => {
+            html += renderPasteurizadoraAnalisisSection(section.title, section.tone, porEstado[section.key] || [], 'mecanica');
+        });
+
+        if (estado.ultimo_analisis) {
             html += `
                 <div class="mb-4">
-                    <h4 class="font-bold text-gray-800 mb-2">Componentes Críticos</h4>
-                    <div class="space-y-3">
-            `;
-            criticos.forEach(analisis => {
-                html += `
+                    <h4 class="font-bold text-gray-800 mb-2">Ultimo analisis</h4>
                     <div class="bg-white rounded-lg p-3 border border-gray-200">
-                        <div class="flex justify-between items-start">
-                            <div>
-                                <div class="font-semibold text-gray-800">${escapeHtml(analisis.componente_nombre || 'Componente')}</div>
-                                <p class="text-sm text-gray-600 mt-1">Módulo: ${escapeHtml(analisis.modulo || 'N/A')} · Lado: ${escapeHtml(analisis.lado || 'N/A')}</p>
-                                <p class="text-xs text-gray-500 mt-1">Orden: ${escapeHtml(analisis.numero_orden || 'N/A')} · Fecha: ${escapeHtml(analisis.fecha_formateada || analisis.fecha_analisis || 'Sin fecha')}</p>
-                            </div>
-                            <span class="px-2 py-1 bg-red-100 text-red-700 rounded text-xs font-semibold">Crítico</span>
-                        </div>
-                        <p class="text-sm text-gray-700 mt-2">${escapeHtml(analisis.actividad || 'Sin descripción')}</p>
+                        <p class="text-sm text-gray-600">Fecha: <span class="font-semibold text-gray-800">${escapeHtml(estado.ultimo_analisis.fecha || 'Sin registro')}</span></p>
+                        <p class="text-sm text-gray-600 mt-1">Modulos configurados: <span class="font-semibold text-gray-800">${escapeHtml(estado.ultimo_analisis.modulos || 'N/A')}</span></p>
                     </div>
-                `;
-            });
-            html += `</div></div>`;
+                </div>
+            `;
         }
 
         if ((estado.acciones_pendientes || 0) > 0) {
@@ -3693,22 +4876,141 @@
                 <div class="mb-4">
                     <h4 class="font-bold text-gray-800 mb-2">Acciones Pendientes</h4>
                     <div class="bg-yellow-50 rounded-lg p-3 border border-yellow-200">
-                        <p class="text-yellow-800">Esta pasteurizadora tiene ${estado.acciones_pendientes} acción(es) pendiente(s).</p>
+                        <p class="text-yellow-800">Esta pasteurizadora tiene ${escapeHtml(estado.acciones_pendientes)} accion(es) pendiente(s) en el plan de accion.</p>
+                        @if($puedeVerPlanesPasteurizadora)
+                        <a href="{{ route('pasteurizadora.analisis-pasteurizadora.plan-accion.index') }}?linea_id=${pasteurizadora.id}" class="mt-2 inline-block text-blue-600 text-sm hover:underline">
+                            <i class="fas fa-arrow-right mr-1"></i> Ver Plan de Accion
+                        </a>
+                        @endif
                     </div>
                 </div>
             `;
+        }
+
+        if (sections.length === 0 && !(estado.acciones_pendientes > 0)) {
+            html += renderPasteurizadoraEmptyDetail('No hay componentes con alertas activas para esta pasteurizadora.');
         }
 
         html += `
             <div class="flex justify-end gap-3 mt-4 pt-4 border-t border-gray-200">
                 @if($puedeVerMecanicaPasteurizadora)
                 <a href="{{ route('pasteurizadora.analisis-pasteurizadora.index') }}?linea_id=${pasteurizadora.id}" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition">
-                    <i class="fas fa-chart-line mr-1"></i> Ver Análisis
+                    <i class="fas fa-chart-line mr-1"></i> Ver Analisis
                 </a>
                 @endif
-                @if($puedeVerPlanesPasteurizadora)
-                <a href="{{ route('pasteurizadora.analisis-pasteurizadora.plan-accion.index') }}?linea_id=${pasteurizadora.id}" class="px-4 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600 transition">
-                    <i class="fas fa-tasks mr-1"></i> Ver Plan
+                <button onclick="closeModal()" class="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400 transition">
+                    Cerrar
+                </button>
+            </div>
+        `;
+
+        modalBody.innerHTML = html;
+        modal.classList.add('show');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function showCentralHidraulicaDetail(central) {
+        const modal = document.getElementById('alertModal');
+        const modalTitle = document.getElementById('modalTitle');
+        const modalBody = document.getElementById('modalBody');
+        const estado = central.estado || {};
+        const conteoAlertas = estado.conteo_alertas || {};
+        const porEstado = pasteurizadoraAnalisisPorEstado(estado);
+        const sections = pasteurizadoraAlertSections(estado);
+        const pisos = Array.isArray(estado.pisos) ? estado.pisos : [];
+        const nivel = estado.nivel || 'bueno';
+        const toneClass = nivel === 'critico'
+            ? 'bg-red-50 border-l-4 border-red-500'
+            : (nivel === 'riesgo'
+                ? 'bg-orange-50 border-l-4 border-orange-500'
+                : (nivel === 'operativo' ? 'bg-yellow-50 border-l-4 border-yellow-500' : 'bg-green-50 border-l-4 border-green-500'));
+
+        modalTitle.innerHTML = `Detalle - ${escapeHtml(central.nombre)}`;
+
+        let html = `
+            <div class="mb-4 p-4 rounded-lg ${toneClass}">
+                <h4 class="font-bold text-lg mb-2">Estado: ${escapeHtml(nivel.toUpperCase())}</h4>
+                <p class="text-gray-700">${escapeHtml(estado.mensaje || 'Central Hidraulica sin mensaje de estado')}</p>
+            </div>
+        `;
+
+        html += renderPasteurizadoraAlertChips(conteoAlertas);
+
+        sections.forEach((section) => {
+            html += renderPasteurizadoraAnalisisSection(section.title, section.tone, porEstado[section.key] || [], 'central');
+        });
+
+        if (pisos.length > 0) {
+            html += `
+                <div class="mb-4">
+                    <h4 class="font-bold text-gray-800 mb-2">Avance por piso</h4>
+                    <div class="space-y-2">
+            `;
+
+            pisos.forEach((piso) => {
+                const porcentaje = Math.min(100, Math.max(0, Number(piso.porcentaje || 0)));
+
+                html += `
+                    <div class="bg-white rounded-lg p-3 border border-gray-200">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="font-semibold text-gray-800">${escapeHtml(piso.label || 'Piso')}</span>
+                            <span class="text-sm font-bold text-blue-600">${porcentaje}%</span>
+                        </div>
+                        <div class="progress-track">
+                            <div class="progress-fill" style="width: ${porcentaje}%"></div>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-2">Revisados: ${piso.revisados || 0} / ${piso.total || 0} - Alertas: ${piso.alertas || 0}</p>
+                    </div>
+                `;
+            });
+
+            html += `</div></div>`;
+        }
+
+        if (estado.ultimo_analisis) {
+            html += `
+                <div class="mb-4">
+                    <h4 class="font-bold text-gray-800 mb-2">Ultimo analisis</h4>
+                    <div class="bg-white rounded-lg p-3 border border-gray-200">
+                        <p class="text-sm text-gray-600">Fecha: <span class="font-semibold text-gray-800">${escapeHtml(estado.ultimo_analisis.fecha || 'Sin registro')}</span></p>
+                        <p class="text-sm text-gray-600 mt-1">Componente: <span class="font-semibold text-gray-800">${escapeHtml(estado.ultimo_analisis.componente || 'N/A')}</span></p>
+                        <p class="text-sm text-gray-600 mt-1">Piso: <span class="font-semibold text-gray-800">${escapeHtml(estado.ultimo_analisis.piso || 'N/A')}</span></p>
+                    </div>
+                </div>
+            `;
+        }
+
+        if ((estado.acciones_pendientes || 0) > 0) {
+            html += `
+                <div class="mb-4">
+                    <h4 class="font-bold text-gray-800 mb-2">Acciones Pendientes</h4>
+                    <div class="bg-yellow-50 rounded-lg p-3 border border-yellow-200">
+                        <p class="text-yellow-800">Esta central tiene ${escapeHtml(estado.acciones_pendientes)} accion(es) pendiente(s) en el plan de accion.</p>
+                        @if($esDashboardCentral && $puedeVerPlanesCentralHidraulica)
+                        <a href="{{ route('plan-accion.index', [
+                            'tipo' => \App\Models\User::MODULE_PASTEURIZADORA,
+                            'area_pasteurizadora' => \App\Models\AnalisisPasteurizadora::AREA_CENTRAL_HIDRAULICA,
+                        ]) }}&linea_id=${central.id}" class="mt-2 inline-block text-blue-600 text-sm hover:underline">
+                            <i class="fas fa-arrow-right mr-1"></i> Ver Plan de Accion
+                        </a>
+                        @endif
+                    </div>
+                </div>
+            `;
+        }
+
+        if (sections.length === 0 && !(estado.acciones_pendientes > 0)) {
+            html += renderPasteurizadoraEmptyDetail('No hay registros con alertas activas para esta Central Hidraulica.');
+        }
+
+        html += `
+            <div class="flex flex-wrap justify-end gap-3 mt-4 pt-4 border-t border-gray-200">
+                @if($esDashboardCentral && $puedeVerCentralHidraulicaPasteurizadora)
+                <a href="{{ route('pasteurizadora.central-hidraulica.index') }}?linea_id=${central.id}" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition">
+                    <i class="fas fa-droplet mr-1"></i> Ver Analisis
+                </a>
+                <a href="{{ route('pasteurizadora.central-hidraulica.historico-revisados') }}?linea_id=${central.id}" class="px-4 py-2 bg-slate-700 text-white rounded hover:bg-slate-800 transition">
+                    <i class="fas fa-history mr-1"></i> Historico
                 </a>
                 @endif
                 <button onclick="closeModal()" class="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400 transition">

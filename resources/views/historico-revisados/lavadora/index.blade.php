@@ -1125,17 +1125,29 @@
 
     
    @php
-$rutasImagenes = [
-    'SERVO_CHICO' => asset('images/componentes-lavadora/SERVO_CHICO.png'),
-    'SERVO_GRANDE' => asset('images/componentes-lavadora/SERVO_GRANDE.png'),
-    'BUJE_ESPIGA' => asset('images/componentes-lavadora/BUJE_ESPIGA.png'),
-    'GUI_INF_TANQUE' => asset('images/componentes-lavadora/GUI_INF_TANQUE.png'),
-    'GUI_INT_TANQUE' => asset('images/componentes-lavadora/GUI_INT_TANQUE.png'),
-    'GUI_SUP_TANQUE' => asset('images/componentes-lavadora/GUI_SUP_TANQUE.png'),
-    'CATARINAS' => asset('images/componentes-lavadora/CATARINAS.png'),
-    'RV200' => asset('images/componentes-lavadora/RV200.png'),
-    'RV200_SIN_FIN' => asset('images/componentes-lavadora/RV200_SIN_FIN.png'),
-];
+$rutasImagenes = collect(\App\Support\LavadoraCatalog::COMPONENTE_CODIGOS_BASE)
+    ->mapWithKeys(fn ($codigo) => [$codigo => asset("images/componentes-lavadora/{$codigo}.png")])
+    ->all();
+$componentesRv250 = array_keys(array_filter(
+    \App\Support\LavadoraCatalog::COMPONENTE_NOMBRES,
+    fn ($label) => $label === 'RV250 Sin Fin Corona'
+));
+$nombreComponenteLavadora = function ($nombre, $codigo = null) use ($componentesRv250) {
+    $nombreUpper = strtoupper((string) $nombre);
+    $codigoUpper = strtoupper((string) $codigo);
+
+    foreach ($componentesRv250 as $codigoBase) {
+        if (
+            $codigoUpper === $codigoBase
+            || str_contains($codigoUpper, $codigoBase)
+            || str_contains($nombreUpper, $codigoBase)
+        ) {
+            return 'RV250 Sin Fin Corona';
+        }
+    }
+
+    return trim((string) $nombre) !== '' ? $nombre : '-';
+};
 @endphp
 
 {{-- TABLA DE COMPONENTES --}}
@@ -1159,17 +1171,20 @@ $rutasImagenes = [
                 </thead>
                 <tbody>
                     @forelse($estadisticas as $codigo => $data)
+                        @php
+                            $nombreComponente = $nombreComponenteLavadora($data['nombre'] ?? null, $codigo);
+                        @endphp
                         <tr>
                             <td data-label="Componente">
                                 <div class="componente-nombre">
                                     <div class="componente-imagen">
                                         <img src="{{ $rutasImagenes[$codigo] ?? asset('images/componentes-lavadora/default.png') }}" 
-                                             alt="{{ $data['nombre'] }}"
+                                             alt="{{ $nombreComponente }}"
                                              class="componente-img"
                                              onerror="this.onerror=null; this.src='{{ asset('images/componentes-lavadora/default.png') }}';">
                                     </div>
                                     <div class="componente-info">
-                                        <span class="componente-nombre-texto">{{ $data['nombre'] }}</span>
+                                        <span class="componente-nombre-texto">{{ $nombreComponente }}</span>
                                         @if(isset($data['periodo_meses']))
                                             <span class="text-xs text-gray-500">
                                                 <i class="fas fa-clock"></i> Cada {{ $data['periodo_meses'] }} meses
@@ -1211,7 +1226,7 @@ $rutasImagenes = [
                             <td data-label="Acciones">
                                 <button class="btn btn-sm btn-primary" 
                                         style="padding: 6px 12px; font-size: 12px; background: #3b82f6; color: white; border: none; border-radius: 6px;"
-                                        onclick="verDetalleComponente('{{ $codigo }}', '{{ $data['nombre'] }}', {{ $data['cantidad_revisada'] }}, {{ $data['cantidad_total'] }})">
+                                        onclick='verDetalleComponente(@json($codigo), @json($nombreComponente), {{ $data['cantidad_revisada'] }}, {{ $data['cantidad_total'] }})'>
                                     <i class="fas fa-eye"></i> Ver
                                 </button>
                             </td>
@@ -1247,25 +1262,26 @@ $rutasImagenes = [
             @php
                 $alturaBarra = ($data['porcentaje'] / $maxPorcentaje) * $maxAltura;
                 
-                $nombreCorto = $data['nombre'];
+                $nombreComponente = $nombreComponenteLavadora($data['nombre'] ?? null, $codigo);
+                $nombreCorto = $nombreComponente;
                 if (strlen($nombreCorto) > 20) {
-                    if (strpos($nombreCorto, 'Baquelita') !== false) {
+                    if (strpos($nombreCorto, 'RV250') !== false) {
+                        $nombreCorto = 'RV250 S/F';
+                    } elseif (strpos($nombreCorto, 'Baquelita') !== false) {
                         $nombreCorto = 'Buje Baquelita';
                     } elseif (strpos($nombreCorto, 'Sin Fin') !== false) {
                         $nombreCorto = 'Reductor S/F';
-                    } elseif (strpos($nombreCorto, 'RV250') !== false || strpos($nombreCorto, 'RV200') !== false) {
-                        $nombreCorto = 'RV250 S/F';
                     }
                 }
             @endphp
             <div class="grafica-columna">
-                <div class="grafica-barra-vertical" title="{{ $data['nombre'] }} ({{ $data['cantidad_revisada'] }}/{{ $data['cantidad_total'] }})">
+                <div class="grafica-barra-vertical" title="{{ $nombreComponente }} ({{ $data['cantidad_revisada'] }}/{{ $data['cantidad_total'] }})">
                     <div class="barra-relleno bg-{{ $data['color'] }}" 
                          style="height: {{ $alturaBarra }}px;">
                         <span class="grafica-valor">{{ $data['porcentaje'] }}%</span>
                     </div>
                 </div>
-                <div class="grafica-etiqueta" title="{{ $data['nombre'] }}">
+                <div class="grafica-etiqueta" title="{{ $nombreComponente }}">
                     {{ $nombreCorto }}
                 </div>
             </div>
@@ -1403,17 +1419,7 @@ $rutasImagenes = [
 <script>
     function verDetalleComponente(codigo, nombre, revisado, total) {
         // 👉 Imagen del componente
-    const rutasImagenes = {
-        'SERVO_CHICO': "{{ asset('images/componentes-lavadora/SERVO_CHICO.png') }}",
-        'SERVO_GRANDE': "{{ asset('images/componentes-lavadora/SERVO_GRANDE.png') }}",
-        'BUJE_ESPIGA': "{{ asset('images/componentes-lavadora/BUJE_ESPIGA.png') }}",
-        'GUI_INF_TANQUE': "{{ asset('images/componentes-lavadora/GUI_INF_TANQUE.png') }}",
-        'GUI_INT_TANQUE': "{{ asset('images/componentes-lavadora/GUI_INT_TANQUE.png') }}",
-        'GUI_SUP_TANQUE': "{{ asset('images/componentes-lavadora/GUI_SUP_TANQUE.png') }}",
-        'CATARINAS': "{{ asset('images/componentes-lavadora/CATARINAS.png') }}",
-        'RV200': "{{ asset('images/componentes-lavadora/RV200.png') }}",
-        'RV200_SIN_FIN': "{{ asset('images/componentes-lavadora/RV200_SIN_FIN.png') }}"
-    };
+    const rutasImagenes = @json($rutasImagenes);
 
     // 👉 Asignar imagen
     document.getElementById('modalComponenteImagen').src =

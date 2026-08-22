@@ -4,6 +4,8 @@
     $lineaSeleccionada = $lineaSeleccionada ?? null;
     $fechaInicio = $fechaInicio ?? request('fecha_inicio');
     $fechaFin = $fechaFin ?? request('fecha_fin');
+    $areaAnalisis = $areaAnalisis ?? request('area', 'mecanica');
+    $isCentralHidraulica = $areaAnalisis === 'central_hidraulica';
     $isAnalisis30147 = $analisisTipo === '30147';
     $rutaAnalisisActiva = $isAnalisis30147
         ? 'analisis-tendencia-mensual.pasteurizadora.analisis-30-14-7'
@@ -15,7 +17,11 @@
     $parametrosLinea = array_filter([
         'linea_id' => $lineaSeleccionada,
     ], fn ($value) => filled($value)) + $parametrosFecha;
-    $tituloAnalisis = $isAnalisis30147 ? 'Analisis 30-14-7' : 'Analisis 52-12-4';
+    $parametrosMecanica = array_merge($parametrosLinea, ['area' => 'mecanica']);
+    $parametrosHidraulica = array_merge($parametrosLinea, ['area' => 'central_hidraulica']);
+    $tituloAnalisisBase = $isAnalisis30147 ? 'Analisis 30-14-7' : 'Analisis 52-12-4';
+    $tituloAreaAnalisis = $isCentralHidraulica ? 'Central Hidraulica' : 'Parte mecanica';
+    $tituloAnalisis = $tituloAreaAnalisis . ' - ' . $tituloAnalisisBase;
     $analisisDetalle = $analisisDetalle ?? [];
     $detalleLinea = $detalleLinea ?? null;
     $resumenDetalle = $detalleLinea['resumen'] ?? [];
@@ -24,7 +30,6 @@
     $eventosDetalle = collect($detalleLinea['eventos'] ?? []);
     $globalDetalle = $analisisDetalle['global'] ?? [];
     $periodoDetalle = $analisisDetalle['periodo']['label'] ?? 'Historico disponible';
-    $graficasDetalle = $detalleLinea['graficas'] ?? [];
     $mostrarPanelLateralDanos = filled($lineaSeleccionada)
         && $detalleLinea
         && isset($analisis)
@@ -32,7 +37,7 @@
 @endphp
 @extends('layouts.app')
 
-@section('title', $analisisTipo === '30147' ? 'Analisis 30-14-7' : 'Analisis 52-12-4')
+@section('title', $tituloAnalisis)
 
 @section('content')
 <style>
@@ -1020,6 +1025,197 @@
         min-width: 0;
     }
 
+    .event-card-link {
+        color: inherit;
+        display: block;
+        text-decoration: none;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+    }
+
+    .event-card-link:hover {
+        border-color: rgba(37, 99, 235, 0.35);
+        box-shadow: 0 12px 22px rgba(15, 23, 42, 0.1);
+        transform: translateY(-1px);
+    }
+
+    .event-card-top {
+        align-items: flex-start;
+        display: flex;
+        gap: 10px;
+        justify-content: space-between;
+        margin-bottom: 10px;
+    }
+
+    .event-source-badge {
+        align-items: center;
+        border-radius: 999px;
+        display: inline-flex;
+        font-size: 10px;
+        font-weight: 800;
+        gap: 6px;
+        line-height: 1.2;
+        padding: 5px 9px;
+        text-transform: uppercase;
+        white-space: normal;
+    }
+
+    .event-source-badge.mechanical {
+        background: #dbeafe;
+        color: #1d4ed8;
+    }
+
+    .event-source-badge.hydraulic {
+        background: #ccfbf1;
+        color: #0f766e;
+    }
+
+    .event-card-date {
+        color: var(--text-secondary);
+        flex-shrink: 0;
+        font-size: 11px;
+        font-weight: 800;
+    }
+
+    .event-card-title {
+        color: var(--text-primary);
+        font-size: 13px;
+        font-weight: 800;
+        line-height: 1.35;
+        margin-bottom: 6px;
+    }
+
+    .event-card-meta {
+        color: var(--text-secondary);
+        font-size: 11px;
+        font-weight: 700;
+        line-height: 1.45;
+    }
+
+    .event-card-status {
+        color: #991b1b;
+        font-size: 11px;
+        font-weight: 800;
+        margin-top: 8px;
+    }
+
+    .hydraulic-trend-section {
+        border-top: 1px solid rgba(20, 184, 166, 0.32);
+        margin: 0 0 24px;
+        padding-top: 22px;
+    }
+
+    .hydraulic-trend-header {
+        align-items: flex-start;
+        display: flex;
+        gap: 18px;
+        justify-content: space-between;
+        margin-bottom: 16px;
+    }
+
+    .hydraulic-trend-title {
+        align-items: center;
+        color: var(--text-primary);
+        display: flex;
+        font-size: 18px;
+        font-weight: 900;
+        gap: 10px;
+        line-height: 1.25;
+        text-transform: uppercase;
+    }
+
+    .hydraulic-trend-title i,
+    .hydraulic-chart-title i {
+        color: #0f766e;
+    }
+
+    .hydraulic-trend-subtitle {
+        color: var(--text-secondary);
+        font-size: 13px;
+        font-weight: 700;
+        line-height: 1.45;
+        margin-top: 6px;
+        max-width: 68ch;
+    }
+
+    .hydraulic-trend-badges {
+        display: flex;
+        flex: 0 0 auto;
+        flex-wrap: wrap;
+        gap: 8px;
+        justify-content: flex-end;
+        max-width: min(100%, 520px);
+    }
+
+    .hydraulic-trend-badge {
+        align-items: center;
+        background: #ccfbf1;
+        border: 1px solid rgba(15, 118, 110, 0.18);
+        border-radius: 999px;
+        color: #0f766e;
+        display: inline-flex;
+        font-size: 12px;
+        font-weight: 800;
+        gap: 7px;
+        line-height: 1.25;
+        padding: 8px 11px;
+    }
+
+    .hydraulic-chart-grid {
+        display: grid;
+        gap: 18px;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        margin-bottom: 24px;
+    }
+
+    .hydraulic-chart-card {
+        background: white;
+        border: 1px solid var(--border);
+        border-top: 4px solid #0f766e;
+        border-radius: 20px;
+        box-shadow: 0 12px 22px rgba(15, 23, 42, 0.07);
+        min-width: 0;
+        padding: 20px;
+    }
+
+    .hydraulic-chart-card--wide {
+        grid-column: 1 / -1;
+    }
+
+    .hydraulic-chart-title {
+        align-items: center;
+        color: var(--text-primary);
+        display: flex;
+        font-size: 14px;
+        font-weight: 900;
+        gap: 10px;
+        letter-spacing: 0.03em;
+        line-height: 1.3;
+        margin-bottom: 14px;
+        text-transform: uppercase;
+    }
+
+    .hydraulic-chart-container {
+        height: 320px;
+        min-width: 0;
+        position: relative;
+        width: 100%;
+    }
+
+    .hydraulic-chart-container--tall {
+        height: 380px;
+    }
+
+    .hydraulic-empty-note {
+        background: #f0fdfa;
+        border: 1px solid rgba(20, 184, 166, 0.25);
+        border-radius: 16px;
+        color: #0f766e;
+        font-size: 13px;
+        font-weight: 800;
+        line-height: 1.45;
+        padding: 16px;
+    }
+
     .analysis-chart-grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
@@ -1208,6 +1404,19 @@
             grid-template-columns: 1fr;
         }
 
+        .hydraulic-trend-header {
+            flex-direction: column;
+        }
+
+        .hydraulic-trend-badges {
+            justify-content: flex-start;
+            max-width: 100%;
+        }
+
+        .hydraulic-chart-grid {
+            grid-template-columns: 1fr;
+        }
+
         .mini-chart-container--combined {
             height: 390px;
         }
@@ -1288,9 +1497,31 @@
 
         .analysis-summary-grid,
         .analysis-insight-grid,
-        .analysis-chart-grid {
+        .analysis-chart-grid,
+        .hydraulic-chart-grid {
             grid-template-columns: 1fr;
             gap: 12px;
+        }
+
+        .hydraulic-trend-section {
+            padding-top: 18px;
+        }
+
+        .hydraulic-trend-title {
+            font-size: 16px;
+        }
+
+        .hydraulic-chart-card {
+            border-radius: 16px;
+            padding: 16px;
+        }
+
+        .hydraulic-chart-container {
+            height: 300px;
+        }
+
+        .hydraulic-chart-container--tall {
+            height: 320px;
         }
 
         .mini-chart-container {
@@ -1536,15 +1767,25 @@
             </h1>
         </div>
         <div class="analysis-switcher flex flex-wrap gap-3">
-            <a href="{{ route('analisis-tendencia-mensual.pasteurizadora.analisis-52-12-4', $parametrosLinea) }}" 
-               class="inline-flex items-center gap-2 px-5 py-3 rounded-full font-semibold transition-all duration-300 {{ !$isAnalisis30147 ? 'bg-blue-600 text-white shadow-lg' : 'bg-white text-gray-700 border border-gray-200 hover:border-blue-300 hover:text-blue-700' }}">
+            <a href="{{ route('analisis-tendencia-mensual.pasteurizadora.analisis-52-12-4', $parametrosMecanica) }}"
+               class="inline-flex items-center gap-2 px-5 py-3 rounded-full font-semibold transition-all duration-300 {{ !$isCentralHidraulica && !$isAnalisis30147 ? 'bg-blue-600 text-white shadow-lg' : 'bg-white text-gray-700 border border-gray-200 hover:border-blue-300 hover:text-blue-700' }}">
                 <i class="fas fa-chart-line"></i>
-                <span>52-12-4</span>
+                <span>Mecanica 52-12-4</span>
             </a>
-            <a href="{{ route('analisis-tendencia-mensual.pasteurizadora.analisis-30-14-7', $parametrosLinea) }}" 
-               class="inline-flex items-center gap-2 px-5 py-3 rounded-full font-semibold transition-all duration-300 {{ $isAnalisis30147 ? 'bg-cyan-600 text-white shadow-lg' : 'bg-white text-gray-700 border border-gray-200 hover:border-cyan-300 hover:text-cyan-700' }}">
+            <a href="{{ route('analisis-tendencia-mensual.pasteurizadora.analisis-30-14-7', $parametrosMecanica) }}"
+               class="inline-flex items-center gap-2 px-5 py-3 rounded-full font-semibold transition-all duration-300 {{ !$isCentralHidraulica && $isAnalisis30147 ? 'bg-cyan-600 text-white shadow-lg' : 'bg-white text-gray-700 border border-gray-200 hover:border-cyan-300 hover:text-cyan-700' }}">
                 <i class="fas fa-chart-bar"></i>
-                <span>30-14-7</span>
+                <span>Mecanica 30-14-7</span>
+            </a>
+            <a href="{{ route('analisis-tendencia-mensual.pasteurizadora.analisis-52-12-4', $parametrosHidraulica) }}"
+               class="inline-flex items-center gap-2 px-5 py-3 rounded-full font-semibold transition-all duration-300 {{ $isCentralHidraulica && !$isAnalisis30147 ? 'bg-teal-600 text-white shadow-lg' : 'bg-white text-teal-700 border border-teal-200 hover:border-teal-300 hover:bg-teal-50' }}">
+                <i class="fas fa-droplet"></i>
+                <span>Central Hidraulica 52-12-4</span>
+            </a>
+            <a href="{{ route('analisis-tendencia-mensual.pasteurizadora.analisis-30-14-7', $parametrosHidraulica) }}"
+               class="inline-flex items-center gap-2 px-5 py-3 rounded-full font-semibold transition-all duration-300 {{ $isCentralHidraulica && $isAnalisis30147 ? 'bg-teal-600 text-white shadow-lg' : 'bg-white text-teal-700 border border-teal-200 hover:border-teal-300 hover:bg-teal-50' }}">
+                <i class="fas fa-droplet"></i>
+                <span>Central Hidraulica 30-14-7</span>
             </a>
         </div>
     </div>
@@ -1557,7 +1798,7 @@
         
         <div class="machine-grid">
             @foreach($lineas as $linea)
-                <a href="{{ route($rutaAnalisisActiva, ['linea_id' => $linea->id] + $parametrosFecha) }}" 
+                <a href="{{ route($rutaAnalisisActiva, ['linea_id' => $linea->id, 'area' => $areaAnalisis] + $parametrosFecha) }}"
                    class="machine-pill {{ $lineaSeleccionada == $linea->id ? 'machine-pill-active' : 'machine-pill-inactive' }}">
                     {{ $linea->nombre }}
                 </a>
@@ -1565,6 +1806,8 @@
         </div>
 
         <form method="GET" action="{{ route($rutaAnalisisActiva) }}" class="mt-6 grid gap-4 border-t border-gray-200 pt-5 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] md:items-end">
+            <input type="hidden" name="area" value="{{ $areaAnalisis }}">
+
             @if($lineaSeleccionada)
                 <input type="hidden" name="linea_id" value="{{ $lineaSeleccionada }}">
             @endif
@@ -1600,7 +1843,7 @@
                 </button>
 
                 @if($fechaInicio || $fechaFin)
-                    <a href="{{ route($rutaAnalisisActiva, array_filter(['linea_id' => $lineaSeleccionada], fn ($value) => filled($value))) }}"
+                    <a href="{{ route($rutaAnalisisActiva, array_filter(['linea_id' => $lineaSeleccionada, 'area' => $areaAnalisis], fn ($value) => filled($value))) }}"
                        class="create-action create-action--compact create-action--secondary">
                         <i class="fas fa-rotate-left"></i>
                         Limpiar
@@ -1639,6 +1882,14 @@
                 <div class="analysis-summary-label">Total de daños</div>
                 <div class="analysis-summary-value">{{ number_format($totalPeriodo) }}</div>
                 <div class="analysis-summary-meta">{{ $periodoDetalle }}</div>
+            </div>
+
+            <div class="analysis-summary-card {{ $isCentralHidraulica ? 'warning' : 'success' }}">
+                <div class="analysis-summary-label">Vista actual</div>
+                <div class="analysis-summary-value">{{ $tituloAreaAnalisis }}</div>
+                <div class="analysis-summary-meta">
+                    {{ number_format($totalPeriodo) }} danos en esta parte
+                </div>
             </div>
 
             <div class="analysis-summary-card warning">
@@ -3031,6 +3282,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+
     window.changeExecutiveChartType = function(type) {
         currentExecutiveChartType = type;
 

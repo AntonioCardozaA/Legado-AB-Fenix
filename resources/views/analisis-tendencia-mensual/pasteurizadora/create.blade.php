@@ -233,12 +233,12 @@
             {{-- Botones --}}
             <div class="create-actions create-actions--end border-t pt-6">
                 <a href="{{ route('analisis-tendencia-mensual.pasteurizadora.index') }}" 
-                   class="create-action create-action--secondary">
+                   class="create-action create-action--secondary analysis-create-action--cancel-mobile">
                     <i class="fas fa-times"></i>
                     Cancelar
                 </a>
                 <button type="submit" 
-                        class="create-action">
+                        class="create-action analysis-create-action--save-mobile">
                     <i class="fas fa-save"></i>
                     Guardar Análisis Mensual
                 </button>

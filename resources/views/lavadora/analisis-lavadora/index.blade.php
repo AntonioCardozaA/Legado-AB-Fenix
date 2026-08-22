@@ -345,6 +345,21 @@
         padding: 2px 4px;
         border-radius: 3px;
     }
+
+    .component-sku {
+        display: inline-block;
+        max-width: 100%;
+        margin-top: 4px;
+        color: #4b5563;
+        background: #f3f4f6;
+        padding: 2px 5px;
+        border-radius: 3px;
+        font-size: 9px;
+        font-weight: 700;
+        line-height: 1.2;
+        white-space: normal;
+        overflow-wrap: anywhere;
+    }
     
     .reductor-header {
         display: flex;
@@ -1398,6 +1413,10 @@
             font-size: 9px;
         }
 
+        .lavadora-index .component-sku {
+            font-size: 8px;
+        }
+
         .lavadora-index .component-header img {
             width: 3.75rem !important;
             height: 3.75rem !important;
@@ -1481,6 +1500,32 @@
         $etiquetaReductorLinea = fn ($lineaNombre = null, bool $plural = false, bool $uppercase = false) => \App\Support\LavadoraCatalog::etiquetaReductor($lineaNombre, $plural, $uppercase);
         $etiquetaReductorValorLinea = fn ($lineaNombre, $reductor, bool $uppercase = false) => \App\Support\LavadoraCatalog::etiquetaReductorParaValor($lineaNombre, $reductor, $uppercase);
         $nombreReductorLinea = fn ($lineaNombre, $reductor) => \App\Support\LavadoraCatalog::nombreReductorParaLinea($lineaNombre, $reductor) ?? $reductor;
+        $skuResumenComponente = fn ($lineaNombre, $codigo) => \App\Support\LavadoraCatalog::resumenSkuComponente($lineaNombre, $codigo);
+        $componentesRv250 = array_keys(array_filter(
+            \App\Support\LavadoraCatalog::COMPONENTE_NOMBRES,
+            fn ($label) => $label === 'RV250 Sin Fin Corona'
+        ));
+        $codigoRv250SinFin = collect($componentesRv250)
+            ->first(fn ($codigo) => str_contains($codigo, 'SIN_FIN')) ?? ($componentesRv250[0] ?? null);
+        $esComponenteRv250 = function ($nombre, $codigo = null) use ($componentesRv250) {
+            $nombreUpper = strtoupper((string) $nombre);
+            $codigoUpper = strtoupper((string) $codigo);
+
+            foreach ($componentesRv250 as $codigoBase) {
+                if (
+                    $codigoUpper === $codigoBase
+                    || str_contains($codigoUpper, $codigoBase)
+                    || str_contains($nombreUpper, $codigoBase)
+                ) {
+                    return true;
+                }
+            }
+
+            return false;
+        };
+        $nombreComponenteLavadora = fn ($nombre, $codigo = null) => $esComponenteRv250($nombre, $codigo)
+            ? 'RV250 Sin Fin Corona'
+            : (trim((string) $nombre) !== '' ? $nombre : '-');
         
         // Filtrar solo las lavadoras que queremos mostrar siempre
         $lavadorasPermitidas = \App\Support\LavadoraCatalog::LINEAS;
@@ -1586,7 +1631,7 @@
                                 <option value="">Todos los componentes</option>
                                 @foreach(($todosComponentes ?? []) as $key => $nombre)
                                     <option value="{{ $key }}" {{ request('componente_id') == $key ? 'selected' : '' }}>
-                                        {{ $nombre }}
+                                        {{ $nombreComponenteLavadora($nombre, $key) }}
                                     </option>
                                 @endforeach
                             </select>
@@ -1711,7 +1756,10 @@
                             }
                         }
 
-                        $nombreComponente = $componentesDiagrama[$codigoBase] ?? ($item->componente->nombre ?? $codigoBase);
+                        $nombreComponente = $nombreComponenteLavadora(
+                            $componentesDiagrama[$codigoBase] ?? ($item->componente->nombre ?? $codigoBase),
+                            $codigoBase
+                        );
                         $estadoActual = $item->estado_operativo ?? \App\Models\AnalisisLavadora::ESTADO_BUENO;
                         $metaEstado = $monitorEstadoMeta($estadoActual);
                         $fechaTs = isset($item->fecha_analisis) && $item->fecha_analisis ? $item->fecha_analisis->getTimestamp() : 0;
@@ -1812,7 +1860,7 @@
             foreach ($ultimosPorComponente as $item) {
                 $estado = $item->estado_operativo ?? '';
                 $lineaNombre = $item->linea->nombre ?? 'Sin línea';
-                $componenteNombre = $item->componente->nombre ?? 'Sin componente';
+                $componenteNombre = $nombreComponenteLavadora($item->componente->nombre ?? 'Sin componente', $item->componente->codigo ?? null);
                 $reductor = is_numeric($item->reductor) ? "Reductor {$item->reductor}" : $item->reductor;
                 
                 if (\App\Models\AnalisisLavadora::esEstadoBueno($estado)) {
@@ -1990,7 +2038,7 @@
                 foreach ($ultimosPorComponenteGlobal as $item) {
                 $estado = $item->estado_operativo ?? '';
                     $lineaNombre = $item->linea->nombre ?? 'Sin línea';
-                    $componenteNombre = $item->componente->nombre ?? 'Sin componente';
+                    $componenteNombre = $nombreComponenteLavadora($item->componente->nombre ?? 'Sin componente', $item->componente->codigo ?? null);
                     $reductor = is_numeric($item->reductor) ? "Reductor {$item->reductor}" : $item->reductor;
                     
                     $estadisticasGlobales['total']++;
@@ -2148,7 +2196,7 @@
 
                             $componentesLinea->push((object)[
                                 'id'     => $codigo,
-                                'nombre' => $nombre,
+                                'nombre' => $nombreComponenteLavadora($nombre, $codigo),
                                 'codigo' => $codigo,
                                 'icono'  => asset("images/componentes-lavadora/{$codigo}.png"),
                             ]);
@@ -2278,6 +2326,10 @@
                                                 data-search-target="{{ $componenteBuscado === $c->id ? 'true' : 'false' }}">
                                                 <div class="component-header">
                                                     <div class="component-name">{{ $c->nombre }}</div>
+                                                    @php
+                                                        $skuResumen = $skuResumenComponente($linea->nombre, $c->id);
+                                                    @endphp
+                                                    <div class="component-sku" title="{{ $skuResumen['title'] }}">{{ $skuResumen['label'] }}</div>
                                                     <img src="{{ $c->icono }}" alt="Icono" class="w-20 h-20 object-contain" onerror="this.src='{{ asset('images/extras/sin imagen.png') }}'">
                                                     <div class="flex justify-center gap-1 mt-1">
                                                         @if($conteoEstadosComponente[$c->id]['ok'] > 0)
@@ -2405,7 +2457,10 @@
                                                         'id' => $registro->id,
                                                         'linea' => $registro->linea->nombre ?? $linea->nombre,
                                                         'linea_nombre' => $registro->linea->nombre ?? $linea->nombre,
-                                                        'componente' => $registro->componente->nombre ?? $c->nombre,
+                                                        'componente' => $nombreComponenteLavadora(
+                                                            $registro->componente->nombre ?? $c->nombre,
+                                                            $registro->componente->codigo ?? $c->id
+                                                        ),
                                                         'componente_codigo' => $registro->componente->codigo ?? $c->id,
                                                         'reductor' => $registro->reductor,
                                                         'reductor_label' => $nombreReductorLinea($registro->linea->nombre ?? $linea->nombre, $registro->reductor),
@@ -2607,7 +2662,7 @@
                 foreach ($componentesPorLinea[$lineaMostrar->nombre] as $id => $nombre) {
                     $componentesParaTabla->push((object)[
                         'id'     => $id,
-                        'nombre' => $nombre,
+                        'nombre' => $nombreComponenteLavadora($nombre, $id),
                         'icono'  => asset("images/componentes-lavadora/{$id}.png"),
                     ]);
                 }
@@ -2669,8 +2724,8 @@
                 $componentesL12 = \App\Models\Componente::where('linea', 'L-12')->get();
                 
                 foreach ($componentesL12 as $comp) {
-                    if (str_contains($comp->codigo, 'RV200_SIN_FIN') || str_contains($comp->nombre, 'RV200')) {
-                        $mapaComponentesL12[$comp->id] = 'RV200_SIN_FIN';
+                    if ($esComponenteRv250($comp->nombre, $comp->codigo)) {
+                        $mapaComponentesL12[$comp->id] = $codigoRv250SinFin;
                     } elseif (str_contains($comp->codigo, 'BUJE_ESPIGA')) {
                         $mapaComponentesL12[$comp->id] = 'BUJE_ESPIGA';
                     } elseif (str_contains($comp->codigo, 'GUI_INF_TANQUE')) {
@@ -2849,6 +2904,10 @@
                                             data-search-target="{{ $componenteBuscado === $c->id ? 'true' : 'false' }}">
                                             <div class="component-header">
                                                 <div class="component-name">{{ $c->nombre }}</div>
+                                                @php
+                                                    $skuResumen = $skuResumenComponente($lineaMostrar->nombre ?? null, $c->id);
+                                                @endphp
+                                                <div class="component-sku" title="{{ $skuResumen['title'] }}">{{ $skuResumen['label'] }}</div>
                                                 <img
                                                     src="{{ $c->icono }}"
                                                     alt="Icono {{ $c->nombre }}"
@@ -2972,7 +3031,10 @@
                                                     'id' => $registro->id,
                                                     'linea' => $registro->linea->nombre ?? 'Sin nombre',
                                                     'linea_nombre' => $registro->linea->nombre ?? ($lineaMostrar->nombre ?? null),
-                                                    'componente' => $registro->componente->nombre ?? 'Sin nombre',
+                                                    'componente' => $nombreComponenteLavadora(
+                                                        $registro->componente->nombre ?? 'Sin nombre',
+                                                        $registro->componente->codigo ?? ''
+                                                    ),
                                                     'componente_codigo' => $registro->componente->codigo ?? '',
                                                     'reductor' => $registro->reductor,
                                                     'reductor_label' => $nombreReductorLinea($registro->linea->nombre ?? ($lineaMostrar->nombre ?? null), $registro->reductor),
@@ -3173,7 +3235,7 @@
 
                                     $componentesLinea->push((object)[
                                         'id'     => $codigo,
-                                        'nombre' => $nombre,
+                                        'nombre' => $nombreComponenteLavadora($nombre, $codigo),
                                         'codigo' => $codigo,
                                         'icono'  => asset("images/componentes-lavadora/{$codigo}.png"),
                                     ]);
@@ -3221,6 +3283,10 @@
                                                         data-search-target="{{ $componenteBuscado === $c->id ? 'true' : 'false' }}">
                                                         <div class="component-header">
                                                             <div class="component-name">{{ $c->nombre }}</div>
+                                                            @php
+                                                                $skuResumen = $skuResumenComponente($linea->nombre, $c->id);
+                                                            @endphp
+                                                            <div class="component-sku" title="{{ $skuResumen['title'] }}">{{ $skuResumen['label'] }}</div>
                                                             <img src="{{ $c->icono }}" alt="Icono" class="w-20 h-20 object-contain" onerror="this.src='{{ asset('images/extras/sin imagen.png') }}'">
                                                         </div>
                                                     </th>

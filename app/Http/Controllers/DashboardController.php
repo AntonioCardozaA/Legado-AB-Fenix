@@ -9,7 +9,9 @@ use App\Models\Componente;
 use App\Models\Linea;
 use App\Models\Elongacion;
 use App\Models\PlanAccion;
+use App\Models\AnalisisCentralHidraulica;
 use App\Models\AnalisisPasteurizadora;
+use App\Models\CentralHidraulicaConfiguracion;
 use App\Models\User;
 use App\Services\TendenciaDanosService;
 use App\Services\LavadoraCostAnalyticsService;
@@ -343,11 +345,15 @@ class DashboardController extends Controller
      */
    public function pasteurizadoraGlobal(Request $request)
 {
-    if (!auth()->user()?->canAccessModule(User::MODULE_PASTEURIZADORA)) {
+    $user = auth()->user();
+
+    if (!$user?->canAccessModule(User::MODULE_PASTEURIZADORA)) {
         return redirect()
             ->route('lavadora.dashboard')
             ->with('pasteurizadora_bloqueada', 'Estamos trabajando en ello, estará disponible muy pronto.');
     }
+
+    $dashboardPasteurizadoraParte = $this->resolveDashboardPasteurizadoraParte($request, $user);
 
     $pasteurizadoras = Linea::whereIn('nombre', [
         'P-03','P-04','P-05','P-06','P-07','P-08','P-09','P-10','P-11','P-12','P-13','P-14'
@@ -394,13 +400,15 @@ class DashboardController extends Controller
         $pasteurizadoras,
         TendenciaDanosService::TIPO_PASTEURIZADORAS,
         $tendenciaDanos->ventanas52124(),
-        $trend52124Range
+        $trend52124Range,
+        AnalisisPasteurizadora::AREA_MECANICA
     );
     $analisis30147Pasteurizadora = $tendenciaDanos->construirDashboard(
         $pasteurizadoras,
         TendenciaDanosService::TIPO_PASTEURIZADORAS,
         $tendenciaDanos->ventanas30147(),
-        $trend30147Range
+        $trend30147Range,
+        AnalisisPasteurizadora::AREA_MECANICA
     );
     $trendFilters = [
         'tendencia' => [
@@ -417,8 +425,11 @@ class DashboardController extends Controller
         ],
     ];
     $ultimosAnalisisPasteurizadora = $analisisHistorico->sortByDesc('fecha_analisis')->take(8)->values();
+    $centralHidraulicaDashboard = $dashboardPasteurizadoraParte === AnalisisPasteurizadora::AREA_CENTRAL_HIDRAULICA
+        ? $this->getDashboardCentralHidraulicaPasteurizadoraData($trend52124Range, $trend30147Range)
+        : [];
 
-    return view('dashboard_pasteurizadora', compact(
+    return view('dashboard_pasteurizadora', array_merge(compact(
         'resumenPasteurizadora',
         'estadoPasteurizadoras',
         'fallasPorLineaPasteurizadora',
@@ -431,9 +442,35 @@ class DashboardController extends Controller
         'planesAccionDashboardPasteurizadora',
         'rankingDanosPasteurizadora',
         'avanceRevisionPasteurizadora',
-        'ultimosAnalisisPasteurizadora'
-    ));
+        'ultimosAnalisisPasteurizadora',
+        'dashboardPasteurizadoraParte'
+    ), $centralHidraulicaDashboard));
 }
+
+    private function resolveDashboardPasteurizadoraParte(Request $request, ?User $user): string
+    {
+        $parte = AnalisisPasteurizadora::normalizarArea($request->query('parte'));
+        $puedeVerMecanica = $user?->canAccessPasteurizadoraArea(AnalisisPasteurizadora::AREA_MECANICA) ?? false;
+        $puedeVerCentral = $user?->canAccessPasteurizadoraArea(AnalisisPasteurizadora::AREA_CENTRAL_HIDRAULICA) ?? false;
+
+        if ($parte === AnalisisPasteurizadora::AREA_CENTRAL_HIDRAULICA && $puedeVerCentral) {
+            return AnalisisPasteurizadora::AREA_CENTRAL_HIDRAULICA;
+        }
+
+        if ($parte === AnalisisPasteurizadora::AREA_MECANICA && $puedeVerMecanica) {
+            return AnalisisPasteurizadora::AREA_MECANICA;
+        }
+
+        if ($puedeVerMecanica) {
+            return AnalisisPasteurizadora::AREA_MECANICA;
+        }
+
+        if ($puedeVerCentral) {
+            return AnalisisPasteurizadora::AREA_CENTRAL_HIDRAULICA;
+        }
+
+        return AnalisisPasteurizadora::AREA_MECANICA;
+    }
 
     /**
      * ===========================================================
@@ -3042,6 +3079,659 @@ public function pasteurizadoraOperativo(Request $request)
     /**
      * Obtiene componentes con daño o desgaste para la gráfica de pasteurizadoras.
      */
+    private function getDashboardCentralHidraulicaPasteurizadoraData(?array $trend52124Range = null, ?array $trend30147Range = null): array
+    {
+        $lineasCentralHidraulica = $this->getLineasCentralHidraulicaPasteurizadora();
+        $lineaIds = $lineasCentralHidraulica->pluck('id');
+
+        $analisisCentralHidraulica = $lineaIds->isEmpty()
+            ? collect()
+            : AnalisisCentralHidraulica::with([
+                'linea:id,nombre',
+                'componente:id,nombre,codigo,unidad,contabilizable',
+                'configuracion:id,pasteurizador,piso,componente_id,cantidad,unidad,lado_requerido,activo,orden',
+            ])
+                ->whereIn('linea_id', $lineaIds)
+                ->where('resuelto_por_cambio', false)
+                ->get();
+
+        $analisisHistoricoCentralHidraulica = $lineaIds->isEmpty()
+            ? collect()
+            : AnalisisCentralHidraulica::with([
+                'linea:id,nombre',
+                'componente:id,nombre,codigo,unidad,contabilizable',
+                'configuracion:id,pasteurizador,piso,componente_id,cantidad,unidad,lado_requerido,activo,orden',
+            ])
+                ->whereIn('linea_id', $lineaIds)
+                ->get();
+
+        $configuracionesCentralHidraulica = $lineasCentralHidraulica->isEmpty()
+            ? collect()
+            : CentralHidraulicaConfiguracion::with('componente')
+                ->activas()
+                ->whereIn('pasteurizador', $lineasCentralHidraulica->pluck('nombre'))
+                ->get();
+
+        $estadoCentralHidraulicaPasteurizadora = collect($this->getEstadoCentralHidraulicaPasteurizadora(
+            $lineasCentralHidraulica,
+            $analisisCentralHidraulica,
+            $analisisHistoricoCentralHidraulica,
+            $configuracionesCentralHidraulica
+        ));
+        $planesPendientesCentralHidraulicaPasteurizadora = $analisisCentralHidraulica
+            ->filter(fn (AnalisisCentralHidraulica $item) => AnalisisCentralHidraulica::esEstadoDanado($item->estado))
+            ->sortByDesc(fn (AnalisisCentralHidraulica $item) => $this->centralHidraulicaSortKey($item))
+            ->values();
+        $planesAccionDashboardCentralHidraulica = $this->getPlanesAccionDashboardPasteurizadora(
+            $lineasCentralHidraulica,
+            AnalisisPasteurizadora::AREA_CENTRAL_HIDRAULICA
+        );
+
+        $resumenCentralHidraulicaPasteurizadora = [
+            'total_pasteurizadoras' => $lineasCentralHidraulica->count(),
+            'total_analisis' => $analisisHistoricoCentralHidraulica->count(),
+            'alertas_criticas' => $analisisCentralHidraulica
+                ->filter(fn (AnalisisCentralHidraulica $item) => AnalisisCentralHidraulica::esEstadoDanado($item->estado))
+                ->count(),
+            'en_riesgo' => $analisisCentralHidraulica
+                ->filter(fn (AnalisisCentralHidraulica $item) => AnalisisCentralHidraulica::esEstadoDesgaste($item->estado))
+                ->count(),
+            'requiere_revision' => $analisisCentralHidraulica
+                ->filter(fn (AnalisisCentralHidraulica $item) => AnalisisCentralHidraulica::esEstadoRequiereRevision($item->estado))
+                ->count(),
+            'buen_estado' => $analisisCentralHidraulica->where('estado', AnalisisCentralHidraulica::ESTADO_BUENO)->count(),
+            'pendientes_accion' => $planesAccionDashboardCentralHidraulica['resumen']['activos'],
+            'ultima_actualizacion' => now()->format('d/m/Y H:i'),
+        ];
+
+        $fallasPorLineaCentralHidraulica = $this->getFallasPorLineaCentralHidraulica(
+            $lineasCentralHidraulica,
+            $analisisCentralHidraulica
+        );
+        $componentesDanadosCentralHidraulica = $this->getComponentesDanadosCentralHidraulica($analisisCentralHidraulica);
+        $historicoRevisionesCentralHidraulica = $this->getHistoricoRevisionesCentralHidraulica($analisisHistoricoCentralHidraulica);
+        $rankingDanosCentralHidraulica = $this->getRankingDanosCentralHidraulica(
+            $lineasCentralHidraulica,
+            $analisisCentralHidraulica
+        );
+        $avanceRevisionCentralHidraulica = $this->getAvanceRevisionCentralHidraulica($estadoCentralHidraulicaPasteurizadora);
+        $tendenciaDanos = app(TendenciaDanosService::class);
+        $analisis52124CentralHidraulica = $tendenciaDanos->construirDashboard(
+            $lineasCentralHidraulica,
+            TendenciaDanosService::TIPO_PASTEURIZADORAS,
+            $tendenciaDanos->ventanas52124(),
+            $trend52124Range,
+            AnalisisPasteurizadora::AREA_CENTRAL_HIDRAULICA
+        );
+        $analisis30147CentralHidraulica = $tendenciaDanos->construirDashboard(
+            $lineasCentralHidraulica,
+            TendenciaDanosService::TIPO_PASTEURIZADORAS,
+            $tendenciaDanos->ventanas30147(),
+            $trend30147Range,
+            AnalisisPasteurizadora::AREA_CENTRAL_HIDRAULICA
+        );
+        $ultimosAnalisisCentralHidraulica = $analisisHistoricoCentralHidraulica
+            ->sortByDesc(fn (AnalisisCentralHidraulica $item) => $this->centralHidraulicaSortKey($item))
+            ->take(8)
+            ->values();
+
+        return compact(
+            'lineasCentralHidraulica',
+            'resumenCentralHidraulicaPasteurizadora',
+            'estadoCentralHidraulicaPasteurizadora',
+            'fallasPorLineaCentralHidraulica',
+            'componentesDanadosCentralHidraulica',
+            'historicoRevisionesCentralHidraulica',
+            'analisis52124CentralHidraulica',
+            'analisis30147CentralHidraulica',
+            'planesPendientesCentralHidraulicaPasteurizadora',
+            'planesAccionDashboardCentralHidraulica',
+            'rankingDanosCentralHidraulica',
+            'avanceRevisionCentralHidraulica',
+            'ultimosAnalisisCentralHidraulica'
+        );
+    }
+
+    private function getLineasCentralHidraulicaPasteurizadora(): Collection
+    {
+        $nombresConfigurados = CentralHidraulicaConfiguracion::query()
+            ->activas()
+            ->distinct()
+            ->pluck('pasteurizador')
+            ->all();
+
+        if (empty($nombresConfigurados)) {
+            return collect();
+        }
+
+        return Linea::whereIn('nombre', $nombresConfigurados)
+            ->get()
+            ->sortBy(function (Linea $linea) {
+                $index = array_search($linea->nombre, CentralHidraulicaConfiguracion::PASTEURIZADORES_EXCEL, true);
+
+                return $index === false ? PHP_INT_MAX : $index;
+            })
+            ->values();
+    }
+
+    private function getEstadoCentralHidraulicaPasteurizadora(
+        Collection $lineas,
+        Collection $analisisCentral,
+        Collection $analisisHistorico,
+        Collection $configuraciones
+    ): array {
+        $activosPorLinea = $analisisCentral->groupBy('linea_id');
+        $historicoPorLinea = $analisisHistorico->groupBy('linea_id');
+        $historicoPorContexto = $analisisHistorico
+            ->sortBy(fn (AnalisisCentralHidraulica $item) => $this->centralHidraulicaSortKey($item))
+            ->groupBy(fn (AnalisisCentralHidraulica $item) => $this->centralHidraulicaContextKey(
+                $item->linea_id,
+                $item->configuracion_id,
+                $item->lado
+            ));
+        $configuracionesPorLinea = $configuraciones->groupBy('pasteurizador');
+
+        return $lineas
+            ->map(function (Linea $linea) use ($activosPorLinea, $historicoPorLinea, $historicoPorContexto, $configuracionesPorLinea) {
+                $analisisLinea = $activosPorLinea->get($linea->id, collect())->values();
+                $criticos = $analisisLinea
+                    ->filter(fn (AnalisisCentralHidraulica $item) => AnalisisCentralHidraulica::esEstadoDanado($item->estado))
+                    ->values();
+                $desgaste = $analisisLinea
+                    ->filter(fn (AnalisisCentralHidraulica $item) => AnalisisCentralHidraulica::esEstadoDesgaste($item->estado))
+                    ->values();
+                $revisionOperativa = $analisisLinea
+                    ->filter(fn (AnalisisCentralHidraulica $item) => AnalisisCentralHidraulica::esEstadoRequiereRevision($item->estado))
+                    ->values();
+                $configsLinea = $configuracionesPorLinea->get($linea->nombre, collect())->values();
+                $pisos = collect(CentralHidraulicaConfiguracion::PISOS)
+                    ->mapWithKeys(fn (string $label, string $key) => [$key => [
+                        'key' => $key,
+                        'label' => $label,
+                        'revisados' => 0,
+                        'total' => 0,
+                        'pendientes' => 0,
+                        'porcentaje' => 0,
+                        'alertas' => 0,
+                    ]])
+                    ->all();
+
+                $totalConfigurado = 0;
+                $totalRevisado = 0;
+                $contextosRevisados = 0;
+                $totalContextos = 0;
+
+                foreach ($configsLinea as $config) {
+                    $contextos = $config->lado_requerido ? array_keys(AnalisisCentralHidraulica::LADOS) : [null];
+
+                    foreach ($contextos as $lado) {
+                        $totalContextos++;
+                        $registrosContexto = $historicoPorContexto
+                            ->get($this->centralHidraulicaContextKey($linea->id, $config->id, $lado), collect())
+                            ->values();
+
+                        if (!$config->es_contabilizable) {
+                            if ($registrosContexto->isNotEmpty()) {
+                                $contextosRevisados++;
+                            }
+
+                            continue;
+                        }
+
+                        $progreso = $this->getCentralHidraulicaContextProgress($config, $registrosContexto);
+
+                        if ($progreso['total'] === null) {
+                            continue;
+                        }
+
+                        $piso = CentralHidraulicaConfiguracion::normalizarPiso($config->piso);
+                        $revisado = min($progreso['revisado'], $progreso['total']);
+                        $totalConfigurado += $progreso['total'];
+                        $totalRevisado += $revisado;
+
+                        if (($progreso['porcentaje'] ?? 0) >= 100) {
+                            $contextosRevisados++;
+                        }
+
+                        if ($piso && isset($pisos[$piso])) {
+                            $pisos[$piso]['total'] += $progreso['total'];
+                            $pisos[$piso]['revisados'] += $revisado;
+                        }
+                    }
+                }
+
+                foreach ($analisisLinea as $analisis) {
+                    $piso = CentralHidraulicaConfiguracion::normalizarPiso($analisis->piso);
+
+                    if (!$piso || !isset($pisos[$piso])) {
+                        continue;
+                    }
+
+                    if (
+                        AnalisisCentralHidraulica::esEstadoDanado($analisis->estado)
+                        || AnalisisCentralHidraulica::esEstadoDesgaste($analisis->estado)
+                        || AnalisisCentralHidraulica::esEstadoRequiereRevision($analisis->estado)
+                    ) {
+                        $pisos[$piso]['alertas']++;
+                    }
+                }
+
+                $pisos = collect($pisos)
+                    ->map(function (array $piso) {
+                        $piso['pendientes'] = max(0, $piso['total'] - $piso['revisados']);
+                        $piso['porcentaje'] = $piso['total'] > 0
+                            ? (int) round(($piso['revisados'] / $piso['total']) * 100)
+                            : 0;
+
+                        return $piso;
+                    })
+                    ->values()
+                    ->all();
+
+                $criticosCount = $criticos->count();
+                $severosCount = $desgaste->where('estado', 'Desgaste severo')->count();
+                $moderadosCount = $desgaste->where('estado', 'Desgaste moderado')->count();
+                $desgasteCount = $severosCount + $moderadosCount;
+                $revisionOperativaCount = $revisionOperativa->count();
+
+                if ($criticosCount > 0) {
+                    $nivel = 'critico';
+                    $mensaje = "{$criticosCount} registro(s) requieren cambio en Central Hidraulica";
+                } elseif ($desgasteCount > 0) {
+                    $nivel = 'riesgo';
+                    $mensaje = "{$desgasteCount} registro(s) presentan condicion severa o moderada";
+                } elseif ($revisionOperativaCount > 0) {
+                    $nivel = 'operativo';
+                    $mensaje = "{$revisionOperativaCount} registro(s) requieren revision hidraulica";
+                } else {
+                    $nivel = 'bueno';
+                    $mensaje = 'Central Hidraulica sin alertas activas';
+                }
+
+                $ultimoAnalisis = $historicoPorLinea
+                    ->get($linea->id, collect())
+                    ->sortByDesc(fn (AnalisisCentralHidraulica $item) => $this->centralHidraulicaSortKey($item))
+                    ->first();
+                $porcentajeRevision = $totalConfigurado > 0
+                    ? (int) round(($totalRevisado / $totalConfigurado) * 100)
+                    : 0;
+
+                return [
+                    'id' => $linea->id,
+                    'nombre' => $linea->nombre,
+                    'estado' => [
+                        'nivel' => $nivel,
+                        'mensaje' => $mensaje,
+                        'analisis_criticos' => $criticos->map(fn (AnalisisCentralHidraulica $item) => $this->centralHidraulicaAnalisisPayload($item))->all(),
+                        'analisis_revision' => $revisionOperativa->map(fn (AnalisisCentralHidraulica $item) => $this->centralHidraulicaAnalisisPayload($item))->all(),
+                        'analisis_por_estado' => [
+                            'critico' => $criticos->map(fn (AnalisisCentralHidraulica $item) => $this->centralHidraulicaAnalisisPayload($item))->all(),
+                            'severo' => $desgaste->where('estado', 'Desgaste severo')->values()->map(fn (AnalisisCentralHidraulica $item) => $this->centralHidraulicaAnalisisPayload($item))->all(),
+                            'moderado' => $desgaste->where('estado', 'Desgaste moderado')->values()->map(fn (AnalisisCentralHidraulica $item) => $this->centralHidraulicaAnalisisPayload($item))->all(),
+                            'revision' => $revisionOperativa->map(fn (AnalisisCentralHidraulica $item) => $this->centralHidraulicaAnalisisPayload($item))->all(),
+                        ],
+                        'acciones_pendientes' => $criticosCount,
+                        'requiere_revision' => $revisionOperativaCount,
+                        'conteo_alertas' => [
+                            'critico' => $criticosCount,
+                            'severo' => $severosCount,
+                            'moderado' => $moderadosCount,
+                            'revision' => $revisionOperativaCount,
+                        ],
+                        'ultimo_analisis' => $ultimoAnalisis ? [
+                            'fecha' => $ultimoAnalisis->fecha_analisis?->format('d/m/Y'),
+                            'piso' => $ultimoAnalisis->piso_label,
+                            'componente' => $ultimoAnalisis->componente_nombre,
+                        ] : null,
+                        'progreso_revision' => [
+                            'porcentaje' => $porcentajeRevision,
+                            'revisados' => $totalRevisado,
+                            'total' => $totalConfigurado,
+                            'pendientes' => max(0, $totalConfigurado - $totalRevisado),
+                            'componentes_revisados' => $contextosRevisados,
+                            'total_componentes' => $totalContextos,
+                        ],
+                        'pisos' => $pisos,
+                        'alert_carousel' => $this->buildCentralHidraulicaAlertCarousel(
+                            $criticos,
+                            $desgaste,
+                            $revisionOperativa,
+                            $nivel
+                        ),
+                    ],
+                ];
+            })
+            ->values()
+            ->all();
+    }
+
+    private function getCentralHidraulicaContextProgress(CentralHidraulicaConfiguracion $config, Collection $registros): array
+    {
+        if (!$config->es_contabilizable || !$config->cantidad || $config->cantidad <= 0) {
+            return [
+                'total' => null,
+                'revisado' => 0,
+                'porcentaje' => null,
+            ];
+        }
+
+        $total = (int) $config->cantidad;
+        $registros = $registros
+            ->filter(fn ($item) => $item instanceof AnalisisCentralHidraulica)
+            ->sortBy(fn (AnalisisCentralHidraulica $item) => $this->centralHidraulicaSortKey($item))
+            ->values();
+        $ultimo = $registros->last();
+
+        if ($total <= 24) {
+            $resumen = AnalisisCentralHidraulica::buildResumenCiclo($registros, $total)['resumen_visible'];
+            $revisado = (int) $resumen['cantidad_revisada'];
+            $porcentaje = (int) $resumen['porcentaje'];
+        } else {
+            $revisado = min((int) ($ultimo?->cantidad_componentes_revisados ?? 0), $total);
+            $porcentaje = (int) round(($revisado / $total) * 100);
+        }
+
+        return [
+            'total' => $total,
+            'revisado' => $revisado,
+            'porcentaje' => $porcentaje,
+        ];
+    }
+
+    private function getFallasPorLineaCentralHidraulica(Collection $lineas, Collection $analisisCentral): Collection
+    {
+        $fechaLimite = Carbon::now()->subMonths(12);
+
+        return $lineas
+            ->map(function (Linea $linea) use ($analisisCentral, $fechaLimite) {
+                $analisisLinea = $analisisCentral
+                    ->where('linea_id', $linea->id)
+                    ->filter(fn (AnalisisCentralHidraulica $item) => $item->fecha_analisis && $item->fecha_analisis->gte($fechaLimite));
+                $criticos = $analisisLinea
+                    ->filter(fn (AnalisisCentralHidraulica $item) => AnalisisCentralHidraulica::esEstadoDanado($item->estado))
+                    ->count();
+                $desgaste = $analisisLinea
+                    ->filter(fn (AnalisisCentralHidraulica $item) => AnalisisCentralHidraulica::esEstadoDesgaste($item->estado))
+                    ->count();
+                $requiereRevision = $analisisLinea
+                    ->filter(fn (AnalisisCentralHidraulica $item) => AnalisisCentralHidraulica::esEstadoRequiereRevision($item->estado))
+                    ->count();
+                $estables = $analisisLinea
+                    ->whereIn('estado', [AnalisisCentralHidraulica::ESTADO_BUENO, AnalisisCentralHidraulica::ESTADO_CAMBIADO])
+                    ->count();
+                $impactados = $criticos + $desgaste + $requiereRevision;
+                $ultimaRevision = $analisisLinea
+                    ->sortByDesc(fn (AnalisisCentralHidraulica $item) => $this->centralHidraulicaSortKey($item))
+                    ->first();
+
+                return [
+                    'linea_id' => $linea->id,
+                    'linea' => $linea->nombre,
+                    'total_fallas' => $impactados,
+                    'impactados' => $impactados,
+                    'criticos' => $criticos,
+                    'criticas' => $criticos,
+                    'desgaste' => $desgaste,
+                    'severas_moderadas' => $desgaste,
+                    'requiere_revision' => $requiereRevision,
+                    'estables' => $estables,
+                    'total_componentes' => $analisisLinea->count(),
+                    'porcentaje_impacto' => $analisisLinea->count() > 0
+                        ? round(($impactados / $analisisLinea->count()) * 100, 1)
+                        : 0,
+                    'ultima_revision' => $ultimaRevision?->fecha_analisis?->format('Y-m-d'),
+                    'ultima_revision_humana' => $ultimaRevision?->fecha_analisis?->format('d/m/Y'),
+                    'estado' => $criticos > 0
+                        ? 'critico'
+                        : ($desgaste > 0
+                            ? 'riesgo'
+                            : ($requiereRevision > 0
+                                ? 'operativo'
+                                : ($analisisLinea->isNotEmpty() ? 'estable' : 'sin_datos'))),
+                    'sin_datos' => $analisisLinea->isEmpty(),
+                ];
+            })
+            ->sortByDesc('total_fallas')
+            ->values();
+    }
+
+    private function getComponentesDanadosCentralHidraulica(Collection $analisisCentral): Collection
+    {
+        return $analisisCentral
+            ->filter(function (AnalisisCentralHidraulica $item) {
+                return AnalisisCentralHidraulica::esEstadoDanado($item->estado)
+                    || AnalisisCentralHidraulica::esEstadoDesgaste($item->estado);
+            })
+            ->groupBy(fn (AnalisisCentralHidraulica $item) => $item->componente_nombre)
+            ->map(fn (Collection $items, string $componente) => [
+                'componente' => $componente,
+                'total_danios' => $items->count(),
+            ])
+            ->sortByDesc('total_danios')
+            ->take(8)
+            ->values();
+    }
+
+    private function getHistoricoRevisionesCentralHidraulica(Collection $analisisCentral): Collection
+    {
+        return $analisisCentral
+            ->groupBy(function (AnalisisCentralHidraulica $item) {
+                return collect([
+                    $item->piso_label,
+                    $item->componente_nombre,
+                ])->filter()->implode(' - ') ?: 'Sin componente';
+            })
+            ->map(fn (Collection $items, string $componente) => [
+                'componente' => $componente,
+                'total_analisis' => $items->count(),
+                'ultimo_analisis' => optional(
+                    $items->sortByDesc(fn (AnalisisCentralHidraulica $item) => $this->centralHidraulicaSortKey($item))->first()?->fecha_analisis
+                )->format('d/m/Y') ?? 'Sin fecha',
+            ])
+            ->sortByDesc('total_analisis')
+            ->take(10)
+            ->values();
+    }
+
+    private function getRankingDanosCentralHidraulica(Collection $lineas, Collection $analisisCentral): array
+    {
+        $agrupados = $analisisCentral->groupBy('linea_id');
+
+        return $lineas
+            ->map(function (Linea $linea) use ($agrupados) {
+                $analisisLinea = $agrupados->get($linea->id, collect());
+                $criticos = $analisisLinea
+                    ->filter(fn (AnalisisCentralHidraulica $item) => AnalisisCentralHidraulica::esEstadoDanado($item->estado))
+                    ->count();
+                $severos = $analisisLinea->where('estado', 'Desgaste severo')->count();
+                $moderados = $analisisLinea->where('estado', 'Desgaste moderado')->count();
+                $requiereRevision = $analisisLinea
+                    ->filter(fn (AnalisisCentralHidraulica $item) => AnalisisCentralHidraulica::esEstadoRequiereRevision($item->estado))
+                    ->count();
+                $totalDanos = $criticos + $severos + $moderados;
+                $impactados = $totalDanos + $requiereRevision;
+                $ultimaRevision = $analisisLinea
+                    ->sortByDesc(fn (AnalisisCentralHidraulica $item) => $this->centralHidraulicaSortKey($item))
+                    ->first();
+                $pisosAfectados = $analisisLinea
+                    ->filter(function (AnalisisCentralHidraulica $item) {
+                        return AnalisisCentralHidraulica::esEstadoDanado($item->estado)
+                            || AnalisisCentralHidraulica::esEstadoDesgaste($item->estado)
+                            || AnalisisCentralHidraulica::esEstadoRequiereRevision($item->estado);
+                    })
+                    ->map(fn (AnalisisCentralHidraulica $item) => $item->piso_label)
+                    ->filter()
+                    ->unique()
+                    ->implode(', ');
+                $prioridad = 'estable';
+                $prioridadLabel = 'Estable';
+
+                if ($criticos > 0) {
+                    $prioridad = 'critico';
+                    $prioridadLabel = 'Critico';
+                } elseif (($severos + $moderados) > 0) {
+                    $prioridad = 'severo';
+                    $prioridadLabel = 'Severo / Moderado';
+                } elseif ($requiereRevision > 0) {
+                    $prioridad = 'revision';
+                    $prioridadLabel = 'Requiere revision';
+                }
+
+                return [
+                    'linea_id' => $linea->id,
+                    'nombre' => $linea->nombre,
+                    'linea' => $linea->nombre,
+                    'estado' => [
+                        'nivel' => $prioridad === 'severo' ? 'riesgo' : ($prioridad === 'revision' ? 'operativo' : ($prioridad === 'critico' ? 'critico' : 'bueno')),
+                        'acciones_pendientes' => $criticos,
+                    ],
+                    'criticas' => $criticos,
+                    'severos' => $severos,
+                    'moderados' => $moderados,
+                    'requiere_revision' => $requiereRevision,
+                    'severas_moderadas' => $severos + $moderados,
+                    'total_danos' => $totalDanos,
+                    'impactados' => $impactados,
+                    'total_componentes' => $analisisLinea->count(),
+                    'porcentaje_impacto' => $analisisLinea->count() > 0
+                        ? round(($impactados / $analisisLinea->count()) * 100, 1)
+                        : 0,
+                    'fecha_analisis' => $ultimaRevision?->fecha_analisis?->format('Y-m-d'),
+                    'fecha_analisis_humana' => $ultimaRevision?->fecha_analisis?->format('d/m/Y'),
+                    'pisos_afectados' => $pisosAfectados ?: 'Sin alertas',
+                    'prioridad' => $prioridad,
+                    'prioridad_label' => $prioridadLabel,
+                    'puntaje' => ($criticos * 100) + (($severos + $moderados) * 40) + ($requiereRevision * 15),
+                    'requiere_cambio' => $criticos > 0,
+                ];
+            })
+            ->sortByDesc(fn (array $item) => ($item['puntaje'] * 1000) + $item['impactados'])
+            ->values()
+            ->all();
+    }
+
+    private function getAvanceRevisionCentralHidraulica(Collection $estadoCentralHidraulica): array
+    {
+        $lineas = $estadoCentralHidraulica
+            ->map(function (array $item) {
+                $progreso = data_get($item, 'estado.progreso_revision', []);
+
+                return [
+                    'linea_id' => $item['id'] ?? null,
+                    'linea' => $item['nombre'] ?? 'Sin linea',
+                    'porcentaje' => (int) ($progreso['porcentaje'] ?? 0),
+                    'revisados' => (int) ($progreso['revisados'] ?? 0),
+                    'total' => (int) ($progreso['total'] ?? 0),
+                    'componentes_revisados' => (int) ($progreso['componentes_revisados'] ?? 0),
+                    'total_componentes' => (int) ($progreso['total_componentes'] ?? 0),
+                ];
+            })
+            ->values();
+
+        return [
+            'labels' => $lineas->pluck('linea')->all(),
+            'porcentajes' => $lineas->pluck('porcentaje')->all(),
+            'revisados' => $lineas->pluck('revisados')->all(),
+            'totales' => $lineas->pluck('total')->all(),
+            'promedio' => $lineas->count() > 0 ? round($lineas->avg('porcentaje')) : 0,
+            'total_revisados' => $lineas->sum('revisados'),
+            'total_configurado' => $lineas->sum('total'),
+            'lineas' => $lineas->all(),
+        ];
+    }
+
+    private function buildCentralHidraulicaAlertCarousel(Collection $criticos, Collection $desgaste, Collection $revisionOperativa, string $nivel): array
+    {
+        $items = [];
+
+        foreach ($criticos as $analisis) {
+            $items[] = $this->centralHidraulicaAlertCarouselItem($analisis, 'Requiere cambio', 'critico');
+        }
+
+        foreach ($desgaste as $analisis) {
+            $estadoKey = $analisis->estado === 'Desgaste severo' ? 'severo' : 'moderado';
+            $estadoLabel = $estadoKey === 'severo' ? 'Dano severo' : 'Dano moderado';
+            $items[] = $this->centralHidraulicaAlertCarouselItem($analisis, $estadoLabel, $estadoKey);
+        }
+
+        foreach ($revisionOperativa as $analisis) {
+            $items[] = $this->centralHidraulicaAlertCarouselItem($analisis, 'Requiere revision', 'revision');
+        }
+
+        if (!empty($items)) {
+            return $items;
+        }
+
+        if ($nivel === 'bueno') {
+            return [[
+                'type' => 'info',
+                'title' => 'Sin alertas activas',
+                'subtitle' => 'Central Hidraulica estable',
+                'description' => 'No hay registros criticos ni desgaste activo en este momento.',
+                'icon' => 'fa-check-circle',
+                'estado_label' => 'Estable',
+                'estado_key' => 'estable',
+            ]];
+        }
+
+        return [];
+    }
+
+    private function centralHidraulicaAlertCarouselItem(AnalisisCentralHidraulica $analisis, string $estadoLabel, string $estadoKey): array
+    {
+        $subtitle = collect([
+            $analisis->piso_label,
+            $analisis->lado ? $analisis->lado_label : 'Piso completo',
+        ])->filter()->implode(' - ');
+
+        return [
+            'type' => 'info',
+            'title' => $analisis->componente_nombre,
+            'subtitle' => $subtitle,
+            'detail' => $analisis->actividad ?: 'Registro hidraulico pendiente de seguimiento.',
+            'meta' => $analisis->numero_orden,
+            'fecha' => $analisis->fecha_analisis?->format('d/m/Y'),
+            'icon' => $analisis->componente?->codigo === CentralHidraulicaConfiguracion::CODIGO_ACEITE ? 'fa-oil-can' : 'fa-droplet',
+            'estado_label' => $estadoLabel,
+            'estado_key' => $estadoKey,
+        ];
+    }
+
+    private function centralHidraulicaAnalisisPayload(AnalisisCentralHidraulica $item): array
+    {
+        return [
+            'id' => $item->id,
+            'piso' => $item->piso_label,
+            'lado' => $item->lado ? $item->lado_label : 'Piso completo',
+            'componente_nombre' => $item->componente_nombre,
+            'cantidad' => $item->cantidad_display,
+            'numero_orden' => $item->numero_orden,
+            'estado' => $item->estado,
+            'actividad' => $item->actividad,
+            'fecha_analisis' => $item->fecha_analisis?->format('Y-m-d'),
+            'fecha_formateada' => $item->fecha_analisis?->format('d/m/Y'),
+            'show_url' => route('pasteurizadora.central-hidraulica.show', ['analisispasteurizadora' => $item->id]),
+        ];
+    }
+
+    private function centralHidraulicaContextKey($lineaId, $configuracionId, ?string $lado): string
+    {
+        return implode('|', [
+            (string) $lineaId,
+            (string) $configuracionId,
+            (string) ($lado ?: ''),
+        ]);
+    }
+
+    private function centralHidraulicaSortKey(AnalisisCentralHidraulica $item): string
+    {
+        $fecha = $item->fecha_analisis?->format('Ymd') ?? '00000000';
+        $createdAt = str_pad((string) ($item->created_at?->timestamp ?? 0), 12, '0', STR_PAD_LEFT);
+        $id = str_pad((string) ($item->id ?? 0), 10, '0', STR_PAD_LEFT);
+
+        return "{$fecha}-{$createdAt}-{$id}";
+    }
+
     private function getComponentesDanadosPasteurizadora($analisisPasteurizadora)
     {
         return $analisisPasteurizadora
@@ -3113,11 +3803,13 @@ public function pasteurizadoraOperativo(Request $request)
     /**
      * Obtiene planes de acciÃ³n reales del mÃ³dulo Pasteurizadora.
      */
-    private function getPlanesAccionPasteurizadora($pasteurizadoras): Collection
+    private function getPlanesAccionPasteurizadora($pasteurizadoras, ?string $area = AnalisisPasteurizadora::AREA_MECANICA): Collection
     {
         if ($pasteurizadoras->isEmpty()) {
             return collect();
         }
+
+        $area = AnalisisPasteurizadora::normalizarArea($area);
 
         return PlanAccion::with('linea:id,nombre')
             ->whereIn('linea_id', $pasteurizadoras->pluck('id'))
@@ -3125,7 +3817,12 @@ public function pasteurizadoraOperativo(Request $request)
                 $query->where('tipo_equipo', User::MODULE_PASTEURIZADORA)
                     ->orWhereNull('tipo_equipo');
             })
-            ->where(function ($query) {
+            ->where(function ($query) use ($area) {
+                if ($area === AnalisisPasteurizadora::AREA_CENTRAL_HIDRAULICA) {
+                    $query->where('area_pasteurizadora', AnalisisPasteurizadora::AREA_CENTRAL_HIDRAULICA);
+                    return;
+                }
+
                 $query->where('area_pasteurizadora', AnalisisPasteurizadora::AREA_MECANICA)
                     ->orWhereNull('area_pasteurizadora');
             })
@@ -3136,9 +3833,9 @@ public function pasteurizadoraOperativo(Request $request)
     /**
      * Resumen y detalle para el panel de planes de acciÃ³n de Pasteurizadora.
      */
-    private function getPlanesAccionDashboardPasteurizadora($pasteurizadoras): array
+    private function getPlanesAccionDashboardPasteurizadora($pasteurizadoras, ?string $area = AnalisisPasteurizadora::AREA_MECANICA): array
     {
-        $planes = $this->getPlanesAccionPasteurizadora($pasteurizadoras);
+        $planes = $this->getPlanesAccionPasteurizadora($pasteurizadoras, $area);
         $planesNormalizados = $planes
             ->map(function (PlanAccion $plan) {
                 $prioridad = $this->resolvePlanPriority($plan);
@@ -3357,29 +4054,17 @@ public function pasteurizadoraOperativo(Request $request)
                     'nivel' => $nivel,
                     'mensaje' => $mensaje,
                     'analisis_criticos' => $criticos->values()->map(function($item) {
-                        return [
-                            'id' => $item->id,
-                            'modulo' => $item->modulo,
-                            'componente_nombre' => $item->componente_nombre,
-                            'lado' => $item->lado,
-                            'numero_orden' => $item->numero_orden,
-                            'actividad' => $item->actividad,
-                            'fecha_analisis' => $item->fecha_analisis,
-                            'fecha_formateada' => $item->fecha_formateada
-                        ];
+                        return $this->pasteurizadoraAnalisisPayload($item);
                     })->toArray(),
                     'analisis_revision' => $revisionOperativa->map(function ($item) {
-                        return [
-                            'id' => $item->id,
-                            'modulo' => $item->modulo,
-                            'componente_nombre' => $item->componente_nombre,
-                            'lado' => $item->lado,
-                            'numero_orden' => $item->numero_orden,
-                            'actividad' => $item->actividad,
-                            'fecha_analisis' => $item->fecha_analisis,
-                            'fecha_formateada' => $item->fecha_formateada,
-                        ];
+                        return $this->pasteurizadoraAnalisisPayload($item);
                     })->toArray(),
+                    'analisis_por_estado' => [
+                        'critico' => $criticos->values()->map(fn ($item) => $this->pasteurizadoraAnalisisPayload($item))->toArray(),
+                        'severo' => $desgaste->where('estado', 'Desgaste severo')->values()->map(fn ($item) => $this->pasteurizadoraAnalisisPayload($item))->toArray(),
+                        'moderado' => $desgaste->where('estado', 'Desgaste moderado')->values()->map(fn ($item) => $this->pasteurizadoraAnalisisPayload($item))->toArray(),
+                        'revision' => $revisionOperativa->values()->map(fn ($item) => $this->pasteurizadoraAnalisisPayload($item))->toArray(),
+                    ],
                     'acciones_pendientes' => $criticosCount,
                     'requiere_revision' => $revisionOperativaCount,
                     'conteo_alertas' => [
@@ -3415,6 +4100,29 @@ public function pasteurizadoraOperativo(Request $request)
     /**
      * Construye los items del carrusel para tarjetas de pasteurizadoras.
      */
+    private function pasteurizadoraAnalisisPayload(AnalisisPasteurizadora $item): array
+    {
+        $codigo = strtoupper((string) $item->componente);
+
+        return [
+            'id' => $item->id,
+            'modulo' => $item->modulo,
+            'nivel' => $item->nivel,
+            'componente' => $item->componente,
+            'componente_nombre' => $item->componente_nombre,
+            'lado' => $item->lado,
+            'numero_orden' => $item->numero_orden,
+            'estado' => $item->estado,
+            'estado_label' => $item->estado,
+            'actividad' => $item->actividad,
+            'fecha_analisis' => $item->fecha_analisis,
+            'fecha_formateada' => $item->fecha_formateada,
+            'image' => asset("images/componentes-pasteurizadora/{$codigo}.png"),
+            'fallback_image' => asset('images/icono_pas.png'),
+            'show_url' => route('pasteurizadora.analisis-pasteurizadora.show', ['analisispasteurizadora' => $item->id]),
+        ];
+    }
+
     private function buildPasteurizadoraAlertCarousel($criticos, $desgaste, $revisionOperativa, string $nivel)
     {
         $items = [];

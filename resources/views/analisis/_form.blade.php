@@ -108,7 +108,7 @@
     </div>
 
     <div class="create-actions create-actions--end">
-        <a href="{{ route('analisis.index') }}" class="create-action create-action--secondary">Cancelar</a>
-        <button class="create-action">Guardar</button>
+        <a href="{{ route('analisis.index') }}" class="create-action create-action--secondary {{ $isEdit ? '' : 'analysis-create-action--cancel-mobile' }}">Cancelar</a>
+        <button class="create-action {{ $isEdit ? '' : 'analysis-create-action--save-mobile' }}">Guardar</button>
     </div>
 </form>

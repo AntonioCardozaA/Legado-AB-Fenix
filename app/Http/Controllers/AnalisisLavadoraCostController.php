@@ -172,12 +172,15 @@ class AnalisisLavadoraCostController extends Controller
                 'quantity' => $quantity,
                 'unit_cost' => $unitCost,
                 'total_cost' => round($quantity * $unitCost, 2),
-                'component_snapshot' => $analisislavadora->componente?->nombre ?? ($componentCode ?: 'Componente no identificado'),
-                'catalog_name_snapshot' => $catalogItem->nombre,
+                'component_snapshot' => LavadoraCostSupport::displayComponentName(
+                    $analisislavadora->componente?->nombre,
+                    $componentCode
+                ),
+                'catalog_name_snapshot' => LavadoraCostSupport::displayText($catalogItem->nombre) ?: $catalogItem->nombre,
                 'catalog_sku_snapshot' => $catalogItem->sku,
                 'catalog_category_snapshot' => $catalogItem->categoria,
                 'unidad_medida_snapshot' => $catalogItem->unidad_medida,
-                'notas' => trim((string) ($item['notas'] ?? '')) ?: null,
+                'notas' => LavadoraCostSupport::displayText(trim((string) ($item['notas'] ?? ''))) ?: null,
                 'metadata' => json_encode([
                     'manual' => true,
                     'linea_nombre' => $lineaNombre,

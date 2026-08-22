@@ -10,6 +10,8 @@
     $canDeleteLavadoraCosts = auth()->user()?->canDeleteLavadoraCosts() ?? false;
     $canModifyLavadoraCosts = $canEditLavadoraCosts || $canDeleteLavadoraCosts;
     $canModifyLavadoraBudgets = $canCreateLavadoraCosts || $canEditLavadoraCosts;
+    $costDisplayText = fn ($value) => \App\Support\LavadoraCostSupport::displayText($value);
+    $componentCodeLabel = fn ($code) => \App\Support\LavadoraCostSupport::displayComponentCode($code) ?: $code;
 @endphp
 
 <style>
@@ -656,7 +658,7 @@
             </div>
             <div class="field-span-2">
                 <label class="field-label" for="new-nombre">Nombre</label>
-                <input id="new-nombre" name="nombre" class="field-control" value="{{ old('nombre') }}" required>
+                <input id="new-nombre" name="nombre" class="field-control" value="{{ $costDisplayText(old('nombre')) }}" required>
             </div>
             <div>
                 <label class="field-label" for="new-categoria">Categoría</label>
@@ -676,7 +678,7 @@
             </div>
             <div class="field-span-3">
                 <label class="field-label" for="new-observaciones">Observaciones</label>
-                <textarea id="new-observaciones" name="observaciones" class="field-control">{{ old('observaciones') }}</textarea>
+                <textarea id="new-observaciones" name="observaciones" class="field-control">{{ $costDisplayText(old('observaciones')) }}</textarea>
             </div>
             <div class="flex items-end">
                 <button type="submit" class="create-action">
@@ -765,7 +767,7 @@
                                 <input class="input-inline" name="sku" value="{{ old('sku.' . $item->id, $item->sku) }}" form="{{ $formId }}" @disabled(!$canEditLavadoraCosts)>
                             </td>
                             <td>
-                                <textarea class="textarea-inline" name="nombre" form="{{ $formId }}" required @disabled(!$canEditLavadoraCosts)>{{ old('nombre.' . $item->id, $item->nombre) }}</textarea>
+                                <textarea class="textarea-inline" name="nombre" form="{{ $formId }}" required @disabled(!$canEditLavadoraCosts)>{{ $costDisplayText(old('nombre.' . $item->id, $item->nombre)) }}</textarea>
                             </td>
                             <td>
                                 <input class="input-inline" name="categoria" value="{{ old('categoria.' . $item->id, $item->categoria) }}" form="{{ $formId }}" @disabled(!$canEditLavadoraCosts)>
@@ -777,10 +779,10 @@
                                 <input class="input-inline" name="costo_unitario" type="number" min="0" step="0.01" value="{{ old('costo_unitario.' . $item->id, $item->costo_unitario) }}" form="{{ $formId }}" required @disabled(!$canEditLavadoraCosts)>
                             </td>
                             <td>
-                                <textarea class="textarea-inline" name="aliases_input" form="{{ $formId }}" @disabled(!$canEditLavadoraCosts)>{{ old('aliases_input.' . $item->id, implode(', ', $item->aliases ?? [])) }}</textarea>
+                                <textarea class="textarea-inline" name="aliases_input" form="{{ $formId }}" @disabled(!$canEditLavadoraCosts)>{{ $costDisplayText(old('aliases_input.' . $item->id, implode(', ', $item->aliases ?? []))) }}</textarea>
                             </td>
                             <td>
-                                <textarea class="textarea-inline" name="observaciones" form="{{ $formId }}" @disabled(!$canEditLavadoraCosts)>{{ old('observaciones.' . $item->id, $item->observaciones) }}</textarea>
+                                <textarea class="textarea-inline" name="observaciones" form="{{ $formId }}" @disabled(!$canEditLavadoraCosts)>{{ $costDisplayText(old('observaciones.' . $item->id, $item->observaciones)) }}</textarea>
                             </td>
                             <td>
                                 <div class="text-sm font-semibold text-slate-900">{{ optional($item->fecha_actualizacion)->format('d/m/Y') ?? 'Sin fecha' }}</div>
@@ -860,7 +862,7 @@
                     <select name="cost_catalog_item_id" class="field-control" required>
                         <option value="">Selecciona</option>
                         @foreach($catalogOptions as $option)
-                            <option value="{{ $option->id }}">{{ $option->categoria }} · {{ \Illuminate\Support\Str::limit($option->nombre, 70) }}</option>
+                            <option value="{{ $option->id }}">{{ $option->categoria }} · {{ \Illuminate\Support\Str::limit($costDisplayText($option->nombre), 70) }}</option>
                         @endforeach
                     </select>
                 </div>
@@ -878,7 +880,7 @@
                     <select name="component_code" class="field-control">
                         <option value="">Cualquiera</option>
                         @foreach($componentCodes as $code)
-                            <option value="{{ $code }}">{{ $code }}</option>
+                            <option value="{{ $code }}">{{ $componentCodeLabel($code) }}</option>
                         @endforeach
                     </select>
                 </div>
@@ -932,7 +934,7 @@
                                 <td>
                                     <select class="select-inline" name="cost_catalog_item_id" form="{{ $formId }}" @disabled(!$canEditLavadoraCosts)>
                                         @foreach($catalogOptions as $option)
-                                            <option value="{{ $option->id }}" @selected($rule->cost_catalog_item_id === $option->id)>{{ \Illuminate\Support\Str::limit($option->nombre, 60) }}</option>
+                                            <option value="{{ $option->id }}" @selected($rule->cost_catalog_item_id === $option->id)>{{ \Illuminate\Support\Str::limit($costDisplayText($option->nombre), 60) }}</option>
                                         @endforeach
                                     </select>
                                 </td>
@@ -948,7 +950,7 @@
                                     <select class="select-inline" name="component_code" form="{{ $formId }}" @disabled(!$canEditLavadoraCosts)>
                                         <option value="">Cualquiera</option>
                                         @foreach($componentCodes as $code)
-                                            <option value="{{ $code }}" @selected($rule->component_code === $code)>{{ $code }}</option>
+                                            <option value="{{ $code }}" @selected($rule->component_code === $code)>{{ $componentCodeLabel($code) }}</option>
                                         @endforeach
                                     </select>
                                 </td>
@@ -960,7 +962,7 @@
                                     </select>
                                 </td>
                                 <td>
-                                    <input class="input-inline" name="trigger_keyword" value="{{ $rule->trigger_keyword }}" form="{{ $formId }}" @disabled(!$canEditLavadoraCosts)>
+                                    <input class="input-inline" name="trigger_keyword" value="{{ $costDisplayText($rule->trigger_keyword) }}" form="{{ $formId }}" @disabled(!$canEditLavadoraCosts)>
                                 </td>
                                 <td>
                                     <input class="input-inline" name="quantity" type="number" min="0.01" step="0.01" value="{{ $rule->quantity }}" form="{{ $formId }}" @disabled(!$canEditLavadoraCosts)>
@@ -1087,7 +1089,7 @@
                 <div class="history-item">
                     <div class="flex flex-wrap items-center justify-between gap-3">
                         <div>
-                            <strong>{{ $entry->catalogItem?->nombre ?? 'Concepto eliminado' }}</strong>
+                            <strong>{{ $costDisplayText($entry->catalogItem?->nombre) ?: 'Concepto eliminado' }}</strong>
                             <div class="text-sm text-slate-500">
                                 {{ strtoupper($entry->tipo_cambio) }} · {{ optional($entry->fecha_cambio)->format('d/m/Y H:i') ?? 'Sin fecha' }}
                                 · {{ $entry->usuario?->name ?? 'Sistema' }}

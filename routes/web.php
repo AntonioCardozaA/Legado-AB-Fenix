@@ -432,7 +432,7 @@ Route::prefix('pasteurizadora')->group(function () {
                 Route::post('/ajax/remaining-components', 'getRemainingComponentsAjax')->name('ajax.remaining-components');
                 Route::post('/ajax/revision-context', 'getRevisionContextAjax')->name('ajax.revision-context');
                 Route::post('/ajax/piezas-disponibles', 'getPiezasDisponiblesAjax')->name('ajax.piezas-disponibles');
-                Route::get('/ajax/actividades', 'getActividadesPorModulo')->name('ajax.actividades');
+                Route::get('/ajax/actividades', 'getActividadesPorContexto')->name('ajax.actividades');
                 Route::get('/ajax/estadisticas', 'getEstadisticasComponentesAjax')->name('ajax.estadisticas');
 
                 Route::get('/{analisispasteurizadora}', 'show')

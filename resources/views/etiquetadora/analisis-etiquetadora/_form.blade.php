@@ -250,11 +250,11 @@
 
     <div class="create-actions border-t border-gray-200 pt-6">
         <a href="{{ route('analisis-etiquetadora.index', ['linea_id' => $linea->id, 'maquina' => $selectedMaquina]) }}"
-           class="create-action create-action--secondary flex-1">
+           class="create-action create-action--secondary flex-1 {{ $isEdit ? '' : 'analysis-create-action--cancel-mobile' }}">
             <i class="fas fa-times"></i>
             Cancelar
         </a>
-        <button type="submit" class="create-action flex-1">
+        <button type="submit" class="create-action flex-1 {{ $isEdit ? '' : 'analysis-create-action--save-mobile' }}">
             <i class="fas fa-save"></i>
             {{ $isEdit ? 'Actualizar Analisis' : 'Guardar Analisis' }}
         </button>

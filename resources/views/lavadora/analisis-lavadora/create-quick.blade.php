@@ -6,6 +6,27 @@
 @php
     $reductorLabel = \App\Support\LavadoraCatalog::etiquetaReductorParaValor($linea->nombre ?? null, $reductor);
     $reductorNombre = \App\Support\LavadoraCatalog::nombreReductorParaLinea($linea->nombre ?? null, $reductor);
+    $componentesRv250 = array_keys(array_filter(
+        \App\Support\LavadoraCatalog::COMPONENTE_NOMBRES,
+        fn ($label) => $label === 'RV250 Sin Fin Corona'
+    ));
+    $nombreComponenteLavadora = function ($nombre, $codigo = null) use ($componentesRv250) {
+        $nombreUpper = strtoupper((string) $nombre);
+        $codigoUpper = strtoupper((string) $codigo);
+
+        foreach ($componentesRv250 as $codigoBase) {
+            if (
+                $codigoUpper === $codigoBase
+                || str_contains($codigoUpper, $codigoBase)
+                || str_contains($nombreUpper, $codigoBase)
+            ) {
+                return 'RV250 Sin Fin Corona';
+            }
+        }
+
+        return $nombre;
+    };
+    $componenteNombreVisible = $nombreComponenteLavadora($componente->nombre ?? '', $componente->codigo ?? null);
 @endphp
 <div class="max-w-2xl mx-auto px-4 py-8">
     <div class="bg-white rounded-2xl shadow-lg p-8">
@@ -50,7 +71,7 @@
                                 <i class="fas fa-cog mr-1"></i>
                                 Componente
                             </p>
-                            <p class="text-gray-800 font-medium">{{ $componente->nombre }}</p>
+                            <p class="text-gray-800 font-medium">{{ $componenteNombreVisible }}</p>
                         </div>  
 
                         {{-- Reductor --}}
@@ -101,9 +122,7 @@
             @php
                 // Extraer el código base del componente
                 $codigoBase = $componente->codigo;
-                $codigosBase = ['SERVO_CHICO', 'SERVO_GRANDE', 'BUJE_ESPIGA', 
-                               'GUI_INF_TANQUE', 'GUI_INT_TANQUE', 
-                               'GUI_SUP_TANQUE', 'CATARINAS', 'RV200_SIN_FIN', 'RV200'];
+                $codigosBase = \App\Support\LavadoraCatalog::COMPONENTE_CODIGOS_BASE;
                 
                 foreach ($codigosBase as $codigo) {
                     if (str_contains($componente->codigo, $codigo)) {
@@ -264,11 +283,11 @@
             {{-- Botones --}}
             <div class="create-actions pt-6 border-t border-gray-200">
                 <a href="{{ route('analisis-lavadora.index', ['linea_id' => $linea->id]) }}"
-                class="create-action create-action--secondary flex-1">
+                class="create-action create-action--secondary flex-1 analysis-create-action--cancel-mobile">
                     Cancelar
                 </a>
                 <button type="submit"
-                        class="create-action flex-1">
+                        class="create-action flex-1 analysis-create-action--save-mobile">
                     <i class="fas fa-save mr-2"></i>
                     Guardar Análisis
                 </button>

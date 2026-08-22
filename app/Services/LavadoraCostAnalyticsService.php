@@ -36,7 +36,7 @@ class LavadoraCostAnalyticsService
             ->get();
 
         $byComponent = $entries
-            ->groupBy('component_snapshot')
+            ->groupBy(fn (LavadoraCostEntry $entry) => $this->componentLabel($entry))
             ->map(fn (Collection $group) => round($group->sum('total_cost'), 2))
             ->sortDesc()
             ->map(fn (float $total, string $label) => ['label' => $label, 'total' => $total])
@@ -52,7 +52,7 @@ class LavadoraCostAnalyticsService
         $replacements = $entries
             ->filter(fn (LavadoraCostEntry $entry) => $entry->source_type === 'estado_cambiado'
                 || (($entry->metadata['estado_correccion'] ?? null) === AnalisisLavadora::CORRECCION_COMPONENTE_CAMBIADO))
-            ->groupBy('component_snapshot')
+            ->groupBy(fn (LavadoraCostEntry $entry) => $this->componentLabel($entry))
             ->map(fn (Collection $group) => $group->pluck('analisis_lavadora_id')->unique()->count())
             ->sortDesc()
             ->map(fn (int $total, string $label) => ['label' => $label, 'total' => $total])
@@ -69,8 +69,8 @@ class LavadoraCostAnalyticsService
                 return [
                     'fecha' => optional($entry->cost_date)->format('d/m/Y') ?? '-',
                     'lavadora' => $entry->linea?->nombre ?? '-',
-                    'componente' => $entry->component_snapshot,
-                    'concepto' => $entry->catalog_name_snapshot,
+                    'componente' => $this->componentLabel($entry),
+                    'concepto' => $this->displayCostText($entry->catalog_name_snapshot),
                     'tipo' => LavadoraCostEntry::sourceLabel($entry->source_type),
                     'cantidad' => $entry->quantity,
                     'unidad' => $entry->unidad_medida_snapshot ?? '-',
@@ -273,15 +273,15 @@ class LavadoraCostAnalyticsService
             ->take(10)
             ->map(fn (LavadoraCostEntry $entry) => [
                 'fecha' => optional($entry->cost_date)->format('d/m/Y') ?? '-',
-                'componente' => $entry->component_snapshot,
-                'concepto' => $entry->catalog_name_snapshot,
+                'componente' => $this->componentLabel($entry),
+                'concepto' => $this->displayCostText($entry->catalog_name_snapshot),
                 'tipo' => LavadoraCostEntry::sourceLabel($entry->source_type),
                 'total' => $entry->total_cost,
             ])
             ->values();
 
         $topComponents = $entries
-            ->groupBy('component_snapshot')
+            ->groupBy(fn (LavadoraCostEntry $entry) => $this->componentLabel($entry))
             ->map(fn (Collection $group) => round($group->sum('total_cost'), 2))
             ->sortDesc()
             ->map(fn (float $total, string $label) => ['label' => $label, 'total' => $total])
@@ -290,7 +290,7 @@ class LavadoraCostAnalyticsService
         $topReplacements = $entries
             ->filter(fn (LavadoraCostEntry $entry) => $entry->source_type === 'estado_cambiado'
                 || (($entry->metadata['estado_correccion'] ?? null) === AnalisisLavadora::CORRECCION_COMPONENTE_CAMBIADO))
-            ->groupBy('component_snapshot')
+            ->groupBy(fn (LavadoraCostEntry $entry) => $this->componentLabel($entry))
             ->map(fn (Collection $group) => $group->pluck('analisis_lavadora_id')->unique()->count())
             ->sortDesc()
             ->map(fn (int $total, string $label) => ['label' => $label, 'total' => $total])
@@ -342,7 +342,10 @@ class LavadoraCostAnalyticsService
             'average_repair_hours' => $closed->whereNotNull('tiempo_reparacion_horas')->avg('tiempo_reparacion_horas'),
             'total_intervention_cost' => round((float) $closed->sum('costo_total_intervencion'), 2),
             'top_pending_components' => $pending
-                ->groupBy(fn (AnalisisLavadora $analysis) => $analysis->componente?->nombre ?? 'Sin componente')
+                ->groupBy(fn (AnalisisLavadora $analysis) => LavadoraCostSupport::displayComponentName(
+                    $analysis->componente?->nombre,
+                    $analysis->componente?->codigo
+                ))
                 ->map(fn (Collection $items, string $label) => ['label' => $label, 'total' => $items->count()])
                 ->sortByDesc('total')
                 ->values()
@@ -372,13 +375,33 @@ class LavadoraCostAnalyticsService
             ->map(fn (AnalisisLavadora $analysis) => [
                 'fecha' => $analysis->fecha_correccion?->format('d/m/Y H:i') ?? '-',
                 'lavadora' => $analysis->linea?->nombre ?? '-',
-                'componente' => $analysis->componente?->nombre ?? 'Sin componente',
+                'componente' => LavadoraCostSupport::displayComponentName(
+                    $analysis->componente?->nombre,
+                    $analysis->componente?->codigo
+                ),
                 'estado' => $analysis->estado_correccion_label,
                 'tipo_intervencion' => $analysis->tipo_intervencion ?: '-',
                 'responsable' => $analysis->responsable_trabajo ?: ($analysis->usuarioCorreccion?->name ?? '-'),
                 'horas' => $analysis->tiempo_reparacion_horas,
                 'total' => $analysis->costo_total_intervencion,
             ]);
+    }
+
+    private function componentLabel(LavadoraCostEntry $entry): string
+    {
+        $metadata = is_array($entry->metadata) ? $entry->metadata : [];
+
+        return LavadoraCostSupport::displayComponentName(
+            $entry->component_snapshot,
+            $metadata['component_code'] ?? null
+        );
+    }
+
+    private function displayCostText(?string $value, string $fallback = '-'): string
+    {
+        $text = LavadoraCostSupport::displayText($value);
+
+        return $text !== '' ? $text : $fallback;
     }
 
     private function buildTrendSeries(Collection $entries, Carbon $from, Carbon $to): array

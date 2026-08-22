@@ -13,6 +13,11 @@
     $automaticSyncLabel = $missingAutomaticEntriesCount > 0
         ? ($automaticEntryCount > 0 ? 'Completar costos automaticos' : 'Aplicar costos automaticos')
         : 'Reconstruir costos automaticos';
+    $costDisplayText = fn ($value) => \App\Support\LavadoraCostSupport::displayText($value);
+    $componentName = \App\Support\LavadoraCostSupport::displayComponentName(
+        $analisislavadora->componente->nombre ?? null,
+        $analisislavadora->componente->codigo ?? null
+    );
 @endphp
 
 <div class="mx-auto max-w-7xl space-y-6">
@@ -32,7 +37,7 @@
                         </p>
                     </div>
                     <div class="text-sm text-slate-600">
-                        <span class="font-semibold">{{ $analisislavadora->componente->nombre ?? 'Componente no asignado' }}</span>
+                        <span class="font-semibold">{{ $componentName }}</span>
                         @if($analisislavadora->reductor)
                             <span class="mx-2 text-slate-300">|</span>{{ $analisislavadora->reductor }}
                         @endif
@@ -141,7 +146,7 @@
                                     </span>
                                 </div>
                                 <div>
-                                    <h3 class="text-base font-bold text-slate-900">{{ $suggestion['catalog_name'] }}</h3>
+                                    <h3 class="text-base font-bold text-slate-900">{{ $costDisplayText($suggestion['catalog_name']) }}</h3>
                                     <p class="text-sm text-slate-500">
                                         {{ $suggestion['catalog_sku'] ?: 'Sin SKU' }}
                                         @if($suggestion['catalog_category'])
@@ -150,13 +155,13 @@
                                     </p>
                                 </div>
                                 <div class="grid gap-2 text-sm text-slate-700 sm:grid-cols-2">
-                                    <p><span class="font-semibold">Disparo:</span> {{ $suggestion['trigger_reference'] ?: 'Regla general' }}</p>
+                                    <p><span class="font-semibold">Disparo:</span> {{ $costDisplayText($suggestion['trigger_reference']) ?: 'Regla general' }}</p>
                                     <p><span class="font-semibold">Cantidad:</span> {{ number_format((float) $suggestion['quantity'], 2) }} {{ $suggestion['unit'] ?: 'unidad' }}</p>
                                     <p><span class="font-semibold">Costo unitario:</span> ${{ number_format((float) $suggestion['unit_cost'], 2) }}</p>
                                     <p><span class="font-semibold">Total:</span> ${{ number_format((float) $suggestion['total_cost'], 2) }}</p>
                                 </div>
                                 @if($suggestion['notes'])
-                                    <p class="rounded-xl bg-white/80 px-3 py-2 text-sm text-slate-600">{{ $suggestion['notes'] }}</p>
+                                    <p class="rounded-xl bg-white/80 px-3 py-2 text-sm text-slate-600">{{ $costDisplayText($suggestion['notes']) }}</p>
                                 @endif
                             </div>
 
@@ -222,7 +227,7 @@
                         @foreach($costEntries as $entry)
                             <tr>
                                 <td class="px-4 py-4 align-top">
-                                    <div class="font-semibold text-slate-900">{{ $entry->catalog_name_snapshot }}</div>
+                                    <div class="font-semibold text-slate-900">{{ $costDisplayText($entry->catalog_name_snapshot) }}</div>
                                     <div class="text-xs text-slate-500">
                                         {{ $entry->catalog_sku_snapshot ?: 'Sin SKU' }}
                                         @if($entry->catalog_category_snapshot)
@@ -240,7 +245,7 @@
                                         </span>
                                     </div>
                                     @if($entry->source_reference)
-                                        <div class="mt-2 text-xs text-slate-500">Referencia: {{ $entry->source_reference }}</div>
+                                        <div class="mt-2 text-xs text-slate-500">Referencia: {{ $costDisplayText($entry->source_reference) }}</div>
                                     @endif
                                 </td>
                                 <td class="px-4 py-4 align-top text-slate-700">
@@ -248,7 +253,7 @@
                                 </td>
                                 <td class="px-4 py-4 align-top text-slate-700">${{ number_format((float) $entry->unit_cost, 2) }}</td>
                                 <td class="px-4 py-4 align-top font-semibold text-slate-900">${{ number_format((float) $entry->total_cost, 2) }}</td>
-                                <td class="px-4 py-4 align-top text-slate-600">{{ $entry->notas ?: 'Sin notas' }}</td>
+                                <td class="px-4 py-4 align-top text-slate-600">{{ $costDisplayText($entry->notas) ?: 'Sin notas' }}</td>
                                 <td class="px-4 py-4 align-top text-right">
                                     @if($entry->isManual() && $canDeleteLavadoraCosts)
                                         <form method="POST" action="{{ route('analisis-lavadora.costos.manual.destroy', ['analisislavadora' => $analisislavadora->id, 'costEntry' => $entry->id]) }}">
@@ -312,7 +317,8 @@
                         <tbody class="divide-y divide-slate-100 bg-white">
                             @foreach($catalogItems as $item)
                                 @php
-                                    $searchText = strtolower(trim(($item->sku ?? '') . ' ' . $item->nombre . ' ' . ($item->categoria ?? '') . ' ' . $item->unidad_medida));
+                                    $itemNombre = $costDisplayText($item->nombre);
+                                    $searchText = strtolower(trim(($item->sku ?? '') . ' ' . $itemNombre . ' ' . ($item->categoria ?? '') . ' ' . $item->unidad_medida));
                                     $oldQuantity = old("items.$item->id.quantity", 1);
                                 @endphp
                                 <tr data-manual-cost-row data-search="{{ $searchText }}">
@@ -328,7 +334,7 @@
                                         </label>
                                     </td>
                                     <td class="px-4 py-4 align-top">
-                                        <div class="font-semibold text-slate-900">{{ $item->nombre }}</div>
+                                        <div class="font-semibold text-slate-900">{{ $itemNombre }}</div>
                                         <div class="text-xs text-slate-500">
                                             {{ $item->sku ?: 'Sin SKU' }}
                                             @if($item->categoria)

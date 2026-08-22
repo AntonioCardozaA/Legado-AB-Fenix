@@ -72,11 +72,11 @@
                                     <span class="mt-0.5 block text-xs leading-5 text-slate-500">{{ $permission['description'] }}</span>
                                 @endif
                                 @if($roleAllowsPermission === true)
-                                    <span class="mt-1 block text-xs font-semibold text-amber-700">Marcado: restringe este acceso para este usuario.</span>
+                                    <span class="mt-1 block text-xs font-semibold text-amber-700">Marcado: restringe.</span>
                                 @elseif($roleAllowsPermission === false)
-                                    <span class="mt-1 block text-xs font-semibold text-green-700">Marcado: concede este acceso adicional.</span>
+                                    <span class="mt-1 block text-xs font-semibold text-green-700">Marcado: concede.</span>
                                 @else
-                                    <span class="mt-1 block text-xs font-semibold text-slate-500">Marcado: aplica una excepcion sobre el rol elegido.</span>
+                                    <span class="mt-1 block text-xs font-semibold text-slate-500">Marcado: excepcion.</span>
                                 @endif
                             </span>
                         </label>

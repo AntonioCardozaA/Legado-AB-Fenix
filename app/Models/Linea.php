@@ -41,6 +41,11 @@ class Linea extends Model
         return $this->hasMany(AnalisisEtiquetadora::class);
     }
 
+    public function analisisCentralHidraulica()
+    {
+        return $this->hasMany(AnalisisCentralHidraulica::class);
+    }
+
     public function cadenaCiclos()
     {
         return $this->hasMany(CadenaCiclo::class, 'linea_id');

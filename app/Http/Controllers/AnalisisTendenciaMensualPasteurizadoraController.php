@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AnalisisPasteurizadora;
 use App\Models\Linea;
 use App\Services\TendenciaDanosService;
 use Carbon\Carbon;
@@ -46,11 +47,13 @@ class AnalisisTendenciaMensualPasteurizadoraController extends Controller
             'linea_id' => ['nullable', 'integer'],
             'fecha_inicio' => ['nullable', 'date_format:Y-m-d'],
             'fecha_fin' => ['nullable', 'date_format:Y-m-d'],
+            'area' => ['nullable', 'in:' . AnalisisPasteurizadora::AREA_MECANICA . ',' . AnalisisPasteurizadora::AREA_CENTRAL_HIDRAULICA],
         ]);
         $lineas = $this->getLineasPasteurizadora();
         $lineaSeleccionada = $validated['linea_id'] ?? $lineas->first()?->id;
         $fechaInicio = $validated['fecha_inicio'] ?? null;
         $fechaFin = $validated['fecha_fin'] ?? null;
+        $areaAnalisis = AnalisisPasteurizadora::normalizarArea($validated['area'] ?? AnalisisPasteurizadora::AREA_MECANICA);
         $this->validarOrdenRangoFechas($fechaInicio, $fechaFin);
         $fechaInicioCarbon = $fechaInicio ? Carbon::createFromFormat('Y-m-d', $fechaInicio)->startOfDay() : null;
         $fechaFinCarbon = $fechaFin ? Carbon::createFromFormat('Y-m-d', $fechaFin)->endOfDay() : null;
@@ -67,7 +70,8 @@ class AnalisisTendenciaMensualPasteurizadoraController extends Controller
             $lineas,
             TendenciaDanosService::TIPO_PASTEURIZADORAS,
             $ventanas,
-            $rangoTendencia
+            $rangoTendencia,
+            $areaAnalisis
         );
         $detalleLinea = null;
 
@@ -76,7 +80,12 @@ class AnalisisTendenciaMensualPasteurizadoraController extends Controller
 
             if ($linea) {
                 $eventosLinea = $tendenciaDanos
-                    ->obtenerEventos(collect([$linea]), TendenciaDanosService::TIPO_PASTEURIZADORAS, $rangoTendencia)
+                    ->obtenerEventos(
+                        collect([$linea]),
+                        TendenciaDanosService::TIPO_PASTEURIZADORAS,
+                        $rangoTendencia,
+                        $areaAnalisis
+                    )
                     ->sortBy(fn (array $item) => $item['occurred_at']->getTimestamp())
                     ->values();
                 $fechaInicioHistorica = $fechaInicioCarbon ?: ($eventosLinea->first()['occurred_at'] ?? null);
@@ -85,7 +94,8 @@ class AnalisisTendenciaMensualPasteurizadoraController extends Controller
                     TendenciaDanosService::TIPO_PASTEURIZADORAS,
                     12,
                     $fechaFinCarbon,
-                    $fechaInicioHistorica ? $fechaInicioHistorica->copy()->startOfMonth() : null
+                    $fechaInicioHistorica ? $fechaInicioHistorica->copy()->startOfMonth() : null,
+                    $areaAnalisis
                 );
                 $detalleLinea = collect($analisisDetalle['lineas'] ?? [])
                     ->firstWhere('linea_id', (int) $lineaSeleccionada);
@@ -104,6 +114,7 @@ class AnalisisTendenciaMensualPasteurizadoraController extends Controller
             'analisis',
             'meses',
             'analisisTipo',
+            'areaAnalisis',
             'analisisDetalle',
             'detalleLinea'
         ));

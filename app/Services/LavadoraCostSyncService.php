@@ -59,14 +59,15 @@ class LavadoraCostSyncService
                     (float) ($rule->quantity ?: 1)
                 );
                 $unitCost = (float) ($catalogItem?->costo_unitario ?: 0);
+                $triggerReference = $rule->trigger_keyword ?: $rule->component_code;
 
                 return [
                     'rule_id' => $rule->id,
                     'trigger_type' => $rule->trigger_type,
                     'trigger_label' => CostAutomationRule::triggerOptions()[$rule->trigger_type] ?? 'Regla automatica',
-                    'trigger_reference' => $rule->trigger_keyword ?: $rule->component_code,
+                    'trigger_reference' => LavadoraCostSupport::displayText($triggerReference) ?: $triggerReference,
                     'catalog_item_id' => $catalogItem?->id,
-                    'catalog_name' => $catalogItem?->nombre ?? 'Concepto sin catalogo',
+                    'catalog_name' => LavadoraCostSupport::displayText($catalogItem?->nombre) ?: 'Concepto sin catalogo',
                     'catalog_sku' => $catalogItem?->sku,
                     'catalog_category' => $catalogItem?->categoria,
                     'unit' => $catalogItem?->unidad_medida,
@@ -74,7 +75,7 @@ class LavadoraCostSyncService
                     'unit_cost' => $unitCost,
                     'total_cost' => round($quantity * $unitCost, 2),
                     'excluded' => in_array($rule->id, $excludedRuleIds, true),
-                    'notes' => $rule->notas,
+                    'notes' => LavadoraCostSupport::displayText($rule->notas),
                     'metadata' => [
                         'linea_nombre' => $lineaNombre,
                         'component_code' => $componentCode,
@@ -109,7 +110,10 @@ class LavadoraCostSyncService
                     'quantity' => $preview['quantity'],
                     'unit_cost' => $preview['unit_cost'],
                     'total_cost' => $preview['total_cost'],
-                    'component_snapshot' => $analysis->componente?->nombre ?? ($componentCode ?: 'Componente no identificado'),
+                    'component_snapshot' => LavadoraCostSupport::displayComponentName(
+                        $analysis->componente?->nombre,
+                        $componentCode
+                    ),
                     'catalog_name_snapshot' => $preview['catalog_name'],
                     'catalog_sku_snapshot' => $preview['catalog_sku'],
                     'catalog_category_snapshot' => $preview['catalog_category'],

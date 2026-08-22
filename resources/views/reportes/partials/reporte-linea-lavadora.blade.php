@@ -25,6 +25,26 @@
     $ventanas30147Reporte = collect($analisis30147Reporte['ventanas'] ?? []);
     $ventanaPrincipal52124 = $ventanas52124Reporte->first();
     $ventanaPrincipal30147 = $ventanas30147Reporte->first();
+    $componentesRv250 = array_keys(array_filter(
+        \App\Support\LavadoraCatalog::COMPONENTE_NOMBRES,
+        fn ($label) => $label === 'RV250 Sin Fin Corona'
+    ));
+    $nombreComponenteLavadora = function ($nombre, $codigo = null) use ($componentesRv250) {
+        $nombreUpper = strtoupper((string) $nombre);
+        $codigoUpper = strtoupper((string) $codigo);
+
+        foreach ($componentesRv250 as $codigoBase) {
+            if (
+                $codigoUpper === $codigoBase
+                || str_contains($codigoUpper, $codigoBase)
+                || str_contains($nombreUpper, $codigoBase)
+            ) {
+                return 'RV250 Sin Fin Corona';
+            }
+        }
+
+        return trim((string) $nombre) !== '' ? $nombre : '-';
+    };
     $etiquetaVentanaResumen = function ($ventana) {
         $label = (string) ($ventana['label'] ?? '');
 
@@ -43,17 +63,7 @@
         };
     };
 
-    $lavadoraIconosDisponibles = [
-        'RV200_SIN_FIN',
-        'SERVO_GRANDE',
-        'SERVO_CHICO',
-        'GUI_INF_TANQUE',
-        'GUI_INT_TANQUE',
-        'GUI_SUP_TANQUE',
-        'BUJE_ESPIGA',
-        'CATARINAS',
-        'RV200',
-    ];
+    $lavadoraIconosDisponibles = \App\Support\LavadoraCatalog::COMPONENTE_CODIGOS_BASE;
 
     $lavadoraComponentIcon = function ($codigo) use ($lavadoraIconosDisponibles) {
         $codigo = strtoupper(trim((string) $codigo));
@@ -653,19 +663,22 @@
                     
                     $porcentajeCompletado = $componente['total_analisis'] > 0 ? 
                         min(100, ($componente['total_analisis'] / 12) * 100) : 0;
+                    $componenteNombre = $nombreComponenteLavadora($componente['nombre'] ?? null, $componente['codigo'] ?? null);
                 @endphp
                 
                 <div class="componente-card">
                     <div class="componente-header">
                         <div class="componente-icono">
                             <img src="{{ $lavadoraComponentIcon($componente['codigo'] ?? null) }}" 
-                                 alt="{{ $componente['nombre'] }}"
+                                 alt="{{ $componenteNombre }}"
                                  class="w-8 h-8 object-contain"
                                  onerror="this.src='{{ asset('images/icono-maquina.png') }}'">
                         </div>
                         <div class="flex-1">
-                            <div class="componente-nombre">{{ $componente['nombre'] }}</div>
-                            <div class="text-xs text-gray-500">{{ $componente['codigo'] }}</div>
+                            <div class="componente-nombre">{{ $componenteNombre }}</div>
+                            @if($componenteNombre !== 'RV250 Sin Fin Corona')
+                                <div class="text-xs text-gray-500">{{ $componente['codigo'] }}</div>
+                            @endif
                         </div>
                     </div>
                     
@@ -963,7 +976,7 @@
                         @foreach($eventosHistorial52124 as $evento)
                             <tr>
                                 <td>{{ $evento['fecha'] ?? '-' }}</td>
-                                <td>{{ $evento['componente'] ?? '-' }}</td>
+                                <td>{{ $nombreComponenteLavadora($evento['componente'] ?? null) }}</td>
                                 <td>{{ \App\Support\LavadoraCatalog::nombreReductorParaLinea($reporte['linea']->nombre ?? null, $evento['reductor'] ?? null) ?? '-' }}</td>
                                 <td>{{ $evento['lado'] ?? '-' }}</td>
                                 <td>{{ $evento['estado'] ?? '-' }}</td>
@@ -1123,7 +1136,7 @@
                         @foreach($eventosHistorial30147 as $evento)
                             <tr>
                                 <td>{{ $evento['fecha'] ?? '-' }}</td>
-                                <td>{{ $evento['componente'] ?? '-' }}</td>
+                                <td>{{ $nombreComponenteLavadora($evento['componente'] ?? null) }}</td>
                                 <td>{{ \App\Support\LavadoraCatalog::nombreReductorParaLinea($reporte['linea']->nombre ?? null, $evento['reductor'] ?? null) ?? '-' }}</td>
                                 <td>{{ $evento['lado'] ?? '-' }}</td>
                                 <td>{{ $evento['estado'] ?? '-' }}</td>
@@ -1220,7 +1233,7 @@
                                 <img src="{{ $lavadoraComponentIcon($item->componente->codigo ?? null) }}" 
                                      class="w-6 h-6 object-contain"
                                      onerror="this.src='{{ asset('images/icono-maquina.png') }}'">
-                                <span>{{ $item->componente->nombre ?? 'N/A' }}</span>
+                                <span>{{ $nombreComponenteLavadora($item->componente->nombre ?? null, $item->componente->codigo ?? null) }}</span>
                             </div>
                         </td>
                         <td>{{ \App\Support\LavadoraCatalog::nombreReductorParaLinea($reporte['linea']->nombre ?? null, $item->reductor) }}</td>

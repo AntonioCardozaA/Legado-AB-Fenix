@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\AnalisisLavadora;
+use App\Models\AnalisisCentralHidraulica;
 use App\Models\AnalisisPasteurizadora;
 use App\Models\Linea;
 use Carbon\Carbon;
@@ -94,7 +95,13 @@ class TendenciaDanosService
             ?? $this->resumenVacio($ventanas);
     }
 
-    public function construirDashboard($lineas, string $tipoEquipo, array $ventanas, ?array $rangoVisible = null): array
+    public function construirDashboard(
+        $lineas,
+        string $tipoEquipo,
+        array $ventanas,
+        ?array $rangoVisible = null,
+        ?string $areaPasteurizadora = null
+    ): array
     {
         $lineas = collect($lineas)->values();
 
@@ -110,7 +117,7 @@ class TendenciaDanosService
 
         $rangoVisible = $this->normalizarRangoVisibleParaDetalle($rangoVisible, $ventanas);
         $rangoFuente = $this->ampliarRangoFuente($rangoVisible, $ventanas);
-        $eventosFuente = $this->obtenerEventos($lineas, $tipoEquipo, $rangoFuente)->values();
+        $eventosFuente = $this->obtenerEventos($lineas, $tipoEquipo, $rangoFuente, $areaPasteurizadora)->values();
         $eventosPeriodo = $this->filtrarEventosPorRangoVisible($eventosFuente, $rangoVisible)->values();
         $eventosPorLineaFuente = $eventosFuente->groupBy('linea_id');
         $eventosPorLineaPeriodo = $eventosPeriodo->groupBy('linea_id');
@@ -202,7 +209,8 @@ class TendenciaDanosService
         string $tipoEquipo,
         int $meses = 12,
         ?Carbon $fin = null,
-        ?Carbon $inicioFiltro = null
+        ?Carbon $inicioFiltro = null,
+        ?string $areaPasteurizadora = null
     ): Collection
     {
         $inicioFiltro = $inicioFiltro?->copy()->startOfDay();
@@ -221,7 +229,7 @@ class TendenciaDanosService
         $eventos = $this->obtenerEventos(collect([$linea]), $tipoEquipo, [
             'from' => $inicioFiltro ?: $inicioFuente,
             'to' => $fin,
-        ])->where('linea_id', $linea->id)->values();
+        ], $areaPasteurizadora)->where('linea_id', $linea->id)->values();
 
         $filas = collect();
         $cursor = $inicio->copy();
@@ -282,7 +290,7 @@ class TendenciaDanosService
             ->values();
     }
 
-    public function obtenerEventos($lineas, string $tipoEquipo, ?array $rango = null): Collection
+    public function obtenerEventos($lineas, string $tipoEquipo, ?array $rango = null, ?string $areaPasteurizadora = null): Collection
     {
         $lineas = collect($lineas)->values();
 
@@ -297,41 +305,105 @@ class TendenciaDanosService
         $hasta = ($rango['to'] ?? null) instanceof Carbon ? $rango['to']->copy()->endOfDay() : null;
 
         if ($tipoEquipo === self::TIPO_PASTEURIZADORAS) {
-            return AnalisisPasteurizadora::queryForArea(AnalisisPasteurizadora::AREA_MECANICA)
-                ->with('linea:id,nombre')
-                ->whereIn('linea_id', $lineaIds)
-                ->when($desde, fn ($query) => $query->where('fecha_analisis', '>=', $desde))
-                ->when($hasta, fn ($query) => $query->where('fecha_analisis', '<=', $hasta))
-                ->orderBy('fecha_analisis')
-                ->orderBy('id')
-                ->get()
-                ->filter(fn (AnalisisPasteurizadora $item) => $this->esEstadoDano($item->estado))
-                ->map(function (AnalisisPasteurizadora $item) use ($lineaNombres) {
-                    $fecha = Carbon::parse($item->fecha_analisis ?? $item->created_at)->startOfDay();
-                    $lado = $this->normalizarLado($item->lado);
-                    $ubicacion = collect([
-                        $item->modulo ? 'Modulo ' . $item->modulo : null,
-                        $item->nivel ? 'Nivel ' . $item->nivel : null,
-                        $lado,
-                    ])->filter()->implode(' / ') ?: null;
+            $area = $this->normalizarAreaPasteurizadora($areaPasteurizadora);
+            $eventosMecanicos = collect();
+            $eventosHidraulicos = collect();
 
-                    return [
-                        'id' => $item->id,
-                        'source' => 'componente',
-                        'type_label' => $item->estado,
-                        'type_key' => $this->normalizarEstadoDano($item->estado),
-                        'linea_id' => $item->linea_id,
-                        'linea' => $item->linea?->nombre ?? $lineaNombres->get($item->linea_id),
-                        'componente' => $item->componente,
-                        'componente_codigo' => null,
-                        'modulo' => $item->modulo,
-                        'nivel' => $item->nivel,
-                        'lado' => $lado,
-                        'ubicacion' => $ubicacion,
-                        'occurred_at' => $fecha,
-                        'fecha_humana' => $fecha->format('d/m/Y'),
-                    ];
-                })
+            if (!$area || $area === AnalisisPasteurizadora::AREA_MECANICA) {
+                $eventosMecanicos = AnalisisPasteurizadora::queryForArea(AnalisisPasteurizadora::AREA_MECANICA)
+                    ->with('linea:id,nombre')
+                    ->whereIn('linea_id', $lineaIds)
+                    ->when($desde, fn ($query) => $query->where('fecha_analisis', '>=', $desde))
+                    ->when($hasta, fn ($query) => $query->where('fecha_analisis', '<=', $hasta))
+                    ->orderBy('fecha_analisis')
+                    ->orderBy('id')
+                    ->get()
+                    ->filter(fn (AnalisisPasteurizadora $item) => $this->esEstadoDano($item->estado))
+                    ->map(function (AnalisisPasteurizadora $item) use ($lineaNombres) {
+                        $fecha = Carbon::parse($item->fecha_analisis ?? $item->created_at)->startOfDay();
+                        $lado = $this->normalizarLado($item->lado);
+                        $ubicacion = collect([
+                            $item->modulo ? 'Modulo ' . $item->modulo : null,
+                            $item->nivel ? 'Nivel ' . $item->nivel : null,
+                            $lado,
+                        ])->filter()->implode(' / ') ?: null;
+
+                        return [
+                            'id' => $item->id,
+                            'source' => 'componente',
+                            'area' => 'mecanica',
+                            'area_label' => 'Mecanica',
+                            'type_label' => $item->estado,
+                            'type_key' => $this->normalizarEstadoDano($item->estado),
+                            'linea_id' => $item->linea_id,
+                            'linea' => $item->linea?->nombre ?? $lineaNombres->get($item->linea_id),
+                            'componente' => $item->componente,
+                            'componente_codigo' => null,
+                            'modulo' => $item->modulo,
+                            'nivel' => $item->nivel,
+                            'lado' => $lado,
+                            'ubicacion' => $ubicacion,
+                            'occurred_at' => $fecha,
+                            'fecha_humana' => $fecha->format('d/m/Y'),
+                            'show_url' => route('pasteurizadora.analisis-pasteurizadora.show', ['analisispasteurizadora' => $item->id]),
+                        ];
+                    })
+                    ->values();
+            }
+
+            if (!$area || $area === AnalisisPasteurizadora::AREA_CENTRAL_HIDRAULICA) {
+                $eventosHidraulicos = AnalisisCentralHidraulica::query()
+                    ->with([
+                        'linea:id,nombre',
+                        'componente:id,nombre,codigo',
+                        'configuracion:id,piso,componente_id,detalle_excel',
+                    ])
+                    ->whereIn('linea_id', $lineaIds)
+                    ->when($desde, fn ($query) => $query->where('fecha_analisis', '>=', $desde))
+                    ->when($hasta, fn ($query) => $query->where('fecha_analisis', '<=', $hasta))
+                    ->orderBy('fecha_analisis')
+                    ->orderBy('id')
+                    ->get()
+                    ->filter(fn (AnalisisCentralHidraulica $item) => $this->esEstadoDano($item->estado))
+                    ->map(function (AnalisisCentralHidraulica $item) use ($lineaNombres) {
+                        $fecha = Carbon::parse($item->fecha_analisis ?? $item->created_at)->startOfDay();
+                        $lado = $item->lado ? AnalisisCentralHidraulica::ladoLabel($item->lado) : null;
+                        $piso = $item->piso_label;
+                        $ubicacion = collect([
+                            'Central hidraulica',
+                            $piso,
+                            $lado,
+                        ])->filter()->implode(' / ') ?: 'Central hidraulica';
+
+                        return [
+                            'id' => $item->id,
+                            'source' => 'componente',
+                            'area' => 'central_hidraulica',
+                            'area_label' => 'Hidraulica',
+                            'type_label' => $item->estado,
+                            'type_key' => $this->normalizarEstadoDano($item->estado),
+                            'linea_id' => $item->linea_id,
+                            'linea' => $item->linea?->nombre ?? $lineaNombres->get($item->linea_id),
+                            'componente' => 'Hidraulica - ' . $item->componente_nombre,
+                            'componente_codigo' => $item->componente?->codigo,
+                            'modulo' => null,
+                            'nivel' => $piso,
+                            'lado' => $lado,
+                            'ubicacion' => $ubicacion,
+                            'occurred_at' => $fecha,
+                            'fecha_humana' => $fecha->format('d/m/Y'),
+                            'show_url' => route('pasteurizadora.central-hidraulica.show', ['analisispasteurizadora' => $item->id]),
+                        ];
+                    })
+                    ->values();
+            }
+
+            return $eventosMecanicos
+                ->merge($eventosHidraulicos)
+                ->sortBy([
+                    fn (array $item) => $item['occurred_at']->getTimestamp(),
+                    fn (array $item) => (int) ($item['id'] ?? 0),
+                ])
                 ->values();
         }
 
@@ -352,6 +424,8 @@ class TendenciaDanosService
                 return [
                     'id' => $item->id,
                     'source' => 'componente',
+                    'area' => 'lavadora',
+                    'area_label' => 'Lavadora',
                     'type_label' => $item->estado,
                     'type_key' => $this->normalizarEstadoDano($item->estado),
                     'linea_id' => $item->linea_id,
@@ -687,7 +761,36 @@ class TendenciaDanosService
             'mes_anterior_total' => $mesAnterior,
             'variacion_mensual' => $variacionMensual,
             'mes_pico' => $pico,
+            'areas' => $this->resumirAreasPeriodo($eventos),
         ];
+    }
+
+    private function resumirAreasPeriodo(Collection $eventos): array
+    {
+        if ($eventos->isEmpty()) {
+            return [];
+        }
+
+        $total = $eventos->count();
+
+        return $eventos
+            ->groupBy(fn (array $item) => $item['area'] ?? 'sin_area')
+            ->map(function (Collection $grupo, string $key) use ($total) {
+                $ultimo = $grupo
+                    ->sortByDesc(fn (array $item) => $item['occurred_at']->getTimestamp())
+                    ->first();
+
+                return [
+                    'key' => $key,
+                    'label' => $ultimo['area_label'] ?? $this->textoOValor($key, 'Sin area'),
+                    'total' => $grupo->count(),
+                    'porcentaje' => $this->porcentaje($grupo->count(), $total),
+                    'ultima_falla' => $ultimo['fecha_humana'] ?? null,
+                ];
+            })
+            ->sortByDesc('total')
+            ->values()
+            ->all();
     }
 
     private function resumirComponentesPeriodo(Collection $eventos): array
@@ -1480,7 +1583,14 @@ class TendenciaDanosService
             'PASILLO' => $lados->filter(fn (string $lado) => $lado === 'PASILLO')->count(),
         ];
 
-        return array_sum($conteo) > 0 ? $conteo : [];
+        $lados
+            ->reject(fn (string $lado) => array_key_exists($lado, $conteo))
+            ->unique()
+            ->each(function (string $lado) use (&$conteo, $lados): void {
+                $conteo[$lado] = $lados->filter(fn (string $item) => $item === $lado)->count();
+            });
+
+        return array_filter($conteo, fn (int $total) => $total > 0);
     }
 
     private function formatearEventosVentana(Collection $eventos): array
@@ -1489,6 +1599,8 @@ class TendenciaDanosService
             ->sortByDesc(fn (array $item) => $item['occurred_at']->getTimestamp())
             ->map(fn (array $item) => [
                 'id' => $item['id'] ?? null,
+                'area' => $item['area'] ?? null,
+                'area_label' => $item['area_label'] ?? null,
                 'fecha' => $item['fecha_humana'] ?? null,
                 'linea_id' => $item['linea_id'] ?? null,
                 'linea' => $item['linea'] ?? null,
@@ -1501,9 +1613,21 @@ class TendenciaDanosService
                 'ubicacion' => $item['ubicacion'] ?? null,
                 'estado' => $item['type_label'] ?? null,
                 'estado_key' => $item['type_key'] ?? null,
+                'show_url' => $item['show_url'] ?? null,
             ])
             ->values()
             ->all();
+    }
+
+    private function normalizarAreaPasteurizadora(?string $area): ?string
+    {
+        $area = trim((string) $area);
+
+        if ($area === '') {
+            return null;
+        }
+
+        return AnalisisPasteurizadora::normalizarArea($area);
     }
 
     private function normalizarTipo(string $tipoEquipo): string

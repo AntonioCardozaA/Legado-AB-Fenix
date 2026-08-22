@@ -532,6 +532,14 @@
                 min-width: 0;
                 padding-inline: 1rem;
             }
+
+            .analysis-create-action--save-mobile {
+                order: 1;
+            }
+
+            .analysis-create-action--cancel-mobile {
+                order: 2;
+            }
         }
     </style>
 

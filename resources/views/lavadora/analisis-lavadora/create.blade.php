@@ -5,6 +5,29 @@
 @section('content')
 @php
     $reductorLabel = \App\Support\LavadoraCatalog::etiquetaReductor($linea->nombre ?? null);
+    $componentesRv250 = array_keys(array_filter(
+        \App\Support\LavadoraCatalog::COMPONENTE_NOMBRES,
+        fn ($label) => $label === 'RV250 Sin Fin Corona'
+    ));
+    $esComponenteRv250 = function ($nombre, $codigo = null) use ($componentesRv250) {
+        $nombreUpper = strtoupper((string) $nombre);
+        $codigoUpper = strtoupper((string) $codigo);
+
+        foreach ($componentesRv250 as $codigoBase) {
+            if (
+                $codigoUpper === $codigoBase
+                || str_contains($codigoUpper, $codigoBase)
+                || str_contains($nombreUpper, $codigoBase)
+            ) {
+                return true;
+            }
+        }
+
+        return false;
+    };
+    $nombreComponenteLavadora = fn ($nombre, $codigo = null) => $esComponenteRv250($nombre, $codigo)
+        ? 'RV250 Sin Fin Corona'
+        : $nombre;
 @endphp
 <div class="max-w-4xl mx-auto py-10 px-4">
     {{-- Header mejorado --}}
@@ -71,10 +94,14 @@
                             onchange="actualizarInformacion(); toggleLadoSelector();">
                         <option value="">Seleccionar componente...</option>
                         @foreach($componentesDisponibles as $codigo => $nombre)
+                            @php
+                                $nombreVisible = $nombreComponenteLavadora($nombre, $codigo);
+                                $mostrarCodigo = !$esComponenteRv250($nombre, $codigo);
+                            @endphp
                             <option value="{{ $codigo }}"
                                 {{ old('componente_codigo') == $codigo ? 'selected' : '' }}
-                                data-nombre="{{ $nombre }}">
-                                {{ $nombre }} ({{ $codigo }})
+                                data-nombre="{{ $nombreVisible }}">
+                                {{ $nombreVisible }}@if($mostrarCodigo) ({{ $codigo }})@endif
                             </option>
                         @endforeach
                     </select>
@@ -259,11 +286,11 @@
             {{-- Botones --}}
             <div class="create-actions pt-6 border-t border-gray-200">
                 <a href="{{ route('analisis-lavadora.select-linea') }}"
-                   class="create-action create-action--secondary flex-1">
+                   class="create-action create-action--secondary flex-1 analysis-create-action--cancel-mobile">
                     <i class="fas fa-times mr-2"></i>Cancelar
                 </a>
                 <button type="submit"
-                        class="create-action flex-1">
+                        class="create-action flex-1 analysis-create-action--save-mobile">
                     <i class="fas fa-save mr-2"></i>
                     Guardar Análisis
                 </button>

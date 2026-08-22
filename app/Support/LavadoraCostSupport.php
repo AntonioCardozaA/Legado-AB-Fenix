@@ -91,6 +91,52 @@ class LavadoraCostSupport
             ->all();
     }
 
+    public static function displayText(?string $value): string
+    {
+        $text = trim((string) $value);
+
+        if ($text === '') {
+            return '';
+        }
+
+        $displayName = LavadoraCatalog::COMPONENTE_NOMBRES['RV200'] ?? 'RV250 Sin Fin Corona';
+        $patterns = [
+            '/\b(?:servo-)?reductor\s+sin\s+fin[-\s]*corona\s+rv200\b/i',
+            '/\b(?:servo-)?reductor\s+rv200\b/i',
+            '/\brv200_sin_fin(?:_corona)?\b/i',
+            '/\brv200\s+sin\s+fin[-\s]*corona\b/i',
+            '/\brv\s*200\s+sin\s+fin[-\s]*corona\b/i',
+            '/\brv200\s+sin\s+fin\b/i',
+            '/\brv\s*200\s+sin\s+fin\b/i',
+            '/\brv200\b/i',
+            '/\brv\s*200\b/i',
+        ];
+
+        return preg_replace($patterns, $displayName, $text) ?? $text;
+    }
+
+    public static function displayComponentCode(?string $code): string
+    {
+        $code = self::normalizeComponentCode($code);
+
+        if ($code === '') {
+            return '';
+        }
+
+        return self::displayText(LavadoraCatalog::nombreComponente($code));
+    }
+
+    public static function displayComponentName(?string $name, ?string $code = null): string
+    {
+        $name = self::displayText($name);
+
+        if ($name !== '') {
+            return $name;
+        }
+
+        return self::displayComponentCode($code) ?: 'Componente no identificado';
+    }
+
     public static function normalizeComponentCode(?string $code): string
     {
         $code = strtoupper(trim((string) $code));

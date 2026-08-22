@@ -363,11 +363,11 @@
 
             <div class="create-actions pt-6 border-t border-gray-200">
                 <a href="{{ $analisisRoute('index', ['linea_id' => $linea->id]) }}"
-                   class="create-action create-action--secondary flex-1">
+                   class="create-action create-action--secondary flex-1 analysis-create-action--cancel-mobile">
                     Cancelar
                 </a>
                 <button type="submit"
-                        class="create-action flex-1">
+                        class="create-action flex-1 analysis-create-action--save-mobile">
                     <i class="fas fa-save mr-2"></i>
                     Guardar Analisis
                 </button>

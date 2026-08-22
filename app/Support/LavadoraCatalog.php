@@ -12,6 +12,17 @@ class LavadoraCatalog
     public const REDUCTOR_PRINCIPAL = 'Reductor Principal';
     public const FLECHA_LOCA = 'Flecha Loca';
 
+    public const PASO_CADENA_POR_LINEA = [
+        'L-04' => 173,
+        'L-05' => 140,
+        'L-06' => 173,
+        'L-07' => 173,
+        'L-08' => 125,
+        'L-09' => 140,
+        'L-12' => 140,
+        'L-13' => 140,
+    ];
+
     public const COMPONENTE_CODIGOS_BASE = [
         'RV200_SIN_FIN',
         'SERVO_CHICO',
@@ -35,6 +46,40 @@ class LavadoraCatalog
         'CATARINAS' => 'Catarinas',
         'RV200' => 'RV250 Sin Fin Corona',
         'RV200_SIN_FIN' => 'RV250 Sin Fin Corona',
+    ];
+
+    public const COMPONENTE_SKUS = [
+        'SERVO_CHICO' => '4172293',
+        'SERVO_GRANDE' => '4147930',
+        'BUJE_ESPIGA' => '4017810',
+        'GUI_INF_TANQUE' => '4066462',
+        'GUI_INT_TANQUE' => '4066460',
+        'GUI_SUP_TANQUE' => '4066459',
+        'RV200' => '4067643',
+        'RV200_SIN_FIN' => '4067643',
+    ];
+
+    public const COMPONENTE_SKUS_POR_PASO = [
+        'CATARINAS' => [
+            125 => '4064265',
+            140 => '4065310',
+            173 => '4094364',
+        ],
+        'GUI_INF_TANQUE' => [
+            125 => '4066462',
+            140 => '4066462',
+            173 => '4066462',
+        ],
+        'GUI_INT_TANQUE' => [
+            125 => '4066460',
+            140 => '4066460',
+            173 => '4066460',
+        ],
+        'GUI_SUP_TANQUE' => [
+            125 => '4066459',
+            140 => '4066459',
+            173 => '4066459',
+        ],
     ];
 
     public const COMPONENTES_POR_LINEA = [
@@ -270,6 +315,64 @@ class LavadoraCatalog
         return self::COMPONENTE_NOMBRES[$codigo] ?? $codigo;
     }
 
+    public static function pasoCadenaLinea(?string $lineaNombre): ?int
+    {
+        $lineaNombre = self::normalizarLineaSku($lineaNombre);
+
+        return $lineaNombre ? (self::PASO_CADENA_POR_LINEA[$lineaNombre] ?? null) : null;
+    }
+
+    public static function skuComponente(?string $lineaNombre, ?string $codigo): ?string
+    {
+        $codigo = self::normalizarCodigoSku($codigo);
+
+        if ($codigo === '') {
+            return null;
+        }
+
+        $paso = self::pasoCadenaLinea($lineaNombre);
+
+        if (
+            $paso !== null
+            && isset(self::COMPONENTE_SKUS_POR_PASO[$codigo][$paso])
+        ) {
+            return self::COMPONENTE_SKUS_POR_PASO[$codigo][$paso];
+        }
+
+        return self::COMPONENTE_SKUS[$codigo] ?? null;
+    }
+
+    public static function skusComponente(?string $lineaNombre, ?string $codigo): array
+    {
+        $sku = self::skuComponente($lineaNombre, $codigo);
+
+        return $sku ? [$sku] : [];
+    }
+
+    public static function resumenSkuComponente(?string $lineaNombre, ?string $codigo): array
+    {
+        $sku = self::skuComponente($lineaNombre, $codigo);
+
+        if (!$sku) {
+            return [
+                'label' => 'SKU: Sin SKU',
+                'title' => 'SKU: Sin SKU',
+                'sku' => null,
+            ];
+        }
+
+        return [
+            'label' => 'SKU: ' . $sku,
+            'title' => 'SKU: ' . $sku,
+            'sku' => $sku,
+        ];
+    }
+
+    public static function resumenSkusComponente(?string $lineaNombre, ?string $codigo): array
+    {
+        return self::resumenSkuComponente($lineaNombre, $codigo);
+    }
+
     public static function reductoresPorLinea(string $lineaNombre): array
     {
         return self::REDUCTORES_POR_LINEA[$lineaNombre] ?? [];
@@ -365,4 +468,40 @@ class LavadoraCatalog
     {
         return in_array(self::REDUCTOR_PRINCIPAL, self::reductoresPorLinea($lineaNombre), true);
     }
+
+    private static function normalizarCodigoSku(?string $codigo): string
+    {
+        $codigo = strtoupper(trim((string) $codigo));
+
+        if ($codigo === '') {
+            return '';
+        }
+
+        $knownCodes = self::COMPONENTE_CODIGOS_BASE;
+        usort($knownCodes, fn (string $left, string $right) => strlen($right) <=> strlen($left));
+
+        foreach ($knownCodes as $knownCode) {
+            if (str_contains($codigo, $knownCode)) {
+                return $knownCode;
+            }
+        }
+
+        return $codigo;
+    }
+
+    private static function normalizarLineaSku(?string $lineaNombre): ?string
+    {
+        $lineaNombre = strtoupper(trim((string) $lineaNombre));
+
+        if ($lineaNombre === '') {
+            return null;
+        }
+
+        if (preg_match('/^L-?0?([0-9]+)$/', $lineaNombre, $matches) === 1) {
+            return 'L-' . str_pad((string) (int) $matches[1], 2, '0', STR_PAD_LEFT);
+        }
+
+        return $lineaNombre;
+    }
+
 }
