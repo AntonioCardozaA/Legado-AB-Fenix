@@ -828,6 +828,7 @@ class AssistantChatTest extends TestCase
         foreach ([
             'Dame Excel de analisis de lavadora linea 5 este año',
             'Dame Excel de costos de lavadora por linea este año',
+            'Grafica la tendencia mensual de costos de lavadora de la linea 5 en Excel',
             'Dame Excel de planes de accion linea 5 este año',
         ] as $prompt) {
             $response = $this->actingAs($user)->postJson(route('assistant-chat.store'), [
@@ -844,6 +845,12 @@ class AssistantChatTest extends TestCase
                 ->assertJsonCount(1, 'message.metadata.artifacts')
                 ->assertJsonPath('message.metadata.artifacts.0.kind', 'excel');
 
+            $normalizedPrompt = Str::lower(Str::ascii($prompt));
+
+            if (str_contains($normalizedPrompt, 'costos')) {
+                $response->assertJsonPath('message.metadata.intent.chart_type', 'bar');
+            }
+
             $assistantMessage = AssistantMessage::findOrFail((int) $response->json('message.id'));
             $storedArtifacts = $assistantMessage->metadata['artifacts'];
             $spreadsheet = IOFactory::load(Storage::disk('local')->path($storedArtifacts[0]['path']));
@@ -854,15 +861,23 @@ class AssistantChatTest extends TestCase
             $this->assertNotContains('Resumen', $spreadsheet->getSheetNames());
             $this->assertNotContains('Filtros', $spreadsheet->getSheetNames());
 
-            if (str_contains(Str::lower(Str::ascii($prompt)), 'costos')) {
+            if (str_contains($normalizedPrompt, 'costos')) {
+                $isByLineCost = str_contains($normalizedPrompt, 'por linea');
                 $this->assertNotContains('Alertas', $spreadsheet->getSheetNames());
 
                 $tendencia = $spreadsheet->getSheetByName('Tendencia');
-                $this->assertSame('Linea', $tendencia?->getCell('A1')->getValue());
+                $this->assertSame($isByLineCost ? 'Linea' : 'Periodo', $tendencia?->getCell('A1')->getValue());
                 $this->assertSame('Registros', $tendencia?->getCell('B1')->getValue());
                 $this->assertSame('Costo total MXN', $tendencia?->getCell('C1')->getValue());
                 $this->assertSame('Componente principal', $tendencia?->getCell('D1')->getValue());
                 $this->assertSame('Refaccion principal', $tendencia?->getCell('E1')->getValue());
+
+                $costDashboard = $spreadsheet->getSheetByName('Dashboard');
+                $this->assertSame('Cambios por componente/refaccion', $costDashboard?->getCell('K6')->getValue());
+                $this->assertSame('Componente', $costDashboard?->getCell('K7')->getValue());
+                $this->assertSame('Refaccion', $costDashboard?->getCell('L7')->getValue());
+                $this->assertSame('Cambios', $costDashboard?->getCell('M7')->getValue());
+                $this->assertSame('Costo total', $costDashboard?->getCell('N7')->getValue());
 
                 $datos = $spreadsheet->getSheetByName('Datos');
                 $this->assertSame('Lavadora / Linea', $datos?->getCell('B1')->getValue());

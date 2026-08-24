@@ -106,6 +106,7 @@ class AssistantAnalyticsArtifactService
             return $this->emptyReply($datasetKey, $lineas, $dateRange, $intentResult, $question);
         }
 
+        $chartType = $this->effectiveChartType($dataset, $chartType);
         $dataset = $this->withRuntimeFilters($dataset, $question, $datasetKey, $outputs, $lineas, $dateRange, $chartType);
 
         $artifacts = [];
@@ -1061,6 +1062,11 @@ class AssistantAnalyticsArtifactService
             ->all();
         $dataset['alert_headings'] = [];
         $dataset['alert_rows'] = [];
+        $dataset['dashboard_side_panel_title'] = 'Cambios por componente/refaccion';
+        $dataset['dashboard_side_panel_headings'] = ['Componente', 'Refaccion', 'Cambios', 'Costo total'];
+        $dataset['dashboard_side_panel_rows'] = $this->costComponentChangeRows($sortedRecords);
+        $dataset['chart_side_title'] = 'Componentes y refacciones';
+        $dataset['chart_side_items'] = $this->costChartSideItems($sortedRecords);
 
         return $dataset;
     }
@@ -1377,6 +1383,73 @@ class AssistantAnalyticsArtifactService
         ];
     }
 
+    /**
+     * @param  Collection<int, LavadoraCostEntry>  $records
+     * @return array<int, array<int, mixed>>
+     */
+    private function costComponentChangeRows(Collection $records): array
+    {
+        return $this->costComponentChangeSummaries($records)
+            ->take(12)
+            ->map(fn (array $item): array => [
+                (string) ($item['component'] ?? 'Sin componente'),
+                (string) ($item['refaction_with_sku'] ?? 'Sin refaccion'),
+                (int) ($item['count'] ?? 0),
+                round((float) ($item['total'] ?? 0), 2),
+            ])
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @param  Collection<int, LavadoraCostEntry>  $records
+     * @return array<int, array{label: string, detail: string, value: string}>
+     */
+    private function costChartSideItems(Collection $records): array
+    {
+        return $this->costComponentChangeSummaries($records)
+            ->take(5)
+            ->map(fn (array $item): array => [
+                'label' => (string) ($item['component'] ?? 'Sin componente'),
+                'detail' => (string) ($item['refaction_with_sku'] ?? 'Sin refaccion'),
+                'value' => ((int) ($item['count'] ?? 0)).' cambios / $'.number_format((float) ($item['total'] ?? 0), 0),
+            ])
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @param  Collection<int, LavadoraCostEntry>  $records
+     * @return Collection<int, array{component: string, refaction: string, refaction_with_sku: string, sku: string, count: int, total: float}>
+     */
+    private function costComponentChangeSummaries(Collection $records): Collection
+    {
+        return $records
+            ->groupBy(fn (LavadoraCostEntry $record): string => sha1(implode('|', [
+                $this->costComponentName($record),
+                $this->costRefactionName($record),
+                $this->costSku($record),
+            ])))
+            ->map(function (Collection $items): array {
+                /** @var LavadoraCostEntry|null $first */
+                $first = $items->first();
+                $component = $first ? $this->costComponentName($first) : 'Sin componente';
+                $refaction = $first ? $this->costRefactionName($first) : 'Sin refaccion';
+                $sku = $first ? $this->costSku($first) : '';
+
+                return [
+                    'component' => $component,
+                    'refaction' => $refaction,
+                    'refaction_with_sku' => $sku !== '' ? $refaction.' ('.$sku.')' : $refaction,
+                    'sku' => $sku,
+                    'count' => $items->count(),
+                    'total' => (float) $items->sum(fn (LavadoraCostEntry $record): float => (float) $record->total_cost),
+                ];
+            })
+            ->sortByDesc(fn (array $item): float => (float) ($item['total'] ?? 0))
+            ->values();
+    }
+
     private function isHighPriority(?string $priority): bool
     {
         $priority = $this->normalize((string) $priority);
@@ -1511,6 +1584,13 @@ class AssistantAnalyticsArtifactService
             'y_label' => 'Cantidad',
             'thresholds' => [],
         ];
+
+        if ($this->wantsRevisionHistoryPointLabels($question)) {
+            $dataset['title'] = 'Historico de revisiones de lavadora';
+            $dataset['y_label'] = 'Revisiones';
+            $dataset['show_point_values'] = true;
+            $dataset['point_value_series'] = ['Registros'];
+        }
 
         if ($aggregation === 'by_line') {
             $dataset['title'] = 'Comparativo de analisis por lavadora';
@@ -1707,11 +1787,7 @@ class AssistantAnalyticsArtifactService
             $total = round((float) $items->sum(fn (LavadoraCostEntry $record): float => (float) $record->total_cost), 2);
             $assignment = $this->costTopAssignmentSummary($items);
 
-            if ($isByLine) {
-                $rows[] = [$label, $items->count(), $total, $assignment['component'], $assignment['refaction']];
-            } else {
-                $rows[] = [$label, $items->count(), $total];
-            }
+            $rows[] = [$label, $items->count(), $total, $assignment['component'], $assignment['refaction']];
 
             $points[] = [
                 'label' => $label,
@@ -1728,13 +1804,14 @@ class AssistantAnalyticsArtifactService
             'source_reference' => 'lavadora_cost_entries',
             'headings' => $isByLine
                 ? ['Linea', 'Registros', 'Costo total MXN', 'Componente principal', 'Refaccion principal']
-                : ['Periodo', 'Registros', 'Costo total MXN'],
+                : ['Periodo', 'Registros', 'Costo total MXN', 'Componente principal', 'Refaccion principal'],
             'rows' => $rows,
             'series' => [
                 ['name' => 'Costo total MXN', 'points' => $points],
             ],
             'x_label' => 'Periodo',
             'y_label' => 'MXN',
+            'chart_type' => 'bar',
             'thresholds' => [],
         ];
 
@@ -1951,6 +2028,9 @@ class AssistantAnalyticsArtifactService
             'summary_cards' => array_values((array) ($dataset['summary_cards'] ?? [])),
             'chart_type' => $chartType,
             'chart_image_path' => $dashboardImagePath,
+            'side_panel_title' => (string) ($dataset['dashboard_side_panel_title'] ?? ''),
+            'side_panel_headings' => array_values((array) ($dataset['dashboard_side_panel_headings'] ?? [])),
+            'side_panel_rows' => array_values((array) ($dataset['dashboard_side_panel_rows'] ?? [])),
             'generated_at' => now()->format('d/m/Y H:i:s'),
         ];
     }
@@ -1971,7 +2051,7 @@ class AssistantAnalyticsArtifactService
         $type = (string) ($dataset['type'] ?? '');
 
         if ($type === 'costos_lavadora') {
-            return "Se generaron {$rows} puntos de costo con los registros reales disponibles. Revisa Datos para validar lavadora, maquina, componente y refaccion.";
+            return "Se generaron {$rows} puntos de costo con los registros reales disponibles. Revisa el panel lateral y Datos para validar lavadora, maquina, componente y refaccion.";
         }
 
         if ($alerts > 0) {
@@ -2030,10 +2110,12 @@ class AssistantAnalyticsArtifactService
         $chartType = $chartType === 'bar' && count($series) === 1 ? 'bar' : 'line';
         $piePoints = $this->piePointsFromDataset($dataset);
         $hasPie = $chartType === 'bar' && $piePoints !== [];
+        $sideItems = $this->chartSideItems($dataset);
+        $hasSidePanel = $sideItems !== [];
         $width = 1100;
         $height = 680;
         $left = 88;
-        $right = $hasPie ? 338 : 44;
+        $right = ($hasPie || $hasSidePanel) ? 338 : 44;
         $top = 252;
         $bottom = 104;
         $plotWidth = $width - $left - $right;
@@ -2041,6 +2123,7 @@ class AssistantAnalyticsArtifactService
         $values = $this->seriesValues($series);
         $thresholds = array_values(array_filter((array) ($dataset['thresholds'] ?? []), fn ($item): bool => is_array($item)));
         $summaryCards = array_values(array_filter((array) ($dataset['summary_cards'] ?? []), fn ($item): bool => is_array($item)));
+        $showPointValues = $this->showPointValues($dataset);
 
         foreach ($thresholds as $threshold) {
             $values[] = (float) ($threshold['value'] ?? 0);
@@ -2120,7 +2203,18 @@ class AssistantAnalyticsArtifactService
             $svg = array_merge($svg, $this->barSvg($series[0] ?? ['points' => []], $left, $top, $plotWidth, $plotHeight, $minValue, $maxValue, (string) ($dataset['type'] ?? '')));
         } else {
             foreach ($series as $index => $item) {
-                $svg = array_merge($svg, $this->lineSvg($item, $index, $left, $top, $plotWidth, $plotHeight, $minValue, $maxValue, (string) ($dataset['type'] ?? '')));
+                $svg = array_merge($svg, $this->lineSvg(
+                    $item,
+                    $index,
+                    $left,
+                    $top,
+                    $plotWidth,
+                    $plotHeight,
+                    $minValue,
+                    $maxValue,
+                    (string) ($dataset['type'] ?? ''),
+                    $showPointValues && $this->shouldLabelPointValuesForSeries($item, $dataset)
+                ));
             }
         }
 
@@ -2136,8 +2230,18 @@ class AssistantAnalyticsArtifactService
             $svg[] = '<text x="'.round($x, 2).'" y="'.($height - 62).'" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#475569">'.$this->svgText($this->axisLabel((string) $label)).'</text>';
         }
 
-        if ($hasPie) {
+        if ($hasPie && ! $hasSidePanel) {
             $svg = array_merge($svg, $this->pieSvg($dataset, $width - 178, $top + 118, 88));
+        }
+
+        if ($hasSidePanel) {
+            $svg = array_merge($svg, $this->sidePanelSvg(
+                $sideItems,
+                $width - $right + 28,
+                $top,
+                $right - 72,
+                (string) ($dataset['chart_side_title'] ?? 'Detalle')
+            ));
         }
 
         $legendX = $left;
@@ -2168,10 +2272,12 @@ class AssistantAnalyticsArtifactService
         $chartType = $chartType === 'bar' && count($series) === 1 ? 'bar' : 'line';
         $piePoints = $this->piePointsFromDataset($dataset);
         $hasPie = $chartType === 'bar' && $piePoints !== [];
+        $sideItems = $this->chartSideItems($dataset);
+        $hasSidePanel = $sideItems !== [];
         $width = 1100;
         $height = 680;
         $left = 88;
-        $right = $hasPie ? 338 : 44;
+        $right = ($hasPie || $hasSidePanel) ? 338 : 44;
         $top = 252;
         $bottom = 104;
         $plotWidth = $width - $left - $right;
@@ -2179,6 +2285,7 @@ class AssistantAnalyticsArtifactService
         $values = $this->seriesValues($series);
         $thresholds = array_values(array_filter((array) ($dataset['thresholds'] ?? []), fn ($item): bool => is_array($item)));
         $summaryCards = array_values(array_filter((array) ($dataset['summary_cards'] ?? []), fn ($item): bool => is_array($item)));
+        $showPointValues = $this->showPointValues($dataset);
 
         foreach ($thresholds as $threshold) {
             $values[] = (float) ($threshold['value'] ?? 0);
@@ -2269,7 +2376,19 @@ class AssistantAnalyticsArtifactService
             $this->drawPngBars($image, $series[0] ?? ['points' => []], $left, $top, $plotWidth, $plotHeight, $minValue, $maxValue, (string) ($dataset['type'] ?? ''));
         } else {
             foreach ($series as $index => $item) {
-                $this->drawPngLine($image, $item, $index, $left, $top, $plotWidth, $plotHeight, $minValue, $maxValue, (string) ($dataset['type'] ?? ''));
+                $this->drawPngLine(
+                    $image,
+                    $item,
+                    $index,
+                    $left,
+                    $top,
+                    $plotWidth,
+                    $plotHeight,
+                    $minValue,
+                    $maxValue,
+                    (string) ($dataset['type'] ?? ''),
+                    $showPointValues && $this->shouldLabelPointValuesForSeries($item, $dataset)
+                );
             }
         }
 
@@ -2287,8 +2406,19 @@ class AssistantAnalyticsArtifactService
             imagestring($image, 2, $textX, $height - 66, $this->pngSafeText($axisLabel, 18), $slate);
         }
 
-        if ($hasPie) {
+        if ($hasPie && ! $hasSidePanel) {
             $this->drawPngPie($image, $dataset, $width - 178, $top + 118, 88);
+        }
+
+        if ($hasSidePanel) {
+            $this->drawPngSidePanel(
+                $image,
+                $sideItems,
+                $width - $right + 28,
+                $top,
+                $right - 72,
+                (string) ($dataset['chart_side_title'] ?? 'Detalle')
+            );
         }
 
         $legendX = $left;
@@ -2317,11 +2447,12 @@ class AssistantAnalyticsArtifactService
     /**
      * @param  resource|\GdImage  $image
      */
-    private function drawPngLine($image, array $series, int $index, int $left, int $top, int $plotWidth, int $plotHeight, float $minValue, float $maxValue, string $datasetType): void
+    private function drawPngLine($image, array $series, int $index, int $left, int $top, int $plotWidth, int $plotHeight, float $minValue, float $maxValue, string $datasetType, bool $showPointValues = false): void
     {
         $points = array_values(array_filter((array) ($series['points'] ?? []), fn ($item): bool => is_array($item)));
         $count = max(1, count($points));
         $color = $this->pngColor($image, $this->chartColors[$index % count($this->chartColors)]);
+        $labelColor = $this->pngColor($image, '#0f172a');
         $previous = null;
 
         imagesetthickness($image, 3);
@@ -2348,6 +2479,14 @@ class AssistantAnalyticsArtifactService
 
             imagefilledellipse($image, $x, $y, 10, 10, $pointColor);
             imageellipse($image, $x, $y, 12, 12, $this->pngColor($image, '#ffffff'));
+
+            if ($showPointValues) {
+                $label = $this->formatChartNumber($value);
+                $textX = (int) round($x - ((strlen($label) * 6) / 2));
+                $textY = max($top + 4, $y - 20);
+
+                imagestring($image, 2, $textX, $textY, $label, $labelColor);
+            }
         }
     }
 
@@ -2423,6 +2562,36 @@ class AssistantAnalyticsArtifactService
 
     /**
      * @param  resource|\GdImage  $image
+     * @param  array<int, array<string, mixed>>  $items
+     */
+    private function drawPngSidePanel($image, array $items, int $x, int $y, int $width, string $title): void
+    {
+        $height = 324;
+        $white = $this->pngColor($image, '#ffffff');
+        $border = $this->pngColor($image, '#e2e8f0');
+        $navy = $this->pngColor($image, '#0f172a');
+        $muted = $this->pngColor($image, '#64748b');
+        $accent = $this->pngColor($image, '#2563eb');
+
+        imagefilledrectangle($image, $x, $y, $x + $width, $y + $height, $white);
+        imagerectangle($image, $x, $y, $x + $width, $y + $height, $border);
+        imagefilledrectangle($image, $x, $y, $x + 5, $y + $height, $accent);
+        imagestring($image, 3, $x + 18, $y + 18, $this->pngSafeText($title, 31), $navy);
+
+        foreach (array_slice($items, 0, 5) as $index => $item) {
+            $rowY = $y + 52 + ($index * 52);
+            $label = $this->pngSafeText((string) ($item['label'] ?? ''), 30);
+            $detail = $this->pngSafeText((string) ($item['detail'] ?? ''), 34);
+            $value = $this->pngSafeText((string) ($item['value'] ?? ''), 28);
+
+            imagestring($image, 3, $x + 18, $rowY, $label, $navy);
+            imagestring($image, 2, $x + 18, $rowY + 18, $detail, $muted);
+            imagestring($image, 2, $x + 18, $rowY + 34, $value, $accent);
+        }
+    }
+
+    /**
+     * @param  resource|\GdImage  $image
      */
     private function pngDashedLine($image, int $x1, int $y1, int $x2, int $y2, int $color): void
     {
@@ -2469,6 +2638,46 @@ class AssistantAnalyticsArtifactService
     private function pngSafeText(string $value, int $limit): string
     {
         return Str::limit(Str::ascii($value), $limit, '');
+    }
+
+    /**
+     * @param  array<string, mixed>  $dataset
+     * @return array<int, array<string, mixed>>
+     */
+    private function chartSideItems(array $dataset): array
+    {
+        return collect((array) ($dataset['chart_side_items'] ?? []))
+            ->filter(fn ($item): bool => is_array($item) && trim((string) ($item['label'] ?? '')) !== '')
+            ->map(fn (array $item): array => [
+                'label' => (string) ($item['label'] ?? ''),
+                'detail' => (string) ($item['detail'] ?? ''),
+                'value' => (string) ($item['value'] ?? ''),
+            ])
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @param  array<string, mixed>  $dataset
+     */
+    private function showPointValues(array $dataset): bool
+    {
+        return (bool) ($dataset['show_point_values'] ?? false);
+    }
+
+    /**
+     * @param  array<string, mixed>  $series
+     * @param  array<string, mixed>  $dataset
+     */
+    private function shouldLabelPointValuesForSeries(array $series, array $dataset): bool
+    {
+        $allowedSeries = array_values(array_filter((array) ($dataset['point_value_series'] ?? []), fn ($item): bool => is_string($item) && trim($item) !== ''));
+
+        if ($allowedSeries === []) {
+            return true;
+        }
+
+        return in_array((string) ($series['name'] ?? ''), $allowedSeries, true);
     }
 
     /**
@@ -2520,7 +2729,7 @@ class AssistantAnalyticsArtifactService
      * @param  array<string, mixed>  $series
      * @return array<int, string>
      */
-    private function lineSvg(array $series, int $index, int $left, int $top, int $plotWidth, int $plotHeight, float $minValue, float $maxValue, string $datasetType): array
+    private function lineSvg(array $series, int $index, int $left, int $top, int $plotWidth, int $plotHeight, float $minValue, float $maxValue, string $datasetType, bool $showPointValues = false): array
     {
         $points = array_values(array_filter((array) ($series['points'] ?? []), fn ($item): bool => is_array($item)));
         $count = max(1, count($points));
@@ -2546,6 +2755,10 @@ class AssistantAnalyticsArtifactService
 
             $pointColor = $this->valueHex($value, $datasetType);
             $svg[] = '<circle cx="'.round($x, 2).'" cy="'.round($y, 2).'" r="5" fill="'.$pointColor.'" stroke="#ffffff" stroke-width="2"/>';
+
+            if ($showPointValues) {
+                $svg[] = '<text x="'.round($x, 2).'" y="'.round(max($top + 14, $y - 12), 2).'" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" font-weight="700" fill="#0f172a">'.$this->svgText($this->formatChartNumber($value)).'</text>';
+            }
         }
 
         return $svg;
@@ -2627,6 +2840,33 @@ class AssistantAnalyticsArtifactService
 
             $svg[] = '<rect x="'.($cx - 126).'" y="'.($y - 12).'" width="13" height="13" rx="3" fill="'.$color.'"/>';
             $svg[] = '<text x="'.($cx - 106).'" y="'.$y.'" font-family="Arial, sans-serif" font-size="11" fill="#475569">'.$this->svgText(Str::limit($label, 26, '')).' '.$this->svgText($this->formatChartNumber($value)).'</text>';
+        }
+
+        return $svg;
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $items
+     * @return array<int, string>
+     */
+    private function sidePanelSvg(array $items, int $x, int $y, int $width, string $title): array
+    {
+        $height = 324;
+        $svg = [
+            '<rect x="'.$x.'" y="'.$y.'" width="'.$width.'" height="'.$height.'" rx="18" fill="#ffffff" stroke="#e2e8f0"/>',
+            '<rect x="'.$x.'" y="'.$y.'" width="6" height="'.$height.'" rx="3" fill="#2563eb"/>',
+            '<text x="'.($x + 22).'" y="'.($y + 30).'" font-family="Arial, sans-serif" font-size="13" font-weight="800" fill="#0f172a">'.$this->svgText(Str::limit($title, 34, '')).'</text>',
+        ];
+
+        foreach (array_slice($items, 0, 5) as $index => $item) {
+            $rowY = $y + 62 + ($index * 52);
+            $label = Str::limit((string) ($item['label'] ?? ''), 30, '');
+            $detail = Str::limit((string) ($item['detail'] ?? ''), 34, '');
+            $value = Str::limit((string) ($item['value'] ?? ''), 32, '');
+
+            $svg[] = '<text x="'.($x + 22).'" y="'.$rowY.'" font-family="Arial, sans-serif" font-size="12" font-weight="700" fill="#0f172a">'.$this->svgText($label).'</text>';
+            $svg[] = '<text x="'.($x + 22).'" y="'.($rowY + 17).'" font-family="Arial, sans-serif" font-size="10" fill="#64748b">'.$this->svgText($detail).'</text>';
+            $svg[] = '<text x="'.($x + 22).'" y="'.($rowY + 33).'" font-family="Arial, sans-serif" font-size="10" font-weight="700" fill="#2563eb">'.$this->svgText($value).'</text>';
         }
 
         return $svg;
@@ -3136,6 +3376,28 @@ class AssistantAnalyticsArtifactService
         return 'line';
     }
 
+    /**
+     * @param  array<string, mixed>  $dataset
+     */
+    private function effectiveChartType(array $dataset, string $chartType): string
+    {
+        $preferred = (string) ($dataset['chart_type'] ?? '');
+
+        return in_array($preferred, ['bar', 'line'], true) ? $preferred : $chartType;
+    }
+
+    private function wantsRevisionHistoryPointLabels(string $question): bool
+    {
+        $normalized = $this->normalize($question);
+        $mentionsHistory = str_contains($normalized, 'historico')
+            || str_contains($normalized, 'historial');
+        $mentionsReviews = str_contains($normalized, 'revisad')
+            || str_contains($normalized, 'revision')
+            || str_contains($normalized, 'revisiones');
+
+        return $mentionsHistory && $mentionsReviews;
+    }
+
     private function wantsAnalisisStateChart(string $question, string $chartType): bool
     {
         $normalized = $this->normalize($question);
@@ -3257,6 +3519,10 @@ class AssistantAnalyticsArtifactService
 
         if (str_contains($normalized, 'semanal') || str_contains($normalized, 'por semana')) {
             return 'weekly';
+        }
+
+        if (str_contains($normalized, 'mensual') || str_contains($normalized, 'por mes')) {
+            return 'monthly';
         }
 
         if (
