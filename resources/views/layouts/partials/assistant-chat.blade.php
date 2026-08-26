@@ -304,7 +304,7 @@
                 return '';
             }
 
-            if (kind === 'image') {
+            if (kind === 'image' || kind === 'svg' || mimeType.startsWith('image/')) {
                 return `
                     <a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer" title="${escapeHtml(label)}">
                         <img class="assistant-chat-artifact-image" src="${escapeHtml(url)}" alt="${escapeHtml(label)}">

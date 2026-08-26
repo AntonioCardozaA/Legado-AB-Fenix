@@ -116,6 +116,54 @@ class LavadoraRevisionPeriodicityServiceTest extends TestCase
         $this->assertSame('11/05/2026 08:00:00', $estadisticas['CATARINAS']['ultimo_reset_formateado']);
     }
 
+    public function test_component_detail_identifies_next_due_and_latest_reviewed_location(): void
+    {
+        $linea = $this->crearLinea('L-04');
+        $vencido = $this->crearComponente($linea, 'BUJE_ESPIGA', 'Reductor 9');
+        $vigente = $this->crearComponente($linea, 'BUJE_ESPIGA', 'Reductor 10');
+        $ultimo = $this->crearComponente($linea, 'BUJE_ESPIGA', 'Reductor 11');
+
+        $this->crearAnalisis($linea, $vencido, 'Reductor 9', '2025-01-05', 'OT-DUE-09');
+        $this->crearAnalisis($linea, $vigente, 'Reductor 10', '2026-06-01', 'OT-OK-10');
+        $this->crearAnalisis($linea, $ultimo, 'Reductor 11', '2026-08-05', 'OT-LAST-11');
+
+        $estadisticas = app(LavadoraRevisionPeriodicityService::class)
+            ->estadisticasLinea($linea, Carbon::parse('2026-08-10'));
+
+        $detalle = collect($estadisticas['BUJE_ESPIGA']['detalle_ubicaciones']);
+        $resumen = $estadisticas['BUJE_ESPIGA']['resumen_ubicaciones'];
+
+        $this->assertSame(13, $detalle->count());
+        $this->assertSame('vencido', $detalle->firstWhere('reductor', 'Reductor 9')['estado']);
+        $this->assertSame('Servo-Reductor 10', $detalle->firstWhere('reductor', 'Reductor 10')['reductor_nombre']);
+        $this->assertSame('Servo-Reductor 9', $resumen['proximo_revisar']['ubicacion']);
+        $this->assertSame('vencido', $resumen['proximo_revisar']['estado']);
+        $this->assertSame('Servo-Reductor 11', $resumen['ultimo_revisado']['ubicacion']);
+        $this->assertSame('2026-08-05', $resumen['ultimo_revisado']['fecha_ultima_revision']);
+        $this->assertTrue($detalle->firstWhere('reductor', 'Reductor 9')['es_proximo']);
+        $this->assertTrue($detalle->firstWhere('reductor', 'Reductor 11')['es_ultimo']);
+    }
+
+    public function test_component_detail_keeps_side_locations_independent(): void
+    {
+        $linea = $this->crearLinea('L-04');
+        $catarina = $this->crearComponente($linea, 'CATARINAS', 'Reductor 10');
+
+        $this->crearAnalisis($linea, $catarina, 'Reductor 10', '2026-08-01', 'OT-VAP-10', 'VAPOR');
+        $this->crearAnalisis($linea, $catarina, 'Reductor 10', '2026-08-02', 'OT-PAS-10', 'PASILLO');
+
+        $estadisticas = app(LavadoraRevisionPeriodicityService::class)
+            ->estadisticasLinea($linea, Carbon::parse('2026-08-10'));
+
+        $detalle = collect($estadisticas['CATARINAS']['detalle_ubicaciones']);
+        $vapor = $detalle->first(fn (array $item): bool => $item['reductor'] === 'Reductor 10' && $item['lado'] === 'VAPOR');
+        $pasillo = $detalle->first(fn (array $item): bool => $item['reductor'] === 'Reductor 10' && $item['lado'] === 'PASILLO');
+
+        $this->assertSame('Servo-Reductor 10 - Vapor', $vapor['ubicacion']);
+        $this->assertSame('Servo-Reductor 10 - Pasillo', $pasillo['ubicacion']);
+        $this->assertSame('Servo-Reductor 10 - Pasillo', $estadisticas['CATARINAS']['resumen_ubicaciones']['ultimo_revisado']['ubicacion']);
+    }
+
     private function crearLinea(string $nombre = 'L-04'): Linea
     {
         return Linea::create([

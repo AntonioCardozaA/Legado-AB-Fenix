@@ -656,9 +656,9 @@
     .modal-content {
         background: white;
         border-radius: 24px;
-        max-width: 500px;
+        max-width: 860px;
         width: 100%;
-        max-height: 80vh;
+        max-height: 88vh;
         overflow: hidden;
         box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
         display: flex;
@@ -689,7 +689,7 @@
     .modal-body {
         padding: 24px;
         overflow-y: auto;
-        max-height: calc(80vh - 80px);
+        max-height: calc(88vh - 80px);
     }
 
     .modal-close {
@@ -711,6 +711,218 @@
         background: #ef4444;
         color: white;
         border-color: #ef4444;
+    }
+
+    .detalle-ubicaciones-section {
+        border-top: 1px solid #e2e8f0;
+        padding-top: 20px;
+    }
+
+    .detalle-title {
+        align-items: center;
+        color: #1e293b;
+        display: flex;
+        font-size: 16px;
+        font-weight: 700;
+        gap: 8px;
+        margin: 0 0 14px;
+    }
+
+    .detalle-summary-grid {
+        display: grid;
+        gap: 12px;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        margin-bottom: 16px;
+    }
+
+    .detalle-summary-card {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-left: 4px solid #94a3b8;
+        border-radius: 8px;
+        min-width: 0;
+        padding: 12px;
+    }
+
+    .detalle-summary-card.next {
+        background: #eff6ff;
+        border-left-color: #3b82f6;
+    }
+
+    .detalle-summary-card.last {
+        background: #ecfdf5;
+        border-left-color: #10b981;
+    }
+
+    .detalle-summary-card.expired {
+        background: #fef2f2;
+        border-left-color: #ef4444;
+    }
+
+    .detalle-summary-label {
+        color: #64748b;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+    }
+
+    .detalle-summary-value {
+        color: #0f172a;
+        font-size: 15px;
+        font-weight: 800;
+        line-height: 1.3;
+        margin-top: 5px;
+        overflow-wrap: anywhere;
+    }
+
+    .detalle-summary-meta {
+        color: #64748b;
+        font-size: 12px;
+        line-height: 1.35;
+        margin-top: 5px;
+        overflow-wrap: anywhere;
+    }
+
+    .detalle-list {
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+
+    .detalle-row {
+        align-items: center;
+        background: white;
+        border-left: 4px solid #cbd5e1;
+        border-top: 1px solid #e2e8f0;
+        display: grid;
+        gap: 12px;
+        grid-template-columns: minmax(180px, 1.35fr) minmax(132px, 0.85fr) minmax(132px, 0.85fr) auto;
+        padding: 12px;
+    }
+
+    .detalle-row:first-child {
+        border-top: 0;
+    }
+
+    .detalle-row.status-vigente {
+        border-left-color: #10b981;
+    }
+
+    .detalle-row.status-vencido {
+        background: #fff7f7;
+        border-left-color: #ef4444;
+    }
+
+    .detalle-row.status-sin_revision {
+        background: #f8fafc;
+        border-left-color: #94a3b8;
+    }
+
+    .detalle-row.status-restablecido {
+        background: #f8fafc;
+        border-left-color: #64748b;
+    }
+
+    .detalle-row.is-next {
+        box-shadow: inset 0 0 0 2px rgba(59, 130, 246, 0.22);
+    }
+
+    .detalle-row.is-last {
+        box-shadow: inset 0 0 0 2px rgba(16, 185, 129, 0.18);
+    }
+
+    .detalle-row.is-next.is-last {
+        box-shadow: inset 0 0 0 2px rgba(59, 130, 246, 0.24);
+    }
+
+    .detalle-row-title {
+        color: #1e293b;
+        font-size: 14px;
+        font-weight: 800;
+        line-height: 1.3;
+        overflow-wrap: anywhere;
+    }
+
+    .detalle-row-subtitle,
+    .detalle-cell-label {
+        color: #64748b;
+        font-size: 11px;
+        font-weight: 600;
+        line-height: 1.35;
+        margin-top: 3px;
+        overflow-wrap: anywhere;
+    }
+
+    .detalle-cell-value {
+        color: #1e293b;
+        font-size: 13px;
+        font-weight: 700;
+        line-height: 1.35;
+        overflow-wrap: anywhere;
+    }
+
+    .estado-pill,
+    .detalle-next-pill,
+    .detalle-last-pill {
+        align-items: center;
+        border-radius: 999px;
+        display: inline-flex;
+        font-size: 11px;
+        font-weight: 800;
+        gap: 5px;
+        justify-content: center;
+        line-height: 1;
+        padding: 6px 9px;
+        white-space: nowrap;
+    }
+
+    .estado-pill.status-vigente {
+        background: #dcfce7;
+        color: #047857;
+    }
+
+    .estado-pill.status-vencido {
+        background: #fee2e2;
+        color: #b91c1c;
+    }
+
+    .estado-pill.status-sin_revision {
+        background: #e5e7eb;
+        color: #4b5563;
+    }
+
+    .estado-pill.status-restablecido {
+        background: #e2e8f0;
+        color: #334155;
+    }
+
+    .detalle-next-pill {
+        background: #dbeafe;
+        color: #1d4ed8;
+        margin-left: 6px;
+    }
+
+    .detalle-last-pill {
+        background: #d1fae5;
+        color: #047857;
+        margin-left: 6px;
+    }
+
+    .detalle-empty {
+        align-items: center;
+        background: #f8fafc;
+        border: 1px dashed #cbd5e1;
+        border-radius: 8px;
+        color: #64748b;
+        display: flex;
+        gap: 10px;
+        padding: 16px;
+    }
+
+    .detalle-empty i {
+        color: #94a3b8;
+        font-size: 18px;
     }
 
     /* Colores para texto */
@@ -1008,6 +1220,20 @@
             max-height: calc(92vh - 65px);
             padding: 16px;
         }
+
+        .detalle-summary-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .detalle-row {
+            align-items: flex-start;
+            gap: 10px;
+            grid-template-columns: 1fr;
+        }
+
+        .detalle-row-status {
+            justify-self: flex-start;
+        }
     }
 
     @media (max-width: 420px) {
@@ -1173,6 +1399,13 @@ $nombreComponenteLavadora = function ($nombre, $codigo = null) use ($componentes
                     @forelse($estadisticas as $codigo => $data)
                         @php
                             $nombreComponente = $nombreComponenteLavadora($data['nombre'] ?? null, $codigo);
+                            $ultimoRevisado = data_get($data, 'resumen_ubicaciones.ultimo_revisado.ubicacion');
+                            $ultimaFechaRevisada = data_get($data, 'resumen_ubicaciones.ultimo_revisado.fecha_ultima_revision_formateada')
+                                ?? ($data['ultima_revision_formateada'] ?? null);
+                            $modalPayload = array_replace($data, [
+                                'codigo' => $codigo,
+                                'nombre' => $nombreComponente,
+                            ]);
                         @endphp
                         <tr>
                             <td data-label="Componente">
@@ -1185,32 +1418,13 @@ $nombreComponenteLavadora = function ($nombre, $codigo = null) use ($componentes
                                     </div>
                                     <div class="componente-info">
                                         <span class="componente-nombre-texto">{{ $nombreComponente }}</span>
-                                        @if(isset($data['periodo_meses']))
-                                            <span class="text-xs text-gray-500">
-                                                <i class="fas fa-clock"></i> Cada {{ $data['periodo_meses'] }} meses
-                                                @if(!empty($data['ultima_revision_formateada']))
-                                                    - Ultima: {{ $data['ultima_revision_formateada'] }}
-                                                @endif
-                                                @if(($data['pendientes_reset'] ?? 0) > 0)
-                                                    - <span class="text-red-600">{{ $data['pendientes_reset'] }} reset pendiente</span>
-                                                @elseif(!empty($data['estado_periodicidad_label']))
-                                                    - {{ $data['estado_periodicidad_label'] }}
-                                                @endif
-                                                @if(isset($data['proximo_vencimiento']))
-                                                    · Vence: {{ \Carbon\Carbon::parse($data['proximo_vencimiento'])->format('d/m/Y') }}
-                                                @endif
-                                            </span>
-                                        @endif
-                                        @if(!empty($data['desglose_lados']))
-                                            <div class="mt-1 flex flex-wrap gap-2 text-xs text-gray-600">
-                                                @foreach($data['desglose_lados'] as $lado => $ladoData)
-                                                    <span class="inline-flex items-center gap-1 rounded border border-gray-200 bg-gray-50 px-2 py-0.5">
-                                                        {{ $lado === 'VAPOR' ? 'Vapor' : 'Pasillo' }}:
-                                                        {{ $ladoData['revisados'] ?? 0 }}/{{ $ladoData['total'] ?? 0 }}
-                                                    </span>
-                                                @endforeach
-                                            </div>
-                                        @endif
+                                        <span class="text-xs text-gray-500">
+                                            <i class="fas fa-clock"></i>
+                                            Fecha:
+                                            {{ $ultimaFechaRevisada ?: 'Sin revisión' }}
+                                            - Último revisado:
+                                            {{ $ultimoRevisado ?: 'Sin revisión' }}
+                                        </span>
                                     </div>
                                 </div>
                             </td>
@@ -1226,7 +1440,7 @@ $nombreComponenteLavadora = function ($nombre, $codigo = null) use ($componentes
                             <td data-label="Acciones">
                                 <button class="btn btn-sm btn-primary" 
                                         style="padding: 6px 12px; font-size: 12px; background: #3b82f6; color: white; border: none; border-radius: 6px;"
-                                        onclick='verDetalleComponente(@json($codigo), @json($nombreComponente), {{ $data['cantidad_revisada'] }}, {{ $data['cantidad_total'] }})'>
+                                        onclick='verDetalleComponente(@json($modalPayload, JSON_HEX_APOS | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_QUOT))'>
                                     <i class="fas fa-eye"></i> Ver
                                 </button>
                             </td>
@@ -1405,6 +1619,10 @@ $nombreComponenteLavadora = function ($nombre, $codigo = null) use ($componentes
                     </div>
                 </div>
             </div>
+
+            <div id="modalDetalleUbicaciones" class="detalle-ubicaciones-section mt-6">
+                <!-- Se llena con JavaScript -->
+            </div>
             
             <div class="mt-6">
                 <a href="#" id="modalVerAnalisisLink" class="btn btn-primary w-full justify-center" style="width: 100%; background: #3b82f6;">
@@ -1417,27 +1635,27 @@ $nombreComponenteLavadora = function ($nombre, $codigo = null) use ($componentes
 </div>
 
 <script>
-    function verDetalleComponente(codigo, nombre, revisado, total) {
-        // 👉 Imagen del componente
+function verDetalleComponente(payload, nombreLegacy, revisadoLegacy, totalLegacy) {
+    const data = normalizarPayloadDetalle(payload, nombreLegacy, revisadoLegacy, totalLegacy);
+    const codigo = data.codigo || '';
+    const nombre = data.nombre || 'Detalle del Componente';
+    const revisado = Number(data.cantidad_revisada || 0);
+    const total = Number(data.cantidad_total || 0);
     const rutasImagenes = @json($rutasImagenes);
-
-    // 👉 Asignar imagen
-    document.getElementById('modalComponenteImagen').src =
-        rutasImagenes[codigo] || "{{ asset('images/componentes-lavadora/default.png') }}";
-
-    // 👉 Descripción
-    document.getElementById('modalComponenteDesc').textContent = nombre;
     const modal = document.getElementById('componenteModal');
     const porcentaje = total > 0 ? Math.round((revisado / total) * 100) : 0;
-    
+
+    document.getElementById('modalComponenteImagen').src =
+        rutasImagenes[codigo] || "{{ asset('images/componentes-lavadora/default.png') }}";
+    document.getElementById('modalComponenteDesc').textContent = nombre;
     document.getElementById('modalComponenteNombre').textContent = nombre;
     document.getElementById('modalRevisado').textContent = revisado;
     document.getElementById('modalTotal').textContent = total;
-    
+
     const progressBar = document.getElementById('modalProgressBar');
     progressBar.style.width = porcentaje + '%';
     progressBar.textContent = porcentaje + '%';
-    
+
     progressBar.className = 'progress-bar';
     if (porcentaje >= 80) {
         progressBar.classList.add('bg-success');
@@ -1448,13 +1666,169 @@ $nombreComponenteLavadora = function ($nombre, $codigo = null) use ($componentes
     } else {
         progressBar.classList.add('bg-danger');
     }
-    
+
+    renderDetalleUbicaciones(data);
+
     const lineaId = '{{ $lineaSeleccionada->id ?? '' }}';
     const link = document.getElementById('modalVerAnalisisLink');
-    link.href = "{{ route('analisis-lavadora.index') }}?linea_id=" + lineaId + "&componente_id=" + codigo;
-    
+    link.href = "{{ route('analisis-lavadora.index') }}?linea_id=" + encodeURIComponent(lineaId) + "&componente_id=" + encodeURIComponent(codigo);
+
     modal.classList.add('show');
     document.body.style.overflow = 'hidden';
+}
+
+function normalizarPayloadDetalle(payload, nombreLegacy, revisadoLegacy, totalLegacy) {
+    if (payload && typeof payload === 'object' && !Array.isArray(payload)) {
+        return payload;
+    }
+
+    return {
+        codigo: payload,
+        nombre: nombreLegacy,
+        cantidad_revisada: revisadoLegacy,
+        cantidad_total: totalLegacy,
+        detalle_ubicaciones: [],
+        resumen_ubicaciones: {},
+    };
+}
+
+function renderDetalleUbicaciones(data) {
+    const container = document.getElementById('modalDetalleUbicaciones');
+    const detalle = Array.isArray(data.detalle_ubicaciones) ? data.detalle_ubicaciones : [];
+    const resumen = data.resumen_ubicaciones || {};
+    const proximo = resumen.proximo_revisar || detalle.find(item => item.es_proximo) || null;
+    const ultimo = resumen.ultimo_revisado || detalle.find(item => item.es_ultimo) || null;
+    const vencidos = Number(resumen.ubicaciones_vencidas || detalle.filter(item => item.estado === 'vencido').length || 0);
+    const tieneRevisiones = detalle.some(item => item.fecha_ultima_revision);
+
+    let html = `
+        <h4 class="detalle-title">
+            <i class="fas fa-map-marker-alt"></i>
+            Detalle de revisiones por ubicación
+        </h4>
+        <div class="detalle-summary-grid">
+            ${renderResumenDetalleCard('next', 'Próximo a revisar', proximo ? proximo.ubicacion : 'Sin datos', resumenProximoMeta(proximo))}
+            ${renderResumenDetalleCard('last', 'Último revisado', ultimo ? ultimo.ubicacion : 'Sin revisiones', resumenUltimoMeta(ultimo, data.nombre))}
+            ${renderResumenDetalleCard('expired', 'Vencidos', String(vencidos), vencidos === 1 ? '1 revisión vencida' : (vencidos > 1 ? vencidos + ' revisiones vencidas' : 'Sin revisiones vencidas'))}
+        </div>
+    `;
+
+    if (!detalle.length || !tieneRevisiones) {
+        html += `
+            <div class="detalle-empty">
+                <i class="fas fa-circle-info"></i>
+                <span>Aún no hay revisiones registradas para este componente</span>
+            </div>
+        `;
+        container.innerHTML = html;
+        return;
+    }
+
+    html += `
+        <div class="detalle-list">
+            ${detalle.map(renderDetalleUbicacionRow).join('')}
+        </div>
+    `;
+
+    container.innerHTML = html;
+}
+
+function renderResumenDetalleCard(tipo, label, value, meta) {
+    return `
+        <div class="detalle-summary-card ${escapeHtml(tipo)}">
+            <div class="detalle-summary-label">${escapeHtml(label)}</div>
+            <div class="detalle-summary-value">${escapeHtml(value || '-')}</div>
+            <div class="detalle-summary-meta">${escapeHtml(meta || '-')}</div>
+        </div>
+    `;
+}
+
+function resumenProximoMeta(item) {
+    if (!item) {
+        return 'Sin ubicaciones esperadas';
+    }
+
+    if (item.estado === 'sin_revision') {
+        return 'Pendiente de primera revisión';
+    }
+
+    const fecha = item.proxima_revision_formateada ? 'Próxima: ' + item.proxima_revision_formateada : 'Sin fecha próxima';
+    return item.dias_texto ? fecha + ' · ' + item.dias_texto : fecha;
+}
+
+function resumenUltimoMeta(item, nombre) {
+    if (!item) {
+        return 'Aún no hay revisiones registradas';
+    }
+
+    const fecha = item.fecha_ultima_revision_formateada ? ' el ' + item.fecha_ultima_revision_formateada : '';
+    return 'Último ' + (nombre || 'componente') + ' revisado' + fecha;
+}
+
+function renderDetalleUbicacionRow(item) {
+    const estado = item.estado || 'sin_revision';
+    const estadoClass = 'status-' + estado;
+    const ultimaRevision = item.fecha_ultima_revision_formateada || 'Sin revisión';
+    const proximaRevision = item.proxima_revision_formateada || '-';
+    const markers = [
+        item.es_proximo ? '<span class="detalle-next-pill"><i class="fas fa-calendar-day"></i> Próximo</span>' : '',
+        item.es_ultimo ? '<span class="detalle-last-pill"><i class="fas fa-check"></i> Último</span>' : '',
+    ].join('');
+
+    return `
+        <div class="detalle-row ${estadoClass} ${item.es_proximo ? 'is-next' : ''} ${item.es_ultimo ? 'is-last' : ''}">
+            <div>
+                <div class="detalle-row-title">${escapeHtml(item.ubicacion || '-')} ${markers}</div>
+            </div>
+            <div>
+                <div class="detalle-cell-label">Última revisión</div>
+                <div class="detalle-cell-value">${escapeHtml(ultimaRevision)}</div>
+            </div>
+            <div>
+                <div class="detalle-cell-label">Próxima revisión</div>
+                <div class="detalle-cell-value">${escapeHtml(proximaRevision)}</div>
+                <div class="detalle-row-subtitle">${escapeHtml(item.dias_texto || '-')}</div>
+            </div>
+            <div class="detalle-row-status">
+                <span class="estado-pill ${estadoClass}">
+                    <i class="${escapeHtml(iconoEstadoDetalle(estado))}"></i>
+                    ${escapeHtml(item.estado_label || labelEstadoDetalle(estado))}
+                </span>
+            </div>
+        </div>
+    `;
+}
+
+function iconoEstadoDetalle(estado) {
+    if (estado === 'vencido') {
+        return 'fas fa-exclamation-circle';
+    }
+
+    if (estado === 'vigente') {
+        return 'fas fa-check-circle';
+    }
+
+    if (estado === 'restablecido') {
+        return 'fas fa-rotate-left';
+    }
+
+    return 'fas fa-minus-circle';
+}
+
+function labelEstadoDetalle(estado) {
+    if (estado === 'vencido') {
+        return 'Vencido';
+    }
+
+    if (estado === 'vigente') {
+        return 'Vigente';
+    }
+
+    if (estado === 'restablecido') {
+        return 'Restablecido';
+    }
+
+    return 'Sin revisión';
 }
 
 function cerrarModal() {

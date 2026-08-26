@@ -25,7 +25,7 @@ class AssistantAnalyticsArtifactService
     /**
      * @var array<int, string>
      */
-    private array $chartColors = ['#2563eb', '#f59e0b', '#16a34a', '#dc2626', '#7c3aed'];
+    private array $chartColors = ['#2563eb', '#f59e0b', '#16a34a', '#dc2626', '#7c3aed', '#0891b2', '#db2777', '#475569'];
 
     public function __construct(
         private readonly AiProviderInterface $aiProvider,
@@ -165,7 +165,7 @@ class AssistantAnalyticsArtifactService
                     'Responde exclusivamente JSON valido que cumpla el esquema.',
                 ]),
                 'user_prompt' => (string) json_encode([
-                    'question' => $this->sanitizer->sanitizeText($question, 1200),
+                    'question' => $this->sanitizer->sanitizeText($question, 3000),
                     'page_context' => $pageContext,
                     'available_datasets' => [
                         'elongaciones' => 'Mediciones de cadena de lavadoras: bombas %, vapor %, maximo %, hodometro y estado por fecha/linea.',
@@ -344,7 +344,9 @@ class AssistantAnalyticsArtifactService
             return null;
         }
 
-        if ($aggregation === 'by_line' || $aggregation === 'latest' || ($chartType === 'bar' && $lineas === [])) {
+        if ($this->wantsElongacionComparativeTrend($question, $chartType, $aggregation, $lineas)) {
+            $dataset = $this->buildElongacionesComparativeTrendDataset($records, $lineas, $dateRange, $includeHistoricalCycles);
+        } elseif ($aggregation === 'by_line' || $aggregation === 'latest' || ($chartType === 'bar' && $lineas === [])) {
             $dataset = $this->buildElongacionesByLineDataset($records, $lineas, $dateRange);
         } elseif (count($lineas) === 1) {
             $dataset = $this->buildElongacionesDetailDataset($records, $lineas[0], $dateRange);
@@ -454,6 +456,34 @@ class AssistantAnalyticsArtifactService
         }
 
         return false;
+    }
+
+    /**
+     * @param  array<int, string>  $lineas
+     */
+    private function wantsElongacionComparativeTrend(string $question, string $chartType, string $aggregation, array $lineas): bool
+    {
+        if ($chartType !== 'line') {
+            return false;
+        }
+
+        $normalized = $this->normalize($question);
+        $mentionsTrend = str_contains($normalized, 'tendencia')
+            || str_contains($normalized, 'tendencias')
+            || str_contains($normalized, 'evolucion')
+            || str_contains($normalized, 'historico')
+            || str_contains($normalized, 'historial')
+            || str_contains($normalized, 'comparativ')
+            || $aggregation === 'by_line';
+        $multiLineScope = $lineas === []
+            || str_contains($normalized, 'todas las lavadoras')
+            || str_contains($normalized, 'todas lavadoras')
+            || str_contains($normalized, 'cada lavadora')
+            || str_contains($normalized, 'por lavadora')
+            || str_contains($normalized, 'todas las lineas')
+            || str_contains($normalized, 'todas lineas');
+
+        return $mentionsTrend && $multiLineScope;
     }
 
     /**
@@ -639,6 +669,314 @@ class AssistantAnalyticsArtifactService
     }
 
     /**
+     * @param  Collection<int, Elongacion>  $records
+     * @param  array<int, string>  $lineas
+     * @param  array{from: CarbonImmutable|null, to: CarbonImmutable|null, label: string, preset: string}  $dateRange
+     * @return array<string, mixed>
+     */
+    private function buildElongacionesComparativeTrendDataset(Collection $records, array $lineas, array $dateRange, bool $includeHistoricalCycles): array
+    {
+        $criticalThreshold = (float) config('maintenance_ai.rules.elongacion_critical_threshold', Elongacion::LIMITE_CAMBIO);
+        $warningThreshold = (float) config('maintenance_ai.rules.elongacion_warning_threshold', Elongacion::LIMITE_COMPRAR);
+        $sortedRecords = $records
+            ->sortBy(fn (Elongacion $record): string => $this->elongacionSortKey($record))
+            ->values();
+        $axisKeys = $sortedRecords
+            ->map(fn (Elongacion $record): string => $this->elongacionDateKey($record))
+            ->unique()
+            ->values();
+        $axisLabels = $axisKeys
+            ->map(fn (string $dateKey): string => $this->formatElongacionDateKey($dateKey))
+            ->all();
+        $series = $sortedRecords
+            ->groupBy(fn (Elongacion $record): string => (string) ($record->linea ?: 'Sin linea'))
+            ->sortKeys()
+            ->map(function (Collection $items, string $linea) use ($axisKeys, $axisLabels, $criticalThreshold, $warningThreshold): array {
+                $itemsByDate = $items
+                    ->sortBy(fn (Elongacion $record): string => $this->elongacionSortKey($record))
+                    ->groupBy(fn (Elongacion $record): string => $this->elongacionDateKey($record))
+                    ->map(fn (Collection $dateItems): Elongacion => $dateItems
+                        ->sortBy(fn (Elongacion $record): string => $this->elongacionSortKey($record))
+                        ->last());
+                $previousCycle = null;
+                $points = [];
+
+                foreach ($axisKeys as $index => $dateKey) {
+                    $record = $itemsByDate->get((string) $dateKey);
+                    $label = (string) ($axisLabels[$index] ?? $dateKey);
+
+                    if (! $record instanceof Elongacion) {
+                        $points[] = [
+                            'label' => $label,
+                            'value' => null,
+                            'missing' => true,
+                        ];
+                        continue;
+                    }
+
+                    $cycle = $this->elongacionCycleLabel($record);
+                    $value = $this->elongacionMaxValue($record);
+                    $breakBefore = $previousCycle !== null && $cycle !== $previousCycle;
+
+                    $points[] = [
+                        'label' => $label,
+                        'value' => $value,
+                        'linea' => $this->displayLineName($linea),
+                        'cycle' => $cycle,
+                        'detail' => $cycle,
+                        'critical' => $value >= $criticalThreshold,
+                        'warning' => $value >= $warningThreshold && $value < $criticalThreshold,
+                        'break_before' => $breakBefore,
+                    ];
+
+                    $previousCycle = $cycle;
+                }
+
+                return [
+                    'name' => $this->displayLineName($linea),
+                    'points' => $points,
+                ];
+            })
+            ->values()
+            ->all();
+        $analysis = $this->buildElongacionComparativeAnalysis($sortedRecords, $includeHistoricalCycles);
+
+        $dataset = [
+            'type' => 'elongaciones',
+            'report_version' => 'elongaciones-comparativo-v3',
+            'title' => 'Tendencia comparativa de elongacion por lavadora',
+            'subtitle' => $this->scopeSubtitle($lineas, $dateRange),
+            'source_reference' => 'elongaciones comparativas por lavadora',
+            'headings' => ['Fecha', 'Lavadora', 'Ciclo', 'Bombas %', 'Vapor %', 'Maximo %', 'Lado critico', 'Estado calculado'],
+            'rows' => $sortedRecords
+                ->map(fn (Elongacion $record): array => [
+                    $record->created_at?->format('d/m/Y') ?? '',
+                    $this->displayLineName((string) $record->linea),
+                    $this->elongacionCycleLabel($record),
+                    round((float) $record->bombas_porcentaje, 2),
+                    round((float) $record->vapor_porcentaje, 2),
+                    $this->elongacionMaxValue($record),
+                    $this->elongacionCriticalSide($record),
+                    $this->elongacionComputedStatus($this->elongacionMaxValue($record)),
+                ])
+                ->all(),
+            'series' => $series,
+            'axis_labels' => $axisLabels,
+            'x_label' => 'Fecha de medicion',
+            'y_label' => 'Elongacion %',
+            'thresholds' => $this->elongacionThresholds(),
+            'chart_side_title' => 'Analisis automatico',
+            'chart_side_items' => $analysis['chart_side_items'],
+            'dashboard_side_panel_title' => 'Lectura actual por lavadora',
+            'dashboard_side_panel_headings' => ['Lavadora', 'Actual %', 'Tendencia', 'Estado'],
+            'dashboard_side_panel_rows' => $analysis['dashboard_rows'],
+        ];
+
+        $dataset = $this->withElongacionDetails($dataset, $records, $lineas, $dateRange);
+        $dataset['summary_cards'] = $analysis['summary_cards'];
+        $dataset['assistant_analysis'] = $analysis['analysis_items'];
+        $dataset['analysis_rows'] = collect($analysis['analysis_items'])
+            ->values()
+            ->map(fn (string $item, int $index): array => [$index + 1, $item])
+            ->all();
+        $dataset['summary_rows'] = array_merge((array) ($dataset['summary_rows'] ?? []), [
+            ['Mayor incremento reciente', $analysis['largest_increment_label']],
+            ['Sin tendencia suficiente', $analysis['single_record_label']],
+        ]);
+
+        return $dataset;
+    }
+
+    /**
+     * @param  Collection<int, Elongacion>  $records
+     * @return array<string, mixed>
+     */
+    private function buildElongacionComparativeAnalysis(Collection $records, bool $includeHistoricalCycles): array
+    {
+        $criticalThreshold = (float) config('maintenance_ai.rules.elongacion_critical_threshold', Elongacion::LIMITE_CAMBIO);
+        $warningThreshold = (float) config('maintenance_ai.rules.elongacion_warning_threshold', Elongacion::LIMITE_COMPRAR);
+        $trendByLine = $records
+            ->groupBy(fn (Elongacion $record): string => (string) ($record->linea ?: 'Sin linea'))
+            ->sortKeys()
+            ->map(fn (Collection $items): array => $this->elongacionTrendInfo($items));
+        $latestByLine = $trendByLine
+            ->map(fn (array $info): ?Elongacion => $info['latest'] instanceof Elongacion ? $info['latest'] : null)
+            ->filter()
+            ->values();
+        $highest = $latestByLine
+            ->sortByDesc(fn (Elongacion $record): float => $this->elongacionMaxValue($record))
+            ->first();
+        $largestIncrement = $trendByLine
+            ->filter(fn (array $info): bool => is_numeric($info['delta'] ?? null) && (float) $info['delta'] > 0)
+            ->sortByDesc(fn (array $info): float => (float) $info['delta'])
+            ->first();
+        $criticalLines = $latestByLine
+            ->filter(fn (Elongacion $record): bool => $this->elongacionMaxValue($record) >= $criticalThreshold)
+            ->sortByDesc(fn (Elongacion $record): float => $this->elongacionMaxValue($record))
+            ->values();
+        $warningLines = $latestByLine
+            ->filter(function (Elongacion $record) use ($warningThreshold, $criticalThreshold): bool {
+                $value = $this->elongacionMaxValue($record);
+
+                return $value >= $warningThreshold && $value < $criticalThreshold;
+            })
+            ->sortByDesc(fn (Elongacion $record): float => $this->elongacionMaxValue($record))
+            ->values();
+        $singleRecordLines = $trendByLine
+            ->filter(fn (array $info): bool => (int) ($info['record_count'] ?? 0) < 2)
+            ->map(fn (array $info): string => (string) ($info['display_linea'] ?? 'Sin linea'))
+            ->values()
+            ->all();
+        $cycleChangeLines = $trendByLine
+            ->filter(fn (array $info): bool => (int) ($info['cycle_count'] ?? 0) > 1)
+            ->map(fn (array $info): string => (string) ($info['display_linea'] ?? 'Sin linea'))
+            ->values()
+            ->all();
+        $largestChange = $trendByLine
+            ->filter(fn (array $info): bool => is_numeric($info['delta'] ?? null))
+            ->sortByDesc(fn (array $info): float => abs((float) $info['delta']))
+            ->first();
+        $highestLabel = $highest
+            ? $this->displayLineName((string) $highest->linea).' con '.$this->formatChartNumber($this->elongacionMaxValue($highest)).'% ('.$this->elongacionCriticalSide($highest).') el '.($highest->created_at?->format('d/m/Y') ?? 'sin fecha')
+            : 'Sin lectura actual disponible';
+        $largestIncrementLabel = is_array($largestIncrement)
+            ? (string) ($largestIncrement['display_linea'] ?? 'Sin linea').' subio '.$this->formatSignedDelta((float) $largestIncrement['delta']).' pp entre '.((string) ($largestIncrement['previous_date'] ?? 'sin fecha')).' y '.((string) ($largestIncrement['latest_date'] ?? 'sin fecha'))
+            : 'No se detecto incremento positivo entre las ultimas mediciones comparables';
+        $criticalLabel = $criticalLines->isNotEmpty()
+            ? $criticalLines
+                ->map(fn (Elongacion $record): string => $this->displayLineName((string) $record->linea).' '.$this->formatChartNumber($this->elongacionMaxValue($record)).'%')
+                ->implode(', ')
+            : 'Ninguna lavadora supera '.$this->formatChartNumber($criticalThreshold).'%';
+        $warningLabel = $warningLines->isNotEmpty()
+            ? $warningLines
+                ->map(fn (Elongacion $record): string => $this->displayLineName((string) $record->linea).' '.$this->formatChartNumber($this->elongacionMaxValue($record)).'%')
+                ->implode(', ')
+            : 'Ninguna lavadora esta en zona de aproximacion';
+        $atypicalParts = [];
+
+        if ($includeHistoricalCycles && $cycleChangeLines !== []) {
+            $atypicalParts[] = 'Cambios o reinicios de ciclo detectados en '.$this->limitedList($cycleChangeLines).'; la grafica corta la linea al iniciar el nuevo ciclo';
+        }
+
+        if (is_array($largestChange) && abs((float) ($largestChange['delta'] ?? 0)) >= ((float) config('maintenance_ai.rules.elongacion_trend_min_delta', 0.05) * 2)) {
+            $atypicalParts[] = 'Cambio relevante en '.((string) ($largestChange['display_linea'] ?? 'Sin linea')).' de '.$this->formatSignedDelta((float) $largestChange['delta']).' pp';
+        }
+
+        if ($singleRecordLines !== []) {
+            $atypicalParts[] = 'Sin datos historicos suficientes para tendencia en '.$this->limitedList($singleRecordLines);
+        }
+
+        $atypicalLabel = $atypicalParts !== []
+            ? implode('. ', $atypicalParts).'.'
+            : 'No se detectaron cambios atipicos importantes con los registros disponibles.';
+        $singleRecordLabel = $singleRecordLines !== []
+            ? $this->limitedList($singleRecordLines)
+            : 'Todas las lavadoras graficadas tienen al menos dos registros';
+        $dashboardRows = $trendByLine
+            ->map(function (array $info): array {
+                $latest = $info['latest'] instanceof Elongacion ? $info['latest'] : null;
+                $value = $latest ? $this->elongacionMaxValue($latest) : null;
+
+                return [
+                    (string) ($info['display_linea'] ?? 'Sin linea'),
+                    $value !== null ? $this->formatChartNumber($value).'%' : 'Sin lectura',
+                    (string) ($info['trend_label'] ?? 'Sin tendencia'),
+                    $value !== null ? $this->elongacionComputedStatus($value) : 'Sin estado',
+                ];
+            })
+            ->values()
+            ->all();
+
+        return [
+            'summary_cards' => [
+                [
+                    'label' => 'Mayor elongacion actual',
+                    'value' => $highest ? $this->displayLineName((string) $highest->linea).' '.$this->formatChartNumber($this->elongacionMaxValue($highest)).'%' : 'Sin lectura',
+                    'tone' => $highest ? $this->elongacionTone($this->elongacionMaxValue($highest)) : 'neutral',
+                ],
+                [
+                    'label' => 'Mayor incremento',
+                    'value' => is_array($largestIncrement) ? ((string) ($largestIncrement['display_linea'] ?? 'Sin linea')).' '.$this->formatSignedDelta((float) $largestIncrement['delta']).' pp' : 'Sin incremento',
+                    'tone' => is_array($largestIncrement) ? 'warning' : 'normal',
+                ],
+                [
+                    'label' => 'Superan 1.46%',
+                    'value' => (string) $criticalLines->count(),
+                    'tone' => $criticalLines->isNotEmpty() ? 'critical' : 'normal',
+                ],
+                [
+                    'label' => 'Aproximandose',
+                    'value' => (string) $warningLines->count(),
+                    'tone' => $warningLines->isNotEmpty() ? 'warning' : 'normal',
+                ],
+            ],
+            'analysis_items' => [
+                'Lavadora con mayor elongacion actual: '.$highestLabel.'.',
+                'Mayor incremento entre ultimas mediciones: '.$largestIncrementLabel.'.',
+                'Lavadoras que superan '.$this->formatChartNumber($criticalThreshold).'%: '.$criticalLabel.'.',
+                'Lavadoras aproximandose al limite: '.$warningLabel.'.',
+                'Comportamiento atipico o cambio importante: '.$atypicalLabel,
+            ],
+            'chart_side_items' => [
+                ['label' => 'Mayor actual', 'detail' => $highest ? ($highest->created_at?->format('d/m/Y') ?? '') : '', 'value' => $highest ? $this->displayLineName((string) $highest->linea).' '.$this->formatChartNumber($this->elongacionMaxValue($highest)).'%' : 'Sin lectura'],
+                ['label' => 'Mayor incremento', 'detail' => is_array($largestIncrement) ? ((string) ($largestIncrement['previous_date'] ?? '')).' - '.((string) ($largestIncrement['latest_date'] ?? '')) : '', 'value' => is_array($largestIncrement) ? ((string) ($largestIncrement['display_linea'] ?? 'Sin linea')).' '.$this->formatSignedDelta((float) $largestIncrement['delta']).' pp' : 'Sin incremento'],
+                ['label' => 'Criticas', 'detail' => '>= '.$this->formatChartNumber($criticalThreshold).'%', 'value' => $criticalLines->isNotEmpty() ? $this->limitedList($criticalLines->map(fn (Elongacion $record): string => $this->displayLineName((string) $record->linea))->all()) : 'Ninguna'],
+                ['label' => 'En aproximacion', 'detail' => $this->formatChartNumber($warningThreshold).' - '.$this->formatChartNumber($criticalThreshold).'%', 'value' => $warningLines->isNotEmpty() ? $this->limitedList($warningLines->map(fn (Elongacion $record): string => $this->displayLineName((string) $record->linea))->all()) : 'Ninguna'],
+                ['label' => 'Atipico', 'detail' => $singleRecordLines !== [] ? 'Datos insuficientes' : 'Cambios', 'value' => Str::limit($atypicalLabel, 46, '')],
+            ],
+            'dashboard_rows' => $dashboardRows,
+            'largest_increment_label' => $largestIncrementLabel,
+            'single_record_label' => $singleRecordLabel,
+        ];
+    }
+
+    /**
+     * @param  Collection<int, Elongacion>  $records
+     * @return array<string, mixed>
+     */
+    private function elongacionTrendInfo(Collection $records): array
+    {
+        $sorted = $records
+            ->sortBy(fn (Elongacion $record): string => $this->elongacionSortKey($record))
+            ->values();
+        $latest = $sorted->last();
+        $latestCycle = $latest instanceof Elongacion ? $this->elongacionCycleLabel($latest) : '';
+        $currentCycleRecords = $latest instanceof Elongacion
+            ? $sorted->filter(fn (Elongacion $record): bool => $this->elongacionCycleLabel($record) === $latestCycle)->values()
+            : collect();
+        $previous = $currentCycleRecords->count() >= 2
+            ? $currentCycleRecords->get($currentCycleRecords->count() - 2)
+            : null;
+        $delta = ($latest instanceof Elongacion && $previous instanceof Elongacion)
+            ? round($this->elongacionMaxValue($latest) - $this->elongacionMaxValue($previous), 2)
+            : null;
+        $trendMinDelta = (float) config('maintenance_ai.rules.elongacion_trend_min_delta', 0.05);
+        $trendLabel = 'Sin tendencia';
+
+        if ($delta !== null) {
+            $trendLabel = abs($delta) < $trendMinDelta
+                ? 'Estable'
+                : ($delta > 0 ? 'Creciente' : 'Decreciente');
+        }
+
+        return [
+            'linea' => $latest instanceof Elongacion ? (string) $latest->linea : 'Sin linea',
+            'display_linea' => $latest instanceof Elongacion ? $this->displayLineName((string) $latest->linea) : 'Sin linea',
+            'latest' => $latest,
+            'previous' => $previous,
+            'delta' => $delta,
+            'trend_label' => $trendLabel,
+            'record_count' => $sorted->count(),
+            'cycle_count' => $sorted
+                ->map(fn (Elongacion $record): string => $this->elongacionCycleLabel($record))
+                ->unique()
+                ->count(),
+            'previous_date' => $previous instanceof Elongacion ? ($previous->created_at?->format('d/m/Y') ?? 'sin fecha') : '',
+            'latest_date' => $latest instanceof Elongacion ? ($latest->created_at?->format('d/m/Y') ?? 'sin fecha') : '',
+        ];
+    }
+
+    /**
      * @param  array<string, mixed>  $dataset
      * @param  Collection<int, Elongacion>  $records
      * @param  array<int, string>  $lineas
@@ -773,6 +1111,25 @@ class AssistantAnalyticsArtifactService
         return round(max((float) $record->bombas_porcentaje, (float) $record->vapor_porcentaje), 2);
     }
 
+    private function elongacionSortKey(Elongacion $record): string
+    {
+        return ($record->created_at?->format('Y-m-d H:i:s') ?? '').'-'.str_pad((string) $record->id, 10, '0', STR_PAD_LEFT);
+    }
+
+    private function elongacionDateKey(Elongacion $record): string
+    {
+        return $record->created_at?->format('Y-m-d') ?? 'sin-fecha-'.$record->id;
+    }
+
+    private function formatElongacionDateKey(string $dateKey): string
+    {
+        try {
+            return CarbonImmutable::parse($dateKey)->format('d/m/Y');
+        } catch (Throwable) {
+            return $dateKey === '' ? 'Sin fecha' : $dateKey;
+        }
+    }
+
     private function elongacionCriticalSide(Elongacion $record): string
     {
         return (float) $record->bombas_porcentaje >= (float) $record->vapor_porcentaje
@@ -810,6 +1167,30 @@ class AssistantAnalyticsArtifactService
         }
 
         return 'normal';
+    }
+
+    private function formatSignedDelta(float $value): string
+    {
+        $prefix = $value > 0 ? '+' : '';
+
+        return $prefix.$this->formatChartNumber($value);
+    }
+
+    /**
+     * @param  array<int, string>  $items
+     */
+    private function limitedList(array $items, int $limit = 4): string
+    {
+        $items = array_values(array_filter(array_map(fn ($item): string => trim((string) $item), $items)));
+
+        if ($items === []) {
+            return 'Ninguna';
+        }
+
+        $visible = array_slice($items, 0, $limit);
+        $remaining = count($items) - count($visible);
+
+        return implode(', ', $visible).($remaining > 0 ? ' y '.$remaining.' mas' : '');
     }
 
     /**
@@ -2041,9 +2422,14 @@ class AssistantAnalyticsArtifactService
     private function dashboardConclusion(array $dataset): string
     {
         $warnings = array_values(array_filter((array) ($dataset['analysis_warnings'] ?? []), fn ($item): bool => is_string($item) && trim($item) !== ''));
+        $analysis = array_values(array_filter((array) ($dataset['assistant_analysis'] ?? []), fn ($item): bool => is_string($item) && trim($item) !== ''));
 
         if ($warnings !== []) {
             return (string) $warnings[0];
+        }
+
+        if ($analysis !== []) {
+            return (string) $analysis[0];
         }
 
         $alerts = count((array) ($dataset['alert_rows'] ?? []));
@@ -2137,7 +2523,7 @@ class AssistantAnalyticsArtifactService
         }
 
         $maxValue = $this->niceUpperBound($maxValue);
-        $labels = $this->labelsFromSeries($series);
+        $labels = $this->labelsFromSeries($series, $dataset);
         $count = max(1, count($labels));
         $svg = [];
 
@@ -2248,12 +2634,17 @@ class AssistantAnalyticsArtifactService
         $legendY = $height - 32;
 
         foreach ($series as $index => $item) {
-            $color = $this->chartColors[$index % count($this->chartColors)];
+            $color = $this->seriesHex($item, $index);
             $name = (string) ($item['name'] ?? 'Serie '.($index + 1));
 
             $svg[] = '<rect x="'.$legendX.'" y="'.($legendY - 10).'" width="12" height="12" rx="3" fill="'.$color.'"/>';
             $svg[] = '<text x="'.($legendX + 18).'" y="'.$legendY.'" font-family="Arial, sans-serif" font-size="12" fill="#334155">'.$this->svgText($name).'</text>';
             $legendX += 18 + (strlen($name) * 7) + 24;
+
+            if ($legendX > ($width - $right - 120)) {
+                $legendX = $left;
+                $legendY += 18;
+            }
         }
 
         $svg[] = '<text x="'.($left + $plotWidth / 2).'" y="'.($height - 78).'" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="700" fill="#64748b">'.$this->svgText((string) ($dataset['x_label'] ?? '')).'</text>';
@@ -2299,7 +2690,7 @@ class AssistantAnalyticsArtifactService
         }
 
         $maxValue = $this->niceUpperBound($maxValue);
-        $labels = $this->labelsFromSeries($series);
+        $labels = $this->labelsFromSeries($series, $dataset);
         $count = max(1, count($labels));
         $image = imagecreatetruecolor($width, $height);
 
@@ -2425,12 +2816,17 @@ class AssistantAnalyticsArtifactService
         $legendY = $height - 36;
 
         foreach ($series as $index => $item) {
-            $color = $this->pngColor($image, $this->chartColors[$index % count($this->chartColors)]);
+            $color = $this->pngColor($image, $this->seriesHex($item, $index));
             $name = $this->pngSafeText((string) ($item['name'] ?? 'Serie '.($index + 1)), 28);
 
             imagefilledrectangle($image, $legendX, $legendY - 4, $legendX + 12, $legendY + 8, $color);
             imagestring($image, 3, $legendX + 18, $legendY - 6, $name, $slate);
             $legendX += 18 + (strlen($name) * 8) + 22;
+
+            if ($legendX > ($width - $right - 120)) {
+                $legendX = $left;
+                $legendY += 18;
+            }
         }
 
         imagestring($image, 3, (int) ($left + ($plotWidth / 2) - 28), $height - 86, $this->pngSafeText((string) ($dataset['x_label'] ?? ''), 30), $muted);
@@ -2451,13 +2847,21 @@ class AssistantAnalyticsArtifactService
     {
         $points = array_values(array_filter((array) ($series['points'] ?? []), fn ($item): bool => is_array($item)));
         $count = max(1, count($points));
-        $color = $this->pngColor($image, $this->chartColors[$index % count($this->chartColors)]);
+        $color = $this->pngColor($image, $this->seriesHex($series, $index));
         $labelColor = $this->pngColor($image, '#0f172a');
         $previous = null;
 
         imagesetthickness($image, 3);
 
         foreach ($points as $pointIndex => $point) {
+            if ((bool) ($point['break_before'] ?? false)) {
+                $previous = null;
+            }
+
+            if (! is_numeric($point['value'] ?? null)) {
+                continue;
+            }
+
             $value = (float) ($point['value'] ?? 0);
             $x = (int) round($count === 1 ? $left + ($plotWidth / 2) : $left + ($plotWidth / ($count - 1)) * $pointIndex);
             $y = (int) round($top + $plotHeight - (($value - $minValue) / ($maxValue - $minValue)) * $plotHeight);
@@ -2472,13 +2876,20 @@ class AssistantAnalyticsArtifactService
         imagesetthickness($image, 1);
 
         foreach ($points as $pointIndex => $point) {
+            if (! is_numeric($point['value'] ?? null)) {
+                continue;
+            }
+
             $value = (float) ($point['value'] ?? 0);
             $x = (int) round($count === 1 ? $left + ($plotWidth / 2) : $left + ($plotWidth / ($count - 1)) * $pointIndex);
             $y = (int) round($top + $plotHeight - (($value - $minValue) / ($maxValue - $minValue)) * $plotHeight);
-            $pointColor = $this->pngColor($image, $this->valueHex((float) $value, $datasetType));
+            $critical = (bool) ($point['critical'] ?? false) || ($datasetType === 'elongaciones' && $this->elongacionTone($value) === 'critical');
+            $pointSize = $critical ? 16 : 10;
+            $outlineSize = $critical ? 18 : 12;
+            $pointColor = $this->pngColor($image, $this->pointHex($point, (float) $value, $datasetType));
 
-            imagefilledellipse($image, $x, $y, 10, 10, $pointColor);
-            imageellipse($image, $x, $y, 12, 12, $this->pngColor($image, '#ffffff'));
+            imagefilledellipse($image, $x, $y, $pointSize, $pointSize, $pointColor);
+            imageellipse($image, $x, $y, $outlineSize, $outlineSize, $this->pngColor($image, '#ffffff'));
 
             if ($showPointValues) {
                 $label = $this->formatChartNumber($value);
@@ -2727,34 +3138,69 @@ class AssistantAnalyticsArtifactService
 
     /**
      * @param  array<string, mixed>  $series
+     */
+    private function seriesHex(array $series, int $index): string
+    {
+        $color = (string) ($series['color'] ?? '');
+
+        return preg_match('/^#[0-9a-fA-F]{6}$/', $color) === 1
+            ? $color
+            : $this->chartColors[$index % count($this->chartColors)];
+    }
+
+    /**
+     * @param  array<string, mixed>  $series
      * @return array<int, string>
      */
     private function lineSvg(array $series, int $index, int $left, int $top, int $plotWidth, int $plotHeight, float $minValue, float $maxValue, string $datasetType, bool $showPointValues = false): array
     {
         $points = array_values(array_filter((array) ($series['points'] ?? []), fn ($item): bool => is_array($item)));
         $count = max(1, count($points));
-        $color = $this->chartColors[$index % count($this->chartColors)];
-        $coordinates = [];
+        $color = $this->seriesHex($series, $index);
+        $segments = [];
+        $currentSegment = [];
         $svg = [];
 
         foreach ($points as $pointIndex => $point) {
+            if ((bool) ($point['break_before'] ?? false) && $currentSegment !== []) {
+                $segments[] = $currentSegment;
+                $currentSegment = [];
+            }
+
+            if (! is_numeric($point['value'] ?? null)) {
+                continue;
+            }
+
             $value = (float) ($point['value'] ?? 0);
             $x = $count === 1 ? $left + ($plotWidth / 2) : $left + ($plotWidth / ($count - 1)) * $pointIndex;
             $y = $top + $plotHeight - (($value - $minValue) / ($maxValue - $minValue)) * $plotHeight;
-            $coordinates[] = round($x, 2).','.round($y, 2);
+            $currentSegment[] = round($x, 2).','.round($y, 2);
         }
 
-        if ($coordinates !== []) {
-            $svg[] = '<polyline points="'.implode(' ', $coordinates).'" fill="none" stroke="'.$color.'" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>';
+        if ($currentSegment !== []) {
+            $segments[] = $currentSegment;
+        }
+
+        foreach ($segments as $coordinates) {
+            if (count($coordinates) > 1) {
+                $svg[] = '<polyline points="'.implode(' ', $coordinates).'" fill="none" stroke="'.$color.'" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>';
+            }
         }
 
         foreach ($points as $pointIndex => $point) {
+            if (! is_numeric($point['value'] ?? null)) {
+                continue;
+            }
+
             $value = (float) ($point['value'] ?? 0);
             $x = $count === 1 ? $left + ($plotWidth / 2) : $left + ($plotWidth / ($count - 1)) * $pointIndex;
             $y = $top + $plotHeight - (($value - $minValue) / ($maxValue - $minValue)) * $plotHeight;
+            $critical = (bool) ($point['critical'] ?? false) || ($datasetType === 'elongaciones' && $this->elongacionTone($value) === 'critical');
+            $radius = $critical ? 7 : 5;
+            $strokeWidth = $critical ? 3 : 2;
 
-            $pointColor = $this->valueHex($value, $datasetType);
-            $svg[] = '<circle cx="'.round($x, 2).'" cy="'.round($y, 2).'" r="5" fill="'.$pointColor.'" stroke="#ffffff" stroke-width="2"/>';
+            $pointColor = $this->pointHex($point, $value, $datasetType);
+            $svg[] = '<circle cx="'.round($x, 2).'" cy="'.round($y, 2).'" r="'.$radius.'" fill="'.$pointColor.'" stroke="#ffffff" stroke-width="'.$strokeWidth.'"/>';
 
             if ($showPointValues) {
                 $svg[] = '<text x="'.round($x, 2).'" y="'.round(max($top + 14, $y - 12), 2).'" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" font-weight="700" fill="#0f172a">'.$this->svgText($this->formatChartNumber($value)).'</text>';
@@ -2931,10 +3377,17 @@ class AssistantAnalyticsArtifactService
 
     /**
      * @param  array<int, array<string, mixed>>  $series
+     * @param  array<string, mixed>  $dataset
      * @return array<int, string>
      */
-    private function labelsFromSeries(array $series): array
+    private function labelsFromSeries(array $series, array $dataset = []): array
     {
+        $axisLabels = array_values(array_filter((array) ($dataset['axis_labels'] ?? []), fn ($item): bool => is_scalar($item)));
+
+        if ($axisLabels !== []) {
+            return array_map(fn ($item): string => (string) $item, $axisLabels);
+        }
+
         $first = $series[0] ?? [];
 
         return collect((array) ($first['points'] ?? []))
@@ -3001,15 +3454,18 @@ class AssistantAnalyticsArtifactService
      */
     private function elongacionThresholds(): array
     {
+        $warning = (float) config('maintenance_ai.rules.elongacion_warning_threshold', Elongacion::LIMITE_COMPRAR);
+        $critical = (float) config('maintenance_ai.rules.elongacion_critical_threshold', Elongacion::LIMITE_CAMBIO);
+
         return [
             [
-                'value' => (float) config('maintenance_ai.rules.elongacion_warning_threshold', Elongacion::LIMITE_COMPRAR),
-                'label' => 'Comprar',
+                'value' => $warning,
+                'label' => 'Alerta '.$this->formatChartNumber($warning).'%',
                 'color' => '#d97706',
             ],
             [
-                'value' => (float) config('maintenance_ai.rules.elongacion_critical_threshold', Elongacion::LIMITE_CAMBIO),
-                'label' => 'Cambio',
+                'value' => $critical,
+                'label' => 'Limite critico '.$this->formatChartNumber($critical).'%',
                 'color' => '#dc2626',
             ],
         ];
@@ -3363,6 +3819,10 @@ class AssistantAnalyticsArtifactService
     {
         $normalized = $this->normalize($chartType.' '.$question);
 
+        if ($this->wantsLineChart($normalized)) {
+            return 'line';
+        }
+
         if (
             str_contains($normalized, 'bar')
             || str_contains($normalized, 'barra')
@@ -3374,6 +3834,19 @@ class AssistantAnalyticsArtifactService
         }
 
         return 'line';
+    }
+
+    private function wantsLineChart(string $normalized): bool
+    {
+        return str_contains($normalized, 'grafica de lineas')
+            || str_contains($normalized, 'grafico de lineas')
+            || str_contains($normalized, 'grafica lineal')
+            || str_contains($normalized, 'line chart')
+            || str_contains($normalized, 'chart line')
+            || str_contains($normalized, 'tendencia')
+            || str_contains($normalized, 'tendencias')
+            || str_contains($normalized, 'evolucion')
+            || str_contains($normalized, 'historico');
     }
 
     /**
@@ -3556,10 +4029,12 @@ class AssistantAnalyticsArtifactService
         $normalized = $this->normalize($question);
 
         return str_contains($normalized, 'solo crit')
-            || str_contains($normalized, 'criticos')
-            || str_contains($normalized, 'criticas')
-            || str_contains($normalized, 'critico')
-            || str_contains($normalized, 'critica');
+            || str_contains($normalized, 'unicamente crit')
+            || str_contains($normalized, 'solamente crit')
+            || str_contains($normalized, 'filtra crit')
+            || str_contains($normalized, 'filtrar crit')
+            || str_contains($normalized, 'criticos solamente')
+            || str_contains($normalized, 'criticas solamente');
     }
 
     private function normalize(string $value): string
@@ -3607,6 +4082,10 @@ class AssistantAnalyticsArtifactService
         if ($hasExcel) {
             $sheetNames = ['Dashboard', 'Tendencia'];
 
+            if (! empty($dataset['analysis_rows'])) {
+                $sheetNames[] = 'Analisis';
+            }
+
             if ($alertCount > 0) {
                 $sheetNames[] = 'Alertas';
             }
@@ -3619,6 +4098,18 @@ class AssistantAnalyticsArtifactService
             if (is_string($warning) && trim($warning) !== '') {
                 $message .= ' '.$warning;
             }
+        }
+
+        $analysisItems = array_values(array_filter((array) ($dataset['assistant_analysis'] ?? []), fn ($item): bool => is_string($item) && trim($item) !== ''));
+
+        if ($analysisItems !== []) {
+            $message .= "\n\nAnalisis automatico:\n";
+
+            foreach (array_slice($analysisItems, 0, 6) as $index => $item) {
+                $message .= ($index + 1).'. '.trim($item)."\n";
+            }
+
+            $message = rtrim($message);
         }
 
         return $message.' Puedes abrir la imagen o descargar el Excel desde los adjuntos del mensaje.';
@@ -3703,6 +4194,15 @@ class AssistantAnalyticsArtifactService
                 'tone' => 'success',
             ],
         ];
+
+        if (! empty($dataset['analysis_rows'])) {
+            $sheets[] = [
+                'title' => 'Analisis',
+                'headings' => ['Punto', 'Resultado'],
+                'rows' => (array) $dataset['analysis_rows'],
+                'tone' => 'warning',
+            ];
+        }
 
         if (! empty($dataset['alert_rows'])) {
             $sheets[] = [

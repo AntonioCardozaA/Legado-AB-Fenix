@@ -230,12 +230,13 @@ class PasteurizadoraAnalysisCycleTest extends TestCase
         $analisis = AnalisisPasteurizadora::where('numero_orden', '2201')->firstOrFail();
 
         $this->assertSame('VIGAS_FIJAS', $analisis->componente);
+        $this->assertNull($analisis->lado);
         $this->assertSame([1], $analisis->componentes_revisados_lista);
         $this->assertSame(1, $analisis->cantidad_componentes_revisados);
         $this->assertSame(1, $analisis->total_componentes);
     }
 
-    public function test_quick_create_hides_side_for_module_scoped_components(): void
+    public function test_quick_create_hides_side_for_level_scoped_components(): void
     {
         $user = $this->userWithRole(User::ROLE_ADMIN);
         $lineaSencilla = Linea::create([
@@ -267,8 +268,9 @@ class PasteurizadoraAnalysisCycleTest extends TestCase
         ]));
 
         $responseDoble->assertOk();
-        $responseDoble->assertSee('id="lado"', false);
-        $responseDoble->assertSee('Lado de la revision', false);
+        $responseDoble->assertDontSee('id="lado"', false);
+        $responseDoble->assertDontSee('Lado de la revision', false);
+        $responseDoble->assertSee('Nivel del modulo', false);
 
         $responseReglillasSencilla = $this->actingAs($user)->get(route('pasteurizadora.analisis-pasteurizadora.create-quick', [
             'linea_id' => $lineaSencilla->id,
@@ -320,7 +322,7 @@ class PasteurizadoraAnalysisCycleTest extends TestCase
                 'fecha_analisis' => now()->toDateString(),
                 'numero_orden' => '33334444',
                 'estado' => AnalisisPasteurizadora::ESTADO_BUENO,
-                'actividad' => 'Revision de vigas fijas de modulo completo',
+                'actividad' => 'Revision de vigas fijas por nivel',
                 'componentes_revisados' => json_encode([1, 2, 3, 4]),
             ]
         );
@@ -356,7 +358,7 @@ class PasteurizadoraAnalysisCycleTest extends TestCase
                 'fecha_analisis' => now()->toDateString(),
                 'numero_orden' => '33335555',
                 'estado' => AnalisisPasteurizadora::ESTADO_BUENO,
-                'actividad' => 'Revision de reglillas de modulo completo',
+                'actividad' => 'Revision de reglillas por nivel',
                 'componentes_revisados' => json_encode([1, 2, 3, 4]),
             ]
         );
@@ -373,7 +375,7 @@ class PasteurizadoraAnalysisCycleTest extends TestCase
         $this->assertSame(10, $analisis->total_componentes);
     }
 
-    public function test_module_scoped_pasteurizadora_components_do_not_duplicate_counts_by_side_or_level(): void
+    public function test_level_scoped_pasteurizadora_components_do_not_duplicate_counts_by_side(): void
     {
         $linea = Linea::create([
             'nombre' => 'P-03',
@@ -391,8 +393,10 @@ class PasteurizadoraAnalysisCycleTest extends TestCase
         ]);
 
         $this->assertSame(2, AnalisisPasteurizadora::getCantidadComponentesRevisados($linea->id, 1, 'VIGAS_FIJAS', 'VAPOR', 'SUPERIOR'));
-        $this->assertSame(2, AnalisisPasteurizadora::getCantidadComponentesRevisados($linea->id, 1, 'VIGAS_FIJAS', 'PASILLO', 'INFERIOR'));
-        $this->assertSame(2, AnalisisPasteurizadora::getCantidadComponentesPendientes($linea->id, 1, 'VIGAS_FIJAS', 'PASILLO', 'INFERIOR'));
+        $this->assertSame(2, AnalisisPasteurizadora::getCantidadComponentesRevisados($linea->id, 1, 'VIGAS_FIJAS', 'PASILLO', 'SUPERIOR'));
+        $this->assertSame(0, AnalisisPasteurizadora::getCantidadComponentesRevisados($linea->id, 1, 'VIGAS_FIJAS', 'PASILLO', 'INFERIOR'));
+        $this->assertSame(2, AnalisisPasteurizadora::getCantidadComponentesPendientes($linea->id, 1, 'VIGAS_FIJAS', 'PASILLO', 'SUPERIOR'));
+        $this->assertSame(4, AnalisisPasteurizadora::getCantidadComponentesPendientes($linea->id, 1, 'VIGAS_FIJAS', 'PASILLO', 'INFERIOR'));
 
         $this->crearAnalisis($linea, [
             'componente' => 'REGLILLAS',
@@ -403,13 +407,16 @@ class PasteurizadoraAnalysisCycleTest extends TestCase
             'total_componentes' => 10,
         ]);
 
-        $this->assertSame(5, AnalisisPasteurizadora::getCantidadComponentesRevisados($linea->id, 1, 'REGLILLAS', 'PASILLO', 'INFERIOR'));
-        $this->assertSame(5, AnalisisPasteurizadora::getCantidadComponentesPendientes($linea->id, 1, 'REGLILLAS', 'PASILLO', 'INFERIOR'));
+        $this->assertSame(5, AnalisisPasteurizadora::getCantidadComponentesRevisados($linea->id, 1, 'REGLILLAS', 'PASILLO', 'SUPERIOR'));
+        $this->assertSame(0, AnalisisPasteurizadora::getCantidadComponentesRevisados($linea->id, 1, 'REGLILLAS', 'PASILLO', 'INFERIOR'));
+        $this->assertSame(5, AnalisisPasteurizadora::getCantidadComponentesPendientes($linea->id, 1, 'REGLILLAS', 'PASILLO', 'SUPERIOR'));
+        $this->assertSame(10, AnalisisPasteurizadora::getCantidadComponentesPendientes($linea->id, 1, 'REGLILLAS', 'PASILLO', 'INFERIOR'));
 
         $agrupadosHistorico = AnalisisPasteurizadora::getComponentesRevisadosAgrupadosParaHistorico([$linea->id]);
 
-        $this->assertSame(2, $agrupadosHistorico[$linea->id . '|VIGAS_FIJAS|1||'] ?? null);
-        $this->assertSame(5, $agrupadosHistorico[$linea->id . '|REGLILLAS|1||'] ?? null);
+        $this->assertSame(2, $agrupadosHistorico[$linea->id . '|VIGAS_FIJAS|1|SUPERIOR|'] ?? null);
+        $this->assertSame(5, $agrupadosHistorico[$linea->id . '|REGLILLAS|1|SUPERIOR|'] ?? null);
+        $this->assertArrayNotHasKey($linea->id . '|VIGAS_FIJAS|1|SUPERIOR|VAPOR', $agrupadosHistorico);
         $this->assertArrayNotHasKey($linea->id . '|REGLILLAS|1|SUPERIOR|VAPOR', $agrupadosHistorico);
 
         $lineaDoble = Linea::create([
@@ -427,12 +434,14 @@ class PasteurizadoraAnalysisCycleTest extends TestCase
             'total_componentes' => 10,
         ]);
 
-        $this->assertSame(4, AnalisisPasteurizadora::getCantidadComponentesRevisados($lineaDoble->id, 1, 'REGLILLAS', 'PASILLO', 'INFERIOR'));
-        $this->assertSame(6, AnalisisPasteurizadora::getCantidadComponentesPendientes($lineaDoble->id, 1, 'REGLILLAS', 'PASILLO', 'INFERIOR'));
+        $this->assertSame(4, AnalisisPasteurizadora::getCantidadComponentesRevisados($lineaDoble->id, 1, 'REGLILLAS', 'PASILLO', 'SUPERIOR'));
+        $this->assertSame(0, AnalisisPasteurizadora::getCantidadComponentesRevisados($lineaDoble->id, 1, 'REGLILLAS', 'PASILLO', 'INFERIOR'));
+        $this->assertSame(6, AnalisisPasteurizadora::getCantidadComponentesPendientes($lineaDoble->id, 1, 'REGLILLAS', 'PASILLO', 'SUPERIOR'));
+        $this->assertSame(10, AnalisisPasteurizadora::getCantidadComponentesPendientes($lineaDoble->id, 1, 'REGLILLAS', 'PASILLO', 'INFERIOR'));
 
         $agrupadosHistorico = AnalisisPasteurizadora::getComponentesRevisadosAgrupadosParaHistorico([$lineaDoble->id]);
 
-        $this->assertSame(4, $agrupadosHistorico[$lineaDoble->id . '|REGLILLAS|1||'] ?? null);
+        $this->assertSame(4, $agrupadosHistorico[$lineaDoble->id . '|REGLILLAS|1|SUPERIOR|'] ?? null);
         $this->assertArrayNotHasKey($lineaDoble->id . '|REGLILLAS|1|SUPERIOR|VAPOR', $agrupadosHistorico);
     }
 
@@ -560,6 +569,83 @@ class PasteurizadoraAnalysisCycleTest extends TestCase
             $anillas = collect($lado['componentes'] ?? [])->firstWhere('codigo', 'ANILLAS');
 
             return (int) ($anillas['revisadas'] ?? 0) === 2;
+        });
+    }
+
+    public function test_historico_revisados_groups_level_scoped_components_without_side(): void
+    {
+        $user = $this->userWithRole(User::ROLE_ADMIN);
+        $linea = Linea::create([
+            'nombre' => 'P-03',
+            'descripcion' => 'Pasteurizadora de prueba',
+            'activo' => true,
+        ]);
+
+        $this->crearAnalisis($linea, [
+            'modulo' => 1,
+            'nivel' => 'SUPERIOR',
+            'lado' => 'VAPOR',
+            'componente' => 'REGLILLAS',
+            'actividad' => 'Revision de reglillas nivel superior',
+            'componentes_revisados' => [1, 2],
+            'cantidad_componentes_revisados' => 2,
+            'total_componentes' => 10,
+        ]);
+        $this->crearAnalisis($linea, [
+            'modulo' => 1,
+            'nivel' => 'SUPERIOR',
+            'lado' => 'PASILLO',
+            'componente' => 'REGLILLAS',
+            'actividad' => 'Complemento de reglillas nivel superior',
+            'componentes_revisados' => [3],
+            'cantidad_componentes_revisados' => 1,
+            'total_componentes' => 10,
+        ]);
+        $this->crearAnalisis($linea, [
+            'modulo' => 1,
+            'nivel' => 'INFERIOR',
+            'lado' => 'PASILLO',
+            'componente' => 'VIGAS_FIJAS',
+            'actividad' => 'Revision de vigas fijas nivel inferior',
+            'componentes_revisados' => [1],
+            'cantidad_componentes_revisados' => 1,
+            'total_componentes' => 4,
+        ]);
+        $this->crearAnalisis($linea, [
+            'modulo' => 1,
+            'nivel' => 'SUPERIOR',
+            'lado' => 'VAPOR',
+            'componente' => 'ANILLAS',
+            'componentes_revisados' => [1],
+            'cantidad_componentes_revisados' => 1,
+            'total_componentes' => 3,
+        ]);
+
+        $response = $this->actingAs($user)->get(route('pasteurizadora.analisis-pasteurizadora.historico-revisados', [
+            'linea_id' => $linea->id,
+        ]));
+
+        $response->assertOk();
+        $response->assertViewHas('modulosHistorico', function ($modulosHistorico) use ($linea) {
+            $lineaHistorico = collect($modulosHistorico)->firstWhere('linea_id', $linea->id);
+            $modulo = collect($lineaHistorico['modulos'] ?? [])->firstWhere('numero', 1);
+            $nivelSuperior = collect($modulo['niveles'] ?? [])->firstWhere('key', 'SUPERIOR');
+            $nivelInferior = collect($modulo['niveles'] ?? [])->firstWhere('key', 'INFERIOR');
+
+            $reglillas = collect($nivelSuperior['componentes_sin_lado'] ?? [])->firstWhere('codigo', 'REGLILLAS');
+            $vigasFijas = collect($nivelInferior['componentes_sin_lado'] ?? [])->firstWhere('codigo', 'VIGAS_FIJAS');
+            $anillas = collect(collect($nivelSuperior['lados'] ?? [])->firstWhere('key', 'VAPOR')['componentes'] ?? [])->firstWhere('codigo', 'ANILLAS');
+
+            $componentesPorLado = collect($nivelSuperior['lados'] ?? [])
+                ->flatMap(fn ($lado) => $lado['componentes'] ?? []);
+
+            return (int) ($reglillas['revisadas'] ?? 0) === 3
+                && (int) ($vigasFijas['revisadas'] ?? 0) === 1
+                && (int) ($anillas['revisadas'] ?? 0) === 1
+                && ($reglillas['mostrar_lado'] ?? true) === false
+                && ($vigasFijas['mostrar_lado'] ?? true) === false
+                && !$componentesPorLado->contains('codigo', 'REGLILLAS')
+                && !$componentesPorLado->contains('codigo', 'VIGAS_FIJAS');
         });
     }
 

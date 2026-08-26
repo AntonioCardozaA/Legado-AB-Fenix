@@ -173,6 +173,7 @@ class AnalisisPasteurizadoraController extends Controller
                 $nivelTotal = 0;
                 $nivelRevisado = 0;
                 $ladosNivel = [];
+                $componentesNivel = [];
 
                 foreach (AnalisisPasteurizadora::LADOS as $lado) {
                     $componentesLado = [];
@@ -187,20 +188,26 @@ class AnalisisPasteurizadoraController extends Controller
                             continue;
                         }
 
-                        $usaModuloCompleto = AnalisisPasteurizadora::usaRevisionPorModuloCompleto($linea->nombre, $codigo);
+                        $alcanceRevision = AnalisisPasteurizadora::getAlcanceRevisionPorLineaYComponente($linea->nombre, $codigo);
+                        if ($alcanceRevision === AnalisisPasteurizadora::ALCANCE_REVISION_NIVEL) {
+                            continue;
+                        }
+
+                        $usaModuloCompleto = $alcanceRevision === AnalisisPasteurizadora::ALCANCE_REVISION_MODULO;
                         if ($usaModuloCompleto && ($nivel !== $primerNivel || $lado !== $primerLado)) {
                             continue;
                         }
 
+                        $claveHistorico = $this->buildHistoricoKey(
+                            $linea->id,
+                            $codigo,
+                            $modulo,
+                            $usaModuloCompleto ? '' : $nivel,
+                            $alcanceRevision === AnalisisPasteurizadora::ALCANCE_REVISION_NIVEL_LADO ? $lado : ''
+                        );
                         $total = (int) ($compData['cantidad'] ?? 0);
                         $revisadas = min(
-                            $revisionesAgrupadas[$this->buildHistoricoKey(
-                                $linea->id,
-                                $codigo,
-                                $modulo,
-                                $usaModuloCompleto ? '' : $nivel,
-                                $usaModuloCompleto ? '' : $lado
-                            )] ?? 0,
+                            $revisionesAgrupadas[$claveHistorico] ?? 0,
                             $total
                         );
                         $porcentaje = $total > 0 ? round(($revisadas / $total) * 100) : 0;
@@ -231,6 +238,7 @@ class AnalisisPasteurizadoraController extends Controller
                             'revisadas' => $revisadas,
                             'porcentaje' => $porcentaje,
                             'color' => $color,
+                            'mostrar_lado' => $alcanceRevision === AnalisisPasteurizadora::ALCANCE_REVISION_NIVEL_LADO,
                         ];
 
                         $ladoTotal += $total;
@@ -257,6 +265,57 @@ class AnalisisPasteurizadoraController extends Controller
                     ];
                 }
 
+                foreach ($componentes as $codigo => $compData) {
+                    if (
+                        AnalisisPasteurizadora::esBrazoTorsion($codigo)
+                        && $modulo > AnalisisPasteurizadora::getCantidadBrazosTorsionPorLinea($linea->nombre)
+                    ) {
+                        continue;
+                    }
+
+                    $alcanceRevision = AnalisisPasteurizadora::getAlcanceRevisionPorLineaYComponente($linea->nombre, $codigo);
+                    if ($alcanceRevision !== AnalisisPasteurizadora::ALCANCE_REVISION_NIVEL) {
+                        continue;
+                    }
+
+                    $claveHistorico = $this->buildHistoricoKey($linea->id, $codigo, $modulo, $nivel, '');
+                    $total = (int) ($compData['cantidad'] ?? 0);
+                    $revisadas = min($revisionesAgrupadas[$claveHistorico] ?? 0, $total);
+                    $porcentaje = $total > 0 ? round(($revisadas / $total) * 100) : 0;
+                    $color = $this->getColorClassByPercentage($porcentaje);
+
+                    $estadisticas[$linea->id][$codigo][$modulo][$nivel]['SIN_LADO'] = [
+                        'total' => $total,
+                        'revisadas' => $revisadas,
+                        'porcentaje' => $porcentaje,
+                        'color' => $color,
+                    ];
+
+                    $componentesModulos->push([
+                        'linea_id' => $linea->id,
+                        'linea_nombre' => $linea->nombre,
+                        'codigo' => $codigo,
+                        'nombre' => $compData['nombre'],
+                        'modulo' => $modulo,
+                        'nivel' => $nivel,
+                        'lado' => null,
+                        'cantidad_total' => $total,
+                    ]);
+
+                    $componentesNivel[] = [
+                        'codigo' => $codigo,
+                        'nombre' => $compData['nombre'],
+                        'total' => $total,
+                        'revisadas' => $revisadas,
+                        'porcentaje' => $porcentaje,
+                        'color' => $color,
+                        'mostrar_lado' => false,
+                    ];
+
+                    $nivelTotal += $total;
+                    $nivelRevisado += $revisadas;
+                }
+
                 $nivelPorcentaje = $nivelTotal > 0 ? round(($nivelRevisado / $nivelTotal) * 100) : 0;
 
                 $niveles[] = [
@@ -267,6 +326,7 @@ class AnalisisPasteurizadoraController extends Controller
                     'porcentaje' => $nivelPorcentaje,
                     'color' => $this->getColorClassByPercentage($nivelPorcentaje),
                     'lados' => $ladosNivel,
+                    'componentes_sin_lado' => $componentesNivel,
                 ];
 
                 $moduleTotal += $nivelTotal;
@@ -478,7 +538,7 @@ class AnalisisPasteurizadoraController extends Controller
         $actualizaciones = $actualizacionesQuery
             ->orderByDesc('created_at')
             ->get()
-            ->map(function (AnalisisPasteurizadora $item): array {
+            ->map(function (AnalisisPasteurizadora $item) use ($registro): array {
                 $componentes = $item->componentes_revisados;
 
                 if (is_string($componentes)) {
@@ -490,6 +550,7 @@ class AnalisisPasteurizadoraController extends Controller
                 }
 
                 $fechas = $this->modalDateLabels($item);
+                $requiereLado = AnalisisPasteurizadora::requiereLado($registro->linea?->nombre, $item->componente);
 
                 return [
                     'id' => $item->id,
@@ -503,7 +564,8 @@ class AnalisisPasteurizadoraController extends Controller
                     'estado' => $item->estado,
                     'usuario_nombre' => $item->usuario?->name ?? $item->responsable ?? 'Usuario no registrado',
                     'actividad' => $item->actividad,
-                    'lado' => $item->lado,
+                    'lado' => $requiereLado ? $item->lado : null,
+                    'mostrar_lado' => $requiereLado,
                     'nivel' => $item->nivel,
                     'componentes_revisados' => collect($componentes)
                         ->filter(fn ($numeroComponente) => is_numeric($numeroComponente))
@@ -515,6 +577,7 @@ class AnalisisPasteurizadoraController extends Controller
 
         $canDeleteAnalysis = auth()->user()?->canDeletePasteurizadoraAnalysis() ?? false;
         $fechas = $this->modalDateLabels($registro);
+        $requiereLado = AnalisisPasteurizadora::requiereLado($registro->linea?->nombre, $registro->componente);
 
         return [
             'id' => $registro->id,
@@ -523,7 +586,8 @@ class AnalisisPasteurizadoraController extends Controller
             'linea' => $registro->linea->nombre ?? 'Linea no registrada',
             'modulo' => $registro->modulo,
             'componente' => $registro->componente_nombre ?? $registro->componente,
-            'lado' => $registro->lado,
+            'lado' => $requiereLado ? $registro->lado : null,
+            'mostrar_lado' => $requiereLado,
             'nivel' => $registro->nivel,
             'fecha_analisis' => $fechas['fecha_analisis'],
             'fecha_inicio' => $fechas['fecha_inicio'],
@@ -658,7 +722,7 @@ class AnalisisPasteurizadoraController extends Controller
             'modulo' => ['required', 'integer', $this->positiveIntegerRule('El modulo debe ser un numero entero mayor a 0.')],
             'nivel' => 'required|in:SUPERIOR,INFERIOR',
             'componente' => 'required|string',
-            'lado' => 'required|in:VAPOR,PASILLO',
+            'lado' => 'nullable|in:VAPOR,PASILLO',
             'fecha_inicio' => [$esQuick ? 'required' : 'nullable', 'date'],
             'fecha_fin' => [$esQuick ? 'required' : 'nullable', 'date', 'after_or_equal:fecha_inicio'],
             'fecha_analisis' => [$esQuick ? 'nullable' : 'required', 'date'],
@@ -680,6 +744,7 @@ class AnalisisPasteurizadoraController extends Controller
             ? $this->resolverSeleccionComponentesRevisados($request, $linea, $validated)
             : $this->resolverSeleccionAnalisisNormal($request, $linea, $validated);
         $validated['componente'] = $seleccionComponentes['componente'];
+        $validated['lado'] = $this->resolverLadoValidado($linea, $validated['componente'], $validated['lado'] ?? null);
 
         // Procesar imágenes
         $fotosPaths = [];
@@ -986,6 +1051,7 @@ class AnalisisPasteurizadoraController extends Controller
             )
             : $this->resolverSeleccionAnalisisNormal($request, $analisis->linea, $contextoActualizado);
         $validated['componente'] = $seleccionComponentes['componente'];
+        $validated['lado'] = $this->resolverLadoValidado($analisis->linea, $validated['componente'], $contextoActualizado['lado'] ?? null);
 
         if (
             isset($validated['estado'])
@@ -1896,6 +1962,10 @@ class AnalisisPasteurizadoraController extends Controller
         $ladosPendientes = [];
 
         if ($modulo && $componenteKey && $componentConfig) {
+            if (!AnalisisPasteurizadora::requiereLado($linea->nombre, $componenteKey)) {
+                $effectiveLado = null;
+            }
+
             $estadoRevision = AnalisisPasteurizadora::getEstadoRevision($linea->id, $modulo, $componenteKey, null, $this->currentArea(), AnalisisPasteurizadora::TIPO_REGISTRO_QUICK);
             $siguienteRevision = AnalisisPasteurizadora::getSiguienteRevisionContexto($linea->id, $modulo, $componenteKey, $nivel, $lado, $this->currentArea(), AnalisisPasteurizadora::TIPO_REGISTRO_QUICK);
             $effectiveNivel = $effectiveNivel ?: ($siguienteRevision['nivel'] ?? null);

@@ -95,6 +95,7 @@ class AnalisisPasteurizadora extends Model
     public const COMPONENTE_VIGAS_FIJAS = 'VIGAS_FIJAS';
     public const COMPONENTE_REGLILLAS = 'REGLILLAS';
     public const ALCANCE_REVISION_NIVEL_LADO = 'nivel_lado';
+    public const ALCANCE_REVISION_NIVEL = 'nivel';
     public const ALCANCE_REVISION_MODULO = 'modulo';
 
     const PASTEURIZADORES = [
@@ -340,20 +341,34 @@ class AnalisisPasteurizadora extends Model
 
     public static function usaRevisionPorModuloCompleto($lineaNombre, $componente): bool
     {
-        return self::esVigasFijasSencillo($lineaNombre, $componente)
-            || self::esReglillas($componente);
+        return false;
+    }
+
+    public static function usaRevisionPorNivelCompleto($componente): bool
+    {
+        return in_array(self::normalizarCodigoComponente($componente), [
+            self::COMPONENTE_REGLILLAS,
+            self::COMPONENTE_VIGAS_FIJAS,
+        ], true);
     }
 
     public static function requiereLado($lineaNombre, $componente): bool
     {
-        return !self::usaRevisionPorModuloCompleto($lineaNombre, $componente);
+        return !self::usaRevisionPorModuloCompleto($lineaNombre, $componente)
+            && !self::usaRevisionPorNivelCompleto($componente);
     }
 
     public static function getAlcanceRevisionPorLineaYComponente($lineaNombre, $componente): string
     {
-        return self::usaRevisionPorModuloCompleto($lineaNombre, $componente)
-            ? self::ALCANCE_REVISION_MODULO
-            : self::ALCANCE_REVISION_NIVEL_LADO;
+        if (self::usaRevisionPorNivelCompleto($componente)) {
+            return self::ALCANCE_REVISION_NIVEL;
+        }
+
+        if (self::usaRevisionPorModuloCompleto($lineaNombre, $componente)) {
+            return self::ALCANCE_REVISION_MODULO;
+        }
+
+        return self::ALCANCE_REVISION_NIVEL_LADO;
     }
 
     public static function getCantidadBrazosTorsionPorLinea($lineaNombre): int
@@ -547,11 +562,11 @@ class AnalisisPasteurizadora extends Model
     {
         $linea = Linea::find($lineaId);
         $totalComponentes = self::getTotalComponentesPorLineaYComponente($linea?->nombre, $componente);
-        $usaModuloCompleto = self::usaRevisionPorModuloCompleto($linea?->nombre, $componente);
+        $alcanceRevision = self::getAlcanceRevisionPorLineaYComponente($linea?->nombre, $componente);
 
         return self::getResumenCicloComponente($lineaId, $modulo, $componente, $excludeId, $area, $tipoRegistro)['registros_actuales']
-            ->when(!$usaModuloCompleto && $lado, fn (Collection $registros) => $registros->where('lado', $lado))
-            ->when(!$usaModuloCompleto && $nivel, fn (Collection $registros) => $registros->where('nivel', $nivel))
+            ->when($alcanceRevision === self::ALCANCE_REVISION_NIVEL_LADO && $lado, fn (Collection $registros) => $registros->where('lado', $lado))
+            ->when($alcanceRevision !== self::ALCANCE_REVISION_MODULO && $nivel, fn (Collection $registros) => $registros->where('nivel', $nivel))
             ->flatMap(function ($registro) use ($totalComponentes) {
                 $componentes = self::normalizarComponentesRevisados($registro->componentes_revisados, $totalComponentes);
 
@@ -617,7 +632,7 @@ class AnalisisPasteurizadora extends Model
     {
         $linea = Linea::find($lineaId);
         $totalComponentes = self::getTotalComponentesPorLineaYComponente($linea?->nombre, $componente);
-        $usaModuloCompleto = self::usaRevisionPorModuloCompleto($linea?->nombre, $componente);
+        $alcanceRevision = self::getAlcanceRevisionPorLineaYComponente($linea?->nombre, $componente);
 
         if ($totalComponentes <= 0) {
             return [];
@@ -627,8 +642,8 @@ class AnalisisPasteurizadora extends Model
             ->where('linea_id', $lineaId)
             ->where('modulo', $modulo)
             ->where('componente', $componente)
-            ->when(!$usaModuloCompleto && $lado, fn ($query) => $query->where('lado', $lado))
-            ->when(!$usaModuloCompleto && $nivel, fn ($query) => $query->where('nivel', $nivel))
+            ->when($alcanceRevision === self::ALCANCE_REVISION_NIVEL_LADO && $lado, fn ($query) => $query->where('lado', $lado))
+            ->when($alcanceRevision !== self::ALCANCE_REVISION_MODULO && $nivel, fn ($query) => $query->where('nivel', $nivel))
             ->when($excludeId, fn ($query) => $query->where('id', '!=', $excludeId))
             ->orderBy('fecha_analisis')
             ->orderBy('created_at')
@@ -706,7 +721,7 @@ class AnalisisPasteurizadora extends Model
     public static function getLadosPendientes($lineaId, $modulo, $componente, $nivel = null, ?string $area = null, ?string $tipoRegistro = null)
     {
         $linea = Linea::find($lineaId);
-        if (self::usaRevisionPorModuloCompleto($linea?->nombre, $componente)) {
+        if (!self::requiereLado($linea?->nombre, $componente)) {
             return [];
         }
 
@@ -733,7 +748,7 @@ class AnalisisPasteurizadora extends Model
     public static function getSiguienteLado($lineaId, $modulo, $componente, $ladoActual = null, $nivel = null, ?string $area = null, ?string $tipoRegistro = null)
     {
         $linea = Linea::find($lineaId);
-        if (self::usaRevisionPorModuloCompleto($linea?->nombre, $componente)) {
+        if (!self::requiereLado($linea?->nombre, $componente)) {
             return null;
         }
 
@@ -763,13 +778,48 @@ class AnalisisPasteurizadora extends Model
     public static function getSiguienteRevisionContexto($lineaId, $modulo, $componente, $nivelActual = null, $ladoActual = null, ?string $area = null, ?string $tipoRegistro = null)
     {
         $linea = Linea::find($lineaId);
-        if (self::usaRevisionPorModuloCompleto($linea?->nombre, $componente)) {
+        $alcanceRevision = self::getAlcanceRevisionPorLineaYComponente($linea?->nombre, $componente);
+
+        if ($alcanceRevision === self::ALCANCE_REVISION_MODULO) {
             $remaining = self::getCantidadComponentesPendientes($lineaId, $modulo, $componente, null, null, null, $area, $tipoRegistro);
 
             return $remaining > 0 ? [
                 'nivel' => null,
                 'lado' => null,
             ] : null;
+        }
+
+        if ($alcanceRevision === self::ALCANCE_REVISION_NIVEL) {
+            $niveles = self::NIVELES;
+
+            if ($nivelActual && in_array($nivelActual, $niveles, true)) {
+                $remaining = self::getCantidadComponentesPendientes($lineaId, $modulo, $componente, null, $nivelActual, null, $area, $tipoRegistro);
+
+                if ($remaining > 0) {
+                    return [
+                        'nivel' => $nivelActual,
+                        'lado' => null,
+                    ];
+                }
+
+                $indiceActual = array_search($nivelActual, $niveles, true);
+                if ($indiceActual !== false) {
+                    $niveles = array_slice($niveles, $indiceActual + 1);
+                }
+            }
+
+            foreach ($niveles as $nivel) {
+                $remaining = self::getCantidadComponentesPendientes($lineaId, $modulo, $componente, null, $nivel, null, $area, $tipoRegistro);
+
+                if ($remaining > 0) {
+                    return [
+                        'nivel' => $nivel,
+                        'lado' => null,
+                    ];
+                }
+            }
+
+            return null;
         }
 
         $niveles = self::NIVELES;
@@ -825,8 +875,14 @@ class AnalisisPasteurizadora extends Model
     public static function nivelCompletado($lineaId, $modulo, $componente, $nivel, ?string $area = null, ?string $tipoRegistro = null)
     {
         $linea = Linea::find($lineaId);
-        if (self::usaRevisionPorModuloCompleto($linea?->nombre, $componente)) {
+        $alcanceRevision = self::getAlcanceRevisionPorLineaYComponente($linea?->nombre, $componente);
+
+        if ($alcanceRevision === self::ALCANCE_REVISION_MODULO) {
             return self::getCantidadComponentesPendientes($lineaId, $modulo, $componente, null, null, null, $area, $tipoRegistro) === 0;
+        }
+
+        if ($alcanceRevision === self::ALCANCE_REVISION_NIVEL) {
+            return self::getCantidadComponentesPendientes($lineaId, $modulo, $componente, null, $nivel, null, $area, $tipoRegistro) === 0;
         }
 
         $ladosPendientes = self::getLadosPendientes($lineaId, $modulo, $componente, $nivel, $area, $tipoRegistro);
@@ -841,13 +897,25 @@ class AnalisisPasteurizadora extends Model
         $niveles = self::NIVELES;
         $estado = [];
         $linea = Linea::find($lineaId);
+        $alcanceRevision = self::getAlcanceRevisionPorLineaYComponente($linea?->nombre, $componente);
 
-        if (self::usaRevisionPorModuloCompleto($linea?->nombre, $componente)) {
+        if ($alcanceRevision === self::ALCANCE_REVISION_MODULO) {
             $completado = self::getCantidadComponentesPendientes($lineaId, $modulo, $componente, null, null, null, $area, $tipoRegistro) === 0;
 
             foreach ($niveles as $niv) {
                 $estado[$niv] = [
                     'completado' => $completado,
+                    'lados_pendientes' => [],
+                ];
+            }
+
+            return $estado;
+        }
+
+        if ($alcanceRevision === self::ALCANCE_REVISION_NIVEL) {
+            foreach ($niveles as $niv) {
+                $estado[$niv] = [
+                    'completado' => self::nivelCompletado($lineaId, $modulo, $componente, $niv, $area, $tipoRegistro),
                     'lados_pendientes' => [],
                 ];
             }
@@ -896,14 +964,14 @@ class AnalisisPasteurizadora extends Model
 
         $agrupado = $registros->groupBy(function ($registro) use ($lineasPorId) {
             $lineaNombre = $lineasPorId[$registro->linea_id] ?? null;
-            $usaModuloCompleto = self::usaRevisionPorModuloCompleto($lineaNombre, $registro->componente);
+            $alcanceRevision = self::getAlcanceRevisionPorLineaYComponente($lineaNombre, $registro->componente);
 
             return implode('|', [
                 $registro->linea_id,
                 strtoupper((string) $registro->componente),
                 (int) $registro->modulo,
-                $usaModuloCompleto ? '' : strtoupper(trim((string) $registro->nivel)),
-                $usaModuloCompleto ? '' : strtoupper(trim((string) $registro->lado)),
+                $alcanceRevision === self::ALCANCE_REVISION_MODULO ? '' : strtoupper(trim((string) $registro->nivel)),
+                $alcanceRevision === self::ALCANCE_REVISION_NIVEL_LADO ? strtoupper(trim((string) $registro->lado)) : '',
             ]);
         });
 
@@ -1327,6 +1395,12 @@ class AnalisisPasteurizadora extends Model
             return ['componentes' => []];
         }
 
+        if ($alcanceRevision === self::ALCANCE_REVISION_NIVEL) {
+            return collect(self::NIVELES)
+                ->mapWithKeys(fn (string $nivel) => [$nivel => []])
+                ->all();
+        }
+
         $estado = [];
 
         foreach (self::NIVELES as $nivel) {
@@ -1354,6 +1428,24 @@ class AnalisisPasteurizadora extends Model
 
         if ($alcanceRevision === self::ALCANCE_REVISION_MODULO) {
             $estado['componentes'] = collect(array_merge($estado['componentes'] ?? [], $componentes))
+                ->map(fn ($item) => (int) $item)
+                ->filter(fn ($item) => $item > 0)
+                ->unique()
+                ->sort()
+                ->values()
+                ->all();
+
+            return $estado;
+        }
+
+        if ($alcanceRevision === self::ALCANCE_REVISION_NIVEL) {
+            $nivel = $registro->nivel;
+
+            if (!isset($estado[$nivel])) {
+                return $estado;
+            }
+
+            $estado[$nivel] = collect(array_merge($estado[$nivel], $componentes))
                 ->map(fn ($item) => (int) $item)
                 ->filter(fn ($item) => $item > 0)
                 ->unique()
@@ -1396,6 +1488,16 @@ class AnalisisPasteurizadora extends Model
             return count($estado['componentes'] ?? []) >= $totalComponentes;
         }
 
+        if ($alcanceRevision === self::ALCANCE_REVISION_NIVEL) {
+            foreach (self::NIVELES as $nivel) {
+                if (count($estado[$nivel] ?? []) < $totalComponentes) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
         foreach (self::NIVELES as $nivel) {
             foreach (self::LADOS as $lado) {
                 if (count($estado[$nivel][$lado] ?? []) < $totalComponentes) {
@@ -1431,6 +1533,39 @@ class AnalisisPasteurizadora extends Model
                     'nivel' => null,
                     'lado' => null,
                 ],
+            ];
+        }
+
+        if ($alcanceRevision === self::ALCANCE_REVISION_NIVEL) {
+            $estadoPorNivel = [];
+            $siguienteRevision = null;
+            $completado = $totalComponentes > 0;
+
+            foreach (self::NIVELES as $nivel) {
+                $revisados = count($estado[$nivel] ?? []);
+                $nivelCompletado = $revisados >= $totalComponentes;
+
+                if (!$nivelCompletado) {
+                    $completado = false;
+                }
+
+                $estadoPorNivel[$nivel] = [
+                    'completado' => $nivelCompletado,
+                    'lados_pendientes' => [],
+                ];
+
+                if (!$siguienteRevision && !$nivelCompletado) {
+                    $siguienteRevision = [
+                        'nivel' => $nivel,
+                        'lado' => null,
+                    ];
+                }
+            }
+
+            return [
+                'completado' => $completado,
+                'estado_por_nivel' => $estadoPorNivel,
+                'siguiente_revision' => $siguienteRevision,
             ];
         }
 
