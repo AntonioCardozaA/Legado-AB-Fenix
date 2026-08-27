@@ -98,7 +98,7 @@ return Application::configure(basePath: dirname(__DIR__))
                 }
 
                 return redirect()
-                    ->guest(route('login', absolute: false))
+                    ->to(route('login', absolute: false))
                     ->with('status', $message);
             }
 

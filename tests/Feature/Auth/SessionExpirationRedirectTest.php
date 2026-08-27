@@ -14,10 +14,13 @@ class SessionExpirationRedirectTest extends TestCase
             throw new TokenMismatchException();
         })->middleware('web');
 
-        $response = $this->post('/_test-token-mismatch');
+        $response = $this
+            ->from(route('login', absolute: false))
+            ->post('/_test-token-mismatch');
 
         $response
             ->assertRedirect(route('login', absolute: false))
+            ->assertSessionMissing('url.intended')
             ->assertSessionHas('status', 'Tu sesion expiro. Vuelve a iniciar sesion para continuar.');
     }
 
