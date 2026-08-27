@@ -28,11 +28,9 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
-        if ($this->intendedUrlIsLogin($request)) {
-            $request->session()->forget('url.intended');
-        }
+        $request->session()->forget('url.intended');
 
-        return redirect()->intended(route('dashboard', absolute: false));
+        return redirect()->to(route('dashboard', absolute: false));
     }
 
     /**
@@ -47,30 +45,5 @@ class AuthenticatedSessionController extends Controller
         $request->session()->regenerateToken();
 
         return redirect('/');
-    }
-
-    private function intendedUrlIsLogin(Request $request): bool
-    {
-        $intended = $request->session()->get('url.intended');
-
-        if (! is_string($intended) || $intended === '') {
-            return false;
-        }
-
-        $loginPath = $this->normalizedPath(route('login', absolute: false));
-        $intendedPath = $this->normalizedPath($intended);
-
-        return $intendedPath === $loginPath;
-    }
-
-    private function normalizedPath(string $url): string
-    {
-        $path = parse_url($url, PHP_URL_PATH);
-
-        if (! is_string($path) || $path === '') {
-            $path = $url;
-        }
-
-        return rtrim('/'.ltrim($path, '/'), '/') ?: '/';
     }
 }

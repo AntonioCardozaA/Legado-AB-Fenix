@@ -71,14 +71,17 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-         $middleware->alias([
-        'role' => RoleMiddleware::class,
-        'permission' => PermissionMiddleware::class,
-        'role_or_permission' => RoleOrPermissionMiddleware::class,
-        'technician.access' => EnsureTechnicianAccess::class,
-        'pasteurizadora.access' => EnsurePasteurizadoraAccess::class,
-        'custom.permission.access' => EnsureCustomPermissionAccess::class,
-         ]);
+        $middleware->redirectGuestsTo(fn (Request $request): string => route('login', absolute: false));
+        $middleware->redirectUsersTo(fn (Request $request): string => route('dashboard', absolute: false));
+
+        $middleware->alias([
+            'role' => RoleMiddleware::class,
+            'permission' => PermissionMiddleware::class,
+            'role_or_permission' => RoleOrPermissionMiddleware::class,
+            'technician.access' => EnsureTechnicianAccess::class,
+            'pasteurizadora.access' => EnsurePasteurizadoraAccess::class,
+            'custom.permission.access' => EnsureCustomPermissionAccess::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->render(function (HttpExceptionInterface $exception, Request $request) {
