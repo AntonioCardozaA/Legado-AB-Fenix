@@ -35,21 +35,44 @@ class AssistantAnalyticsDashboardSheet implements FromArray, ShouldAutoSize, Wit
     public function array(): array
     {
         $summaryCards = array_values(array_filter((array) ($this->dashboard['summary_cards'] ?? []), fn ($item): bool => is_array($item)));
+        $sideTitle = $this->text('side_panel_title');
+        $sideHeadings = array_pad(array_slice(array_values((array) ($this->dashboard['side_panel_headings'] ?? [])), 0, 4), 4, '');
+        $sideRows = array_values(array_filter((array) ($this->dashboard['side_panel_rows'] ?? []), fn ($item): bool => is_array($item)));
         $rows = [
             ['LEGADO AB FENIX'],
             [$this->text('title', 'Reporte operativo')],
             [$this->text('subtitle')],
             [$this->text('conclusion')],
             [],
-            ['Indicador', 'Valor', 'Estado'],
+            ['Indicador', 'Valor', 'Estado', '', '', '', '', '', '', '', $sideTitle],
         ];
-
-        foreach (array_slice($summaryCards, 0, 8) as $card) {
-            $rows[] = [
+        $summaryRows = collect(array_slice($summaryCards, 0, 8))
+            ->map(fn (array $card): array => [
                 (string) ($card['label'] ?? ''),
                 (string) ($card['value'] ?? ''),
                 $this->toneLabel((string) ($card['tone'] ?? 'neutral')),
-            ];
+            ])
+            ->values()
+            ->all();
+        $rowCount = max(count($summaryRows), $sideRows !== [] ? count($sideRows) + 1 : 0);
+
+        for ($index = 0; $index < $rowCount; $index++) {
+            $row = array_fill(0, 14, '');
+
+            if (isset($summaryRows[$index])) {
+                [$row[0], $row[1], $row[2]] = $summaryRows[$index];
+            }
+
+            if ($sideRows !== []) {
+                if ($index === 0) {
+                    [$row[10], $row[11], $row[12], $row[13]] = $sideHeadings;
+                } elseif (isset($sideRows[$index - 1])) {
+                    $sideRow = array_pad(array_values((array) $sideRows[$index - 1]), 4, '');
+                    [$row[10], $row[11], $row[12], $row[13]] = array_slice($sideRow, 0, 4);
+                }
+            }
+
+            $rows[] = $row;
         }
 
         return $rows;
@@ -87,22 +110,22 @@ class AssistantAnalyticsDashboardSheet implements FromArray, ShouldAutoSize, Wit
                 $highestRow = max(1, $sheet->getHighestRow());
 
                 foreach ([1, 2, 3, 4] as $row) {
-                    $sheet->mergeCells("A{$row}:J{$row}");
+                    $sheet->mergeCells("A{$row}:N{$row}");
                 }
 
-                $sheet->getStyle('A1:J1')->applyFromArray([
+                $sheet->getStyle('A1:N1')->applyFromArray([
                     'font' => ['bold' => true, 'size' => 12, 'color' => ['rgb' => 'FFFFFF']],
                     'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '0F172A']],
                     'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
                 ]);
 
-                $sheet->getStyle('A2:J2')->applyFromArray([
+                $sheet->getStyle('A2:N2')->applyFromArray([
                     'font' => ['bold' => true, 'size' => 18, 'color' => ['rgb' => 'FFFFFF']],
                     'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '2563EB']],
                     'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
                 ]);
 
-                $sheet->getStyle('A3:J4')->applyFromArray([
+                $sheet->getStyle('A3:N4')->applyFromArray([
                     'font' => ['color' => ['rgb' => '334155']],
                     'alignment' => [
                         'horizontal' => Alignment::HORIZONTAL_CENTER,
@@ -117,7 +140,32 @@ class AssistantAnalyticsDashboardSheet implements FromArray, ShouldAutoSize, Wit
                     'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
                 ]);
 
-                $sheet->getStyle("A1:J{$highestRow}")->applyFromArray([
+                $hasSidePanel = trim((string) ($this->dashboard['side_panel_title'] ?? '')) !== ''
+                    && ! empty($this->dashboard['side_panel_rows']);
+
+                if ($hasSidePanel) {
+                    $sheet->mergeCells('K6:N6');
+                    $sheet->getStyle('K6:N6')->applyFromArray([
+                        'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+                        'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '2563EB']],
+                        'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
+                    ]);
+                    $sheet->getStyle('K7:N7')->applyFromArray([
+                        'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+                        'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '0F172A']],
+                        'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
+                    ]);
+                    $sheet->getStyle("K6:N{$highestRow}")->applyFromArray([
+                        'borders' => [
+                            'allBorders' => [
+                                'borderStyle' => Border::BORDER_THIN,
+                                'color' => ['rgb' => 'E5E7EB'],
+                            ],
+                        ],
+                    ]);
+                }
+
+                $sheet->getStyle("A1:N{$highestRow}")->applyFromArray([
                     'alignment' => [
                         'vertical' => Alignment::VERTICAL_CENTER,
                         'wrapText' => true,
@@ -154,6 +202,10 @@ class AssistantAnalyticsDashboardSheet implements FromArray, ShouldAutoSize, Wit
                     'H' => 18,
                     'I' => 18,
                     'J' => 18,
+                    'K' => 24,
+                    'L' => 30,
+                    'M' => 12,
+                    'N' => 16,
                 ] as $column => $width) {
                     $sheet->getColumnDimension($column)->setWidth($width);
                 }

@@ -630,6 +630,213 @@ class AssistantChatTest extends TestCase
         $this->assertNull($historySpreadsheet->getSheetByName('Resumen'));
     }
 
+    public function test_chat_generates_enterprise_comparative_elongation_trend_by_washer(): void
+    {
+        config([
+            'maintenance_ai.enabled' => true,
+            'maintenance_ai.chat.model' => 'gemini-3.6-flash',
+        ]);
+
+        Storage::fake('local');
+
+        $capturingProvider = new class implements AiProviderInterface
+        {
+            public array $payloads = [];
+
+            public function generateStructuredActionPlan(array $payload): array
+            {
+                $this->payloads[] = $payload;
+
+                return [
+                    'data' => [
+                        'should_generate' => true,
+                        'dataset' => 'elongaciones',
+                        'metric' => 'max_porcentaje',
+                        'chart_type' => 'line',
+                        'aggregation' => 'by_line',
+                        'outputs' => ['image', 'excel'],
+                        'lineas' => [],
+                        'date_range' => [
+                            'preset' => 'all',
+                            'from' => '',
+                            'to' => '',
+                        ],
+                        'title' => 'Tendencia comparativa de elongacion por lavadora',
+                        'confidence' => 0.96,
+                    ],
+                    'raw' => [],
+                    'meta' => [
+                        'provider' => 'gemini',
+                        'model' => $payload['model'] ?? 'gemini-3.6-flash',
+                    ],
+                ];
+            }
+
+            public function createEmbedding(string $content): array
+            {
+                return [];
+            }
+
+            public function extractDocumentText(array $payload): string
+            {
+                return '';
+            }
+        };
+
+        $this->app->instance(AiProviderInterface::class, $capturingProvider);
+
+        $user = $this->authenticatedUser();
+        $lineas = collect(['L-04', 'L-05', 'L-06', 'L-13'])
+            ->mapWithKeys(fn (string $nombre): array => [
+                $nombre => Linea::create([
+                    'nombre' => $nombre,
+                    'tipo' => User::MODULE_LAVADORA,
+                    'activo' => true,
+                ]),
+            ]);
+
+        $cicloL04Anterior = CadenaCiclo::create([
+            'linea_id' => $lineas['L-04']->id,
+            'linea' => 'L-04',
+            'codigo' => 'L-04-C001',
+            'numero_ciclo' => 1,
+            'proveedor' => 'Proveedor anterior',
+            'paso_inicial' => 173,
+            'hodometro_inicial' => 0,
+            'instalada_en' => now()->subMonths(8),
+            'retirada_en' => now()->subMonths(3),
+            'activa' => false,
+        ]);
+        $cicloL04Actual = CadenaCiclo::create([
+            'linea_id' => $lineas['L-04']->id,
+            'linea' => 'L-04',
+            'codigo' => 'L-04-C002',
+            'numero_ciclo' => 2,
+            'proveedor' => 'Proveedor actual',
+            'paso_inicial' => 173,
+            'hodometro_inicial' => 0,
+            'instalada_en' => now()->subMonths(2),
+            'activa' => true,
+        ]);
+        $cicloL05 = CadenaCiclo::create([
+            'linea_id' => $lineas['L-05']->id,
+            'linea' => 'L-05',
+            'codigo' => 'L-05-C001',
+            'numero_ciclo' => 1,
+            'proveedor' => 'Proveedor actual',
+            'paso_inicial' => 140,
+            'hodometro_inicial' => 0,
+            'instalada_en' => now()->subMonths(5),
+            'activa' => true,
+        ]);
+        $cicloL06 = CadenaCiclo::create([
+            'linea_id' => $lineas['L-06']->id,
+            'linea' => 'L-06',
+            'codigo' => 'L-06-C001',
+            'numero_ciclo' => 1,
+            'proveedor' => 'Proveedor actual',
+            'paso_inicial' => 173,
+            'hodometro_inicial' => 0,
+            'instalada_en' => now()->subMonths(4),
+            'activa' => true,
+        ]);
+        $cicloL13 = CadenaCiclo::create([
+            'linea_id' => $lineas['L-13']->id,
+            'linea' => 'L-13',
+            'codigo' => 'L-13-C001',
+            'numero_ciclo' => 1,
+            'proveedor' => 'Proveedor actual',
+            'paso_inicial' => 140,
+            'hodometro_inicial' => 0,
+            'instalada_en' => now()->subMonth(),
+            'activa' => true,
+        ]);
+
+        foreach ([
+            ['L-04', $cicloL04Anterior, now()->subMonths(6), 1.20, 1.25],
+            ['L-04', $cicloL04Anterior, now()->subMonths(5), 1.55, 1.60],
+            ['L-04', $cicloL04Actual, now()->subMonths(2), 0.60, 0.65],
+            ['L-04', $cicloL04Actual, now()->subMonth(), 0.82, 0.90],
+            ['L-05', $cicloL05, now()->subMonths(3), 1.22, 1.28],
+            ['L-05', $cicloL05, now()->subWeek(), 1.42, 1.48],
+            ['L-06', $cicloL06, now()->subWeeks(2), 1.28, 1.34],
+            ['L-06', $cicloL06, now()->subDays(3), 1.32, 1.38],
+            ['L-13', $cicloL13, now()->subDays(4), 0.75, 0.78],
+        ] as [$linea, $ciclo, $date, $bombas, $vapor]) {
+            $elongacion = Elongacion::create([
+                'linea_id' => $lineas[$linea]->id,
+                'linea' => $linea,
+                'cadena_ciclo_id' => $ciclo->id,
+                'proveedor' => $ciclo->proveedor,
+                'bombas_promedio' => 140 + $bombas,
+                'bombas_porcentaje' => $bombas,
+                'vapor_promedio' => 140 + $vapor,
+                'vapor_porcentaje' => $vapor,
+                'estado' => $vapor >= 1.46 ? 'critico' : ($vapor >= 1.30 ? 'alerta' : 'normal'),
+                'estado_detallado' => $vapor >= 1.46 ? 'cambio' : ($vapor >= 1.30 ? 'comprar' : 'normal'),
+                'paso_inicial' => $ciclo->paso_inicial,
+                'hodometro' => 1000,
+                'hodometro_ciclo' => 100,
+            ]);
+            $elongacion->forceFill([
+                'created_at' => $date,
+                'updated_at' => $date,
+            ])->saveQuietly();
+        }
+
+        $response = $this->actingAs($user)->postJson(route('assistant-chat.store'), [
+            'message' => 'Genera una grafica comparativa y profesional de las tendencias de elongacion de todas las lavadoras en SVG y Excel, usando todo el historial disponible. Usa grafica de lineas, una linea por cada lavadora, separa cambios de ciclo y marca el limite critico de 1.46%.',
+            'page_context' => [
+                'module' => User::MODULE_LAVADORA,
+                'page_title' => 'Chat operativo',
+                'current_path' => '/dashboard/lavadoras',
+            ],
+        ]);
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('message.metadata.intent.dataset', 'elongaciones')
+            ->assertJsonPath('message.metadata.intent.report_version', 'elongaciones-comparativo-v3')
+            ->assertJsonCount(2, 'message.metadata.artifacts');
+
+        $content = (string) $response->json('message.content');
+        $this->assertStringContainsString('Analisis automatico', $content);
+        $this->assertStringContainsString('Lavadora con mayor elongacion actual', $content);
+        $this->assertStringContainsString('Mayor incremento entre ultimas mediciones', $content);
+        $this->assertStringContainsString('Lavadora L-13', $content);
+
+        $assistantMessage = AssistantMessage::findOrFail((int) $response->json('message.id'));
+        $storedArtifacts = $assistantMessage->metadata['artifacts'];
+        $svgArtifact = collect($storedArtifacts)->firstWhere('kind', 'svg');
+        $excelArtifact = collect($storedArtifacts)->firstWhere('kind', 'excel');
+
+        $this->assertIsArray($svgArtifact);
+        $this->assertIsArray($excelArtifact);
+
+        $svg = Storage::disk('local')->get($svgArtifact['path']);
+        $this->assertStringContainsString('Tendencia comparativa de elongacion por lavadora', $svg);
+        $this->assertStringContainsString('Limite critico 1.46%', $svg);
+        $this->assertStringContainsString('Lavadora L-04', $svg);
+        $this->assertStringContainsString('Analisis automatico', $svg);
+        $this->assertGreaterThanOrEqual(4, substr_count($svg, '<polyline'));
+        Storage::disk('local')->assertExists($excelArtifact['path']);
+
+        if (! class_exists(\ZipArchive::class)) {
+            return;
+        }
+
+        $spreadsheet = IOFactory::load(Storage::disk('local')->path($excelArtifact['path']));
+        $this->assertNotNull($spreadsheet->getSheetByName('Analisis'));
+        $tendencia = $spreadsheet->getSheetByName('Tendencia');
+        $analisis = $spreadsheet->getSheetByName('Analisis');
+        $tendenciaText = json_encode($tendencia?->rangeToArray('A1:'.$tendencia?->getHighestColumn().$tendencia?->getHighestRow()), JSON_UNESCAPED_UNICODE);
+        $analisisText = json_encode($analisis?->rangeToArray('A1:'.$analisis?->getHighestColumn().$analisis?->getHighestRow()), JSON_UNESCAPED_UNICODE);
+
+        $this->assertStringContainsString('Lavadora L-13', (string) $tendenciaText);
+        $this->assertStringContainsString('Sin datos historicos suficientes', (string) $analisisText);
+        $this->assertStringContainsString('Lavadora L-06', (string) $analisisText);
+    }
+
     public function test_chat_explains_when_artifact_dataset_has_no_data(): void
     {
         config([
@@ -828,6 +1035,7 @@ class AssistantChatTest extends TestCase
         foreach ([
             'Dame Excel de analisis de lavadora linea 5 este año',
             'Dame Excel de costos de lavadora por linea este año',
+            'Grafica la tendencia mensual de costos de lavadora de la linea 5 en Excel',
             'Dame Excel de planes de accion linea 5 este año',
         ] as $prompt) {
             $response = $this->actingAs($user)->postJson(route('assistant-chat.store'), [
@@ -844,6 +1052,12 @@ class AssistantChatTest extends TestCase
                 ->assertJsonCount(1, 'message.metadata.artifacts')
                 ->assertJsonPath('message.metadata.artifacts.0.kind', 'excel');
 
+            $normalizedPrompt = Str::lower(Str::ascii($prompt));
+
+            if (str_contains($normalizedPrompt, 'costos')) {
+                $response->assertJsonPath('message.metadata.intent.chart_type', 'bar');
+            }
+
             $assistantMessage = AssistantMessage::findOrFail((int) $response->json('message.id'));
             $storedArtifacts = $assistantMessage->metadata['artifacts'];
             $spreadsheet = IOFactory::load(Storage::disk('local')->path($storedArtifacts[0]['path']));
@@ -854,15 +1068,23 @@ class AssistantChatTest extends TestCase
             $this->assertNotContains('Resumen', $spreadsheet->getSheetNames());
             $this->assertNotContains('Filtros', $spreadsheet->getSheetNames());
 
-            if (str_contains(Str::lower(Str::ascii($prompt)), 'costos')) {
+            if (str_contains($normalizedPrompt, 'costos')) {
+                $isByLineCost = str_contains($normalizedPrompt, 'por linea');
                 $this->assertNotContains('Alertas', $spreadsheet->getSheetNames());
 
                 $tendencia = $spreadsheet->getSheetByName('Tendencia');
-                $this->assertSame('Linea', $tendencia?->getCell('A1')->getValue());
+                $this->assertSame($isByLineCost ? 'Linea' : 'Periodo', $tendencia?->getCell('A1')->getValue());
                 $this->assertSame('Registros', $tendencia?->getCell('B1')->getValue());
                 $this->assertSame('Costo total MXN', $tendencia?->getCell('C1')->getValue());
                 $this->assertSame('Componente principal', $tendencia?->getCell('D1')->getValue());
                 $this->assertSame('Refaccion principal', $tendencia?->getCell('E1')->getValue());
+
+                $costDashboard = $spreadsheet->getSheetByName('Dashboard');
+                $this->assertSame('Cambios por componente/refaccion', $costDashboard?->getCell('K6')->getValue());
+                $this->assertSame('Componente', $costDashboard?->getCell('K7')->getValue());
+                $this->assertSame('Refaccion', $costDashboard?->getCell('L7')->getValue());
+                $this->assertSame('Cambios', $costDashboard?->getCell('M7')->getValue());
+                $this->assertSame('Costo total', $costDashboard?->getCell('N7')->getValue());
 
                 $datos = $spreadsheet->getSheetByName('Datos');
                 $this->assertSame('Lavadora / Linea', $datos?->getCell('B1')->getValue());

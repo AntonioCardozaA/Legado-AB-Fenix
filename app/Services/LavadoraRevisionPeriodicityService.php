@@ -316,6 +316,15 @@ class LavadoraRevisionPeriodicityService
         $ultimoReset = $this->ultimoResetComponente($linea, $componentIds);
         $pendientesReset = $identidades->where('estado', 'pendiente')->sum('pendientes_reset');
         $estado = $this->estadoResumen($identidades, $pendientesReset);
+        $detalleUbicaciones = $this->detalleUbicacionesComponente(
+            $identidades,
+            $codigoBase,
+            $nombre,
+            $linea->nombre,
+            $fechaReferencia
+        );
+        $resumenUbicaciones = $this->resumenDetalleUbicaciones($detalleUbicaciones);
+        $detalleUbicaciones = $this->marcarDetalleUbicaciones($detalleUbicaciones, $resumenUbicaciones);
 
         return [
             'linea_id' => $linea->id,
@@ -347,6 +356,8 @@ class LavadoraRevisionPeriodicityService
             'ultimo_reset_formateado' => $ultimoReset?->fecha_restablecimiento?->format('d/m/Y H:i:s'),
             'requiere_lado' => $this->componenteRequiereLado($codigoBase),
             'desglose_lados' => $this->desgloseLados($identidades, $codigoBase, $linea->nombre),
+            'detalle_ubicaciones' => $detalleUbicaciones->values()->all(),
+            'resumen_ubicaciones' => $resumenUbicaciones,
         ];
     }
 
@@ -541,6 +552,233 @@ class LavadoraRevisionPeriodicityService
                 ];
             })
             ->all();
+    }
+
+    private function detalleUbicacionesComponente(
+        Collection $identidades,
+        string $codigoBase,
+        string $nombreComponente,
+        string $lineaNombre,
+        Carbon $fechaReferencia
+    ): Collection {
+        return $identidades
+            ->map(function (array $item) use ($codigoBase, $nombreComponente, $lineaNombre, $fechaReferencia): array {
+                $reductorNormalizado = LavadoraCatalog::normalizarReductor($item['reductor'])
+                    ?? trim((string) $item['reductor']);
+                $reductorNombre = LavadoraCatalog::nombreReductorParaLinea($lineaNombre, $reductorNormalizado)
+                    ?? $reductorNormalizado;
+                $lado = $this->normalizarLado($item['lado']);
+                $ladoLabel = $this->ladoLabel($lado);
+                $ubicacion = $ladoLabel
+                    ? $reductorNombre . ' - ' . $ladoLabel
+                    : $reductorNombre;
+                $fechaRevision = $item['fecha_revision_at'];
+                $proximoVencimiento = $item['proximo_vencimiento_at'];
+                $estado = $this->estadoDetalle($item['estado']);
+                $diasDiferencia = $proximoVencimiento
+                    ? (int) $fechaReferencia->copy()->startOfDay()->diffInDays($proximoVencimiento->copy()->startOfDay(), false)
+                    : null;
+
+                return [
+                    'key' => $this->detalleUbicacionKey($reductorNormalizado, $lado),
+                    'analisis_id' => $item['analisis_id'],
+                    'componente_id' => $item['componente_id'],
+                    'codigo_componente' => $codigoBase,
+                    'nombre_componente' => $nombreComponente,
+                    'reductor' => $reductorNormalizado,
+                    'reductor_normalizado' => $reductorNormalizado,
+                    'reductor_nombre' => $reductorNombre,
+                    'reductor_etiqueta' => LavadoraCatalog::etiquetaReductorParaValor($lineaNombre, $reductorNormalizado),
+                    'lado' => $lado,
+                    'lado_label' => $ladoLabel,
+                    'ubicacion' => $ubicacion,
+                    'estado' => $estado,
+                    'estado_origen' => $item['estado'],
+                    'estado_label' => $this->estadoDetalleLabel($estado),
+                    'fecha_ultima_revision' => $fechaRevision?->toDateString(),
+                    'fecha_ultima_revision_formateada' => $fechaRevision?->format('d/m/Y'),
+                    'proxima_revision' => $proximoVencimiento?->toDateString(),
+                    'proxima_revision_formateada' => $proximoVencimiento?->format('d/m/Y'),
+                    'dias_restantes' => $estado === 'vigente' && $diasDiferencia !== null
+                        ? max(0, $diasDiferencia)
+                        : null,
+                    'dias_vencidos' => $estado === 'vencido' && $diasDiferencia !== null
+                        ? max(0, abs($diasDiferencia))
+                        : null,
+                    'dias_diferencia' => $diasDiferencia,
+                    'dias_texto' => $this->diasDetalleTexto($estado, $diasDiferencia),
+                    'revisado' => $fechaRevision !== null,
+                    'vigente' => $estado === 'vigente',
+                    'vencido' => $estado === 'vencido',
+                    'es_proximo' => false,
+                    'es_ultimo' => false,
+                ];
+            })
+            ->values();
+    }
+
+    private function resumenDetalleUbicaciones(Collection $detalle): array
+    {
+        $proximo = $this->proximaUbicacionARevisar($detalle);
+        $ultimo = $this->ultimaUbicacionRevisada($detalle);
+
+        return [
+            'total_ubicaciones' => $detalle->count(),
+            'ubicaciones_revisadas' => $detalle->where('revisado', true)->count(),
+            'ubicaciones_vigentes' => $detalle->where('estado', 'vigente')->count(),
+            'ubicaciones_vencidas' => $detalle->where('estado', 'vencido')->count(),
+            'ubicaciones_sin_revision' => $detalle->where('estado', 'sin_revision')->count(),
+            'ubicaciones_restablecidas' => $detalle->where('estado', 'restablecido')->count(),
+            'proximo_revisar' => $proximo ? $this->resumenDetalleItem($proximo) : null,
+            'ultimo_revisado' => $ultimo ? $this->resumenDetalleItem($ultimo) : null,
+        ];
+    }
+
+    private function proximaUbicacionARevisar(Collection $detalle): ?array
+    {
+        $vencida = $detalle
+            ->where('estado', 'vencido')
+            ->sortBy(fn (array $item): string => $item['proxima_revision'] ?? '9999-12-31')
+            ->first();
+
+        if ($vencida) {
+            return $vencida;
+        }
+
+        $vigente = $detalle
+            ->where('estado', 'vigente')
+            ->sortBy(fn (array $item): string => $item['proxima_revision'] ?? '9999-12-31')
+            ->first();
+
+        if ($vigente) {
+            return $vigente;
+        }
+
+        $sinRevision = $detalle
+            ->where('estado', 'sin_revision')
+            ->first();
+
+        if ($sinRevision) {
+            return $sinRevision;
+        }
+
+        return $detalle
+            ->where('estado', 'restablecido')
+            ->first();
+    }
+
+    private function ultimaUbicacionRevisada(Collection $detalle): ?array
+    {
+        return $detalle
+            ->filter(fn (array $item): bool => !empty($item['fecha_ultima_revision']))
+            ->sortByDesc(function (array $item): string {
+                return ($item['fecha_ultima_revision'] ?? '')
+                    . '|'
+                    . str_pad((string) ($item['analisis_id'] ?? 0), 12, '0', STR_PAD_LEFT);
+            })
+            ->first();
+    }
+
+    private function marcarDetalleUbicaciones(Collection $detalle, array $resumen): Collection
+    {
+        $proximoKey = data_get($resumen, 'proximo_revisar.key');
+        $ultimoKey = data_get($resumen, 'ultimo_revisado.key');
+
+        return $detalle
+            ->map(function (array $item) use ($proximoKey, $ultimoKey): array {
+                $item['es_proximo'] = $proximoKey !== null && $item['key'] === $proximoKey;
+                $item['es_ultimo'] = $ultimoKey !== null && $item['key'] === $ultimoKey;
+
+                return $item;
+            })
+            ->values();
+    }
+
+    private function resumenDetalleItem(array $item): array
+    {
+        return [
+            'key' => $item['key'],
+            'analisis_id' => $item['analisis_id'],
+            'reductor' => $item['reductor'],
+            'reductor_normalizado' => $item['reductor_normalizado'],
+            'reductor_nombre' => $item['reductor_nombre'],
+            'reductor_etiqueta' => $item['reductor_etiqueta'],
+            'lado' => $item['lado'],
+            'lado_label' => $item['lado_label'],
+            'ubicacion' => $item['ubicacion'],
+            'estado' => $item['estado'],
+            'estado_label' => $item['estado_label'],
+            'fecha_ultima_revision' => $item['fecha_ultima_revision'],
+            'fecha_ultima_revision_formateada' => $item['fecha_ultima_revision_formateada'],
+            'proxima_revision' => $item['proxima_revision'],
+            'proxima_revision_formateada' => $item['proxima_revision_formateada'],
+            'dias_restantes' => $item['dias_restantes'],
+            'dias_vencidos' => $item['dias_vencidos'],
+            'dias_diferencia' => $item['dias_diferencia'],
+            'dias_texto' => $item['dias_texto'],
+        ];
+    }
+
+    private function estadoDetalle(string $estado): string
+    {
+        return match ($estado) {
+            'pendiente' => 'vencido',
+            'programado' => 'vigente',
+            'restablecido' => 'restablecido',
+            default => 'sin_revision',
+        };
+    }
+
+    private function estadoDetalleLabel(string $estado): string
+    {
+        return match ($estado) {
+            'vencido' => 'Vencido',
+            'vigente' => 'Vigente',
+            'restablecido' => 'Restablecido',
+            default => 'Sin revisión',
+        };
+    }
+
+    private function diasDetalleTexto(string $estado, ?int $diasDiferencia): ?string
+    {
+        if ($estado === 'sin_revision') {
+            return 'Pendiente de primera revisión';
+        }
+
+        if ($diasDiferencia === null) {
+            return null;
+        }
+
+        if ($estado === 'vencido') {
+            return $diasDiferencia === 0
+                ? 'Vence hoy'
+                : 'Vencido hace ' . abs($diasDiferencia) . ' días';
+        }
+
+        if ($estado === 'vigente') {
+            return $diasDiferencia === 0
+                ? 'Vence hoy'
+                : 'Vence en ' . $diasDiferencia . ' días';
+        }
+
+        return 'Restablecido';
+    }
+
+    private function ladoLabel(?string $lado): ?string
+    {
+        return match ($lado) {
+            'VAPOR' => 'Vapor',
+            'PASILLO' => 'Pasillo',
+            default => null,
+        };
+    }
+
+    private function detalleUbicacionKey(?string $reductor, ?string $lado): string
+    {
+        return implode('|', [
+            LavadoraCatalog::normalizarReductor($reductor) ?? trim((string) $reductor),
+            $this->normalizarLado($lado) ?? '',
+        ]);
     }
 
     private function agruparAnalisisPorIdentidad(Collection $analisis): Collection

@@ -28,7 +28,7 @@ class OperationsAssistantService
      */
     public function reply(User $user, string $message, array $history = [], array $pageContext = []): array
     {
-        $question = $this->sanitizer->sanitizeText($message, 1600);
+        $question = $this->sanitizer->sanitizeText($message, 4000);
 
         if ($question === '') {
             return [

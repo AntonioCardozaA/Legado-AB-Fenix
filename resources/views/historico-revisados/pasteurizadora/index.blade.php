@@ -722,6 +722,49 @@
         white-space: nowrap;
     }
 
+    .modal-review-card {
+        border-color: #dbe3ef;
+        background: #ffffff;
+        gap: 12px;
+    }
+
+    .modal-review-summary,
+    .modal-review-context {
+        display: flex;
+        gap: 10px;
+    }
+
+    .modal-review-summary {
+        align-items: center;
+        justify-content: space-between;
+        min-width: 0;
+    }
+
+    .modal-review-context {
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: flex-end;
+        color: #64748b;
+        font-size: 11px;
+        font-weight: 700;
+    }
+
+    .modal-review-context span + span::before {
+        content: "/";
+        margin-right: 10px;
+        color: #cbd5e1;
+    }
+
+    .modal-review-progress {
+        min-width: 0;
+    }
+
+    .modal-no-side-section {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+    }
+
     .grafica-section {
         border-radius: 16px;
         padding: 24px;
@@ -947,6 +990,15 @@
         .modal-body {
             padding: 18px;
             max-height: calc(100vh - 110px);
+        }
+
+        .modal-review-summary {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .modal-review-context {
+            justify-content: flex-start;
         }
 
         .lineas-grid,
@@ -1203,7 +1255,23 @@
                                     </div>
 
                                     <div class="modal-level-sides">
-                                        <div class="modal-level-section-title">Componentes por lado dentro de este nivel</div>
+                                        @if(!empty($nivelData['componentes_sin_lado']))
+                                            <div class="modal-no-side-section">
+                                                <div class="modal-level-section-title">Revisiones por nivel</div>
+                                                @foreach($nivelData['componentes_sin_lado'] as $componenteData)
+                                                    @include('historico-revisados.pasteurizadora.partials.revision-card', [
+                                                        'componenteData' => $componenteData,
+                                                        'moduloData' => $moduloData,
+                                                        'nivelData' => $nivelData,
+                                                        'ladoData' => null,
+                                                    ])
+                                                @endforeach
+                                            </div>
+                                        @endif
+
+                                        @if(!empty($nivelData['lados']))
+                                            <div class="modal-level-section-title">Revisiones por lado dentro de este nivel</div>
+                                        @endif
                                         @foreach($nivelData['lados'] as $ladoData)
                                             <div class="modal-side-block">
                                                 <div class="modal-side-header">
@@ -1221,32 +1289,12 @@
 
                                                 <div class="modal-side-components">
                                                     @foreach($ladoData['componentes'] as $componenteData)
-                                                        <div class="modal-level-component">
-                                                            <div class="modal-level-component-head">
-                                                                <div class="componente-nombre">
-                                                                    <div class="componente-imagen">
-                                                                        <img
-                                                                            src="{{ asset('images/componentes-pasteurizadora/' . $componenteData['codigo'] . '.png') }}"
-                                                                            alt="{{ $componenteData['nombre'] }}"
-                                                                            class="componente-img"
-                                                                            onerror="this.src='{{ asset('images/extras/sin imagen.png') }}'">
-                                                                    </div>
-                                                                    <span>{{ $componenteData['nombre'] }}</span>
-                                                                </div>
-                                                                <span class="cantidad-badge">{{ $componenteData['total'] }} total</span>
-                                                            </div>
-
-                                                            <div>
-                                                                <div class="modal-level-component-progress-meta">
-                                                                    <span>Avance por componente</span>
-                                                                    <span>{{ $componenteData['revisadas'] }}/{{ $componenteData['total'] }}</span>
-                                                                </div>
-                                                                <div class="progress-container" style="height: 18px;">
-                                                                    <span class="progress-label">{{ $componenteData['porcentaje'] }}%</span>
-                                                                    <div class="progress-bar bg-{{ $componenteData['color'] }}" style="width: {{ $componenteData['porcentaje'] }}%;"></div>
-                                                                </div>
-                                                            </div>
-                                                        </div>
+                                                        @include('historico-revisados.pasteurizadora.partials.revision-card', [
+                                                            'componenteData' => $componenteData,
+                                                            'moduloData' => $moduloData,
+                                                            'nivelData' => $nivelData,
+                                                            'ladoData' => $ladoData,
+                                                        ])
                                                     @endforeach
                                                 </div>
                                             </div>

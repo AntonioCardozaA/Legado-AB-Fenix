@@ -2262,6 +2262,7 @@
                                                 $hasData = $registro !== null;
                                                 $totalComponentesComponente = $compData['cantidad'] ?? 0;
                                                 $esBrazoTorsion = \App\Models\AnalisisPasteurizadora::esBrazoTorsion($codigo);
+                                                $requiereLadoComponente = \App\Models\AnalisisPasteurizadora::requiereLado($linea->nombre, $codigo);
                                                 $brazoAplicaModulo = !$esBrazoTorsion || $moduloNumero <= \App\Models\AnalisisPasteurizadora::getCantidadBrazosTorsionPorLinea($linea->nombre);
                                                 
                                                 $componentesRevisadosAcumulados = $hasNormalAnalysis
@@ -2375,7 +2376,8 @@
                                                         'componente' => $compData['nombre'],
                                                         'tipo_registro' => $hasNormalAnalysis ? 'normal' : 'quick',
                                                         'tipo_registro_label' => $hasNormalAnalysis ? 'Revisión programada' : 'Revisión de seguimiento',
-                                                        'lado' => $registro->lado,
+                                                        'lado' => $requiereLadoComponente ? $registro->lado : null,
+                                                        'mostrar_lado' => $requiereLadoComponente,
                                                         'nivel' => $registro->nivel,
                                                         'fecha_analisis' => $registro->fecha_analisis ? $registro->fecha_analisis->format('d/m/Y') : $registro->created_at->format('d/m/Y'),
                                                         'fecha_inicio' => optional($registro->fecha_inicio ?? $registro->fecha_analisis ?? $registro->created_at)->format('d/m/Y'),
@@ -2400,7 +2402,7 @@
                                                             ->sortByDesc(function ($item) {
                                                                 return ($item->created_at?->timestamp ?? 0) . '-' . str_pad((string) $item->id, 10, '0', STR_PAD_LEFT);
                                                             })
-                                                            ->map(function ($item) {
+                                                            ->map(function ($item) use ($requiereLadoComponente) {
                                                                 $componentes = [];
 
                                                                 if (is_array($item->componentes_revisados)) {
@@ -2422,7 +2424,8 @@
                                                                     'estado' => $item->estado,
                                                                     'usuario_nombre' => $item->usuario?->name ?? $item->responsable ?? 'Usuario no registrado',
                                                                     'actividad' => $item->actividad,
-                                                                    'lado' => $item->lado,
+                                                                    'lado' => $requiereLadoComponente ? $item->lado : null,
+                                                                    'mostrar_lado' => $requiereLadoComponente,
                                                                     'nivel' => $item->nivel,
                                                                     'componentes_revisados' => collect($componentes)
                                                                         ->filter(fn($numeroComponente) => is_numeric($numeroComponente))
@@ -2456,8 +2459,12 @@
                                                                 <i class="fas fa-map-marker-alt text-blue-600 text-xs"></i>
                                                                 <span class="info-label">Ubicacion:</span>
                                                                 <span class="font-semibold text-gray-800">
-                                                                    {{ $registro->lado ? ucfirst(strtolower($registro->lado)) : 'Sin lado' }}
-                                                                    {{ $registro->nivel ? '- ' . ucfirst(strtolower($registro->nivel)) : '' }}
+                                                                    @if($requiereLadoComponente)
+                                                                        {{ $registro->lado ? ucfirst(strtolower($registro->lado)) : 'Sin lado' }}
+                                                                        {{ $registro->nivel ? '- ' . ucfirst(strtolower($registro->nivel)) : '' }}
+                                                                    @else
+                                                                        {{ $registro->nivel ? 'Nivel ' . ucfirst(strtolower($registro->nivel)) : 'Sin nivel' }}
+                                                                    @endif
                                                                 </span>
                                                             </div>
 
@@ -3148,6 +3155,7 @@ function renderEstadoPorNivel(data) {
     }
 
     const nivelesOrden = ['SUPERIOR', 'INFERIOR'];
+    const usaLado = data.mostrar_lado !== false;
     section.classList.remove('hidden');
     section.innerHTML = `
         <div class="bg-white rounded-lg p-5 border border-purple-200 shadow-sm">
@@ -3176,10 +3184,10 @@ function renderEstadoPorNivel(data) {
                             </div>
                             <p class="text-sm text-gray-700">
                                 ${completado
-                                    ? 'Ambos lados ya fueron revisados.'
+                                    ? (usaLado ? 'Ambos lados ya fueron revisados.' : 'Revision del nivel completada.')
                                     : ladosPendientes.length > 0
                                         ? `Falta revisar: ${ladosPendientes.map((lado) => lado === 'VAPOR' ? 'Vapor' : 'Pasillo').join(', ')}`
-                                        : 'Pendiente de revision'}
+                                        : 'Pendiente de revision del nivel'}
                             </p>
                         </div>
                     `;
