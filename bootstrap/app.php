@@ -55,8 +55,6 @@ if (is_dir($frameworkBasePath)) {
 use App\Http\Middleware\EnsureCustomPermissionAccess;
 use App\Http\Middleware\EnsurePasteurizadoraAccess;
 use App\Http\Middleware\EnsureTechnicianAccess;
-use App\Support\AuthRedirects;
-use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -75,13 +73,7 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->redirectGuestsTo(fn (Request $request): string => route('login', absolute: false));
-        $middleware->redirectUsersTo(function (Request $request): string {
-            if ($request->hasSession()) {
-                $request->session()->forget('url.intended');
-            }
-
-            return route('dashboard', absolute: false);
-        });
+        $middleware->redirectUsersTo(fn (Request $request): string => route('dashboard', absolute: false));
 
         $middleware->alias([
             'role' => RoleMiddleware::class,
@@ -93,16 +85,6 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        $exceptions->render(function (AuthenticationException $exception, Request $request) {
-            if ($request->expectsJson()) {
-                return null;
-            }
-
-            AuthRedirects::rememberCurrentUrlAsIntended($request);
-
-            return redirect()->to($exception->redirectTo($request) ?? route('login', absolute: false));
-        });
-
         $exceptions->render(function (HttpExceptionInterface $exception, Request $request) {
             if ($exception->getStatusCode() === 419) {
                 $message = 'Tu sesion expiro. Vuelve a iniciar sesion para continuar.';
@@ -114,7 +96,6 @@ return Application::configure(basePath: dirname(__DIR__))
                 }
 
                 if ($request->hasSession()) {
-                    $request->session()->forget('url.intended');
                     Auth::guard('web')->logout();
                     $request->session()->invalidate();
                     $request->session()->regenerateToken();
