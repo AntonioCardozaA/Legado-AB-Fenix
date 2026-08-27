@@ -10,7 +10,24 @@ use Tests\TestCase;
 
 class SessionExpirationRedirectTest extends TestCase
 {
+<<<<<<< HEAD
     use RefreshDatabase;
+=======
+    public function test_login_csrf_token_can_be_refreshed(): void
+    {
+        $response = $this->get(route('csrf-token', absolute: false));
+
+        $response
+            ->assertOk()
+            ->assertJsonStructure(['token']);
+
+        $this->assertNotEmpty($response->json('token'));
+        $this->assertStringContainsString(
+            'no-store',
+            (string) $response->headers->get('Cache-Control')
+        );
+    }
+>>>>>>> 9cde4a464f7a2d71da55347f71970f3eb17562df
 
     public function test_expired_web_session_redirects_to_login(): void
     {

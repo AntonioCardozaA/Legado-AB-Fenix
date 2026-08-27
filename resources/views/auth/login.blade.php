@@ -75,7 +75,10 @@
 
                     <x-auth-session-status class="mb-4" :status="session('status')" />
 
-                    <form method="POST" action="{{ route('login', absolute: false) }}">
+                    <form id="loginForm"
+                          method="POST"
+                          action="{{ route('login', absolute: false) }}"
+                          data-csrf-url="{{ route('csrf-token', absolute: false) }}">
                         @csrf
 
                         {{-- Correo --}}
@@ -175,7 +178,8 @@
                         </div>
 
                         {{-- Botón --}}
-                        <button type="submit"
+                        <button id="loginSubmitButton"
+                                type="submit"
                                 class="group relative w-full overflow-hidden rounded-xl bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-300 px-4 py-3 font-black uppercase tracking-[2px] text-[#0b2957] shadow-xl transition duration-300 hover:scale-[1.02] hover:shadow-yellow-500/40">
 
                             <span class="relative z-10 flex items-center justify-center gap-2">
@@ -221,6 +225,63 @@
                 icon.classList.remove('fa-eye-slash');
                 icon.classList.add('fa-eye');
             }
+        }
+
+        const loginForm = document.getElementById('loginForm');
+
+        if (loginForm) {
+            let isSubmitting = false;
+
+            loginForm.addEventListener('submit', async function (event) {
+                if (isSubmitting) {
+                    return;
+                }
+
+                event.preventDefault();
+                isSubmitting = true;
+
+                const submitButton = document.getElementById('loginSubmitButton');
+
+                if (submitButton) {
+                    submitButton.disabled = true;
+                    submitButton.classList.add('opacity-70', 'cursor-wait');
+                }
+
+                const abortController = new AbortController();
+                const timeout = setTimeout(() => abortController.abort(), 3000);
+
+                try {
+                    const response = await fetch(loginForm.dataset.csrfUrl, {
+                        method: 'GET',
+                        credentials: 'same-origin',
+                        cache: 'no-store',
+                        signal: abortController.signal,
+                        headers: {
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest',
+                        },
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        const tokenInput = loginForm.querySelector('input[name="_token"]');
+                        const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+
+                        if (data.token && tokenInput) {
+                            tokenInput.value = data.token;
+                        }
+
+                        if (data.token && csrfMeta) {
+                            csrfMeta.setAttribute('content', data.token);
+                        }
+                    }
+                } catch (error) {}
+                finally {
+                    clearTimeout(timeout);
+                }
+
+                HTMLFormElement.prototype.submit.call(loginForm);
+            });
         }
     </script>
 </x-guest-layout>
