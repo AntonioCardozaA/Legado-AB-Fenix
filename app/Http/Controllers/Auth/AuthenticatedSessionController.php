@@ -4,11 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
-<<<<<<< HEAD
-use App\Support\AuthRedirects;
-=======
 use Illuminate\Http\JsonResponse;
->>>>>>> 9cde4a464f7a2d71da55347f71970f3eb17562df
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
