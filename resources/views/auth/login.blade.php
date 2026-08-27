@@ -247,11 +247,15 @@
                     submitButton.classList.add('opacity-70', 'cursor-wait');
                 }
 
+                const abortController = new AbortController();
+                const timeout = setTimeout(() => abortController.abort(), 3000);
+
                 try {
                     const response = await fetch(loginForm.dataset.csrfUrl, {
                         method: 'GET',
                         credentials: 'same-origin',
                         cache: 'no-store',
+                        signal: abortController.signal,
                         headers: {
                             'Accept': 'application/json',
                             'X-Requested-With': 'XMLHttpRequest',
@@ -272,6 +276,9 @@
                         }
                     }
                 } catch (error) {}
+                finally {
+                    clearTimeout(timeout);
+                }
 
                 HTMLFormElement.prototype.submit.call(loginForm);
             });
