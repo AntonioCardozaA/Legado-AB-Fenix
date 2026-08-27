@@ -140,6 +140,32 @@
             transform: translateX(2px);
         }
 
+        @media (max-width: 640px) {
+            .global-search-shell {
+                position: static;
+            }
+
+            .global-search-button {
+                width: 2.5rem;
+                padding-left: 0;
+                padding-right: 0;
+            }
+
+            .global-search-panel {
+                position: fixed !important;
+                left: 0.75rem !important;
+                right: 0.75rem !important;
+                top: calc(env(safe-area-inset-top, 0px) + 4.75rem) !important;
+                width: auto !important;
+                max-height: calc(100vh - 5.75rem);
+                border-radius: 1rem;
+            }
+
+            .global-search-results {
+                max-height: calc(100vh - 11rem);
+            }
+        }
+
         .notification-bell-icon {
             display: inline-block;
             transform-origin: 50% 0;
@@ -782,10 +808,12 @@
 
                 <div class="flex shrink-0 items-center space-x-2 sm:space-x-4">
                     @auth
-                    <div class="relative" x-data="globalSearch()" @click.away="close()" @keydown.escape.window="close()">
+                    <div class="global-search-shell relative" x-data="globalSearch()" @click.away="close()" @keydown.escape.window="close()">
                         <button type="button"
                                 @click="toggle()"
                                 :class="{ 'is-open': open }"
+                                :aria-expanded="open.toString()"
+                                aria-controls="global-search-panel"
                                 aria-label="Busqueda global"
                                 class="global-search-button inline-flex items-center justify-center gap-2 rounded-full bg-white px-3 py-2 text-sm font-semibold text-gray-600 transition">
                             <i class="fas fa-magnifying-glass text-sm"></i>
@@ -793,6 +821,7 @@
                         </button>
 
                         <div x-show="open"
+                             id="global-search-panel"
                              x-transition:enter="transition ease-out duration-150"
                              x-transition:enter-start="transform opacity-0 scale-95"
                              x-transition:enter-end="transform opacity-100 scale-100"
@@ -824,7 +853,7 @@
                                 </div>
                             </div>
 
-                            <div class="max-h-[26rem] overflow-y-auto py-2">
+                            <div class="global-search-results max-h-[26rem] overflow-y-auto py-2">
                                 <template x-if="loading">
                                     <div class="flex items-center gap-3 px-4 py-4 text-sm text-gray-500">
                                         <i class="fas fa-spinner fa-spin text-blue-600"></i>
