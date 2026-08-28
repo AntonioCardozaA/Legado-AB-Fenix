@@ -216,8 +216,8 @@
                 </div>
             </div>
 
-            <div class="rounded-xl border border-indigo-200 bg-indigo-50 p-5">
-                <div class="mb-4">
+            <div id="componentes-section" class="rounded-xl border border-indigo-200 bg-indigo-50 p-5">
+                <div id="componentes-header" class="mb-4">
                     <label class="block text-sm font-bold text-gray-800 mb-2">
                         <i class="fas fa-clipboard-check text-blue-600 mr-2"></i>
                         Selecciona cuales fueron revisados *
@@ -239,7 +239,7 @@
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-2">
                         <i class="far fa-calendar-alt text-blue-600 mr-1"></i>
-                        Fecha de realizacion de la revision *
+                        Fecha de revisión *
                     </label>
                     <input type="date"
                            name="fecha_analisis"
@@ -384,7 +384,9 @@
 const componentesConfiguracion = @json($componentesConfiguracion);
 const moduloSelect = document.getElementById('modulo');
 const componenteSelect = document.getElementById('componente');
+const checklistSection = document.getElementById('componentes-section');
 const checklist = document.getElementById('componentes-checklist');
+const checklistHeader = document.getElementById('componentes-header');
 const checklistHelp = document.getElementById('componentes-help');
 const componentesInput = document.getElementById('componentes_revisados_input');
 const summaryModulo = document.getElementById('summary-modulo');
@@ -455,6 +457,8 @@ function renderChecklist() {
     checklist.innerHTML = '';
 
     if (!componente) {
+        checklistSection.hidden = false;
+        checklistHeader.hidden = false;
         checklistHelp.textContent = 'Selecciona primero un componente para mostrar las piezas disponibles.';
         componentesSeleccionados = [];
         componentesInput.value = JSON.stringify(componentesSeleccionados);
@@ -463,7 +467,9 @@ function renderChecklist() {
     }
 
     if (componente.es_brazo_torsion) {
-        checklistHelp.textContent = 'Brazo de torsion: el modulo seleccionado identifica la pieza revisada.';
+        checklistSection.hidden = true;
+        checklistHeader.hidden = true;
+        checklistHelp.textContent = '';
         componentesSeleccionados = [1];
         componentesInput.value = JSON.stringify(componentesSeleccionados);
         actualizarResumenFormulario();
@@ -471,9 +477,19 @@ function renderChecklist() {
     }
 
     const total = Math.max(parseInt(componente.cantidad, 10) || 0, 0);
-    checklistHelp.textContent = total > 1
-        ? `Selecciona una o varias de las ${total} piezas revisadas.`
-        : 'Este componente tiene una pieza configurada.';
+    if (total <= 1) {
+        checklistSection.hidden = true;
+        checklistHeader.hidden = true;
+        checklistHelp.textContent = '';
+        componentesSeleccionados = total === 1 ? [1] : [];
+        componentesInput.value = JSON.stringify(componentesSeleccionados);
+        actualizarResumenFormulario();
+        return;
+    }
+
+    checklistSection.hidden = false;
+    checklistHeader.hidden = false;
+    checklistHelp.textContent = '';
 
     for (let indice = 1; indice <= total; indice++) {
         const seleccionado = componentesSeleccionados.includes(indice) || total === 1;
