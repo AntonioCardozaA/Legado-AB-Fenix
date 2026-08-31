@@ -223,6 +223,12 @@ Route::prefix('pasteurizadora')->group(function () {
             Route::get('/seleccionar-linea', 'selectLinea')->name('select-linea');
             Route::get('/crear/{linea}', 'createWithLinea')->where('linea', '[0-9]+')->name('create');
             Route::get('/crear-rapido', 'createQuick')->name('create-quick');
+            Route::get('/revision-general/{linea}', 'createRevisionGeneral')
+                ->where('linea', '[0-9]+')
+                ->name('revision-general.create');
+            Route::post('/revision-general/{linea}', 'storeRevisionGeneral')
+                ->where('linea', '[0-9]+')
+                ->name('revision-general.store');
             Route::post('/', 'store')->name('store');
 
             Route::get('/historial', 'historial')->name('historial');

@@ -435,8 +435,8 @@ class AccessPermissionCatalog
             ['routes' => ['analisis-lavadora.costos.manual.destroy', 'admin.costos.catalog.destroy', 'admin.costos.rules.destroy'], 'permission' => User::PERMISSION_DELETE_LAVADORA_COSTS],
 
             ['routes' => ['analisis-lavadora.index', 'analisis-lavadora.historial', 'analisis-lavadora.show', 'analisis-lavadora.get-*'], 'methods' => ['GET'], 'permission' => 'ver analisis lavadora'],
-            ['routes' => ['analisis-lavadora.select-linea', 'analisis-lavadora.create', 'analisis-lavadora.create-quick'], 'methods' => ['GET'], 'permission' => 'crear analisis lavadora'],
-            ['routes' => ['analisis-lavadora.store'], 'permission' => 'crear analisis lavadora'],
+            ['routes' => ['analisis-lavadora.select-linea', 'analisis-lavadora.create', 'analisis-lavadora.create-quick', 'analisis-lavadora.revision-general.create'], 'methods' => ['GET'], 'permission' => 'crear analisis lavadora'],
+            ['routes' => ['analisis-lavadora.store', 'analisis-lavadora.revision-general.store'], 'permission' => 'crear analisis lavadora'],
             ['routes' => ['analisis-lavadora.edit', 'analisis-lavadora.update', 'analisis-lavadora.delete-foto'], 'permission' => 'editar analisis lavadora'],
             ['routes' => ['analisis-lavadora.correccion.update'], 'permission' => User::PERMISSION_CLOSE_LAVADORA_DAMAGE],
             ['routes' => ['analisis-lavadora.destroy'], 'permission' => User::PERMISSION_DELETE_ANALYSIS],

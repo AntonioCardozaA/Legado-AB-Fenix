@@ -21,6 +21,7 @@ use App\Jobs\SendLavadoraDamageWhatsApp;
 use App\Services\AnalysisDeletionLogger;
 use App\Services\ImageEvidenceOptimizer;
 use App\Services\LavadoraCostSyncService;
+use App\Services\LavadoraRevisionGeneralService;
 use App\Services\LavadoraRevisionPeriodicityService;
 use App\Services\Maintenance\WasherMaintenanceOrchestrator;
 use App\Support\LavadoraCatalog;
@@ -484,6 +485,83 @@ public function index(Request $request)
         ));
     }
 
+    public function createRevisionGeneral(Linea $linea, LavadoraRevisionGeneralService $revisionGeneral)
+    {
+        $this->abortUnlessLavadora($linea);
+
+        return view('lavadora/analisis-lavadora.revision-general', [
+            'linea' => $linea,
+            'componentesRevisionGeneral' => $revisionGeneral->componentesDisponibles($linea),
+            'totalesPorComponente' => $revisionGeneral->totalesPorComponente($linea),
+            'totalUbicaciones' => $revisionGeneral->totalUbicaciones($linea),
+            'actividadGuias' => LavadoraRevisionGeneralService::ACTIVIDAD_GUIA_BUEN_ESTADO,
+            'actividadCatarinas' => LavadoraRevisionGeneralService::ACTIVIDAD_CATARINA_BUEN_ESTADO,
+        ]);
+    }
+
+    public function storeRevisionGeneral(
+        Request $request,
+        Linea $linea,
+        LavadoraRevisionGeneralService $revisionGeneral
+    ): RedirectResponse {
+        $this->abortUnlessLavadora($linea);
+
+        $codigosDisponibles = array_keys($revisionGeneral->componentesDisponibles($linea));
+
+        $validated = $request->validate([
+            'codigo_base' => ['required', 'string', 'in:' . implode(',', $codigosDisponibles)],
+            'fecha_analisis' => ['required', 'date', 'date_format:Y-m-d'],
+            'numero_orden' => ['required', 'regex:/^\d{8}$/'],
+        ], [
+            'codigo_base.required' => 'El tipo de revisión es obligatorio.',
+            'codigo_base.in' => 'El tipo de revisión seleccionado no está disponible para esta lavadora.',
+            'fecha_analisis.required' => 'La fecha del análisis es obligatoria.',
+            'fecha_analisis.date' => 'La fecha del análisis no es válida.',
+            'fecha_analisis.date_format' => 'La fecha del análisis debe tener el formato AAAA-MM-DD.',
+            'numero_orden.required' => 'El número de orden es obligatorio.',
+            'numero_orden.regex' => 'El número de orden debe contener exactamente 8 dígitos numéricos.',
+        ]);
+
+        try {
+            $resultado = $revisionGeneral->guardarBuenEstadoPorComponente(
+                $linea,
+                $validated['codigo_base'],
+                $validated['fecha_analisis'],
+                $validated['numero_orden'],
+                $request->user()
+            );
+        } catch (Throwable $exception) {
+            Log::error('Error al guardar revisión general de guías y catarinas.', [
+                'linea_id' => $linea->id,
+                'error' => $exception->getMessage(),
+            ]);
+
+            return back()
+                ->withErrors(['error' => 'Error al guardar la revisión general. Intenta nuevamente.'])
+                ->withInput();
+        }
+
+        $mensajesIa = [];
+
+        foreach ($resultado['analisis'] as $analisis) {
+            $mensajeIa = $this->procesarMantenimientoAutomaticoSafely(
+                $analisis->fresh(['linea', 'componente', 'costEntries'])
+            );
+
+            if ($mensajeIa) {
+                $mensajesIa[] = $mensajeIa;
+            }
+        }
+
+        if ($mensajesIa) {
+            session()->flash('warning', collect($mensajesIa)->unique()->implode(' '));
+        }
+
+        return redirect()
+            ->route('analisis-lavadora.index', ['linea_id' => $linea->id])
+            ->with('success', $this->mensajeRevisionGeneral($resultado));
+    }
+
     /**
      * CREAR ANÁLISIS RÁPIDO
      */
@@ -834,6 +912,36 @@ $componente = Componente::firstOrCreate(
     {
         return LavadoraCatalog::nombreComponente((string) $codigo);
     }
+
+    private function abortUnlessLavadora(Linea $linea): void
+    {
+        abort_unless(in_array($linea->nombre, LavadoraCatalog::LINEAS, true), 404);
+    }
+
+    private function mensajeRevisionGeneral(array $resultado): string
+    {
+        $componente = $resultado['componente'] ?? null;
+        $encabezado = $componente
+            ? sprintf('Revisión general de %s completada.', $componente)
+            : 'Revisión general completada.';
+
+        $mensaje = sprintf(
+            '%s %d componentes registrados en BUEN ESTADO y %d componentes omitidos por tener una revisión vigente con otro estado.',
+            $encabezado,
+            (int) ($resultado['creados'] ?? 0),
+            (int) ($resultado['omitidos'] ?? 0)
+        );
+
+        if ((int) ($resultado['duplicados'] ?? 0) > 0) {
+            $mensaje .= sprintf(
+                ' %d registros duplicados exactos no se repitieron.',
+                (int) $resultado['duplicados']
+            );
+        }
+
+        return $mensaje;
+    }
+
     private function getReductoresDisponiblesPorLinea(Linea $linea)
     {
         $reductoresBase = collect($this->getReductoresPorLinea($linea->nombre));

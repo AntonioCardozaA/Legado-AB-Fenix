@@ -317,40 +317,30 @@
         <form method="POST" action="{{ route('analisis-lavadora.costos.manual.store', ['analisislavadora' => $analisislavadora->id]) }}" class="space-y-5">
             @csrf
 
-            <div class="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 md:bg-white">
-                <div class="md:max-h-[30rem] md:overflow-auto">
-                    <table class="block w-full text-sm md:table md:min-w-[48rem] md:divide-y md:divide-slate-200">
-                        <thead class="hidden bg-slate-50 md:sticky md:top-0 md:table-header-group">
-                            <tr>
-                                <th class="px-4 py-3 text-left font-semibold text-slate-600">Seleccionar</th>
-                                <th class="px-4 py-3 text-left font-semibold text-slate-600">Concepto</th>
-                                <th class="px-4 py-3 text-left font-semibold text-slate-600">Costo unitario</th>
-                                <th class="px-4 py-3 text-left font-semibold text-slate-600">Cantidad</th>
-                                <th class="px-4 py-3 text-left font-semibold text-slate-600">Notas</th>
-                            </tr>
-                        </thead>
-                        <tbody class="block space-y-3 bg-slate-50 p-3 md:table-row-group md:space-y-0 md:divide-y md:divide-slate-100 md:bg-white md:p-0">
-                            @foreach($catalogItems as $item)
-                                @php
-                                    $itemNombre = $costDisplayText($item->nombre);
-                                    $searchText = strtolower(trim(($item->sku ?? '') . ' ' . $itemNombre . ' ' . ($item->categoria ?? '') . ' ' . $item->unidad_medida));
-                                    $oldQuantity = old("items.$item->id.quantity", 1);
-                                @endphp
-                                <tr data-manual-cost-row data-search="{{ $searchText }}" class="block rounded-xl border border-slate-200 bg-white p-4 shadow-sm md:table-row md:border-0 md:p-0 md:shadow-none">
-                                    <td class="block pb-3 md:table-cell md:px-4 md:py-4 md:align-top">
-                                        <input type="hidden" name="items[{{ $item->id }}][catalog_item_id]" value="{{ $item->id }}">
-                                        <label class="inline-flex w-full items-center justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700 md:w-auto md:justify-start md:border-0 md:bg-transparent md:px-0 md:py-0 md:font-medium">
-                                            <span class="order-1 md:hidden">Seleccionar gasto</span>
-                                            <input type="checkbox"
-                                                   name="items[{{ $item->id }}][selected]"
-                                                   value="1"
-                                                   class="order-2 h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500 md:order-1"
-                                                   @checked(old("items.$item->id.selected"))>
-                                            <span class="hidden md:order-2 md:inline">Agregar</span>
-                                        </label>
-                                    </td>
-                                    <td class="block border-t border-slate-100 pt-3 md:table-cell md:border-0 md:px-4 md:py-4 md:align-top">
-                                        <span class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500 md:hidden">Concepto</span>
+            <div class="max-h-[38rem] overflow-y-auto rounded-2xl border border-slate-200 bg-slate-50 p-3">
+                <div class="grid gap-3 md:grid-cols-2 2xl:grid-cols-3">
+                    @foreach($catalogItems as $item)
+                        @php
+                            $itemNombre = $costDisplayText($item->nombre);
+                            $searchText = strtolower(trim(($item->sku ?? '') . ' ' . $itemNombre . ' ' . ($item->categoria ?? '') . ' ' . $item->unidad_medida));
+                            $oldQuantity = old("items.$item->id.quantity", 1);
+                        @endphp
+                        <article data-manual-cost-row data-search="{{ $searchText }}" class="flex min-w-0 flex-col rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                            <input type="hidden" name="items[{{ $item->id }}][catalog_item_id]" value="{{ $item->id }}">
+
+                            <label class="inline-flex w-full items-center justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700">
+                                <span>Seleccionar gasto</span>
+                                <input type="checkbox"
+                                       name="items[{{ $item->id }}][selected]"
+                                       value="1"
+                                       class="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                                       @checked(old("items.$item->id.selected"))>
+                            </label>
+
+                            <div class="mt-4 flex flex-1 flex-col gap-4 border-t border-slate-100 pt-4">
+                                <div class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                                    <div class="min-w-0">
+                                        <span class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Concepto</span>
                                         <div class="break-words font-semibold text-slate-900">{{ $itemNombre }}</div>
                                         <div class="break-words text-xs text-slate-500">
                                             {{ $item->sku ?: 'Sin SKU' }}
@@ -359,35 +349,40 @@
                                             @endif
                                             <span class="mx-2 text-slate-300">|</span>{{ $item->unidad_medida }}
                                         </div>
-                                    </td>
-                                    <td class="mt-3 block md:table-cell md:px-4 md:py-4 md:align-top">
-                                        <span class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500 md:hidden">Costo unitario</span>
+                                    </div>
+
+                                    <div class="shrink-0 lg:text-right">
+                                        <span class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Costo unitario</span>
                                         <span class="font-semibold text-slate-900">${{ number_format((float) $item->costo_unitario, 2) }}</span>
-                                    </td>
-                                    <td class="mt-3 block md:table-cell md:px-4 md:py-4 md:align-top">
-                                        <label for="manual-cost-quantity-{{ $item->id }}" class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500 md:hidden">Cantidad</label>
+                                    </div>
+                                </div>
+
+                                <div class="grid gap-3 sm:grid-cols-[minmax(7rem,10rem)_minmax(0,1fr)]">
+                                    <div>
+                                        <label for="manual-cost-quantity-{{ $item->id }}" class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Cantidad</label>
                                         <input type="number"
                                                id="manual-cost-quantity-{{ $item->id }}"
                                                min="0.01"
                                                step="0.01"
                                                name="items[{{ $item->id }}][quantity]"
                                                value="{{ $oldQuantity }}"
-                                               class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-100 sm:w-40 md:w-28">
-                                    </td>
-                                    <td class="mt-3 block md:table-cell md:px-4 md:py-4 md:align-top">
-                                        <label for="manual-cost-notes-{{ $item->id }}" class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500 md:hidden">Notas</label>
+                                               class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-100">
+                                    </div>
+
+                                    <div class="min-w-0">
+                                        <label for="manual-cost-notes-{{ $item->id }}" class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Notas</label>
                                         <input type="text"
                                                id="manual-cost-notes-{{ $item->id }}"
                                                name="items[{{ $item->id }}][notas]"
                                                value="{{ old("items.$item->id.notas") }}"
                                                maxlength="1000"
                                                placeholder="Observacion opcional"
-                                               class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-100 md:min-w-[16rem]">
-                                    </td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
+                                               class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-100">
+                                    </div>
+                                </div>
+                            </div>
+                        </article>
+                    @endforeach
                 </div>
             </div>
 

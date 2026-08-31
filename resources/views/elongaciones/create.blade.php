@@ -143,7 +143,7 @@
                         <p id="ultima_lectura_ciclo">Ciclo: {{ $ultimaLectura?->cadenaCiclo?->codigo ?? 'Sin ciclo' }}</p>
                         <p id="ultima_lectura_proveedor">Proveedor: {{ $ultimaLectura?->proveedor_actual ?? 'Sin proveedor' }}</p>
                         <p id="ultima_lectura_hodometro_ciclo">
-                            Horas del ciclo: {{ $ultimaLectura?->hodometro_ciclo_formateado ?? 'Sin dato' }}
+                            Horas trabajadas: {{ $ultimaLectura?->hodometro_ciclo_formateado ?? 'Sin dato' }}
                         </p>
                         <p id="ultima_lectura_fecha">Última fecha: {{ $ultimaLectura?->created_at?->format('d/m/Y H:i') ?? 'Sin fecha' }}</p>
                     </div>
@@ -327,7 +327,7 @@
                         @error('hodometro')<p class="text-red-500 text-sm text-center mt-2">{{ $message }}</p>@enderror
                         <div class="text-center mt-2 text-sm text-gray-500">
                             <p>Última lectura: <span id="ultima_lectura_resumen">{{ $ultimaLectura && $ultimaLectura->hodometro !== null ? number_format($ultimaLectura->hodometro, 0) . ' h' : 'Sin registro' }}</span></p>
-                            <p>Horas acumuladas del ciclo: <span id="ultima_lectura_ciclo_resumen">{{ $ultimaLectura && $ultimaLectura->hodometro_ciclo !== null ? number_format($ultimaLectura->hodometro_ciclo, 0) . ' h' : 'Sin dato' }}</span></p>
+                            <p>Horas trabajadas: <span id="ultima_lectura_ciclo_resumen">{{ $ultimaLectura && $ultimaLectura->hodometro_ciclo !== null ? number_format($ultimaLectura->hodometro_ciclo, 0) . ' h' : 'Sin dato' }}</span></p>
                         </div>
                     </div>
                 </div>
@@ -606,7 +606,7 @@ document.addEventListener('DOMContentLoaded', function () {
         document.getElementById('ultima_lectura_texto').textContent = lectura && lectura.hodometro !== null ? formatearHodometro(lectura.hodometro) : 'Sin registro';
         document.getElementById('ultima_lectura_ciclo').textContent = `Ciclo: ${lectura && lectura.ciclo ? lectura.ciclo : 'Sin ciclo'}`;
         document.getElementById('ultima_lectura_proveedor').textContent = `Proveedor: ${lectura && lectura.proveedor ? lectura.proveedor : 'Sin proveedor'}`;
-        document.getElementById('ultima_lectura_hodometro_ciclo').textContent = `Horas del ciclo: ${lectura && lectura.hodometro_ciclo !== null ? formatearHodometro(lectura.hodometro_ciclo) : 'Sin dato'}`;
+        document.getElementById('ultima_lectura_hodometro_ciclo').textContent = `Horas trabajadas: ${lectura && lectura.hodometro_ciclo !== null ? formatearHodometro(lectura.hodometro_ciclo) : 'Sin dato'}`;
         document.getElementById('ultima_lectura_fecha').textContent = `Última fecha: ${lectura && lectura.fecha ? lectura.fecha : 'Sin fecha'}`;
         document.getElementById('ultima_lectura_resumen').textContent = lectura && lectura.hodometro !== null ? formatearHodometro(lectura.hodometro) : 'Sin registro';
         document.getElementById('ultima_lectura_ciclo_resumen').textContent = lectura && lectura.hodometro_ciclo !== null ? formatearHodometro(lectura.hodometro_ciclo) : 'Sin dato';
