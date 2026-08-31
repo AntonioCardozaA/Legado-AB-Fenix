@@ -235,12 +235,34 @@
                 </div>
 
         {{-- Timeline mejorado --}}
-        <div class="relative">
+        <div class="{{ $separarHistorialPorLado ? 'grid grid-cols-1 xl:grid-cols-2 gap-6 items-start' : 'space-y-10' }}">
+            @foreach($historialSecciones as $seccion)
+                @if($separarHistorialPorLado)
+                    <section class="history-side-section {{ $seccion['key'] === 'SIN_LADO' ? 'xl:col-span-2' : '' }}">
+                        <div class="mb-5 rounded-xl border border-blue-100 bg-white px-4 py-4 shadow-sm sm:px-6">
+                            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                <div class="flex min-w-0 items-center gap-3">
+                                    <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-700">
+                                        <i class="fas {{ $seccion['icono'] }}"></i>
+                                    </div>
+                                    <div class="min-w-0">
+                                        <h2 class="text-lg font-bold text-gray-800">{{ $seccion['titulo'] }}</h2>
+                                        <p class="text-sm text-gray-500">{{ $seccion['subtitulo'] }}</p>
+                                    </div>
+                                </div>
+                                <span class="inline-flex w-fit max-w-full items-center justify-center rounded-full bg-blue-50 px-3 py-1 text-sm font-semibold text-blue-700">
+                                    {{ $seccion['total'] }} {{ $seccion['total'] === 1 ? 'registro' : 'registros' }}
+                                </span>
+                            </div>
+                        </div>
+                @endif
+
+                <div class="relative">
             {{-- Línea de tiempo vertical --}}
             <div class="absolute left-6 top-0 bottom-0 w-1 bg-gradient-to-b from-blue-400 to-blue-600 rounded-full timeline-line"></div>
 
-            <div class="space-y-8">
-                @foreach($analisis as $index => $item)
+                    <div class="space-y-8">
+                        @foreach($seccion['registros'] as $index => $item)
                     @php
                         $estado = $item->estado ?? 'Buen estado';
 
@@ -334,7 +356,7 @@
                             {{-- Cuerpo de la tarjeta --}}
                             <div class="p-4 sm:p-6">
                                 {{-- Grid de información --}}
-                                <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-4">
+                                <div class="grid grid-cols-1 sm:grid-cols-2 {{ $separarHistorialPorLado ? '' : 'xl:grid-cols-4' }} gap-4 mb-4">
                                     <div class="history-info-box bg-gradient-to-br" style="background: linear-gradient(to bottom right, rgba(31, 35, 72, 0.05), white); border-color: rgba(31, 35, 72, 0.2); border-width: 1px; border-style: solid; border-radius: 0.75rem; padding: 1rem;">
                                         <div class="flex min-w-0 items-center gap-2 mb-2">
                                             <i class="fas fa-washing-machine flex-shrink-0" style="color: rgb(31, 35, 72);"></i>
@@ -402,7 +424,7 @@
                                             $imagenesJson = e(json_encode(array_values($imagenes), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?: '[]');
                                         @endphp
 
-                                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                                        <div class="grid grid-cols-1 sm:grid-cols-2 {{ $separarHistorialPorLado ? 'lg:grid-cols-2' : 'lg:grid-cols-4' }} gap-3">
                                             @foreach($imagenes as $imgIndex => $imagen)
                                                 @php
                                                     $rutaImagen = asset('storage/' . ltrim(str_replace('\\', '/', $imagen), '/'));
@@ -465,8 +487,13 @@
                             </div>
                         </div>
                     </div>
-                @endforeach
-            </div>
+                        @endforeach
+                    </div>
+                </div>
+                @if($separarHistorialPorLado)
+                    </section>
+                @endif
+            @endforeach
         </div>
     @else
         {{-- Estado vacío mejorado --}}

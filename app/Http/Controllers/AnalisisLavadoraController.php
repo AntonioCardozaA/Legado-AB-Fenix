@@ -187,18 +187,25 @@ public function index(Request $request)
         }
 
         $identidades = $analisis
-            ->map(fn (AnalisisLavadora $item) => [
-                'linea_id' => $item->linea_id,
-                'codigo_base' => AnalisisLavadora::codigoBaseComponente($item->componente?->codigo),
-                'reductor' => $item->reductor,
-                'lado' => $item->lado,
-                'key' => $this->historialIdentityKey(
-                    $item->linea_id,
-                    AnalisisLavadora::codigoBaseComponente($item->componente?->codigo),
-                    $item->reductor,
-                    $item->lado
-                ),
-            ])
+            ->map(function (AnalisisLavadora $item): array {
+                $codigoBase = AnalisisLavadora::codigoBaseComponente($item->componente?->codigo);
+                $incluyeAmbosLados = $this->componenteTieneHistorialPorLado($codigoBase);
+                $lado = $incluyeAmbosLados ? null : $item->lado;
+
+                return [
+                    'linea_id' => $item->linea_id,
+                    'codigo_base' => $codigoBase,
+                    'reductor' => $item->reductor,
+                    'lado' => $lado,
+                    'incluye_ambos_lados' => $incluyeAmbosLados,
+                    'key' => $this->historialIdentityKey(
+                        $item->linea_id,
+                        $codigoBase,
+                        $item->reductor,
+                        $lado
+                    ),
+                ];
+            })
             ->unique('key')
             ->values();
 
@@ -212,6 +219,10 @@ public function index(Request $request)
                     $query->orWhere(function ($subQuery) use ($identidad): void {
                         $subQuery->where('linea_id', $identidad['linea_id'])
                             ->where('reductor', $identidad['reductor']);
+
+                        if ($identidad['incluye_ambos_lados'] ?? false) {
+                            return;
+                        }
 
                         if (blank($identidad['lado'])) {
                             $subQuery->where(function ($ladoQuery): void {
@@ -229,7 +240,9 @@ public function index(Request $request)
                     $item->linea_id,
                     AnalisisLavadora::codigoBaseComponente($item->componente?->codigo),
                     $item->reductor,
-                    $item->lado
+                    $this->componenteTieneHistorialPorLado(AnalisisLavadora::codigoBaseComponente($item->componente?->codigo))
+                        ? null
+                        : $item->lado
                 );
 
                 if (!isset($identityKeys[$key])) {
@@ -242,11 +255,12 @@ public function index(Request $request)
             }, []);
 
         $analisis->each(function (AnalisisLavadora $item) use ($historiales): void {
+            $codigoBase = AnalisisLavadora::codigoBaseComponente($item->componente?->codigo);
             $key = $this->historialIdentityKey(
                 $item->linea_id,
-                AnalisisLavadora::codigoBaseComponente($item->componente?->codigo),
+                $codigoBase,
                 $item->reductor,
-                $item->lado
+                $this->componenteTieneHistorialPorLado($codigoBase) ? null : $item->lado
             );
             $item->setAttribute('total_historial', $historiales[$key] ?? 1);
         });
@@ -260,6 +274,91 @@ public function index(Request $request)
             $reductor ?? '',
             $lado ?: '',
         ]);
+    }
+
+    private function componenteTieneHistorialPorLado(?string $codigoBase): bool
+    {
+        return in_array(
+            strtoupper(trim((string) $codigoBase)),
+            LavadoraRevisionPeriodicityService::COMPONENTES_CON_LADO,
+            true
+        );
+    }
+
+    private function resolverCodigoBaseFiltroComponente(?string $componenteId): string
+    {
+        $componenteId = trim((string) $componenteId);
+
+        if ($componenteId === '') {
+            return '';
+        }
+
+        if (ctype_digit($componenteId)) {
+            $codigo = Componente::query()
+                ->whereKey((int) $componenteId)
+                ->value('codigo');
+
+            if ($codigo) {
+                return $this->normalizarCodigoComponenteLavadora($codigo);
+            }
+        }
+
+        return $this->normalizarCodigoComponenteLavadora($componenteId);
+    }
+
+    private function historialSecciones($analisis, bool $separarPorLado)
+    {
+        $registros = collect($analisis)->values();
+
+        if (!$separarPorLado) {
+            return collect([[
+                'key' => 'GENERAL',
+                'titulo' => null,
+                'subtitulo' => null,
+                'icono' => null,
+                'registros' => $registros,
+                'total' => $registros->count(),
+            ]]);
+        }
+
+        $secciones = [
+            'VAPOR' => [
+                'titulo' => 'Lado Vapor',
+                'subtitulo' => 'Historial capturado para el lado vapor.',
+                'icono' => 'fa-cloud',
+            ],
+            'PASILLO' => [
+                'titulo' => 'Lado Pasillo',
+                'subtitulo' => 'Historial capturado para el lado pasillo.',
+                'icono' => 'fa-walking',
+            ],
+            'SIN_LADO' => [
+                'titulo' => 'Sin lado registrado',
+                'subtitulo' => 'Registros anteriores sin lado asignado.',
+                'icono' => 'fa-question-circle',
+            ],
+        ];
+
+        return collect($secciones)
+            ->map(function (array $seccion, string $lado) use ($registros): array {
+                $items = $registros
+                    ->filter(function (AnalisisLavadora $item) use ($lado): bool {
+                        $ladoRegistro = strtoupper(trim((string) $item->lado));
+
+                        return $lado === 'SIN_LADO'
+                            ? $ladoRegistro === ''
+                            : $ladoRegistro === $lado;
+                    })
+                    ->values();
+
+                return array_merge($seccion, [
+                    'key' => $lado,
+                    'registros' => $items,
+                    'total' => $items->count(),
+                ]);
+            })
+            ->filter(fn (array $seccion): bool => $seccion['total'] > 0)
+            ->values();
     }
 
     /**
@@ -288,11 +387,13 @@ public function index(Request $request)
             $imagenes = [];
         }
 
-        $totalHistorial = AnalisisLavadora::query()
+        $codigoBaseRegistro = AnalisisLavadora::codigoBaseComponente($registro->componente?->codigo);
+        $totalHistorialQuery = AnalisisLavadora::query()
             ->where('linea_id', $registro->linea_id)
-            ->where('componente_id', $registro->componente_id)
-            ->where('reductor', $registro->reductor)
-            ->count();
+            ->where('reductor', $registro->reductor);
+
+        $this->aplicarFiltroComponenteCodigo($totalHistorialQuery, $codigoBaseRegistro);
+        $totalHistorial = $totalHistorialQuery->count();
 
         $canDeleteAnalysis = auth()->user()?->canDeleteLavadoraAnalysis() ?? false;
         $canCloseLavadoraDamage = auth()->user()?->canCloseLavadoraDamage() ?? false;
@@ -347,7 +448,7 @@ public function index(Request $request)
             'delete_url' => $canDeleteAnalysis ? route('analisis-lavadora.destroy', ['analisislavadora' => $registro->id], false) : null,
             'historial_url' => route('analisis-lavadora.historial', [
                 'linea_id' => $registro->linea_id,
-                'componente_id' => $registro->componente_id,
+                'componente_id' => $codigoBaseRegistro ?: $registro->componente_id,
                 'reductor' => $registro->reductor,
             ], false),
         ];
@@ -1510,15 +1611,23 @@ private function procesarMantenimientoAutomaticoSafely(AnalisisLavadora $analisi
             ->where('reductor', $request->reductor);
 
         $this->aplicarFiltroComponenteCodigo($query, $request->componente_id);
+        $codigoBaseHistorial = $this->resolverCodigoBaseFiltroComponente($request->componente_id);
+        $separarHistorialPorLado = $this->componenteTieneHistorialPorLado($codigoBaseHistorial);
 
         $query->orderByDesc('fecha_analisis')
             ->orderByDesc('created_at')
             ->orderByDesc('id');
 
-        // Paginar los resultados (10 por página)
-        $analisis = $query->paginate(10)->withQueryString();
+        // Cargar el historial completo permite separar ambos lados.
+        $analisis = $query->get();
+        $historialSecciones = $this->historialSecciones($analisis, $separarHistorialPorLado);
 
-        return view('lavadora/analisis-lavadora.historial', compact('analisis'));
+        return view('lavadora/analisis-lavadora.historial', compact(
+            'analisis',
+            'codigoBaseHistorial',
+            'historialSecciones',
+            'separarHistorialPorLado'
+        ));
     }
 public function analisis52124 (Request $request)
 {
