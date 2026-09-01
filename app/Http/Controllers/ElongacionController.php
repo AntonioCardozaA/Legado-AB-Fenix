@@ -616,6 +616,17 @@ class ElongacionController extends Controller
 
     private function resolverHodometroBaseCiclo(CadenaCiclo $ciclo): ?int
     {
+        $ultimaLecturaReal = $ciclo->elongaciones()
+            ->whereNotNull('hodometro')
+            ->where('hodometro', '>', 0)
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->value('hodometro');
+
+        if ($ultimaLecturaReal !== null) {
+            return (int) $ultimaLecturaReal;
+        }
+
         if ($ciclo->hodometro_inicial !== null && (int) $ciclo->hodometro_inicial > 0) {
             return (int) $ciclo->hodometro_inicial;
         }
