@@ -139,7 +139,7 @@ class GlobalSearchController extends Controller
                 'section' => 'Operacion',
                 'icon' => 'fa-list-check',
                 'route' => ['plan-accion.index'],
-                'permission' => 'ver planes accion',
+                'can' => fn (User $user): bool => $user->canViewPlanActionType(User::MODULE_LAVADORA),
                 'keywords' => ['plan', 'accion', 'actividad', 'pendiente', 'pcm'],
             ],
             [
@@ -149,6 +149,7 @@ class GlobalSearchController extends Controller
                 'icon' => 'fa-chart-bar',
                 'route' => ['reportes.index'],
                 'permission' => 'ver reportes',
+                'module' => User::MODULE_LAVADORA,
                 'keywords' => ['reporte', 'reportes', 'pdf', 'excel', 'exportar'],
             ],
             [
@@ -158,6 +159,7 @@ class GlobalSearchController extends Controller
                 'icon' => 'fa-link',
                 'route' => ['elongaciones.index'],
                 'permission' => 'ver elongaciones',
+                'module' => User::MODULE_LAVADORA,
                 'keywords' => ['elongacion', 'elongaciones', 'cadena', 'ciclo'],
             ],
             [
@@ -167,6 +169,7 @@ class GlobalSearchController extends Controller
                 'icon' => 'fa-clock-rotate-left',
                 'route' => ['historico-revisados.index'],
                 'permission' => 'ver historico revisados',
+                'module' => User::MODULE_LAVADORA,
                 'keywords' => ['historico', 'revisados', 'historial'],
             ],
             [
@@ -563,7 +566,7 @@ class GlobalSearchController extends Controller
                 'section' => 'Operacion',
                 'icon' => 'fa-list-check',
                 'route' => ['plan-accion.dashboard'],
-                'permission' => 'ver planes accion',
+                'can' => fn (User $user): bool => $this->canViewAnyPlanActionType($user),
                 'keywords' => ['dashboard', 'plan', 'accion', 'actividades', 'pcm'],
             ],
             [
@@ -675,6 +678,7 @@ class GlobalSearchController extends Controller
                 'icon' => 'fa-chart-bar',
                 'route' => ['reportes.index', ['tipo' => 'lavadoras']],
                 'permission' => 'ver reportes',
+                'module' => User::MODULE_LAVADORA,
                 'keywords' => ['reporte', 'lavadoras', 'general', 'analisis'],
             ],
             [
@@ -684,6 +688,7 @@ class GlobalSearchController extends Controller
                 'icon' => 'fa-chart-bar',
                 'route' => ['reportes.show'],
                 'permission' => 'ver reportes',
+                'module' => User::MODULE_LAVADORA,
                 'keywords' => ['reporte', 'linea', 'detalle', 'detallado'],
             ],
             [
@@ -713,6 +718,7 @@ class GlobalSearchController extends Controller
                 'icon' => 'fa-link',
                 'route' => ['reportes.elongacion'],
                 'permission' => 'ver reportes',
+                'module' => User::MODULE_LAVADORA,
                 'keywords' => ['reporte', 'elongacion', 'cadena', 'cadenas'],
             ],
             [
@@ -722,16 +728,38 @@ class GlobalSearchController extends Controller
                 'icon' => 'fa-gears',
                 'route' => ['reportes.componentes'],
                 'permission' => 'ver reportes',
+                'module' => User::MODULE_LAVADORA,
                 'keywords' => ['reporte', 'componentes', 'estado', 'danos'],
             ],
             [
-                'title' => 'Reporte de paros',
-                'description' => 'Consulta de paros por periodo',
+                'title' => 'Reporte de paros Lavadora',
+                'description' => 'Consulta de paros de lavadoras por periodo',
                 'section' => 'Reportes',
                 'icon' => 'fa-stopwatch',
                 'route' => ['reportes.paros'],
                 'permission' => 'ver reportes',
-                'keywords' => ['reporte', 'paros', 'tiempos', 'produccion'],
+                'module' => User::MODULE_LAVADORA,
+                'keywords' => ['reporte', 'paros', 'lavadora', 'tiempos', 'produccion'],
+            ],
+            [
+                'title' => 'Reporte de paros Etiquetadora',
+                'description' => 'Consulta de paros de etiquetadoras por periodo',
+                'section' => 'Reportes',
+                'icon' => 'fa-stopwatch',
+                'route' => ['reportes.paros', ['tipo' => 'etiquetadoras']],
+                'can' => fn (User $user): bool => $user->canUseCustomPermission('ver reportes')
+                    && $user->canAccessModule(User::MODULE_ETIQUETADORA),
+                'keywords' => ['reporte', 'paros', 'etiquetadora', 'etiquetas', 'tiempos', 'produccion'],
+            ],
+            [
+                'title' => 'Reporte de paros Pasteurizadora',
+                'description' => 'Consulta de paros de pasteurizadoras por periodo',
+                'section' => 'Reportes',
+                'icon' => 'fa-stopwatch',
+                'route' => ['reportes.paros', ['tipo' => 'pasteurizadoras']],
+                'can' => fn (User $user): bool => $user->canUseCustomPermission('ver reportes')
+                    && $user->canAccessModule(User::MODULE_PASTEURIZADORA),
+                'keywords' => ['reporte', 'paros', 'pasteurizadora', 'tiempos', 'produccion'],
             ],
             [
                 'title' => 'Lineas',
@@ -758,6 +786,7 @@ class GlobalSearchController extends Controller
                 'icon' => 'fa-clock-rotate-left',
                 'route' => ['historico-revisados.index', ['tipo' => User::MODULE_LAVADORA]],
                 'permission' => 'ver historico revisados',
+                'module' => User::MODULE_LAVADORA,
                 'keywords' => ['historico', 'revisados', 'lavadora', 'componentes'],
             ],
             [
@@ -804,6 +833,7 @@ class GlobalSearchController extends Controller
                 'icon' => 'fa-plus-circle',
                 'route' => ['elongaciones.create'],
                 'permission' => 'crear elongaciones',
+                'module' => User::MODULE_LAVADORA,
                 'keywords' => ['crear', 'elongacion', 'medicion', 'cadena'],
             ],
             [
@@ -813,6 +843,7 @@ class GlobalSearchController extends Controller
                 'icon' => 'fa-code-compare',
                 'route' => ['elongaciones.ciclos.comparacion'],
                 'permission' => 'ver elongaciones',
+                'module' => User::MODULE_LAVADORA,
                 'keywords' => ['comparacion', 'ciclos', 'elongacion', 'cadenas'],
             ],
             [
@@ -822,6 +853,7 @@ class GlobalSearchController extends Controller
                 'icon' => 'fa-file-lines',
                 'route' => ['elongaciones.reporte'],
                 'permission' => 'ver elongaciones',
+                'module' => User::MODULE_LAVADORA,
                 'keywords' => ['reporte', 'elongaciones', 'cadena', 'lecturas'],
             ],
             [
@@ -979,7 +1011,11 @@ class GlobalSearchController extends Controller
             return User::MODULE_PASTEURIZADORA;
         }
 
-        if (Str::contains($routeName, ['lavadora', 'lavadoras', 'elongaciones'])) {
+        if (Str::contains($routeName, ['lavadora', 'lavadoras', 'elongacion', 'elongaciones'])) {
+            return User::MODULE_LAVADORA;
+        }
+
+        if (Str::startsWith($routeName, 'reportes.')) {
             return User::MODULE_LAVADORA;
         }
 
@@ -1543,6 +1579,15 @@ class GlobalSearchController extends Controller
         }
 
         return true;
+    }
+
+    private function canViewAnyPlanActionType(User $user): bool
+    {
+        return collect([
+            User::MODULE_LAVADORA,
+            User::MODULE_ETIQUETADORA,
+            User::MODULE_PASTEURIZADORA,
+        ])->contains(fn (string $type): bool => $user->canViewPlanActionType($type));
     }
 
     private function permissionForShortcut(array $shortcut): ?string

@@ -58,7 +58,7 @@ class NotificationService
             ->reject(fn (PlanAccion $plan): bool => $this->isClosedPlan($plan))
             ->values();
         $alerts = $this->buildPlanAlerts($plans, $today);
-        $recipients = $this->notificationRecipientService->getInternalRecipients();
+        $recipients = $this->notificationRecipientService->getInternalRecipients('plan_accion_due');
         $results = $this->dispatchAlerts($alerts, $recipients, $now, $dryRun);
 
         return [
@@ -88,7 +88,7 @@ class NotificationService
         $now = CarbonImmutable::now($timezone);
         $alerts = $this->buildPlanAlerts(collect([$plan]), $now->startOfDay());
 
-        $recipients = $this->notificationRecipientService->getInternalRecipients();
+        $recipients = $this->notificationRecipientService->getInternalRecipients('plan_accion_due');
 
         if ($userId !== null) {
             $targetUser = User::query()->findOrFail($userId);

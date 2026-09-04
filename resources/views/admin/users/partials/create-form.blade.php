@@ -2,7 +2,7 @@
     $isCreateSubmission = $isCreateSubmission ?? false;
 @endphp
 
-<form action="{{ route('admin.users.store') }}" method="POST" class="space-y-5" x-data="{ showPassword: false, showPasswordConfirmation: false, passwordPreview: '' }">
+<form action="{{ route('admin.users.store') }}" method="POST" class="min-w-0 space-y-4" x-data="{ showPassword: false, showPasswordConfirmation: false, passwordPreview: '' }">
     @csrf
     <input type="hidden" name="form_context" value="create">
 

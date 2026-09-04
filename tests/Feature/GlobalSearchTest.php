@@ -49,6 +49,7 @@ class GlobalSearchTest extends TestCase
             ['asistente ia', 'Asistente IA', route('assistant-chat.index', [], false)],
             ['exportar reportes pdf', 'Exportar reportes a PDF', route('reportes.export-pdf', [], false)],
             ['exportar central pdf', 'Exportar Central hidraulica a PDF', route('pasteurizadora.central-hidraulica.export.pdf', [], false)],
+            ['alertas whatsapp elongacion', 'Elongaciones Alertas Whatsapp', route('elongaciones.alertas-whatsapp.index', [], false)],
             ['plan accion lavadora clasico', 'Plan de accion Lavadora clasico', route('plan-accion.lavadora.index', [], false)],
             ['notificaciones perfil', 'Notificaciones del perfil', route('profile.notifications', [], false)],
         ];
@@ -86,6 +87,38 @@ class GlobalSearchTest extends TestCase
         $this->assertFalse($results->contains('url', route('etiquetadora.dashboard', [], false)));
         $this->assertFalse($results->contains('url', route('analisis-etiquetadora.index', [], false)));
         $this->assertFalse($results->contains('url', route('analisis-etiquetadora.historial', [], false)));
+    }
+
+    public function test_custom_permissions_can_grant_views_outside_role_defaults(): void
+    {
+        $technician = $this->userWithRole(User::ROLE_TECNICO);
+        $this->enableCustomPermissions($technician, [
+            'ver reportes',
+            'ver lineas',
+        ]);
+
+        $technician = $technician->fresh();
+
+        $this->assertSearchContains($technician, 'reportes', 'Reportes', route('reportes.index', [], false));
+        $this->assertSearchContains($technician, 'lineas catalogo', 'Lineas', route('lineas.index', [], false));
+    }
+
+    public function test_custom_module_restrictions_hide_lavadora_scoped_views(): void
+    {
+        $admin = $this->userWithRole(User::ROLE_ADMIN);
+        $this->enableCustomPermissions($admin, [
+            User::PERMISSION_ACCESS_LAVADORA,
+        ]);
+
+        $admin = $admin->fresh();
+        $reportResults = $this->searchItems($admin, 'reporte lavadoras');
+        $elongationResults = $this->searchItems($admin, 'elongaciones');
+        $historyResults = $this->searchItems($admin, 'historico revisados lavadora');
+
+        $this->assertFalse($reportResults->contains('url', route('reportes.index', [], false)));
+        $this->assertFalse($reportResults->contains('url', route('reportes.index', ['tipo' => 'lavadoras'], false)));
+        $this->assertFalse($elongationResults->contains('url', route('elongaciones.index', [], false)));
+        $this->assertFalse($historyResults->contains('url', route('historico-revisados.index', ['tipo' => User::MODULE_LAVADORA], false)));
     }
 
     private function assertSearchContains(User $user, string $query, string $title, string $url): void

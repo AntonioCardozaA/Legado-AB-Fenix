@@ -1,43 +1,6 @@
 @php
     $lineaValor = $linea ?? null;
-    $lineaNombre = is_object($lineaValor)
-        ? (string) ($lineaValor->nombre ?? '')
-        : (string) $lineaValor;
-
-    preg_match('/(\d{1,2})/', $lineaNombre, $coincidenciasLinea);
-    $lineaCodigo = isset($coincidenciasLinea[1])
-        ? str_pad($coincidenciasLinea[1], 2, '0', STR_PAD_LEFT)
-        : null;
-
-    $catalogoPresentaciones = [
-        '04' => [
-            ['label' => 'Corona Mega', 'image' => 'coronamega.png'],
-            ['label' => 'Victoria', 'image' => 'victoriamega.png'],
-        ],
-        '05' => [
-            ['label' => 'Victoria', 'image' => 'victoria1-cuarto.png'],
-        ],
-        '06' => [
-            ['label' => 'Modelo Especial', 'image' => 'Modelo especial.png'],
-            ['label' => 'Corona Extra', 'image' => 'corona extra .png'],
-            ['label' => 'Modelo Negra', 'image' => 'Modelo negra grande.png'],
-            ['label' => 'Bud Light', 'image' => 'budligth grande.png'],
-        ],
-        '10' => [
-            ['label' => 'Barrilito', 'image' => 'Barrilito.png'],
-        ],
-        '12' => [
-            ['label' => 'Modelo Especial', 'image' => 'Modelo especial355ml.png'],
-            ['label' => 'Modelito Especial', 'image' => 'Modelito210ml.png'],
-            ['label' => 'Modelo Negra', 'image' => 'Negra modelo 355ml.png'],
-        ],
-        '13' => [
-            ['label' => 'Michelob Ultra', 'image' => 'Michelob-ultra.png'],
-            ['label' => 'Pacifico Clara', 'image' => 'Pacifico-clara.png'],
-        ],
-    ];
-
-    $presentaciones = $catalogoPresentaciones[$lineaCodigo] ?? [];
+    $presentaciones = \App\Support\EtiquetadoraCatalog::presentacionesPorLinea($lineaValor);
     $size = $size ?? 'sm';
     $showNames = (bool) ($showNames ?? false);
     $limit = isset($limit) ? (int) $limit : null;

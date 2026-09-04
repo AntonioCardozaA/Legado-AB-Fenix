@@ -81,6 +81,11 @@ class EnsureTechnicianAccess
             'notifications.read-all',
             'notifications.unread-count',
 
+            'assistant-chat.index',
+            'assistant-chat.store',
+            'assistant-chat.destroy',
+            'assistant-chat.artifact',
+
             // Rutas exactas permitidas
             'historico-revisados',
             'historico-revisados.index',
@@ -102,6 +107,9 @@ class EnsureTechnicianAccess
 
             // Plan de acción
             'plan-accion.',
+
+            // Herramientas de Lavadora
+            'lavadoras.diagramas.',
         ];
 
         if ($routeName && in_array($routeName, $allowedExactRoutes, true)) {

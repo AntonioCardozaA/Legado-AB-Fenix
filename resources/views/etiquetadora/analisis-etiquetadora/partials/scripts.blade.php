@@ -85,8 +85,8 @@ function openEstadoModal(tipo, titulo, items) {
 
     const tipoConfig = {
         total: {
-            bg: 'bg-slate-700',
-            text: 'text-white',
+            bg: 'bg-slate-100',
+            text: 'text-slate-900',
             card: 'bg-slate-50',
             borderLeft: 'border-slate-300',
             badge: 'bg-slate-100 text-slate-800',
@@ -138,7 +138,7 @@ function openEstadoModal(tipo, titulo, items) {
 
     modalHeader.className = `px-6 py-4 border-b flex justify-between items-center ${config.bg}`;
     modalTitle.className = `text-xl font-bold ${config.text}`;
-    modalTitle.innerHTML = `<i class="fas ${config.icon} mr-2"></i>${escapeHtml(titulo)} (${items.length})`;
+    modalTitle.innerHTML = `<i class="fa-solid fa-bars-staggered mr-2"></i>${escapeHtml(titulo)} (${items.length})`;
 
     if (items.length === 0) {
         modalContent.innerHTML = `
@@ -181,27 +181,30 @@ function openEstadoModal(tipo, titulo, items) {
 
             lineItems.forEach(item => {
                 const estadoText = escapeHtml(item.estado || 'Sin estado');
-                const openUrl = `${INDEX_URL}?open_analysis_id=${encodeURIComponent(item.id || '')}`;
+                const machineText = escapeHtml(item.maquina_label || item.reductor || item.maquina || 'Sin maquina');
 
                 html += `
-                    <div class="rounded-3xl border-l-4 ${config.borderLeft} ${config.card} p-4 shadow-sm hover:shadow-md transition">
-                        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-                            <div class="space-y-3">
-                                <div class="flex flex-wrap items-center gap-2 text-sm text-slate-500">
-                                    <span class="px-3 py-1 rounded-full bg-white text-slate-700 border border-slate-200">${escapeHtml(item.reductor || 'Sin maquina')}</span>
-                                    <span class="px-3 py-1 rounded-full bg-white text-slate-700 border border-slate-200">${escapeHtml(item.fecha || 'Sin fecha')}</span>
-                                </div>
-                                <div class="flex items-center gap-2 text-base font-semibold text-slate-900">
-                                    <p>${escapeHtml(item.componente || 'Sin componente')}</p>
-                                </div>
-                                <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold ${config.badge}">
+                    <div class="rounded-3xl border-l-4 ${config.borderLeft} ${config.card} p-5 shadow-sm hover:shadow-md transition">
+                        <div class="space-y-5">
+                            <div class="flex flex-wrap items-center gap-2 text-sm text-slate-600">
+                                <span class="inline-flex items-center px-4 py-1.5 rounded-full bg-white/80 text-slate-700 border border-slate-200">
+                                    ${machineText}
+                                </span>
+                                <span class="inline-flex items-center px-4 py-1.5 rounded-full bg-white/80 text-slate-700 border border-slate-200">
+                                    ${escapeHtml(item.fecha || 'Sin fecha')}
+                                </span>
+                            </div>
+
+                            <div>
+                                <p class="text-lg font-semibold text-slate-900">${escapeHtml(item.componente || 'Sin componente')}</p>
+                                <p class="mt-4 text-sm text-slate-600">${estadoText}</p>
+                            </div>
+
+                            <div>
+                                <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold ${config.badge}">
                                     <i class="fas ${config.icon}"></i>${estadoText}
                                 </span>
                             </div>
-                            <a href="${openUrl}" class="create-action create-action--compact" onclick="event.stopPropagation();">
-                                <i class="fas fa-eye"></i>
-                                Ver
-                            </a>
                         </div>
                     </div>
                 `;

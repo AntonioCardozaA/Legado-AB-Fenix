@@ -10,6 +10,7 @@
     $resumenEstados = $lineaTabla['resumen_estados'] ?? [];
     $componenteBuscado = request('componente_id') ?: request('componente');
     $busquedaComponente = strtolower(trim((string) request('componente')));
+    $analisisCount = (int) ($lineaTabla['analisis_count'] ?? 0);
 @endphp
 
 @if($componentes->isNotEmpty() && $maquinasTabla->isNotEmpty())
@@ -28,24 +29,8 @@
                 </div>
                 <div>
                     <h3>{{ $lineaNombre }}</h3>
-                    <div class="badge">{{ $lineaTabla['analisis_count'] ?? 0 }} analisis</div>
+                    <div class="badge">{{ $analisisCount > 0 ? $analisisCount . ' analisis' : 'Sin analisis' }}</div>
                 </div>
-            </div>
-
-            <div class="flex flex-wrap items-center gap-2">
-                <button type="button"
-                        onclick='showLineaPreview(@json($lineaNombre), @json($linea?->id), @json($resumenEstados), @json($lineaTabla["total_celdas"] ?? 0), @json($lineaTabla["celdas_con_datos"] ?? 0))'
-                        class="create-action create-action--compact create-action--on-dark">
-                    <i class="fas fa-chart-pie"></i>
-                    Resumen
-                </button>
-                @if($linea)
-                    <a href="{{ route('analisis-etiquetadora.create', ['linea' => $linea->id, 'maquina' => request('maquina') ?: 'A']) }}"
-                       class="create-action create-action--compact create-action--on-dark">
-                        <i class="fas fa-plus"></i>
-                        Nuevo analisis
-                    </a>
-                @endif
             </div>
         </div>
 
@@ -84,6 +69,26 @@
                                         ($busquedaComponente !== '' && str_contains(strtolower($componente['nombre'] ?? ''), $busquedaComponente))
                                         || $idsPorMaquina->contains((int) request('componente_id'))
                                     );
+                                $grupoComponente = trim((string) ($componente['grupo'] ?? ''));
+                                $ocultarGrupoPlatos = strcasecmp(trim((string) ($componente['nombre'] ?? '')), 'Platos giratorios') === 0
+                                    && strcasecmp(rtrim($grupoComponente, ':'), 'PRESENTACION POR LINEAS') === 0;
+                                $lineaActualEtiqueta = null;
+                                $grupoLineaEtiqueta = null;
+
+                                if (preg_match('/^L-?0?([0-9]{1,2})$/i', trim((string) $lineaNombre), $lineaMatches) === 1) {
+                                    $lineaActualEtiqueta = 'L-' . str_pad((string) ((int) $lineaMatches[1]), 2, '0', STR_PAD_LEFT);
+                                }
+
+                                if (preg_match('/\bLINEA\s*[-,:]?\s*0?([0-9]{1,2})\b/i', $grupoComponente, $grupoMatches) === 1) {
+                                    $grupoLineaEtiqueta = 'L-' . str_pad((string) ((int) $grupoMatches[1]), 2, '0', STR_PAD_LEFT);
+                                }
+
+                                $grupoVisible = $ocultarGrupoPlatos ? '' : $grupoComponente;
+
+                                if (!$ocultarGrupoPlatos && $lineaActualEtiqueta !== null && $lineaActualEtiqueta === $grupoLineaEtiqueta) {
+                                    $grupoSinLinea = preg_replace('/^\s*(?:LINEA|L)\s*-?\s*0?[0-9]{1,2}\s*[,:\-]?\s*/i', '', $grupoComponente);
+                                    $grupoVisible = trim((string) $grupoSinLinea, ' ,:-');
+                                }
                             @endphp
 
                             <th class="sticky-top cell-header text-blue-900 font-bold px-3 py-2 border text-center whitespace-nowrap text-sm {{ $searchTarget ? 'search-target-component search-target-header' : '' }}"
@@ -94,7 +99,9 @@
                                     <div class="component-industrial-icon">
                                         <i class="fas fa-tags text-3xl"></i>
                                     </div>
-                                    <div class="component-code mt-1">{{ $componente['grupo'] ?: 'Componente' }}</div>
+                                    @if($grupoVisible !== '')
+                                        <div class="component-code mt-1">{{ $grupoVisible }}</div>
+                                    @endif
                                     <div class="flex justify-center gap-1 mt-2">
                                         @if($conteoEstado['ok'] > 0)
                                             <span class="w-1.5 h-1.5 bg-green-500 rounded-full"></span>
@@ -135,7 +142,11 @@
                                 <div class="reductor-name">Maquina {{ $maquina }}</div>
                                 <div class="reductor-label">Etiquetadora</div>
                                 <div class="text-xs text-gray-500 mt-1">
+                                    @if(($conteoMaquina['total'] ?? 0) > 0)
                                         {{ $conteoMaquina['total'] }}/{{ $conteoMaquina['total_posibles'] ?? $componentes->count() }}
+                                    @else
+                                        Sin analisis
+                                    @endif
                                 </div>
                             </div>
                         </th>
@@ -220,18 +231,12 @@
                                         : null;
 
                                     $historialUrl = $hasData
-                                        ? route('analisis-etiquetadora.historial', [
+                                        ? route('analisis-etiquetadora.historial-analisis', [
                                             'linea_id' => $registro->linea_id,
-                                            'maquina' => $registro->maquina,
                                             'componente_id' => $registro->componente_id,
+                                            'maquina' => $registro->maquina,
                                         ])
-                                        : ($linea && $componentForMachine
-                                            ? route('analisis-etiquetadora.historial', [
-                                                'linea_id' => $linea->id,
-                                                'maquina' => $maquina,
-                                                'componente_id' => $componentForMachine->id,
-                                            ])
-                                            : route('analisis-etiquetadora.historial'));
+                                        : null;
 
                                     $searchTargetCell = filled($componenteBuscado)
                                         && (
@@ -293,34 +298,6 @@
                                         @endif
 
                                         <div class="space-y-2">
-                                            <div class="inline-flex items-center gap-1 rounded bg-white px-2 py-1 text-[10px] font-bold text-slate-600 border border-slate-200">
-                                                <i class="fas fa-layer-group text-blue-600"></i>
-                                                {{ $componentForMachine->cantidad_original ?: ($componentForMachine->cantidad_total . ' por maquina') }}
-                                            </div>
-
-                                            @if($totalPiezasCiclo > 1)
-                                                <div class="rounded border border-indigo-100 bg-white/80 p-2 text-[10px] text-slate-700">
-                                                    <div class="mb-1 flex items-center justify-between gap-2 font-bold">
-                                                        <span>
-                                                            <i class="fas fa-clipboard-check text-indigo-600"></i>
-                                                            Piezas
-                                                        </span>
-                                                        <span>{{ $cantidadRevisadaCiclo }}/{{ $totalPiezasCiclo }}</span>
-                                                    </div>
-                                                    <div class="h-1.5 overflow-hidden rounded-full bg-slate-200">
-                                                        <div class="h-full rounded-full {{ $hayPiezasPendientes ? 'bg-indigo-500' : 'bg-emerald-500' }}"
-                                                             style="width: {{ $totalPiezasCiclo > 0 ? min(100, round(($cantidadRevisadaCiclo / $totalPiezasCiclo) * 100)) : 0 }}%"></div>
-                                                    </div>
-                                                    @if($hayPiezasPendientes)
-                                                        <p class="mt-1 font-semibold text-indigo-700">
-                                                            Pendientes: #{{ implode(', #', $piezasPendientesCiclo) }}
-                                                        </p>
-                                                    @else
-                                                        <p class="mt-1 font-semibold text-emerald-700">Ciclo completado</p>
-                                                    @endif
-                                                </div>
-                                            @endif
-
                                             <div class="bg-blue-50 p-2 rounded mb-2">
                                                 <div class="flex items-center gap-1">
                                                     <i class="fas fa-calendar-alt text-blue-600"></i>
@@ -371,9 +348,6 @@
                                                 <i class="fas fa-clipboard"></i>
                                             </div>
                                             <p class="text-gray-500 text-xs mb-3">Sin analisis</p>
-                                            <p class="mb-3 rounded bg-white px-2 py-1 text-[10px] font-bold text-slate-600 border border-slate-200">
-                                                {{ $componentForMachine->cantidad_original ?: ($componentForMachine->cantidad_total . ' por maquina') }}
-                                            </p>
                                             @if($createUrl)
                                                 <a href="{{ $createUrl }}"
                                                    class="create-action create-action--compact"

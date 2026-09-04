@@ -205,7 +205,8 @@ public function canEditAnalysisDate(): bool
 public function canReviewWasherAiPlans(): bool
 {
     return $this->hasAnyRole(self::elevatedMaintenanceRoles())
-        && $this->canAccessModule(self::MODULE_LAVADORA);
+            && $this->canAccessModule(self::MODULE_LAVADORA)
+            && $this->canUseCustomPermission('revisar planes ia lavadora');
 }
 
 public function canReviewPasteurizadoraAiPlans(?string $area = null): bool
@@ -235,7 +236,8 @@ public function canReviewAiPlansForModule(string $module, ?string $area = null):
 public function canManageWasherKnowledgeDocuments(): bool
 {
     return $this->hasAnyRole(self::elevatedMaintenanceRoles())
-        && $this->canAccessModule(self::MODULE_LAVADORA);
+            && $this->canAccessModule(self::MODULE_LAVADORA)
+            && $this->canUseCustomPermission('gestionar conocimiento lavadora');
 }
 
 public function canDeleteAnalysis(): bool
