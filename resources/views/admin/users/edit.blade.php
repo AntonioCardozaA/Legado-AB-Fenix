@@ -19,9 +19,6 @@
         <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div>
                 <h1 class="text-2xl font-bold text-gray-900">{{ $managedUser->name }}</h1>
-                <p class="mt-1 text-sm text-gray-500">
-                    Actualiza los datos del usuario, cambia su rol, ajusta su estado y renueva la contrasena desde esta ficha individual.
-                </p>
             </div>
 
             <div class="flex flex-wrap gap-2">
@@ -61,7 +58,6 @@
         <div class="rounded bg-white p-5 shadow">
             <div class="mb-5">
                 <h2 class="text-xl font-bold text-gray-900">Editar datos del usuario</h2>
-                <p class="text-sm text-gray-500">Guarda los cambios para actualizar su acceso dentro del sistema.</p>
             </div>
 
             @include('admin.users.partials.edit-form', [
@@ -75,8 +71,6 @@
         <div class="space-y-6">
             <div class="rounded bg-white p-5 shadow">
                 <h2 class="text-xl font-bold text-gray-900">Resumen del usuario</h2>
-                <p class="mt-1 text-sm text-gray-500">Vista rapida del registro actual.</p>
-
                 <div class="mt-5 space-y-3">
                     <div class="rounded border border-gray-200 bg-gray-50 p-4">
                         <div class="text-xs font-semibold uppercase tracking-wide text-gray-500">Correo</div>
@@ -108,10 +102,6 @@
                         No puedes eliminar tu propia cuenta desde Gestion de usuarios.
                     </p>
                 @else
-                    <p class="mt-2 text-sm leading-6 text-gray-500">
-                        Elimina esta cuenta solo si ya no debe existir en el sistema.
-                    </p>
-
                     <form
                         method="POST"
                         action="{{ route('admin.users.destroy', array_merge(['user' => $managedUser], $activeFilters)) }}"
@@ -132,7 +122,6 @@
             <div class="rounded bg-white p-5 shadow">
                 <div class="text-xs font-semibold uppercase tracking-wide text-gray-500">Usuarios activos</div>
                 <div class="mt-2 text-3xl font-bold text-gray-900">{{ $stats['activos'] }}</div>
-                <p class="mt-2 text-sm text-gray-500">Personal habilitado actualmente en el sistema.</p>
 
                 <a href="{{ route('admin.users.index', $activeFilters) }}" class="mt-5 inline-flex rounded border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">
                     Volver a la lista

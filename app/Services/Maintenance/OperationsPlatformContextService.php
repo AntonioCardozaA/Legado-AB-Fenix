@@ -4,6 +4,7 @@ namespace App\Services\Maintenance;
 
 use Carbon\CarbonImmutable;
 use App\Models\Analisis;
+use App\Models\AnalisisCentralHidraulica;
 use App\Models\AnalisisEtiquetadora;
 use App\Models\AnalisisLavadora;
 use App\Models\AnalisisPasteurizadora;
@@ -34,6 +35,9 @@ class OperationsPlatformContextService
         'analisis',
         'analisis_componentes',
         'analisis_pasteurizadora',
+        'analisis_central_hidraulica',
+        'central_hidraulica_componentes',
+        'central_hidraulica_configuraciones',
         'analisis_etiquetadora',
         'plan_accion',
         'maintenance_events',
@@ -88,8 +92,12 @@ class OperationsPlatformContextService
         User::MODULE_PASTEURIZADORA => [
             'lineas',
             'analisis_pasteurizadora',
+            'analisis_central_hidraulica',
+            'central_hidraulica_componentes',
+            'central_hidraulica_configuraciones',
             'historico_revisados',
             'plan_accion',
+            'maintenance_events',
         ],
         User::MODULE_ETIQUETADORA => [
             'lineas',
@@ -135,6 +143,7 @@ class OperationsPlatformContextService
             'recent_activity' => $this->recentActivity($user, $moduleHints),
             'query_matches' => $this->queryMatches($user, $question, $moduleHints),
             'recent_evidence' => $this->recentEvidence($user, $moduleHints),
+            'page_context' => $pageContext,
         ];
     }
 
@@ -160,6 +169,20 @@ class OperationsPlatformContextService
                 'targeted_component_lookup' => $this->washerTargetedComponentLookup($question, $latestSnapshots),
                 'refaction_cost_lookup' => $this->washerRefactionCostLookup($question),
                 'lubrication_lookup' => $this->washerLubricationLookup($question),
+            ];
+        }
+
+        if ($user->canAccessModule(User::MODULE_PASTEURIZADORA) || $this->shouldIncludeModule(User::MODULE_PASTEURIZADORA, $moduleHints)) {
+            $latestSnapshots = $this->pasteurizadoraLatestAnalysisSnapshots($user);
+            $problematicSnapshots = $latestSnapshots
+                ->filter(fn (AnalisisPasteurizadora $analysis): bool => $this->isProblematicPasteurizadoraState($analysis->estado))
+                ->values();
+            $problematicAnalyses = $this->pasteurizadoraProblematicAnalyses($user);
+
+            $insights['pasteurizadora'] = [
+                'damage_periods' => $this->pasteurizadoraDamagePeriods($problematicAnalyses, $problematicSnapshots),
+                'current_damage_by_line' => $this->pasteurizadoraCurrentDamageByLine($problematicSnapshots),
+                'targeted_component_lookup' => $this->pasteurizadoraTargetedComponentLookup($question, $latestSnapshots),
             ];
         }
 
@@ -379,16 +402,26 @@ class OperationsPlatformContextService
         }
 
         if ($user->canAccessModule(User::MODULE_PASTEURIZADORA)) {
+            $pasteurAnalyses = AnalisisPasteurizadora::query()
+                ->withoutGlobalScope(AnalisisPasteurizadora::DEFAULT_AREA_GLOBAL_SCOPE)
+                ->get(['area', 'evidencia_fotos'])
+                ->filter(fn (AnalisisPasteurizadora $analysis): bool => $this->userCanSeePasteurizadoraAnalysisInContext($user, $analysis))
+                ->values();
+            $canSeeCentral = $this->hasTable('analisis_central_hidraulica')
+                && $user->canAccessPasteurizadoraArea(AnalisisPasteurizadora::AREA_CENTRAL_HIDRAULICA);
+
             $summary['pasteurizadora'] = [
-                'analisis' => AnalisisPasteurizadora::query()
-                    ->withoutGlobalScope(AnalisisPasteurizadora::DEFAULT_AREA_GLOBAL_SCOPE)
-                    ->count(),
-                'analisis_con_evidencia' => $this->countEvidenceRows(
-                    AnalisisPasteurizadora::query()
-                        ->withoutGlobalScope(AnalisisPasteurizadora::DEFAULT_AREA_GLOBAL_SCOPE)
-                        ->get(['evidencia_fotos']),
-                    'evidencia_fotos'
-                ),
+                'analisis' => $pasteurAnalyses->count(),
+                'analisis_con_evidencia' => $this->countEvidenceRows($pasteurAnalyses, 'evidencia_fotos'),
+                'central_hidraulica_analisis' => $canSeeCentral
+                    ? AnalisisCentralHidraulica::query()->count()
+                    : 0,
+                'central_hidraulica_con_evidencia' => $canSeeCentral
+                    ? $this->countEvidenceRows(
+                        AnalisisCentralHidraulica::query()->get(['evidencia_fotos']),
+                        'evidencia_fotos'
+                    )
+                    : 0,
             ];
         }
 
@@ -475,8 +508,21 @@ class OperationsPlatformContextService
                 ->latest('fecha_analisis')
                 ->limit($limit)
                 ->get()
+                ->filter(fn (AnalisisPasteurizadora $analysis): bool => $this->userCanSeePasteurizadoraAnalysisInContext($user, $analysis))
                 ->map(fn (AnalisisPasteurizadora $analysis): array => $this->pasteurizadoraSummary($analysis))
                 ->all();
+
+            if ($this->hasTable('analisis_central_hidraulica')
+                && $user->canAccessPasteurizadoraArea(AnalisisPasteurizadora::AREA_CENTRAL_HIDRAULICA)
+            ) {
+                $activity['pasteurizadora_central_hidraulica'] = AnalisisCentralHidraulica::query()
+                    ->with(['linea', 'usuario', 'configuracion', 'componente'])
+                    ->latest('fecha_analisis')
+                    ->limit($limit)
+                    ->get()
+                    ->map(fn (AnalisisCentralHidraulica $analysis): array => $this->centralHidraulicaSummary($analysis))
+                    ->all();
+            }
         }
 
         if ($user->canAccessModule(User::MODULE_ETIQUETADORA) || $this->shouldIncludeModule(User::MODULE_ETIQUETADORA, $moduleHints)) {
@@ -531,7 +577,17 @@ class OperationsPlatformContextService
                     'summary' => $this->summarizeText([
                         $plan->actividad,
                         $plan->linea?->nombre,
-                        $plan->maintenanceEvent?->componente?->nombre,
+                        $plan->maintenanceEvent?->componente?->nombre
+                            ?? data_get($plan->source_metadata, 'component_name')
+                            ?? data_get($plan->maintenanceEvent?->context_data, 'component_name'),
+                        data_get($plan->source_metadata, 'component_code')
+                            ?? data_get($plan->maintenanceEvent?->context_data, 'component_code'),
+                        data_get($plan->source_metadata, 'modulo')
+                            ? 'Modulo ' . data_get($plan->source_metadata, 'modulo')
+                            : null,
+                        data_get($plan->source_metadata, 'piso') ?? data_get($plan->maintenanceEvent?->context_data, 'piso'),
+                        data_get($plan->source_metadata, 'nivel') ?? data_get($plan->maintenanceEvent?->context_data, 'nivel'),
+                        data_get($plan->source_metadata, 'lado') ?? data_get($plan->maintenanceEvent?->context_data, 'lado'),
                         $plan->detected_problem,
                         $plan->technical_justification,
                         $plan->execution_result,
@@ -547,6 +603,15 @@ class OperationsPlatformContextService
                         (string) $plan->effectivenessLabel(),
                         (string) ($plan->linea?->nombre ?? ''),
                         (string) ($plan->maintenanceEvent?->componente?->nombre ?? ''),
+                        (string) data_get($plan->source_metadata, 'component_name', ''),
+                        (string) data_get($plan->source_metadata, 'component_code', ''),
+                        (string) data_get($plan->source_metadata, 'modulo', ''),
+                        (string) data_get($plan->source_metadata, 'piso', ''),
+                        (string) data_get($plan->source_metadata, 'nivel', ''),
+                        (string) data_get($plan->source_metadata, 'lado', ''),
+                        (string) data_get($plan->maintenanceEvent?->context_data, 'component_name', ''),
+                        (string) data_get($plan->maintenanceEvent?->context_data, 'component_code', ''),
+                        (string) data_get($plan->maintenanceEvent?->context_data, 'piso', ''),
                     ])),
                 ])
         );
@@ -572,7 +637,12 @@ class OperationsPlatformContextService
                         $event->severity,
                         $event->status,
                         $event->linea?->nombre,
-                        $event->componente?->nombre,
+                        $event->componente?->nombre ?? data_get($event->context_data, 'component_name'),
+                        data_get($event->context_data, 'component_code'),
+                        data_get($event->context_data, 'modulo') ? 'Modulo ' . data_get($event->context_data, 'modulo') : null,
+                        data_get($event->context_data, 'piso'),
+                        data_get($event->context_data, 'nivel'),
+                        data_get($event->context_data, 'lado'),
                     ]),
                     'score' => $this->scoreTokens($tokens, implode(' ', [
                         (string) $event->title,
@@ -889,6 +959,7 @@ class OperationsPlatformContextService
                     ->latest('fecha_analisis')
                     ->limit(40)
                     ->get()
+                    ->filter(fn (AnalisisPasteurizadora $analysis): bool => $this->userCanSeePasteurizadoraAnalysisInContext($user, $analysis))
                     ->map(fn (AnalisisPasteurizadora $analysis): array => [
                         'module' => User::MODULE_PASTEURIZADORA,
                         'type' => 'analisis_pasteurizadora',
@@ -896,23 +967,75 @@ class OperationsPlatformContextService
                         'date' => optional($analysis->fecha_analisis)->toDateString(),
                         'summary' => $this->summarizeText([
                             $analysis->linea?->nombre,
+                            $analysis->area,
                             $analysis->modulo_nombre,
                             $analysis->componente_nombre,
+                            $analysis->nivel,
                             $analysis->lado,
                             $analysis->estado,
                             $analysis->actividad,
                         ]),
                         'score' => $this->scoreTokens($tokens, implode(' ', [
+                            'pasteurizadora',
                             (string) ($analysis->linea?->nombre ?? ''),
+                            $this->pasteurizadoraLineAliases((string) ($analysis->linea?->nombre ?? '')),
+                            (string) $analysis->area,
                             (string) $analysis->modulo,
                             (string) $analysis->componente,
+                            (string) $analysis->componente_nombre,
+                            (string) $analysis->nivel,
                             (string) $analysis->lado,
                             (string) $analysis->estado,
                             (string) $analysis->actividad,
+                            implode(' ', $analysis->componentes_revisados_lista),
                             implode(' ', $analysis->evidencia_fotos ?? []),
                         ])),
                     ])
             );
+
+            if ($this->hasTable('analisis_central_hidraulica')
+                && $this->userCanSeeCentralHidraulicaInContext($user)
+            ) {
+                $candidates = $candidates->concat(
+                    AnalisisCentralHidraulica::query()
+                        ->with(['linea', 'usuario', 'configuracion', 'componente'])
+                        ->latest('fecha_analisis')
+                        ->limit(40)
+                        ->get()
+                        ->map(fn (AnalisisCentralHidraulica $analysis): array => [
+                            'module' => User::MODULE_PASTEURIZADORA,
+                            'type' => 'analisis_central_hidraulica',
+                            'reference' => 'Analisis central hidraulica #' . $analysis->id,
+                            'date' => optional($analysis->fecha_analisis)->toDateString(),
+                            'summary' => $this->summarizeText([
+                                $analysis->linea?->nombre,
+                                AnalisisPasteurizadora::AREA_CENTRAL_HIDRAULICA,
+                                $analysis->piso_label,
+                                $analysis->componente_nombre,
+                                $analysis->lado ? $analysis->lado_label : null,
+                                $analysis->estado,
+                                $analysis->actividad,
+                                $analysis->observaciones,
+                            ]),
+                            'score' => $this->scoreTokens($tokens, implode(' ', [
+                                'pasteurizadora central hidraulica piso lado componente revision desgaste dano danado',
+                                (string) ($analysis->linea?->nombre ?? ''),
+                                $this->pasteurizadoraLineAliases((string) ($analysis->linea?->nombre ?? '')),
+                                (string) $analysis->piso,
+                                (string) $analysis->piso_label,
+                                (string) ($analysis->componente?->codigo ?? ''),
+                                (string) $analysis->componente_nombre,
+                                (string) $analysis->lado,
+                                (string) $analysis->lado_label,
+                                (string) $analysis->estado,
+                                (string) $analysis->actividad,
+                                (string) $analysis->observaciones,
+                                implode(' ', $analysis->componentes_revisados_lista),
+                                implode(' ', $analysis->evidencia_fotos ?? []),
+                            ])),
+                        ])
+                );
+            }
         }
 
         if ($user->canAccessModule(User::MODULE_ETIQUETADORA) || $this->shouldIncludeModule(User::MODULE_ETIQUETADORA, $moduleHints)) {
@@ -2197,7 +2320,8 @@ class OperationsPlatformContextService
                     ->latest('fecha_analisis')
                     ->limit(30)
                     ->get()
-                    ->filter(fn (AnalisisPasteurizadora $analysis): bool => count($analysis->evidencia_fotos ?? []) > 0)
+                    ->filter(fn (AnalisisPasteurizadora $analysis): bool => $this->userCanSeePasteurizadoraAnalysisInContext($user, $analysis)
+                        && count($analysis->evidencia_fotos ?? []) > 0)
                     ->take($limit)
                     ->map(fn (AnalisisPasteurizadora $analysis): array => [
                         'module' => User::MODULE_PASTEURIZADORA,
@@ -2211,6 +2335,34 @@ class OperationsPlatformContextService
                         'photos' => $this->normalizePhotoList($analysis->evidencia_fotos ?? []),
                     ])
             );
+
+            if ($this->hasTable('analisis_central_hidraulica')
+                && $this->userCanSeeCentralHidraulicaInContext($user)
+            ) {
+                $entries = $entries->concat(
+                    AnalisisCentralHidraulica::query()
+                        ->with(['linea', 'componente'])
+                        ->latest('fecha_analisis')
+                        ->limit(30)
+                        ->get()
+                        ->filter(fn (AnalisisCentralHidraulica $analysis): bool => count($analysis->evidencia_fotos ?? []) > 0)
+                        ->take($limit)
+                        ->map(fn (AnalisisCentralHidraulica $analysis): array => [
+                            'module' => User::MODULE_PASTEURIZADORA,
+                            'reference' => 'Analisis central hidraulica #' . $analysis->id,
+                            'recorded_at' => optional($analysis->fecha_analisis ?: $analysis->created_at)->toIso8601String(),
+                            'linea' => $analysis->linea?->nombre,
+                            'elemento' => $analysis->componente_nombre,
+                            'area' => AnalisisPasteurizadora::AREA_CENTRAL_HIDRAULICA,
+                            'piso' => $analysis->piso,
+                            'lado' => $analysis->lado,
+                            'estado' => $analysis->estado,
+                            'actividad' => $this->sanitizer->sanitizeText((string) $analysis->actividad, 240),
+                            'photo_count' => count($analysis->evidencia_fotos ?? []),
+                            'photos' => $this->normalizePhotoList($analysis->evidencia_fotos ?? []),
+                        ])
+                );
+            }
         }
 
         if ($user->canAccessModule(User::MODULE_ETIQUETADORA) || $this->shouldIncludeModule(User::MODULE_ETIQUETADORA, $moduleHints)) {
@@ -2482,10 +2634,16 @@ class OperationsPlatformContextService
             return false;
         }
 
+        if ($tipo === User::MODULE_PASTEURIZADORA
+            && $plan->area_pasteurizadora
+            && !$user->canAccessPasteurizadoraArea($plan->area_pasteurizadora)) {
+            return false;
+        }
+
         if ($plan->isAiSuggested()
-            && $tipo === User::MODULE_LAVADORA
+            && in_array($tipo, [User::MODULE_LAVADORA, User::MODULE_PASTEURIZADORA], true)
             && $plan->estado !== 'approved'
-            && !$user->canReviewWasherAiPlans()) {
+            && !$user->canReviewAiPlansForModule($tipo, $plan->area_pasteurizadora)) {
             return false;
         }
 
@@ -2497,10 +2655,32 @@ class OperationsPlatformContextService
         $module = $this->moduleFromMaintenanceEvent($event);
 
         if (in_array($module, [User::MODULE_LAVADORA, User::MODULE_PASTEURIZADORA, User::MODULE_ETIQUETADORA], true)) {
-            return $user->canAccessModule($module);
+            if (!$user->canAccessModule($module)) {
+                return false;
+            }
+
+            $area = data_get($event->context_data, 'area');
+
+            if ($module === User::MODULE_PASTEURIZADORA && $area) {
+                return $user->canAccessPasteurizadoraArea((string) $area);
+            }
+
+            return true;
         }
 
         return $user->hasRole(User::ROLE_ADMIN);
+    }
+
+    private function userCanSeePasteurizadoraAnalysisInContext(User $user, AnalisisPasteurizadora $analysis): bool
+    {
+        return $user->canAccessModule(User::MODULE_PASTEURIZADORA)
+            && $user->canAccessPasteurizadoraArea($analysis->area);
+    }
+
+    private function userCanSeeCentralHidraulicaInContext(User $user): bool
+    {
+        return $user->canAccessModule(User::MODULE_PASTEURIZADORA)
+            && $user->canAccessPasteurizadoraArea(AnalisisPasteurizadora::AREA_CENTRAL_HIDRAULICA);
     }
 
     /**
@@ -2549,7 +2729,23 @@ class OperationsPlatformContextService
             'estado' => $plan->estado,
             'prioridad' => $plan->priority_level,
             'responsable' => $plan->responsable?->name,
-            'componente' => $plan->maintenanceEvent?->componente?->nombre,
+            'area_pasteurizadora' => $plan->area_pasteurizadora,
+            'area_pasteurizadora_label' => $plan->area_pasteurizadora_label,
+            'componente' => $plan->maintenanceEvent?->componente?->nombre
+                ?? data_get($plan->source_metadata, 'component_name')
+                ?? data_get($plan->maintenanceEvent?->context_data, 'component_name'),
+            'codigo_componente' => data_get($plan->source_metadata, 'component_code')
+                ?? data_get($plan->maintenanceEvent?->context_data, 'component_code'),
+            'modulo' => data_get($plan->source_metadata, 'modulo')
+                ?? data_get($plan->maintenanceEvent?->context_data, 'modulo'),
+            'piso' => data_get($plan->source_metadata, 'piso')
+                ?? data_get($plan->maintenanceEvent?->context_data, 'piso'),
+            'nivel' => data_get($plan->source_metadata, 'nivel')
+                ?? data_get($plan->maintenanceEvent?->context_data, 'nivel'),
+            'lado' => data_get($plan->source_metadata, 'lado')
+                ?? data_get($plan->maintenanceEvent?->context_data, 'lado'),
+            'problema_detectado' => $this->sanitizer->sanitizeText((string) $plan->detected_problem, 220),
+            'justificacion_ia' => $this->sanitizer->sanitizeText((string) $plan->technical_justification, 220),
             'fecha_objetivo' => optional($plan->fecha_pcm1)->toDateString(),
             'source' => $plan->source,
             'completado' => (bool) $plan->completado,
@@ -2584,13 +2780,49 @@ class OperationsPlatformContextService
         return [
             'id' => $analysis->id,
             'linea' => $analysis->linea?->nombre,
-            'modulo' => $analysis->modulo_nombre,
+            'area' => $analysis->area,
+            'modulo' => $analysis->modulo,
+            'modulo_nombre' => $analysis->modulo_nombre,
+            'nivel' => $analysis->nivel,
             'componente' => $analysis->componente_nombre,
+            'codigo_componente' => $analysis->componente,
             'lado' => $analysis->lado,
             'estado' => $analysis->estado,
             'actividad' => $this->sanitizer->sanitizeText((string) $analysis->actividad, 220),
             'fecha_analisis' => optional($analysis->fecha_analisis)->toDateString(),
             'evidencias' => count($analysis->evidencia_fotos ?? []),
+            'componentes_revisados' => $analysis->componentes_revisados_lista,
+            'total_componentes' => $analysis->total_componentes,
+            'resuelto_por_cambio' => (bool) $analysis->resuelto_por_cambio,
+            'usuario' => $analysis->usuario?->name,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function centralHidraulicaSummary(AnalisisCentralHidraulica $analysis): array
+    {
+        return [
+            'id' => $analysis->id,
+            'linea' => $analysis->linea?->nombre,
+            'area' => AnalisisPasteurizadora::AREA_CENTRAL_HIDRAULICA,
+            'configuracion_id' => $analysis->configuracion_id,
+            'piso' => $analysis->piso,
+            'piso_label' => $analysis->piso_label,
+            'nivel' => $analysis->piso,
+            'componente' => $analysis->componente_nombre,
+            'codigo_componente' => $analysis->componente?->codigo,
+            'lado' => $analysis->lado,
+            'lado_label' => $analysis->lado_label,
+            'estado' => $analysis->estado,
+            'actividad' => $this->sanitizer->sanitizeText((string) $analysis->actividad, 220),
+            'observaciones' => $this->sanitizer->sanitizeText((string) $analysis->observaciones, 220),
+            'fecha_analisis' => optional($analysis->fecha_analisis)->toDateString(),
+            'evidencias' => count($analysis->evidencia_fotos ?? []),
+            'componentes_revisados' => $analysis->componentes_revisados_lista,
+            'total_componentes' => $analysis->total_componentes,
+            'resuelto_por_cambio' => (bool) $analysis->resuelto_por_cambio,
             'usuario' => $analysis->usuario?->name,
         ];
     }
@@ -2893,6 +3125,369 @@ class OperationsPlatformContextService
         ];
     }
 
+    /**
+     * @return Collection<int, AnalisisPasteurizadora>
+     */
+    private function pasteurizadoraLatestAnalysisSnapshots(User $user): Collection
+    {
+        return $this->currentOrPastPasteurizadoraAnalysisQuery()
+            ->with(['linea', 'usuario'])
+            ->orderByDesc('fecha_analisis')
+            ->orderByDesc('id')
+            ->get()
+            ->filter(fn (AnalisisPasteurizadora $analysis): bool => $this->userCanSeePasteurizadoraAnalysisInContext($user, $analysis))
+            ->unique(fn (AnalisisPasteurizadora $analysis): string => implode('|', [
+                (string) $analysis->linea_id,
+                (string) $analysis->area,
+                (string) $analysis->modulo,
+                (string) $analysis->componente,
+                (string) $analysis->nivel,
+                (string) ($analysis->lado ?? ''),
+                implode(',', $analysis->componentes_revisados_lista),
+            ]))
+            ->values();
+    }
+
+    /**
+     * @return Collection<int, AnalisisPasteurizadora>
+     */
+    private function pasteurizadoraProblematicAnalyses(User $user): Collection
+    {
+        return $this->currentOrPastPasteurizadoraAnalysisQuery()
+            ->with(['linea', 'usuario'])
+            ->whereIn('estado', AnalisisPasteurizadora::estadosSeguimientoReinspeccion())
+            ->orderByDesc('fecha_analisis')
+            ->orderByDesc('id')
+            ->get()
+            ->filter(fn (AnalisisPasteurizadora $analysis): bool => $this->userCanSeePasteurizadoraAnalysisInContext($user, $analysis))
+            ->values();
+    }
+
+    private function isProblematicPasteurizadoraState(?string $state): bool
+    {
+        return AnalisisPasteurizadora::esEstadoSeguimientoReinspeccion($state);
+    }
+
+    private function isCriticalPasteurizadoraState(?string $state): bool
+    {
+        return AnalisisPasteurizadora::esEstadoDanado($state) || $state === 'Desgaste severo';
+    }
+
+    /**
+     * @param  Collection<int, AnalisisPasteurizadora>  $problematicAnalyses
+     * @param  Collection<int, AnalisisPasteurizadora>  $problematicSnapshots
+     * @return array<string, mixed>
+     */
+    private function pasteurizadoraDamagePeriods(Collection $problematicAnalyses, ?Collection $problematicSnapshots = null): array
+    {
+        $today = CarbonImmutable::now(config('app.timezone', 'America/Mexico_City'));
+        $weekStart = $today->subDays($today->dayOfWeekIso - 1)->startOfDay();
+        $weekEnd = $weekStart->addDays(6)->endOfDay();
+        $monthStart = $today->startOfMonth();
+        $monthEnd = $today->endOfMonth();
+        $yearStart = $today->startOfYear();
+        $yearEnd = $today->endOfYear();
+        $periods = [
+            'actual' => [
+                'label' => 'Estado actual por ultimo analisis de cada componente/modulo/nivel/lado',
+                'records' => $problematicSnapshots ?? collect(),
+            ],
+            'week' => [
+                'label' => 'Semana actual (' . $weekStart->format('d/m/Y') . ' al ' . $weekEnd->format('d/m/Y') . ')',
+                'start' => $weekStart,
+            ],
+            'month' => [
+                'label' => 'Mes actual (' . $monthStart->format('d/m/Y') . ' al ' . $monthEnd->format('d/m/Y') . ')',
+                'start' => $monthStart,
+            ],
+            'year' => [
+                'label' => 'Ano actual (' . $yearStart->format('d/m/Y') . ' al ' . $yearEnd->format('d/m/Y') . ')',
+                'start' => $yearStart,
+            ],
+            'all_time' => [
+                'label' => 'Historico total',
+                'start' => null,
+            ],
+        ];
+
+        return collect($periods)
+            ->mapWithKeys(function (array $period, string $key) use ($problematicAnalyses): array {
+                $records = isset($period['records'])
+                    ? $period['records']
+                    : $problematicAnalyses
+                        ->filter(function (AnalisisPasteurizadora $analysis) use ($period): bool {
+                            if ($period['start'] === null) {
+                                return true;
+                            }
+
+                            if (!$analysis->fecha_analisis) {
+                                return false;
+                            }
+
+                            return CarbonImmutable::instance($analysis->fecha_analisis)->greaterThanOrEqualTo($period['start']);
+                        })
+                        ->values();
+
+                return [$key => $this->pasteurizadoraPeriodSummary($records, $period['label'])];
+            })
+            ->all();
+    }
+
+    /**
+     * @param  Collection<int, AnalisisPasteurizadora>  $records
+     * @return array<string, mixed>
+     */
+    private function pasteurizadoraPeriodSummary(Collection $records, string $label): array
+    {
+        return [
+            'label' => $label,
+            'total' => $records->count(),
+            'damage_records' => $records->count(),
+            'state_breakdown' => $records
+                ->groupBy(fn (AnalisisPasteurizadora $analysis) => $analysis->estado ?: 'Sin estado')
+                ->map(fn (Collection $items, string $state): array => ['estado' => $state, 'total' => $items->count()])
+                ->sortByDesc('total')
+                ->values()
+                ->all(),
+            'top_components' => $records
+                ->groupBy(fn (AnalisisPasteurizadora $analysis) => $analysis->componente_nombre ?: 'Sin componente')
+                ->map(function (Collection $items, string $componentName): array {
+                    $codes = $items
+                        ->map(fn (AnalisisPasteurizadora $analysis) => $analysis->componente)
+                        ->filter()
+                        ->unique()
+                        ->values()
+                        ->all();
+
+                    return [
+                        'componente' => $componentName,
+                        'codigo' => count($codes) === 1 ? $codes[0] : null,
+                        'codigos' => $codes,
+                        'total' => $items->count(),
+                        'lineas' => $items->map(fn (AnalisisPasteurizadora $analysis) => $analysis->linea?->nombre)->filter()->unique()->values()->all(),
+                        'ultimo_registro' => optional($items->sortByDesc('fecha_analisis')->first()?->fecha_analisis)->toDateString(),
+                    ];
+                })
+                ->sortByDesc('total')
+                ->take(8)
+                ->values()
+                ->all(),
+            'top_lines' => $records
+                ->groupBy(fn (AnalisisPasteurizadora $analysis) => $analysis->linea?->nombre ?: 'Sin linea')
+                ->map(fn (Collection $items, string $line): array => [
+                    'linea' => $line,
+                    'total' => $items->count(),
+                    'criticos' => $items->filter(fn (AnalisisPasteurizadora $analysis): bool => $this->isCriticalPasteurizadoraState($analysis->estado))->count(),
+                    'ultimo_registro' => optional($items->sortByDesc('fecha_analisis')->first()?->fecha_analisis)->toDateString(),
+                ])
+                ->sortByDesc('total')
+                ->take(8)
+                ->values()
+                ->all(),
+        ];
+    }
+
+    /**
+     * @param  Collection<int, AnalisisPasteurizadora>  $problematicSnapshots
+     * @return array<string, mixed>
+     */
+    private function pasteurizadoraCurrentDamageByLine(Collection $problematicSnapshots): array
+    {
+        $topLines = $problematicSnapshots
+            ->groupBy(fn (AnalisisPasteurizadora $analysis) => $analysis->linea?->nombre ?: 'Sin linea')
+            ->map(function (Collection $items, string $line): array {
+                return [
+                    'linea' => $line,
+                    'problematic_components' => $items->count(),
+                    'critical_components' => $items->filter(fn (AnalisisPasteurizadora $analysis): bool => $this->isCriticalPasteurizadoraState($analysis->estado))->count(),
+                    'latest_review_date' => optional($items->sortByDesc('fecha_analisis')->first()?->fecha_analisis)->toDateString(),
+                    'top_components' => $items
+                        ->groupBy(fn (AnalisisPasteurizadora $analysis) => $analysis->componente_nombre ?: 'Sin componente')
+                        ->map(fn (Collection $componentItems, string $name): array => ['componente' => $name, 'total' => $componentItems->count()])
+                        ->sortByDesc('total')
+                        ->take(5)
+                        ->values()
+                        ->all(),
+                ];
+            })
+            ->sortByDesc('problematic_components')
+            ->values();
+
+        return [
+            'label' => 'Estado actual por ultimo analisis de cada componente/modulo/nivel/lado.',
+            'top_lines' => $topLines->take(8)->all(),
+            'highest_line' => $topLines->first(),
+        ];
+    }
+
+    /**
+     * @param  Collection<int, AnalisisPasteurizadora>  $latestSnapshots
+     * @return array<string, mixed>
+     */
+    private function pasteurizadoraTargetedComponentLookup(string $question, Collection $latestSnapshots): array
+    {
+        $tokens = $this->tokenize($question);
+        $references = $this->extractPasteurizadoraQuestionReferences($question);
+
+        if ($tokens === [] && $references['lineas'] === [] && $references['modulos'] === []) {
+            return [
+                'query' => $this->sanitizer->sanitizeText($question, 180),
+                'matches' => [],
+            ];
+        }
+
+        $matches = $latestSnapshots
+            ->map(function (AnalisisPasteurizadora $analysis) use ($tokens, $references): array {
+                $score = $this->scoreTokens($tokens, $this->pasteurizadoraAnalysisSearchHaystack($analysis));
+
+                if ($references['lineas'] !== []) {
+                    $linea = Str::upper((string) ($analysis->linea?->nombre ?? ''));
+
+                    if (in_array($linea, $references['lineas'], true)) {
+                        $score += 6;
+                    }
+                }
+
+                if ($references['modulos'] !== [] && in_array((string) $analysis->modulo, $references['modulos'], true)) {
+                    $score += 4;
+                }
+
+                if ($references['niveles'] !== [] && in_array(Str::lower((string) $analysis->nivel), $references['niveles'], true)) {
+                    $score += 3;
+                }
+
+                if ($references['lados'] !== [] && in_array(Str::lower((string) $analysis->lado), $references['lados'], true)) {
+                    $score += 3;
+                }
+
+                return [
+                    'score' => $score,
+                    'data' => $this->currentPasteurizadoraAnalysisSummary($analysis),
+                ];
+            })
+            ->filter(fn (array $item): bool => $item['score'] > 0)
+            ->sortByDesc('score')
+            ->take(6)
+            ->values()
+            ->map(fn (array $item): array => $item['data'])
+            ->all();
+
+        return [
+            'query' => $this->sanitizer->sanitizeText($question, 180),
+            'matches' => $matches,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function currentPasteurizadoraAnalysisSummary(AnalisisPasteurizadora $analysis): array
+    {
+        return [
+            'id' => $analysis->id,
+            'linea' => $analysis->linea?->nombre,
+            'area' => $analysis->area,
+            'modulo' => $analysis->modulo,
+            'nivel' => $analysis->nivel,
+            'lado' => $analysis->lado,
+            'componente' => $analysis->componente_nombre,
+            'codigo' => $analysis->componente,
+            'componentes_revisados' => $analysis->componentes_revisados_lista,
+            'estado' => $analysis->estado,
+            'actividad' => $this->sanitizer->sanitizeText((string) $analysis->actividad, 220),
+            'fecha_analisis' => optional($analysis->fecha_analisis)->toDateString(),
+            'evidencias' => count($analysis->evidencia_fotos ?? []),
+            'usuario' => $analysis->usuario?->name,
+        ];
+    }
+
+    private function pasteurizadoraAnalysisSearchHaystack(AnalisisPasteurizadora $analysis): string
+    {
+        $linea = (string) ($analysis->linea?->nombre ?? '');
+
+        return implode(' ', array_filter([
+            'pasteurizadora linea componente modulo nivel lado estado revision desgaste dano danado',
+            $linea,
+            $this->pasteurizadoraLineAliases($linea),
+            (string) $analysis->area,
+            (string) $analysis->componente,
+            (string) $analysis->componente_nombre,
+            $analysis->modulo ? 'modulo ' . $analysis->modulo : null,
+            (string) $analysis->nivel,
+            (string) $analysis->lado,
+            (string) $analysis->estado,
+            (string) $analysis->actividad,
+            implode(' ', $analysis->componentes_revisados_lista),
+        ]));
+    }
+
+    /**
+     * @return array{lineas: array<int, string>, modulos: array<int, string>, niveles: array<int, string>, lados: array<int, string>}
+     */
+    private function extractPasteurizadoraQuestionReferences(string $question): array
+    {
+        $normalized = Str::lower(Str::ascii($question));
+        $lineas = [];
+        $modulos = [];
+        $niveles = [];
+        $lados = [];
+
+        if (preg_match_all('/(?:pasteurizadora|pasteurizador|linea|p)\s*[-#]?\s*0*(\d{1,2})\b/u', $normalized, $lineMatches)) {
+            foreach ($lineMatches[1] as $lineNumber) {
+                $lineas[] = 'P-' . str_pad((string) $lineNumber, 2, '0', STR_PAD_LEFT);
+            }
+        }
+
+        if (preg_match_all('/modulo\s*[-#]?\s*0*(\d{1,2})\b/u', $normalized, $moduloMatches)) {
+            foreach ($moduloMatches[1] as $moduloNumber) {
+                $modulos[] = (string) (int) $moduloNumber;
+            }
+        }
+
+        foreach (['superior', 'inferior'] as $nivel) {
+            if (str_contains($normalized, $nivel)) {
+                $niveles[] = $nivel;
+            }
+        }
+
+        foreach (['vapor', 'pasillo'] as $lado) {
+            if (str_contains($normalized, $lado)) {
+                $lados[] = $lado;
+            }
+        }
+
+        return [
+            'lineas' => array_values(array_unique($lineas)),
+            'modulos' => array_values(array_unique($modulos)),
+            'niveles' => array_values(array_unique($niveles)),
+            'lados' => array_values(array_unique($lados)),
+        ];
+    }
+
+    private function pasteurizadoraLineAliases(string $linea): string
+    {
+        if ($linea === '') {
+            return '';
+        }
+
+        if (preg_match('/(\d{1,2})/', $linea, $matches) !== 1) {
+            return $linea;
+        }
+
+        $number = ltrim($matches[1], '0');
+        $number = $number === '' ? '0' : $number;
+        $padded = str_pad($number, 2, '0', STR_PAD_LEFT);
+
+        return implode(' ', [
+            $linea,
+            'P-' . $padded,
+            'P' . $padded,
+            'pasteurizadora ' . $number,
+            'pasteurizador ' . $number,
+            'linea ' . $number,
+        ]);
+    }
+
     private function analysisSearchHaystack(AnalisisLavadora $analysis): string
     {
         $linea = (string) ($analysis->linea?->nombre ?? '');
@@ -3115,6 +3710,13 @@ class OperationsPlatformContextService
             ->whereDate('fecha_analisis', '<=', $this->currentBusinessDate()->toDateString());
     }
 
+    private function currentOrPastPasteurizadoraAnalysisQuery(): Builder
+    {
+        return AnalisisPasteurizadora::query()
+            ->withoutGlobalScope(AnalisisPasteurizadora::DEFAULT_AREA_GLOBAL_SCOPE)
+            ->whereDate('fecha_analisis', '<=', $this->currentBusinessDate()->toDateString());
+    }
+
     private function currentOrPastElongacionQuery(): Builder
     {
         return Elongacion::query()
@@ -3180,7 +3782,12 @@ class OperationsPlatformContextService
             'id' => $event->id,
             'module' => $this->moduleFromMaintenanceEvent($event),
             'linea' => $event->linea?->nombre,
-            'componente' => $event->componente?->nombre,
+            'componente' => $event->componente?->nombre ?? data_get($event->context_data, 'component_name'),
+            'codigo_componente' => data_get($event->context_data, 'component_code'),
+            'area' => data_get($event->context_data, 'area'),
+            'modulo' => data_get($event->context_data, 'modulo'),
+            'nivel' => data_get($event->context_data, 'nivel'),
+            'lado' => data_get($event->context_data, 'lado'),
             'titulo' => $this->sanitizer->sanitizeText((string) $event->title, 180),
             'tipo' => $event->event_type,
             'severidad' => $event->severity,
@@ -3195,7 +3802,7 @@ class OperationsPlatformContextService
 
         return match ($sourceType) {
             'analisis_lavadora', 'elongacion', 'washer_knowledge_document', 'lavadora_cost_entry' => User::MODULE_LAVADORA,
-            'analisis_pasteurizadora' => User::MODULE_PASTEURIZADORA,
+            'analisis_pasteurizadora', 'analisis_central_hidraulica' => User::MODULE_PASTEURIZADORA,
             'analisis_etiquetadora' => User::MODULE_ETIQUETADORA,
             default => Str::lower((string) ($event->componente?->tipo_equipo ?: 'general')),
         };

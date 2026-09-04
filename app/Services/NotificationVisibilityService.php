@@ -38,6 +38,7 @@ class NotificationVisibilityService
         'elongacion_change_alert',
         'elongacion_purchase_alert',
         'washer_ai_plan_pending_review',
+        'pasteurizadora_ai_plan_pending_review',
         'plan_accion_due',
         'historico_revisados',
         'historico_revisados_alert',

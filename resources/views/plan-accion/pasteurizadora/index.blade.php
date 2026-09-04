@@ -785,6 +785,13 @@
                 Planes de Acción
             </h1>
         </div>
+        @if(auth()->user()?->canReviewPasteurizadoraAiPlans())
+            <a href="{{ route('plan-accion.ai.pasteurizadora.index') }}"
+               class="responsive-action responsive-action--secondary">
+                <i class="fas fa-wand-magic-sparkles"></i>
+                <span>Revisar sugerencias IA</span>
+            </a>
+        @endif
     </div>
 
     @if(isset($alertas) && count($alertas) > 0)

@@ -630,7 +630,16 @@ class GlobalSearchController extends Controller
                 'icon' => 'fa-robot',
                 'route' => ['plan-accion.ai.index'],
                 'can' => fn (User $user): bool => $user->canReviewWasherAiPlans(),
-                'keywords' => ['revision', 'ia', 'inteligencia', 'sugeridos', 'planes'],
+                'keywords' => ['revision', 'ia', 'inteligencia', 'sugeridos', 'planes', 'lavadora'],
+            ],
+            [
+                'title' => 'Revision IA de planes Pasteurizadora',
+                'description' => 'Cola de planes sugeridos por IA para pasteurizadoras',
+                'section' => 'IA',
+                'icon' => 'fa-robot',
+                'route' => ['plan-accion.ai.pasteurizadora.index'],
+                'can' => fn (User $user): bool => $user->canReviewPasteurizadoraAiPlans(),
+                'keywords' => ['revision', 'ia', 'inteligencia', 'sugeridos', 'planes', 'pasteurizadora'],
             ],
             [
                 'title' => 'Documentos de conocimiento Lavadora',
@@ -910,6 +919,10 @@ class GlobalSearchController extends Controller
 
         if ($routeName === 'lavadora.costos.index' || Str::startsWith($routeName, 'admin.costos.')) {
             return $user->canAccessLavadoraCosts();
+        }
+
+        if (Str::startsWith($routeName, 'plan-accion.ai.pasteurizadora.')) {
+            return $user->canReviewPasteurizadoraAiPlans();
         }
 
         if (Str::startsWith($routeName, 'plan-accion.ai.')) {

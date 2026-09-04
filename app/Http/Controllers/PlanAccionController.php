@@ -806,9 +806,9 @@ class PlanAccionController extends Controller
 
     private function ensureCanAccessPlan(PlanAccion $plan): void
     {
-        if ($this->requiresWasherAiReviewAccess($plan)) {
+        if ($this->requiresAiReviewAccess($plan)) {
             abort_unless(
-                auth()->user()?->canReviewWasherAiPlans(),
+                $this->canReviewAiPlan($plan),
                 403,
                 'No tienes permiso para editar sugerencias de IA pendientes de revision.'
             );
@@ -823,9 +823,9 @@ class PlanAccionController extends Controller
 
     private function ensureCanViewPlan(PlanAccion $plan): void
     {
-        if ($this->requiresWasherAiReviewAccess($plan)) {
+        if ($this->requiresAiReviewAccess($plan)) {
             abort_unless(
-                auth()->user()?->canReviewWasherAiPlans(),
+                $this->canReviewAiPlan($plan),
                 403,
                 'No tienes permiso para visualizar sugerencias de IA pendientes de revision.'
             );
@@ -926,6 +926,15 @@ class PlanAccionController extends Controller
                 $query->where('tipo_equipo', User::MODULE_PASTEURIZADORA)
                     ->orWhereNull('tipo_equipo');
             });
+
+            $query->where(function ($query): void {
+                $query->whereNull('source')
+                    ->orWhere('source', 'manual')
+                    ->orWhere(function ($aiQuery): void {
+                        $aiQuery->where('source', 'ai')
+                            ->where('estado', 'approved');
+                    });
+            });
         } else {
             $query->where('tipo_equipo', $tipo);
         }
@@ -947,11 +956,19 @@ class PlanAccionController extends Controller
         return $this->normalizarTipoValido($linea->tipo ?? null) ?? User::MODULE_LAVADORA;
     }
 
-    private function requiresWasherAiReviewAccess(PlanAccion $plan): bool
+    private function requiresAiReviewAccess(PlanAccion $plan): bool
     {
         return $plan->isAiSuggested()
-            && $this->tipoDesdePlan($plan) === User::MODULE_LAVADORA
+            && in_array($this->tipoDesdePlan($plan), [User::MODULE_LAVADORA, User::MODULE_PASTEURIZADORA], true)
             && $plan->estado !== 'approved';
+    }
+
+    private function canReviewAiPlan(PlanAccion $plan): bool
+    {
+        return auth()->user()?->canReviewAiPlansForModule(
+            $this->tipoDesdePlan($plan),
+            $plan->area_pasteurizadora
+        ) ?? false;
     }
 
 }

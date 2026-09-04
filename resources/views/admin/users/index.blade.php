@@ -12,9 +12,6 @@
     <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
             <h1 class="text-2xl font-bold text-gray-900">Gestion de usuarios</h1>
-            <p class="text-sm text-gray-500">
-                Consulta el personal registrado, aplica filtros y abre una vista dedicada para editar cada usuario.
-            </p>
         </div>
 
         <a href="#crear-usuario" class="create-action">
@@ -43,25 +40,21 @@
         <div class="rounded bg-white p-5 shadow">
             <div class="text-xs font-semibold uppercase tracking-wide text-gray-500">Total de usuarios</div>
             <div class="mt-2 text-3xl font-bold text-gray-900">{{ $stats['total'] }}</div>
-            <p class="mt-2 text-sm text-gray-500">Base completa de cuentas registradas.</p>
         </div>
 
         <div class="rounded bg-white p-5 shadow">
             <div class="text-xs font-semibold uppercase tracking-wide text-gray-500">Usuarios activos</div>
             <div class="mt-2 text-3xl font-bold text-gray-900">{{ $stats['activos'] }}</div>
-            <p class="mt-2 text-sm text-gray-500">Personal habilitado para operar.</p>
         </div>
 
         <div class="rounded bg-white p-5 shadow">
             <div class="text-xs font-semibold uppercase tracking-wide text-gray-500">Tecnicos</div>
             <div class="mt-2 text-3xl font-bold text-gray-900">{{ $stats['tecnicos'] }}</div>
-            <p class="mt-2 text-sm text-gray-500">Usuarios del equipo tecnico y operativo.</p>
         </div>
 
         <div class="rounded bg-white p-5 shadow">
             <div class="text-xs font-semibold uppercase tracking-wide text-gray-500">Administradores</div>
             <div class="mt-2 text-3xl font-bold text-gray-900">{{ $stats['administradores'] }}</div>
-            <p class="mt-2 text-sm text-gray-500">Cuentas con control total del modulo.</p>
         </div>
     </div>
 
@@ -118,7 +111,6 @@
                 <div class="flex items-center justify-between border-b border-gray-100 px-5 py-4">
                     <div>
                         <h2 class="text-lg font-bold text-gray-900">Usuarios registrados</h2>
-                        <p class="text-sm text-gray-500">Selecciona un usuario de la lista para abrir su vista de edicion.</p>
                     </div>
                     <span class="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700">
                         {{ $users->count() }} resultado(s)
@@ -175,9 +167,7 @@
             <div class="rounded bg-white p-5 shadow">
                 <div class="mb-5">
                     <h2 class="text-xl font-bold text-gray-900">Crear nuevo usuario</h2>
-                    <p class="text-sm text-gray-500">Registra personal nuevo sin salir del directorio.</p>
                 </div>
-
                 @include('admin.users.partials.create-form', [
                     'isCreateSubmission' => $isCreateSubmission,
                     'roleOptions' => $roleOptions,

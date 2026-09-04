@@ -85,6 +85,15 @@ class AssistantKnowledgeSearchService
                     $plan->risk_if_not_executed,
                     $plan->linea?->nombre,
                     $plan->maintenanceEvent?->componente?->nombre,
+                    data_get($plan->source_metadata, 'component_name'),
+                    data_get($plan->source_metadata, 'component_code'),
+                    data_get($plan->source_metadata, 'modulo'),
+                    data_get($plan->source_metadata, 'piso'),
+                    data_get($plan->source_metadata, 'nivel'),
+                    data_get($plan->source_metadata, 'lado'),
+                    data_get($plan->maintenanceEvent?->context_data, 'component_name'),
+                    data_get($plan->maintenanceEvent?->context_data, 'component_code'),
+                    data_get($plan->maintenanceEvent?->context_data, 'piso'),
                     $plan->maintenanceEvent?->title,
                 ]));
 
@@ -97,7 +106,24 @@ class AssistantKnowledgeSearchService
                 $summary = implode(' | ', array_filter([
                     $plan->actividad ? 'Actividad: ' . $plan->actividad : null,
                     $plan->linea?->nombre ? 'Linea: ' . $plan->linea->nombre : null,
-                    $plan->maintenanceEvent?->componente?->nombre ? 'Componente: ' . $plan->maintenanceEvent->componente->nombre : null,
+                    ($plan->maintenanceEvent?->componente?->nombre
+                        ?? data_get($plan->source_metadata, 'component_name')
+                        ?? data_get($plan->maintenanceEvent?->context_data, 'component_name'))
+                        ? 'Componente: ' . (
+                            $plan->maintenanceEvent?->componente?->nombre
+                            ?? data_get($plan->source_metadata, 'component_name')
+                            ?? data_get($plan->maintenanceEvent?->context_data, 'component_name')
+                        )
+                        : null,
+                    data_get($plan->source_metadata, 'component_code') ? 'Codigo: ' . data_get($plan->source_metadata, 'component_code') : null,
+                    data_get($plan->source_metadata, 'modulo') ? 'Modulo: ' . data_get($plan->source_metadata, 'modulo') : null,
+                    (data_get($plan->source_metadata, 'piso_label') ?? data_get($plan->source_metadata, 'piso'))
+                        ? 'Piso: ' . (data_get($plan->source_metadata, 'piso_label') ?? data_get($plan->source_metadata, 'piso'))
+                        : null,
+                    data_get($plan->source_metadata, 'nivel') ? 'Nivel: ' . data_get($plan->source_metadata, 'nivel') : null,
+                    (data_get($plan->source_metadata, 'lado_label') ?? data_get($plan->source_metadata, 'lado'))
+                        ? 'Lado: ' . (data_get($plan->source_metadata, 'lado_label') ?? data_get($plan->source_metadata, 'lado'))
+                        : null,
                     $plan->detected_problem ? 'Problema: ' . $plan->detected_problem : null,
                     $plan->technical_justification ? 'Justificacion: ' . $plan->technical_justification : null,
                     $plan->risk_if_not_executed ? 'Riesgo: ' . $plan->risk_if_not_executed : null,
@@ -131,7 +157,16 @@ class AssistantKnowledgeSearchService
             return false;
         }
 
-        return !($plan->source === 'ai' && $tipo === User::MODULE_LAVADORA && $plan->estado !== 'approved' && !$user->canReviewWasherAiPlans());
+        if ($tipo === User::MODULE_PASTEURIZADORA
+            && $plan->area_pasteurizadora
+            && !$user->canAccessPasteurizadoraArea($plan->area_pasteurizadora)) {
+            return false;
+        }
+
+        return !($plan->source === 'ai'
+            && in_array($tipo, [User::MODULE_LAVADORA, User::MODULE_PASTEURIZADORA], true)
+            && $plan->estado !== 'approved'
+            && !$user->canReviewAiPlansForModule($tipo, $plan->area_pasteurizadora));
     }
 
     /**

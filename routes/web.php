@@ -27,6 +27,7 @@ use App\Http\Controllers\AssistantChatController;
 use App\Http\Controllers\AiObservabilityController;
 use App\Http\Controllers\CronQueueController;
 use App\Http\Controllers\GlobalSearchController;
+use App\Http\Controllers\PasteurizadoraAiPlanReviewController;
 use App\Http\Controllers\WasherAiPlanReviewController;
 use App\Http\Controllers\WasherKnowledgeDocumentController;
 
@@ -602,6 +603,17 @@ Route::prefix('pasteurizadora')->group(function () {
     Route::prefix('plan-accion/ai/lavadora')
         ->name('plan-accion.ai.')
         ->controller(WasherAiPlanReviewController::class)
+        ->group(function () {
+            Route::get('/', 'index')->name('index');
+            Route::get('/{planAccion}', 'show')->name('review');
+            Route::post('/{planAccion}/approve', 'approve')->name('approve');
+            Route::post('/{planAccion}/reject', 'reject')->name('reject');
+            Route::post('/{planAccion}/request-information', 'requestInformation')->name('request-information');
+        });
+
+    Route::prefix('plan-accion/ai/pasteurizadora')
+        ->name('plan-accion.ai.pasteurizadora.')
+        ->controller(PasteurizadoraAiPlanReviewController::class)
         ->group(function () {
             Route::get('/', 'index')->name('index');
             Route::get('/{planAccion}', 'show')->name('review');

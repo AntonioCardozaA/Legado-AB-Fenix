@@ -4,6 +4,21 @@
 
 @section('content')
 @php
+    $module = $module ?? \App\Models\User::MODULE_LAVADORA;
+    $moduleLabel = $moduleLabel ?? 'Lavadora';
+    $modulePluralLabel = $modulePluralLabel ?? 'lavadoras';
+    $operationalPlansRoute = $operationalPlansRoute ?? route('plan-accion.lavadora.index');
+    $routeNames = $routeNames ?? [
+        'index' => 'plan-accion.ai.index',
+        'review' => 'plan-accion.ai.review',
+    ];
+    $knowledgeRoutes = $knowledgeRoutes ?? [
+        'index' => 'lavadora.knowledge-documents.index',
+        'create' => 'lavadora.knowledge-documents.create',
+    ];
+    $componentFallback = $componentFallback ?? 'Cadena de lavadora';
+    $areaOptions = $areaOptions ?? [];
+    $area = $area ?? null;
     $statusLabels = [
         'queue' => 'Pendientes',
         'pending_review' => 'Pendiente de revision',
@@ -17,32 +32,44 @@
     <div class="rounded-3xl bg-slate-900 px-6 py-6 text-white shadow-xl">
         <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
-                <a href="{{ route('plan-accion.lavadora.index') }}" class="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm font-semibold text-white/90 transition hover:bg-white/20">
+                <a href="{{ $operationalPlansRoute }}" class="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm font-semibold text-white/90 transition hover:bg-white/20">
                     <i class="fas fa-arrow-left"></i>
                     Volver a planes de accion
                 </a>
-                <h1 class="mt-4 text-3xl font-black tracking-tight">Revision de sugerencias IA para lavadoras</h1>
+                <h1 class="mt-4 text-3xl font-black tracking-tight">Revision de sugerencias IA para {{ $modulePluralLabel }}</h1>
                 <p class="mt-2 max-w-3xl text-sm text-slate-300">
                     Aqui aprobamos, ajustamos o descartamos los planes generados automaticamente antes de que entren al flujo operativo.
                 </p>
             </div>
 
-            <div class="flex flex-wrap gap-3">
-                <a href="{{ route('lavadora.knowledge-documents.index') }}" class="inline-flex items-center gap-2 rounded-xl bg-amber-400 px-4 py-3 text-sm font-bold text-slate-950 transition hover:bg-amber-300">
-                    <i class="fas fa-book-open"></i>
-                    Base de conocimiento
-                </a>
-                <a href="{{ route('lavadora.knowledge-documents.create') }}" class="inline-flex items-center gap-2 rounded-xl bg-white/10 px-4 py-3 text-sm font-bold text-white transition hover:bg-white/20">
-                    <i class="fas fa-file-circle-plus"></i>
-                    Cargar documento
-                </a>
-            </div>
+            @if(!empty($knowledgeRoutes))
+                <div class="flex flex-wrap gap-3">
+                    @if(isset($knowledgeRoutes['index']))
+                        <a href="{{ route($knowledgeRoutes['index']) }}" class="inline-flex items-center gap-2 rounded-xl bg-amber-400 px-4 py-3 text-sm font-bold text-slate-950 transition hover:bg-amber-300">
+                            <i class="fas fa-book-open"></i>
+                            Base de conocimiento
+                        </a>
+                    @endif
+                    @if(isset($knowledgeRoutes['create']))
+                        <a href="{{ route($knowledgeRoutes['create']) }}" class="inline-flex items-center gap-2 rounded-xl bg-white/10 px-4 py-3 text-sm font-bold text-white transition hover:bg-white/20">
+                            <i class="fas fa-file-circle-plus"></i>
+                            Cargar documento
+                        </a>
+                    @endif
+                </div>
+            @endif
         </div>
     </div>
 
     @if(session('success'))
         <div class="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm font-medium text-emerald-800">
             {{ session('success') }}
+        </div>
+    @endif
+
+    @if(session('warning'))
+        <div class="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm font-medium text-amber-800">
+            {{ session('warning') }}
         </div>
     @endif
 
@@ -65,7 +92,7 @@
     </div>
 
     <form method="GET" class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-        <div class="grid gap-4 md:grid-cols-3">
+        <div class="grid gap-4 md:grid-cols-{{ $areaOptions ? '4' : '3' }}">
             <div>
                 <label for="linea_id" class="mb-2 block text-sm font-semibold text-slate-700">Linea</label>
                 <select id="linea_id" name="linea_id" class="w-full rounded-xl border-slate-300 text-sm focus:border-blue-500 focus:ring-blue-500">
@@ -75,6 +102,17 @@
                     @endforeach
                 </select>
             </div>
+            @if($areaOptions)
+                <div>
+                    <label for="area" class="mb-2 block text-sm font-semibold text-slate-700">Area</label>
+                    <select id="area" name="area" class="w-full rounded-xl border-slate-300 text-sm focus:border-blue-500 focus:ring-blue-500">
+                        <option value="">Todas las areas</option>
+                        @foreach($areaOptions as $value => $label)
+                            <option value="{{ $value }}" @selected($area === $value)>{{ $label }}</option>
+                        @endforeach
+                    </select>
+                </div>
+            @endif
             <div>
                 <label for="estado" class="mb-2 block text-sm font-semibold text-slate-700">Estado</label>
                 <select id="estado" name="estado" class="w-full rounded-xl border-slate-300 text-sm focus:border-blue-500 focus:ring-blue-500">
@@ -88,7 +126,7 @@
                     <i class="fas fa-filter"></i>
                     Filtrar
                 </button>
-                <a href="{{ route('plan-accion.ai.index') }}" class="inline-flex items-center gap-2 rounded-xl border border-slate-300 px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
+                <a href="{{ route($routeNames['index']) }}" class="inline-flex items-center gap-2 rounded-xl border border-slate-300 px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
                     <i class="fas fa-rotate-left"></i>
                     Limpiar
                 </a>
@@ -112,6 +150,10 @@
                     'medium' => 'bg-blue-100 text-blue-800',
                     default => 'bg-slate-100 text-slate-700',
                 };
+                $componentName = data_get($plan->source_metadata, 'component_name')
+                    ?? data_get($plan->maintenanceEvent?->context_data, 'component_name')
+                    ?? $plan->maintenanceEvent?->componente?->nombre
+                    ?? $componentFallback;
             @endphp
 
             <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -127,13 +169,18 @@
                             <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold uppercase tracking-wide text-slate-700">
                                 {{ $plan->linea?->nombre ?? 'Sin linea' }}
                             </span>
+                            @if($plan->area_pasteurizadora)
+                                <span class="rounded-full bg-cyan-100 px-3 py-1 text-xs font-bold uppercase tracking-wide text-cyan-800">
+                                    {{ $plan->area_pasteurizadora_label }}
+                                </span>
+                            @endif
                         </div>
 
                         <div>
                             <h2 class="text-xl font-black text-slate-950">{{ $plan->actividad }}</h2>
                             <p class="mt-1 text-sm text-slate-600">
-                                {{ $plan->maintenanceEvent?->componente?->nombre ?? 'Cadena de lavadora' }} ·
-                                {{ ucfirst((string) $plan->maintenance_type) }} ·
+                                {{ $componentName }} &middot;
+                                {{ ucfirst((string) $plan->maintenance_type) }} &middot;
                                 Confianza {{ number_format((float) $plan->confidence_level * 100, 0) }}%
                             </p>
                         </div>
@@ -152,7 +199,7 @@
                     </div>
 
                     <div class="flex flex-col gap-3 lg:items-end">
-                        <a href="{{ route('plan-accion.ai.review', ['planAccion' => $plan->id]) }}" class="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-3 text-sm font-bold text-white transition hover:bg-slate-800">
+                        <a href="{{ route($routeNames['review'], ['planAccion' => $plan->id]) }}" class="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-3 text-sm font-bold text-white transition hover:bg-slate-800">
                             <i class="fas fa-clipboard-check"></i>
                             Revisar sugerencia
                         </a>
@@ -168,7 +215,7 @@
             <div class="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-16 text-center text-slate-500">
                 <i class="fas fa-inbox text-4xl text-slate-300"></i>
                 <p class="mt-4 text-lg font-semibold text-slate-700">No hay sugerencias para este filtro.</p>
-                <p class="mt-2 text-sm">Cuando el motor detecte eventos de mantenimiento en lavadoras, apareceran aqui para revision humana.</p>
+                <p class="mt-2 text-sm">Cuando el motor detecte eventos de mantenimiento en {{ $modulePluralLabel }}, apareceran aqui para revision humana.</p>
             </div>
         @endforelse
     </div>

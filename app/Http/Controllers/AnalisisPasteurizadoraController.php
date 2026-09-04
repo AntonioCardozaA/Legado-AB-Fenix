@@ -8,12 +8,15 @@ use App\Models\Linea;
 use App\Exports\AnalisisPasteurizadoraExport;
 use App\Services\AnalysisDeletionLogger;
 use App\Services\ImageEvidenceOptimizer;
+use App\Services\Maintenance\PasteurizadoraMaintenanceOrchestrator;
 use App\Services\TendenciaDanosService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Maatwebsite\Excel\Facades\Excel;
+use Throwable;
 
 class AnalisisPasteurizadoraController extends Controller
 {
@@ -788,6 +791,7 @@ class AnalisisPasteurizadoraController extends Controller
         }
 
         $this->sincronizarHistoricoRevisados($analisis);
+        $mensajeIa = $this->procesarMantenimientoAutomaticoSafely($analisis->fresh(['linea', 'usuario']));
 
         $siguienteRevision = AnalisisPasteurizadora::getSiguienteRevisionContexto(
             $validated['linea_id'],
@@ -808,9 +812,15 @@ class AnalisisPasteurizadoraController extends Controller
             $mensaje = 'Analisis registrado correctamente.';
         }
 
-        return redirect()
+        $redirect = redirect()
             ->route($this->routeName('index'), ['linea_id' => $validated['linea_id']])
             ->with('success', $mensaje);
+
+        if ($mensajeIa) {
+            $redirect->with('warning', $mensajeIa);
+        }
+
+        return $redirect;
     }
 
     public function storeQuick(Request $request)
@@ -875,10 +885,17 @@ class AnalisisPasteurizadoraController extends Controller
         }
 
         $this->sincronizarHistoricoRevisados($analisis);
+        $mensajeIa = $this->procesarMantenimientoAutomaticoSafely($analisis->fresh(['linea', 'usuario']));
 
-        return redirect()
+        $redirect = redirect()
             ->route($this->routeName('index'), ['linea_id' => $validated['linea_id']])
             ->with('success', 'Analisis registrado correctamente.');
+
+        if ($mensajeIa) {
+            $redirect->with('warning', $mensajeIa);
+        }
+
+        return $redirect;
     }
 
     private function normalizarRangoFechasQuick(Request $request): void
@@ -971,6 +988,26 @@ class AnalisisPasteurizadoraController extends Controller
             ]);
         }
     }
+
+    private function procesarMantenimientoAutomaticoSafely(AnalisisPasteurizadora $analisis): ?string
+    {
+        try {
+            app(PasteurizadoraMaintenanceOrchestrator::class)->processAnalysis($analisis);
+
+            return null;
+        } catch (Throwable $exception) {
+            Log::warning('El analisis de pasteurizadora se guardo, pero fallo la automatizacion de mantenimiento.', [
+                'analisis_id' => $analisis->id,
+                'linea_id' => $analisis->linea_id,
+                'area' => $analisis->area,
+                'componente' => $analisis->componente,
+                'error' => $exception->getMessage(),
+            ]);
+
+            return 'La sugerencia IA no pudo generarse en este momento; revisa la configuracion SSL/API.';
+        }
+    }
+
     // ============================================================
     // SHOW, EDIT, UPDATE, DELETE
     // ============================================================
@@ -1116,9 +1153,16 @@ class AnalisisPasteurizadoraController extends Controller
             $this->sincronizarHistoricoRevisados($analisis, $componenteAnterior);
         }
 
-        return redirect()
+        $mensajeIa = $this->procesarMantenimientoAutomaticoSafely($analisis->fresh(['linea', 'usuario']));
+
+        $redirect = redirect()
             ->route($this->routeName('index'), ['linea_id' => $analisis->linea_id])
             ->with('success', 'Análisis actualizado correctamente.');
+        if ($mensajeIa) {
+            $redirect->with('warning', $mensajeIa);
+        }
+
+        return $redirect;
     }
 
     public function destroy(Request $request, $id)

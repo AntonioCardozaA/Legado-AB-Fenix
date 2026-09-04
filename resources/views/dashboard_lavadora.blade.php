@@ -3243,7 +3243,6 @@
                 <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                     <div class="text-xs font-extrabold uppercase tracking-[0.18em] text-slate-500">Gasto anual</div>
                     <div class="mt-2 text-3xl font-black text-slate-900">${{ number_format((float) ($lavadoraCostSummary['summary']['year_total'] ?? 0), 2) }}</div>
-                    <div class="mt-2 text-sm text-slate-500">Basado en cambios y actividades registradas en análisis de lavadora.</div>
                 </div>
 
                 <div class="grid gap-3 md:grid-cols-2">

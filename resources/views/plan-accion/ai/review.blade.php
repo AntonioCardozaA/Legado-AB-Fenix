@@ -4,6 +4,16 @@
 
 @section('content')
 @php
+    $module = $module ?? \App\Models\User::MODULE_LAVADORA;
+    $moduleLabel = $moduleLabel ?? 'Lavadora';
+    $operationalPlansRoute = $operationalPlansRoute ?? route('plan-accion.lavadora.index');
+    $routeNames = $routeNames ?? [
+        'index' => 'plan-accion.ai.index',
+        'approve' => 'plan-accion.ai.approve',
+        'reject' => 'plan-accion.ai.reject',
+        'request_information' => 'plan-accion.ai.request-information',
+    ];
+    $componentFallback = $componentFallback ?? 'Cadena de lavadora';
     $actions = old('recommended_actions', $structured['recommended_actions'] ?? []);
     $statusLabels = [
         'pending_review' => 'Pendiente de revision',
@@ -27,21 +37,39 @@
     $currentMaintenanceTypeLabel = $maintenanceTypeLabels[$plan->maintenance_type] ?? ucfirst((string) $plan->maintenance_type);
     $currentStatusLabel = $statusLabels[$plan->estado] ?? ucfirst(str_replace('_', ' ', (string) $plan->estado));
     $requiresManualReview = $plan->estado === 'requires_information';
+    $componentName = data_get($plan->source_metadata, 'component_name')
+        ?? data_get($plan->maintenanceEvent?->context_data, 'component_name')
+        ?? $plan->maintenanceEvent?->componente?->nombre
+        ?? $componentFallback;
+    $metadataRows = [
+        'Area' => $plan->area_pasteurizadora_label,
+        'Modulo' => data_get($plan->source_metadata, 'modulo') ?? data_get($plan->maintenanceEvent?->context_data, 'modulo'),
+        'Piso' => data_get($plan->source_metadata, 'piso_label')
+            ?? data_get($plan->source_metadata, 'piso')
+            ?? data_get($plan->maintenanceEvent?->context_data, 'piso_label')
+            ?? data_get($plan->maintenanceEvent?->context_data, 'piso'),
+        'Nivel' => data_get($plan->source_metadata, 'nivel') ?? data_get($plan->maintenanceEvent?->context_data, 'nivel'),
+        'Lado' => data_get($plan->source_metadata, 'lado_label')
+            ?? data_get($plan->source_metadata, 'lado')
+            ?? data_get($plan->maintenanceEvent?->context_data, 'lado_label')
+            ?? data_get($plan->maintenanceEvent?->context_data, 'lado'),
+        'Componentes revisados' => implode(', ', array_filter((array) (data_get($plan->source_metadata, 'componentes_revisados') ?? data_get($plan->maintenanceEvent?->context_data, 'componentes_revisados', [])))),
+    ];
 @endphp
 
 <div class="mx-auto max-w-7xl space-y-6">
     <div class="rounded-3xl bg-slate-900 px-6 py-6 text-white shadow-xl">
         <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
-                <a href="{{ route('plan-accion.ai.index') }}" class="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm font-semibold text-white/90 transition hover:bg-white/20">
+                <a href="{{ route($routeNames['index']) }}" class="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm font-semibold text-white/90 transition hover:bg-white/20">
                     <i class="fas fa-arrow-left"></i>
                     Volver a sugerencias pendientes
                 </a>
                 <h1 class="mt-4 text-3xl font-black tracking-tight">{{ $plan->actividad }}</h1>
                 <p class="mt-2 text-sm text-slate-300">
-                    {{ $plan->linea?->nombre ?? 'Sin linea' }} ·
-                    {{ $plan->maintenanceEvent?->componente?->nombre ?? 'Cadena de lavadora' }} ·
-                    {{ $currentMaintenanceTypeLabel }}
+                    {{ $plan->linea?->nombre ?? 'Sin linea' }}
+                    &middot; {{ $componentName }}
+                    &middot; {{ $currentMaintenanceTypeLabel }}
                 </p>
             </div>
 
@@ -92,7 +120,7 @@
                     </div>
                 </div>
 
-                <form action="{{ route('plan-accion.ai.approve', ['planAccion' => $plan->id]) }}" method="POST" class="mt-6 space-y-6">
+                <form action="{{ route($routeNames['approve'], ['planAccion' => $plan->id]) }}" method="POST" class="mt-6 space-y-6">
                     @csrf
                     <input type="hidden" name="requires_human_approval" value="1">
 
@@ -124,7 +152,6 @@
                             <label for="suggested_due_date" class="mb-2 block text-sm font-semibold text-slate-700">Fecha sugerida</label>
                             <input id="suggested_due_date" name="suggested_due_date" type="date" value="{{ old('suggested_due_date', $structured['suggested_due_date'] ?? optional($plan->fecha_pcm1)->toDateString()) }}" class="w-full rounded-xl border-slate-300 text-sm focus:border-blue-500 focus:ring-blue-500">
                         </div>
-
                     </div>
 
                     <div class="grid gap-4">
@@ -179,7 +206,7 @@
                             <i class="fas fa-check"></i>
                             Aprobar y publicar
                         </button>
-                        <a href="{{ route('plan-accion.lavadora.index') }}" class="inline-flex items-center gap-2 rounded-xl border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
+                        <a href="{{ $operationalPlansRoute }}" class="inline-flex items-center gap-2 rounded-xl border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
                             <i class="fas fa-list-check"></i>
                             Ir al plan operativo
                         </a>
@@ -198,8 +225,16 @@
                     </div>
                     <div>
                         <p class="text-xs font-bold uppercase tracking-wide text-slate-500">Componente</p>
-                        <p class="mt-1 font-semibold text-slate-950">{{ $plan->maintenanceEvent?->componente?->nombre ?? 'Cadena de lavadora' }}</p>
+                        <p class="mt-1 font-semibold text-slate-950">{{ $componentName }}</p>
                     </div>
+                    @foreach($metadataRows as $label => $value)
+                        @if(filled($value))
+                            <div>
+                                <p class="text-xs font-bold uppercase tracking-wide text-slate-500">{{ $label }}</p>
+                                <p class="mt-1 font-semibold text-slate-950">{{ $value }}</p>
+                            </div>
+                        @endif
+                    @endforeach
                     <div>
                         <p class="text-xs font-bold uppercase tracking-wide text-slate-500">Evento</p>
                         <p class="mt-1 font-semibold text-slate-950">{{ $plan->maintenanceEvent?->title ?? 'Sin titulo' }}</p>
@@ -213,7 +248,7 @@
                     @endif
                     <div>
                         <p class="text-xs font-bold uppercase tracking-wide text-slate-500">Generado por</p>
-                        <p class="mt-1 font-semibold text-slate-950">{{ strtoupper((string) $plan->ai_provider) }} {{ $plan->ai_model ? '· ' . $plan->ai_model : '' }}</p>
+                        <p class="mt-1 font-semibold text-slate-950">{{ strtoupper((string) $plan->ai_provider) }}{{ $plan->ai_model ? ' - ' . $plan->ai_model : '' }}</p>
                     </div>
                     <div>
                         <p class="text-xs font-bold uppercase tracking-wide text-slate-500">Fuente del hallazgo</p>
@@ -231,7 +266,7 @@
 
             <section class="rounded-2xl border border-rose-200 bg-rose-50 p-5 shadow-sm">
                 <h2 class="text-sm font-black uppercase tracking-wide text-rose-800">Rechazar sugerencia</h2>
-                <form action="{{ route('plan-accion.ai.reject', ['planAccion' => $plan->id]) }}" method="POST" class="mt-4 space-y-3">
+                <form action="{{ route($routeNames['reject'], ['planAccion' => $plan->id]) }}" method="POST" class="mt-4 space-y-3">
                     @csrf
                     <textarea name="reason" rows="4" placeholder="Explica por que no debe avanzar esta sugerencia." class="w-full rounded-xl border-rose-200 text-sm focus:border-rose-500 focus:ring-rose-500"></textarea>
                     <button type="submit" class="inline-flex items-center gap-2 rounded-xl bg-rose-600 px-4 py-3 text-sm font-bold text-white transition hover:bg-rose-700">
@@ -243,7 +278,7 @@
 
             <section class="rounded-2xl border border-orange-200 bg-orange-50 p-5 shadow-sm">
                 <h2 class="text-sm font-black uppercase tracking-wide text-orange-800">Solicitar informacion</h2>
-                <form action="{{ route('plan-accion.ai.request-information', ['planAccion' => $plan->id]) }}" method="POST" class="mt-4 space-y-3">
+                <form action="{{ route($routeNames['request_information'], ['planAccion' => $plan->id]) }}" method="POST" class="mt-4 space-y-3">
                     @csrf
                     <textarea name="message" rows="4" placeholder="Indica que dato falta para validar la sugerencia con seguridad." class="w-full rounded-xl border-orange-200 text-sm focus:border-orange-500 focus:ring-orange-500"></textarea>
                     <button type="submit" class="inline-flex items-center gap-2 rounded-xl bg-orange-500 px-4 py-3 text-sm font-bold text-white transition hover:bg-orange-600">

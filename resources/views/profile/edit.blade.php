@@ -34,9 +34,6 @@
                 <div>
                     <p class="text-xs font-bold uppercase tracking-[0.2em] text-blue-700">Cuenta</p>
                     <h1 class="mt-1 text-2xl font-extrabold text-slate-900">Perfil de usuario</h1>
-                    <p class="mt-1 text-sm text-slate-600">
-                        Actualiza tus datos de cuenta y seguridad.
-                    </p>
                 </div>
             </div>
 

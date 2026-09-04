@@ -208,6 +208,30 @@ public function canReviewWasherAiPlans(): bool
         && $this->canAccessModule(self::MODULE_LAVADORA);
 }
 
+public function canReviewPasteurizadoraAiPlans(?string $area = null): bool
+{
+    if (!$this->hasAnyRole(self::elevatedMaintenanceRoles())
+        || !$this->canAccessModule(self::MODULE_PASTEURIZADORA)
+    ) {
+        return false;
+    }
+
+    if ($area !== null && $area !== '') {
+        return $this->canAccessPasteurizadoraArea($area);
+    }
+
+    return true;
+}
+
+public function canReviewAiPlansForModule(string $module, ?string $area = null): bool
+{
+    return match (strtolower($module)) {
+        self::MODULE_LAVADORA => $this->canReviewWasherAiPlans(),
+        self::MODULE_PASTEURIZADORA => $this->canReviewPasteurizadoraAiPlans($area),
+        default => false,
+    };
+}
+
 public function canManageWasherKnowledgeDocuments(): bool
 {
     return $this->hasAnyRole(self::elevatedMaintenanceRoles())

@@ -334,6 +334,22 @@ class NotificationRedirectService
             ];
         }
 
+        if (($data['type'] ?? null) === 'pasteurizadora_ai_plan_pending_review') {
+            if (!$user->canReviewPasteurizadoraAiPlans($plan->area_pasteurizadora)) {
+                return [
+                    'url' => null,
+                    'message' => 'No cuentas con autorizacion para revisar sugerencias generadas por IA.',
+                ];
+            }
+
+            return [
+                'url' => $this->routeIfExists('plan-accion.ai.pasteurizadora.review', [
+                    'planAccion' => $planId,
+                ]),
+                'message' => null,
+            ];
+        }
+
         $parameters = array_filter([
             'tipo' => $tipoEquipo,
             'linea_id' => $plan->linea_id ?? $data['linea_id'] ?? null,
@@ -376,6 +392,13 @@ class NotificationRedirectService
     private function canAccessPlanAction(User $user, PlanAccion $plan, ?string $tipoEquipo): bool
     {
         $tipoEquipo = $tipoEquipo ?: $this->equipmentTypeFromPlan($plan);
+
+        if ($tipoEquipo === User::MODULE_PASTEURIZADORA
+            && $plan->area_pasteurizadora
+            && !$user->canAccessPasteurizadoraArea($plan->area_pasteurizadora)
+        ) {
+            return false;
+        }
 
         return $tipoEquipo !== null && $user->canViewPlanActionType($tipoEquipo);
     }

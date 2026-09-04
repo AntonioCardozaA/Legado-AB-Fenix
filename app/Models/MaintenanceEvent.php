@@ -61,6 +61,8 @@ class MaintenanceEvent extends Model
     {
         return match ($this->source_type) {
             'analisis_lavadora' => route('analisis-lavadora.show', ['analisislavadora' => $this->source_id]),
+            'analisis_pasteurizadora' => route('pasteurizadora.analisis-pasteurizadora.show', ['analisispasteurizadora' => $this->source_id]),
+            'analisis_central_hidraulica' => route('pasteurizadora.central-hidraulica.show', ['analisispasteurizadora' => $this->source_id]),
             'elongacion' => route('elongaciones.show', ['elongacion' => $this->source_id]),
             default => null,
         };

@@ -7,7 +7,6 @@
     <div class="mb-8 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
             <h1 class="text-2xl font-bold text-gray-800 sm:text-3xl">Comparación de ciclos por línea</h1>
-            <p class="text-gray-600 mt-1">Consulta vida útil, proveedor y comportamiento de elongación entre cadenas instaladas en la misma línea.</p>
         </div>
         <a href="{{ route('elongaciones.index') }}" class="inline-flex w-full items-center justify-center gap-2 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition sm:w-fit">
             <i class="fas fa-arrow-left"></i>

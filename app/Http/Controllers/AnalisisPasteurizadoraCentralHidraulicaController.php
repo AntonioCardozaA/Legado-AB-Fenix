@@ -8,13 +8,16 @@ use App\Models\CentralHidraulicaComponente;
 use App\Models\CentralHidraulicaConfiguracion;
 use App\Models\Linea;
 use App\Services\ImageEvidenceOptimizer;
+use App\Services\Maintenance\PasteurizadoraMaintenanceOrchestrator;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use Throwable;
 
 class AnalisisPasteurizadoraCentralHidraulicaController extends Controller
 {
@@ -108,19 +111,25 @@ class AnalisisPasteurizadoraCentralHidraulicaController extends Controller
     public function store(Request $request)
     {
         $analisis = $this->guardarAnalisis($request, AnalisisCentralHidraulica::TIPO_REGISTRO_NORMAL);
+        $mensajeIa = $this->procesarMantenimientoAutomaticoSafely($analisis);
 
-        return redirect()
+        $response = redirect()
             ->route($this->routeName('index'), ['linea_id' => $analisis->linea_id])
             ->with('success', 'Analisis de central hidraulica registrado correctamente.');
+
+        return $mensajeIa ? $response->with('warning', $mensajeIa) : $response;
     }
 
     public function storeQuick(Request $request)
     {
         $analisis = $this->guardarAnalisis($request, AnalisisCentralHidraulica::TIPO_REGISTRO_QUICK);
+        $mensajeIa = $this->procesarMantenimientoAutomaticoSafely($analisis);
 
-        return redirect()
+        $response = redirect()
             ->route($this->routeName('index'), ['linea_id' => $analisis->linea_id])
             ->with('success', 'Revision rapida de central hidraulica registrada correctamente.');
+
+        return $mensajeIa ? $response->with('warning', $mensajeIa) : $response;
     }
 
     public function show($id)
@@ -158,10 +167,13 @@ class AnalisisPasteurizadoraCentralHidraulicaController extends Controller
 
         $analisis->update($payload);
         $this->resolverPendientesPorCambio($analisis);
+        $mensajeIa = $this->procesarMantenimientoAutomaticoSafely($analisis->fresh(['linea', 'configuracion', 'componente', 'usuario']));
 
-        return redirect()
+        $response = redirect()
             ->route($this->routeName('show'), $analisis->id)
             ->with('success', 'Analisis de central hidraulica actualizado correctamente.');
+
+        return $mensajeIa ? $response->with('warning', $mensajeIa) : $response;
     }
 
     public function destroy(Request $request, $id)
@@ -792,6 +804,28 @@ class AnalisisPasteurizadoraCentralHidraulicaController extends Controller
             'componentesCentral' => CentralHidraulicaComponente::activos()->orderBy('orden')->get(),
             'canDeleteAnalysis' => auth()->user()?->canDeletePasteurizadoraAnalysis() ?? false,
         ]);
+    }
+
+    private function procesarMantenimientoAutomaticoSafely(?AnalisisCentralHidraulica $analisis): ?string
+    {
+        if (!$analisis) {
+            return null;
+        }
+
+        try {
+            app(PasteurizadoraMaintenanceOrchestrator::class)->processCentralAnalysis($analisis);
+
+            return null;
+        } catch (Throwable $exception) {
+            Log::warning('No se pudo procesar mantenimiento automatico IA de central hidraulica.', [
+                'analisis_id' => $analisis->id,
+                'linea_id' => $analisis->linea_id,
+                'configuracion_id' => $analisis->configuracion_id,
+                'exception' => $exception->getMessage(),
+            ]);
+
+            return 'La sugerencia IA no pudo generarse en este momento; revisa la configuracion SSL/API.';
+        }
     }
 
     private function routeName(string $name): string

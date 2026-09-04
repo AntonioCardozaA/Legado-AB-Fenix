@@ -31,6 +31,16 @@ class StoreAssistantMessageRequest extends FormRequest
             ])],
             'page_context.section' => ['nullable', 'string', 'max:255'],
             'page_context.entity_label' => ['nullable', 'string', 'max:255'],
+            'page_context.linea_nombre' => ['nullable', 'string', 'max:80'],
+            'page_context.area' => ['nullable', 'string', 'max:80'],
+            'page_context.area_pasteurizadora' => ['nullable', 'string', 'max:80'],
+            'page_context.component_name' => ['nullable', 'string', 'max:160'],
+            'page_context.component_code' => ['nullable', 'string', 'max:80'],
+            'page_context.configuracion_id' => ['nullable', 'integer'],
+            'page_context.modulo' => ['nullable', 'integer'],
+            'page_context.nivel' => ['nullable', 'string', 'max:40'],
+            'page_context.piso' => ['nullable', 'string', 'max:40'],
+            'page_context.lado' => ['nullable', 'string', 'max:40'],
             'page_context.record_id' => ['nullable', 'integer'],
         ];
     }

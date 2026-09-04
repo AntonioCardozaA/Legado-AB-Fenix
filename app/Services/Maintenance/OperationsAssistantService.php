@@ -16,7 +16,8 @@ class OperationsAssistantService
         private readonly AssistantAnalyticsArtifactService $analyticsArtifacts,
         private readonly AssistantKnowledgeSearchService $knowledgeSearch,
         private readonly OperationsPlatformContextService $platformContext,
-        private readonly WasherTechnicalContextRetriever $technicalContext,
+        private readonly WasherTechnicalContextRetriever $washerTechnicalContext,
+        private readonly PasteurizadoraTechnicalContextRetriever $pasteurizadoraTechnicalContext,
         private readonly AiInteractionLogger $interactionLogger
     ) {
     }
@@ -111,7 +112,7 @@ class OperationsAssistantService
             ];
         }
 
-        $technicalContext = $this->technicalContext->forQuestion($question, $safePageContext, $user);
+        $technicalContext = $this->technicalContextForQuestion($question, $safePageContext, $user);
         $knowledge = $this->knowledgeSearch->search($question, $safePageContext, $user);
 
         $payload = [
@@ -194,6 +195,7 @@ class OperationsAssistantService
                 'Priorizar module_insights cuando exista, porque resume comparativos, rankings y estados actuales listos para responder.',
                 'Si module_insights contiene lubrication_lookup o coincidencias de documentos indexados, usarlos antes de concluir que falta informacion.',
                 'Si module_insights contiene refaction_cost_lookup, usarlo como fuente principal para responder costos, SKUs, compatibilidad por linea y refacciones de lavadora.',
+                'Si module_insights contiene pasteurizadora, usarlo para responder sobre planes, hallazgos, recomendaciones, estado actual, modulos, niveles, lados y componentes de pasteurizadora.',
                 'Cuando relevant_context incluya documentos, priorizar fragmentos con document_id, chunk_index y mayor score_breakdown.',
                 'Si la pregunta pide maximos, minimos, ranking o comparativos, usar primero los resumenes comparativos presentes en platform_context.',
                 'Si falta informacion, decirlo claramente sin inventar.',
@@ -214,10 +216,11 @@ class OperationsAssistantService
             'No te limites a la pagina actual si platform_context aporta datos mas amplios y vigentes.',
             'Si existe module_insights, usalo como fuente primaria para rankings, comparativos, tendencias y estado actual de componentes o lineas.',
             'Si la pregunta pide una solucion tecnica, diagnostico o plan de intervencion, usa technical_recommendation_context antes que conocimiento general.',
-            'Respeta el orden de antecedentes: mismo componente/misma lavadora, mismo tipo/misma lavadora, mismo componente en otras lavadoras, fallas similares, manuales/base de conocimiento.',
+            'Respeta el orden de antecedentes del modulo consultado: mismo componente y equipo/posicion, mismo tipo en el mismo equipo, mismo componente en otros equipos, fallas similares, manuales/base de conocimiento.',
             'Separa en la respuesta lo observado en historial, lo encontrado en documentos y lo que recomiendas como inferencia tecnica.',
             'Si module_insights incluye refaction_cost_lookup, tomalo como referencia estructurada valida para responder refacciones, costos unitarios, SKUs, compatibilidad por linea y consumibles de lavadora.',
             'Si module_insights incluye lubrication_lookup, tomalo como una referencia estructurada valida para responder preguntas de aceite, lubricante, litros, SKU y consumibles de lavadora.',
+            'Si module_insights incluye pasteurizadora, usalo para planes de accion, analisis, recomendaciones IA y contexto operativo relacionado con pasteurizadora.',
             'Cuando existan coincidencias de documentos de conocimiento indexados, usalas para complementar o confirmar la respuesta operativa.',
             'Si platform_context ya incluye un ranking, panorama o comparativo actual, respondelo directamente sin decir que faltan datos.',
             'No inventes estados de equipos, costos, responsables ni trabajos ejecutados.',
@@ -246,6 +249,23 @@ class OperationsAssistantService
                 'recent_evidence' => [],
             ];
         }
+    }
+
+    /**
+     * @param  array<string, mixed>  $pageContext
+     * @return array<string, mixed>
+     */
+    private function technicalContextForQuestion(string $question, array $pageContext, User $user): array
+    {
+        $normalized = Str::lower(Str::ascii($question));
+
+        if (($pageContext['module'] ?? null) === User::MODULE_PASTEURIZADORA
+            || $this->targetsPasteurizadora($normalized, ['page_context' => $pageContext])
+        ) {
+            return $this->pasteurizadoraTechnicalContext->forQuestion($question, $pageContext, $user);
+        }
+
+        return $this->washerTechnicalContext->forQuestion($question, $pageContext, $user);
     }
 
     /**
@@ -323,6 +343,22 @@ class OperationsAssistantService
     {
         $normalized = Str::lower(Str::ascii($question));
 
+        if ($this->targetsPasteurizadora($normalized, $platformContext)) {
+            if (($reply = $this->replyForMostDamagedPasteurizadoraComponents($normalized, $platformContext)) !== null) {
+                return $reply;
+            }
+
+            if (($reply = $this->replyForMostDamagedPasteurizadora($normalized, $platformContext)) !== null) {
+                return $reply;
+            }
+
+            if (($reply = $this->replyForSpecificPasteurizadoraComponent($normalized, $platformContext)) !== null) {
+                return $reply;
+            }
+
+            return null;
+        }
+
         if (($reply = $this->replyForHighestElongation($normalized, $platformContext)) !== null) {
             return $reply;
         }
@@ -348,6 +384,176 @@ class OperationsAssistantService
         }
 
         return null;
+    }
+
+    /**
+     * @param  array<string, mixed>  $platformContext
+     * @return array{content: string, metadata: array<string, mixed>}|null
+     */
+    private function replyForMostDamagedPasteurizadoraComponents(string $question, array $platformContext): ?array
+    {
+        if (!str_contains($question, 'component')) {
+            return null;
+        }
+
+        if (str_contains($question, 'cual') || str_contains($question, 'que pasteur')) {
+            return null;
+        }
+
+        if (!(str_contains($question, 'dan') || str_contains($question, 'desgast') || str_contains($question, 'revision'))) {
+            return null;
+        }
+
+        $periods = data_get($platformContext, 'module_insights.pasteurizadora.damage_periods');
+
+        if (!is_array($periods) || $periods === []) {
+            return null;
+        }
+
+        $period = $periods['actual'] ?? $periods['ultimos_30_dias'] ?? reset($periods);
+
+        if (!is_array($period)) {
+            return null;
+        }
+
+        $components = collect($period['top_components'] ?? [])
+            ->take(5)
+            ->map(fn (array $item): string => ($item['componente'] ?? 'Sin componente') . ' (' . (int) ($item['total'] ?? 0) . ')')
+            ->all();
+
+        if ($components === []) {
+            return null;
+        }
+
+        return $this->deterministicResponse(
+            'Los componentes de Pasteurizadora con mas hallazgos problematicos en '
+                . ($period['label'] ?? 'el periodo consultado')
+                . ' son: '
+                . implode(' | ', $components)
+                . '.',
+            array_filter([
+                'Total de hallazgos considerados: ' . (int) ($period['total'] ?? 0) . '.',
+                'Estados incluidos: danado, desgaste moderado/severo y requiere revision.',
+                !empty($period['top_lines']) ? 'Lineas con mas hallazgos: ' . implode(' | ', collect($period['top_lines'])->take(3)->map(fn (array $item): string => ($item['linea'] ?? 'Sin linea') . ' (' . (int) ($item['total'] ?? 0) . ')')->all()) . '.' : null,
+            ]),
+            [
+                'Abre el modulo de Pasteurizadora para revisar los registros fuente antes de ejecutar cambios.',
+            ],
+            [
+                ['type' => 'module_insights', 'reference' => 'pasteurizadora.damage_periods'],
+            ],
+            0.96
+        );
+    }
+
+    /**
+     * @param  array<string, mixed>  $platformContext
+     * @return array{content: string, metadata: array<string, mixed>}|null
+     */
+    private function replyForMostDamagedPasteurizadora(string $question, array $platformContext): ?array
+    {
+        if (!(str_contains($question, 'pasteur') || preg_match('/\bp\s*[-#]?\s*0?\d{1,2}\b/u', $question))) {
+            return null;
+        }
+
+        if (!(str_contains($question, 'dan') || str_contains($question, 'desgast') || str_contains($question, 'revision') || str_contains($question, 'mas'))) {
+            return null;
+        }
+
+        $highestLine = data_get($platformContext, 'module_insights.pasteurizadora.current_damage_by_line.highest_line');
+
+        if (!is_array($highestLine)) {
+            return null;
+        }
+
+        $components = collect($highestLine['top_components'] ?? [])
+            ->take(4)
+            ->map(fn (array $item): string => ($item['componente'] ?? 'Sin componente') . ' (' . (int) ($item['total'] ?? 0) . ')')
+            ->all();
+
+        return $this->deterministicResponse(
+            'La pasteurizadora con mas componentes actualmente en estado problematico es '
+                . ($highestLine['linea'] ?? 'Sin linea')
+                . ', con '
+                . (int) ($highestLine['problematic_components'] ?? 0)
+                . ' hallazgos activos segun el ultimo analisis disponible por componente, modulo, nivel y lado.',
+            array_filter([
+                'Hallazgos criticos dentro de esa pasteurizadora: ' . (int) ($highestLine['critical_components'] ?? 0) . '.',
+                $components !== [] ? 'Componentes mas repetidos: ' . implode(' | ', $components) . '.' : null,
+                isset($highestLine['latest_review_date']) ? 'Ultima revision considerada: ' . $highestLine['latest_review_date'] . '.' : null,
+            ]),
+            [
+                'Revisa las sugerencias IA pendientes de Pasteurizadora si necesitas convertir estos hallazgos en plan operativo.',
+            ],
+            [
+                ['type' => 'module_insights', 'reference' => 'pasteurizadora.current_damage_by_line'],
+            ],
+            0.97
+        );
+    }
+
+    /**
+     * @param  array<string, mixed>  $platformContext
+     * @return array{content: string, metadata: array<string, mixed>}|null
+     */
+    private function replyForSpecificPasteurizadoraComponent(string $question, array $platformContext): ?array
+    {
+        $asksSpecificStatus = str_contains($question, 'como se encuentra')
+            || str_contains($question, 'como esta')
+            || str_contains($question, 'estado')
+            || str_contains($question, 'condicion')
+            || str_contains($question, 'ultimo estado')
+            || str_contains($question, 'revision actual');
+
+        if (!$asksSpecificStatus) {
+            return null;
+        }
+
+        $matches = data_get($platformContext, 'module_insights.pasteurizadora.targeted_component_lookup.matches', []);
+
+        if (!is_array($matches) || $matches === []) {
+            return null;
+        }
+
+        $primary = $matches[0];
+        $secondary = collect($matches)->skip(1)->take(3)->map(function (array $item): string {
+            return implode(' | ', array_filter([
+                $item['linea'] ?? null,
+                $item['componente'] ?? null,
+                isset($item['modulo']) ? 'Modulo ' . $item['modulo'] : null,
+                $item['nivel'] ?? null,
+                $item['lado'] ?? null,
+                $item['estado'] ?? null,
+                $item['fecha_analisis'] ?? null,
+            ]));
+        })->all();
+
+        return $this->deterministicResponse(
+            'El ultimo estado encontrado para '
+                . ($primary['componente'] ?? 'el componente consultado')
+                . ' en '
+                . ($primary['linea'] ?? 'la linea indicada')
+                . (isset($primary['modulo']) ? ', modulo ' . $primary['modulo'] : '')
+                . (!empty($primary['nivel']) ? ', nivel ' . $primary['nivel'] : '')
+                . (!empty($primary['lado']) ? ', lado ' . $primary['lado'] : '')
+                . ' es "'
+                . ($primary['estado'] ?? 'Sin estado')
+                . '", con revision del '
+                . ($primary['fecha_analisis'] ?? 'sin fecha')
+                . '.',
+            array_filter([
+                $primary['actividad'] ? 'Actividad registrada: ' . $primary['actividad'] . '.' : null,
+                isset($primary['evidencias']) ? 'Evidencias registradas: ' . (int) $primary['evidencias'] . '.' : null,
+                $secondary !== [] ? 'Coincidencias adicionales: ' . implode(' || ', $secondary) . '.' : null,
+            ]),
+            [
+                'Valida el registro fuente antes de ejecutar una accion de mantenimiento.',
+            ],
+            [
+                ['type' => 'module_insights', 'reference' => 'pasteurizadora.targeted_component_lookup'],
+            ],
+            0.95
+        );
     }
 
     /**
@@ -997,6 +1203,19 @@ class OperationsAssistantService
     }
 
     /**
+     * @param  array<string, mixed>  $platformContext
+     */
+    private function targetsPasteurizadora(string $normalizedQuestion, array $platformContext = []): bool
+    {
+        if (data_get($platformContext, 'page_context.module') === User::MODULE_PASTEURIZADORA) {
+            return true;
+        }
+
+        return str_contains($normalizedQuestion, 'pasteur')
+            || preg_match('/\bp\s*[-#]?\s*0?\d{1,2}\b/u', $normalizedQuestion) === 1;
+    }
+
+    /**
      * @return array<int, string>
      */
     private function extractLineReferences(string $question): array
@@ -1075,6 +1294,19 @@ class OperationsAssistantService
             'module' => $this->sanitizeModule($pageContext['module'] ?? null),
             'section' => $this->sanitizer->sanitizeText((string) ($pageContext['section'] ?? ''), 180),
             'entity_label' => $this->sanitizer->sanitizeText((string) ($pageContext['entity_label'] ?? ''), 180),
+            'linea_nombre' => $this->sanitizer->sanitizeText((string) ($pageContext['linea_nombre'] ?? ''), 80),
+            'area' => $this->sanitizer->sanitizeText((string) ($pageContext['area'] ?? $pageContext['area_pasteurizadora'] ?? ''), 80),
+            'component_name' => $this->sanitizer->sanitizeText((string) ($pageContext['component_name'] ?? ''), 160),
+            'component_code' => $this->sanitizer->sanitizeText((string) ($pageContext['component_code'] ?? ''), 80),
+            'configuracion_id' => isset($pageContext['configuracion_id']) && is_numeric($pageContext['configuracion_id'])
+                ? (int) $pageContext['configuracion_id']
+                : null,
+            'modulo' => isset($pageContext['modulo']) && is_numeric($pageContext['modulo'])
+                ? (int) $pageContext['modulo']
+                : null,
+            'nivel' => $this->sanitizer->sanitizeText((string) ($pageContext['nivel'] ?? ''), 40),
+            'piso' => $this->sanitizer->sanitizeText((string) ($pageContext['piso'] ?? ''), 40),
+            'lado' => $this->sanitizer->sanitizeText((string) ($pageContext['lado'] ?? ''), 40),
             'record_id' => isset($pageContext['record_id']) && is_numeric($pageContext['record_id'])
                 ? (int) $pageContext['record_id']
                 : null,
