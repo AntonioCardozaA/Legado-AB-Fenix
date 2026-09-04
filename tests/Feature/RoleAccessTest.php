@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Linea;
 use App\Models\PlanAccion;
 use App\Models\User;
+use App\Services\NotificationRecipientService;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Spatie\Permission\Models\Permission;
@@ -365,6 +366,30 @@ class RoleAccessTest extends TestCase
         $this->actingAs($admin)
             ->get(route('admin.costos.index'))
             ->assertForbidden();
+    }
+
+    public function test_custom_permissions_filter_internal_notifications_by_module(): void
+    {
+        $user = $this->userWithRole(User::ROLE_SUPERVISOR);
+        $this->enableCustomPermissions($user, ['ver planes accion']);
+
+        $service = app(NotificationRecipientService::class);
+
+        $planRecipients = $service->getInternalRecipients('plan_accion_due');
+        $elongacionRecipients = $service->getInternalRecipients('elongacion_reminder');
+
+        $this->assertFalse($planRecipients->contains(fn (array $recipient): bool => $recipient['user']->is($user)));
+        $this->assertTrue($elongacionRecipients->contains(fn (array $recipient): bool => $recipient['user']->is($user)));
+    }
+
+    public function test_custom_permissions_can_disable_all_internal_notifications(): void
+    {
+        $user = $this->userWithRole(User::ROLE_SUPERVISOR);
+        $this->enableCustomPermissions($user, ['ver notificaciones']);
+
+        $recipients = app(NotificationRecipientService::class)->getInternalRecipients();
+
+        $this->assertFalse($recipients->contains(fn (array $recipient): bool => $recipient['user']->is($user)));
     }
 
     private function userWithRole(string $role): User

@@ -127,10 +127,6 @@
         word-break: break-word;
     }
 
-    .lavadora-history .history-activity {
-        white-space: pre-wrap;
-    }
-
     .lavadora-history .evidence-tile {
         aspect-ratio: 4 / 3;
         overflow: hidden;
@@ -294,6 +290,7 @@
                         
                         $totalImagenes = count($imagenes);
                         $numeroOrdenEtiqueta = $item->numero_orden ? 'Orden #' . $item->numero_orden : 'Sin orden';
+                        $actividadTexto = trim((string) preg_replace('/\s+/', ' ', (string) $item->actividad));
                     @endphp
 
                     <div class="relative pl-12 sm:pl-16 history-card">
@@ -376,9 +373,7 @@
                                         </div>
                                         <h4 class="text-xs font-semibold text-gray-600 uppercase tracking-wider">Actividad</h4>
                                     </div>
-                                    <div class="history-activity prose prose-sm max-w-none text-gray-700 leading-relaxed pl-2 border-l-4 border-blue-400">
-                                        {{ $item->actividad }}
-                                    </div>
+                                    <div class="history-activity prose prose-sm max-w-none text-gray-700 leading-relaxed pl-2 border-l-4 border-blue-400">{{ $actividadTexto !== '' ? $actividadTexto : 'Sin actividad registrada.' }}</div>
                                 </div>
 
                                 {{-- Sección de imágenes mejorada --}}

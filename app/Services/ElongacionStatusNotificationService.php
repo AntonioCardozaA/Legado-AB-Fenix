@@ -110,7 +110,7 @@ class ElongacionStatusNotificationService
         }
 
         $elongacion->loadMissing('cadenaCiclo');
-        $recipients = $this->notificationRecipientService->getInternalRecipients();
+        $recipients = $this->notificationRecipientService->getInternalRecipients('elongacion_status');
         $result = [
             'recipients' => 0,
             'simulated' => 0,

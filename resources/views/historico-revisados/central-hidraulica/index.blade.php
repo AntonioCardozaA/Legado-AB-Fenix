@@ -529,6 +529,9 @@
         max-height: calc(100dvh - 40px);
         overflow: hidden;
         box-shadow: 0 30px 60px rgba(15, 23, 42, 0.28);
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
     }
 
     .modal-header {
@@ -547,8 +550,11 @@
         font-weight: 800;
         color: #0f172a;
         display: flex;
+        flex-wrap: wrap;
         align-items: center;
         gap: 10px;
+        min-width: 0;
+        line-height: 1.2;
     }
 
     .modal-subtitle {
@@ -562,7 +568,9 @@
     .modal-body {
         padding: 24px;
         overflow-y: auto;
+        overflow-x: hidden;
         max-height: calc(100dvh - 130px);
+        min-height: 0;
     }
 
     .modal-close {
@@ -638,6 +646,10 @@
         cursor: pointer;
         transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
         color: #0f172a;
+        container-name: central-modal-card;
+        container-type: inline-size;
+        min-width: 0;
+        overflow: hidden;
     }
 
     .modal-level-card:nth-child(even) {
@@ -669,6 +681,13 @@
         gap: 12px;
     }
 
+    .modal-level-header > div,
+    .modal-side-header > div,
+    .modal-level-component-head > div,
+    .grafica-linea-header > div {
+        min-width: 0;
+    }
+
     .modal-level-title {
         font-size: 26px;
         font-weight: 800;
@@ -684,10 +703,12 @@
         padding: 8px 12px;
         font-size: 12px;
         font-weight: 700;
+        flex: 0 1 auto;
         max-width: 100%;
         text-align: center;
         white-space: normal;
         color: #1d4ed8;
+        overflow-wrap: anywhere;
     }
 
     .modal-level-section-title {
@@ -702,6 +723,7 @@
     .modal-level-component-progress-meta {
         display: flex;
         justify-content: space-between;
+        flex-wrap: wrap;
         gap: 12px;
         font-size: 13px;
         font-weight: 700;
@@ -732,6 +754,7 @@
         display: flex;
         flex-direction: column;
         gap: 12px;
+        min-width: 0;
     }
 
     .modal-side-title {
@@ -786,6 +809,30 @@
         line-height: 1.45;
         color: #334155;
         font-weight: 600;
+    }
+
+    @container central-modal-card (max-width: 360px) {
+        .modal-level-header,
+        .modal-side-header,
+        .modal-level-component-head {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .modal-level-title {
+            font-size: 20px;
+            line-height: 1.15;
+        }
+
+        .modal-level-badge {
+            align-self: flex-start;
+        }
+
+        .modal-side-block,
+        .modal-level-component {
+            border-radius: 14px;
+            padding: 12px;
+        }
     }
 
     .componente-nombre {
@@ -1099,11 +1146,13 @@
         .modal-content {
             width: 100%;
             max-height: calc(100dvh - 20px);
+            border-radius: 20px;
         }
 
         .modal-body {
             padding: 18px;
             max-height: calc(100dvh - 110px);
+            flex: 1 1 auto;
         }
 
         .lineas-grid,
@@ -1139,6 +1188,33 @@
 
         .modal-overview-value {
             font-size: 20px;
+        }
+
+        .modal-module-overview {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            border-radius: 18px;
+            padding: 16px;
+        }
+
+        .modal-levels-grid {
+            gap: 14px;
+        }
+
+        .modal-level-card {
+            padding: 18px;
+        }
+
+        .modal-level-card:hover {
+            transform: none;
+            box-shadow: none;
+        }
+
+        .modal-level-badge {
+            align-self: flex-start;
+        }
+
+        .modal-side-block {
+            border-radius: 16px;
         }
     }
 
@@ -1212,6 +1288,11 @@
             padding: 16px;
         }
 
+        .modal-content {
+            border-radius: 16px;
+            max-height: calc(100dvh - 16px);
+        }
+
         .modal-header h3 {
             font-size: 18px;
             line-height: 1.2;
@@ -1220,6 +1301,7 @@
 
         .modal-body {
             padding: 14px;
+            max-height: calc(100dvh - 100px);
         }
 
         .grafica-pie-center-value {
@@ -1248,7 +1330,40 @@
         .piso-stats,
         .piso-context-summary,
         .modal-module-overview {
+            grid-template-columns: 1fr;
             gap: 10px;
+        }
+
+        .modal-module-overview {
+            margin-bottom: 14px;
+            padding: 12px;
+            border-radius: 14px;
+        }
+
+        .modal-overview-item,
+        .modal-level-card,
+        .modal-side-block {
+            border-radius: 14px;
+            padding: 12px;
+        }
+
+        .modal-level-card {
+            gap: 12px;
+        }
+
+        .modal-level-sides,
+        .modal-side-components {
+            gap: 10px;
+        }
+
+        .modal-level-progress-meta,
+        .modal-level-component-progress-meta {
+            gap: 6px;
+            line-height: 1.3;
+        }
+
+        .modal-side-title {
+            font-size: 14px;
         }
     }
 </style>
@@ -1446,58 +1561,48 @@
                                         </div>
                                     </div>
 
-                                    <div class="modal-level-sides">
-                                        <div class="modal-level-section-title">Detalle por {{ $config->lado_requerido ? 'lado' : 'piso' }}</div>
-                                        @foreach($contextosComponente as $contexto)
-                                            @php
-                                                $contextoTotal = $contexto['total'] ?? null;
-                                                $contextoRevisado = (int) ($contexto['revisado'] ?? 0);
-                                                $contextoRegistros = (int) ($contexto['registros_count'] ?? 0);
-                                                $contextoPorcentaje = $contextoTotal !== null ? (int) ($contexto['porcentaje'] ?? 0) : 0;
-                                                $contextoColor = $progressColor($contextoPorcentaje);
-                                                $ultimo = $contexto['ultimo'] ?? null;
-                                            @endphp
-                                            <div class="modal-side-block">
-                                                <div class="modal-side-header">
-                                                    <div>
-                                                        <div class="modal-side-title">{{ $contexto['lado_label'] ?? 'Piso completo' }}</div>
-                                                        <div class="modal-side-meta">
-                                                            @if($contextoTotal !== null)
-                                                                Avance {{ $contextoRevisado }}/{{ $contextoTotal }}
-                                                            @else
-                                                                {{ $contextoRegistros }} registros capturados
-                                                            @endif
+                                    @if($config->lado_requerido)
+                                        <div class="modal-level-sides">
+                                            <div class="modal-level-section-title">Detalle por lado</div>
+                                            @foreach($contextosComponente as $contexto)
+                                                @php
+                                                    $contextoTotal = $contexto['total'] ?? null;
+                                                    $contextoRevisado = (int) ($contexto['revisado'] ?? 0);
+                                                    $contextoRegistros = (int) ($contexto['registros_count'] ?? 0);
+                                                    $contextoPorcentaje = $contextoTotal !== null ? (int) ($contexto['porcentaje'] ?? 0) : 0;
+                                                    $contextoColor = $progressColor($contextoPorcentaje);
+                                                @endphp
+                                                <div class="modal-side-block">
+                                                    <div class="modal-side-header">
+                                                        <div>
+                                                            <div class="modal-side-title">{{ $contexto['lado_label'] }}</div>
+                                                            <div class="modal-side-meta">
+                                                                @if($contextoTotal !== null)
+                                                                    Avance {{ $contextoRevisado }}/{{ $contextoTotal }}
+                                                                @else
+                                                                    {{ $contextoRegistros }} registros capturados
+                                                                @endif
+                                                            </div>
                                                         </div>
+                                                        <span class="modal-level-badge">
+                                                            {{ $contextoTotal !== null ? $contextoPorcentaje . '%' : 'Sin total' }}
+                                                        </span>
                                                     </div>
-                                                    <span class="modal-level-badge">
-                                                        {{ $contextoTotal !== null ? $contextoPorcentaje . '%' : 'Sin total' }}
-                                                    </span>
-                                                </div>
 
-                                                @if($contextoTotal !== null)
-                                                    <div class="progress-container" style="height: 18px;">
-                                                        <span class="progress-label">{{ $contextoPorcentaje }}%</span>
-                                                        <div class="progress-bar bg-{{ $contextoColor }}" style="width: {{ $contextoPorcentaje }}%;"></div>
-                                                    </div>
-                                                @else
-                                                    <div class="modal-activity">
-                                                        Cantidad base pendiente por definir.
-                                                    </div>
-                                                @endif
-
-                                                <div class="modal-context-grid">
-                                                    <div class="modal-context-item">
-                                                        <span class="modal-context-label">Ultima fecha</span>
-                                                        <span class="modal-context-value">{{ optional($ultimo?->fecha_analisis)->format('d/m/Y') ?: 'Sin registro' }}</span>
-                                                    </div>
-                                                    <div class="modal-context-item">
-                                                        <span class="modal-context-label">Orden</span>
-                                                        <span class="modal-context-value">{{ $ultimo?->numero_orden ?: 'Sin orden' }}</span>
-                                                    </div>
+                                                    @if($contextoTotal !== null)
+                                                        <div class="progress-container" style="height: 18px;">
+                                                            <span class="progress-label">{{ $contextoPorcentaje }}%</span>
+                                                            <div class="progress-bar bg-{{ $contextoColor }}" style="width: {{ $contextoPorcentaje }}%;"></div>
+                                                        </div>
+                                                    @else
+                                                        <div class="modal-activity">
+                                                            Cantidad base pendiente por definir.
+                                                        </div>
+                                                    @endif
                                                 </div>
-                                            </div>
-                                        @endforeach
-                                    </div>
+                                            @endforeach
+                                        </div>
+                                    @endif
                                 </article>
                             @empty
                                 <div class="empty-state">

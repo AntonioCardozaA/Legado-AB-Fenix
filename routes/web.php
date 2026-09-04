@@ -52,7 +52,7 @@ Route::get('/diagramas-animados', function () {
     return view('diagram-test');
 })->name('diagramas.animados');
 
-Route::middleware(['auth', 'throttle:assistant-chat'])
+Route::middleware(['auth', 'throttle:assistant-chat', 'custom.permission.access'])
     ->prefix('asistente/chat')
     ->name('assistant-chat.')
     ->controller(AssistantChatController::class)
@@ -66,7 +66,8 @@ Route::middleware(['auth', 'throttle:assistant-chat'])
             ->name('artifact');
     });
 
-Route::prefix('lavadoras/diagramas')->name('lavadoras.diagramas.')->group(function () {
+Route::middleware(['auth', 'custom.permission.access'])
+    ->prefix('lavadoras/diagramas')->name('lavadoras.diagramas.')->group(function () {
     Route::redirect('/', '/lavadoras/diagramas/l05-l12-l13')->name('index');
 
     Route::get('/l04-l09', function () {
@@ -296,6 +297,7 @@ Route::prefix('pasteurizadora')->group(function () {
             Route::get('/crear/{linea}', 'createWithLinea')->where('linea', '[0-9]+')->name('create');
             Route::post('/', 'store')->name('store');
             Route::get('/historial', 'historial')->name('historial');
+            Route::get('/historial-del-analisis', 'historialAnalisis')->name('historial-analisis');
 
             Route::get('/{analisisetiquetadora}/editar', 'edit')
                 ->where('analisisetiquetadora', '[0-9]+')

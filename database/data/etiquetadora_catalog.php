@@ -188,8 +188,15 @@ return [
         [
             'grupo' => 'Reductor de transmisión',
             'mecanismo' => 'Reductor de transmisión',
-            'nombre' => 'Tulipa y goma',
-            'cantidades' => ['L-04' => '24*maquina', 'L-05' => '21*maquina', 'L-06' => '48(con goma)*maquina', 'L-10' => '32*maquina', 'L-12' => '32(con goma)*maquina', 'L-13' => '54*maquina'],
+            'nombre' => 'Tulipa',
+            'codigo_nombre' => 'Tulipa y goma',
+            'cantidades' => ['L-04' => '24*maquina', 'L-05' => '21*maquina', 'L-06' => '48*maquina', 'L-10' => '32*maquina', 'L-12' => '32*maquina', 'L-13' => '54*maquina'],
+        ],
+        [
+            'grupo' => 'Reductor de transmisiÃ³n',
+            'mecanismo' => 'Reductor de transmisiÃ³n',
+            'nombre' => 'Goma',
+            'cantidades' => ['L-04' => '24*maquina', 'L-05' => '21*maquina', 'L-06' => '48*maquina', 'L-10' => '32*maquina', 'L-12' => '32*maquina', 'L-13' => '54*maquina'],
         ],
         [
             'grupo' => 'Reductor de transmisión',

@@ -23,26 +23,40 @@ class AnalisisEtiquetadoraController extends Controller
     public function index(Request $request)
     {
         $lineas = $this->lineasEtiquetadora();
-        $lineaSeleccionada = $request->filled('linea_id') && $request->linea_id !== 'todas'
+        $lineaFiltroSolicitada = $request->filled('linea_id') && $request->linea_id !== 'todas';
+        $lineaSeleccionada = $lineaFiltroSolicitada
             ? $lineas->firstWhere('id', (int) $request->linea_id)
-            : null;
+            : $lineas->first();
+        abort_if($lineaFiltroSolicitada && !$lineaSeleccionada, 404);
 
-        $catalogoQuery = $this->catalogoBase();
+        $lineaIds = $lineas->pluck('id');
+        $lineaNombres = $lineas->pluck('nombre');
+
+        $catalogoQuery = $this->catalogoBase()
+            ->whereIn('linea', $lineaNombres);
         $analisisQuery = AnalisisEtiquetadora::with(['linea', 'componente', 'usuario'])
+            ->whereIn('linea_id', $lineaIds)
+            ->whereHas('componente', fn ($query) => $query
+                ->where('tipo_equipo', EtiquetadoraCatalog::TIPO_EQUIPO)
+                ->where('activo', true)
+                ->whereIn('linea', $lineaNombres))
             ->orderByDesc('fecha_analisis')
             ->orderByDesc('created_at');
 
         if ($lineaSeleccionada) {
             $catalogoQuery->where('linea', $lineaSeleccionada->nombre);
-            $analisisQuery->where('linea_id', $lineaSeleccionada->id);
-        } else {
-            $analisisQuery->whereIn('linea_id', $lineas->pluck('id'));
+            $analisisQuery
+                ->where('linea_id', $lineaSeleccionada->id)
+                ->whereHas('componente', fn ($query) => $query->where('linea', $lineaSeleccionada->nombre));
         }
 
         if ($request->filled('maquina')) {
-            $maquinaLabel = EtiquetadoraCatalog::maquinaLabel($request->maquina);
+            $maquina = strtoupper((string) $request->maquina);
+            $maquinaLabel = EtiquetadoraCatalog::maquinaLabel($maquina);
             $catalogoQuery->where('reductor', $maquinaLabel);
-            $analisisQuery->where('maquina', strtoupper($request->maquina));
+            $analisisQuery
+                ->where('maquina', $maquina)
+                ->whereHas('componente', fn ($query) => $query->where('reductor', $maquinaLabel));
         }
 
         if ($request->filled('grupo')) {
@@ -72,14 +86,27 @@ class AnalisisEtiquetadoraController extends Controller
             });
         }
 
-        $catalogo = $catalogoQuery->get();
-        $analisis = $analisisQuery->get();
+        $catalogo = $this->catalogoAplicable($catalogoQuery);
+        $analisis = $analisisQuery->get()
+            ->filter(fn (AnalisisEtiquetadora $registro): bool => $this->analisisPerteneceACatalogoEtiquetadora($registro))
+            ->values();
 
         $ultimos = AnalisisEtiquetadora::ultimosPorComponente()
             ->with(['linea', 'componente', 'usuario'])
-            ->whereIn('linea_id', $lineas->pluck('id'))
-            ->when($lineaSeleccionada, fn ($query) => $query->where('linea_id', $lineaSeleccionada->id))
-            ->when($request->filled('maquina'), fn ($query) => $query->where('maquina', strtoupper($request->maquina)))
+            ->whereIn('linea_id', $lineaIds)
+            ->whereHas('componente', fn ($query) => $query
+                ->where('tipo_equipo', EtiquetadoraCatalog::TIPO_EQUIPO)
+                ->where('activo', true)
+                ->whereIn('linea', $lineaNombres))
+            ->when($lineaSeleccionada, fn ($query) => $query
+                ->where('linea_id', $lineaSeleccionada->id)
+                ->whereHas('componente', fn ($subQuery) => $subQuery->where('linea', $lineaSeleccionada->nombre)))
+            ->when($request->filled('maquina'), function ($query) use ($request): void {
+                $maquina = strtoupper((string) $request->maquina);
+                $query
+                    ->where('maquina', $maquina)
+                    ->whereHas('componente', fn ($subQuery) => $subQuery->where('reductor', EtiquetadoraCatalog::maquinaLabel($maquina)));
+            })
             ->when($request->filled('grupo'), fn ($query) => $query->whereHas('componente', fn ($subQuery) => $subQuery->where('grupo', $request->grupo)))
             ->when($request->filled('componente_id'), fn ($query) => $query->where('componente_id', $request->componente_id))
             ->when($request->filled('componente') && !$request->filled('componente_id'), function ($query) use ($request): void {
@@ -89,20 +116,21 @@ class AnalisisEtiquetadoraController extends Controller
                 });
             })
             ->get()
+            ->filter(fn (AnalisisEtiquetadora $registro): bool => $this->analisisPerteneceACatalogoEtiquetadora($registro))
             ->keyBy('componente_id');
 
         $estadisticas = $this->estadisticas($catalogo, $ultimos);
         $matriz = $this->matrizCatalogo($catalogo, $ultimos);
         $tablaLineas = $this->tablaIndustrial($catalogo, $analisis, $lineas, $request->input('maquina'));
-        $estadoModalItems = $this->itemsPorEstado($ultimos->values());
+        $estadoModalItems = $this->itemsPorEstado($ultimos->values(), $analisis);
         $openAnalysisData = $this->modalPayloadForAnalysisId($request->input('open_analysis_id'));
 
         return view('etiquetadora.analisis-etiquetadora.index', [
             'lineas' => $lineas,
             'lineaSeleccionada' => $lineaSeleccionada,
             'maquinas' => EtiquetadoraCatalog::maquinas(),
-            'grupos' => $this->gruposCatalogo(),
-            'todosComponentes' => $this->componentesFiltroCatalogo(),
+            'grupos' => $this->gruposCatalogo($lineaSeleccionada),
+            'todosComponentes' => $this->componentesFiltroCatalogo($lineaSeleccionada),
             'catalogo' => $catalogo,
             'matriz' => $matriz,
             'tablaLineas' => $tablaLineas,
@@ -130,9 +158,10 @@ class AnalisisEtiquetadoraController extends Controller
 
         $maquinaSeleccionada = strtoupper((string) $request->query('maquina', ''));
         $componenteSeleccionado = $request->query('componente_id');
-        $componentes = $this->catalogoBase()
-            ->where('linea', $linea->nombre)
-            ->get()
+        $componentes = $this->catalogoAplicable(
+            $this->catalogoBase()
+                ->where('linea', $linea->nombre)
+        )
             ->groupBy('reductor');
         $estadoCiclosComponentes = $this->estadoCiclosComponentesParaLinea($linea, $componentes->flatten(1));
 
@@ -149,7 +178,7 @@ class AnalisisEtiquetadoraController extends Controller
 
     public function store(Request $request)
     {
-        $validator = Validator::make($request->all(), $this->rules());
+        $validator = Validator::make($request->all(), $this->rules(), $this->validationMessages());
 
         if ($validator->fails()) {
             return back()->withErrors($validator)->withInput();
@@ -219,10 +248,11 @@ class AnalisisEtiquetadoraController extends Controller
     public function edit(AnalisisEtiquetadora $analisisetiquetadora)
     {
         $analisisetiquetadora->load(['linea', 'componente', 'usuario']);
-        $componentes = $this->catalogoBase()
-            ->where('linea', $analisisetiquetadora->linea?->nombre)
-            ->where('reductor', EtiquetadoraCatalog::maquinaLabel($analisisetiquetadora->maquina))
-            ->get()
+        $componentes = $this->catalogoAplicable(
+            $this->catalogoBase()
+                ->where('linea', $analisisetiquetadora->linea?->nombre)
+                ->where('reductor', EtiquetadoraCatalog::maquinaLabel($analisisetiquetadora->maquina))
+        )
             ->groupBy('reductor');
         $estadoCiclosComponentes = $this->estadoCiclosComponentesParaLinea(
             $analisisetiquetadora->linea,
@@ -246,7 +276,7 @@ class AnalisisEtiquetadoraController extends Controller
     {
         $rules = $this->rules();
         $rules['fecha_analisis'] = ['required', 'date', 'date_format:Y-m-d'];
-        $validator = Validator::make($request->all(), $rules);
+        $validator = Validator::make($request->all(), $rules, $this->validationMessages());
 
         if ($validator->fails()) {
             return back()->withErrors($validator)->withInput();
@@ -328,13 +358,30 @@ class AnalisisEtiquetadoraController extends Controller
 
     public function historial(Request $request)
     {
+        $maquinaSolicitada = strtoupper(trim((string) $request->input('maquina', '')));
+        if ($maquinaSolicitada !== '') {
+            $request->merge(['maquina' => $maquinaSolicitada]);
+        }
+
+        $lineasEtiquetadora = $this->lineasEtiquetadora();
+        $lineaPorDefecto = $lineasEtiquetadora->first();
+        $lineaSolicitada = $request->input('linea_id');
+        $lineaIds = $lineasEtiquetadora->pluck('id');
+        $lineaNombres = $lineasEtiquetadora->pluck('nombre');
+
+        if (($lineaSolicitada === null || $lineaSolicitada === '' || $lineaSolicitada === 'todas') && $lineaPorDefecto) {
+            return redirect()->route('analisis-etiquetadora.historial', array_merge(
+                $request->except(['linea_id', 'page']),
+                ['linea_id' => $lineaPorDefecto->id]
+            ));
+        }
+
         $request->validate([
             'linea_id' => 'nullable|exists:lineas,id',
             'componente_id' => 'nullable|exists:componentes,id',
             'maquina' => ['nullable', Rule::in(EtiquetadoraCatalog::maquinas())],
         ]);
 
-        $lineasEtiquetadora = $this->lineasEtiquetadora();
         $lineaSeleccionada = $request->filled('linea_id')
             ? $lineasEtiquetadora->firstWhere('id', (int) $request->linea_id)
             : null;
@@ -342,20 +389,32 @@ class AnalisisEtiquetadoraController extends Controller
         abort_if($request->filled('linea_id') && !$lineaSeleccionada, 404);
 
         $catalogoQuery = $this->catalogoBase()
-            ->whereIn('linea', $lineasEtiquetadora->pluck('nombre'));
+            ->whereIn('linea', $lineaNombres);
 
         $historicoQuery = AnalisisEtiquetadora::with(['linea', 'componente', 'usuario'])
-            ->whereIn('linea_id', $lineasEtiquetadora->pluck('id'));
+            ->whereIn('linea_id', $lineaIds)
+            ->whereHas('componente', fn ($query) => $query
+                ->where('tipo_equipo', EtiquetadoraCatalog::TIPO_EQUIPO)
+                ->where('activo', true)
+                ->whereIn('linea', $lineaNombres));
 
         $query = AnalisisEtiquetadora::with(['linea', 'componente', 'usuario'])
-            ->whereIn('linea_id', $lineasEtiquetadora->pluck('id'))
+            ->whereIn('linea_id', $lineaIds)
+            ->whereHas('componente', fn ($query) => $query
+                ->where('tipo_equipo', EtiquetadoraCatalog::TIPO_EQUIPO)
+                ->where('activo', true)
+                ->whereIn('linea', $lineaNombres))
             ->orderByDesc('fecha_analisis')
             ->orderByDesc('created_at');
 
         if ($lineaSeleccionada) {
-            $query->where('linea_id', $request->linea_id);
+            $query
+                ->where('linea_id', $request->linea_id)
+                ->whereHas('componente', fn ($subQuery) => $subQuery->where('linea', $lineaSeleccionada->nombre));
             $catalogoQuery->where('linea', $lineaSeleccionada->nombre);
-            $historicoQuery->where('linea_id', $lineaSeleccionada->id);
+            $historicoQuery
+                ->where('linea_id', $lineaSeleccionada->id)
+                ->whereHas('componente', fn ($subQuery) => $subQuery->where('linea', $lineaSeleccionada->nombre));
         }
 
         if ($request->filled('componente_id')) {
@@ -366,23 +425,81 @@ class AnalisisEtiquetadoraController extends Controller
 
         if ($request->filled('maquina')) {
             $maquina = strtoupper($request->maquina);
+            $maquinaLabel = EtiquetadoraCatalog::maquinaLabel($maquina);
 
-            $query->where('maquina', $maquina);
-            $catalogoQuery->where('reductor', EtiquetadoraCatalog::maquinaLabel($maquina));
-            $historicoQuery->where('maquina', $maquina);
+            $query
+                ->where('maquina', $maquina)
+                ->whereHas('componente', fn ($subQuery) => $subQuery->where('reductor', $maquinaLabel));
+            $catalogoQuery->where('reductor', $maquinaLabel);
+            $historicoQuery
+                ->where('maquina', $maquina)
+                ->whereHas('componente', fn ($subQuery) => $subQuery->where('reductor', $maquinaLabel));
         }
 
+        $catalogo = $this->catalogoAplicable($catalogoQuery);
+        $analisisHistorico = $historicoQuery->get()
+            ->filter(fn (AnalisisEtiquetadora $registro): bool => $this->analisisPerteneceACatalogoEtiquetadora($registro))
+            ->values();
+        $analisis = $query->get()
+            ->filter(fn (AnalisisEtiquetadora $registro): bool => $this->analisisPerteneceACatalogoEtiquetadora($registro))
+            ->values();
+
         $historico = $this->historicoRevisadosEtiquetadora(
-            $catalogoQuery->get(),
-            $historicoQuery->get()
+            $catalogo,
+            $analisisHistorico
         );
 
         return view('etiquetadora.analisis-etiquetadora.historial', [
-            'analisis' => $query->paginate(20)->withQueryString(),
+            'analisis' => $analisis,
             'lineasEtiquetadora' => $lineasEtiquetadora,
             'maquinasEtiquetadora' => EtiquetadoraCatalog::maquinas(),
+            'lineaSeleccionada' => $lineaSeleccionada,
             'estadisticasHistorico' => $historico['estadisticas'],
             'resumenHistorico' => $historico['resumen'],
+        ]);
+    }
+
+    public function historialAnalisis(Request $request)
+    {
+        $request->merge([
+            'maquina' => strtoupper(trim((string) $request->input('maquina', ''))),
+        ]);
+
+        $request->validate([
+            'linea_id' => 'required|exists:lineas,id',
+            'componente_id' => 'required|exists:componentes,id',
+            'maquina' => ['required', Rule::in(EtiquetadoraCatalog::maquinas())],
+        ]);
+
+        $linea = $this->lineasEtiquetadora()
+            ->firstWhere('id', (int) $request->input('linea_id'));
+
+        abort_if(!$linea, 404);
+
+        $componente = $this->validarComponenteCatalogo(
+            $linea,
+            $request->input('componente_id'),
+            (string) $request->input('maquina')
+        );
+
+        abort_if(!$componente, 404);
+
+        $analisis = AnalisisEtiquetadora::with(['linea', 'componente', 'usuario'])
+            ->where('linea_id', $linea->id)
+            ->where('componente_id', $componente->id)
+            ->where('maquina', $request->input('maquina'))
+            ->orderByDesc('fecha_analisis')
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->paginate(10)
+            ->withQueryString();
+
+        return view('etiquetadora.analisis-etiquetadora.historial-analisis', [
+            'analisis' => $analisis,
+            'linea' => $linea,
+            'componente' => $componente,
+            'maquina' => $request->input('maquina'),
+            'maquinaLabel' => EtiquetadoraCatalog::maquinaLabel((string) $request->input('maquina')),
         ]);
     }
 
@@ -447,10 +564,11 @@ class AnalisisEtiquetadoraController extends Controller
 
         $maquina = $request->filled('maquina') ? strtoupper((string) $request->maquina) : null;
 
-        $componentes = $this->catalogoBase()
-            ->where('linea', $linea->nombre)
-            ->when($maquina, fn ($query) => $query->where('reductor', EtiquetadoraCatalog::maquinaLabel($maquina)))
-            ->get()
+        $componentes = $this->catalogoAplicable(
+            $this->catalogoBase()
+                ->where('linea', $linea->nombre)
+                ->when($maquina, fn ($query) => $query->where('reductor', EtiquetadoraCatalog::maquinaLabel($maquina)))
+        )
             ->map(fn (Componente $componente) => [
                 'id' => $componente->id,
                 'codigo' => $componente->codigo,
@@ -471,16 +589,18 @@ class AnalisisEtiquetadoraController extends Controller
         abort_unless(in_array($linea->nombre, EtiquetadoraCatalog::lineas(), true), 404);
 
         $maquina = $request->filled('maquina') ? strtoupper((string) $request->maquina) : null;
-        $catalogo = $this->catalogoBase()
-            ->where('linea', $linea->nombre)
-            ->when($maquina, fn ($query) => $query->where('reductor', EtiquetadoraCatalog::maquinaLabel($maquina)))
-            ->get();
+        $catalogo = $this->catalogoAplicable(
+            $this->catalogoBase()
+                ->where('linea', $linea->nombre)
+                ->when($maquina, fn ($query) => $query->where('reductor', EtiquetadoraCatalog::maquinaLabel($maquina)))
+        );
 
         $ultimos = AnalisisEtiquetadora::ultimosPorComponente()
             ->with(['linea', 'componente', 'usuario'])
             ->where('linea_id', $linea->id)
             ->when($maquina, fn ($query) => $query->where('maquina', $maquina))
             ->get()
+            ->filter(fn (AnalisisEtiquetadora $registro): bool => $this->analisisPerteneceACatalogoEtiquetadora($registro, $linea->nombre))
             ->keyBy('componente_id');
 
         return response()->json([
@@ -500,6 +620,10 @@ class AnalisisEtiquetadoraController extends Controller
             ->find($id);
 
         if (!$registro) {
+            return null;
+        }
+
+        if (!$this->analisisPerteneceACatalogoEtiquetadora($registro)) {
             return null;
         }
 
@@ -560,7 +684,7 @@ class AnalisisEtiquetadoraController extends Controller
             'total_historial' => $totalHistorial,
             'edit_url' => route('analisis-etiquetadora.edit', ['analisisetiquetadora' => $registroVisible->id], false),
             'delete_url' => $canDeleteAnalysis ? route('analisis-etiquetadora.destroy', ['analisisetiquetadora' => $registroVisible->id], false) : null,
-            'historial_url' => route('analisis-etiquetadora.historial', [
+            'historial_url' => route('analisis-etiquetadora.historial-analisis', [
                 'linea_id' => $registroVisible->linea_id,
                 'componente_id' => $registroVisible->componente_id,
                 'maquina' => $registroVisible->maquina,
@@ -580,6 +704,7 @@ class AnalisisEtiquetadoraController extends Controller
 
         return $catalogo
             ->groupBy('linea')
+            ->filter(fn ($catalogoLinea, string $lineaNombre) => $lineasPorNombre->has($lineaNombre))
             ->map(function ($catalogoLinea, string $lineaNombre) use ($lineasPorNombre, $analisisPorLinea, $maquinas): array {
                 $linea = $lineasPorNombre->get($lineaNombre);
 
@@ -614,7 +739,11 @@ class AnalisisEtiquetadoraController extends Controller
 
                 $registros = [];
                 $estadoCiclos = [];
-                $analisisLinea = $linea ? collect($analisisPorLinea->get($linea->id, collect())) : collect();
+                $analisisLinea = $linea
+                    ? collect($analisisPorLinea->get($linea->id, collect()))
+                        ->filter(fn (AnalisisEtiquetadora $registro): bool => $this->analisisPerteneceACatalogoEtiquetadora($registro, $lineaNombre))
+                        ->values()
+                    : collect();
 
                 foreach ($analisisLinea as $registro) {
                     if (!$registro->componente) {
@@ -735,7 +864,7 @@ class AnalisisEtiquetadoraController extends Controller
             ->all();
     }
 
-    private function itemsPorEstado($registros): array
+    private function itemsPorEstado($registros, $analisis = null): array
     {
         $items = [
             'total' => [],
@@ -746,15 +875,70 @@ class AnalisisEtiquetadoraController extends Controller
             'cambiado' => [],
         ];
 
+        $registrosPorCiclo = collect($analisis ?? $registros)
+            ->filter(fn ($registro): bool => $registro instanceof AnalisisEtiquetadora)
+            ->groupBy(fn (AnalisisEtiquetadora $registro): string => $this->claveCicloEtiquetadora($registro));
+
         foreach ($registros as $registro) {
+            if (!$registro instanceof AnalisisEtiquetadora) {
+                continue;
+            }
+
+            $componente = $registro->componente;
+            $lineaNombre = $registro->linea->nombre ?? 'Sin linea';
+            $maquina = strtoupper((string) ($registro->maquina ?: $this->maquinaDesdeEtiqueta($registro->reductor)));
+            $totalComponentes = max(1, (int) ($registro->total_componentes ?: ($componente?->cantidad_total ?? 1)));
+            $registrosCiclo = collect($registrosPorCiclo->get($this->claveCicloEtiquetadora($registro), collect()));
+
+            if ($registrosCiclo->isEmpty()) {
+                $registrosCiclo = collect([$registro]);
+            }
+
+            $resumenCiclo = AnalisisEtiquetadora::buildResumenCicloPiezas(
+                $registrosCiclo,
+                $totalComponentes
+            );
+            $resumenVisible = $resumenCiclo['resumen_visible'];
+            $imagenes = $registro->evidencia_fotos ?? [];
+
+            if (is_string($imagenes)) {
+                $imagenes = json_decode($imagenes, true) ?? [];
+            }
+
+            if (!is_array($imagenes)) {
+                $imagenes = [];
+            }
+
             $item = [
                 'id' => $registro->id,
-                'linea' => $registro->linea->nombre ?? 'Sin linea',
-                'componente' => $registro->componente->nombre ?? 'Sin componente',
-                'reductor' => $registro->reductor ?: EtiquetadoraCatalog::maquinaLabel((string) $registro->maquina),
-                'maquina' => $registro->maquina,
-                'estado' => $registro->estado,
+                'linea' => $lineaNombre,
+                'componente' => $componente->nombre ?? 'Sin componente',
+                'componente_codigo' => $componente->codigo ?? $registro->componente_id,
+                'grupo' => $this->grupoVisibleEtiquetadora($componente?->grupo, $lineaNombre, $componente?->nombre),
+                'mecanismo' => filled($componente?->mecanismo) && $componente?->mecanismo !== $componente?->grupo
+                    ? $componente?->mecanismo
+                    : null,
+                'reductor' => $registro->reductor ?: EtiquetadoraCatalog::maquinaLabel($maquina),
+                'maquina' => $maquina,
+                'maquina_label' => $maquina !== '' ? EtiquetadoraCatalog::maquinaLabel($maquina) : ($registro->reductor ?: 'Sin maquina'),
+                'estado' => $registro->estado ?? AnalisisEtiquetadora::ESTADO_BUENO,
                 'fecha' => $registro->fecha_analisis ? $registro->fecha_analisis->format('d/m/Y') : '-',
+                'numero_orden' => $registro->numero_orden ?: null,
+                'usuario_nombre' => $registro->usuario?->name ?? 'Usuario no registrado',
+                'actividad' => $registro->actividad ?: null,
+                'imagenes_count' => count(array_filter($imagenes)),
+                'total_componentes' => $resumenVisible['total_componentes'],
+                'cantidad_componentes_revisados' => $resumenVisible['cantidad_revisada'],
+                'cantidad_componentes_pendientes' => $resumenVisible['cantidad_pendiente'],
+                'componentes_revisados' => $resumenVisible['piezas_revisadas'],
+                'componentes_pendientes' => $resumenVisible['piezas_pendientes'],
+                'tiene_ciclo_activo' => $resumenCiclo['tiene_ciclo_activo'],
+                'edit_url' => route('analisis-etiquetadora.edit', ['analisisetiquetadora' => $registro->id], false),
+                'historial_url' => route('analisis-etiquetadora.historial-analisis', [
+                    'linea_id' => $registro->linea_id,
+                    'componente_id' => $registro->componente_id,
+                    'maquina' => $maquina,
+                ], false),
             ];
 
             $bucket = $this->estadoBucket($registro->estado);
@@ -765,21 +949,125 @@ class AnalisisEtiquetadoraController extends Controller
         return $items;
     }
 
-    private function componentesFiltroCatalogo()
+    private function claveCicloEtiquetadora(AnalisisEtiquetadora $registro): string
     {
-        return Componente::query()
+        return implode('|', [
+            (string) $registro->linea_id,
+            (string) $registro->componente_id,
+            strtoupper((string) ($registro->maquina ?: $this->maquinaDesdeEtiqueta($registro->reductor))),
+        ]);
+    }
+
+    private function grupoVisibleEtiquetadora(?string $grupo, ?string $lineaNombre = null, ?string $componenteNombre = null): ?string
+    {
+        $grupo = trim((string) $grupo);
+
+        if ($grupo === '') {
+            return null;
+        }
+
+        if (
+            strcasecmp(trim((string) $componenteNombre), 'Platos giratorios') === 0
+            && strcasecmp(rtrim($grupo, ':'), 'PRESENTACION POR LINEAS') === 0
+        ) {
+            return null;
+        }
+
+        $lineaEspecifica = $this->lineaEspecificaDesdeTexto($grupo);
+
+        if ($lineaEspecifica !== null && trim((string) $lineaNombre) === $lineaEspecifica) {
+            $grupo = preg_replace('/^\s*(?:LINEA|L)\s*-?\s*0?[0-9]{1,2}\s*[,:\-]?\s*/i', '', $grupo) ?? $grupo;
+            $grupo = trim($grupo, ' ,:-');
+        }
+
+        return $grupo !== '' ? $grupo : null;
+    }
+
+    private function analisisPerteneceACatalogoEtiquetadora(AnalisisEtiquetadora $registro, ?string $lineaNombre = null): bool
+    {
+        $componente = $registro->componente;
+        $lineaRegistro = $lineaNombre ?: $registro->linea?->nombre;
+
+        if (!$componente || blank($lineaRegistro)) {
+            return false;
+        }
+
+        if ($componente->tipo_equipo !== EtiquetadoraCatalog::TIPO_EQUIPO || !$componente->activo) {
+            return false;
+        }
+
+        if (!$this->componenteCorrespondeALineaEtiquetadora($componente)) {
+            return false;
+        }
+
+        if (trim((string) $componente->linea) !== trim((string) $lineaRegistro)) {
+            return false;
+        }
+
+        $maquinaRegistro = strtoupper((string) ($registro->maquina ?: $this->maquinaDesdeEtiqueta($registro->reductor)));
+        $maquinaComponente = $this->maquinaDesdeEtiqueta($componente->reductor);
+
+        return $maquinaRegistro !== '' && $maquinaRegistro === $maquinaComponente;
+    }
+
+    private function componentesFiltroCatalogo(?Linea $linea = null)
+    {
+        return $this->catalogoAplicable(Componente::query()
             ->where('tipo_equipo', EtiquetadoraCatalog::TIPO_EQUIPO)
             ->where('activo', true)
-            ->whereNotNull('nombre')
-            ->select('nombre')
-            ->distinct()
-            ->orderBy('nombre')
-            ->pluck('nombre', 'nombre');
+            ->whereIn('linea', EtiquetadoraCatalog::lineas())
+            ->when($linea, fn ($query) => $query->where('linea', $linea->nombre))
+            ->whereNotNull('nombre'))
+            ->pluck('nombre')
+            ->filter()
+            ->unique()
+            ->sort()
+            ->values()
+            ->mapWithKeys(fn (string $nombre): array => [$nombre => $nombre]);
+    }
+
+    private function catalogoAplicable($query)
+    {
+        return $query->get()
+            ->filter(fn (Componente $componente): bool => $this->componenteCorrespondeALineaEtiquetadora($componente))
+            ->values();
+    }
+
+    private function componenteCorrespondeALineaEtiquetadora(Componente $componente): bool
+    {
+        $linea = trim((string) $componente->linea);
+
+        if (!in_array($linea, EtiquetadoraCatalog::lineas(), true)) {
+            return false;
+        }
+
+        $maquina = $this->maquinaDesdeEtiqueta($componente->reductor);
+
+        return $maquina !== '';
+    }
+
+    private function lineaEspecificaDesdeTexto(?string $texto): ?string
+    {
+        $valor = strtoupper(trim((string) $texto));
+
+        if ($valor === '') {
+            return null;
+        }
+
+        if (
+            preg_match('/\bLINEA\s*[-,:]?\s*0?([0-9]{1,2})\b/i', $valor, $matches) !== 1
+            && preg_match('/\bL\s*-\s*0?([0-9]{1,2})\b/i', $valor, $matches) !== 1
+        ) {
+            return null;
+        }
+
+        return 'L-' . str_pad((string) ((int) $matches[1]), 2, '0', STR_PAD_LEFT);
     }
 
     private function componenteTablaKey(Componente $componente): string
     {
         return sha1(implode('|', [
+            trim((string) $componente->linea),
             trim((string) $componente->grupo),
             trim((string) $componente->mecanismo),
             trim((string) $componente->nombre),
@@ -840,7 +1128,7 @@ class AnalisisEtiquetadoraController extends Controller
             'componente_id' => ['required', 'exists:componentes,id'],
             'maquina' => ['required', Rule::in(EtiquetadoraCatalog::maquinas())],
             'fecha_analisis' => ['required', 'date'],
-            'numero_orden' => ['required', 'string', 'max:20'],
+            'numero_orden' => ['required', 'string', 'max:8', 'regex:/^\d{1,8}$/'],
             'estado' => ['required', Rule::in(AnalisisEtiquetadora::estados())],
             'actividad' => ['required', 'string'],
             'componentes_revisados' => ['nullable', 'array'],
@@ -849,6 +1137,14 @@ class AnalisisEtiquetadoraController extends Controller
             'evidencia_fotos.*' => $this->evidenciaFotoRules(),
             'eliminar_fotos' => ['nullable', 'array'],
             'eliminar_fotos.*' => ['integer'],
+        ];
+    }
+
+    private function validationMessages(): array
+    {
+        return [
+            'numero_orden.max' => 'El numero de orden debe tener maximo 8 digitos.',
+            'numero_orden.regex' => 'El numero de orden debe contener solo digitos y tener maximo 8 caracteres.',
         ];
     }
 
@@ -915,11 +1211,12 @@ class AnalisisEtiquetadoraController extends Controller
 
     private function validarComponenteCatalogo(Linea $linea, int|string $componenteId, string $maquina): ?Componente
     {
-        return $this->catalogoBase()
-            ->whereKey($componenteId)
-            ->where('linea', $linea->nombre)
-            ->where('reductor', EtiquetadoraCatalog::maquinaLabel($maquina))
-            ->first();
+        return $this->catalogoAplicable(
+            $this->catalogoBase()
+                ->whereKey($componenteId)
+                ->where('linea', $linea->nombre)
+                ->where('reductor', EtiquetadoraCatalog::maquinaLabel($maquina))
+        )->first();
     }
 
     private function estadoCiclosComponentesParaLinea(?Linea $linea, $componentes, ?int $excludeId = null): array
@@ -999,17 +1296,19 @@ class AnalisisEtiquetadoraController extends Controller
             ->get();
     }
 
-    private function gruposCatalogo()
+    private function gruposCatalogo(?Linea $linea = null)
     {
-        return Componente::query()
+        return $this->catalogoAplicable(Componente::query()
             ->where('tipo_equipo', EtiquetadoraCatalog::TIPO_EQUIPO)
             ->where('activo', true)
-            ->whereNotNull('grupo')
-            ->select('grupo')
-            ->distinct()
-            ->orderBy('grupo')
+            ->whereIn('linea', EtiquetadoraCatalog::lineas())
+            ->when($linea, fn ($query) => $query->where('linea', $linea->nombre))
+            ->whereNotNull('grupo'))
             ->pluck('grupo')
             ->filter()
+            ->reject(fn (string $grupo): bool => strcasecmp(rtrim(trim($grupo), ':'), 'PRESENTACION POR LINEAS') === 0)
+            ->unique()
+            ->sort()
             ->values();
     }
 
@@ -1163,6 +1462,8 @@ class AnalisisEtiquetadoraController extends Controller
             'usuario_ultima_revision' => $ultimoRegistro?->usuario?->name,
             'estado_actual' => $ultimoRegistro?->estado,
             'numero_orden_ultima_revision' => $ultimoRegistro?->numero_orden,
+            'ultimo_registro_id' => $ultimoRegistro?->id,
+            'actividad_ultima_revision' => $ultimoRegistro?->actividad,
             'ultimo_registro' => $ultimoRegistro,
         ];
     }

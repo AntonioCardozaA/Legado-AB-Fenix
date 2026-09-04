@@ -170,7 +170,7 @@ class AdminRecordNotificationService
         $payload = $this->buildPayloadForComponentAlert($record);
         $lineaId = $payload['linea_id'] !== null ? (int) $payload['linea_id'] : null;
         $recipients = $this->notificationRecipientService
-            ->getInternalRecipients()
+            ->getInternalRecipients('component_alert')
             ->filter(function (array $recipient) use ($lineaId): bool {
                 /** @var User $user */
                 $user = $recipient['user'];

@@ -16,9 +16,8 @@
     $tablaLineas = $tablaLineas ?? [];
     $estadisticas = $estadisticas ?? [];
     $estadoModalItems = $estadoModalItems ?? [];
-    $lineaFiltro = (string) request('linea_id', 'todas');
-    $lineaFiltro = $lineaFiltro === '' ? 'todas' : $lineaFiltro;
-    $mostrarTodas = $lineaFiltro === 'todas';
+    $lineaSeleccionada = $lineaSeleccionada ?? $lineas->first();
+    $lineaFiltro = (string) ($lineaSeleccionada?->id ?? '');
     $filtrosAvanzadosActivos = request()->hasAny(['maquina', 'grupo', 'componente', 'componente_id', 'fecha', 'estado']);
 @endphp
 
@@ -39,16 +38,6 @@
             </h1>
         </div>
 
-        <div class="create-actions create-actions--end">
-            <a href="{{ route('etiquetadora.dashboard') }}" class="create-action create-action--secondary">
-                <i class="fas fa-gauge-high"></i>
-                Dashboard
-            </a>
-            <a href="{{ route('analisis-etiquetadora.select-linea') }}" class="create-action">
-                <i class="fas fa-plus-circle"></i>
-                Nuevo Analisis
-            </a>
-        </div>
     </div>
 
     @if(session('success'))
@@ -61,12 +50,6 @@
         <div class="lineas-title">
             <i class="fas fa-tags"></i>
             LINEAS DE ETIQUETADORA:
-            <button type="button"
-                    onclick="selectLinea('todas')"
-                    class="linea-item {{ $mostrarTodas ? 'active' : '' }}">
-                <i class="fas fa-globe"></i>
-                Todas
-            </button>
         </div>
 
         <form method="GET" action="{{ route('analisis-etiquetadora.index') }}" id="filterForm">
@@ -99,7 +82,7 @@
                     Aplicar filtros
                 </button>
 
-                <a href="{{ route('analisis-etiquetadora.index', ['linea_id' => 'todas']) }}" class="btn-clear">
+                <a href="{{ route('analisis-etiquetadora.index') }}" class="btn-clear">
                     <i class="fas fa-times"></i>
                     Limpiar
                 </a>
@@ -122,7 +105,12 @@
                         <select name="grupo" class="filter-select">
                             <option value="">Todos los grupos</option>
                             @foreach($grupos as $grupo)
-                                <option value="{{ $grupo }}" @selected(request('grupo') === $grupo)>{{ $grupo }}</option>
+                                @php
+                                    $grupoLabel = trim((string) $grupo);
+                                    $grupoSinLinea = preg_replace('/^\s*(?:LINEA|L)\s*-?\s*0?[0-9]{1,2}\s*[,:\-]?\s*/i', '', $grupoLabel);
+                                    $grupoLabel = trim((string) $grupoSinLinea, ' ,:-') ?: $grupoLabel;
+                                @endphp
+                                <option value="{{ $grupo }}" @selected(request('grupo') === $grupo)>{{ $grupoLabel }}</option>
                             @endforeach
                         </select>
                     </div>
@@ -156,18 +144,35 @@
         </form>
     </div>
 
+    @foreach($tablaLineas as $lineaDiagrama)
+        @php
+            $lineaDiagramaValor = $lineaDiagrama['linea'] ?? null;
+            $lineaDiagramaNombre = $lineaDiagrama['linea_nombre'] ?? ($lineaDiagramaValor->nombre ?? 'Etiquetadora');
+            $componentesDiagrama = collect($lineaDiagrama['componentes'] ?? []);
+            $maquinasDiagrama = collect($lineaDiagrama['maquinas'] ?? []);
+            $analisisDiagramaCount = (int) ($lineaDiagrama['analisis_count'] ?? 0);
+        @endphp
+
+        @if($componentesDiagrama->isNotEmpty() && $maquinasDiagrama->isNotEmpty())
+            @include('etiquetadora.analisis-etiquetadora.partials.proceso-diagrama', [
+                'linea' => $lineaDiagramaValor ?? $lineaDiagramaNombre,
+                'lineaNombre' => $lineaDiagramaNombre,
+                'maquinas' => $maquinasDiagrama,
+                'analisisCount' => $analisisDiagramaCount,
+            ])
+        @endif
+    @endforeach
+
     <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4 mb-6">
-        <button onclick='openEstadoModal("total", "Total analisis", @json($estadoModalItems["total"] ?? []))'
-                class="bg-white rounded-xl shadow-sm p-4 border-t-4 border-gray-600 hover:shadow-lg hover:bg-gray-50 transition-all text-left w-full cursor-pointer group">
+        <div class="bg-white rounded-xl shadow-sm p-4 border-t-4 border-gray-600 text-left w-full">
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Total analisis</p>
                     <h3 class="text-2xl font-bold text-gray-700 mt-1">{{ $estadisticas['total'] ?? 0 }}</h3>
-                    <p class="text-xs text-gray-500 group-hover:text-gray-700 mt-1"><i class="fas fa-eye text-xs"></i> Ver detalles</p>
                 </div>
                 <div class="bg-gray-100 text-gray-600 p-2 rounded-full"><i class="fas fa-chart-line"></i></div>
             </div>
-        </button>
+        </div>
 
         <button onclick='openEstadoModal("buen_estado", "Buen Estado", @json($estadoModalItems["buen_estado"] ?? []))'
                 class="bg-white rounded-xl shadow-sm p-4 border-t-4 border-emerald-600 hover:shadow-lg hover:bg-emerald-50 transition-all text-left w-full cursor-pointer group">
@@ -230,16 +235,6 @@
         </button>
     </div>
 
-
-    @if($mostrarTodas)
-        <div class="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-            <div class="flex items-center gap-3">
-                <i class="fas fa-info-circle text-blue-500 text-xl"></i>
-                <p class="text-blue-700">Vista global de Etiquetadora por linea, Maquina A, Maquina B y Maquina C.</p>
-            </div>
-        </div>
-    @endif
-
     @forelse($tablaLineas as $lineaTabla)
         @include('etiquetadora.analisis-etiquetadora.partials.tabla-industrial', ['lineaTabla' => $lineaTabla])
     @empty
@@ -249,10 +244,6 @@
             </div>
             <h3 class="text-lg font-medium text-gray-700 mb-2">Sistema de Analisis de Componentes</h3>
             <p class="text-gray-500 mb-6">No hay componentes de Etiquetadora para los filtros seleccionados.</p>
-            <a href="{{ route('analisis-etiquetadora.select-linea') }}" class="create-action">
-                <i class="fas fa-plus-circle"></i>
-                Nuevo Analisis
-            </a>
         </div>
     @endforelse
 </div>

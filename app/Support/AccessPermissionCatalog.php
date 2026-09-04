@@ -274,6 +274,28 @@ class AccessPermissionCatalog
                         'label' => 'Gestionar avisos',
                         'description' => 'Marca y verifica.',
                     ],
+                    'usar asistente ia' => [
+                        'label' => 'Asistente IA',
+                        'description' => 'Consulta y usa el asistente operativo.',
+                    ],
+                ],
+            ],
+            'ia_lavadora' => [
+                'label' => 'IA de Lavadora',
+                'description' => 'Planes generados por IA y conocimiento tecnico.',
+                'permissions' => [
+                    'revisar planes ia lavadora' => [
+                        'label' => 'Revisar planes IA',
+                        'description' => 'Aprueba, rechaza o solicita informacion.',
+                    ],
+                    'ver conocimiento lavadora' => [
+                        'label' => 'Ver conocimiento',
+                        'description' => 'Consulta documentos tecnicos.',
+                    ],
+                    'gestionar conocimiento lavadora' => [
+                        'label' => 'Gestionar conocimiento',
+                        'description' => 'Carga, reindexa y administra documentos.',
+                    ],
                 ],
             ],
             'analisis_legacy' => [
@@ -424,6 +446,7 @@ class AccessPermissionCatalog
             ['routes' => ['dashboard.global.lavadoras', 'dashboard.operativo.lavadora', 'dashboard_lavadora', 'lavadora.dashboard', 'api.danos-tendencia'], 'permission' => 'ver dashboard lavadoras'],
             ['routes' => ['dashboard.global.pasteurizadoras', 'dashboard.operativo.pasteurizadora', 'dashboard_pasteurizadora', 'pasteurizadora.dashboard'], 'permission' => 'ver dashboard pasteurizadoras'],
             ['routes' => ['dashboard.global.etiquetadoras', 'dashboard_etiquetadora', 'etiquetadora.dashboard'], 'permission' => 'ver dashboard etiquetadoras'],
+            ['routes' => ['assistant-chat.index', 'assistant-chat.store', 'assistant-chat.destroy', 'assistant-chat.artifact'], 'permission' => 'usar asistente ia'],
 
             ['routes' => ['admin.users.index', 'admin.users.edit'], 'methods' => ['GET'], 'permission' => 'gestionar usuarios'],
             ['routes' => ['admin.users.store', 'admin.users.update', 'admin.users.destroy', 'admin.users.permissions.update'], 'permission' => 'gestionar usuarios'],
@@ -441,7 +464,7 @@ class AccessPermissionCatalog
             ['routes' => ['analisis-lavadora.correccion.update'], 'permission' => User::PERMISSION_CLOSE_LAVADORA_DAMAGE],
             ['routes' => ['analisis-lavadora.destroy'], 'permission' => User::PERMISSION_DELETE_ANALYSIS],
 
-            ['routes' => ['analisis-etiquetadora.index', 'analisis-etiquetadora.historial', 'analisis-etiquetadora.show', 'api.etiquetadora.*'], 'methods' => ['GET'], 'permission' => 'ver analisis etiquetadora'],
+            ['routes' => ['analisis-etiquetadora.index', 'analisis-etiquetadora.historial', 'analisis-etiquetadora.historial-analisis', 'analisis-etiquetadora.show', 'api.etiquetadora.*'], 'methods' => ['GET'], 'permission' => 'ver analisis etiquetadora'],
             ['routes' => ['analisis-etiquetadora.select-linea', 'analisis-etiquetadora.create'], 'methods' => ['GET'], 'permission' => 'crear analisis etiquetadora'],
             ['routes' => ['analisis-etiquetadora.store'], 'permission' => 'crear analisis etiquetadora'],
             ['routes' => ['analisis-etiquetadora.edit', 'analisis-etiquetadora.update', 'analisis-etiquetadora.delete-foto'], 'permission' => 'editar analisis etiquetadora'],
@@ -474,6 +497,10 @@ class AccessPermissionCatalog
             ['routes' => ['plan-accion.store'], 'permission' => 'crear planes accion'],
             ['routes' => ['plan-accion.edit', 'plan-accion.update', 'plan-accion.lavadora.edit', 'plan-accion.lavadora.update', 'plan-accion.notificar', 'plan-accion.notificacion.marcar-leida', 'plan-accion.checklist'], 'permission' => 'editar planes accion'],
             ['routes' => ['plan-accion.destroy', 'plan-accion.lavadora.destroy'], 'permission' => 'eliminar planes accion'],
+            ['routes' => ['plan-accion.ai.index', 'plan-accion.ai.review'], 'methods' => ['GET'], 'permission' => 'revisar planes ia lavadora'],
+            ['routes' => ['plan-accion.ai.approve', 'plan-accion.ai.reject', 'plan-accion.ai.request-information'], 'permission' => 'revisar planes ia lavadora'],
+            ['routes' => ['lavadora.knowledge-documents.index'], 'methods' => ['GET'], 'permission' => 'ver conocimiento lavadora'],
+            ['routes' => ['lavadora.knowledge-documents.create', 'lavadora.knowledge-documents.store', 'lavadora.knowledge-documents.reindex'], 'permission' => 'gestionar conocimiento lavadora'],
 
             ['routes' => ['reportes.index', 'reportes.show*', 'reportes.elongacion', 'reportes.componentes', 'reportes.paros', 'reportes.pasteurizadora'], 'methods' => ['GET'], 'permission' => 'ver reportes'],
             ['routes' => ['reportes.export-*'], 'permission' => 'exportar reportes'],

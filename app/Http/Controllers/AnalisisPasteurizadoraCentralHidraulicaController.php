@@ -613,7 +613,15 @@ class AnalisisPasteurizadoraCentralHidraulicaController extends Controller
 
             foreach (CentralHidraulicaConfiguracion::PISOS as $piso => $pisoLabel) {
                 $componentesPiso = [];
-                $configsPiso = $configuraciones->where('piso', $piso)->values();
+                $configsPiso = $configuraciones
+                    ->where('piso', $piso)
+                    ->sortBy(fn (CentralHidraulicaConfiguracion $config) => sprintf(
+                        '%d-%03d-%06d',
+                        $config->lado_requerido ? 0 : 1,
+                        (int) $config->orden,
+                        (int) $config->id
+                    ))
+                    ->values();
 
                 foreach ($configsPiso as $config) {
                     $contextos = $config->lado_requerido ? array_keys(AnalisisCentralHidraulica::LADOS) : [null];

@@ -21,7 +21,7 @@ class WasherActionPlanReviewNotifier
         $lineaId = $plan->linea_id !== null ? (int) $plan->linea_id : null;
 
         $recipients = $this->notificationRecipientService
-            ->getInternalRecipients()
+            ->getInternalRecipients('washer_ai_plan_pending_review')
             ->filter(function (array $recipient) use ($lineaId): bool {
                 /** @var User $user */
                 $user = $recipient['user'];

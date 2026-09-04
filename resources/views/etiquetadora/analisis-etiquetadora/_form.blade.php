@@ -145,7 +145,10 @@
                    name="numero_orden"
                    value="{{ old('numero_orden', $analisis->numero_orden ?? '') }}"
                    required
-                   maxlength="20"
+                   maxlength="8"
+                   inputmode="numeric"
+                   pattern="[0-9]{1,8}"
+                   title="Maximo 8 digitos"
                    placeholder="Ej: 35221456"
                    class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm @error('numero_orden') border-red-500 @enderror">
             @error('numero_orden') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
@@ -278,6 +281,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const checklistHelp = document.getElementById('componentes-checklist-help');
     const checklistCounter = document.getElementById('componentes-checklist-counter');
     const inputFotos = document.getElementById('evidencia_fotos');
+    const numeroOrden = document.getElementById('numero_orden');
     const previewFotos = document.getElementById('preview_fotos');
     const fotosResumen = document.getElementById('fotos_resumen');
     const fotoInputs = [
@@ -294,6 +298,12 @@ document.addEventListener('DOMContentLoaded', function () {
             .filter((item) => item > 0)
     );
     let checklistComponentValue = @json((string) $selectedComponente);
+
+    if (numeroOrden) {
+        numeroOrden.addEventListener('input', function () {
+            this.value = this.value.replace(/\D/g, '').slice(0, 8);
+        });
+    }
 
     function parseDatasetArray(option, key) {
         if (!option || !option.dataset || !option.dataset[key]) {

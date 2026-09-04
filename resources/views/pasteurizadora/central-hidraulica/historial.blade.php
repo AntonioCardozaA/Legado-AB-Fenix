@@ -111,7 +111,10 @@
         </div>
         <div class="divide-y divide-gray-100">
             @forelse($analisis as $item)
-                @php($badge = $item->estado_badge)
+                @php
+                    $badge = $item->estado_badge;
+                    $actividadTexto = trim((string) preg_replace('/\s+/', ' ', (string) $item->actividad));
+                @endphp
                 <article class="p-5">
                     <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                         <div class="min-w-0">
@@ -131,7 +134,7 @@
                                 @endif
                                 | Cantidad {{ $item->cantidad_display }}
                             </p>
-                            <p class="mt-3 whitespace-pre-wrap text-sm text-gray-700">{{ \Illuminate\Support\Str::limit($item->actividad, 180) }}</p>
+                            <p class="mt-3 text-sm text-gray-700">{{ \Illuminate\Support\Str::limit($actividadTexto !== '' ? $actividadTexto : 'Sin actividad registrada.', 180) }}</p>
                         </div>
                         <div class="create-actions lg:justify-end">
                             <a href="{{ $analisisRoute('show', $item->id) }}" class="create-action create-action--secondary create-action--compact">

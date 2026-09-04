@@ -34,6 +34,8 @@ class ReporteController extends Controller
 
     protected $etiquetadoras = ['L-04','L-05','L-06','L-10','L-12','L-13'];
 
+    private ?array $etiquetadoraCatalogRowsByCode = null;
+
     // Componentes por linea
     protected $componentesPorLinea = LavadoraCatalog::COMPONENTES_POR_LINEA;
 

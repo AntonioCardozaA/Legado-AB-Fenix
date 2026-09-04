@@ -25,6 +25,8 @@ use Carbon\Carbon;
 
 class DashboardController extends Controller
 {
+    private ?array $etiquetadoraCatalogRowsByCode = null;
+
     private const LAVADORA_TREND_COMPONENT_STATES = [
         'danado - requiere cambio',
         'dano - requiere cambio',
@@ -925,7 +927,9 @@ public function pasteurizadoraOperativo(Request $request)
             ->orderBy('reductor')
             ->orderBy('grupo')
             ->orderBy('nombre')
-            ->get();
+            ->get()
+            ->filter(fn (Componente $componente): bool => $this->componenteEtiquetadoraAplicaCatalogo($componente))
+            ->values();
     }
 
     private function getUltimosAnalisisEtiquetadora(Collection $lineas, array $filters = []): Collection
@@ -962,7 +966,9 @@ public function pasteurizadoraOperativo(Request $request)
             })
             ->orderByDesc($baseTable . '.fecha_analisis')
             ->orderByDesc($baseTable . '.id')
-            ->get();
+            ->get()
+            ->filter(fn (AnalisisEtiquetadora $analisis): bool => $this->analisisEtiquetadoraAplicaCatalogo($analisis))
+            ->values();
     }
 
     private function getAnalisisPeriodoEtiquetadora(Collection $lineas, array $filters = []): Collection
@@ -980,7 +986,61 @@ public function pasteurizadoraOperativo(Request $request)
             ->orderByDesc('fecha_analisis')
             ->orderByDesc('created_at')
             ->orderByDesc('id')
-            ->get();
+            ->get()
+            ->filter(fn (AnalisisEtiquetadora $analisis): bool => $this->analisisEtiquetadoraAplicaCatalogo($analisis))
+            ->values();
+    }
+
+    private function componenteEtiquetadoraAplicaCatalogo(Componente $componente): bool
+    {
+        $linea = trim((string) $componente->linea);
+
+        if (!in_array($linea, EtiquetadoraCatalog::lineas(), true)) {
+            return false;
+        }
+
+        $maquina = $this->maquinaDesdeEtiquetaLabel($componente->reductor);
+
+        if ($maquina === '') {
+            return false;
+        }
+
+        $codigo = trim((string) $componente->codigo);
+
+        if (!EtiquetadoraCatalog::isGeneratedComponentCode($codigo)) {
+            return true;
+        }
+
+        $catalogRow = $this->etiquetadoraCatalogRowsByCode()[$codigo] ?? null;
+
+        return $catalogRow !== null
+            && ($catalogRow['linea'] ?? null) === $linea
+            && strtoupper((string) ($catalogRow['maquina'] ?? '')) === $maquina;
+    }
+
+    private function analisisEtiquetadoraAplicaCatalogo(AnalisisEtiquetadora $analisis): bool
+    {
+        if (!$analisis->componente || !$analisis->linea) {
+            return false;
+        }
+
+        if (!$this->componenteEtiquetadoraAplicaCatalogo($analisis->componente)) {
+            return false;
+        }
+
+        if (trim((string) $analisis->componente->linea) !== trim((string) $analisis->linea->nombre)) {
+            return false;
+        }
+
+        $maquinaAnalisis = strtoupper((string) $analisis->maquina);
+        $maquinaComponente = $this->maquinaDesdeEtiquetaLabel($analisis->componente->reductor);
+
+        return $maquinaAnalisis !== '' && $maquinaAnalisis === $maquinaComponente;
+    }
+
+    private function etiquetadoraCatalogRowsByCode(): array
+    {
+        return $this->etiquetadoraCatalogRowsByCode ??= EtiquetadoraCatalog::expandedComponentRowsByCode();
     }
 
     private function applyEtiquetadoraAnalysisFilters($query, array $filters, string $table): void

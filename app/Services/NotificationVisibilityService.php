@@ -51,6 +51,11 @@ class NotificationVisibilityService
         'registro_elongacion',
     ];
 
+    public function __construct(
+        private readonly NotificationRecipientService $notificationRecipientService
+    ) {
+    }
+
     public function notificationsFor(User $user): mixed
     {
         return $this->visibleFor($user, $user->notifications());
@@ -107,6 +112,8 @@ class NotificationVisibilityService
 
     public function visibleFor(User $user, mixed $query): mixed
     {
+        $query = $this->notificationRecipientService->filterQueryForUser($user, $query);
+
         if ($user->hasRole(User::ROLE_ADMIN)) {
             return $query;
         }

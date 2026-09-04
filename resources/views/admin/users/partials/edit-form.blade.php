@@ -13,7 +13,7 @@
     $managedCustomPermissionsEnabled = old('custom_permissions_enabled', $managedUser->usesCustomPermissionAccess() ? '1' : '0') == '1';
 @endphp
 
-<form action="{{ route('admin.users.update', array_merge(['user' => $managedUser], $activeFilters)) }}" method="POST" class="space-y-5">
+<form action="{{ route('admin.users.update', array_merge(['user' => $managedUser], $activeFilters)) }}" method="POST" class="min-w-0 space-y-4">
     @csrf
     @method('PUT')
     <input type="hidden" name="form_context" value="update">
@@ -46,7 +46,7 @@
         </div>
     </div>
 
-    <div class="grid gap-4 lg:grid-cols-2">
+    <div class="grid gap-4 xl:grid-cols-2">
         <div>
             <label class="mb-1 block text-sm font-medium text-gray-700" for="role_{{ $managedUser->id }}">Rol</label>
             @if($isCurrentUser)
@@ -81,7 +81,7 @@
             @endif
         </div>
 
-        <div class="lg:col-span-2">
+        <div class="xl:col-span-2">
             @include('admin.users.partials.permission-groups', [
                 'permissionGroups' => $permissionGroups ?? \App\Models\User::configurablePermissionGroups(),
                 'selectedPermissions' => $managedCustomPermissions,
