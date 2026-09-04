@@ -43,7 +43,7 @@
 
     @if($ultimaMedicion)
         <div class="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-xl text-sm text-blue-900">
-            Última medición: {{ $ultimaMedicion->created_at->format('d/m/Y H:i') }} · Hodómetro {{ $ultimaMedicion->hodometro_formateado ?? 'sin dato' }} · Horas del ciclo {{ $ultimaMedicion->hodometro_ciclo_formateado ?? 'sin dato' }}
+            Última medición: {{ $ultimaMedicion->created_at->format('d/m/Y H:i') }} · Hodómetro {{ $ultimaMedicion->hodometro_formateado ?? 'sin dato' }} · Horas trabajadas {{ $ultimaMedicion->hodometro_ciclo_formateado ?? 'sin dato' }}
         </div>
     @endif
 
@@ -54,7 +54,7 @@
                     <tr>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fecha</th>
                         <th class="px-2 py-3 text-left text-xs font-medium leading-tight text-gray-500 uppercase sm:px-4">Hodómetro</th>
-                        <th class="px-2 py-3 text-left text-xs font-medium leading-tight text-gray-500 uppercase sm:px-4">Horas ciclo</th>
+                        <th class="px-2 py-3 text-left text-xs font-medium leading-tight text-gray-500 uppercase sm:px-4">Horas trabajadas</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Lado Bombas</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Lado Vapor</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Estado</th>
@@ -91,7 +91,7 @@
                             </td>
                             <td class="px-2 py-3 align-top text-sm text-gray-900 sm:px-4">
                                 <div class="min-w-[4.75rem] max-w-[5.75rem] leading-tight sm:min-w-[6rem] sm:max-w-none">
-                                    <span class="block text-[10px] font-semibold uppercase text-gray-400 sm:hidden">Horas ciclo</span>
+                                    <span class="block text-[10px] font-semibold uppercase text-gray-400 sm:hidden">Horas trabajadas</span>
                                     <span class="block break-words font-medium">{{ $elongacion->hodometro_ciclo_formateado ?? '-' }}</span>
                                 </div>
                             </td>

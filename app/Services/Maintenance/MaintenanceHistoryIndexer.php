@@ -688,7 +688,7 @@ class MaintenanceHistoryIndexer
             'Porcentaje lado vapor' => $elongacion->vapor_porcentaje,
             'Promedio lado vapor' => $elongacion->vapor_promedio,
             'Hodometro total' => $elongacion->hodometro,
-            'Hodometro ciclo' => $elongacion->hodometro_ciclo,
+            'Horas trabajadas' => $elongacion->hodometro_ciclo,
             'Juego rodaja bombas' => $elongacion->juego_rodaja_bombas,
             'Juego rodaja vapor' => $elongacion->juego_rodaja_vapor,
             'Ciclo de cadena' => $elongacion->cadenaCiclo?->nombre ?? $elongacion->cadena_ciclo_id,

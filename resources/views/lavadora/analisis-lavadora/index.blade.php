@@ -844,6 +844,16 @@
         padding: 16px 20px;
         border-radius: 12px 12px 0 0;
     }
+
+    .revision-general-action {
+        flex: 0 1 18rem;
+    }
+
+    @media (max-width: 768px) {
+        .revision-general-action {
+            width: 100%;
+        }
+    }
     
     @media (max-width: 768px) {
         .filters-section {
@@ -1487,6 +1497,18 @@
     </div>
 
     {{-- FILTROS ESTILO IMAGEN - CON VER MÁS FUNCIONAL --}}
+    @if(session('success'))
+        <div class="mb-6 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800">
+            {{ session('success') }}
+        </div>
+    @endif
+
+    @if(session('warning'))
+        <div class="mb-6 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800">
+            {{ session('warning') }}
+        </div>
+    @endif
+
     @php
         $lineas = $lineas ?? collect([]);
         $todosComponentes = $todosComponentes ?? [];
@@ -2841,6 +2863,15 @@
                                 </div>
                             </div>
                         </div>
+                        @if(request()->filled('linea_id') && request('linea_id') !== 'todas' && is_object($lineaMostrar) && isset($lineaMostrar->id))
+                            <div class="create-actions create-actions--end">
+                                <a href="{{ route('analisis-lavadora.revision-general.create', ['linea' => $lineaMostrar->id]) }}"
+                                   class="create-action create-action--on-dark revision-general-action">
+                                    <i class="fas fa-clipboard-check"></i>
+                                    Revisión General de Guías y Catarinas
+                                </a>
+                            </div>
+                        @endif
                     </div>
                 </div>
 

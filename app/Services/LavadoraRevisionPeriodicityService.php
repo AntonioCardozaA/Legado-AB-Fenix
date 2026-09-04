@@ -292,6 +292,43 @@ class LavadoraRevisionPeriodicityService
         return $this->identidadKey((int) $analisis->linea_id, $codigoBase, $reductor, $lado);
     }
 
+    public function ubicacionesEsperadasConLado(Linea $linea, string $codigoBase): Collection
+    {
+        if (!$this->componenteRequiereLado($codigoBase)) {
+            return collect();
+        }
+
+        return $this->identidadesEsperadasComponente($linea, $codigoBase)
+            ->map(fn (array $identidad): array => [
+                'key' => $identidad['key'],
+                'reductor' => $identidad['reductor'],
+                'lado' => $identidad['lado'],
+            ])
+            ->values();
+    }
+
+    public function analisisVigente(AnalisisLavadora $analisis, ?CarbonInterface $fechaReferencia = null): bool
+    {
+        $fechaReferencia = $this->normalizarFechaReferencia($fechaReferencia);
+        $codigoBase = $this->codigoBaseAnalisis($analisis);
+
+        if (!$codigoBase || !isset(self::PERIODICIDAD_MESES[$codigoBase])) {
+            return false;
+        }
+
+        $fechaRevision = $this->fechaRevision($analisis);
+
+        if (!$fechaRevision || $this->analisisRestablecido($analisis)) {
+            return false;
+        }
+
+        return $fechaRevision
+            ->copy()
+            ->addMonths(self::PERIODICIDAD_MESES[$codigoBase])
+            ->endOfDay()
+            ->gt($fechaReferencia);
+    }
+
     private function resumenComponenteLinea(
         Linea $linea,
         string $codigoBase,

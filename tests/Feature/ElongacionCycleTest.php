@@ -227,6 +227,64 @@ class ElongacionCycleTest extends TestCase
         $this->assertSame(300, $elongacion->hodometro_ciclo);
     }
 
+    public function test_store_uses_previous_record_hodometer_as_interval_for_hours_worked(): void
+    {
+        $user = User::factory()->create();
+        $linea = $this->crearLinea('L-05');
+        $cicloActivo = $this->crearCiclo('L-05', 1, 'Proveedor continuidad', [
+            'linea_id' => $linea->id,
+            'hodometro_inicial' => 0,
+        ]);
+
+        $this->crearElongacion($cicloActivo, [
+            'hodometro' => 19355,
+            'hodometro_ciclo' => 0,
+            'created_at' => now()->subDays(2),
+            'updated_at' => now()->subDays(2),
+        ]);
+
+        $response = $this->postElongacion($user, $this->payloadBase('L-05', [
+            'linea' => 'L-05',
+            'hodometro' => 20818,
+        ]));
+
+        $response->assertRedirect(route('elongaciones.index', ['linea' => 'L-05']));
+
+        $elongacion = Elongacion::latest('id')->firstOrFail();
+
+        $this->assertSame($cicloActivo->id, $elongacion->cadena_ciclo_id);
+        $this->assertSame(1463, $elongacion->hodometro_ciclo);
+    }
+
+    public function test_store_uses_first_real_cycle_hodometer_when_cycle_base_is_zero(): void
+    {
+        $user = User::factory()->create();
+        $linea = $this->crearLinea('L-05');
+        $cicloActivo = $this->crearCiclo('L-05', 1, 'Proveedor continuidad', [
+            'linea_id' => $linea->id,
+            'hodometro_inicial' => 0,
+        ]);
+
+        $this->crearElongacion($cicloActivo, [
+            'hodometro' => 54082,
+            'hodometro_ciclo' => 0,
+            'created_at' => now()->subDay(),
+            'updated_at' => now()->subDay(),
+        ]);
+
+        $response = $this->postElongacion($user, $this->payloadBase('L-05', [
+            'linea' => 'L-05',
+            'hodometro' => 180393,
+        ]));
+
+        $response->assertRedirect(route('elongaciones.index', ['linea' => 'L-05']));
+
+        $elongacion = Elongacion::latest('id')->firstOrFail();
+
+        $this->assertSame($cicloActivo->id, $elongacion->cadena_ciclo_id);
+        $this->assertSame(126311, $elongacion->hodometro_ciclo);
+    }
+
     public function test_store_rejects_manual_registration_in_closed_cycle(): void
     {
         $linea = $this->crearLinea('L-06');

@@ -274,7 +274,7 @@ class ElongacionController extends Controller
                     'proveedor' => $ciclo->proveedor,
                     'seccion' => 'LAVADORA',
                     'hodometro' => $request->hodometro,
-                    'hodometro_ciclo' => $this->calcularHodometroCiclo($request->hodometro, $ciclo->hodometro_inicial),
+                    'hodometro_ciclo' => $this->calcularHodometroCiclo($request->hodometro, $ciclo),
                     'juego_rodaja_bombas' => $request->juego_rodaja_bombas,
                     'juego_rodaja_vapor' => $request->juego_rodaja_vapor,
                     'bombas_promedio' => $bombasPromedio,
@@ -507,9 +507,19 @@ class ElongacionController extends Controller
 
             $numeroCiclo = (int) CadenaCiclo::porLinea($request->linea)->max('numero_ciclo') + 1;
 
+            $ultimaLecturaActiva = $cicloActivo
+                ? $cicloActivo->elongaciones()
+                    ->whereNotNull('hodometro')
+                    ->orderByDesc('created_at')
+                    ->orderByDesc('id')
+                    ->first()
+                : null;
+
             $hodometroInicial = $request->filled('hodometro_inicial')
                 ? (int) $request->hodometro_inicial
-                : ($request->filled('hodometro') ? (int) $request->hodometro : 0);
+                : ($request->filled('hodometro')
+                    ? (int) $request->hodometro
+                    : (int) ($ultimaLecturaActiva?->hodometro ?? 0));
 
             return CadenaCiclo::create([
                 'linea_id' => $linea?->id,
@@ -589,17 +599,50 @@ class ElongacionController extends Controller
         };
     }
 
-    private function calcularHodometroCiclo($hodometroActual, $hodometroInicial): ?int
+    private function calcularHodometroCiclo($hodometroActual, CadenaCiclo $ciclo): ?int
     {
         if ($hodometroActual === null) {
             return null;
         }
+
+        $hodometroInicial = $this->resolverHodometroBaseCiclo($ciclo);
 
         if ($hodometroInicial === null) {
             return (int) $hodometroActual;
         }
 
         return max((int) $hodometroActual - (int) $hodometroInicial, 0);
+    }
+
+    private function resolverHodometroBaseCiclo(CadenaCiclo $ciclo): ?int
+    {
+        $ultimaLecturaReal = $ciclo->elongaciones()
+            ->whereNotNull('hodometro')
+            ->where('hodometro', '>', 0)
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->value('hodometro');
+
+        if ($ultimaLecturaReal !== null) {
+            return (int) $ultimaLecturaReal;
+        }
+
+        if ($ciclo->hodometro_inicial !== null && (int) $ciclo->hodometro_inicial > 0) {
+            return (int) $ciclo->hodometro_inicial;
+        }
+
+        $primeraLecturaReal = $ciclo->elongaciones()
+            ->whereNotNull('hodometro')
+            ->where('hodometro', '>', 0)
+            ->orderBy('created_at')
+            ->orderBy('id')
+            ->value('hodometro');
+
+        if ($primeraLecturaReal !== null) {
+            return (int) $primeraLecturaReal;
+        }
+
+        return $ciclo->hodometro_inicial !== null ? (int) $ciclo->hodometro_inicial : null;
     }
 
     private function buildCodigoCiclo(string $linea, int $numeroCiclo): string

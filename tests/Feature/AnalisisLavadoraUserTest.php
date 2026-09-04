@@ -276,6 +276,113 @@ class AnalisisLavadoraUserTest extends TestCase
         $this->assertSame(0, $estadisticas['danado_requiere']);
     }
 
+    public function test_washer_history_splits_side_based_components_by_side(): void
+    {
+        $user = User::factory()->create();
+        $linea = Linea::create([
+            'nombre' => 'L-07',
+            'descripcion' => 'Lavadora de prueba',
+            'activo' => true,
+        ]);
+        $componente = Componente::create([
+            'codigo' => 'GUI_INT_TANQUE',
+            'nombre' => 'Guia Intermedia',
+            'linea' => $linea->nombre,
+            'reductor' => 'Reductor 21',
+            'ubicacion' => 'Reductor 21',
+            'cantidad_total' => 1,
+            'activo' => true,
+        ]);
+
+        AnalisisLavadora::create([
+            'linea_id' => $linea->id,
+            'componente_id' => $componente->id,
+            'reductor' => 'Reductor 21',
+            'lado' => 'VAPOR',
+            'fecha_analisis' => '2026-08-20',
+            'numero_orden' => '11112222',
+            'estado' => AnalisisLavadora::ESTADO_BUENO,
+            'actividad' => 'Revision lado vapor',
+            'usuario_id' => $user->id,
+        ]);
+
+        AnalisisLavadora::create([
+            'linea_id' => $linea->id,
+            'componente_id' => $componente->id,
+            'reductor' => 'Reductor 21',
+            'lado' => 'PASILLO',
+            'fecha_analisis' => '2026-08-21',
+            'numero_orden' => '33334444',
+            'estado' => AnalisisLavadora::ESTADO_BUENO,
+            'actividad' => 'Revision lado pasillo',
+            'usuario_id' => $user->id,
+        ]);
+
+        $response = $this->actingAs($user)->get(route('analisis-lavadora.historial', [
+            'linea_id' => $linea->id,
+            'componente_id' => 'GUI_INT_TANQUE',
+            'reductor' => 'Reductor 21',
+        ]));
+
+        $response->assertOk();
+        $response->assertSee('grid grid-cols-1 xl:grid-cols-2 gap-6 items-start', false);
+        $response->assertSee('Lado Vapor');
+        $response->assertSee('Lado Pasillo');
+        $response->assertSee('REVISION LADO VAPOR');
+        $response->assertSee('REVISION LADO PASILLO');
+        $this->assertTrue($response->viewData('separarHistorialPorLado'));
+
+        $secciones = $response->viewData('historialSecciones');
+
+        $this->assertSame(['VAPOR', 'PASILLO'], $secciones->pluck('key')->all());
+        $this->assertSame('11112222', $secciones->firstWhere('key', 'VAPOR')['registros']->first()->numero_orden);
+        $this->assertSame('33334444', $secciones->firstWhere('key', 'PASILLO')['registros']->first()->numero_orden);
+    }
+
+    public function test_index_history_count_for_side_based_components_includes_both_sides(): void
+    {
+        $user = User::factory()->create();
+        $linea = Linea::create([
+            'nombre' => 'L-07',
+            'descripcion' => 'Lavadora de prueba',
+            'activo' => true,
+        ]);
+        $componente = Componente::create([
+            'codigo' => 'GUI_INT_TANQUE',
+            'nombre' => 'Guia Intermedia',
+            'linea' => $linea->nombre,
+            'reductor' => 'Reductor 21',
+            'ubicacion' => 'Reductor 21',
+            'cantidad_total' => 1,
+            'activo' => true,
+        ]);
+
+        foreach (['VAPOR', 'PASILLO'] as $index => $lado) {
+            AnalisisLavadora::create([
+                'linea_id' => $linea->id,
+                'componente_id' => $componente->id,
+                'reductor' => 'Reductor 21',
+                'lado' => $lado,
+                'fecha_analisis' => '2026-08-' . (20 + $index),
+                'numero_orden' => (string) (55550000 + $index),
+                'estado' => AnalisisLavadora::ESTADO_BUENO,
+                'actividad' => 'Revision ' . strtolower($lado),
+                'usuario_id' => $user->id,
+            ]);
+        }
+
+        $response = $this->actingAs($user)->get(route('analisis-lavadora.index', [
+            'linea_id' => $linea->id,
+        ]));
+
+        $response->assertOk();
+
+        $analisis = collect($response->viewData('analisis'));
+
+        $this->assertCount(2, $analisis);
+        $this->assertSame([2, 2], $analisis->pluck('total_historial')->map(fn ($total) => (int) $total)->all());
+    }
+
     public function test_authorized_role_can_update_analysis_date_and_creates_audit_record(): void
     {
         $user = User::factory()->create();

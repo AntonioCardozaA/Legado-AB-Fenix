@@ -66,7 +66,7 @@
                 <p class="text-xl font-bold text-gray-800">{{ $elongacion->hodometro_formateado ?? '-' }}</p>
             </div>
             <div class="p-4 sm:p-6">
-                <p class="text-sm text-gray-500">Horas del ciclo</p>
+                <p class="text-sm text-gray-500">Horas trabajadas</p>
                 <p class="text-xl font-bold text-gray-800">{{ $elongacion->hodometro_ciclo_formateado ?? '-' }}</p>
             </div>
         </div>
