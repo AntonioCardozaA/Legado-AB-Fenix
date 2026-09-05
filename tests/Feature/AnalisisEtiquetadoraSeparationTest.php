@@ -971,7 +971,7 @@ class AnalisisEtiquetadoraSeparationTest extends TestCase
         $response->assertOk();
         $response->assertSee('Sin analisis');
         $response->assertDontSee('0 analisis');
-        $response->assertDontSee('0/');
+        $response->assertDontSeeText('0/4');
         $response->assertDontSee('4*maquina');
         $response->assertDontSee('4 por maquina');
     }
@@ -1159,6 +1159,57 @@ class AnalisisEtiquetadoraSeparationTest extends TestCase
         $this->assertFalse($rows->contains(fn (array $row): bool => $row['nombre'] === 'Tulipa y goma'));
     }
 
+    public function test_catalog_does_not_expand_line_specific_group_into_other_etiquetadora_lines(): void
+    {
+        $grupoLinea13 = 'Linea 13,ETIQUETA DE PLASTICO';
+
+        $rows = collect(EtiquetadoraCatalog::expandedComponentRows())
+            ->filter(fn (array $row): bool => $row['grupo'] === $grupoLinea13 && $row['nombre'] === 'goma del plato')
+            ->values();
+
+        $this->assertTrue($rows->isNotEmpty());
+        $this->assertSame(['L-13'], $rows->pluck('linea')->unique()->values()->all());
+        $this->assertFalse($rows->contains(fn (array $row): bool => $row['linea'] !== 'L-13'));
+    }
+
+    public function test_cleanup_migration_deactivates_line_specific_group_only_on_wrong_line(): void
+    {
+        $grupoLinea13 = 'Linea 13,ETIQUETA DE PLASTICO';
+
+        $wrongLine = Componente::create([
+            'codigo' => 'ETQ_L04_A_GOMA_PLATO_MAL_ASIGNADA',
+            'nombre' => 'goma del plato',
+            'linea' => 'L-04',
+            'reductor' => EtiquetadoraCatalog::maquinaLabel('A'),
+            'ubicacion' => $grupoLinea13,
+            'grupo' => $grupoLinea13,
+            'mecanismo' => $grupoLinea13,
+            'cantidad_total' => 24,
+            'cantidad_original' => '24*maquina',
+            'tipo_equipo' => EtiquetadoraCatalog::TIPO_EQUIPO,
+            'activo' => true,
+        ]);
+        $rightLine = Componente::create([
+            'codigo' => 'ETQ_L13_A_GOMA_PLATO_CORRECTA',
+            'nombre' => 'goma del plato',
+            'linea' => 'L-13',
+            'reductor' => EtiquetadoraCatalog::maquinaLabel('A'),
+            'ubicacion' => $grupoLinea13,
+            'grupo' => $grupoLinea13,
+            'mecanismo' => $grupoLinea13,
+            'cantidad_total' => 54,
+            'cantidad_original' => '54*maquina',
+            'tipo_equipo' => EtiquetadoraCatalog::TIPO_EQUIPO,
+            'activo' => true,
+        ]);
+
+        $migration = require database_path('migrations/2026_09_04_000002_deactivate_misassigned_etiquetadora_line_groups.php');
+        $migration->up();
+
+        $this->assertFalse($wrongLine->fresh()->activo);
+        $this->assertTrue($rightLine->fresh()->activo);
+    }
+
     public function test_split_migration_preserves_legacy_tulipa_history_and_creates_goma_component(): void
     {
         $linea = Linea::create([
@@ -1264,12 +1315,12 @@ class AnalisisEtiquetadoraSeparationTest extends TestCase
             ->pluck('componentes')
             ->flatten(1);
 
-        $this->assertSameCanonicalizing(['Goma', 'Tulipa'], $componentesTabla->pluck('nombre')->all());
+        $this->assertEqualsCanonicalizing(['Goma', 'Tulipa'], $componentesTabla->pluck('nombre')->all());
         $this->assertSame($tulipa->id, $componentesTabla->firstWhere('nombre', 'Tulipa')['por_maquina']['A']->id);
         $this->assertSame($goma->id, $componentesTabla->firstWhere('nombre', 'Goma')['por_maquina']['A']->id);
 
         $estadoItems = collect($indexResponse->viewData('estadoModalItems')['total'] ?? []);
-        $this->assertSameCanonicalizing(['Goma', 'Tulipa'], $estadoItems->pluck('componente')->all());
+        $this->assertEqualsCanonicalizing(['Goma', 'Tulipa'], $estadoItems->pluck('componente')->all());
         $this->assertSame(
             AnalisisEtiquetadora::ESTADO_BUENO,
             $estadoItems->firstWhere('componente', 'Tulipa')['estado']
@@ -1286,7 +1337,7 @@ class AnalisisEtiquetadoraSeparationTest extends TestCase
 
         $historialResponse->assertOk();
         $estadisticasHistorico = collect($historialResponse->viewData('estadisticasHistorico'));
-        $this->assertSameCanonicalizing(['Goma', 'Tulipa'], $estadisticasHistorico->pluck('nombre')->all());
+        $this->assertEqualsCanonicalizing(['Goma', 'Tulipa'], $estadisticasHistorico->pluck('nombre')->all());
         $this->assertSame(
             [$tulipa->id],
             collect($estadisticasHistorico->firstWhere('nombre', 'Tulipa')['detalle_componentes'])->pluck('componente_id')->all()

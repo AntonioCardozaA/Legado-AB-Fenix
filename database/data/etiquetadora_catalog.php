@@ -268,7 +268,7 @@ return [
             'grupo' => 'Linea 13,ETIQUETA DE PLASTICO',
             'mecanismo' => 'Linea 13,ETIQUETA DE PLASTICO',
             'nombre' => 'goma del plato',
-            'cantidades' => ['L-04' => '24*maquina', 'L-05' => '21*maquina', 'L-06' => '48*maquina', 'L-10' => '32*maquina', 'L-12' => '32*maquina', 'L-13' => '54*maquina'],
+            'cantidades' => ['L-13' => '54*maquina'],
         ],
     ],
 ];

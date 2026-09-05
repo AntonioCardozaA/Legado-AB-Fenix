@@ -587,7 +587,7 @@ public function pasteurizadoraOperativo(Request $request)
 
     public function etiquetadoraGlobal(Request $request)
     {
-        abort_unless(auth()->user()?->canAccessModule(User::MODULE_ETIQUETADORA), 403, 'No tienes permiso para acceder al modulo de Etiquetadora.');
+        abort_unless(auth()->user()?->canAccessModule(User::MODULE_ETIQUETADORA), 403, 'No tienes permiso para acceder al area de Etiquetadora.');
 
         $todasLasLineas = $this->getLineasEtiquetadora();
         $filtrosEtiquetadora = $this->resolveEtiquetadoraDashboardFilters($request, $todasLasLineas);
@@ -621,7 +621,7 @@ public function pasteurizadoraOperativo(Request $request)
 
     public function etiquetadora(Request $request)
     {
-        abort_unless(auth()->user()?->canAccessModule(User::MODULE_ETIQUETADORA), 403, 'No tienes permiso para acceder al modulo de Etiquetadora.');
+        abort_unless(auth()->user()?->canAccessModule(User::MODULE_ETIQUETADORA), 403, 'No tienes permiso para acceder al area de Etiquetadora.');
 
         return view('etiquetadora.dashboard');
     }
@@ -996,6 +996,15 @@ public function pasteurizadoraOperativo(Request $request)
         $linea = trim((string) $componente->linea);
 
         if (!in_array($linea, EtiquetadoraCatalog::lineas(), true)) {
+            return false;
+        }
+
+        if (!EtiquetadoraCatalog::grupoAplicaALinea(
+            $componente->grupo,
+            $componente->mecanismo,
+            $componente->ubicacion,
+            $linea
+        )) {
             return false;
         }
 

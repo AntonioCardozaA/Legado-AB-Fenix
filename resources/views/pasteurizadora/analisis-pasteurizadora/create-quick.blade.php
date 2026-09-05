@@ -350,8 +350,7 @@
                 </div>
                 <div class="mt-4 rounded-lg border border-dashed border-gray-300 bg-white p-3">
                     <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                        <p id="fotos_resumen" class="text-sm font-medium text-gray-600">Sin imagenes seleccionadas</p>
-                        <p class="text-xs text-gray-500">JPG, PNG, WEBP, GIF o BMP. Max. 12MB por imagen.</p>
+
                     </div>
                     <div id="preview_fotos" class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-4"></div>
                 </div>

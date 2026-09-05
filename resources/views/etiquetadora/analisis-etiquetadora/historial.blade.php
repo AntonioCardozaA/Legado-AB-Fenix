@@ -251,11 +251,38 @@
         ]])->filter(fn (array $lineaHistorico): bool => collect($lineaHistorico['modulos'])->isNotEmpty())->values();
     }
 
+    $paletaEtiquetadorasHistorico = [
+        '#e11d48', '#2563eb', '#16a34a', '#f59e0b', '#7c3aed', '#0891b2',
+        '#ea580c', '#4f46e5', '#0f766e', '#be123c', '#65a30d', '#9333ea',
+        '#0369a1', '#ca8a04', '#db2777', '#15803d', '#c2410c', '#4338ca',
+        '#0d9488', '#a16207', '#be185d', '#1d4ed8', '#047857', '#b45309',
+    ];
+
+    $colorEtiquetadoraHistorico = function (string $label, int $index, array &$usados) use ($paletaEtiquetadorasHistorico): string {
+        if (count($usados) >= count($paletaEtiquetadorasHistorico)) {
+            $hue = fmod($index * 137.508, 360);
+
+            return "hsl({$hue}, 74%, 45%)";
+        }
+
+        $hash = abs((int) crc32($label ?: 'Etiquetadora'));
+        $colorIndex = $hash % count($paletaEtiquetadorasHistorico);
+
+        while (in_array($colorIndex, $usados, true) && count($usados) < count($paletaEtiquetadorasHistorico)) {
+            $colorIndex = ($colorIndex + 1) % count($paletaEtiquetadorasHistorico);
+        }
+
+        $usados[] = $colorIndex;
+
+        return $paletaEtiquetadorasHistorico[$colorIndex];
+    };
+
     $chartHistorico = $modulosHistorico
-        ->map(function (array $lineaHistorico): array {
+        ->map(function (array $lineaHistorico) use ($colorEtiquetadoraHistorico): array {
             $totalLinea = (int) ($lineaHistorico['totales']['total'] ?? 0);
             $revisadoLinea = (int) ($lineaHistorico['totales']['revisado'] ?? 0);
             $porcentajeLinea = $totalLinea > 0 ? round(($revisadoLinea / $totalLinea) * 100, 1) : 0;
+            $coloresUsados = [];
 
             return [
                 'linea_id' => $lineaHistorico['linea_id'] ?? 0,
@@ -264,23 +291,19 @@
                 'revisado' => $revisadoLinea,
                 'porcentaje' => $porcentajeLinea,
                 'items' => collect($lineaHistorico['modulos'] ?? [])
-                    ->map(function (array $moduloData): array {
-                        $color = match ($moduloData['color'] ?? 'danger') {
-                            'success' => '#10b981',
-                            'info' => '#3b82f6',
-                            'warning' => '#f59e0b',
-                            default => '#ef4444',
-                        };
+                    ->values()
+                    ->map(function (array $moduloData, int $index) use ($colorEtiquetadoraHistorico, &$coloresUsados): array {
+                        $label = $moduloData['label'] ?? 'Etiquetadora';
+                        $color = $colorEtiquetadoraHistorico($label, $index, $coloresUsados);
 
                         return [
-                            'label' => $moduloData['label'] ?? 'Etiquetadora',
+                            'label' => $label,
                             'value' => max(0, (int) ($moduloData['revisado'] ?? 0)),
                             'total' => (int) ($moduloData['total'] ?? 0),
                             'revisado' => (int) ($moduloData['revisado'] ?? 0),
                             'pendiente' => (int) ($moduloData['pendiente'] ?? 0),
                             'porcentaje' => (float) ($moduloData['porcentaje'] ?? 0),
                             'color' => $color,
-                            'color_key' => $moduloData['color'] ?? 'danger',
                         ];
                     })
                     ->values(),
@@ -407,21 +430,12 @@
     .resumen-card {
         background: white;
         border: 1px solid var(--medium-gray);
-        border-left: 5px solid #94a3b8;
         border-radius: 16px;
         padding: 20px;
         display: flex;
         align-items: center;
         gap: 16px;
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-    }
-
-    .resumen-card:nth-child(2) {
-        border-left-color: #2563eb;
-    }
-
-    .resumen-card:nth-child(3) {
-        border-left-color: #059669;
     }
 
     .resumen-icono {
@@ -513,19 +527,19 @@
     .modulo-summary-card {
         background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
         border: 1px solid #dbe3ef;
-        border-radius: 22px;
-        padding: 22px;
+        border-radius: 16px;
+        padding: 20px;
         display: flex;
         flex-direction: column;
-        gap: 18px;
-        box-shadow: 0 14px 28px rgba(15, 23, 42, 0.07);
+        gap: 16px;
+        box-shadow: 0 4px 6px rgba(15, 23, 42, 0.05);
         transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
     }
 
     .modulo-summary-card:hover {
-        transform: translateY(-3px);
+        transform: translateY(-2px);
         border-color: #bfdbfe;
-        box-shadow: 0 18px 34px rgba(15, 23, 42, 0.12);
+        box-shadow: 0 8px 16px rgba(15, 23, 42, 0.1);
     }
 
     .modulo-summary-header {
@@ -538,7 +552,7 @@
     .modulo-summary-title {
         margin: 0;
         color: var(--slate-900);
-        font-size: 24px;
+        font-size: 22px;
         font-weight: 800;
         line-height: 1.15;
     }
@@ -577,7 +591,7 @@
     .modulo-stat {
         background: #ffffff;
         border: 1px solid #e2e8f0;
-        border-radius: 14px;
+        border-radius: 8px;
         padding: 12px;
         text-align: center;
     }
@@ -601,7 +615,7 @@
     .modulo-side-pill {
         background: #eff6ff;
         border: 1px solid #bfdbfe;
-        border-radius: 16px;
+        border-radius: 8px;
         padding: 10px 12px;
         display: flex;
         flex-direction: column;
@@ -1047,7 +1061,7 @@
     }
 
     .btn {
-        padding: 10px 20px;
+        padding: 12px 24px;
         border-radius: 8px;
         font-weight: 600;
         font-size: 14px;
@@ -1133,8 +1147,8 @@
 
     .modal-module-overview {
         background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
-        border-radius: 18px;
-        padding: 18px;
+        border-radius: 16px;
+        padding: 20px;
         margin-bottom: 20px;
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
@@ -1144,7 +1158,7 @@
     .modal-overview-item {
         background: #ffffff;
         border: 1px solid #e2e8f0;
-        border-radius: 14px;
+        border-radius: 8px;
         padding: 14px;
     }
 
@@ -1174,9 +1188,9 @@
 
     .modal-level-card {
         background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
-        border: 2px solid #dbe3ef;
-        border-radius: 18px;
-        padding: 18px;
+        border: 1px solid #dbe3ef;
+        border-radius: 16px;
+        padding: 20px;
         display: flex;
         flex-direction: column;
         gap: 15px;
@@ -1186,7 +1200,7 @@
 
     .modal-level-card:hover {
         transform: translateY(-2px);
-        box-shadow: 0 14px 24px rgba(15, 23, 42, 0.14);
+        box-shadow: 0 8px 16px rgba(15, 23, 42, 0.1);
     }
 
     .modal-level-card:focus-visible {
@@ -1196,7 +1210,7 @@
 
     .modal-level-card.is-selected {
         border-color: #60a5fa;
-        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.16), 0 14px 24px rgba(15, 23, 42, 0.14);
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.16), 0 8px 16px rgba(15, 23, 42, 0.1);
     }
 
     .modal-level-header,
@@ -1213,7 +1227,7 @@
     .modal-level-title {
         margin: 0;
         color: var(--slate-900);
-        font-size: 21px;
+        font-size: 20px;
         font-weight: 800;
         line-height: 1.15;
     }
@@ -1267,7 +1281,7 @@
     .modal-review-card {
         background: #ffffff;
         border: 1px solid #e2e8f0;
-        border-radius: 16px;
+        border-radius: 8px;
         padding: 14px;
         display: flex;
         flex-direction: column;
@@ -1308,7 +1322,7 @@
     .grafica-linea-card {
         background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
         border: 1px solid #dbe3ef;
-        border-radius: 18px;
+        border-radius: 16px;
         padding: 20px;
         display: flex;
         flex-direction: column;
@@ -1337,7 +1351,7 @@
     .grafica-pie-panel {
         background: #ffffff;
         border: 1px solid #e2e8f0;
-        border-radius: 18px;
+        border-radius: 12px;
         padding: 16px;
         display: flex;
         justify-content: center;
@@ -1401,7 +1415,7 @@
     .grafica-legend-item {
         background: #ffffff;
         border: 1px solid #e2e8f0;
-        border-radius: 14px;
+        border-radius: 8px;
         padding: 12px;
         display: flex;
         flex-direction: column;
@@ -1453,7 +1467,7 @@
         align-items: center;
         justify-content: center;
         padding: 20px;
-        background: rgba(0, 0, 0, 0.5);
+        background: rgba(15, 23, 42, 0.6);
     }
 
     .etq-detail-modal.show {
@@ -1464,10 +1478,9 @@
         width: min(960px, 100%);
         max-height: calc(100vh - 40px);
         overflow: hidden;
-        border: 1px solid #e5e7eb;
-        border-radius: 14px;
+        border-radius: 24px;
         background: #ffffff;
-        box-shadow: 0 25px 50px rgba(15, 23, 42, 0.24);
+        box-shadow: 0 30px 60px rgba(15, 23, 42, 0.28);
     }
 
     .etq-detail-header {
@@ -1475,10 +1488,10 @@
         align-items: center;
         justify-content: space-between;
         gap: 16px;
-        padding: 18px 20px;
-        background: linear-gradient(135deg, #1e293b, #0f172a);
-        border-bottom: 1px solid #e5e7eb;
-        color: #ffffff;
+        padding: 20px 24px;
+        background: linear-gradient(135deg, #f8fafc, #eef2ff);
+        border-bottom: 1px solid #e2e8f0;
+        color: #0f172a;
     }
 
     .etq-detail-heading {
@@ -1492,10 +1505,10 @@
         width: 40px;
         height: 40px;
         flex: 0 0 40px;
-        border: 1px solid rgba(255, 255, 255, 0.22);
+        border: 1px solid #dbeafe;
         border-radius: 10px;
-        background: rgba(255, 255, 255, 0.12);
-        color: #ffffff;
+        background: #dbeafe;
+        color: #2563eb;
         display: inline-flex;
         align-items: center;
         justify-content: center;
@@ -1503,8 +1516,8 @@
 
     .etq-detail-title {
         margin: 0;
-        color: #ffffff;
-        font-size: 18px;
+        color: #0f172a;
+        font-size: 22px;
         font-weight: 800;
         line-height: 1.2;
     }
@@ -1514,7 +1527,7 @@
         flex-wrap: wrap;
         gap: 8px;
         margin-top: 8px;
-        color: #e2e8f0;
+        color: #64748b;
         font-size: 12px;
         font-weight: 700;
     }
@@ -1524,19 +1537,19 @@
         align-items: center;
         gap: 6px;
         border-radius: 999px;
-        background: rgba(255, 255, 255, 0.12);
-        border: 1px solid rgba(255, 255, 255, 0.18);
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
         padding: 6px 10px;
     }
 
     .etq-detail-close {
-        width: 36px;
-        height: 36px;
-        flex: 0 0 36px;
-        border: 1px solid rgba(255, 255, 255, 0.24);
-        border-radius: 10px;
-        background: rgba(255, 255, 255, 0.12);
-        color: #ffffff;
+        width: 44px;
+        height: 44px;
+        flex: 0 0 44px;
+        border: 1px solid #e2e8f0;
+        border-radius: 50%;
+        background: #ffffff;
+        color: #64748b;
         cursor: pointer;
         display: inline-flex;
         align-items: center;
@@ -1545,7 +1558,9 @@
     }
 
     .etq-detail-close:hover {
-        background: rgba(255, 255, 255, 0.2);
+        background: #ef4444;
+        border-color: #ef4444;
+        color: #ffffff;
         transform: translateY(-1px);
     }
 
@@ -1553,7 +1568,7 @@
         max-height: calc(100vh - 132px);
         overflow-y: auto;
         padding: 20px;
-        background: #f8fafc;
+        background: #ffffff;
     }
 
     .etq-detail-summary {
@@ -1567,7 +1582,7 @@
     .etq-detail-section,
     .etq-detail-record {
         border: 1px solid #e2e8f0;
-        border-radius: 10px;
+        border-radius: 8px;
         background: #ffffff;
         box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
     }
@@ -1635,7 +1650,6 @@
 
     .etq-detail-section {
         padding: 16px;
-        border-top: 3px solid #e5e7eb;
     }
 
     .etq-detail-section-title {
@@ -2055,10 +2069,7 @@
         <div>
             <a href="{{ route('etiquetadora.dashboard') }}"
                class="inline-flex w-full items-center justify-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 sm:w-auto bg-gray-100 hover:bg-gray-200 rounded-lg transition-all duration-300 mb-4">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                          d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
-                </svg>
+                <i class="fas fa-arrow-left"></i>
                 <span class="font-medium">Volver</span>
             </a>
             <h1 class="flex items-start gap-2 text-xl font-bold text-gray-800 sm:items-center sm:text-2xl">
@@ -2199,10 +2210,10 @@
                         <div class="modulo-summary-header">
                             <div>
                                 <h4 class="modulo-summary-title">{{ $moduloData['label'] }}</h4>
-                                <span class="modulo-summary-subtitle">Modulo mecanico de etiquetadora</span>
+                                <span class="modulo-summary-subtitle">Grupos de etiquetadora</span>
                             </div>
                             <span class="modulo-summary-badge">
-                                {{ $gruposModulo->count() }} modulos / {{ $moduloData['componentes_count'] }} componentes
+                                {{ $gruposModulo->count() }} grupos / {{ $moduloData['componentes_count'] }} componentes
                             </span>
                         </div>
 
@@ -2231,7 +2242,7 @@
 
                             @if($gruposModulo->count() > 4)
                                 <div class="modulo-side-pill more">
-                                    <span class="modulo-side-pill-label">Mas modulos</span>
+                                    <span class="modulo-side-pill-label">Mas grupos</span>
                                     <span class="modulo-side-pill-value">{{ $gruposModulo->count() - 4 }} adicionales</span>
                                 </div>
                             @endif
@@ -2291,7 +2302,7 @@
                                     </div>
 
                                     <div>
-                                        <div class="modal-level-section-title">Avance del modulo</div>
+                                        <div class="modal-level-section-title">Avance del grupo</div>
                                         <div class="modal-level-progress-meta">
                                             <span>Revisados</span>
                                             <span>{{ number_format($grupoData['revisado']) }}/{{ number_format($grupoData['total']) }}</span>
@@ -2303,7 +2314,7 @@
                                     </div>
 
                                     <div class="modal-level-sides">
-                                        <div class="modal-level-section-title">Componentes de este modulo</div>
+                                        <div class="modal-level-section-title">Componentes de este grupo</div>
                                         <div class="modal-side-components">
                                             @foreach($grupoData['componentes'] as $fila)
                                                 <article class="modal-review-card">
@@ -2415,7 +2426,7 @@
                                     <div class="grafica-legend-item">
                                         <div class="grafica-legend-head">
                                             <div class="grafica-legend-name">
-                                                <span class="grafica-color-dot {{ $chartItem['color_key'] }}"></span>
+                                                <span class="grafica-color-dot" style="background: {{ $chartItem['color'] }};"></span>
                                                 <span>{{ $chartItem['label'] }}</span>
                                             </div>
                                             <span class="grafica-legend-value">{{ $chartItem['porcentaje'] }}%</span>
@@ -2525,7 +2536,7 @@ function abrirModalEtiquetadora(templateId, titulo, linea, trigger = null) {
     document.getElementById('etqMachineDetailTitle').textContent = titulo || 'Detalle de Etiquetadora';
     document.getElementById('etqMachineDetailSubtitle').innerHTML = `
         <span><i class="fas fa-tags"></i> Linea ${escapeEtqHtml(etqFormatValue(linea))}</span>
-        <span><i class="fas fa-cogs"></i> Modulos mecanicos</span>
+        <span><i class="fas fa-layer-group"></i> Grupos de componentes</span>
     `;
     body.innerHTML = '';
     body.appendChild(template.content.cloneNode(true));

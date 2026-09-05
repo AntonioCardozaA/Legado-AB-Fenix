@@ -293,6 +293,43 @@ class EtiquetadoraCatalog
         ]);
     }
 
+    public static function lineaEspecificaDesdeTexto(?string $texto): ?string
+    {
+        $valor = Str::upper(Str::ascii(trim((string) $texto)));
+
+        if ($valor === '') {
+            return null;
+        }
+
+        if (
+            preg_match('/\bLINEA\s*[-,:]?\s*0?([0-9]{1,2})\b/', $valor, $matches) !== 1
+            && preg_match('/\bL\s*-\s*0?([0-9]{1,2})\b/', $valor, $matches) !== 1
+        ) {
+            return null;
+        }
+
+        return 'L-' . str_pad((string) ((int) $matches[1]), 2, '0', STR_PAD_LEFT);
+    }
+
+    public static function grupoAplicaALinea(
+        ?string $grupo,
+        ?string $mecanismo,
+        ?string $ubicacion,
+        string $linea
+    ): bool {
+        $linea = trim($linea);
+
+        foreach ([$grupo, $mecanismo, $ubicacion] as $texto) {
+            $lineaEspecifica = self::lineaEspecificaDesdeTexto($texto);
+
+            if ($lineaEspecifica !== null && $lineaEspecifica !== $linea) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     /**
      * @return array<int, array<string, mixed>>
      */
@@ -303,6 +340,15 @@ class EtiquetadoraCatalog
         foreach (self::componentes() as $componente) {
             foreach (($componente['cantidades'] ?? []) as $linea => $cantidadOriginal) {
                 if (blank($cantidadOriginal)) {
+                    continue;
+                }
+
+                if (!self::grupoAplicaALinea(
+                    $componente['grupo'] ?? null,
+                    $componente['mecanismo'] ?? null,
+                    $componente['ubicacion'] ?? null,
+                    $linea
+                )) {
                     continue;
                 }
 

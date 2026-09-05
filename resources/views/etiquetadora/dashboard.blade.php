@@ -139,7 +139,7 @@
 
             @unless($puedeVerAnalisisEtiquetadora || $puedeVerPlanesEtiquetadora)
                 <div class="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-sm font-semibold text-amber-800 md:col-span-2 lg:col-span-3">
-                    No tiene vistas disponibles en este modulo. Solicite al administrador la asignacion del permiso correspondiente.
+                    No tiene vistas disponibles en esta area. Solicite al administrador la asignacion del permiso correspondiente.
                 </div>
             @endunless
         </div>
