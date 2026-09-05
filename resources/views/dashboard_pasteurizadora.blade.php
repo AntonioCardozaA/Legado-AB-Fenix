@@ -2728,7 +2728,7 @@
         <div class="chart-card fallas-card">
             <h3>
                 <i class="fas fa-chart-bar"></i>
-                <span>Fallas por Línea</span>
+                <span>Daños por Línea</span>
             </h3>
             <div class="chart-container">
                 <canvas id="fallasPasteurizadoraChart"></canvas>
@@ -2744,7 +2744,7 @@
         <div class="chart-card ranking-card">
             <h3>
                 <i class="fas fa-trophy"></i>
-                <span>Ranking de Daño</span>
+                <span>Ranking de Daños</span>
             </h3>
             <ul class="ranking-list">
                 @forelse($rankingDanosPasteurizadora->take(8) as $index => $item)
