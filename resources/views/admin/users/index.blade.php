@@ -9,11 +9,9 @@
         $activeFilters = array_filter($filters, fn ($value) => $value !== '');
     @endphp
 
-<<<<<<< HEAD
     <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
             <h1 class="text-2xl font-bold text-gray-900">Gestion de usuarios</h1>
-=======
     <div class="flex min-w-0 flex-col gap-5 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6 lg:flex-row lg:items-center lg:justify-between">
         <div class="flex items-start gap-4">
             <div class="hidden h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-slate-900 text-white sm:flex">
@@ -27,7 +25,6 @@
                 </div>
                 <h1 class="text-xl font-bold tracking-tight text-slate-950 sm:text-2xl">Gestion de usuarios</h1>
             </div>
->>>>>>> f22fc90a5e20bd55f357cd95acf8f3f92b830f93
         </div>
 
         <a href="#crear-usuario" class="create-action inline-flex w-full items-center justify-center gap-2 sm:w-auto">
@@ -56,42 +53,30 @@
     <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <div class="rounded-xl border border-slate-200 border-l-4 border-l-slate-900 bg-white p-3 shadow-sm sm:p-4">
             <div class="text-xs font-semibold uppercase tracking-wide text-gray-500">Total de usuarios</div>
-<<<<<<< HEAD
             <div class="mt-2 text-3xl font-bold text-gray-900">{{ $stats['total'] }}</div>
-=======
             <div class="mt-1 text-3xl font-bold text-gray-900">{{ $stats['total'] }}</div>
             <p class="mt-1 text-sm text-gray-500">Base completa de cuentas registradas.</p>
->>>>>>> f22fc90a5e20bd55f357cd95acf8f3f92b830f93
         </div>
 
         <div class="rounded-xl border border-slate-200 border-l-4 border-l-emerald-500 bg-white p-3 shadow-sm sm:p-4">
             <div class="text-xs font-semibold uppercase tracking-wide text-gray-500">Usuarios activos</div>
-<<<<<<< HEAD
             <div class="mt-2 text-3xl font-bold text-gray-900">{{ $stats['activos'] }}</div>
-=======
             <div class="mt-1 text-3xl font-bold text-gray-900">{{ $stats['activos'] }}</div>
             <p class="mt-1 text-sm text-gray-500">Personal habilitado para operar.</p>
->>>>>>> f22fc90a5e20bd55f357cd95acf8f3f92b830f93
         </div>
 
         <div class="rounded-xl border border-slate-200 border-l-4 border-l-blue-500 bg-white p-3 shadow-sm sm:p-4">
             <div class="text-xs font-semibold uppercase tracking-wide text-gray-500">Tecnicos</div>
-<<<<<<< HEAD
             <div class="mt-2 text-3xl font-bold text-gray-900">{{ $stats['tecnicos'] }}</div>
-=======
             <div class="mt-1 text-3xl font-bold text-gray-900">{{ $stats['tecnicos'] }}</div>
             <p class="mt-1 text-sm text-gray-500">Usuarios del equipo tecnico y operativo.</p>
->>>>>>> f22fc90a5e20bd55f357cd95acf8f3f92b830f93
         </div>
 
         <div class="rounded-xl border border-slate-200 border-l-4 border-l-amber-500 bg-white p-3 shadow-sm sm:p-4">
             <div class="text-xs font-semibold uppercase tracking-wide text-gray-500">Administradores</div>
-<<<<<<< HEAD
             <div class="mt-2 text-3xl font-bold text-gray-900">{{ $stats['administradores'] }}</div>
-=======
             <div class="mt-1 text-3xl font-bold text-gray-900">{{ $stats['administradores'] }}</div>
             <p class="mt-1 text-sm text-gray-500">Cuentas con control total del modulo.</p>
->>>>>>> f22fc90a5e20bd55f357cd95acf8f3f92b830f93
         </div>
     </div>
 
@@ -153,11 +138,8 @@
             <div class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
                 <div class="flex min-w-0 flex-col gap-2 border-b border-slate-100 px-4 py-3 sm:px-4 sm:flex-row sm:items-center sm:justify-between">
                     <div>
-<<<<<<< HEAD
                         <h2 class="text-lg font-bold text-gray-900">Usuarios registrados</h2>
-=======
                         <h2 class="text-lg font-bold text-slate-950">Directorio del personal</h2>
->>>>>>> f22fc90a5e20bd55f357cd95acf8f3f92b830f93
                     </div>
                     <span class="w-fit rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
                         {{ $users->count() }} resultado(s)
@@ -220,12 +202,10 @@
             </div>
         </div>
 
-<<<<<<< HEAD
         <div id="crear-usuario" class="xl:sticky xl:top-6 xl:self-start">
             <div class="rounded bg-white p-5 shadow">
                 <div class="mb-5">
                     <h2 class="text-xl font-bold text-gray-900">Crear nuevo usuario</h2>
-=======
         <div id="crear-usuario" class="scroll-mt-6">
             <div class="w-full rounded-xl border border-slate-200 bg-white p-3 shadow-sm sm:p-4 lg:p-5">
                 <div class="mb-4 flex flex-col gap-3 border-b border-slate-100 pb-3 sm:flex-row sm:items-center sm:justify-between">
@@ -238,7 +218,6 @@
                         </div>
                     </div>
                     <span class="w-fit rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">Nueva cuenta</span>
->>>>>>> f22fc90a5e20bd55f357cd95acf8f3f92b830f93
                 </div>
                 @include('admin.users.partials.create-form', [
                     'isCreateSubmission' => $isCreateSubmission,
