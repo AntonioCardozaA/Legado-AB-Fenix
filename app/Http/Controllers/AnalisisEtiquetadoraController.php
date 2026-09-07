@@ -973,7 +973,7 @@ class AnalisisEtiquetadoraController extends Controller
             return null;
         }
 
-        $lineaEspecifica = $this->lineaEspecificaDesdeTexto($grupo);
+        $lineaEspecifica = EtiquetadoraCatalog::lineaEspecificaDesdeTexto($grupo);
 
         if ($lineaEspecifica !== null && trim((string) $lineaNombre) === $lineaEspecifica) {
             $grupo = preg_replace('/^\s*(?:LINEA|L)\s*-?\s*0?[0-9]{1,2}\s*[,:\-]?\s*/i', '', $grupo) ?? $grupo;
@@ -1041,33 +1041,35 @@ class AnalisisEtiquetadoraController extends Controller
             return false;
         }
 
+        if (!EtiquetadoraCatalog::grupoAplicaALinea(
+            $componente->grupo,
+            $componente->mecanismo,
+            $componente->ubicacion,
+            $linea
+        )) {
+            return false;
+        }
+
         $maquina = $this->maquinaDesdeEtiqueta($componente->reductor);
 
         return $maquina !== '';
-    }
-
-    private function lineaEspecificaDesdeTexto(?string $texto): ?string
-    {
-        $valor = strtoupper(trim((string) $texto));
-
-        if ($valor === '') {
-            return null;
-        }
-
-        if (
-            preg_match('/\bLINEA\s*[-,:]?\s*0?([0-9]{1,2})\b/i', $valor, $matches) !== 1
-            && preg_match('/\bL\s*-\s*0?([0-9]{1,2})\b/i', $valor, $matches) !== 1
-        ) {
-            return null;
-        }
-
-        return 'L-' . str_pad((string) ((int) $matches[1]), 2, '0', STR_PAD_LEFT);
     }
 
     private function componenteTablaKey(Componente $componente): string
     {
         return sha1(implode('|', [
             trim((string) $componente->linea),
+            trim((string) $componente->grupo),
+            trim((string) $componente->mecanismo),
+            trim((string) $componente->nombre),
+        ]));
+    }
+
+    private function componenteHistoricoKey(Componente $componente): string
+    {
+        return sha1(implode('|', [
+            trim((string) $componente->linea),
+            trim((string) $this->maquinaDesdeEtiqueta($componente->reductor)),
             trim((string) $componente->grupo),
             trim((string) $componente->mecanismo),
             trim((string) $componente->nombre),
@@ -1361,7 +1363,7 @@ class AnalisisEtiquetadoraController extends Controller
             ->groupBy('componente_id');
 
         $estadisticas = collect($catalogo)
-            ->groupBy(fn (Componente $componente) => $this->componenteTablaKey($componente))
+            ->groupBy(fn (Componente $componente) => $this->componenteHistoricoKey($componente))
             ->map(function ($componentes) use ($analisisPorComponente): array {
                 $componentes = collect($componentes);
                 /** @var Componente $primerComponente */

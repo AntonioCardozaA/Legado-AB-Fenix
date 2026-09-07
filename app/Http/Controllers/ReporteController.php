@@ -1072,18 +1072,24 @@ class ReporteController extends Controller
             ->whereIn('linea', $this->etiquetadoras)
             ->where('activo', true)
             ->get()
+            ->filter(fn (Componente $componente): bool => $this->componenteEtiquetadoraAplicaCatalogo($componente))
+            ->values()
             ->groupBy('linea');
 
         $estadoActual = AnalisisEtiquetadora::ultimosPorComponente()
-            ->with('componente:id,nombre,codigo,grupo,mecanismo,cantidad_total')
+            ->with(['componente:id,nombre,codigo,linea,reductor,grupo,mecanismo,ubicacion,cantidad_total', 'linea:id,nombre'])
             ->whereIn('linea_id', $lineaIds)
             ->get()
+            ->filter(fn (AnalisisEtiquetadora $analisis): bool => $this->analisisEtiquetadoraAplicaCatalogo($analisis))
+            ->values()
             ->groupBy('linea_id');
 
-        $analisisPeriodo = AnalisisEtiquetadora::with('componente:id,nombre,codigo,grupo,mecanismo')
+        $analisisPeriodo = AnalisisEtiquetadora::with(['componente:id,nombre,codigo,linea,reductor,grupo,mecanismo,ubicacion', 'linea:id,nombre'])
             ->whereIn('linea_id', $lineaIds)
             ->whereBetween('fecha_analisis', [$fechaInicio, $fechaFin])
             ->get()
+            ->filter(fn (AnalisisEtiquetadora $analisis): bool => $this->analisisEtiquetadoraAplicaCatalogo($analisis))
+            ->values()
             ->groupBy('linea_id');
 
         $planesPendientes = PlanAccion::whereIn('linea_id', $lineaIds)
@@ -1145,17 +1151,21 @@ class ReporteController extends Controller
 
         $analisis = AnalisisEtiquetadora::where('linea_id', $linea->id)
             ->whereBetween('fecha_analisis', [$fechaInicio, $fechaFin])
-            ->with(['componente:id,nombre,codigo,grupo,mecanismo,cantidad_total', 'usuario:id,name'])
+            ->with(['componente:id,nombre,codigo,linea,reductor,grupo,mecanismo,ubicacion,cantidad_total', 'linea:id,nombre', 'usuario:id,name'])
             ->orderByDesc('fecha_analisis')
             ->orderByDesc('created_at')
-            ->get();
+            ->get()
+            ->filter(fn (AnalisisEtiquetadora $registro): bool => $this->analisisEtiquetadoraAplicaCatalogo($registro))
+            ->values();
 
         $analisisHistorico = AnalisisEtiquetadora::where('linea_id', $linea->id)
-            ->with(['componente:id,nombre,codigo,grupo,mecanismo,cantidad_total', 'usuario:id,name'])
+            ->with(['componente:id,nombre,codigo,linea,reductor,grupo,mecanismo,ubicacion,cantidad_total', 'linea:id,nombre', 'usuario:id,name'])
             ->orderByDesc('fecha_analisis')
             ->orderByDesc('created_at')
             ->orderByDesc('id')
-            ->get();
+            ->get()
+            ->filter(fn (AnalisisEtiquetadora $registro): bool => $this->analisisEtiquetadoraAplicaCatalogo($registro))
+            ->values();
 
         $paros = Paro::with(['supervisor:id,name'])
             ->where('linea_id', $linea->id)
@@ -1218,7 +1228,83 @@ class ReporteController extends Controller
             ->orderBy('grupo')
             ->orderBy('mecanismo')
             ->orderBy('nombre')
-            ->get();
+            ->get()
+            ->filter(fn (Componente $componente): bool => $this->componenteEtiquetadoraAplicaCatalogo($componente))
+            ->values();
+    }
+
+    private function componenteEtiquetadoraAplicaCatalogo(Componente $componente): bool
+    {
+        $linea = trim((string) $componente->linea);
+
+        if (!in_array($linea, EtiquetadoraCatalog::lineas(), true)) {
+            return false;
+        }
+
+        if (!EtiquetadoraCatalog::grupoAplicaALinea(
+            $componente->grupo,
+            $componente->mecanismo,
+            $componente->ubicacion,
+            $linea
+        )) {
+            return false;
+        }
+
+        $maquina = $this->maquinaDesdeEtiquetaLabel($componente->reductor);
+
+        if ($maquina === '') {
+            return false;
+        }
+
+        $codigo = trim((string) $componente->codigo);
+
+        if (!EtiquetadoraCatalog::isGeneratedComponentCode($codigo)) {
+            return true;
+        }
+
+        $catalogRow = $this->etiquetadoraCatalogRowsByCode()[$codigo] ?? null;
+
+        return $catalogRow !== null
+            && ($catalogRow['linea'] ?? null) === $linea
+            && strtoupper((string) ($catalogRow['maquina'] ?? '')) === $maquina;
+    }
+
+    private function analisisEtiquetadoraAplicaCatalogo(AnalisisEtiquetadora $analisis): bool
+    {
+        if (!$analisis->componente || !$analisis->linea) {
+            return false;
+        }
+
+        if (!$this->componenteEtiquetadoraAplicaCatalogo($analisis->componente)) {
+            return false;
+        }
+
+        if (trim((string) $analisis->componente->linea) !== trim((string) $analisis->linea->nombre)) {
+            return false;
+        }
+
+        $maquinaAnalisis = strtoupper((string) $analisis->maquina);
+        $maquinaComponente = $this->maquinaDesdeEtiquetaLabel($analisis->componente->reductor);
+
+        return $maquinaAnalisis !== '' && $maquinaAnalisis === $maquinaComponente;
+    }
+
+    private function etiquetadoraCatalogRowsByCode(): array
+    {
+        return $this->etiquetadoraCatalogRowsByCode ??= EtiquetadoraCatalog::expandedComponentRowsByCode();
+    }
+
+    private function maquinaDesdeEtiquetaLabel(?string $etiqueta): string
+    {
+        $valor = strtoupper(trim((string) $etiqueta));
+
+        foreach (EtiquetadoraCatalog::maquinas() as $maquina) {
+            if ($valor === strtoupper(EtiquetadoraCatalog::maquinaLabel($maquina)) || str_ends_with($valor, strtoupper($maquina))) {
+                return $maquina;
+            }
+        }
+
+        return '';
     }
 
     private function procesarComponentesEtiquetadora($componentesLista, $analisisHistorico, $analisisPeriodo): array
@@ -2252,7 +2338,7 @@ class ReporteController extends Controller
         }
 
         if ($tipoEquipo === 'etiquetadoras' && !auth()->user()?->canAccessModule(User::MODULE_ETIQUETADORA)) {
-            abort(403, 'No tienes permiso para acceder al modulo de Etiquetadora.');
+            abort(403, 'No tienes permiso para acceder al area de Etiquetadora.');
         }
     }
 
