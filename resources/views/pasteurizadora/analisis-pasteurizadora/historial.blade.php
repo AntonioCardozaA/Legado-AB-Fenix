@@ -80,22 +80,17 @@
         --primary-blue: #2563eb;
         --border: #e5e7eb;
         --soft-shadow: 0 1px 2px rgba(15, 23, 42, .05);
+        box-sizing: border-box;
         width: 100%;
+        max-width: min(100%, 1760px);
+        padding-left: clamp(0.75rem, 2vw, 2rem);
+        padding-right: clamp(0.75rem, 2vw, 2rem);
         overflow-x: clip;
     }
 
     .pasteur-history * {
         box-sizing: border-box;
         min-width: 0;
-    }
-
-    .pasteur-history > .mb-10 {
-        background: #ffffff;
-        border: 1px solid var(--border);
-        border-radius: 12px;
-        box-shadow: var(--soft-shadow);
-        margin-bottom: 24px;
-        padding: 20px 24px;
     }
 
     .pasteur-history > .mb-10 .bg-gradient-to-r.from-blue-600 {
@@ -141,14 +136,61 @@
         text-align: center;
     }
 
-    @media (max-width: 640px) {
+    .pasteur-history-layout {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 28rem), 1fr));
+        gap: 1rem;
+        align-items: start;
+    }
+
+    .pasteur-history .history-side-section {
+        min-width: 0;
+    }
+
+    .pasteur-history .history-side-section--full {
+        grid-column: 1 / -1;
+    }
+
+    .pasteur-history .history-info-grid,
+    .pasteur-history .history-evidence-grid {
+        display: grid;
+        gap: 1rem;
+    }
+
+    .pasteur-history .history-info-grid {
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr));
+    }
+
+    .pasteur-history .history-evidence-grid {
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 8.5rem), 1fr));
+        gap: 0.75rem;
+    }
+
+    .pasteur-history .history-evidence-grid img {
+        height: clamp(7rem, 9vw, 9.5rem);
+    }
+
+    @media (min-width: 1280px) {
+        .pasteur-history-layout {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 1.5rem;
+        }
+    }
+
+    @media (min-width: 1536px) {
         .pasteur-history {
-            padding-left: 0.75rem;
-            padding-right: 0.75rem;
+            max-width: min(100%, 1840px);
         }
 
-        .pasteur-history > .mb-10 {
-            padding: 16px;
+        .pasteur-history-layout {
+            gap: 2rem;
+        }
+    }
+
+    @media (max-width: 640px) {
+        .pasteur-history {
+            padding-left: 0.65rem;
+            padding-right: 0.65rem;
         }
 
         .pasteur-history .timeline-line {
@@ -156,21 +198,38 @@
         }
 
         .pasteur-history .relative.pl-16 {
-            padding-left: 2.75rem;
+            padding-left: 2.35rem;
         }
 
         .pasteur-history .relative.pl-16 > .absolute.left-3 {
-            left: 0;
+            left: -0.1rem;
         }
 
         .pasteur-history .status-badge {
             width: 100%;
             justify-content: center;
         }
+
+        .pasteur-history .history-side-section > .mb-5,
+        .pasteur-history .history-card > .bg-white > .p-6,
+        .pasteur-history .relative.pl-16 > .bg-white > .p-6 {
+            padding: 1rem !important;
+        }
+
+        .pasteur-history .history-card > .bg-white > .bg-gradient-to-r,
+        .pasteur-history .relative.pl-16 > .bg-white > .bg-gradient-to-r {
+            padding-left: 1rem !important;
+            padding-right: 1rem !important;
+        }
+
+        .pasteur-history .history-info-grid,
+        .pasteur-history .history-evidence-grid {
+            gap: 0.75rem;
+        }
     }
 </style>
 
-<div class="pasteur-history max-w-6xl mx-auto px-4 sm:px-6 py-8">
+<div class="pasteur-history mx-auto py-6 sm:py-8">
     {{-- Header mejorado con gradiente y efectos --}}
     <div class="mb-10 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div class="flex min-w-0 items-center gap-4">
@@ -286,6 +345,45 @@
             });
 
             // Estadísticas rápidas
+            $gruposOrdenados = collect($agrupados);
+            $historialSecciones = collect([
+                'VAPOR' => [
+                    'titulo' => 'Lado Vapor',
+                    'subtitulo' => 'Historial capturado para el lado vapor.',
+                    'icono' => 'fa-cloud',
+                ],
+                'PASILLO' => [
+                    'titulo' => 'Lado Pasillo',
+                    'subtitulo' => 'Historial capturado para el lado pasillo.',
+                    'icono' => 'fa-walking',
+                ],
+            ])->map(function (array $seccion, string $lado) use ($gruposOrdenados): array {
+                $grupos = $gruposOrdenados
+                    ->filter(fn (array $grupo): bool => strtoupper(trim((string) ($grupo['lado'] ?? ''))) === $lado)
+                    ->values();
+
+                return array_merge($seccion, [
+                    'key' => $lado,
+                    'grupos' => $grupos,
+                    'total' => $grupos->sum(fn (array $grupo): int => (int) ($grupo['total_registros'] ?? count($grupo['registros'] ?? []))),
+                ]);
+            })->values();
+
+            $gruposSinLado = $gruposOrdenados
+                ->filter(fn (array $grupo): bool => !in_array(strtoupper(trim((string) ($grupo['lado'] ?? ''))), ['VAPOR', 'PASILLO'], true))
+                ->values();
+
+            if ($gruposSinLado->isNotEmpty()) {
+                $historialSecciones->push([
+                    'key' => 'SIN_LADO',
+                    'titulo' => 'Sin lado registrado',
+                    'subtitulo' => 'Registros anteriores sin lado asignado.',
+                    'icono' => 'fa-question-circle',
+                    'grupos' => $gruposSinLado,
+                    'total' => $gruposSinLado->sum(fn (array $grupo): int => (int) ($grupo['total_registros'] ?? count($grupo['registros'] ?? []))),
+                ]);
+            }
+
             $totalRegistros = $analisis->count();
             $conImagenes = $analisis->filter(function($item) {
                 $imagenes = $item->evidencia_fotos ?? null;
@@ -329,21 +427,37 @@
         </div>
 
         {{-- Timeline mejorado --}}
-        <div class="relative">
+        <div class="pasteur-history-layout">
+            @foreach($historialSecciones as $seccion)
+                <section class="history-side-section {{ $seccion['key'] === 'SIN_LADO' ? 'history-side-section--full' : '' }}">
+                    <div class="mb-5 rounded-xl border border-blue-100 bg-white px-4 py-4 shadow-sm sm:px-6">
+                        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                            <div class="flex min-w-0 items-center gap-3">
+                                <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-700">
+                                    <i class="fas {{ $seccion['icono'] }}"></i>
+                                </div>
+                                <div class="min-w-0">
+                                    <h2 class="text-lg font-bold text-gray-800">{{ $seccion['titulo'] }}</h2>
+                                    <p class="text-sm text-gray-500">{{ $seccion['subtitulo'] }}</p>
+                                </div>
+                            </div>
+                            <span class="inline-flex w-fit max-w-full items-center justify-center rounded-full bg-blue-50 px-3 py-1 text-sm font-semibold text-blue-700">
+                                {{ $seccion['total'] }} {{ $seccion['total'] === 1 ? 'registro' : 'registros' }}
+                            </span>
+                        </div>
+                    </div>
+
+                    @if($seccion['grupos']->isEmpty())
+                        <div class="rounded-xl border border-dashed border-gray-200 bg-white px-4 py-8 text-center text-sm text-gray-500 shadow-sm">
+                            Sin registros en este lado.
+                        </div>
+                    @else
+                        <div class="relative">
             {{-- Línea de tiempo vertical --}}
             <div class="absolute left-6 top-0 bottom-0 w-1 bg-gradient-to-b from-blue-400 to-blue-600 rounded-full timeline-line"></div>
 
             <div class="space-y-8">
-                @foreach($agrupados as $grupoIndex => $grupo)
-                    @php
-                        $totalComponentes = (int) ($grupo['total_componentes'] ?? 0);
-                        $revisadas = (int) count($grupo['todas_componentes_revisadas']);
-                        $porcentaje = 0;
-                        if ($totalComponentes > 0) {
-                            $porcentaje = (int) round(($revisadas / $totalComponentes) * 100);
-                        }
-                    @endphp
-
+                @foreach($seccion['grupos'] as $grupoIndex => $grupo)
                     {{-- Encabezado del grupo --}}
                     <div class="relative pl-16">
                         <div class="absolute left-3 top-2 w-8 h-8 bg-gradient-to-r from-indigo-600 to-indigo-700 rounded-full border-4 border-white shadow-lg timeline-dot flex items-center justify-center text-white text-xs font-bold">
@@ -361,34 +475,6 @@
                             </div>
 
                             <div class="p-6">
-                                @if($totalComponentes > 0)
-                                <div class="bg-gradient-to-br from-indigo-50 to-white rounded-xl p-5 border border-indigo-100 mb-4">
-                                    <div class="flex items-center justify-between mb-3">
-                                        <div class="flex items-center gap-2">
-                                            <div class="w-6 h-6 rounded-lg bg-indigo-100 flex items-center justify-center">
-                                                <i class="fas fa-tasks text-indigo-600 text-xs"></i>
-                                            </div>
-                                            <h4 class="text-xs font-semibold text-indigo-600 uppercase tracking-wider">
-                                                Progreso de Componentes
-                                            </h4>
-                                        </div>
-                                        <span class="text-sm font-bold text-indigo-700">{{ $revisadas }}/{{ $totalComponentes }} ({{ $porcentaje }}%)</span>
-                                    </div>
-                                    <div class="w-full bg-gray-200 rounded-full h-2">
-                                        <div class="bg-indigo-500 h-2 rounded-full" style="width: {{ $porcentaje }}%"></div>
-                                    </div>
-                                    @if($revisadas > 0)
-                                        <div class="flex flex-wrap gap-1 mt-3">
-                                            @foreach($grupo['todas_componentes_revisadas'] as $num)
-                                                <span class="inline-flex items-center px-2 py-0.5 rounded-md bg-green-100 text-green-700 text-xs font-medium">
-                                                    #{{ (int)$num }}
-                                                </span>
-                                            @endforeach
-                                        </div>
-                                    @endif
-                                </div>
-                                @endif
-
                                 <div class="space-y-4">
                                     @foreach($grupo['registros'] as $recordIndex => $item)
                     @php
@@ -484,7 +570,7 @@
                             {{-- Cuerpo de la tarjeta --}}
                             <div class="p-6">
                                 {{-- Grid de información --}}
-                                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                                <div class="history-info-grid mb-4">
                                     <div class="bg-gradient-to-br" style="background: linear-gradient(to bottom right, rgba(31, 35, 72, 0.05), white); border-color: rgba(31, 35, 72, 0.2); border-width: 1px; border-style: solid; border-radius: 0.75rem; padding: 1rem;">
                                         <div class="flex items-center gap-2 mb-2">
                                             <i class="fas fa-thermometer-half" style="color: rgb(31, 35, 72);"></i>
@@ -604,7 +690,7 @@
                                             </span>
                                         </div>
 
-                                        <div class="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                                        <div class="history-evidence-grid">
                                             @foreach($imagenes as $imgIndex => $imagen)
                                                 @php
                                                     $rutaImagen = asset('storage/' . ltrim(str_replace('\\', '/', $imagen), '/'));
@@ -671,8 +757,13 @@
             </div>
         </div>
 
-        {{-- Cierre del foreach de agrupados --}}
-        @endforeach
+                                @endforeach
+                            </div>
+                        </div>
+                    @endif
+                </section>
+            @endforeach
+        </div>
     @else
         {{-- Estado vacío mejorado --}}
         <div class="bg-gradient-to-br from-gray-50 to-white rounded-2xl shadow-lg border border-gray-200 p-12 text-center">

@@ -2726,17 +2726,17 @@
                 </div>
             </div>
 
-            <div class="analysis-detail-actions responsive-actions responsive-actions--end mt-8 pt-4 border-t border-gray-200">
+            <div class="flex flex-col sm:flex-row sm:justify-end gap-3 mt-8 pt-4 border-t border-gray-200">
                 <a id="detail-edit-btn" 
                 href="#" 
-                class="responsive-action">
+                class="w-full sm:w-auto justify-center px-6 py-3 bg-gray-800 text-white rounded-lg hover:bg-gray-900 transition-all shadow-md hover:shadow-lg flex items-center gap-2 font-medium border border-gray-700">
                     <i class="fas fa-edit"></i>
                     Editar Análisis
                 </a>
 
                 <a id="detail-historial-btn"
                 href="#"
-                class="responsive-action responsive-action--secondary hidden">
+                class="w-full sm:w-auto justify-center px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-all shadow-md hover:shadow-lg flex items-center gap-2 font-medium hidden border border-gray-500">
                     <span id="detail-historial-text">Ver Historial</span>
                 </a>
 
@@ -2744,14 +2744,14 @@
                     <button id="detail-delete-btn"
                             type="button"
                             onclick="confirmDeleteAnalysis()"
-                            class="responsive-action responsive-action--danger">
+                            class="w-full sm:w-auto justify-center px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all shadow-md hover:shadow-lg flex items-center gap-2 font-medium border border-red-700">
                         <i class="fas fa-trash"></i>
                         Eliminar
                     </button>
                 @endif
 
                 <button onclick="closeAnalysisDetailModal()" 
-                        class="responsive-action responsive-action--secondary">
+                        class="w-full sm:w-auto justify-center px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-all shadow-md hover:shadow-lg flex items-center gap-2 font-medium border border-gray-300">
                     <i class="fas fa-times"></i>
                     Cerrar
                 </button>
