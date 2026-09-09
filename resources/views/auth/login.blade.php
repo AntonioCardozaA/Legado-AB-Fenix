@@ -100,7 +100,7 @@
                                        required
                                        autofocus
                                        autocomplete="username"
-                                       placeholder="usuario@empresa.com"
+                                       placeholder="usuario@legadoabfenix.com"
                                        class="w-full pl-11 pr-4 py-3 rounded-xl 
                                               border border-gray-500/30 
                                               bg-white/10 
