@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Linea;
+use App\Models\AnalisisPasteurizadora;
 use App\Models\PlanAccion;
 use App\Models\User;
 use App\Services\NotificationRecipientService;
@@ -134,6 +135,167 @@ class RoleAccessTest extends TestCase
         $this->actingAs($user)
             ->get(route('pasteurizadora.dashboard'))
             ->assertOk();
+    }
+
+    public function test_capturista_excentricos_uses_exclusive_pasteurizadora_flow(): void
+    {
+        $linea = Linea::create([
+            'nombre' => 'P-03',
+            'descripcion' => 'Pasteurizadora de prueba',
+            'activo' => true,
+        ]);
+        $user = $this->userWithRole(User::ROLE_CAPTURISTA_EXCENTRICOS);
+
+        $this->assertTrue($user->usesPasteurizadoraExcentricosAccessProfile());
+        $this->assertTrue($user->canAccessModule(User::MODULE_PASTEURIZADORA));
+        $this->assertTrue($user->canAccessPasteurizadoraArea(AnalisisPasteurizadora::AREA_MECANICA));
+        $this->assertFalse($user->canAccessPasteurizadoraArea(AnalisisPasteurizadora::AREA_CENTRAL_HIDRAULICA));
+        $this->assertFalse($user->canUseCustomPermission('gestionar usuarios'));
+
+        $exclusiveRoute = route('pasteurizadora.analisis-pasteurizadora.excentricos.index');
+
+        $this->actingAs($user)
+            ->get(route('dashboard'))
+            ->assertRedirect($exclusiveRoute);
+
+        $this->actingAs($user)
+            ->get($exclusiveRoute)
+            ->assertOk()
+            ->assertSee('Excentricos de Pasteurizadoras')
+            ->assertSee($linea->nombre)
+            ->assertSee(asset('images/Diagramas-Pasteurizadoras/linea3.png'), false)
+            ->assertSee('TRABAJA CON NORMALIDAD')
+            ->assertDontSee('Pendiente')
+            ->assertSee('Modulo 1')
+            ->assertSee('Capturar revision')
+            ->assertDontSee('Todas las pasteurizadoras')
+            ->assertSee(route('pasteurizadora.analisis-pasteurizadora.create-quick', [
+                'linea_id' => $linea->id,
+                'modulo' => 1,
+                'componente' => AnalisisPasteurizadora::COMPONENTE_EXCENTRICOS,
+            ]))
+            ->assertDontSee(route('admin.users.index'), false);
+
+        $this->actingAs($user)
+            ->get(route('pasteurizadora.analisis-pasteurizadora.index'))
+            ->assertRedirect($exclusiveRoute);
+
+        $this->actingAs($user)
+            ->get(route('admin.users.index'))
+            ->assertRedirect($exclusiveRoute);
+
+        $this->actingAs($user)
+            ->get(route('assistant-chat.index'))
+            ->assertRedirect($exclusiveRoute);
+
+        $this->actingAs($user)
+            ->get(route('lavadoras.diagramas.l05-l12-l13'))
+            ->assertRedirect($exclusiveRoute);
+
+        $this->actingAs($user)
+            ->get(route('elongaciones.index'))
+            ->assertRedirect($exclusiveRoute);
+
+        $this->actingAs($user)
+            ->get(route('pasteurizadora.analisis-pasteurizadora.create-quick', [
+                'linea_id' => $linea->id,
+                'modulo' => 1,
+                'componente' => 'ANILLAS',
+            ]))
+            ->assertRedirect($exclusiveRoute);
+
+        $this->actingAs($user)
+            ->post(route('logout'))
+            ->assertRedirect('/');
+    }
+
+    public function test_capturista_excentricos_can_store_only_excentricos_without_order_number(): void
+    {
+        $linea = Linea::create([
+            'nombre' => 'P-03',
+            'descripcion' => 'Pasteurizadora de prueba',
+            'activo' => true,
+        ]);
+        $user = $this->userWithRole(User::ROLE_CAPTURISTA_EXCENTRICOS);
+
+        $response = $this->actingAs($user)->post(
+            route('pasteurizadora.analisis-pasteurizadora.store-quick'),
+            [
+                'linea_id' => $linea->id,
+                'modulo' => 1,
+                'nivel' => 'SUPERIOR',
+                'componente' => AnalisisPasteurizadora::COMPONENTE_EXCENTRICOS,
+                'lado' => 'VAPOR',
+                'fecha_analisis' => now()->toDateString(),
+                'numero_orden' => '1234ABCD',
+                'estado' => AnalisisPasteurizadora::ESTADO_BUENO,
+                'actividad' => 'Revision de excentricos por capturista',
+                'componentes_revisados' => json_encode([1]),
+            ]
+        );
+
+        $response->assertSessionHasNoErrors();
+        $response->assertRedirect(route('pasteurizadora.analisis-pasteurizadora.excentricos.index', [
+            'linea_id' => $linea->id,
+        ]));
+
+        $this->assertDatabaseHas('analisis_pasteurizadora', [
+            'linea_id' => $linea->id,
+            'modulo' => 1,
+            'componente' => AnalisisPasteurizadora::COMPONENTE_EXCENTRICOS,
+            'numero_orden' => null,
+            'usuario_id' => $user->id,
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('pasteurizadora.analisis-pasteurizadora.excentricos.index', [
+                'linea_id' => $linea->id,
+            ]))
+            ->assertOk()
+            ->assertSee('Indicador')
+            ->assertSee(AnalisisPasteurizadora::ESTADO_BUENO)
+            ->assertSee('Ver detalles')
+            ->assertSee('Detalle del Analisis')
+            ->assertSee('Piezas revisadas')
+            ->assertSee('REVISION DE EXCENTRICOS POR CAPTURISTA');
+
+        $this->actingAs($user)->post(
+            route('pasteurizadora.analisis-pasteurizadora.store-quick'),
+            [
+                'linea_id' => $linea->id,
+                'modulo' => 1,
+                'nivel' => 'SUPERIOR',
+                'componente' => 'ANILLAS',
+                'lado' => 'VAPOR',
+                'fecha_analisis' => now()->toDateString(),
+                'estado' => AnalisisPasteurizadora::ESTADO_BUENO,
+                'actividad' => 'Intento de registrar otro componente',
+                'componentes_revisados' => json_encode([1]),
+            ]
+        )->assertForbidden();
+
+        $this->assertDatabaseMissing('analisis_pasteurizadora', [
+            'linea_id' => $linea->id,
+            'componente' => 'ANILLAS',
+            'actividad' => 'INTENTO DE REGISTRAR OTRO COMPONENTE',
+        ]);
+    }
+
+    public function test_capturista_excentricos_role_is_available_in_user_management(): void
+    {
+        $this->seed(RoleSeeder::class);
+
+        $role = Role::where('name', User::ROLE_CAPTURISTA_EXCENTRICOS)->firstOrFail();
+
+        $this->assertTrue($role->hasPermissionTo(User::PERMISSION_CAPTURE_PASTEURIZADORA_EXCENTRICOS));
+
+        $admin = $this->userWithRole(User::ROLE_ADMIN);
+
+        $this->actingAs($admin)
+            ->get(route('admin.users.index'))
+            ->assertOk()
+            ->assertSee('Capturista de Excentricos')
+            ->assertSee('Captura Excentricos');
     }
 
     public function test_programador_de_mantenimiento_matches_supervisor_permissions_and_ui(): void

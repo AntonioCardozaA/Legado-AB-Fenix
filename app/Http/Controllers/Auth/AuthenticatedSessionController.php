@@ -49,6 +49,10 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->forget('url.intended');
 
+        if ($request->user()?->usesPasteurizadoraExcentricosAccessProfile()) {
+            return redirect()->to(route('pasteurizadora.analisis-pasteurizadora.excentricos.index', absolute: false));
+        }
+
         return redirect()->to(route('dashboard', absolute: false));
     }
 

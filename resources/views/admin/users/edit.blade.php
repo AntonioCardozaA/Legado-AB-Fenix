@@ -17,22 +17,8 @@
 
     <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
         <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-<<<<<<< HEAD
             <div>
                 <h1 class="text-2xl font-bold text-gray-900">{{ $managedUser->name }}</h1>
-=======
-            <div class="flex items-start gap-4">
-                <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-slate-900 text-lg font-bold text-white">
-                    {{ str($managedUser->name)->substr(0, 1)->upper() }}
-                </div>
-                <div>
-                    <div class="mb-1 text-xs font-bold uppercase tracking-[0.18em] text-blue-600">Ficha de acceso</div>
-                    <h1 class="text-xl font-bold tracking-tight text-slate-950 sm:text-2xl">{{ $managedUser->name }}</h1>
-                    <p class="mt-1 text-sm text-gray-500">
-                        Actualiza sus datos, rol, estado y permisos desde esta ficha individual.
-                    </p>
-                </div>
->>>>>>> f22fc90a5e20bd55f357cd95acf8f3f92b830f93
             </div>
 
             <div class="flex flex-wrap gap-2 lg:pt-1">
@@ -71,12 +57,7 @@
     <div class="grid min-w-0 gap-4 2xl:grid-cols-[minmax(0,2fr),minmax(17rem,1fr)]">
         <div class="min-w-0 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
             <div class="mb-5">
-<<<<<<< HEAD
                 <h2 class="text-xl font-bold text-gray-900">Editar datos del usuario</h2>
-=======
-            <h2 class="text-xl font-bold text-slate-950">Datos y acceso</h2>
-            <p class="mt-1 text-sm text-slate-500">Actualiza la información general y define el alcance operativo de esta cuenta.</p>
->>>>>>> f22fc90a5e20bd55f357cd95acf8f3f92b830f93
             </div>
 
             @include('admin.users.partials.edit-form', [
@@ -88,20 +69,8 @@
         </div>
 
         <div class="space-y-6">
-<<<<<<< HEAD
             <div class="rounded bg-white p-5 shadow">
                 <h2 class="text-xl font-bold text-gray-900">Resumen del usuario</h2>
-=======
-            <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-                <div class="flex items-center gap-3">
-                    <div class="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100 text-slate-600"><i class="fas fa-id-card"></i></div>
-                    <div>
-                        <h2 class="text-lg font-bold text-slate-950">Resumen del usuario</h2>
-                        <p class="text-xs text-slate-500">Información registrada actualmente.</p>
-                    </div>
-                </div>
-
->>>>>>> f22fc90a5e20bd55f357cd95acf8f3f92b830f93
                 <div class="mt-5 space-y-3">
                     <div class="rounded-lg border border-slate-200 bg-slate-50 p-4">
                         <div class="text-xs font-semibold uppercase tracking-wide text-gray-500">Correo</div>

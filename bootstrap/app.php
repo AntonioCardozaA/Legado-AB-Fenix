@@ -53,6 +53,7 @@ if (is_dir($frameworkBasePath)) {
 }
 
 use App\Http\Middleware\EnsureCustomPermissionAccess;
+use App\Http\Middleware\EnsurePasteurizadoraExcentricosCaptureAccess;
 use App\Http\Middleware\EnsurePasteurizadoraAccess;
 use App\Http\Middleware\EnsureTechnicianAccess;
 use Illuminate\Foundation\Application;
@@ -73,7 +74,13 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->redirectGuestsTo(fn (Request $request): string => route('login', absolute: false));
-        $middleware->redirectUsersTo(fn (Request $request): string => route('dashboard', absolute: false));
+        $middleware->redirectUsersTo(function (Request $request): string {
+            if ($request->user()?->usesPasteurizadoraExcentricosAccessProfile()) {
+                return route('pasteurizadora.analisis-pasteurizadora.excentricos.index', absolute: false);
+            }
+
+            return route('dashboard', absolute: false);
+        });
 
         $middleware->alias([
             'role' => RoleMiddleware::class,
@@ -81,6 +88,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'role_or_permission' => RoleOrPermissionMiddleware::class,
             'technician.access' => EnsureTechnicianAccess::class,
             'pasteurizadora.access' => EnsurePasteurizadoraAccess::class,
+            'pasteurizadora.excentricos.access' => EnsurePasteurizadoraExcentricosCaptureAccess::class,
             'custom.permission.access' => EnsureCustomPermissionAccess::class,
         ]);
     })

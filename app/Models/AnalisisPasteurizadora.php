@@ -94,6 +94,7 @@ class AnalisisPasteurizadora extends Model
     ];
     public const COMPONENTE_VIGAS_FIJAS = 'VIGAS_FIJAS';
     public const COMPONENTE_REGLILLAS = 'REGLILLAS';
+    public const COMPONENTE_EXCENTRICOS = 'EXCENTRICOS';
     public const ALCANCE_REVISION_NIVEL_LADO = 'nivel_lado';
     public const ALCANCE_REVISION_NIVEL = 'nivel';
     public const ALCANCE_REVISION_MODULO = 'modulo';
@@ -132,7 +133,7 @@ class AnalisisPasteurizadora extends Model
 
     const COMPONENTES_SENCILLOS = [
         'ANILLAS' => ['nombre' => 'Anillas (Ventanas-Cortinas)', 'cantidad' => 3],
-        'EXCENTRICOS' => ['nombre' => 'Excéntricos', 'cantidad' => 2],
+        self::COMPONENTE_EXCENTRICOS => ['nombre' => 'Excéntricos', 'cantidad' => 2],
         'PISTAS' => ['nombre' => 'Pistas', 'cantidad' => 2],
         'VIGAS_FIJAS' => ['nombre' => 'Vigas Fijas', 'cantidad' => 4],
         'VIGA_MOVIMIENTO' => ['nombre' => 'Viga de Movimiento', 'cantidad' => 1],
@@ -143,7 +144,7 @@ class AnalisisPasteurizadora extends Model
 
     const COMPONENTES_DOBLES = [
         'ANILLAS' => ['nombre' => 'Anillas (Ventanas-Cortinas)', 'cantidad' => 5],
-        'EXCENTRICOS' => ['nombre' => 'Excéntricos', 'cantidad' => 2],
+        self::COMPONENTE_EXCENTRICOS => ['nombre' => 'Excéntricos', 'cantidad' => 2],
         'RODAJAS' => ['nombre' => 'Rodajas', 'cantidad' => 2],
         'PLACAS_PERNO' => ['nombre' => 'Placas Perno', 'cantidad' => 5],
         'VIGAS_MOVIMIENTO' => ['nombre' => 'Vigas de Movimiento', 'cantidad' => 2],

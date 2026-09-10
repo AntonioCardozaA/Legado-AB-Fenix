@@ -52,7 +52,6 @@ class AdminUserController extends Controller
             'users' => $users,
             'roleOptions' => $this->roleOptions(),
             'permissionGroups' => User::configurablePermissionGroups(),
-            'stats' => $this->stats(),
             'filters' => $filters,
         ]);
     }

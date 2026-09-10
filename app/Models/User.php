@@ -36,6 +36,7 @@ class User extends Authenticatable
     public const ROLE_INGENIERO_MANTENIMIENTO = 'ingeniero_mantenimiento';
     public const ROLE_TECNICO = 'tecnico';
     public const ROLE_PROGRAMADOR_DE_MANTENIMIENTO = 'programador_de_mantenimiento';
+    public const ROLE_CAPTURISTA_EXCENTRICOS = 'capturista_excentricos';
 
     public const MODULE_LAVADORA = 'lavadora';
     public const MODULE_ETIQUETADORA = 'etiquetadora';
@@ -48,6 +49,7 @@ class User extends Authenticatable
     public const PERMISSION_ACCESS_PASTEURIZADORA_CENTRAL_HIDRAULICA = 'acceder pasteurizadora central hidraulica';
     public const PERMISSION_EDIT_ANALYSIS_DATE = 'editar fecha analisis';
     public const PERMISSION_DELETE_ANALYSIS = 'eliminar analisis';
+    public const PERMISSION_CAPTURE_PASTEURIZADORA_EXCENTRICOS = 'capturar excentricos pasteurizadora';
     public const PERMISSION_CLOSE_LAVADORA_DAMAGE = 'cerrar danos lavadora';
     public const PERMISSION_VIEW_LAVADORA_COST_MODULE = 'ver modulo costos lavadora';
     public const PERMISSION_ACCESS_LAVADORA_COSTS = 'acceder vista costos lavadora';
@@ -116,6 +118,7 @@ public static function roleLabels(): array
         self::ROLE_INGENIERO_MANTENIMIENTO => 'Ingeniero de Mantenimiento',
         self::ROLE_TECNICO => 'Tecnico',
         self::ROLE_PROGRAMADOR_DE_MANTENIMIENTO => 'Programador de Mantenimiento',
+        self::ROLE_CAPTURISTA_EXCENTRICOS => 'Capturista de Excentricos',
     ];
 }
 
@@ -437,6 +440,11 @@ public function getRoleLabelAttribute(): string
 public function canAccessModule(string $module): bool
 {
     $module = strtolower($module);
+
+    if ($module === self::MODULE_PASTEURIZADORA && $this->usesPasteurizadoraExcentricosAccessProfile()) {
+        return true;
+    }
+
     $permission = self::modulePermissionMap()[$module] ?? null;
 
     $allowedByDefault = $this->canAccessModuleByDefault($module);
@@ -491,6 +499,10 @@ public function canAccessModuleByDefault(string $module): bool
 
 public function canAccessPasteurizadoraArea(string $area): bool
 {
+    if ($this->usesPasteurizadoraExcentricosAccessProfile()) {
+        return \App\Models\AnalisisPasteurizadora::normalizarArea($area) === \App\Models\AnalisisPasteurizadora::AREA_MECANICA;
+    }
+
     if (!$this->canAccessModule(self::MODULE_PASTEURIZADORA)) {
         return false;
     }
@@ -597,6 +609,34 @@ public function shouldSeePasteurizadoraShortcut(): bool
 {
     return $this->canAccessModule(self::MODULE_PASTEURIZADORA)
         || $this->shouldShowPasteurizadoraComingSoon();
+}
+
+public function hasPasteurizadoraExcentricosRole(): bool
+{
+    return $this->hasRole(self::ROLE_CAPTURISTA_EXCENTRICOS);
+}
+
+public function usesPasteurizadoraExcentricosAccessProfile(): bool
+{
+    if ($this->hasPasteurizadoraExcentricosRole()) {
+        return true;
+    }
+
+    if ($this->hasRole(self::ROLE_ADMIN)) {
+        return false;
+    }
+
+    return $this->usesCustomPermissionAccess()
+        && $this->hasDirectConfigurablePermission(self::PERMISSION_CAPTURE_PASTEURIZADORA_EXCENTRICOS);
+}
+
+public function canCapturePasteurizadoraExcentricos(): bool
+{
+    if ($this->hasRole(self::ROLE_ADMIN) || $this->hasPasteurizadoraExcentricosRole()) {
+        return true;
+    }
+
+    return $this->canUseCustomPermission(self::PERMISSION_CAPTURE_PASTEURIZADORA_EXCENTRICOS);
 }
 
 private function hasPermissionThroughRoleSafely(string $permission): bool

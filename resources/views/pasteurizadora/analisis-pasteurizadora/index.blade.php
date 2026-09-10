@@ -1124,8 +1124,7 @@
         .analysis-detail-card,
         .analysis-detail-summary-grid > div,
         .analysis-detail-secondary-grid > div,
-        #detail-componentes-section > div,
-        #detail-niveles-section > div
+        #detail-componentes-section > div
     ) {
         min-height: 105px;
         overflow: hidden;
@@ -1135,8 +1134,7 @@
         .analysis-detail-card,
         .analysis-detail-summary-grid > div,
         .analysis-detail-secondary-grid > div,
-        #detail-componentes-section > div,
-        #detail-niveles-section > div
+        #detail-componentes-section > div
     ) .flex {
         min-width: 0;
     }
@@ -1145,8 +1143,7 @@
         .analysis-detail-card,
         .analysis-detail-summary-grid > div,
         .analysis-detail-secondary-grid > div,
-        #detail-componentes-section > div,
-        #detail-niveles-section > div
+        #detail-componentes-section > div
     ) [id^="detail-"] {
         max-width: 100%;
         overflow-wrap: anywhere;
@@ -1157,8 +1154,7 @@
         .analysis-detail-card,
         .analysis-detail-summary-grid > div,
         .analysis-detail-secondary-grid > div,
-        #detail-componentes-section > div,
-        #detail-niveles-section > div
+        #detail-componentes-section > div
     ) :where(h4, p) {
         overflow-wrap: anywhere;
     }
@@ -1167,15 +1163,13 @@
         .analysis-detail-card,
         .analysis-detail-summary-grid > div,
         .analysis-detail-secondary-grid > div,
-        #detail-componentes-section > div,
-        #detail-niveles-section > div
+        #detail-componentes-section > div
     ) :where(.bg-gray-100, .bg-blue-100, .bg-green-100, .bg-gray-200) {
         flex: 0 0 auto;
     }
 
     #detail-lado-badge-container,
-    #detail-componentes-section .flex,
-    #detail-niveles-section .grid {
+    #detail-componentes-section .flex {
         min-width: 0;
     }
 
@@ -1187,7 +1181,6 @@
 
     #detail-lado-badge-container :where(span, .lado-badge),
     #detail-componentes-section :where(span, a, button),
-    #detail-niveles-section :where(span, p, div),
     #detail-images-section :where(h4, span, p) {
         max-width: 100%;
         white-space: normal;
@@ -1263,8 +1256,7 @@
             .analysis-detail-card,
             .analysis-detail-summary-grid > div,
             .analysis-detail-secondary-grid > div,
-            #detail-componentes-section > div,
-            #detail-niveles-section > div
+            #detail-componentes-section > div
         ) {
             min-height: auto;
             padding: 0.95rem !important;
@@ -1274,8 +1266,7 @@
             .analysis-detail-card,
             .analysis-detail-summary-grid > div,
             .analysis-detail-secondary-grid > div,
-            #detail-componentes-section > div,
-            #detail-niveles-section > div
+            #detail-componentes-section > div
         ) .flex {
             gap: 0.75rem !important;
         }
@@ -1284,8 +1275,7 @@
             .analysis-detail-card,
             .analysis-detail-summary-grid > div,
             .analysis-detail-secondary-grid > div,
-            #detail-componentes-section > div,
-            #detail-niveles-section > div
+            #detail-componentes-section > div
         ) :where(.bg-gray-100, .bg-blue-100, .bg-green-100, .bg-gray-200) {
             padding: 0.62rem !important;
         }
@@ -1294,8 +1284,7 @@
             .analysis-detail-card,
             .analysis-detail-summary-grid > div,
             .analysis-detail-secondary-grid > div,
-            #detail-componentes-section > div,
-            #detail-niveles-section > div
+            #detail-componentes-section > div
         ) i {
             font-size: 1rem !important;
         }
@@ -1304,8 +1293,7 @@
             .analysis-detail-card,
             .analysis-detail-summary-grid > div,
             .analysis-detail-secondary-grid > div,
-            #detail-componentes-section > div,
-            #detail-niveles-section > div
+            #detail-componentes-section > div
         ) p[id^="detail-"] {
             font-size: 1rem !important;
             line-height: 1.35;
@@ -1315,8 +1303,7 @@
             .analysis-detail-card,
             .analysis-detail-summary-grid > div,
             .analysis-detail-secondary-grid > div,
-            #detail-componentes-section > div,
-            #detail-niveles-section > div
+            #detail-componentes-section > div
         ) h4 {
             font-size: 0.78rem !important;
             line-height: 1.25;
@@ -1371,8 +1358,7 @@
             .analysis-detail-card,
             .analysis-detail-summary-grid > div,
             .analysis-detail-secondary-grid > div,
-            #detail-componentes-section > div,
-            #detail-niveles-section > div
+            #detail-componentes-section > div
         ) {
             padding: 0.85rem !important;
             border-left-width: 3px !important;
@@ -1382,8 +1368,7 @@
             .analysis-detail-card,
             .analysis-detail-summary-grid > div,
             .analysis-detail-secondary-grid > div,
-            #detail-componentes-section > div,
-            #detail-niveles-section > div
+            #detail-componentes-section > div
         ) p.text-xs {
             font-size: 0.68rem !important;
         }
@@ -1392,14 +1377,12 @@
             .analysis-detail-card,
             .analysis-detail-summary-grid > div,
             .analysis-detail-secondary-grid > div,
-            #detail-componentes-section > div,
-            #detail-niveles-section > div
+            #detail-componentes-section > div
         ) p[id^="detail-"] {
             font-size: 0.95rem !important;
         }
 
         #detail-componentes-section,
-        #detail-niveles-section,
         #detail-images-section {
             margin-top: 0.9rem !important;
         }
@@ -1797,6 +1780,7 @@
     @php
         $lineasFiltradas = $lineasFiltradas ?? collect();
         $mostrarTodas = $mostrarTodas ?? true;
+        $lineaSeleccionadaId = $lineaSeleccionada->id ?? $lineasFiltradas->first()?->id;
         $analisisCollection = isset($analisis) ? collect($analisis) : collect([]);
         $seguimientoPasteurizadora = $seguimientoPasteurizadora ?? [];
         // Cambia esta ruta para usar el icono que quieras en todas las pasteurizadoras.
@@ -1866,23 +1850,18 @@
         <form method="GET" action="{{ $analisisRoute('index') }}" id="filterForm">
             <div class="lineas-title">
                 LÍNEAS DE PASTEURIZADORA:
-                <a href="{{ $analisisRoute('index', ['linea_id' => 'todas']) }}"
-                   class="linea-item linea-item--all {{ $mostrarTodas ? 'active' : '' }}">
-                    <i class="fas fa-globe"></i>
-                    Todas
-                </a>
             </div>
 
             <div class="lineas-grid">
                 @foreach($lineasFiltradas as $l)
-                    <div class="linea-item {{ request('linea_id') == $l->id ? 'active' : '' }}" 
+                    <div class="linea-item {{ (string) $lineaSeleccionadaId === (string) $l->id ? 'active' : '' }}"
                          onclick="selectLinea('{{ $l->id }}')">
                         {{ $l->nombre }}
                     </div>
                 @endforeach
                 
                 {{-- Select oculto para el valor real --}}
-                <input type="hidden" name="linea_id" id="lineaInput" value="{{ request('linea_id') }}">
+                <input type="hidden" name="linea_id" id="lineaInput" value="{{ $lineaSeleccionadaId }}">
                 <input type="hidden" name="modulo" id="moduloInput" value="{{ request('modulo') }}">
                 <input type="hidden" name="estado" value="{{ request('estado') }}" id="estadoInput">
             </div>
@@ -1903,7 +1882,7 @@
                     Aplicar filtros
                 </button>
                 
-                <a href="{{ $analisisRoute('index', ['linea_id' => 'todas']) }}" class="btn-clear">
+                <a href="{{ $analisisRoute('index', ['linea_id' => $lineaSeleccionadaId]) }}" class="btn-clear">
                     <i class="fas fa-times"></i>
                     Limpiar
                 </a>
@@ -2708,8 +2687,6 @@
 
             <div id="detail-componentes-section" class="mt-6 hidden"></div>
 
-            <div id="detail-niveles-section" class="mt-6 hidden"></div>
-
             <div id="detail-images-section" class="mt-6 hidden">
                 <div class=" text-gray-700 px-6 py-4">
                     <div class="flex items-center gap-3">
@@ -3079,7 +3056,6 @@ function openAnalysisDetail(data) {
     historialText.innerHTML = '<i class="fas fa-history mr-2"></i>Ver Historial';
 
     renderComponentesRevisados(data);
-    renderEstadoPorNivel(data);
     renderDetailImages(data.imagenes || []);
 
     const modal = document.getElementById('analysisDetailModal');
@@ -3140,58 +3116,6 @@ function renderComponentesRevisados(data) {
                         #${num}
                     </span>
                 `).join('')}
-            </div>
-        </div>
-    `;
-}
-
-function renderEstadoPorNivel(data) {
-    const section = document.getElementById('detail-niveles-section');
-
-    if (!data.estado_por_nivel) {
-        section.classList.add('hidden');
-        section.innerHTML = '';
-        return;
-    }
-
-    const nivelesOrden = ['SUPERIOR', 'INFERIOR'];
-    const usaLado = data.mostrar_lado !== false;
-    section.classList.remove('hidden');
-    section.innerHTML = `
-        <div class="bg-white rounded-lg p-5 border border-purple-200 shadow-sm">
-            <div class="flex items-center gap-3 mb-4">
-                <div class="bg-purple-100 p-2 rounded-lg">
-                    <i class="fas fa-layer-group text-purple-600"></i>
-                </div>
-                <h4 class="font-semibold text-gray-700 border-purple-200 border-b-2 uppercase tracking-wider text-sm">Estado de revision por nivel</h4>
-            </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                ${nivelesOrden.map((nivel) => {
-                    const info = data.estado_por_nivel[nivel] || { completado: false, lados_pendientes: [] };
-                    const ladosPendientes = info.lados_pendientes || [];
-                    const completado = Boolean(info.completado);
-
-                    return `
-                        <div class="rounded-lg border p-4 ${completado ? 'border-green-200 bg-green-50' : 'border-amber-200 bg-amber-50'}">
-                            <div class="flex items-center justify-between gap-2 mb-2">
-                                <span class="text-xs font-semibold ${completado ? 'text-green-700' : 'text-amber-700'} uppercase tracking-wider">
-                                    <i class="fas ${nivel === 'SUPERIOR' ? 'fa-arrow-up' : 'fa-arrow-down'} mr-1"></i>
-                                    Nivel ${nivel === 'SUPERIOR' ? 'Superior' : 'Inferior'}
-                                </span>
-                                <span class="px-2 py-1 rounded text-xs font-semibold ${completado ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}">
-                                    ${completado ? 'Completado' : 'Pendiente'}
-                                </span>
-                            </div>
-                            <p class="text-sm text-gray-700">
-                                ${completado
-                                    ? (usaLado ? 'Ambos lados ya fueron revisados.' : 'Revision del nivel completada.')
-                                    : ladosPendientes.length > 0
-                                        ? `Falta revisar: ${ladosPendientes.map((lado) => lado === 'VAPOR' ? 'Vapor' : 'Pasillo').join(', ')}`
-                                        : 'Pendiente de revision del nivel'}
-                            </p>
-                        </div>
-                    `;
-                }).join('')}
             </div>
         </div>
     `;

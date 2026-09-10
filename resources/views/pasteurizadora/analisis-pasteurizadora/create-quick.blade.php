@@ -20,6 +20,10 @@
     $componenteSeleccionado = old('componente', $componente ?? '');
     $componenteSeleccionadoConfig = $componentesLinea[$componenteSeleccionado] ?? null;
     $requiereLado = $requiereLado ?? \App\Models\AnalisisPasteurizadora::requiereLado($linea->nombre, $componenteSeleccionado);
+    $usesExcentricosCaptureProfile = $usesExcentricosCaptureProfile ?? (auth()->user()?->usesPasteurizadoraExcentricosAccessProfile() ?? false);
+    $volverUrl = $usesExcentricosCaptureProfile
+        ? $analisisRoute('excentricos.index', ['linea_id' => $linea->id])
+        : $analisisRoute('index', ['linea_id' => $linea->id]);
 @endphp
 
 <style>
@@ -108,12 +112,12 @@
 <div class="pasteur-form-shell max-w-4xl mx-auto py-10 px-4">
     <div class="mb-8">
         <div class="flex items-center gap-3 mb-4">
-            <a href="{{ $analisisRoute('index', ['linea_id' => $linea->id]) }}"
+            <a href="{{ $volverUrl }}"
                class="text-gray-400 hover:text-blue-600 transition">
                 <i class="fas fa-arrow-left text-xl"></i>
             </a>
             <h1 class="text-3xl font-bold text-gray-800">
-                Agregar Analisis
+                {{ $usesExcentricosCaptureProfile ? 'Capturar Excentricos' : 'Agregar Analisis' }}
             </h1>
         </div>
 
@@ -235,7 +239,7 @@
                 @enderror
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="grid grid-cols-1 {{ $usesExcentricosCaptureProfile ? '' : 'md:grid-cols-2' }} gap-6">
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-2">
                         <i class="far fa-calendar-alt text-blue-600 mr-1"></i>
@@ -251,6 +255,7 @@
                     @enderror
                 </div>
 
+                @unless($usesExcentricosCaptureProfile)
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-2">
                         <i class="fas fa-hashtag text-blue-600 mr-1"></i>
@@ -272,6 +277,7 @@
                         <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
                     @enderror
                 </div>
+                @endunless
             </div>
 
             <div>
@@ -348,13 +354,8 @@
                                class="sr-only">
                     </div>
                 </div>
-                <div class="mt-4 rounded-lg border border-dashed border-gray-300 bg-white p-3">
-                    <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                        <p id="fotos_resumen" class="text-sm font-medium text-gray-600">Sin imagenes seleccionadas</p>
-                        <p class="text-xs text-gray-500">JPG, PNG, WEBP, GIF o BMP. Max. 12MB por imagen.</p>
-                    </div>
-                    <div id="preview_fotos" class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-4"></div>
-                </div>
+                <p id="fotos_resumen" class="sr-only">Sin imagenes seleccionadas</p>
+                <div id="preview_fotos" class="mt-3 hidden grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-4"></div>
 
                 @error('evidencia_fotos')
                     <p class="text-red-500 text-sm mt-2">{{ $message }}</p>
@@ -365,7 +366,7 @@
             </div>
 
             <div class="create-actions pt-6 border-t border-gray-200">
-                <a href="{{ $analisisRoute('index', ['linea_id' => $linea->id]) }}"
+                <a href="{{ $volverUrl }}"
                    class="create-action create-action--secondary flex-1 analysis-create-action--cancel-mobile">
                     Cancelar
                 </a>
@@ -575,13 +576,22 @@ function getFotosFallback() {
 }
 
 function actualizarResumenFotos(total) {
+    if (!fotosResumen) {
+        return;
+    }
+
     fotosResumen.textContent = total === 0
         ? 'Sin imagenes seleccionadas'
         : `${total} imagen${total === 1 ? '' : 'es'} seleccionada${total === 1 ? '' : 's'}`;
 }
 
 function renderFotoPreview(files, permitirEliminar) {
+    if (!previewFotos) {
+        return;
+    }
+
     previewFotos.innerHTML = '';
+    previewFotos.classList.toggle('hidden', files.length === 0);
     actualizarResumenFotos(files.length);
 
     files.forEach((file, index) => {

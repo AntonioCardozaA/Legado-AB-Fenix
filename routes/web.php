@@ -53,7 +53,7 @@ Route::get('/diagramas-animados', function () {
     return view('diagram-test');
 })->name('diagramas.animados');
 
-Route::middleware(['auth', 'throttle:assistant-chat', 'custom.permission.access'])
+Route::middleware(['auth', 'throttle:assistant-chat', 'pasteurizadora.excentricos.access', 'custom.permission.access'])
     ->prefix('asistente/chat')
     ->name('assistant-chat.')
     ->controller(AssistantChatController::class)
@@ -67,7 +67,7 @@ Route::middleware(['auth', 'throttle:assistant-chat', 'custom.permission.access'
             ->name('artifact');
     });
 
-Route::middleware(['auth', 'custom.permission.access'])
+Route::middleware(['auth', 'pasteurizadora.excentricos.access', 'custom.permission.access'])
     ->prefix('lavadoras/diagramas')->name('lavadoras.diagramas.')->group(function () {
     Route::redirect('/', '/lavadoras/diagramas/l05-l12-l13')->name('index');
 
@@ -89,7 +89,7 @@ Route::middleware(['auth', 'custom.permission.access'])
 | RUTAS PROTEGIDAS
 |--------------------------------------------------------------------------
 */
-Route::middleware(['auth', 'pasteurizadora.access', 'technician.access', 'custom.permission.access'])->group(function () {
+Route::middleware(['auth', 'pasteurizadora.access', 'technician.access', 'pasteurizadora.excentricos.access', 'custom.permission.access'])->group(function () {
 
     /*
     |--------------------------------------------------------------------------
@@ -359,6 +359,7 @@ Route::prefix('pasteurizadora')->group(function () {
             ->group(function () {
                 Route::get('/', 'index')->name('index');
                 Route::get('/seleccionar-linea', 'selectLinea')->name('select-linea');
+                Route::get('/excentricos', 'excentricosIndex')->name('excentricos.index');
 
                 Route::get('/crear/{linea}', 'createWithLinea')
                     ->whereNumber('linea')
@@ -716,7 +717,7 @@ Route::prefix('pasteurizadora')->group(function () {
 | ELONGACIONES SIN AUTH
 |--------------------------------------------------------------------------
 */
-Route::middleware(['web', 'auth', 'custom.permission.access'])
+Route::middleware(['web', 'auth', 'pasteurizadora.excentricos.access', 'custom.permission.access'])
     ->prefix('elongaciones')
     ->name('elongaciones.')
     ->controller(ElongacionController::class)

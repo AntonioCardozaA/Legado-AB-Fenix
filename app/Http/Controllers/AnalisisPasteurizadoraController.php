@@ -21,7 +21,6 @@ use Throwable;
 class AnalisisPasteurizadoraController extends Controller
 {
     private const EVIDENCIAS_PASTEURIZADORA_DIR = 'analisis-pasteurizadora';
-    private const PASTEURIZADORAS_PERMITIDAS = ['P-03', 'P-04', 'P-05', 'P-06', 'P-07', 'P-08', 'P-09', 'P-10', 'P-11', 'P-12', 'P-13', 'P-14'];
 
     protected string $areaAnalisis = AnalisisPasteurizadora::AREA_MECANICA;
     protected string $areaLabel = 'Mecánica';
@@ -52,6 +51,30 @@ class AnalisisPasteurizadoraController extends Controller
         return AnalisisPasteurizadora::normalizarArea($this->areaAnalisis);
     }
 
+    private function isExcentricosCaptureProfile(Request $request): bool
+    {
+        return $request->user()?->usesPasteurizadoraExcentricosAccessProfile() ?? false;
+    }
+
+    private function isExcentricosComponent(mixed $componente): bool
+    {
+        return strtoupper(trim((string) $componente)) === AnalisisPasteurizadora::COMPONENTE_EXCENTRICOS;
+    }
+
+    private function ensureExcentricosComponentForRestrictedProfile(Request $request, mixed $componente): void
+    {
+        if (!$this->isExcentricosCaptureProfile($request) || $this->isExcentricosComponent($componente)) {
+            return;
+        }
+
+        abort(403, 'Este acceso solo permite registrar Excentricos de Pasteurizadoras.');
+    }
+
+    private function pasteurizadoraNombresConfigurados(): array
+    {
+        return array_keys(AnalisisPasteurizadora::getPasteurizadoresConfiguracion());
+    }
+
     protected function analisisQuery()
     {
         return AnalisisPasteurizadora::queryForArea($this->currentArea());
@@ -79,6 +102,7 @@ class AnalisisPasteurizadoraController extends Controller
             'historialTitulo' => $this->tituloHistorial,
             'historicoRevisadosTitulo' => $this->tituloHistoricoRevisados,
             'canDeleteAnalysis' => auth()->user()?->canDeletePasteurizadoraAnalysis() ?? false,
+            'usesExcentricosCaptureProfile' => auth()->user()?->usesPasteurizadoraExcentricosAccessProfile() ?? false,
         ]);
     }
 
@@ -412,16 +436,19 @@ class AnalisisPasteurizadoraController extends Controller
 
     public function index(Request $request)
     {
-        $lineas = Linea::all();
+        $lineasFiltradas = $this->getLineasPasteurizadora()->values();
 
-        $lineaId = $request->get('linea_id', 'todas');
-        $lineaSeleccionada = $lineaId !== 'todas' ? Linea::find($lineaId) : null;
+        $lineaId = $request->get('linea_id');
+        $lineaSeleccionada = $lineaId && $lineaId !== 'todas'
+            ? $lineasFiltradas->firstWhere('id', (int) $lineaId)
+            : $lineasFiltradas->first();
+        $lineaId = $lineaSeleccionada?->id;
 
         $query = $this->analisisQuery()
             ->with(['linea', 'usuario'])
             ->where('resuelto_por_cambio', false);
 
-        if ($lineaId !== 'todas' && $lineaId) {
+        if ($lineaId) {
             $query->where('linea_id', $lineaId);
         }
 
@@ -471,13 +498,7 @@ class AnalisisPasteurizadoraController extends Controller
         $totalCambiados = $analisis->where('estado', AnalisisPasteurizadora::ESTADO_CAMBIADO)->count();
         $totalRequiereRevision = $analisis->where('estado', AnalisisPasteurizadora::ESTADO_REQUIERE_REVISION)->count();
 
-        // Filtrar solo líneas de pasteurizadora (P-03 a P-14)
-        $pasteurizadorasPermitidas = ['P-03', 'P-04', 'P-05', 'P-06', 'P-07', 'P-08', 'P-09', 'P-10', 'P-11', 'P-12', 'P-13', 'P-14'];
-        $lineasFiltradas = $lineas->filter(function($linea) use ($pasteurizadorasPermitidas) {
-            return in_array($linea->nombre, $pasteurizadorasPermitidas);
-        })->values();
-
-        $mostrarTodas = !request('linea_id') || request('linea_id') === 'todas';
+        $mostrarTodas = false;
 
         $seguimientoPasteurizadora = $this->buildSeguimientoPasteurizadora($lineasFiltradas);
         $openAnalysisData = $this->modalPayloadForAnalysisId($request->input('open_analysis_id'));
@@ -487,6 +508,87 @@ class AnalisisPasteurizadoraController extends Controller
             'totalRequiereRevision', 'lineaSeleccionada', 'mostrarTodas', 'seguimientoPasteurizadora',
             'openAnalysisData'
         ));
+    }
+
+    public function excentricosIndex(Request $request)
+    {
+        $lineas = $this->getLineasPasteurizadora();
+        $lineaSeleccionada = $request->filled('linea_id')
+            ? $lineas->firstWhere('id', (int) $request->linea_id)
+            : $lineas->first();
+        $lineaSeleccionada ??= $lineas->first();
+        $lineasVisibles = $lineaSeleccionada ? collect([$lineaSeleccionada]) : collect();
+        $lineaIds = $lineasVisibles->pluck('id')->all();
+        $componente = AnalisisPasteurizadora::COMPONENTE_EXCENTRICOS;
+
+        $registros = empty($lineaIds)
+            ? collect()
+            : $this->analisisQuery()
+                ->with(['linea', 'usuario'])
+                ->whereIn('linea_id', $lineaIds)
+                ->where('componente', $componente)
+                ->orderByDesc('fecha_analisis')
+                ->orderByDesc('created_at')
+                ->orderByDesc('id')
+                ->get();
+
+        $registrosAgrupados = $registros->groupBy(
+            fn (AnalisisPasteurizadora $registro): string => $registro->linea_id . '|' . $registro->modulo
+        );
+
+        $filas = $lineasVisibles
+            ->flatMap(function (Linea $linea) use ($componente, $registrosAgrupados) {
+                $totalModulos = AnalisisPasteurizadora::getModulosPorLinea($linea->nombre);
+                $resolved = AnalisisPasteurizadora::resolveComponentePorLinea($linea->nombre, $componente);
+
+                if ($totalModulos < 1 || !$resolved) {
+                    return [];
+                }
+
+                return collect(range(1, $totalModulos))->map(function (int $modulo) use ($linea, $componente, $resolved, $registrosAgrupados): array {
+                    $clave = $linea->id . '|' . $modulo;
+                    $registrosModulo = $registrosAgrupados->get($clave, collect());
+                    $ultimoRegistro = $registrosModulo->first();
+
+                    return [
+                        'linea' => $linea,
+                        'modulo' => $modulo,
+                        'componente_codigo' => $componente,
+                        'componente_nombre' => $resolved['config']['nombre'] ?? 'Excentricos',
+                        'total_componentes' => (int) ($resolved['config']['cantidad'] ?? 0),
+                        'historial_count' => $registrosModulo->count(),
+                        'ultimo_registro' => $ultimoRegistro,
+                        'capturar_url' => route($this->routeName('create-quick'), [
+                            'linea_id' => $linea->id,
+                            'modulo' => $modulo,
+                            'componente' => $componente,
+                        ]),
+                    ];
+                });
+            })
+            ->values();
+
+        $pasteurizadoras = $filas
+            ->groupBy(fn (array $fila): string => (string) $fila['linea']->id)
+            ->map(function ($modulos): array {
+                $linea = $modulos->first()['linea'];
+
+                return [
+                    'linea' => $linea,
+                    'modulos' => $modulos->values(),
+                    'total_modulos' => $modulos->count(),
+                ];
+            })
+            ->values();
+        $diagramaPasteurizadora = $this->resolvePasteurizadoraDiagram($lineaSeleccionada);
+
+        return $this->renderView('excentricos-index', [
+            'lineas' => $lineas,
+            'lineaSeleccionada' => $lineaSeleccionada,
+            'filas' => $filas,
+            'pasteurizadoras' => $pasteurizadoras,
+            'diagramaPasteurizadora' => $diagramaPasteurizadora,
+        ]);
     }
 
     /**
@@ -677,6 +779,17 @@ class AnalisisPasteurizadoraController extends Controller
         $linea = Linea::findOrFail($lineaId);
         $modulo = $request->get('modulo');
         $componente = $request->get('componente');
+
+        if ($this->isExcentricosCaptureProfile($request)) {
+            if (!$this->isExcentricosComponent($componente)) {
+                return redirect()
+                    ->route($this->routeName('excentricos.index'))
+                    ->with('error', 'Este acceso solo permite capturar Excentricos.');
+            }
+
+            $componente = AnalisisPasteurizadora::COMPONENTE_EXCENTRICOS;
+        }
+
         $totalModulos = AnalisisPasteurizadora::getModulosPorLinea($linea->nombre);
         $resolved = AnalisisPasteurizadora::resolveComponentePorLinea($linea->nombre, $componente);
 
@@ -688,8 +801,12 @@ class AnalisisPasteurizadoraController extends Controller
             || !$componente
             || !$resolved
         ) {
+            $fallbackRoute = $this->isExcentricosCaptureProfile($request)
+                ? $this->routeName('excentricos.index')
+                : $this->routeName('index');
+
             return redirect()
-                ->route($this->routeName('index'), ['linea_id' => $linea->id])
+                ->route($fallbackRoute, ['linea_id' => $linea->id])
                 ->with('error', 'Selecciona un recuadro de modulo y componente para capturar el analisis.');
         }
 
@@ -825,6 +942,12 @@ class AnalisisPasteurizadoraController extends Controller
 
     public function storeQuick(Request $request)
     {
+        $this->ensureExcentricosComponentForRestrictedProfile($request, $request->input('componente'));
+
+        if ($this->isExcentricosCaptureProfile($request)) {
+            $request->merge(['numero_orden' => null]);
+        }
+
         $validated = $request->validate([
             'linea_id' => 'required|exists:lineas,id',
             'modulo' => ['required', 'integer', $this->positiveIntegerRule('El modulo debe ser un numero entero mayor a 0.')],
@@ -846,6 +969,10 @@ class AnalisisPasteurizadoraController extends Controller
         $seleccionComponentes = $this->resolverSeleccionComponentesRevisionLibre($request, $linea, $validated);
         $validated['componente'] = $seleccionComponentes['componente'];
         $validated['lado'] = $this->resolverLadoValidado($linea, $validated['componente'], $validated['lado'] ?? null);
+
+        if ($this->isExcentricosCaptureProfile($request)) {
+            $validated['numero_orden'] = null;
+        }
 
         $fotosPaths = [];
         if ($request->hasFile('evidencia_fotos')) {
@@ -887,9 +1014,13 @@ class AnalisisPasteurizadoraController extends Controller
         $this->sincronizarHistoricoRevisados($analisis);
         $mensajeIa = $this->procesarMantenimientoAutomaticoSafely($analisis->fresh(['linea', 'usuario']));
 
-        $redirect = redirect()
-            ->route($this->routeName('index'), ['linea_id' => $validated['linea_id']])
-            ->with('success', 'Analisis registrado correctamente.');
+        $redirect = $this->isExcentricosCaptureProfile($request)
+            ? redirect()
+                ->route($this->routeName('excentricos.index'), ['linea_id' => $validated['linea_id']])
+                ->with('success', 'Revision de Excentricos registrada correctamente.')
+            : redirect()
+                ->route($this->routeName('index'), ['linea_id' => $validated['linea_id']])
+                ->with('success', 'Analisis registrado correctamente.');
 
         if ($mensajeIa) {
             $redirect->with('warning', $mensajeIa);
@@ -1203,7 +1334,7 @@ class AnalisisPasteurizadoraController extends Controller
 
    public function selectLinea()
 {
-    $nombres = ['P-03','P-04','P-05','P-06','P-07','P-08','P-09','P-10','P-11','P-12','P-13','P-14'];
+    $nombres = $this->pasteurizadoraNombresConfigurados();
 
     foreach ($nombres as $nombre) {
         \App\Models\Linea::firstOrCreate(['nombre' => $nombre]);
@@ -1266,8 +1397,7 @@ class AnalisisPasteurizadoraController extends Controller
             ], true);
         });
 
-        $pasteurizadorasPermitidas = ['P-03', 'P-04', 'P-05', 'P-06', 'P-07', 'P-08', 'P-09', 'P-10', 'P-11', 'P-12', 'P-13', 'P-14'];
-        $lineas = Linea::whereIn('nombre', $pasteurizadorasPermitidas)->orderBy('nombre')->get();
+        $lineas = $this->getLineasPasteurizadora();
 
         return $this->renderView('historial', compact('analisis', 'lineas'));
     }
@@ -1299,8 +1429,7 @@ class AnalisisPasteurizadoraController extends Controller
     public function historicoRevisados(Request $request)
     {
         // Obtener todas las lÃ­neas de pasteurizadora (P-03 a P-14)
-        $pasteurizadorasPermitidas = ['P-03', 'P-04', 'P-05', 'P-06', 'P-07', 'P-08', 'P-09', 'P-10', 'P-11', 'P-12', 'P-13', 'P-14'];
-        $lineasPasteurizadora = Linea::whereIn('nombre', $pasteurizadorasPermitidas)->get();
+        $lineasPasteurizadora = $this->getLineasPasteurizadora();
         $lineas = $lineasPasteurizadora;
 
         $lineaSeleccionada = null;
@@ -1706,7 +1835,7 @@ class AnalisisPasteurizadoraController extends Controller
     {
         try {
             $lineasExistentes = Linea::pluck('nombre')->toArray();
-            $lineasNecesarias = self::PASTEURIZADORAS_PERMITIDAS;
+            $lineasNecesarias = $this->pasteurizadoraNombresConfigurados();
             $creadas = [];
 
             foreach ($lineasNecesarias as $nombre) {
@@ -1801,14 +1930,76 @@ class AnalisisPasteurizadoraController extends Controller
 
     private function getLineasPasteurizadora()
     {
-        return Linea::whereIn('nombre', self::PASTEURIZADORAS_PERMITIDAS)
+        return Linea::whereIn('nombre', $this->pasteurizadoraNombresConfigurados())
             ->orderBy('nombre')
             ->get();
     }
 
+    /**
+     * @return array{path: string|null, is_reference: bool, base: string, tipo: string|null, total_modulos: int}
+     */
+    private function resolvePasteurizadoraDiagram(?Linea $linea): array
+    {
+        $iconoPasteurizadora = 'images/icono_pas.png';
+        $diagramasPasteurizadoraBase = 'images/Diagramas-Pasteurizadoras';
+        $nombreLinea = $linea?->nombre;
+        $configuracion = AnalisisPasteurizadora::getPasteurizadoresConfiguracion();
+        $tipo = $nombreLinea ? ($configuracion[$nombreLinea]['tipo'] ?? null) : null;
+        $lineaSlug = $nombreLinea ? strtolower(preg_replace('/[^a-z0-9]+/i', '-', $nombreLinea)) : null;
+        $lineaCompacta = $nombreLinea ? strtolower(preg_replace('/[^a-z0-9]+/i', '', $nombreLinea)) : null;
+        $lineaNumero = $nombreLinea ? preg_replace('/\D+/', '', $nombreLinea) : null;
+        $lineaNumeroSimple = $lineaNumero !== null ? ltrim($lineaNumero, '0') : null;
+        $lineaNumeroSimple = $lineaNumeroSimple === '' ? '0' : $lineaNumeroSimple;
+        $path = null;
+        $isReference = false;
+
+        $candidates = array_filter([
+            $nombreLinea ? $diagramasPasteurizadoraBase . '/' . $nombreLinea . '.png' : null,
+            $nombreLinea ? $diagramasPasteurizadoraBase . '/' . strtolower($nombreLinea) . '.png' : null,
+            $lineaSlug ? $diagramasPasteurizadoraBase . '/' . $lineaSlug . '.png' : null,
+            $lineaCompacta ? $diagramasPasteurizadoraBase . '/' . $lineaCompacta . '.png' : null,
+            $lineaNumero ? $diagramasPasteurizadoraBase . '/linea' . $lineaNumero . '.png' : null,
+            $lineaNumero ? $diagramasPasteurizadoraBase . '/linea-' . $lineaNumero . '.png' : null,
+            $lineaNumeroSimple ? $diagramasPasteurizadoraBase . '/linea' . $lineaNumeroSimple . '.png' : null,
+            $lineaNumeroSimple ? $diagramasPasteurizadoraBase . '/linea-' . $lineaNumeroSimple . '.png' : null,
+            $nombreLinea ? $diagramasPasteurizadoraBase . '/' . $nombreLinea . '.jpg' : null,
+            $lineaSlug ? $diagramasPasteurizadoraBase . '/' . $lineaSlug . '.jpg' : null,
+            $lineaNumero ? $diagramasPasteurizadoraBase . '/linea' . $lineaNumero . '.jpg' : null,
+            $lineaNumero ? $diagramasPasteurizadoraBase . '/linea-' . $lineaNumero . '.jpg' : null,
+            $lineaNumeroSimple ? $diagramasPasteurizadoraBase . '/linea' . $lineaNumeroSimple . '.jpg' : null,
+            $lineaNumeroSimple ? $diagramasPasteurizadoraBase . '/linea-' . $lineaNumeroSimple . '.jpg' : null,
+            $tipo ? $diagramasPasteurizadoraBase . '/' . $tipo . '.png' : null,
+            $tipo ? $diagramasPasteurizadoraBase . '/pasteurizadora-' . $tipo . '.png' : null,
+            $tipo ? $diagramasPasteurizadoraBase . '/diagrama-' . $tipo . '.png' : null,
+            $diagramasPasteurizadoraBase . '/diagramapas.png',
+            $diagramasPasteurizadoraBase . '/diagrama-pasteurizadora.png',
+            $diagramasPasteurizadoraBase . '/pasteurizadora.png',
+        ]);
+
+        foreach ($candidates as $candidate) {
+            if (file_exists(public_path($candidate))) {
+                $path = $candidate;
+                break;
+            }
+        }
+
+        if (!$path && file_exists(public_path($iconoPasteurizadora))) {
+            $path = $iconoPasteurizadora;
+            $isReference = true;
+        }
+
+        return [
+            'path' => $path,
+            'is_reference' => $isReference,
+            'base' => $diagramasPasteurizadoraBase,
+            'tipo' => $tipo,
+            'total_modulos' => $nombreLinea ? AnalisisPasteurizadora::getModulosPorLinea($nombreLinea) : 0,
+        ];
+    }
+
     private function resolverLineaPasteurizadora($linea): ?Linea
     {
-        return Linea::whereIn('nombre', self::PASTEURIZADORAS_PERMITIDAS)
+        return Linea::whereIn('nombre', $this->pasteurizadoraNombresConfigurados())
             ->where(function ($query) use ($linea) {
                 $query->where('id', $linea)
                     ->orWhere('nombre', $linea);

@@ -656,6 +656,7 @@
         <nav class="flex-1 px-4 py-6 space-y-2 text-sm overflow-y-auto">
             @php
                 $usuarioActual = auth()->user();
+                $usaPerfilExcentricos = $usuarioActual?->usesPasteurizadoraExcentricosAccessProfile() ?? false;
                 $puedeVerDashboardPrincipal = $usuarioActual?->canUseCustomPermission('ver dashboard principal') ?? false;
                 $puedeVerDashboardLavadora = ($usuarioActual?->canUseCustomPermission('ver dashboard lavadoras') ?? false)
                     && ($usuarioActual?->canAccessModule(\App\Models\User::MODULE_LAVADORA) ?? false);
@@ -667,6 +668,15 @@
                 $puedeVerObservabilidadIa = $usuarioActual?->canViewAiObservability() ?? false;
             @endphp
 
+            @if($usaPerfilExcentricos)
+                <a href="{{ route('pasteurizadora.analisis-pasteurizadora.excentricos.index') }}"
+                   @click="if (!isDesktop) sidebarOpen = false"
+                   aria-label="Reviciones de Excentricos"
+                   class="nav-link flex items-center px-4 py-3 rounded-lg {{ request()->routeIs('pasteurizadora.analisis-pasteurizadora.excentricos.*') || request()->routeIs('pasteurizadora.analisis-pasteurizadora.create-quick') ? 'nav-active' : '' }}">
+                    <i class="fas fa-clipboard-check w-5 mr-3 text-gray-500"></i>
+                    Excentricos
+                </a>
+            @else
             @if($puedeVerDashboardPrincipal)
             <a href="{{ route('dashboard') }}"
                @click="if (!isDesktop) sidebarOpen = false"
@@ -775,6 +785,7 @@
                     </a>
                 @endif
             @endauth
+            @endif
         </nav>
 
         <!-- Footer del sidebar -->
@@ -808,6 +819,7 @@
 
                 <div class="flex shrink-0 items-center space-x-2 sm:space-x-4">
                     @auth
+                    @unless(auth()->user()?->usesPasteurizadoraExcentricosAccessProfile())
                     <div class="global-search-shell relative" x-data="globalSearch()" @click.away="close()" @keydown.escape.window="close()">
                         <button type="button"
                                 @click="toggle()"
@@ -895,10 +907,12 @@
                             </div>
                         </div>
                     </div>
+                    @endunless
                     @endauth
 
                     <!-- NOTIFICACIONES DROPDOWN -->
                     @auth
+                    @unless(auth()->user()?->usesPasteurizadoraExcentricosAccessProfile())
                     @php
                         $notificationVisibility = app(\App\Services\NotificationVisibilityService::class);
                         $availableNotifications = $notificationVisibility->availableNotificationsFor(auth()->user());
@@ -1001,6 +1015,7 @@
                             @endif
                         </div>
                     </div>
+                    @endunless
                     @endauth
 
                     @auth
@@ -1028,11 +1043,13 @@
                                  x-transition:leave-end="transform opacity-0 scale-95"
                                  class="absolute right-0 mt-2 w-52 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg z-50"
                                  style="display: none;">
+                                @unless(auth()->user()?->usesPasteurizadoraExcentricosAccessProfile())
                                 <a href="{{ route('profile.edit') }}"
                                    class="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50">
                                     <i class="fas fa-user-circle text-blue-600"></i>
                                     Ver perfil
                                 </a>
+                                @endunless
 
                                 <form method="POST" action="{{ route('logout') }}">
                                     @csrf
@@ -1064,7 +1081,9 @@
 </div>
 
 @auth
-    @include('layouts.partials.assistant-chat')
+    @unless(auth()->user()?->usesPasteurizadoraExcentricosAccessProfile())
+        @include('layouts.partials.assistant-chat')
+    @endunless
 @endauth
 
 <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>

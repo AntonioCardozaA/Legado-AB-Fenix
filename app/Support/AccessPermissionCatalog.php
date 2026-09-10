@@ -140,6 +140,10 @@ class AccessPermissionCatalog
                         'label' => 'Central hidraulica',
                         'description' => 'Analisis hidraulico.',
                     ],
+                    User::PERMISSION_CAPTURE_PASTEURIZADORA_EXCENTRICOS => [
+                        'label' => 'Captura Excentricos',
+                        'description' => 'Acceso exclusivo a modulos y Excentricos.',
+                    ],
                     'crear analisis pasteurizadora' => [
                         'label' => 'Crear',
                         'description' => 'Nuevos registros.',
@@ -395,12 +399,18 @@ class AccessPermissionCatalog
 
     private static function allows(User $user, string $permission, bool $includeDirectUserPermissions): bool
     {
+        if ($user->hasPasteurizadoraExcentricosRole()) {
+            return $permission === User::PERMISSION_CAPTURE_PASTEURIZADORA_EXCENTRICOS;
+        }
+
         if ($user->hasRole(User::ROLE_ADMIN)) {
             return true;
         }
 
         return match ($permission) {
             'gestionar usuarios' => false,
+            User::PERMISSION_CAPTURE_PASTEURIZADORA_EXCENTRICOS => $includeDirectUserPermissions
+                && $user->hasDirectConfigurablePermission(User::PERMISSION_CAPTURE_PASTEURIZADORA_EXCENTRICOS),
             User::PERMISSION_VIEW_AI_OBSERVABILITY => false,
             User::PERMISSION_ACCESS_PASTEURIZADORA,
             User::PERMISSION_ACCESS_PASTEURIZADORA_MECANICA,
@@ -469,6 +479,8 @@ class AccessPermissionCatalog
             ['routes' => ['analisis-etiquetadora.store'], 'permission' => 'crear analisis etiquetadora'],
             ['routes' => ['analisis-etiquetadora.edit', 'analisis-etiquetadora.update', 'analisis-etiquetadora.delete-foto'], 'permission' => 'editar analisis etiquetadora'],
             ['routes' => ['analisis-etiquetadora.destroy'], 'permission' => 'eliminar analisis etiquetadora'],
+
+            ['routes' => ['pasteurizadora.analisis-pasteurizadora.excentricos.index'], 'methods' => ['GET'], 'permission' => User::PERMISSION_CAPTURE_PASTEURIZADORA_EXCENTRICOS],
 
             ['routes' => ['pasteurizadora.analisis-pasteurizadora.index', 'pasteurizadora.analisis-pasteurizadora.select-linea', 'pasteurizadora.analisis-pasteurizadora.historial', 'pasteurizadora.analisis-pasteurizadora.historico-revisados', 'pasteurizadora.analisis-pasteurizadora.plan-accion.index', 'pasteurizadora.analisis-pasteurizadora.show', 'pasteurizadora.analisis-pasteurizadora.ajax.*', 'api.pasteurizadora.*'], 'methods' => ['GET', 'POST'], 'permission' => User::PERMISSION_ACCESS_PASTEURIZADORA_MECANICA],
             ['routes' => ['pasteurizadora.analisis-pasteurizadora.create*', 'pasteurizadora.analisis-pasteurizadora.store*', 'pasteurizadora.analisis-pasteurizadora.crear-lineas'], 'permission' => 'crear analisis pasteurizadora'],

@@ -21,6 +21,10 @@ class EnsureTechnicianAccess
             return $next($request);
         }
 
+        if ($user->usesPasteurizadoraExcentricosAccessProfile()) {
+            return $next($request);
+        }
+
         if (!$user->usesTechnicianAccessProfile()) {
             return $next($request);
         }

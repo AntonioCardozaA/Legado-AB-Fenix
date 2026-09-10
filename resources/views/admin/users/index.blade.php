@@ -50,36 +50,6 @@
         </div>
     @endif
 
-    <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <div class="rounded-xl border border-slate-200 border-l-4 border-l-slate-900 bg-white p-3 shadow-sm sm:p-4">
-            <div class="text-xs font-semibold uppercase tracking-wide text-gray-500">Total de usuarios</div>
-            <div class="mt-2 text-3xl font-bold text-gray-900">{{ $stats['total'] }}</div>
-            <div class="mt-1 text-3xl font-bold text-gray-900">{{ $stats['total'] }}</div>
-            <p class="mt-1 text-sm text-gray-500">Base completa de cuentas registradas.</p>
-        </div>
-
-        <div class="rounded-xl border border-slate-200 border-l-4 border-l-emerald-500 bg-white p-3 shadow-sm sm:p-4">
-            <div class="text-xs font-semibold uppercase tracking-wide text-gray-500">Usuarios activos</div>
-            <div class="mt-2 text-3xl font-bold text-gray-900">{{ $stats['activos'] }}</div>
-            <div class="mt-1 text-3xl font-bold text-gray-900">{{ $stats['activos'] }}</div>
-            <p class="mt-1 text-sm text-gray-500">Personal habilitado para operar.</p>
-        </div>
-
-        <div class="rounded-xl border border-slate-200 border-l-4 border-l-blue-500 bg-white p-3 shadow-sm sm:p-4">
-            <div class="text-xs font-semibold uppercase tracking-wide text-gray-500">Tecnicos</div>
-            <div class="mt-2 text-3xl font-bold text-gray-900">{{ $stats['tecnicos'] }}</div>
-            <div class="mt-1 text-3xl font-bold text-gray-900">{{ $stats['tecnicos'] }}</div>
-            <p class="mt-1 text-sm text-gray-500">Usuarios del equipo tecnico y operativo.</p>
-        </div>
-
-        <div class="rounded-xl border border-slate-200 border-l-4 border-l-amber-500 bg-white p-3 shadow-sm sm:p-4">
-            <div class="text-xs font-semibold uppercase tracking-wide text-gray-500">Administradores</div>
-            <div class="mt-2 text-3xl font-bold text-gray-900">{{ $stats['administradores'] }}</div>
-            <div class="mt-1 text-3xl font-bold text-gray-900">{{ $stats['administradores'] }}</div>
-            <p class="mt-1 text-sm text-gray-500">Cuentas con control total del modulo.</p>
-        </div>
-    </div>
-
     <div class="space-y-4">
         <div>
             <form action="{{ route('admin.users.index') }}" method="GET" class="rounded-xl border border-slate-200 bg-white p-3 shadow-sm sm:p-4">

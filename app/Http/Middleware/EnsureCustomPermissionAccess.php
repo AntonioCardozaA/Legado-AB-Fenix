@@ -16,6 +16,17 @@ class EnsureCustomPermissionAccess
             $request->route()?->getName(),
             $request->method()
         );
+        $routeName = $request->route()?->getName();
+
+        if ($user?->usesPasteurizadoraExcentricosAccessProfile()
+            && in_array($routeName, [
+                'pasteurizadora.analisis-pasteurizadora.excentricos.index',
+                'pasteurizadora.analisis-pasteurizadora.create-quick',
+                'pasteurizadora.analisis-pasteurizadora.store-quick',
+            ], true)
+        ) {
+            return $next($request);
+        }
 
         if (!$user || !$permission || $user->canUseCustomPermission($permission)) {
             return $next($request);

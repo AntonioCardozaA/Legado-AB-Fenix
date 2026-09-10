@@ -93,6 +93,9 @@ class RoleSeeder extends Seeder
             User::ROLE_INGENIERO_MANTENIMIENTO => $permisosTecnico,
             User::ROLE_TECNICO => $permisosTecnico,
             User::ROLE_PROGRAMADOR_DE_MANTENIMIENTO => $permisosSupervisor,
+            User::ROLE_CAPTURISTA_EXCENTRICOS => [
+                User::PERMISSION_CAPTURE_PASTEURIZADORA_EXCENTRICOS,
+            ],
         ];
 
         foreach ($roles as $rol => $perms) {
