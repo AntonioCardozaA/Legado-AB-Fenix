@@ -2866,7 +2866,7 @@ public function pasteurizadoraOperativo(Request $request)
             return asset('images/componentes-lavadora/default.png');
         }
 
-        $codigoNormalizado = preg_replace('/^L\d+_reductor_\d+_/', '', $codigo);
+        $codigoNormalizado = preg_replace('/^L\d+_(?:reductor_\d+|flecha_loca)_/', '', $codigo);
         $codigoNormalizado = strtoupper(trim((string) $codigoNormalizado));
 
         return asset("images/componentes-lavadora/{$codigoNormalizado}.png");
