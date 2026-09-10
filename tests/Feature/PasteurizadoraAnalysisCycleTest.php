@@ -6,6 +6,8 @@ use App\Models\AnalisisPasteurizadora;
 use App\Models\HistoricoRevisados;
 use App\Models\Linea;
 use App\Models\User;
+use App\Services\ImageEvidenceOptimizer;
+use App\Services\Maintenance\PasteurizadoraMaintenanceOrchestrator;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Spatie\Permission\Models\Role;
@@ -529,6 +531,152 @@ class PasteurizadoraAnalysisCycleTest extends TestCase
             ->where('componente', 'ANILLAS')
             ->where('area', AnalisisPasteurizadora::AREA_MECANICA)
             ->count());
+    }
+
+    public function test_quick_form_stores_evidence_through_image_optimizer(): void
+    {
+        $user = $this->userWithRole(User::ROLE_ADMIN);
+        $linea = Linea::create([
+            'nombre' => 'P-03',
+            'descripcion' => 'Pasteurizadora de prueba',
+            'activo' => true,
+        ]);
+        $optimizer = new class extends ImageEvidenceOptimizer {
+            public array $calls = [];
+
+            public function store(UploadedFile $file, string $relativeDirectory, array $options = []): string
+            {
+                $this->calls[] = compact('file', 'relativeDirectory', 'options');
+
+                return 'analisis-pasteurizadora/evidencia-optimizada.jpg';
+            }
+        };
+
+        $this->app->instance(ImageEvidenceOptimizer::class, $optimizer);
+
+        $response = $this->actingAs($user)->post(
+            route('pasteurizadora.analisis-pasteurizadora.store-quick'),
+            [
+                'linea_id' => $linea->id,
+                'modulo' => 1,
+                'nivel' => 'SUPERIOR',
+                'componente' => 'ANILLAS',
+                'lado' => 'VAPOR',
+                'fecha_analisis' => now()->toDateString(),
+                'numero_orden' => '92345678',
+                'estado' => AnalisisPasteurizadora::ESTADO_BUENO,
+                'actividad' => 'Revision rapida con evidencia fotografica optimizada',
+                'componentes_revisados' => json_encode([1]),
+                'evidencia_fotos' => [
+                    UploadedFile::fake()->image('evidencia-pesada.jpg', 2400, 1800)->size(11 * 1024),
+                ],
+            ]
+        );
+
+        $response->assertSessionHasNoErrors();
+        $response->assertRedirect(route('pasteurizadora.analisis-pasteurizadora.index', ['linea_id' => $linea->id]));
+
+        $analisis = AnalisisPasteurizadora::where('numero_orden', '92345678')->firstOrFail();
+
+        $this->assertSame(['analisis-pasteurizadora/evidencia-optimizada.jpg'], $analisis->evidencia_fotos);
+        $this->assertCount(1, $optimizer->calls);
+        $this->assertSame('analisis-pasteurizadora', $optimizer->calls[0]['relativeDirectory']);
+        $this->assertTrue($optimizer->calls[0]['options']['mirror_to_storage'] ?? false);
+        $this->assertNotEmpty($optimizer->calls[0]['options']['base_name'] ?? null);
+    }
+
+    public function test_excentricos_quick_capture_does_not_wait_for_automatic_maintenance(): void
+    {
+        $user = $this->userWithRole(User::ROLE_CAPTURISTA_EXCENTRICOS);
+        $linea = Linea::create([
+            'nombre' => 'P-03',
+            'descripcion' => 'Pasteurizadora de prueba',
+            'activo' => true,
+        ]);
+        $orchestrator = new class extends PasteurizadoraMaintenanceOrchestrator {
+            public int $calls = 0;
+
+            public function __construct()
+            {
+            }
+
+            public function processAnalysis(AnalisisPasteurizadora $analysis): \Illuminate\Support\Collection
+            {
+                $this->calls++;
+
+                return collect();
+            }
+        };
+
+        $this->app->instance(PasteurizadoraMaintenanceOrchestrator::class, $orchestrator);
+
+        $response = $this->actingAs($user)->post(
+            route('pasteurizadora.analisis-pasteurizadora.store-quick'),
+            [
+                'linea_id' => $linea->id,
+                'modulo' => 1,
+                'nivel' => 'SUPERIOR',
+                'componente' => AnalisisPasteurizadora::COMPONENTE_EXCENTRICOS,
+                'lado' => 'VAPOR',
+                'fecha_analisis' => now()->toDateString(),
+                'estado' => AnalisisPasteurizadora::ESTADO_DANADO,
+                'actividad' => 'Revision de excentricos sin espera de mantenimiento automatico',
+                'componentes_revisados' => json_encode([1]),
+            ]
+        );
+
+        $response->assertSessionHasNoErrors();
+        $response->assertRedirect(route('pasteurizadora.analisis-pasteurizadora.excentricos.index', [
+            'linea_id' => $linea->id,
+        ]));
+
+        $this->assertSame(0, $orchestrator->calls);
+        $this->assertDatabaseHas('analisis_pasteurizadora', [
+            'linea_id' => $linea->id,
+            'componente' => AnalisisPasteurizadora::COMPONENTE_EXCENTRICOS,
+            'estado' => AnalisisPasteurizadora::ESTADO_DANADO,
+            'usuario_id' => $user->id,
+        ]);
+        $this->assertDatabaseCount('maintenance_events', 0);
+    }
+
+    public function test_excentricos_detail_modal_uses_inline_image_viewer(): void
+    {
+        $user = $this->userWithRole(User::ROLE_CAPTURISTA_EXCENTRICOS);
+        $linea = Linea::create([
+            'nombre' => 'P-03',
+            'descripcion' => 'Pasteurizadora de prueba',
+            'activo' => true,
+        ]);
+
+        $this->crearAnalisis($linea, [
+            'modulo' => 1,
+            'componente' => AnalisisPasteurizadora::COMPONENTE_EXCENTRICOS,
+            'nivel' => 'SUPERIOR',
+            'lado' => 'VAPOR',
+            'estado' => AnalisisPasteurizadora::ESTADO_BUENO,
+            'actividad' => 'Revision con visor de imagenes en modal',
+            'componentes_revisados' => [1],
+            'cantidad_componentes_revisados' => 1,
+            'total_componentes' => 3,
+            'evidencia_fotos' => [
+                'analisis-pasteurizadora/evidencia-uno.jpg',
+                'analisis-pasteurizadora/evidencia-dos.jpg',
+            ],
+            'usuario_id' => $user->id,
+        ]);
+
+        $response = $this->actingAs($user)->get(route('pasteurizadora.analisis-pasteurizadora.excentricos.index', [
+            'linea_id' => $linea->id,
+        ]));
+
+        $response->assertOk();
+        $response->assertSee('id="excentricosSingleImageModal"', false);
+        $response->assertSee('@click="abrirImagen(index)"', false);
+        $response->assertSee('fa-chevron-left', false);
+        $response->assertSee('fa-chevron-right', false);
+        $response->assertSee('evidencia-uno.jpg');
+        $this->assertStringNotContainsString('target="_blank" class="image-item', $response->getContent());
     }
 
     public function test_historico_revisados_shows_analysis_created_from_quick_form(): void
