@@ -21,6 +21,13 @@
     $componenteSeleccionadoConfig = $componentesLinea[$componenteSeleccionado] ?? null;
     $requiereLado = $requiereLado ?? \App\Models\AnalisisPasteurizadora::requiereLado($linea->nombre, $componenteSeleccionado);
     $usesExcentricosCaptureProfile = $usesExcentricosCaptureProfile ?? (auth()->user()?->usesPasteurizadoraExcentricosAccessProfile() ?? false);
+    $imageCompressionOptions = $usesExcentricosCaptureProfile
+        ? [
+            'maxDimension' => 1280,
+            'quality' => 0.76,
+            'minCompressBytes' => 524288,
+        ]
+        : [];
     $volverUrl = $usesExcentricosCaptureProfile
         ? $analisisRoute('excentricos.index', ['linea_id' => $linea->id])
         : $analisisRoute('index', ['linea_id' => $linea->id]);
@@ -354,7 +361,7 @@
                                class="sr-only">
                     </div>
                 </div>
-                <p id="fotos_resumen" class="sr-only">Sin imagenes seleccionadas</p>
+                <p id="fotos_resumen" class="{{ $usesExcentricosCaptureProfile ? 'mt-3 text-sm font-medium text-gray-600' : 'sr-only' }}">Sin imagenes seleccionadas</p>
                 <div id="preview_fotos" class="mt-3 hidden grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-4"></div>
 
                 @error('evidencia_fotos')
@@ -383,6 +390,7 @@
 <script src="{{ asset('js/evidence-image-compression.js') }}"></script>
 <script>
 const componentesConfiguracion = @json($componentesConfiguracion);
+const imageCompressionOptions = @json($imageCompressionOptions);
 const moduloSelect = document.getElementById('modulo');
 const componenteSelect = document.getElementById('componente');
 const checklistSection = document.getElementById('componentes-section');
@@ -529,6 +537,8 @@ const fotosResumen = document.getElementById('fotos_resumen');
 const previewFotos = document.getElementById('preview_fotos');
 const btnGaleria = document.getElementById('btn_evidencia_fotos_galeria');
 const btnCamara = document.getElementById('btn_evidencia_fotos_camara');
+const quickForm = document.getElementById('analisisQuickNormalForm');
+const submitButton = quickForm?.querySelector('button[type="submit"]');
 const imageCompression = window.EvidenceImageCompression;
 const maxFotoSize = imageCompression?.MAX_INPUT_BYTES ?? 12 * 1024 * 1024;
 const maxFotoSizeMb = Math.round(maxFotoSize / 1024 / 1024);
@@ -655,7 +665,7 @@ async function agregarArchivos(files) {
         }
 
         const fotoOptimizada = imageCompression
-            ? await imageCompression.compressImageFile(file)
+            ? await imageCompression.compressImageFile(file, imageCompressionOptions)
             : file;
 
         firmas.add(firma);
@@ -714,7 +724,7 @@ if (soportaDataTransferFotos) {
     renderizarFallbackFotos();
 }
 
-document.getElementById('analisisQuickNormalForm').addEventListener('submit', function(e) {
+quickForm?.addEventListener('submit', function(e) {
     if (procesandoFotos) {
         e.preventDefault();
         alert('Espera a que terminen de optimizarse las imagenes.');
@@ -732,6 +742,13 @@ document.getElementById('analisisQuickNormalForm').addEventListener('submit', fu
     if (!componente.es_brazo_torsion && componentesSeleccionados.length === 0) {
         e.preventDefault();
         alert('Debe seleccionar al menos un componente revisado.');
+        return;
+    }
+
+    if (submitButton) {
+        submitButton.disabled = true;
+        submitButton.classList.add('opacity-75', 'cursor-wait');
+        submitButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Guardando...';
     }
 });
 

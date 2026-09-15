@@ -258,6 +258,7 @@
         border: 2px solid #e5e7eb;
         transition: all 0.3s ease;
         background: white;
+        cursor: pointer;
     }
 
     .image-grid-enhanced .image-item:hover {
@@ -270,7 +271,38 @@
         width: 100%;
         height: 150px;
         object-fit: cover;
+        cursor: pointer;
         transition: transform 0.3s ease;
+    }
+
+    .excentricos-single-image-stage {
+        max-width: 100%;
+        touch-action: pan-y;
+        user-select: none;
+        -webkit-user-select: none;
+        -webkit-user-drag: none;
+        cursor: grab;
+    }
+
+    .excentricos-single-image-stage.is-swiping {
+        cursor: grabbing;
+    }
+
+    .excentricos-single-image-stage img {
+        touch-action: pan-y;
+        user-select: none;
+        -webkit-user-select: none;
+        -webkit-user-drag: none;
+    }
+
+    .excentricos-image-arrow {
+        display: flex;
+    }
+
+    @media (max-width: 640px) {
+        .excentricos-image-arrow {
+            display: none;
+        }
     }
 
     .image-grid-enhanced .image-item:hover .grid-image {
@@ -398,6 +430,9 @@
     class="excentricos-shell mx-auto w-full max-w-7xl space-y-5 px-3 sm:px-4 lg:px-6"
     x-data="{
         detalleAbierto: false,
+        imagenAbierta: false,
+        imagenActualIndex: 0,
+        deslizImagen: null,
         detalle: {
             id: null,
             linea: '',
@@ -420,17 +455,102 @@
             creado: '',
             actualizado: ''
         },
+        get imagenActual() {
+            return this.detalle.evidencias[this.imagenActualIndex] || '';
+        },
         abrirDetalle(data) {
             this.detalle = { ...this.detalle, ...data };
+            this.imagenAbierta = false;
+            this.imagenActualIndex = 0;
+            this.deslizImagen = null;
             this.detalleAbierto = true;
             document.body.classList.add('overflow-hidden');
         },
         cerrarDetalle() {
+            this.imagenAbierta = false;
             this.detalleAbierto = false;
+            this.deslizImagen = null;
             document.body.classList.remove('overflow-hidden');
+        },
+        abrirImagen(index) {
+            this.imagenActualIndex = index;
+            this.imagenAbierta = true;
+            document.body.classList.add('overflow-hidden');
+        },
+        cerrarImagen() {
+            this.imagenAbierta = false;
+            this.deslizImagen = null;
+        },
+        cambiarImagen(direccion) {
+            if (this.detalle.evidencias.length <= 1) {
+                return;
+            }
+
+            this.imagenActualIndex = (this.imagenActualIndex + direccion + this.detalle.evidencias.length) % this.detalle.evidencias.length;
+        },
+        obtenerPuntoDesliz(event) {
+            const source = event.changedTouches?.[0] || event.touches?.[0] || event;
+
+            return {
+                x: source.clientX ?? 0,
+                y: source.clientY ?? 0,
+            };
+        },
+        iniciarDeslizImagen(event) {
+            if (this.detalle.evidencias.length <= 1 || event.target?.closest('button')) {
+                return;
+            }
+
+            const point = this.obtenerPuntoDesliz(event);
+            this.deslizImagen = {
+                startX: point.x,
+                startY: point.y,
+                lastX: point.x,
+                lastY: point.y,
+            };
+            event.currentTarget?.classList.add('is-swiping');
+        },
+        moverDeslizImagen(event) {
+            if (!this.deslizImagen) {
+                return;
+            }
+
+            const point = this.obtenerPuntoDesliz(event);
+            const deltaX = point.x - this.deslizImagen.startX;
+            const deltaY = point.y - this.deslizImagen.startY;
+            this.deslizImagen.lastX = point.x;
+            this.deslizImagen.lastY = point.y;
+
+            if (Math.abs(deltaX) > Math.abs(deltaY) && event.cancelable) {
+                event.preventDefault();
+            }
+        },
+        terminarDeslizImagen(event) {
+            if (!this.deslizImagen) {
+                return;
+            }
+
+            const point = this.obtenerPuntoDesliz(event);
+            const endX = point.x || this.deslizImagen.lastX;
+            const endY = point.y || this.deslizImagen.lastY;
+            const deltaX = endX - this.deslizImagen.startX;
+            const deltaY = endY - this.deslizImagen.startY;
+            const isHorizontalSwipe = Math.abs(deltaX) >= 50 && Math.abs(deltaX) > Math.abs(deltaY) * 1.25;
+
+            if (isHorizontalSwipe) {
+                this.cambiarImagen(deltaX < 0 ? 1 : -1);
+            }
+
+            this.deslizImagen = null;
+            event.currentTarget?.classList.remove('is-swiping');
+        },
+        cancelarDeslizImagen(event) {
+            this.deslizImagen = null;
+            event.currentTarget?.classList.remove('is-swiping');
         }
     }"
-    @keydown.escape.window="detalleAbierto && cerrarDetalle()"
+    @keydown.escape.window="imagenAbierta ? cerrarImagen() : (detalleAbierto && cerrarDetalle())"
+    @keydown.window="imagenAbierta && $event.key === 'ArrowLeft' && cambiarImagen(-1); imagenAbierta && $event.key === 'ArrowRight' && cambiarImagen(1)"
 >
     <section class="excentricos-top-panel overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
         <div class="flex flex-col gap-5 p-4 sm:p-5 lg:flex-row lg:items-end lg:justify-between">
@@ -899,16 +1019,21 @@
                     <div class="border-x-2 border-b-2 border-gray-200 bg-white p-6">
                         <div class="image-grid-enhanced">
                             <template x-for="(foto, index) in detalle.evidencias" :key="foto">
-                                <a :href="foto" target="_blank" class="image-item block">
+                                <button
+                                    type="button"
+                                    class="image-item block w-full text-left"
+                                    :aria-label="'Abrir evidencia ' + (index + 1)"
+                                    @click="abrirImagen(index)"
+                                >
                                     <div class="image-number" x-text="'#' + (index + 1)"></div>
                                     <img :src="foto" :alt="'Evidencia ' + (index + 1)" class="grid-image">
                                     <div class="image-info">
                                         <span class="download-image-btn">
-                                            <i class="fas fa-up-right-from-square"></i>
-                                            Abrir
+                                            <i class="fas fa-expand"></i>
+                                            Ver imagen
                                         </span>
                                     </div>
-                                </a>
+                                </button>
                             </template>
                         </div>
                     </div>
@@ -934,6 +1059,75 @@
                 </div>
             </div>
         </section>
+    </div>
+
+    <div
+        id="excentricosSingleImageModal"
+        x-cloak
+        x-show="imagenAbierta"
+        x-transition.opacity
+        class="fixed inset-0 z-[60] flex items-center justify-center bg-black/95 p-3 sm:p-6"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Evidencia fotografica"
+        @click="cerrarImagen()"
+    >
+        <div class="relative flex h-full w-full max-w-6xl items-center justify-center" @click.stop>
+            <button
+                type="button"
+                class="absolute right-2 top-2 z-20 flex h-11 w-11 items-center justify-center rounded-lg border border-white/20 bg-black/50 text-white backdrop-blur transition hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-white sm:right-4 sm:top-4"
+                aria-label="Cerrar imagen"
+                @click="cerrarImagen()"
+            >
+                <i class="fas fa-times text-xl"></i>
+            </button>
+
+            <button
+                type="button"
+                class="excentricos-image-arrow absolute left-4 top-1/2 z-20 h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full border border-white/20 bg-black/50 text-white backdrop-blur transition hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-white"
+                aria-label="Imagen anterior"
+                x-show="detalle.evidencias.length > 1"
+                @click="cambiarImagen(-1)"
+            >
+                <i class="fas fa-chevron-left text-xl"></i>
+            </button>
+
+            <div
+                class="excentricos-single-image-stage relative flex h-full w-full items-center justify-center"
+                @click.stop
+                @pointerdown="iniciarDeslizImagen($event)"
+                @pointermove="moverDeslizImagen($event)"
+                @pointerup="terminarDeslizImagen($event)"
+                @pointercancel="cancelarDeslizImagen($event)"
+                @touchstart.passive="iniciarDeslizImagen($event)"
+                @touchmove="moverDeslizImagen($event)"
+                @touchend="terminarDeslizImagen($event)"
+                @touchcancel="cancelarDeslizImagen($event)"
+            >
+                <img
+                    :src="imagenActual"
+                    :alt="'Evidencia ' + (imagenActualIndex + 1)"
+                    class="max-h-[84vh] max-w-full rounded-lg border border-white/10 object-contain shadow-2xl"
+                    draggable="false"
+                >
+            </div>
+
+            <button
+                type="button"
+                class="excentricos-image-arrow absolute right-4 top-1/2 z-20 h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full border border-white/20 bg-black/50 text-white backdrop-blur transition hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-white"
+                aria-label="Imagen siguiente"
+                x-show="detalle.evidencias.length > 1"
+                @click="cambiarImagen(1)"
+            >
+                <i class="fas fa-chevron-right text-xl"></i>
+            </button>
+
+            <div
+                class="absolute bottom-4 left-1/2 z-20 -translate-x-1/2 rounded-lg border border-white/10 bg-black/70 px-4 py-2 font-mono text-sm text-white backdrop-blur"
+                x-show="detalle.evidencias.length > 0"
+                x-text="(imagenActualIndex + 1) + ' / ' + detalle.evidencias.length"
+            ></div>
+        </div>
     </div>
 </div>
 @endsection

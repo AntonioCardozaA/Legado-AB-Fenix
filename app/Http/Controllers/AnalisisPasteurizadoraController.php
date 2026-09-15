@@ -1012,7 +1012,9 @@ class AnalisisPasteurizadoraController extends Controller
         }
 
         $this->sincronizarHistoricoRevisados($analisis);
-        $mensajeIa = $this->procesarMantenimientoAutomaticoSafely($analisis->fresh(['linea', 'usuario']));
+        $mensajeIa = $this->isExcentricosCaptureProfile($request)
+            ? null
+            : $this->procesarMantenimientoAutomaticoSafely($analisis->fresh(['linea', 'usuario']));
 
         $redirect = $this->isExcentricosCaptureProfile($request)
             ? redirect()
@@ -1064,7 +1066,10 @@ class AnalisisPasteurizadoraController extends Controller
 
     private function guardarEvidenciaPasteurizadora($foto): string
     {
-        return app(ImageEvidenceOptimizer::class)->store($foto, $this->evidenciasDir);
+        return app(ImageEvidenceOptimizer::class)->store($foto, $this->evidenciasDir, [
+            'base_name' => now()->format('Ymd_His') . '_' . uniqid(),
+            'mirror_to_storage' => true,
+        ]);
     }
 
     private function eliminarEvidenciaPasteurizadora(?string $foto): void
