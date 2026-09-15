@@ -54,7 +54,7 @@ return [
     ],
     'history_index' => [
         'auto_index' => (bool) env('AI_HISTORY_INDEX_AUTO', env('AI_ENABLED', false)),
-        'queue' => env('AI_HISTORY_INDEX_QUEUE', env('AI_QUEUE', 'maintenance-ai')),
+        'queue' => env('AI_HISTORY_INDEX_QUEUE', 'default'),
         'max_retries' => (int) env('AI_HISTORY_INDEX_MAX_RETRIES', 2),
         'job_timeout' => (int) env('AI_HISTORY_INDEX_JOB_TIMEOUT', 120),
         'chunk_size' => (int) env('AI_HISTORY_INDEX_CHUNK_SIZE', 1800),

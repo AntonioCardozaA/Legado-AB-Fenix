@@ -69,6 +69,10 @@ AI_PROVIDER=openai
 AI_FALLBACK_PROVIDER=gemini
 AI_DISPATCH_MODE=queue
 AI_QUEUE=maintenance-ai
+AI_HISTORY_INDEX_QUEUE=default
+AI_TIMEOUT=60
+AI_JOB_TIMEOUT=240
+DB_QUEUE_RETRY_AFTER=300
 AI_CHAT_RATE_LIMIT_PER_MINUTE=12
 OPENAI_API_KEY=...
 OPENAI_MODEL=...
@@ -80,7 +84,7 @@ AI_KNOWLEDGE_CANDIDATE_LIMIT=120
 Levantar un worker dedicado o compartido que atienda la cola configurada:
 
 ```bash
-php artisan queue:work --queue=maintenance-ai,default --tries=3 --timeout=180
+php artisan queue:work --queue=maintenance-ai,default --tries=3 --timeout=240
 ```
 
 Despues de desplegar migraciones, revisar la tabla `ai_interaction_logs` para validar latencia, errores, proveedor/modelo y consumo de tokens. Si suben errores 429/5xx, ajustar `AI_MAX_RETRIES`, fallback y limite del chat antes de subir capacidad.

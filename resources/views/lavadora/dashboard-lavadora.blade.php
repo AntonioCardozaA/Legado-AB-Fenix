@@ -262,7 +262,7 @@
             @endunless
         </div>
 
-        {{-- FOOTER CON ESTADÍSTICAS RÁPIDAS (OPCIONAL) --}}
+        {{-- FOOTER CON ESTADÍSTICAS RÁPIDAS --}}
         @php
             $trendModules = [
                 ['key' => '52124', 'title' => 'Analisis 52-12-4'],

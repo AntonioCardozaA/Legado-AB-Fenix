@@ -1546,7 +1546,8 @@ public function pasteurizadoraOperativo(Request $request)
     }
 
     /**
-     * Calcula el estado de una lavadora específica.
+     * Calcula el estado de una lavadora específica, calcula se refiere a decir cuantos componentes se encuentra en, buen estado,
+     * Requiere revicion, desgaste severo/moderado o critico requiere.
      */
     private function calcularEstadoLavadora($lineaId)
     {
