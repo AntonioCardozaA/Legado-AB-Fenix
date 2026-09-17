@@ -2291,6 +2291,7 @@ class AssistantAnalyticsArtifactService
     {
         $baseName = $this->fileBaseName((string) $dataset['title']);
         $artifacts = [];
+        $visualDataset = $this->datasetForVisualization($dataset, $chartType);
         $normalizedQuestion = $this->normalize($question);
         $explicitSvg = str_contains($normalizedQuestion, 'svg');
         $explicitPng = str_contains($normalizedQuestion, 'png');
@@ -2302,7 +2303,7 @@ class AssistantAnalyticsArtifactService
             $pngFileName = $baseName.'.png';
             $pngPath = $this->artifactPath($user, $pngFileName);
 
-            Storage::disk('local')->put($pngPath, $this->buildPng($dataset, $chartType));
+            Storage::disk('local')->put($pngPath, $this->buildPng($visualDataset, $chartType));
             $artifacts[] = $this->artifactMetadata('image', $pngPath, $pngFileName, 'image/png', 'PNG');
         }
 
@@ -2310,7 +2311,7 @@ class AssistantAnalyticsArtifactService
             $svgFileName = $baseName.'.svg';
             $svgPath = $this->artifactPath($user, $svgFileName);
 
-            Storage::disk('local')->put($svgPath, $this->buildSvg($dataset, $chartType));
+            Storage::disk('local')->put($svgPath, $this->buildSvg($visualDataset, $chartType));
             $artifacts[] = $this->artifactMetadata('svg', $svgPath, $svgFileName, 'image/svg+xml', 'SVG');
         }
 
@@ -2325,14 +2326,16 @@ class AssistantAnalyticsArtifactService
     {
         $fileName = $this->fileBaseName((string) $dataset['title']).'.xlsx';
         $path = $this->artifactPath($user, $fileName);
-        $dashboardImagePath = $this->temporaryDashboardChartPath($dataset, $chartType);
+        $visualDataset = $this->datasetForVisualization($dataset, $chartType);
+        $dashboardImagePath = $this->temporaryDashboardChartPath($visualDataset, $chartType);
+        $distributionImagePath = $this->temporaryDashboardDistributionChartPath($dataset);
 
         $workbookSheets = is_array($dataset['workbook_sheets'] ?? null)
             ? (array) $dataset['workbook_sheets']
             : [];
 
         $dashboard = $workbookSheets !== []
-            ? $this->excelDashboard($dataset, $chartType, $dashboardImagePath)
+            ? $this->excelDashboard($dataset, $chartType, $dashboardImagePath, $distributionImagePath)
             : [];
 
         $export = $workbookSheets !== []
@@ -2348,6 +2351,7 @@ class AssistantAnalyticsArtifactService
             Excel::store($export, $path, 'local');
         } finally {
             $this->deleteTemporaryFile($dashboardImagePath);
+            $this->deleteTemporaryFile($distributionImagePath);
         }
 
         return $this->artifactMetadata(
@@ -2389,6 +2393,42 @@ class AssistantAnalyticsArtifactService
         }
     }
 
+    /**
+     * @param  array<string, mixed>  $dataset
+     */
+    private function temporaryDashboardDistributionChartPath(array $dataset): ?string
+    {
+        if (! extension_loaded('gd')) {
+            return null;
+        }
+
+        $distributionDataset = $this->dashboardDistributionDataset($dataset);
+
+        if ($distributionDataset === null) {
+            return null;
+        }
+
+        $basePath = tempnam(sys_get_temp_dir(), 'assistant-distribution-');
+
+        if ($basePath === false) {
+            return null;
+        }
+
+        $path = $basePath.'.png';
+        @unlink($basePath);
+
+        try {
+            file_put_contents($path, $this->buildPng($distributionDataset, 'bar'));
+
+            return is_file($path) ? $path : null;
+        } catch (Throwable $exception) {
+            report($exception);
+            $this->deleteTemporaryFile($path);
+
+            return null;
+        }
+    }
+
     private function deleteTemporaryFile(?string $path): void
     {
         if ($path && is_file($path)) {
@@ -2400,7 +2440,7 @@ class AssistantAnalyticsArtifactService
      * @param  array<string, mixed>  $dataset
      * @return array<string, mixed>
      */
-    private function excelDashboard(array $dataset, string $chartType, ?string $dashboardImagePath): array
+    private function excelDashboard(array $dataset, string $chartType, ?string $dashboardImagePath, ?string $distributionImagePath): array
     {
         return [
             'title' => (string) ($dataset['title'] ?? 'Reporte operativo'),
@@ -2409,6 +2449,7 @@ class AssistantAnalyticsArtifactService
             'summary_cards' => array_values((array) ($dataset['summary_cards'] ?? [])),
             'chart_type' => $chartType,
             'chart_image_path' => $dashboardImagePath,
+            'distribution_image_path' => $distributionImagePath,
             'side_panel_title' => (string) ($dataset['dashboard_side_panel_title'] ?? ''),
             'side_panel_headings' => array_values((array) ($dataset['dashboard_side_panel_headings'] ?? [])),
             'side_panel_rows' => array_values((array) ($dataset['dashboard_side_panel_rows'] ?? [])),
@@ -2452,6 +2493,312 @@ class AssistantAnalyticsArtifactService
         }
 
         return "Se generaron {$rows} puntos de tendencia sin alertas dentro de los filtros solicitados. Revisa Datos para validar el detalle usado.";
+    }
+
+    /**
+     * @param  array<string, mixed>  $dataset
+     * @return array<string, mixed>
+     */
+    private function datasetForVisualization(array $dataset, string $chartType): array
+    {
+        return match ((string) ($dataset['type'] ?? '')) {
+            'analisis_lavadora' => $this->analisisLavadoraVisualizationDataset($dataset),
+            'costos_lavadora' => $this->costosLavadoraVisualizationDataset($dataset),
+            'plan_accion' => $this->planAccionVisualizationDataset($dataset),
+            default => $dataset,
+        };
+    }
+
+    /**
+     * @param  array<string, mixed>  $dataset
+     * @return array<string, mixed>
+     */
+    private function analisisLavadoraVisualizationDataset(array $dataset): array
+    {
+        $headings = array_values((array) ($dataset['headings'] ?? []));
+        $rows = array_values((array) ($dataset['rows'] ?? []));
+        $stateIndex = $this->headingIndex($headings, 'Estado operativo');
+        $componentIndex = $this->headingIndex($headings, 'Componentes');
+        $participationIndex = $this->headingIndex($headings, 'Participacion');
+
+        if ($stateIndex !== null && $componentIndex !== null && $participationIndex !== null) {
+            $points = collect($rows)
+                ->filter(fn ($row): bool => is_array($row))
+                ->map(function (array $row): array {
+                    return [
+                        'label' => (string) ($row[0] ?? ''),
+                        'value' => $this->numericChartValue($row[2] ?? 0),
+                        'detail' => $this->formatChartNumber((float) ($row[1] ?? 0)).' componentes',
+                    ];
+                })
+                ->values()
+                ->all();
+
+            $dataset['series'] = [
+                [
+                    'name' => 'Participacion %',
+                    'points' => $this->mergePointStyleFromCurrentSeries($dataset, $points),
+                ],
+            ];
+            $dataset['y_label'] = 'Participacion %';
+            $dataset['visualized_as_percent'] = true;
+
+            return $dataset;
+        }
+
+        $labelIndex = 0;
+        $totalIndex = $this->headingIndex($headings, 'Registros');
+
+        if ($totalIndex === null) {
+            return $dataset;
+        }
+
+        $seriesHeadings = array_filter([
+            'Danados',
+            'Requieren revision',
+            'Desgaste',
+            'Cambiados',
+        ], fn (string $heading): bool => $this->headingIndex($headings, $heading) !== null);
+        $series = [];
+
+        foreach ($seriesHeadings as $heading) {
+            $valueIndex = $this->headingIndex($headings, $heading);
+
+            if ($valueIndex === null) {
+                continue;
+            }
+
+            $series[] = [
+                'name' => $heading === 'Danados' ? 'Danados / criticos %' : $heading.' %',
+                'points' => collect($rows)
+                    ->filter(fn ($row): bool => is_array($row))
+                    ->map(function (array $row) use ($labelIndex, $totalIndex, $valueIndex): array {
+                        $count = $this->numericChartValue($row[$valueIndex] ?? 0);
+                        $total = $this->numericChartValue($row[$totalIndex] ?? 0);
+
+                        return [
+                            'label' => (string) ($row[$labelIndex] ?? ''),
+                            'value' => $this->percentageValue($count, $total),
+                            'detail' => $this->formatChartNumber($count).' de '.$this->formatChartNumber($total),
+                        ];
+                    })
+                    ->values()
+                    ->all(),
+            ];
+        }
+
+        if ($series === []) {
+            return $dataset;
+        }
+
+        $dataset['series'] = $series;
+        $dataset['y_label'] = 'Participacion %';
+        $dataset['visualized_as_percent'] = true;
+
+        return $dataset;
+    }
+
+    /**
+     * @param  array<string, mixed>  $dataset
+     * @return array<string, mixed>
+     */
+    private function costosLavadoraVisualizationDataset(array $dataset): array
+    {
+        $series = array_values(array_filter((array) ($dataset['series'] ?? []), fn ($item): bool => is_array($item)));
+        $firstSeries = (array) ($series[0] ?? []);
+        $points = array_values(array_filter((array) ($firstSeries['points'] ?? []), fn ($item): bool => is_array($item)));
+        $total = array_sum(array_map(fn (array $point): float => $this->numericChartValue($point['value'] ?? 0), $points));
+
+        if ($points === [] || $total <= 0) {
+            return $dataset;
+        }
+
+        $dataset['series'] = [
+            [
+                'name' => 'Participacion del costo %',
+                'points' => collect($points)
+                    ->map(function (array $point) use ($total): array {
+                        $cost = $this->numericChartValue($point['value'] ?? 0);
+                        $detail = trim((string) ($point['detail'] ?? ''));
+
+                        return [
+                            'label' => (string) ($point['label'] ?? ''),
+                            'value' => $this->percentageValue($cost, $total),
+                            'detail' => $detail !== ''
+                                ? $detail.' | $'.number_format($cost, 2)
+                                : '$'.number_format($cost, 2),
+                        ];
+                    })
+                    ->values()
+                    ->all(),
+            ],
+        ];
+        $dataset['y_label'] = 'Participacion del costo %';
+        $dataset['visualized_as_percent'] = true;
+
+        return $dataset;
+    }
+
+    /**
+     * @param  array<string, mixed>  $dataset
+     * @return array<string, mixed>
+     */
+    private function planAccionVisualizationDataset(array $dataset): array
+    {
+        $headings = array_values((array) ($dataset['headings'] ?? []));
+        $rows = array_values((array) ($dataset['rows'] ?? []));
+        $totalIndex = $this->headingIndex($headings, 'Planes');
+
+        if ($totalIndex === null || $rows === []) {
+            return $dataset;
+        }
+
+        $series = [];
+
+        foreach (['Pendientes', 'Completados', 'Prioridad alta/critica', 'Vencidos'] as $heading) {
+            $valueIndex = $this->headingIndex($headings, $heading);
+
+            if ($valueIndex === null) {
+                continue;
+            }
+
+            $series[] = [
+                'name' => $heading.' %',
+                'points' => collect($rows)
+                    ->filter(fn ($row): bool => is_array($row))
+                    ->map(function (array $row) use ($totalIndex, $valueIndex): array {
+                        $count = $this->numericChartValue($row[$valueIndex] ?? 0);
+                        $total = $this->numericChartValue($row[$totalIndex] ?? 0);
+
+                        return [
+                            'label' => (string) ($row[0] ?? ''),
+                            'value' => $this->percentageValue($count, $total),
+                            'detail' => $this->formatChartNumber($count).' de '.$this->formatChartNumber($total),
+                        ];
+                    })
+                    ->values()
+                    ->all(),
+            ];
+        }
+
+        if ($series === []) {
+            return $dataset;
+        }
+
+        $dataset['series'] = $series;
+        $dataset['y_label'] = 'Participacion %';
+        $dataset['visualized_as_percent'] = true;
+
+        return $dataset;
+    }
+
+    /**
+     * @param  array<string, mixed>  $dataset
+     * @return array<string, mixed>|null
+     */
+    private function dashboardDistributionDataset(array $dataset): ?array
+    {
+        $points = $this->piePointsFromDataset($dataset);
+        $total = array_sum(array_map(fn (array $point): float => $this->numericChartValue($point['value'] ?? 0), $points));
+
+        if ($points === [] || $total <= 0) {
+            return null;
+        }
+
+        $percentPoints = collect($points)
+            ->map(function (array $point) use ($total): array {
+                $count = $this->numericChartValue($point['value'] ?? 0);
+
+                return [
+                    'label' => (string) ($point['label'] ?? ''),
+                    'value' => $this->percentageValue($count, $total),
+                    'detail' => $this->formatChartNumber($count).' registros',
+                    'color' => (string) ($point['color'] ?? ''),
+                    'tone' => (string) ($point['tone'] ?? 'neutral'),
+                ];
+            })
+            ->values()
+            ->all();
+
+        return [
+            'type' => (string) ($dataset['type'] ?? ''),
+            'title' => 'Distribucion porcentual',
+            'subtitle' => (string) ($dataset['subtitle'] ?? ''),
+            'summary_cards' => array_values((array) ($dataset['summary_cards'] ?? [])),
+            'series' => [
+                [
+                    'name' => 'Participacion %',
+                    'points' => $percentPoints,
+                ],
+            ],
+            'pie_series' => [
+                'title' => $this->pieSeriesTitle($dataset),
+                'points' => $points,
+            ],
+            'x_label' => 'Categoria',
+            'y_label' => 'Participacion %',
+            'thresholds' => [],
+            'visualized_as_percent' => true,
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $dataset
+     * @param  array<int, array<string, mixed>>  $points
+     * @return array<int, array<string, mixed>>
+     */
+    private function mergePointStyleFromCurrentSeries(array $dataset, array $points): array
+    {
+        $currentPoints = collect((array) (((array) ($dataset['series'][0] ?? []))['points'] ?? []))
+            ->filter(fn ($point): bool => is_array($point))
+            ->keyBy(fn (array $point): string => (string) ($point['label'] ?? ''));
+
+        return collect($points)
+            ->map(function (array $point) use ($currentPoints): array {
+                $current = (array) ($currentPoints->get((string) ($point['label'] ?? '')) ?? []);
+
+                foreach (['color', 'tone'] as $key) {
+                    if (isset($current[$key]) && ! isset($point[$key])) {
+                        $point[$key] = $current[$key];
+                    }
+                }
+
+                return $point;
+            })
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @param  array<int, mixed>  $headings
+     */
+    private function headingIndex(array $headings, string $heading): ?int
+    {
+        $target = $this->normalize($heading);
+
+        foreach ($headings as $index => $candidate) {
+            if ($this->normalize((string) $candidate) === $target) {
+                return (int) $index;
+            }
+        }
+
+        return null;
+    }
+
+    private function numericChartValue(mixed $value): float
+    {
+        if (is_numeric($value)) {
+            return (float) $value;
+        }
+
+        $normalized = preg_replace('/[^0-9.\-]/', '', (string) $value);
+
+        return is_numeric($normalized) ? (float) $normalized : 0.0;
+    }
+
+    private function percentageValue(float $value, float $total): float
+    {
+        return $total > 0 ? round(($value / $total) * 100, 1) : 0.0;
     }
 
     /**
@@ -2510,6 +2857,7 @@ class AssistantAnalyticsArtifactService
         $thresholds = array_values(array_filter((array) ($dataset['thresholds'] ?? []), fn ($item): bool => is_array($item)));
         $summaryCards = array_values(array_filter((array) ($dataset['summary_cards'] ?? []), fn ($item): bool => is_array($item)));
         $showPointValues = $this->showPointValues($dataset);
+        $valueSuffix = $this->chartValueSuffix($dataset);
 
         foreach ($thresholds as $threshold) {
             $values[] = (float) ($threshold['value'] ?? 0);
@@ -2573,7 +2921,7 @@ class AssistantAnalyticsArtifactService
             $y = $top + $plotHeight - (($value - $minValue) / ($maxValue - $minValue)) * $plotHeight;
 
             $svg[] = '<line x1="'.$left.'" y1="'.round($y, 2).'" x2="'.($width - $right).'" y2="'.round($y, 2).'" stroke="#cbd5e1" stroke-width="1" opacity="0.75"/>';
-            $svg[] = '<text x="'.($left - 12).'" y="'.round($y + 4, 2).'" text-anchor="end" font-family="Arial, sans-serif" font-size="11" fill="#64748b">'.$this->svgText($this->formatChartNumber($value)).'</text>';
+            $svg[] = '<text x="'.($left - 12).'" y="'.round($y + 4, 2).'" text-anchor="end" font-family="Arial, sans-serif" font-size="11" fill="#64748b">'.$this->svgText($this->formatChartNumber($value).$valueSuffix).'</text>';
         }
 
         foreach ($thresholds as $threshold) {
@@ -2586,7 +2934,7 @@ class AssistantAnalyticsArtifactService
         }
 
         if ($chartType === 'bar') {
-            $svg = array_merge($svg, $this->barSvg($series[0] ?? ['points' => []], $left, $top, $plotWidth, $plotHeight, $minValue, $maxValue, (string) ($dataset['type'] ?? '')));
+            $svg = array_merge($svg, $this->barSvg($series[0] ?? ['points' => []], $left, $top, $plotWidth, $plotHeight, $minValue, $maxValue, (string) ($dataset['type'] ?? ''), $valueSuffix));
         } else {
             foreach ($series as $index => $item) {
                 $svg = array_merge($svg, $this->lineSvg(
@@ -2599,6 +2947,7 @@ class AssistantAnalyticsArtifactService
                     $minValue,
                     $maxValue,
                     (string) ($dataset['type'] ?? ''),
+                    $valueSuffix,
                     $showPointValues && $this->shouldLabelPointValuesForSeries($item, $dataset)
                 ));
             }
@@ -2677,6 +3026,7 @@ class AssistantAnalyticsArtifactService
         $thresholds = array_values(array_filter((array) ($dataset['thresholds'] ?? []), fn ($item): bool => is_array($item)));
         $summaryCards = array_values(array_filter((array) ($dataset['summary_cards'] ?? []), fn ($item): bool => is_array($item)));
         $showPointValues = $this->showPointValues($dataset);
+        $valueSuffix = $this->chartValueSuffix($dataset);
 
         foreach ($thresholds as $threshold) {
             $values[] = (float) ($threshold['value'] ?? 0);
@@ -2749,7 +3099,7 @@ class AssistantAnalyticsArtifactService
             $y = (int) round($top + $plotHeight - (($value - $minValue) / ($maxValue - $minValue)) * $plotHeight);
 
             imageline($image, $left, $y, $width - $right, $y, $grid);
-            imagestring($image, 2, $left - 52, $y - 7, $this->formatChartNumber($value), $muted);
+            imagestring($image, 2, $left - 52, $y - 7, $this->formatChartNumber($value).$valueSuffix, $muted);
         }
 
         foreach ($thresholds as $threshold) {
@@ -2764,7 +3114,7 @@ class AssistantAnalyticsArtifactService
         }
 
         if ($chartType === 'bar') {
-            $this->drawPngBars($image, $series[0] ?? ['points' => []], $left, $top, $plotWidth, $plotHeight, $minValue, $maxValue, (string) ($dataset['type'] ?? ''));
+            $this->drawPngBars($image, $series[0] ?? ['points' => []], $left, $top, $plotWidth, $plotHeight, $minValue, $maxValue, (string) ($dataset['type'] ?? ''), $valueSuffix);
         } else {
             foreach ($series as $index => $item) {
                 $this->drawPngLine(
@@ -2778,6 +3128,7 @@ class AssistantAnalyticsArtifactService
                     $minValue,
                     $maxValue,
                     (string) ($dataset['type'] ?? ''),
+                    $valueSuffix,
                     $showPointValues && $this->shouldLabelPointValuesForSeries($item, $dataset)
                 );
             }
@@ -2843,7 +3194,7 @@ class AssistantAnalyticsArtifactService
     /**
      * @param  resource|\GdImage  $image
      */
-    private function drawPngLine($image, array $series, int $index, int $left, int $top, int $plotWidth, int $plotHeight, float $minValue, float $maxValue, string $datasetType, bool $showPointValues = false): void
+    private function drawPngLine($image, array $series, int $index, int $left, int $top, int $plotWidth, int $plotHeight, float $minValue, float $maxValue, string $datasetType, string $valueSuffix = '', bool $showPointValues = false): void
     {
         $points = array_values(array_filter((array) ($series['points'] ?? []), fn ($item): bool => is_array($item)));
         $count = max(1, count($points));
@@ -2892,7 +3243,7 @@ class AssistantAnalyticsArtifactService
             imageellipse($image, $x, $y, $outlineSize, $outlineSize, $this->pngColor($image, '#ffffff'));
 
             if ($showPointValues) {
-                $label = $this->formatChartNumber($value);
+                $label = $this->formatChartNumber($value).$valueSuffix;
                 $textX = (int) round($x - ((strlen($label) * 6) / 2));
                 $textY = max($top + 4, $y - 20);
 
@@ -2904,7 +3255,7 @@ class AssistantAnalyticsArtifactService
     /**
      * @param  resource|\GdImage  $image
      */
-    private function drawPngBars($image, array $series, int $left, int $top, int $plotWidth, int $plotHeight, float $minValue, float $maxValue, string $datasetType): void
+    private function drawPngBars($image, array $series, int $left, int $top, int $plotWidth, int $plotHeight, float $minValue, float $maxValue, string $datasetType, string $valueSuffix = ''): void
     {
         $points = array_values(array_filter((array) ($series['points'] ?? []), fn ($item): bool => is_array($item)));
         $count = max(1, count($points));
@@ -2921,7 +3272,7 @@ class AssistantAnalyticsArtifactService
             $valueY = $detail !== '' ? $y - 30 : $y - 16;
 
             imagefilledrectangle($image, $x, $y, (int) round($x + $barWidth), $y + $barHeight, $color);
-            imagestring($image, 2, $x, max($top + 4, (int) round($valueY)), $this->formatChartNumber($value), $this->pngColor($image, '#0f172a'));
+            imagestring($image, 2, $x, max($top + 4, (int) round($valueY)), $this->formatChartNumber($value).$valueSuffix, $this->pngColor($image, '#0f172a'));
 
             if ($detail !== '') {
                 imagestring($image, 1, $x, max($top + 17, $y - 14), $this->pngSafeText($detail, 24), $this->pngColor($image, '#475569'));
@@ -2965,9 +3316,10 @@ class AssistantAnalyticsArtifactService
             $value = (float) ($point['value'] ?? 0);
             $color = $this->pngColor($image, $this->pointHex($point, $value, ''));
             $label = $this->pngSafeText((string) ($point['label'] ?? 'Estado'), 25);
+            $percentage = $this->percentageValue($value, $total);
 
             imagefilledrectangle($image, $cx - 122, $legendY + ($index * 22), $cx - 108, $legendY + 14 + ($index * 22), $color);
-            imagestring($image, 2, $cx - 102, $legendY + ($index * 22), $label.' '.$this->formatChartNumber($value), $muted);
+            imagestring($image, 2, $cx - 102, $legendY + ($index * 22), $label.' '.$this->formatChartNumber($percentage).'%', $muted);
         }
     }
 
@@ -3077,6 +3429,20 @@ class AssistantAnalyticsArtifactService
     }
 
     /**
+     * @param  array<string, mixed>  $dataset
+     */
+    private function chartValueSuffix(array $dataset): string
+    {
+        $label = $this->normalize((string) ($dataset['y_label'] ?? ''));
+        $usesPercent = (bool) ($dataset['visualized_as_percent'] ?? false)
+            || str_contains($label, '%')
+            || str_contains($label, 'porcentaje')
+            || str_contains($label, 'participacion');
+
+        return $usesPercent ? '%' : '';
+    }
+
+    /**
      * @param  array<string, mixed>  $series
      * @param  array<string, mixed>  $dataset
      */
@@ -3152,7 +3518,7 @@ class AssistantAnalyticsArtifactService
      * @param  array<string, mixed>  $series
      * @return array<int, string>
      */
-    private function lineSvg(array $series, int $index, int $left, int $top, int $plotWidth, int $plotHeight, float $minValue, float $maxValue, string $datasetType, bool $showPointValues = false): array
+    private function lineSvg(array $series, int $index, int $left, int $top, int $plotWidth, int $plotHeight, float $minValue, float $maxValue, string $datasetType, string $valueSuffix = '', bool $showPointValues = false): array
     {
         $points = array_values(array_filter((array) ($series['points'] ?? []), fn ($item): bool => is_array($item)));
         $count = max(1, count($points));
@@ -3203,7 +3569,7 @@ class AssistantAnalyticsArtifactService
             $svg[] = '<circle cx="'.round($x, 2).'" cy="'.round($y, 2).'" r="'.$radius.'" fill="'.$pointColor.'" stroke="#ffffff" stroke-width="'.$strokeWidth.'"/>';
 
             if ($showPointValues) {
-                $svg[] = '<text x="'.round($x, 2).'" y="'.round(max($top + 14, $y - 12), 2).'" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" font-weight="700" fill="#0f172a">'.$this->svgText($this->formatChartNumber($value)).'</text>';
+                $svg[] = '<text x="'.round($x, 2).'" y="'.round(max($top + 14, $y - 12), 2).'" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" font-weight="700" fill="#0f172a">'.$this->svgText($this->formatChartNumber($value).$valueSuffix).'</text>';
             }
         }
 
@@ -3214,7 +3580,7 @@ class AssistantAnalyticsArtifactService
      * @param  array<string, mixed>  $series
      * @return array<int, string>
      */
-    private function barSvg(array $series, int $left, int $top, int $plotWidth, int $plotHeight, float $minValue, float $maxValue, string $datasetType): array
+    private function barSvg(array $series, int $left, int $top, int $plotWidth, int $plotHeight, float $minValue, float $maxValue, string $datasetType, string $valueSuffix = ''): array
     {
         $points = array_values(array_filter((array) ($series['points'] ?? []), fn ($item): bool => is_array($item)));
         $count = max(1, count($points));
@@ -3231,7 +3597,7 @@ class AssistantAnalyticsArtifactService
             $valueY = $detail !== '' ? $y - 20 : $y - 7;
 
             $svg[] = '<rect x="'.round($x, 2).'" y="'.round($y, 2).'" width="'.round($barWidth, 2).'" height="'.round($height, 2).'" rx="6" fill="'.$this->pointHex($point, $value, $datasetType).'"/>';
-            $svg[] = '<text x="'.round($x + $barWidth / 2, 2).'" y="'.round(max($top + 12, $valueY), 2).'" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#0f172a">'.$this->svgText($this->formatChartNumber($value)).'</text>';
+            $svg[] = '<text x="'.round($x + $barWidth / 2, 2).'" y="'.round(max($top + 12, $valueY), 2).'" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#0f172a">'.$this->svgText($this->formatChartNumber($value).$valueSuffix).'</text>';
 
             if ($detail !== '') {
                 $svg[] = '<text x="'.round($x + $barWidth / 2, 2).'" y="'.round(max($top + 25, $y - 6), 2).'" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" fill="#475569">'.$this->svgText($detail).'</text>';
@@ -3283,9 +3649,10 @@ class AssistantAnalyticsArtifactService
             $color = $this->pointHex($point, $value, '');
             $label = (string) ($point['label'] ?? 'Estado');
             $y = $legendY + ($index * 22);
+            $percentage = $this->percentageValue($value, $total);
 
             $svg[] = '<rect x="'.($cx - 126).'" y="'.($y - 12).'" width="13" height="13" rx="3" fill="'.$color.'"/>';
-            $svg[] = '<text x="'.($cx - 106).'" y="'.$y.'" font-family="Arial, sans-serif" font-size="11" fill="#475569">'.$this->svgText(Str::limit($label, 26, '')).' '.$this->svgText($this->formatChartNumber($value)).'</text>';
+            $svg[] = '<text x="'.($cx - 106).'" y="'.$y.'" font-family="Arial, sans-serif" font-size="11" fill="#475569">'.$this->svgText(Str::limit($label, 26, '')).' '.$this->svgText($this->formatChartNumber($percentage).'%').'</text>';
         }
 
         return $svg;

@@ -962,14 +962,6 @@
         color: #111827;
     }
 
-    .pasteur-cell-components {
-        display: flex;
-        flex-wrap: wrap;
-        align-items: center;
-        gap: 0.25rem;
-        margin-top: 0.35rem;
-    }
-
     .pasteur-cell-activity {
         display: block;
         overflow: visible;
@@ -2447,21 +2439,6 @@
                                                                 </span>
                                                             </div>
 
-                                                            @if($componentesRevisadosAcumulados->isNotEmpty())
-                                                                <div class="pasteur-cell-components">
-                                                                    <span class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Comp.</span>
-                                                                    @foreach($componentesRevisadosAcumulados->take(4) as $numeroComponente)
-                                                                        <span class="inline-flex items-center rounded-md border border-indigo-200 bg-indigo-100 px-2 py-0.5 text-[11px] font-semibold text-indigo-700">
-                                                                            #{{ $numeroComponente }}
-                                                                        </span>
-                                                                    @endforeach
-                                                                    @if($componentesRevisadosAcumulados->count() > 4)
-                                                                        <span class="inline-flex items-center rounded-md border border-slate-200 bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600">
-                                                                            +{{ $componentesRevisadosAcumulados->count() - 4 }}
-                                                                        </span>
-                                                                    @endif
-                                                                </div>
-                                                            @endif
                                                         </div>
 
                                                         <div class="mb-2">

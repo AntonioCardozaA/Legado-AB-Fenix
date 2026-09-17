@@ -83,22 +83,38 @@ class AssistantAnalyticsDashboardSheet implements FromArray, ShouldAutoSize, Wit
      */
     public function drawings(): array
     {
+        $drawings = [];
         $path = (string) ($this->dashboard['chart_image_path'] ?? '');
 
-        if ($path === '' || ! is_file($path)) {
-            return [];
+        if ($path !== '' && is_file($path)) {
+            $drawing = new Drawing;
+            $drawing->setName('Grafica del reporte');
+            $drawing->setDescription($this->text('title', 'Grafica del reporte'));
+            $drawing->setPath($path);
+            $drawing->setHeight(340);
+            $drawing->setCoordinates('E6');
+            $drawing->setOffsetX(10);
+            $drawing->setOffsetY(4);
+
+            $drawings[] = $drawing;
         }
 
-        $drawing = new Drawing;
-        $drawing->setName('Grafica del reporte');
-        $drawing->setDescription($this->text('title', 'Grafica del reporte'));
-        $drawing->setPath($path);
-        $drawing->setHeight(340);
-        $drawing->setCoordinates('E6');
-        $drawing->setOffsetX(10);
-        $drawing->setOffsetY(4);
+        $distributionPath = (string) ($this->dashboard['distribution_image_path'] ?? '');
 
-        return [$drawing];
+        if ($distributionPath !== '' && is_file($distributionPath)) {
+            $drawing = new Drawing;
+            $drawing->setName('Grafica de distribucion');
+            $drawing->setDescription('Distribucion porcentual del reporte');
+            $drawing->setPath($distributionPath);
+            $drawing->setHeight(250);
+            $drawing->setCoordinates('E25');
+            $drawing->setOffsetX(10);
+            $drawing->setOffsetY(4);
+
+            $drawings[] = $drawing;
+        }
+
+        return $drawings;
     }
 
     public function registerEvents(): array
