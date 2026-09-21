@@ -51,6 +51,16 @@ class Linea extends Model
         return $this->hasMany(CadenaCiclo::class, 'linea_id');
     }
 
+    public function lef52124Imports()
+    {
+        return $this->hasMany(Lef52124Import::class, 'linea_id');
+    }
+
+    public function lef52124Items()
+    {
+        return $this->hasMany(Lef52124Item::class, 'linea_id');
+    }
+
     /**
      * Relación con componentes a través de análisis_componentes
      */

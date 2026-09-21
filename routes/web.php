@@ -30,6 +30,7 @@ use App\Http\Controllers\GlobalSearchController;
 use App\Http\Controllers\PasteurizadoraAiPlanReviewController;
 use App\Http\Controllers\WasherAiPlanReviewController;
 use App\Http\Controllers\WasherKnowledgeDocumentController;
+use App\Http\Controllers\Lef52124Controller;
 
 /*
 |--------------------------------------------------------------------------
@@ -149,6 +150,17 @@ Route::prefix('pasteurizadora')->group(function () {
 
     Route::get('/global-search', GlobalSearchController::class)
         ->name('global-search.index');
+
+    Route::prefix('52-12-4')
+        ->name('lef52124.')
+        ->controller(Lef52124Controller::class)
+        ->group(function () {
+            Route::get('/', 'index')->name('index');
+            Route::get('/periodos', 'periods')->name('periods');
+            Route::get('/datos', 'data')->name('data');
+            Route::post('/importar', 'store')->name('store');
+            Route::delete('/importaciones/{import}', 'destroy')->name('destroy');
+        });
 
     Route::get('/api/danos-tendencia', [DashboardController::class, 'getDanosTendenciaApi'])
         ->name('api.danos-tendencia');

@@ -184,6 +184,24 @@ class AccessPermissionCatalog
                     ],
                 ],
             ],
+            'lef_52124' => [
+                'label' => 'LEF 52-12-4',
+                'description' => 'Dashboard e importaciones LEF.',
+                'permissions' => [
+                    'ver 52-12-4' => [
+                        'label' => 'Ver dashboard',
+                        'description' => 'Consulta indicadores LEF.',
+                    ],
+                    'importar datos 52-12-4' => [
+                        'label' => 'Importar',
+                        'description' => 'Carga archivos Excel.',
+                    ],
+                    'eliminar importaciones 52-12-4' => [
+                        'label' => 'Eliminar cargas',
+                        'description' => 'Borra cargas incorrectas.',
+                    ],
+                ],
+            ],
             'plan_accion' => [
                 'label' => 'Planes',
                 'description' => 'Seguimiento y checklist.',
@@ -438,6 +456,8 @@ class AccessPermissionCatalog
             User::PERMISSION_DELETE_LAVADORA_COSTS,
             User::PERMISSION_MANAGE_LAVADORA_COSTS => false,
             User::PERMISSION_CLOSE_LAVADORA_DAMAGE => false,
+            'importar datos 52-12-4',
+            'eliminar importaciones 52-12-4' => false,
             'eliminar analisis etiquetadora',
             'eliminar analisis pasteurizadora',
             'eliminar analisis legado',
@@ -500,6 +520,9 @@ class AccessPermissionCatalog
             ['routes' => ['analisis-tendencia-mensual.pasteurizadora.index', 'analisis-tendencia-mensual.pasteurizadora.analisis-*', 'analisis-tendencia-mensual.pasteurizadora.show'], 'methods' => ['GET'], 'permission' => 'ver tendencias pasteurizadora'],
             ['routes' => ['analisis-tendencia-mensual.pasteurizadora.create'], 'methods' => ['GET'], 'permission' => 'crear tendencias pasteurizadora'],
             ['routes' => ['analisis-tendencia-mensual.pasteurizadora.store'], 'permission' => 'crear tendencias pasteurizadora'],
+            ['routes' => ['lef52124.index', 'lef52124.periods', 'lef52124.data'], 'methods' => ['GET'], 'permission' => 'ver 52-12-4'],
+            ['routes' => ['lef52124.store'], 'permission' => 'importar datos 52-12-4'],
+            ['routes' => ['lef52124.destroy'], 'permission' => 'eliminar importaciones 52-12-4'],
 
             ['routes' => ['historico-revisados.index'], 'methods' => ['GET'], 'permission' => 'ver historico revisados'],
             ['routes' => ['historico-revisados.reset-estadisticas', 'historico-revisados.check-reset-status'], 'permission' => 'restablecer historico revisados'],

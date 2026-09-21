@@ -664,6 +664,7 @@
                     && ($usuarioActual?->canAccessModule(\App\Models\User::MODULE_ETIQUETADORA) ?? false);
                 $puedeVerDashboardPasteurizadora = $usuarioActual?->canUseCustomPermission('ver dashboard pasteurizadoras') ?? false;
                 $puedeVerReportes = $usuarioActual?->canUseCustomPermission('ver reportes') ?? false;
+                $puedeVerLef52124 = $usuarioActual?->canUseCustomPermission('ver 52-12-4') ?? false;
                 $puedeGestionarUsuarios = $usuarioActual?->canUseCustomPermission('gestionar usuarios') ?? false;
                 $puedeVerObservabilidadIa = $usuarioActual?->canViewAiObservability() ?? false;
             @endphp
@@ -743,6 +744,16 @@
                 @endif
                 @endif
             @endauth
+
+            @if($puedeVerLef52124)
+                <a href="{{ route('lef52124.index') }}"
+                   @click="if (!isDesktop) sidebarOpen = false"
+                   aria-label="Dashboard 52-12-4"
+                   class="nav-link flex items-center px-4 py-3 rounded-lg {{ request()->routeIs('lef52124.*') ? 'nav-active' : '' }}">
+                    <i class="fas fa-chart-column w-5 mr-3 text-gray-500"></i>
+                    52-12-4
+                </a>
+            @endif
 
             @if($puedeVerReportes)
                 <a href="{{ route('reportes.index') }}"
