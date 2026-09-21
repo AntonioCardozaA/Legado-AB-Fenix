@@ -52,7 +52,7 @@
     <div class="lef-header">
         <div>
             <h1 class="lef-title">52-12-4</h1>
-            <p class="lef-subtitle">Indicadores LEF por maquina, partes de Lavadora y comparativo entre lineas.</p>
+            <p class="lef-subtitle">Indicadores LEF por maquina, partes de Lavadora e indicador general por linea.</p>
         </div>
         @if($canManage)
             <button class="lef-action" type="button" data-toggle-import><i class="fas fa-file-import"></i>Importar datos 52-12-4</button>
@@ -124,8 +124,8 @@
                         <option value="all">Mostrar todo</option>
                         <option value="machines">Maquinas</option>
                         <option value="parts">Partes de Lavadora</option>
-                        <option value="washer">Lavadora</option>
-                        <option value="comparison">Comparacion de Lavadoras</option>
+                        <option value="washer">Linea general</option>
+                        <option value="comparison">Comparacion entre lineas</option>
                         <option value="washer_vs_machines">Lavadora vs todas las maquinas</option>
                     </select>
                 </div>
@@ -163,11 +163,11 @@
             <div class="lef-panel-body"><div class="lef-chart-wrap"><div class="lef-chart-inner" data-chart-width="parts"><canvas id="partsChart"></canvas></div></div></div>
         </section>
         <section class="lef-panel" data-card="washer">
-            <div class="lef-panel-header"><h2 class="lef-panel-title">LEF 52-12-4 - Lavadora</h2></div>
+            <div class="lef-panel-header"><h2 class="lef-panel-title">LEF 52-12-4 - Linea general</h2></div>
             <div class="lef-panel-body"><div class="lef-kpis" data-washer-kpis></div><div class="lef-chart-wrap"><div class="lef-chart-inner compact"><canvas id="washerChart"></canvas></div></div></div>
         </section>
         <section class="lef-panel" data-card="comparison">
-            <div class="lef-panel-header"><h2 class="lef-panel-title">Comparativo 52-12-4 de Lavadoras</h2></div>
+            <div class="lef-panel-header"><h2 class="lef-panel-title">Comparativo 52-12-4 general entre lineas</h2></div>
             <div class="lef-panel-body"><div class="lef-chart-wrap"><div class="lef-chart-inner" data-chart-width="comparison"><canvas id="comparisonChart"></canvas></div></div></div>
         </section>
     </div>
@@ -327,15 +327,15 @@ document.addEventListener('DOMContentLoaded', function () {
             ['Mayor afectacion 52 SEM', summary.top_52?.name || 'Sin dato', summary.top_52?.value || ''],
             ['Mayor afectacion 12 SEM', summary.top_12?.name || 'Sin dato', summary.top_12?.value || ''],
             ['Mayor afectacion 4 SEM', summary.top_4?.name || 'Sin dato', summary.top_4?.value || ''],
-            ['LEF Lavadora 52 SEM', summary.washer_52 || 'Sin dato', ''],
-            ['LEF Lavadora 12 SEM', summary.washer_12 || 'Sin dato', ''],
-            ['LEF Lavadora 4 SEM', summary.washer_4 || 'Sin dato', ''],
+            ['LEF linea general 52 SEM', summary.washer_52 || 'Sin dato', ''],
+            ['LEF linea general 12 SEM', summary.washer_12 || 'Sin dato', ''],
+            ['LEF linea general 4 SEM', summary.washer_4 || 'Sin dato', ''],
             ['Ultima actualizacion', summary.updated_at || 'Sin dato', ''],
         ];
         nodes.kpis.innerHTML = cards.map(kpiMarkup).join('');
     }
     function renderWasherKpis(washer) {
-        const cards = [['52 SEM', washer?.formatted_52 || 'Sin dato', washer?.name || 'Lavadora'], ['12 SEM', washer?.formatted_12 || 'Sin dato', washer?.name || 'Lavadora'], ['4 SEM', washer?.formatted_4 || 'Sin dato', washer?.name || 'Lavadora']];
+        const cards = [['52 SEM', washer?.formatted_52 || 'Sin dato', washer?.name || 'Linea general'], ['12 SEM', washer?.formatted_12 || 'Sin dato', washer?.name || 'Linea general'], ['4 SEM', washer?.formatted_4 || 'Sin dato', washer?.name || 'Linea general']];
         nodes.washerKpis.innerHTML = cards.map(kpiMarkup).join('');
     }
     function kpiMarkup([label, value, meta]) {
@@ -352,7 +352,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const canvas = document.getElementById('washerChart');
         if (!canvas) return;
         charts.washerChart?.destroy();
-        charts.washerChart = new Chart(canvas, { type: 'bar', data: { labels: ['52 SEM', '12 SEM', '4 SEM'], datasets: [{ label: row?.name || 'Lavadora', data: row ? [row.value_52_weeks, row.value_12_weeks, row.value_4_weeks] : [0, 0, 0], backgroundColor: [colors.weeks52, colors.weeks12, colors.weeks4], borderRadius: 8 }] }, plugins: [valueLabelPlugin], options: baseChartOptions('Periodo', 'Valor LEF', false) });
+        charts.washerChart = new Chart(canvas, { type: 'bar', data: { labels: ['52 SEM', '12 SEM', '4 SEM'], datasets: [{ label: row?.name || 'Linea general', data: row ? [row.value_52_weeks, row.value_12_weeks, row.value_4_weeks] : [0, 0, 0], backgroundColor: [colors.weeks52, colors.weeks12, colors.weeks4], borderRadius: 8 }] }, plugins: [valueLabelPlugin], options: baseChartOptions('Periodo', 'Valor LEF', false) });
     }
     function renderComparisonChart(rows) {
         const canvas = document.getElementById('comparisonChart');
