@@ -455,6 +455,16 @@
         }
     }
 
+    @media (min-width: 769px) and (max-width: 1200px) {
+        .stat-grid:not(.stat-grid-three) > .stat-card:last-child {
+            grid-column: 1 / -1;
+        }
+
+        .stat-grid.stat-grid-three {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+    }
+
     @media (max-width: 768px) {
         .cost-shell {
             gap: 1rem;

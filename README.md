@@ -172,3 +172,4 @@ Tambien se incluyen notas de soporte en:
 - `docs/PROJECT_MAP.md`
 - `docs/OPERATIONS.md`
 - `docs/SECURITY_CHECKLIST.md`
+- `docs/SOP_GUIA_USUARIO.md`

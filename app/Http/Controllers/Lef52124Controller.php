@@ -58,15 +58,16 @@ class Lef52124Controller extends Controller
         $validated = $request->validate([
             'linea_id' => ['nullable', 'integer', 'exists:lineas,id'],
             'import_id' => ['nullable', 'integer', 'exists:lef52124_imports,id'],
+            'data_date' => ['nullable', 'date_format:Y-m-d'],
             'period' => ['nullable', 'in:all,52,12,4'],
-            'analysis_type' => ['nullable', 'in:all,machines,parts,washer,comparison,washer_vs_machines'],
+            'analysis_type' => ['nullable', 'in:all,machines,parts,washer,comparison'],
         ]);
 
         $lineas = $this->lineas();
         $lineaId = (int) ($validated['linea_id'] ?? $this->defaultLineaId($lineas));
         $period = $validated['period'] ?? 'all';
         $analysisType = $validated['analysis_type'] ?? 'all';
-        $import = $this->resolveImport($lineaId, $validated['import_id'] ?? null);
+        $import = $this->resolveImport($lineaId, $validated['import_id'] ?? null, $validated['data_date'] ?? null);
 
         if (!$import) {
             return response()->json([
@@ -81,8 +82,7 @@ class Lef52124Controller extends Controller
         $sortColumn = $this->periodColumn($period);
         $machines = $this->itemsPayload(
             $items->where('type', Lef52124Item::TYPE_MACHINE)->values(),
-            $sortColumn,
-            $analysisType === 'washer_vs_machines'
+            $sortColumn
         );
         $parts = $this->itemsPayload($items->where('type', Lef52124Item::TYPE_PART)->values(), $sortColumn);
         $washer = $items->where('type', Lef52124Item::TYPE_LINE)->values()->first();
@@ -150,7 +150,7 @@ class Lef52124Controller extends Controller
             ->with('success', 'Importacion eliminada correctamente.');
     }
 
-    private function resolveImport(int $lineaId, ?int $importId): ?Lef52124Import
+    private function resolveImport(int $lineaId, ?int $importId, ?string $dataDate = null): ?Lef52124Import
     {
         $query = Lef52124Import::with(['linea:id,nombre'])
             ->where('linea_id', $lineaId)
@@ -158,6 +158,13 @@ class Lef52124Controller extends Controller
 
         if ($importId) {
             return (clone $query)->whereKey($importId)->first();
+        }
+
+        if ($dataDate) {
+            return (clone $query)
+                ->whereDate('data_date', $dataDate)
+                ->orderByDesc('created_at')
+                ->first();
         }
 
         return $query

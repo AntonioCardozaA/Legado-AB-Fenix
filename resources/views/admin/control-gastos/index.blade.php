@@ -37,6 +37,8 @@
         display: flex;
         flex-direction: column;
         gap: 1.35rem;
+        width: 100%;
+        max-width: 100%;
         padding-bottom: 1rem;
         isolation: isolate;
     }
@@ -161,6 +163,7 @@
     .expense-panel {
         position: relative;
         overflow: hidden;
+        min-width: 0;
         background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.96));
         border-radius: 1.35rem;
         border: 1px solid rgba(203, 213, 225, 0.7);
@@ -263,6 +266,18 @@
         min-width: 0;
     }
 
+    .field-actions {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-end;
+        gap: 0.75rem;
+        min-width: 0;
+    }
+
+    .field-actions .create-action {
+        flex: 1 1 10rem;
+    }
+
     .field-label {
         display: block;
         margin-bottom: 0.45rem;
@@ -286,6 +301,10 @@
         font-size: 0.94rem;
         transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
         box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.04);
+    }
+
+    .concept-select {
+        min-width: min(100%, 22rem);
     }
 
     .field-control:focus,
@@ -312,10 +331,13 @@
     }
 
     .table-wrap {
-        overflow: auto;
+        overflow-x: auto;
+        overflow-y: hidden;
+        max-width: 100%;
         border-radius: 1.05rem;
         border: 1px solid rgba(219, 228, 240, 0.95);
         background: linear-gradient(180deg, #ffffff, #f8fafc);
+        -webkit-overflow-scrolling: touch;
     }
 
     .table-wrap table {
@@ -449,6 +471,83 @@
         color: var(--expense-text);
     }
 
+    @media (max-width: 1180px) {
+        .table-wrap {
+            overflow-x: auto;
+            overflow-y: hidden;
+            border: 1px solid rgba(219, 228, 240, 0.95);
+            background: linear-gradient(180deg, #ffffff, #f8fafc);
+        }
+
+        .table-wrap table,
+        .table-wrap thead,
+        .table-wrap tbody,
+        .table-wrap tr,
+        .table-wrap td {
+            display: block;
+            width: 100%;
+        }
+
+        .table-wrap table {
+            min-width: 0;
+        }
+
+        .table-wrap thead {
+            display: none;
+        }
+
+        .table-wrap tbody {
+            display: grid;
+            gap: 0.9rem;
+        }
+
+        .table-wrap tbody tr {
+            border: 1px solid rgba(219, 228, 240, 0.95);
+            border-radius: 1rem;
+            background: linear-gradient(180deg, #ffffff, #f8fafc);
+            box-shadow: 0 12px 24px rgba(15, 23, 42, 0.06);
+        }
+
+        .table-wrap td {
+            display: grid;
+            grid-template-columns: minmax(105px, 34%) minmax(0, 1fr);
+            gap: 0.8rem;
+            padding: 0.8rem 0.9rem;
+            border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+            align-items: start;
+        }
+
+        .table-wrap td::before {
+            content: attr(data-label);
+            color: var(--expense-muted);
+            font-size: 0.72rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        .table-wrap td[colspan] {
+            display: block;
+            text-align: center;
+        }
+
+        .table-wrap td[colspan]::before {
+            content: none;
+        }
+
+        .table-wrap td:last-child {
+            border-bottom: 0;
+        }
+
+        .table-wrap td[data-label="Concepto"] {
+            grid-template-columns: 1fr;
+        }
+
+        .table-actions {
+            min-width: 0;
+        }
+    }
+
     @media (max-width: 1280px) {
         .expense-admin-grid {
             grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -484,75 +583,28 @@
         }
     }
 
-    @media (max-width: 860px) {
-        .table-wrap {
-            overflow: visible;
-            border: 0;
-            background: transparent;
+    @media (min-width: 769px) and (max-width: 1180px) {
+        .toolbar-grid > div,
+        .form-grid > div {
+            grid-column: span 4;
         }
 
-        .table-wrap table,
-        .table-wrap thead,
-        .table-wrap tbody,
-        .table-wrap tr,
-        .table-wrap td {
-            display: block;
-            width: 100%;
+        .toolbar-grid > .field-span-2,
+        .toolbar-grid > .field-span-3 {
+            grid-column: span 12 !important;
         }
 
-        .table-wrap table {
-            min-width: 0;
+        .form-grid > .field-span-2 {
+            grid-column: span 8 !important;
         }
 
-        .table-wrap thead {
-            display: none;
+        .form-grid > .field-span-3 {
+            grid-column: span 12 !important;
         }
 
-        .table-wrap tbody {
-            display: grid;
-            gap: 0.9rem;
-        }
-
-        .table-wrap tbody tr {
-            border: 1px solid rgba(219, 228, 240, 0.95);
-            border-radius: 1rem;
-            background: linear-gradient(180deg, #ffffff, #f8fafc);
-            box-shadow: 0 12px 24px rgba(15, 23, 42, 0.06);
-        }
-
-        .table-wrap td {
-            display: grid;
-            grid-template-columns: minmax(105px, 38%) minmax(0, 1fr);
-            gap: 0.8rem;
-            padding: 0.8rem 0.9rem;
-            border-bottom: 1px solid rgba(226, 232, 240, 0.8);
-            align-items: start;
-        }
-
-        .table-wrap td::before {
-            content: attr(data-label);
-            color: var(--expense-muted);
-            font-size: 0.72rem;
-            font-weight: 900;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-        }
-
-        .table-wrap td[colspan] {
-            display: block;
-            text-align: center;
-        }
-
-        .table-wrap td[colspan]::before {
-            content: none;
-        }
-
-        .table-wrap td:last-child {
-            border-bottom: 0;
-        }
-
-        .table-actions {
-            min-width: 0;
+        .toolbar-grid > .field-actions,
+        .form-grid > .field-actions {
+            grid-column: span 12;
         }
     }
 
@@ -579,6 +631,10 @@
         .toolbar-grid > div,
         .form-grid > div {
             grid-column: span 12;
+        }
+
+        .field-actions .create-action {
+            width: 100%;
         }
     }
 
@@ -680,7 +736,7 @@
                 <label class="field-label" for="new-observaciones">Observaciones</label>
                 <textarea id="new-observaciones" name="observaciones" class="field-control">{{ $costDisplayText(old('observaciones')) }}</textarea>
             </div>
-            <div class="flex items-end">
+            <div class="field-actions">
                 <button type="submit" class="create-action">
                     <i class="fas fa-floppy-disk"></i>
                     Guardar concepto
@@ -728,7 +784,7 @@
                     <option value="fecha_actualizacion" @selected(($filters['sort'] ?? null) === 'fecha_actualizacion')>Fecha actualización</option>
                 </select>
             </div>
-            <div class="flex items-end gap-3">
+            <div class="field-actions">
                 <button type="submit" class="create-action">
                     <i class="fas fa-filter"></i>
                     Filtrar
@@ -763,28 +819,28 @@
                     @forelse($items as $item)
                         @php($formId = 'catalog-item-' . $item->id)
                         <tr>
-                            <td>
+                            <td data-label="SKU">
                                 <input class="input-inline" name="sku" value="{{ old('sku.' . $item->id, $item->sku) }}" form="{{ $formId }}" @disabled(!$canEditLavadoraCosts)>
                             </td>
-                            <td>
+                            <td data-label="Concepto">
                                 <textarea class="textarea-inline" name="nombre" form="{{ $formId }}" required @disabled(!$canEditLavadoraCosts)>{{ $costDisplayText(old('nombre.' . $item->id, $item->nombre)) }}</textarea>
                             </td>
-                            <td>
+                            <td data-label="Categoria">
                                 <input class="input-inline" name="categoria" value="{{ old('categoria.' . $item->id, $item->categoria) }}" form="{{ $formId }}" @disabled(!$canEditLavadoraCosts)>
                             </td>
-                            <td>
+                            <td data-label="Unidad">
                                 <input class="input-inline" name="unidad_medida" value="{{ old('unidad_medida.' . $item->id, $item->unidad_medida) }}" form="{{ $formId }}" required @disabled(!$canEditLavadoraCosts)>
                             </td>
-                            <td>
+                            <td data-label="Costo">
                                 <input class="input-inline" name="costo_unitario" type="number" min="0" step="0.01" value="{{ old('costo_unitario.' . $item->id, $item->costo_unitario) }}" form="{{ $formId }}" required @disabled(!$canEditLavadoraCosts)>
                             </td>
-                            <td>
+                            <td data-label="Alias">
                                 <textarea class="textarea-inline" name="aliases_input" form="{{ $formId }}" @disabled(!$canEditLavadoraCosts)>{{ $costDisplayText(old('aliases_input.' . $item->id, implode(', ', $item->aliases ?? []))) }}</textarea>
                             </td>
-                            <td>
+                            <td data-label="Observaciones">
                                 <textarea class="textarea-inline" name="observaciones" form="{{ $formId }}" @disabled(!$canEditLavadoraCosts)>{{ $costDisplayText(old('observaciones.' . $item->id, $item->observaciones)) }}</textarea>
                             </td>
-                            <td>
+                            <td data-label="Actualizado">
                                 <div class="text-sm font-semibold text-slate-900">{{ optional($item->fecha_actualizacion)->format('d/m/Y') ?? 'Sin fecha' }}</div>
                                 <div class="text-xs text-slate-500">{{ $item->updatedBy?->name ?? 'Sistema' }}</div>
                                 <div class="mt-2">
@@ -792,7 +848,7 @@
                                 </div>
                             </td>
                             @if($canModifyLavadoraCosts)
-                            <td>
+                            <td data-label="Acciones">
                                 @if($canEditLavadoraCosts)
                                 <form id="{{ $formId }}" method="POST" action="{{ route('admin.costos.catalog.update', $item) }}">
                                     @csrf
@@ -857,12 +913,13 @@
             @if($canCreateLavadoraCosts)
             <form method="POST" action="{{ route('admin.costos.rules.store') }}" class="form-grid" style="margin-bottom: 1rem;">
                 @csrf
-                <div class="field-span-2">
+                <div class="field-span-3">
                     <label class="field-label">Concepto de catálogo</label>
-                    <select name="cost_catalog_item_id" class="field-control" required>
+                    <select name="cost_catalog_item_id" class="field-control concept-select" required>
                         <option value="">Selecciona</option>
                         @foreach($catalogOptions as $option)
-                            <option value="{{ $option->id }}">{{ $option->categoria }} · {{ \Illuminate\Support\Str::limit($costDisplayText($option->nombre), 70) }}</option>
+                            @php($optionLabel = trim(($option->categoria ? $option->categoria . ' - ' : '') . $costDisplayText($option->nombre)))
+                            <option value="{{ $option->id }}" title="{{ $optionLabel }}">{{ $optionLabel }}</option>
                         @endforeach
                     </select>
                 </div>
@@ -904,7 +961,7 @@
                     <label class="field-label">Notas</label>
                     <input name="notas" class="field-control">
                 </div>
-                <div class="flex items-end">
+                <div class="field-actions">
                     <button type="submit" class="create-action">
                         <i class="fas fa-plus"></i>
                         Crear regla
@@ -931,14 +988,15 @@
                         @forelse($rules as $rule)
                             @php($formId = 'rule-form-' . $rule->id)
                             <tr>
-                                <td>
-                                    <select class="select-inline" name="cost_catalog_item_id" form="{{ $formId }}" @disabled(!$canEditLavadoraCosts)>
+                                <td data-label="Concepto">
+                                    <select class="select-inline concept-select" name="cost_catalog_item_id" form="{{ $formId }}" @disabled(!$canEditLavadoraCosts)>
                                         @foreach($catalogOptions as $option)
-                                            <option value="{{ $option->id }}" @selected($rule->cost_catalog_item_id === $option->id)>{{ \Illuminate\Support\Str::limit($costDisplayText($option->nombre), 60) }}</option>
+                                            @php($optionLabel = trim(($option->categoria ? $option->categoria . ' - ' : '') . $costDisplayText($option->nombre)))
+                                            <option value="{{ $option->id }}" title="{{ $optionLabel }}" @selected($rule->cost_catalog_item_id === $option->id)>{{ $optionLabel }}</option>
                                         @endforeach
                                     </select>
                                 </td>
-                                <td>
+                                <td data-label="Lavadora">
                                     <select class="select-inline" name="linea_nombre" form="{{ $formId }}" @disabled(!$canEditLavadoraCosts)>
                                         <option value="">Todas</option>
                                         @foreach($budgetRows as $budgetRow)
@@ -946,7 +1004,7 @@
                                         @endforeach
                                     </select>
                                 </td>
-                                <td>
+                                <td data-label="Componente">
                                     <select class="select-inline" name="component_code" form="{{ $formId }}" @disabled(!$canEditLavadoraCosts)>
                                         <option value="">Cualquiera</option>
                                         @foreach($componentCodes as $code)
@@ -954,20 +1012,20 @@
                                         @endforeach
                                     </select>
                                 </td>
-                                <td>
+                                <td data-label="Disparador">
                                     <select class="select-inline" name="trigger_type" form="{{ $formId }}" @disabled(!$canEditLavadoraCosts)>
                                         @foreach($triggerOptions as $value => $label)
                                             <option value="{{ $value }}" @selected($rule->trigger_type === $value)>{{ $label }}</option>
                                         @endforeach
                                     </select>
                                 </td>
-                                <td>
+                                <td data-label="Keyword">
                                     <input class="input-inline" name="trigger_keyword" value="{{ $costDisplayText($rule->trigger_keyword) }}" form="{{ $formId }}" @disabled(!$canEditLavadoraCosts)>
                                 </td>
-                                <td>
+                                <td data-label="Cantidad">
                                     <input class="input-inline" name="quantity" type="number" min="0.01" step="0.01" value="{{ $rule->quantity }}" form="{{ $formId }}" @disabled(!$canEditLavadoraCosts)>
                                 </td>
-                                <td>
+                                <td data-label="Activo">
                                     <input type="hidden" name="activo" value="0" form="{{ $formId }}">
                                     <label class="inline-flex items-center gap-2 text-sm">
                                         <input type="checkbox" name="activo" value="1" @checked($rule->activo) form="{{ $formId }}" @disabled(!$canEditLavadoraCosts)>
@@ -975,7 +1033,7 @@
                                     </label>
                                 </td>
                                 @if($canModifyLavadoraCosts)
-                                    <td>
+                                    <td data-label="Acciones">
                                         @if($canEditLavadoraCosts)
                                             <form id="{{ $formId }}" method="POST" action="{{ route('admin.costos.rules.update', $rule) }}">
                                                 @csrf
@@ -1038,16 +1096,16 @@
                         @foreach($budgetRows as $row)
                             @php($formId = 'budget-form-' . $row['linea']->id)
                             <tr>
-                                <td>
+                                <td data-label="Lavadora">
                                     <strong>{{ $row['linea']->nombre }}</strong>
                                     <div class="text-xs text-slate-500 mt-1">{{ $row['budget']?->updatedBy?->name ?? 'Sin responsable' }}</div>
                                 </td>
-                                <td>
+                                <td data-label="Presupuesto">
                                     <input class="input-inline" name="annual_budget" type="number" min="0" step="0.01" value="{{ $row['budget']?->annual_budget ?? 0 }}" form="{{ $formId }}" @disabled(!$canModifyLavadoraBudgets)>
                                 </td>
-                                <td class="text-sm font-semibold text-slate-900">${{ number_format((float) $row['spent'], 2) }}</td>
-                                <td class="text-sm font-semibold text-slate-900">${{ number_format((float) $row['remaining'], 2) }}</td>
-                                <td style="min-width: 200px;">
+                                <td data-label="Gastado" class="text-sm font-semibold text-slate-900">${{ number_format((float) $row['spent'], 2) }}</td>
+                                <td data-label="Disponible" class="text-sm font-semibold text-slate-900">${{ number_format((float) $row['remaining'], 2) }}</td>
+                                <td data-label="Uso" style="min-width: 200px;">
                                     <div class="budget-track">
                                         <div class="budget-bar" style="width: {{ min((float) ($row['usage_percent'] ?? 0), 100) }}%;"></div>
                                     </div>
@@ -1056,7 +1114,7 @@
                                     </div>
                                 </td>
                                 @if($canModifyLavadoraBudgets)
-                                    <td>
+                                    <td data-label="Guardar">
                                         <form id="{{ $formId }}" method="POST" action="{{ route('admin.costos.budgets.upsert') }}">
                                             @csrf
                                             <input type="hidden" name="linea_id" value="{{ $row['linea']->id }}">
