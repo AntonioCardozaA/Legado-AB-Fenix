@@ -14,6 +14,7 @@ use App\Models\User;
 use App\Models\WasherKnowledgeChunk;
 use App\Models\WasherKnowledgeDocument;
 use App\Services\ElongacionChainCostService;
+use App\Support\DompdfFactory;
 use App\Support\LavadoraCatalog;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
@@ -893,7 +894,7 @@ class WasherKnowledgeBasePdfBuilder
                 'knowledge' => $data,
             ])->render();
 
-            $pdf = new Dompdf();
+            $pdf = DompdfFactory::make();
             $pdf->loadHtml($html);
             $pdf->setPaper('letter');
             $pdf->render();

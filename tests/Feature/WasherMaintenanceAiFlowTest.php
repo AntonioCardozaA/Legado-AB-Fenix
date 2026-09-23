@@ -14,7 +14,7 @@ use App\Models\WasherKnowledgeDocument;
 use App\Notifications\WasherAiPlanPendingReviewNotification;
 use App\Services\Maintenance\WasherActionPlanGenerator;
 use App\Services\Maintenance\WasherMaintenanceOrchestrator;
-use Dompdf\Dompdf;
+use App\Support\DompdfFactory;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Notification;
@@ -826,7 +826,7 @@ class WasherMaintenanceAiFlowTest extends TestCase
 
     private function fakePdfUpload(string $filename, string $content): UploadedFile
     {
-        $dompdf = new Dompdf();
+        $dompdf = DompdfFactory::make();
         $dompdf->loadHtml('<html><body><p>' . htmlspecialchars($content, ENT_QUOTES, 'UTF-8') . '</p></body></html>');
         $dompdf->render();
 
@@ -849,7 +849,7 @@ class WasherMaintenanceAiFlowTest extends TestCase
         $png = (string) ob_get_clean();
         imagedestroy($image);
 
-        $dompdf = new Dompdf();
+        $dompdf = DompdfFactory::make();
         $dompdf->loadHtml(
             '<html><body style="margin:0;padding:0;"><img style="width:100%;" src="data:image/png;base64,'
             . base64_encode($png)
