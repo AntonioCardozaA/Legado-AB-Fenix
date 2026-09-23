@@ -3952,24 +3952,29 @@ class AssistantAnalyticsArtifactService
     private function normalizeOutputs(array $outputs, string $question): array
     {
         $normalized = $this->normalize($question);
+        $requestsExcel = str_contains($normalized, 'excel')
+            || str_contains($normalized, 'ecxel')
+            || str_contains($normalized, 'exel')
+            || str_contains($normalized, 'excell')
+            || str_contains($normalized, 'xlsx')
+            || str_contains($normalized, 'xlxs');
+        $requestsCanonicalExcel = str_contains($normalized, 'excel')
+            || str_contains($normalized, 'xlsx');
+        $requestsExplicitImage = str_contains($normalized, 'imagen')
+            || str_contains($normalized, 'png')
+            || str_contains($normalized, 'svg');
         $selected = collect($outputs)
             ->map(fn ($value): string => $this->normalize((string) $value))
             ->filter(fn (string $value): bool => in_array($value, ['image', 'excel'], true))
             ->values()
             ->all();
+        $providerRequestedImage = in_array('image', $selected, true);
 
-        if (
-            str_contains($normalized, 'excel')
-            || str_contains($normalized, 'ecxel')
-            || str_contains($normalized, 'exel')
-            || str_contains($normalized, 'excell')
-            || str_contains($normalized, 'xlsx')
-            || str_contains($normalized, 'xlxs')
-        ) {
+        if ($requestsExcel) {
             $selected[] = 'excel';
         }
 
-        if (str_contains($normalized, 'graf') || str_contains($normalized, 'imagen') || str_contains($normalized, 'png') || str_contains($normalized, 'svg')) {
+        if ($requestsExplicitImage || $providerRequestedImage || (str_contains($normalized, 'graf') && ! $requestsCanonicalExcel)) {
             $selected[] = 'image';
         }
 

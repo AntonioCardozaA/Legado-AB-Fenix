@@ -43,7 +43,7 @@ class AssistantAnalyticsDashboardSheet implements FromArray, ShouldAutoSize, Wit
             [$this->text('title', 'Reporte operativo')],
             [$this->text('subtitle')],
             [$this->text('conclusion')],
-            [],
+            array_fill(0, 14, ''),
             ['Indicador', 'Valor', 'Estado', '', '', '', '', '', '', '', $sideTitle],
         ];
         $summaryRows = collect(array_slice($summaryCards, 0, 8))
