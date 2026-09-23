@@ -1,14 +1,14 @@
 @props([
     'diagramId' => 'line-04',
     'imagePath' => 'images/Diagramas-Lavadoras/linea4.png',
-    'title' => 'LÃ­nea 04'
+    'title' => 'Línea 04'
 ])
 
 <div class="diagram-animator-container" style="max-width: 100%; margin: 0 auto;">
     <h3 class="text-center mb-4">{{ $title }}</h3>
     
     <div class="diagram-canvas-wrapper" style="position: relative; display: inline-block; width: 100%; max-width: 100%;">
-        <!-- Canvas para la animaciÃ³n -->
+        <!-- Canvas para la animación -->
         <canvas 
             id="diagram-canvas-{{ $diagramId }}"
             class="diagram-canvas"
@@ -31,7 +31,7 @@
             class="btn btn-sm btn-primary"
             onclick="toggleDiagramAnimation('{{ $diagramId }}')"
         >
-            â–¶ Iniciar animaciÃ³n
+            ▶ Iniciar animación
         </button>
         
         <button 
@@ -39,7 +39,7 @@
             class="btn btn-sm btn-secondary ms-2"
             onclick="resetDiagramAnimation('{{ $diagramId }}')"
         >
-            â†» Reiniciar
+            ↻ Reiniciar
         </button>
 
         <!-- Control de velocidad -->
@@ -65,7 +65,7 @@
     // Variables globales para cada diagrama
     window.diagramInstances = window.diagramInstances || {};
     
-    // Inicializar cuando el DOM estÃ© listo
+    // Inicializar cuando el DOM esté listo
     document.addEventListener('DOMContentLoaded', function() {
         initializeDiagram('{{ $diagramId }}', '{{ $imagePath }}');
     });
@@ -74,7 +74,7 @@
         if (window.diagramInstances[diagramId]) {
             window.diagramInstances[diagramId].isPlaying = !window.diagramInstances[diagramId].isPlaying;
             const button = document.getElementById('toggle-' + diagramId);
-            button.textContent = window.diagramInstances[diagramId].isPlaying ? 'â¸ Pausar' : 'â–¶ Iniciar animaciÃ³n';
+            button.textContent = window.diagramInstances[diagramId].isPlaying ? '⏸ Pausar' : '▶ Iniciar animación';
         }
     }
 
@@ -83,7 +83,7 @@
             window.diagramInstances[diagramId].chainOffset = 0;
             window.diagramInstances[diagramId].isPlaying = false;
             const button = document.getElementById('toggle-' + diagramId);
-            button.textContent = 'â–¶ Iniciar animaciÃ³n';
+            button.textContent = '▶ Iniciar animación';
         }
     }
 
@@ -94,4 +94,3 @@
         }
     }
 </script>
-

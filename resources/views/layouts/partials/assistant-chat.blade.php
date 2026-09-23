@@ -60,7 +60,7 @@
                     class="w-full resize-none border-0 bg-transparent px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-0"
                 ></textarea>
                 <div class="flex items-center justify-between gap-3 px-2 pb-1">
-                    <p class="text-[11px] text-slate-400">Enter envia | Shift + Enter agrega salto</p>
+                    <p class="text-[11px] text-slate-400">Enter envía | Shift + Enter agrega salto</p>
                     <button
                         id="assistant-chat-send"
                         type="button"
@@ -246,7 +246,7 @@
     const introMessage = {
         id: 'assistant-intro',
         role: 'assistant',
-        content: 'Hola, soy su asistente ABFenix.ai ¿En qué puedo ayudarte?',
+        content: 'Hola, soy su asistente ABFenix.ai. ¿En qué puedo ayudarte?',
         metadata: {},
     };
 
@@ -495,15 +495,15 @@
     }
 
     async function clearHistory() {
-        let confirmed = window.confirm('Se borraran los mensajes guardados de este chat.');
+        let confirmed = window.confirm('Se borrarán los mensajes guardados de este chat.');
 
         if (window.Swal) {
             const result = await window.Swal.fire({
                 title: 'Limpiar historial',
-                text: 'Se borraran los mensajes guardados de este chat.',
+                text: 'Se borrarán los mensajes guardados de este chat.',
                 icon: 'question',
                 showCancelButton: true,
-                confirmButtonText: 'Si, limpiar',
+                confirmButtonText: 'Sí, limpiar',
                 cancelButtonText: 'Cancelar',
                 confirmButtonColor: '#2563eb',
                 cancelButtonColor: '#94a3b8',

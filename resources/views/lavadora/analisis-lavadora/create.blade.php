@@ -420,7 +420,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         for (const file of Array.from(files || [])) {
             if (!file.type.startsWith('image/')) {
-                alert(`El archivo ${file.name} no es una imagen vÃ¡lida.`);
+                alert(`El archivo ${file.name} no es una imagen válida.`);
                 continue;
             }
 

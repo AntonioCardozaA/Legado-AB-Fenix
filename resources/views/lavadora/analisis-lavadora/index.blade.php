@@ -3654,17 +3654,17 @@
                                 </select>
                             </div>
                             <div>
-                                <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Fecha de correcciÃ³n</label>
+                                <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Fecha de corrección</label>
                                 <input id="correction-fecha" name="fecha_correccion" type="datetime-local" class="correction-field w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
                             </div>
                             <div>
-                                <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Tipo de intervenciÃ³n</label>
-                                <input id="correction-tipo" name="tipo_intervencion" type="text" maxlength="255" class="correction-field w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" placeholder="ReparaciÃ³n, ajuste, cambio">
+                                <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Tipo de intervención</label>
+                                <input id="correction-tipo" name="tipo_intervencion" type="text" maxlength="255" class="correction-field w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" placeholder="Reparación, ajuste, cambio">
                             </div>
                         </div>
 
                         <div>
-                            <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Observaciones de reparaciÃ³n</label>
+                            <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Observaciones de reparación</label>
                             <textarea id="correction-observaciones" name="observaciones_reparacion" rows="3" maxlength="3000" class="correction-field w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"></textarea>
                         </div>
 
@@ -3675,7 +3675,7 @@
                                     <input id="correction-componente-instalado" name="componente_instalado" type="text" maxlength="255" class="correction-field w-full rounded-lg border border-blue-200 px-3 py-2 text-sm">
                                 </div>
                                 <div>
-                                    <label class="block text-xs font-semibold text-blue-700 uppercase tracking-wide mb-1">NÃºmero de parte</label>
+                                    <label class="block text-xs font-semibold text-blue-700 uppercase tracking-wide mb-1">Número de parte</label>
                                     <input id="correction-numero-parte" name="numero_parte" type="text" maxlength="255" class="correction-field w-full rounded-lg border border-blue-200 px-3 py-2 text-sm">
                                 </div>
                                 <div>
@@ -3687,7 +3687,7 @@
                                     <input id="correction-proveedor" name="proveedor" type="text" maxlength="255" class="correction-field w-full rounded-lg border border-blue-200 px-3 py-2 text-sm">
                                 </div>
                                 <div>
-                                    <label class="block text-xs font-semibold text-blue-700 uppercase tracking-wide mb-1">GarantÃ­a</label>
+                                    <label class="block text-xs font-semibold text-blue-700 uppercase tracking-wide mb-1">Garantía</label>
                                     <input id="correction-garantia" name="garantia" type="text" maxlength="255" class="correction-field w-full rounded-lg border border-blue-200 px-3 py-2 text-sm">
                                 </div>
                             </div>
@@ -3728,7 +3728,7 @@
 
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-3 items-end">
                             <div>
-                                <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Evidencias de reparaciÃ³n</label>
+                                <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Evidencias de reparación</label>
                                 <input id="correction-evidencias" name="evidencias_reparacion[]" type="file" multiple accept="image/*" class="correction-field w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
                             </div>
                             <div id="correction-readonly-meta" class="text-sm text-gray-600"></div>
@@ -3740,11 +3740,11 @@
                             <div class="flex justify-end">
                                 <button type="submit" class="inline-flex items-center justify-center gap-2 rounded-lg bg-sky-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-sky-700">
                                     <i class="fas fa-save"></i>
-                                    Guardar correcciÃ³n
+                                    Guardar corrección
                                 </button>
                             </div>
                         @else
-                            <p class="rounded-lg bg-slate-50 px-4 py-3 text-sm text-slate-600 border border-slate-200">Solo Supervisor o Administrador puede modificar esta informaciÃ³n.</p>
+                            <p class="rounded-lg bg-slate-50 px-4 py-3 text-sm text-slate-600 border border-slate-200">Solo Supervisor o Administrador puede modificar esta información.</p>
                         @endif
                     </form>
                 </div>

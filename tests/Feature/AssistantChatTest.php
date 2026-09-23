@@ -1527,7 +1527,15 @@ class AssistantChatTest extends TestCase
             ->get(route('profile.edit'))
             ->assertOk()
             ->assertSee('Abrir chat')
-            ->assertSee('assistant-chat-widget', false);
+            ->assertSee('assistant-chat-widget', false)
+            ->assertSee('Hola, soy su asistente ABFenix.ai. ¿En qué puedo ayudarte?', false)
+            ->assertSee('Enter envía', false)
+            ->assertDontSee('Â¿En quÃ© puedo ayudarte?', false);
+
+        $widgetHtml = view('layouts.partials.assistant-chat')->render();
+        $this->assertStringNotContainsString('Ã', $widgetHtml);
+        $this->assertStringNotContainsString('Â', $widgetHtml);
+        $this->assertStringNotContainsString('�', $widgetHtml);
 
         $restrictedUser = $this->authenticatedUser();
         $this->enableCustomPermissions($restrictedUser, ['usar asistente ia']);
