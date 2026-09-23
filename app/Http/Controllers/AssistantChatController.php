@@ -52,6 +52,7 @@ class AssistantChatController extends Controller
 
         $history = AssistantMessage::query()
             ->where('user_id', $user->id)
+            ->whereKeyNot($userMessage->id)
             ->oldest('id')
             ->get(['role', 'content'])
             ->map(fn (AssistantMessage $message): array => [

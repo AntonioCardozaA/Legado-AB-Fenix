@@ -85,7 +85,7 @@ class AssistantAnalyticsArtifactService
         }
 
         $datasetKey = $this->normalizeDataset((string) ($intent['dataset'] ?? ''), $question);
-        $outputs = $this->normalizeOutputs((array) ($intent['outputs'] ?? []), $question);
+        $outputs = $this->normalizeOutputs((array) ($intent['outputs'] ?? []), $question, $datasetKey);
         $lineas = $this->normalizeLineas((array) ($intent['lineas'] ?? []), $question);
         $dateRange = $this->normalizeDateRange((array) ($intent['date_range'] ?? []), $question);
         $chartType = $this->normalizeChartType((string) ($intent['chart_type'] ?? ''), $question);
@@ -3949,27 +3949,35 @@ class AssistantAnalyticsArtifactService
      * @param  array<int, mixed>  $outputs
      * @return array<int, string>
      */
-    private function normalizeOutputs(array $outputs, string $question): array
+    private function normalizeOutputs(array $outputs, string $question, string $datasetKey = ''): array
     {
         $normalized = $this->normalize($question);
+        $requestsExcel = str_contains($normalized, 'excel')
+            || str_contains($normalized, 'ecxel')
+            || str_contains($normalized, 'exel')
+            || str_contains($normalized, 'excell')
+            || str_contains($normalized, 'xlsx')
+            || str_contains($normalized, 'xlxs');
+        $requestsCanonicalExcel = str_contains($normalized, 'excel')
+            || str_contains($normalized, 'xlsx');
+        $requestsExplicitImage = str_contains($normalized, 'imagen')
+            || str_contains($normalized, 'png')
+            || str_contains($normalized, 'svg');
         $selected = collect($outputs)
             ->map(fn ($value): string => $this->normalize((string) $value))
             ->filter(fn (string $value): bool => in_array($value, ['image', 'excel'], true))
             ->values()
             ->all();
+        $providerRequestedImage = in_array('image', $selected, true);
 
-        if (
-            str_contains($normalized, 'excel')
-            || str_contains($normalized, 'ecxel')
-            || str_contains($normalized, 'exel')
-            || str_contains($normalized, 'excell')
-            || str_contains($normalized, 'xlsx')
-            || str_contains($normalized, 'xlxs')
-        ) {
+        if ($requestsExcel) {
             $selected[] = 'excel';
         }
 
-        if (str_contains($normalized, 'graf') || str_contains($normalized, 'imagen') || str_contains($normalized, 'png') || str_contains($normalized, 'svg')) {
+        if ($requestsExplicitImage
+            || $providerRequestedImage
+            || (str_contains($normalized, 'graf') && (! $requestsCanonicalExcel || $this->shouldAttachChartImageWithExcel($normalized, $datasetKey)))
+        ) {
             $selected[] = 'image';
         }
 
@@ -3978,6 +3986,13 @@ class AssistantAnalyticsArtifactService
         }
 
         return array_values(array_unique($selected !== [] ? $selected : ['image']));
+    }
+
+    private function shouldAttachChartImageWithExcel(string $normalizedQuestion, string $datasetKey): bool
+    {
+        return $datasetKey === 'analisis_lavadora'
+            && str_contains($normalizedQuestion, 'estado')
+            && str_contains($normalizedQuestion, 'component');
     }
 
     /**

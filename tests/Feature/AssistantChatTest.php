@@ -22,6 +22,7 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use PhpOffice\PhpSpreadsheet\IOFactory;
+use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
@@ -105,6 +106,7 @@ class AssistantChatTest extends TestCase
             'description' => 'Se detecto desgaste y se requiere inspeccion dirigida.',
             'context_data' => ['hallazgo' => 'desgaste'],
             'status' => MaintenanceEvent::STATUS_DETECTED,
+            'fingerprint' => 'assistant-chat-servo-context',
             'detected_at' => now()->subHour(),
         ]);
 
@@ -177,6 +179,92 @@ class AssistantChatTest extends TestCase
             ->assertJsonCount(2, 'messages')
             ->assertJsonPath('messages.0.role', 'user')
             ->assertJsonPath('messages.1.role', 'assistant');
+    }
+
+    public function test_store_sends_only_previous_messages_as_ai_history(): void
+    {
+        config([
+            'maintenance_ai.enabled' => true,
+        ]);
+
+        $capturingProvider = new class implements AiProviderInterface
+        {
+            public array $payloads = [];
+
+            public function generateStructuredActionPlan(array $payload): array
+            {
+                $this->payloads[] = $payload;
+
+                return [
+                    'data' => [
+                        'answer' => 'Respuesta sin duplicar la pregunta actual.',
+                        'key_points' => [],
+                        'next_steps' => [],
+                        'sources' => [],
+                        'confidence' => 0.9,
+                    ],
+                    'raw' => [],
+                    'meta' => [
+                        'provider' => 'fake',
+                        'model' => 'history-test-model',
+                    ],
+                ];
+            }
+
+            public function createEmbedding(string $content): array
+            {
+                return [];
+            }
+
+            public function extractDocumentText(array $payload): string
+            {
+                return '';
+            }
+        };
+
+        $this->app->instance(AiProviderInterface::class, $capturingProvider);
+
+        $user = $this->authenticatedUser();
+
+        AssistantMessage::create([
+            'user_id' => $user->id,
+            'role' => 'user',
+            'content' => 'Pregunta anterior',
+        ]);
+        AssistantMessage::create([
+            'user_id' => $user->id,
+            'role' => 'assistant',
+            'content' => 'Respuesta anterior',
+        ]);
+
+        $currentQuestion = 'Pregunta actual que no debe duplicarse en historial';
+
+        $this->actingAs($user)
+            ->postJson(route('assistant-chat.store'), [
+                'message' => $currentQuestion,
+                'page_context' => [
+                    'module' => User::MODULE_LAVADORA,
+                    'page_title' => 'Chat operativo',
+                    'current_path' => '/dashboard/lavadoras',
+                ],
+            ])
+            ->assertOk()
+            ->assertJsonPath('user_message.content', $currentQuestion)
+            ->assertJsonPath('message.content', 'Respuesta sin duplicar la pregunta actual.');
+
+        $payload = json_decode((string) ($capturingProvider->payloads[0]['user_prompt'] ?? ''), true);
+
+        $this->assertSame($currentQuestion, $payload['question'] ?? null);
+        $this->assertSame([
+            ['role' => 'user', 'content' => 'Pregunta anterior'],
+            ['role' => 'assistant', 'content' => 'Respuesta anterior'],
+        ], $payload['recent_conversation'] ?? null);
+
+        $this->assertDatabaseCount('assistant_messages', 4);
+        $this->assertSame(
+            ['user', 'assistant', 'user', 'assistant'],
+            AssistantMessage::query()->where('user_id', $user->id)->oldest('id')->pluck('role')->all()
+        );
     }
 
     public function test_authenticated_user_can_clear_chat_history(): void
@@ -1518,7 +1606,7 @@ class AssistantChatTest extends TestCase
         $this->assertSame([], $response->json('message.metadata.artifacts') ?? []);
     }
 
-    public function test_widget_is_rendered_on_authenticated_layout_pages(): void
+    public function test_widget_is_rendered_only_for_users_with_assistant_permission(): void
     {
         $user = $this->authenticatedUser();
 
@@ -1526,7 +1614,50 @@ class AssistantChatTest extends TestCase
             ->get(route('profile.edit'))
             ->assertOk()
             ->assertSee('Abrir chat')
-            ->assertSee('assistant-chat-widget', false);
+            ->assertSee('assistant-chat-widget', false)
+            ->assertSee('Hola, soy su asistente ABFenix.ai. ¿En qué puedo ayudarte?', false)
+            ->assertSee('Enter envía', false)
+            ->assertDontSee('Â¿En quÃ© puedo ayudarte?', false);
+
+        $widgetHtml = view('layouts.partials.assistant-chat')->render();
+        $this->assertStringNotContainsString('Ã', $widgetHtml);
+        $this->assertStringNotContainsString('Â', $widgetHtml);
+        $this->assertStringNotContainsString('�', $widgetHtml);
+
+        $restrictedUser = $this->authenticatedUser();
+        $this->enableCustomPermissions($restrictedUser, ['usar asistente ia']);
+
+        $this->actingAs($restrictedUser)
+            ->get(route('profile.edit'))
+            ->assertOk()
+            ->assertDontSee('Abrir chat')
+            ->assertDontSee('assistant-chat-widget', false);
+    }
+
+    public function test_widget_is_not_rendered_for_excentricos_restricted_profile(): void
+    {
+        Role::firstOrCreate([
+            'name' => User::ROLE_CAPTURISTA_EXCENTRICOS,
+            'guard_name' => 'web',
+        ]);
+
+        Linea::create([
+            'nombre' => 'P-03',
+            'descripcion' => 'Pasteurizadora de prueba',
+            'tipo' => User::MODULE_PASTEURIZADORA,
+            'activo' => true,
+        ]);
+
+        $user = User::factory()->create([
+            'activo' => true,
+        ]);
+        $user->assignRole(User::ROLE_CAPTURISTA_EXCENTRICOS);
+
+        $this->actingAs($user)
+            ->get(route('pasteurizadora.analisis-pasteurizadora.excentricos.index'))
+            ->assertOk()
+            ->assertDontSee('Abrir chat')
+            ->assertDontSee('assistant-chat-widget', false);
     }
 
     public function test_chat_answers_with_live_elongation_ranking_for_comparative_questions(): void
@@ -2906,7 +3037,7 @@ class AssistantChatTest extends TestCase
         $this->assertStringContainsString('"same_type_same_washer"', $prompt);
         $this->assertStringContainsString('"same_component_other_washers"', $prompt);
         $this->assertStringContainsString('Se cambio reten del eje de salida', $prompt);
-        $this->assertStringContainsString('respiradero bloqueado', $prompt);
+        $this->assertStringContainsString('respiradero bloqueado', Str::lower($prompt));
         $this->assertStringContainsString('Manual reductores RV200 L-13', $prompt);
         $this->assertStringContainsString('Despues del cambio de reten', $prompt);
     }
@@ -2925,6 +3056,21 @@ class AssistantChatTest extends TestCase
         $user->assignRole(User::ROLE_TECNICO);
 
         return $user;
+    }
+
+    /**
+     * @param  array<int, string>  $permissions
+     */
+    private function enableCustomPermissions(User $user, array $permissions): void
+    {
+        foreach ([User::customAccessControlPermissionName(), ...$permissions] as $permission) {
+            Permission::firstOrCreate([
+                'name' => $permission,
+                'guard_name' => 'web',
+            ]);
+        }
+
+        $user->givePermissionTo([User::customAccessControlPermissionName(), ...$permissions]);
     }
 
     private function seedRefactionCostKnowledge(User $user): void

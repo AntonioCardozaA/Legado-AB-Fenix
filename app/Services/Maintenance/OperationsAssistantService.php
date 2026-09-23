@@ -140,7 +140,7 @@ class OperationsAssistantService
                 'knowledge_count' => count($knowledge),
                 'platform_query_matches' => count($platformContext['query_matches'] ?? []),
                 'platform_recent_evidence' => count($platformContext['recent_evidence'] ?? []),
-                'technical_context_records' => (int) data_get($technicalContext, 'coverage.historical_records_count', 0),
+                'technical_context_records' => $this->technicalContextRecordCount($technicalContext),
                 'technical_context_sources' => (int) data_get($technicalContext, 'coverage.technical_sources_count', 0),
                 'page_context' => $safePageContext,
             ],
@@ -157,7 +157,7 @@ class OperationsAssistantService
                 'knowledge_count' => count($knowledge),
                 'platform_query_matches' => count($platformContext['query_matches'] ?? []),
                 'platform_recent_evidence' => count($platformContext['recent_evidence'] ?? []),
-                'technical_context_records' => (int) data_get($technicalContext, 'coverage.historical_records_count', 0),
+                'technical_context_records' => $this->technicalContextRecordCount($technicalContext),
                 'technical_context_sources' => (int) data_get($technicalContext, 'coverage.technical_sources_count', 0),
             ],
         ];
@@ -227,6 +227,15 @@ class OperationsAssistantService
             'Si el contexto no alcanza para responder con certeza, dilo explicitamente y sugiere el siguiente dato o modulo a revisar.',
             'Evita explicaciones largas. Prioriza claridad y utilidad operativa.',
         ]);
+    }
+
+    /**
+     * @param  array<string, mixed>  $technicalContext
+     */
+    private function technicalContextRecordCount(array $technicalContext): int
+    {
+        return (int) data_get($technicalContext, 'coverage.historical_records_count', 0)
+            + (int) data_get($technicalContext, 'coverage.technical_sources_count', 0);
     }
 
     /**
@@ -578,6 +587,12 @@ class OperationsAssistantService
 
         $panorama = data_get($platformContext, 'module_insights.lavadora.elongacion_panorama');
         $highest = is_array($panorama) ? ($panorama['highest_current'] ?? null) : null;
+        $highestScope = 'actual';
+
+        if (!is_array($highest)) {
+            $highest = is_array($panorama) ? ($panorama['highest_historical'] ?? null) : null;
+            $highestScope = 'historico registrado';
+        }
 
         if (!is_array($highest)) {
             return null;
@@ -594,11 +609,12 @@ class OperationsAssistantService
                 . ' con '
                 . number_format((float) ($highest['max_porcentaje'] ?? 0), 2, '.', '')
                 . '% en el lado '
-                . ($highest['critical_side'] ?? 'critico')
+                . ($highest['lado_critico'] ?? $highest['critical_side'] ?? 'critico')
                 . ', segun la ultima medicion registrada el '
                 . ($highest['recorded_at'] ?? 'sin fecha')
                 . '.',
             array_filter([
+                'Alcance usado: ' . $highestScope . '.',
                 'Bombas: ' . number_format((float) ($highest['bombas_porcentaje'] ?? 0), 2, '.', '') . '% | Vapor: ' . number_format((float) ($highest['vapor_porcentaje'] ?? 0), 2, '.', '') . '%.',
                 isset($highest['estado_detallado']) ? 'Estado actual: ' . $highest['estado_detallado'] . '.' : null,
                 $ranking !== [] ? 'Ranking actual: ' . implode(' | ', $ranking) . '.' : null,
@@ -814,6 +830,10 @@ class OperationsAssistantService
      */
     private function replyForWasherRefactionCosts(string $question, array $platformContext): ?array
     {
+        if ($this->asksForTechnicalRecommendation($question)) {
+            return null;
+        }
+
         if (
             str_contains($question, 'aceite')
             || str_contains($question, 'lubric')
@@ -988,6 +1008,10 @@ class OperationsAssistantService
      */
     private function replyForWasherLubrication(string $question, array $platformContext): ?array
     {
+        if ($this->asksForTechnicalRecommendation($question)) {
+            return null;
+        }
+
         if (!(
             str_contains($question, 'aceite')
             || str_contains($question, 'lubric')
@@ -1090,6 +1114,21 @@ class OperationsAssistantService
             $sources,
             0.98
         );
+    }
+
+    private function asksForTechnicalRecommendation(string $question): bool
+    {
+        return str_contains($question, 'solucion')
+            || str_contains($question, 'resolver')
+            || str_contains($question, 'repar')
+            || str_contains($question, 'correg')
+            || str_contains($question, 'diagnostic')
+            || str_contains($question, 'recomend')
+            || str_contains($question, 'intervencion')
+            || str_contains($question, 'procedimiento')
+            || str_contains($question, 'que hago')
+            || str_contains($question, 'como atiendo')
+            || str_contains($question, 'como reparo');
     }
 
     /**
