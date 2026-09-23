@@ -4815,7 +4815,7 @@
         card.classList.add('dashboard-panel');
         updateCardTitle(card, config.title, config.icon);
         ensureAfterHeading(card, config.actionsId, `
-            <form id="${config.actionsId}" class="panel-actions trend-filter-form" method="GET" action="${escapeHtml(data.dashboardUrl || '')}" style="margin-bottom: 18px; justify-content: flex-start;">
+            <form id="${config.actionsId}" class="panel-actions trend-filter-form" method="GET" action="${escapeHtml(data.dashboardUrl || '')}" style="margin-bottom: 18px; justify-content: flex-start;" data-auto-filter-form>
                 <select id="${config.selectId}" class="panel-select">${lineaOptions(state[config.stateKey])}</select>
                 <label class="trend-date-field">
                     <span>Desde</span>
@@ -4826,10 +4826,10 @@
                     <input type="date" name="${escapeHtml(config.filterToName)}" value="${escapeHtml(config.filterToValue || '')}" class="panel-date-input">
                 </label>
                 ${preserveInputs}
-                <button type="submit" class="panel-button">
-                    <i class="fas fa-filter"></i>
-                    Aplicar
-                </button>
+                <a href="${escapeHtml(data.dashboardUrl || '')}" class="panel-button">
+                    <i class="fas fa-rotate-left"></i>
+                    Limpiar
+                </a>
             </form>
         `);
         ensureAfterElement(config.actionsId, `${config.prefix}Executive`, `

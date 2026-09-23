@@ -1805,7 +1805,7 @@
             @endforeach
         </div>
 
-        <form method="GET" action="{{ route($rutaAnalisisActiva) }}" class="mt-6 grid gap-4 border-t border-gray-200 pt-5 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] md:items-end">
+        <form method="GET" action="{{ route($rutaAnalisisActiva) }}" class="mt-6 grid gap-4 border-t border-gray-200 pt-5 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] md:items-end" data-auto-filter-form>
             <input type="hidden" name="area" value="{{ $areaAnalisis }}">
 
             @if($lineaSeleccionada)
@@ -1837,11 +1837,6 @@
             </div>
 
             <div class="flex flex-wrap gap-2">
-                <button type="submit" class="create-action create-action--compact">
-                    <i class="fas fa-filter"></i>
-                    Filtrar
-                </button>
-
                 @if($fechaInicio || $fechaFin)
                     <a href="{{ route($rutaAnalisisActiva, array_filter(['linea_id' => $lineaSeleccionada, 'area' => $areaAnalisis], fn ($value) => filled($value))) }}"
                        class="create-action create-action--compact create-action--secondary">

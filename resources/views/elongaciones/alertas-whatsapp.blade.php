@@ -69,7 +69,7 @@
                 </p>
             </div>
 
-            <form method="GET" action="{{ route('elongaciones.alertas-whatsapp.index') }}" class="flex flex-col gap-3 sm:flex-row sm:items-end">
+            <form method="GET" action="{{ route('elongaciones.alertas-whatsapp.index') }}" class="flex flex-col gap-3 sm:flex-row sm:items-end" data-auto-filter-form>
                 <div>
                     <label for="date" class="mb-1 block text-sm font-bold text-slate-700">Fecha</label>
                     <input
@@ -80,10 +80,10 @@
                         class="block w-full rounded-lg border-slate-300 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500"
                     >
                 </div>
-                <button type="submit" class="inline-flex items-center justify-center gap-2 rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-slate-800">
-                    <i class="fas fa-magnifying-glass"></i>
-                    Consultar
-                </button>
+                <a href="{{ route('elongaciones.alertas-whatsapp.index') }}" class="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
+                    <i class="fas fa-rotate-left"></i>
+                    Limpiar
+                </a>
             </form>
         </div>
     </section>

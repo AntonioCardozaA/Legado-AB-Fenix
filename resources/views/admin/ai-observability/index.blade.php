@@ -50,7 +50,7 @@
         </div>
     </div>
 
-    <form action="{{ route('admin.ai-observability.index') }}" method="GET" class="rounded bg-white p-5 shadow">
+    <form action="{{ route('admin.ai-observability.index') }}" method="GET" class="rounded bg-white p-5 shadow" data-auto-filter-form>
         <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-[160px,160px,180px,220px,220px,auto] xl:items-end">
             <div>
                 <label for="from" class="mb-1 block text-sm font-medium text-gray-700">Desde</label>
@@ -92,10 +92,10 @@
                 </select>
             </div>
 
-            <button type="submit" class="inline-flex items-center justify-center gap-2 rounded bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700">
-                <i class="fas fa-filter"></i>
-                Filtrar
-            </button>
+            <a href="{{ route('admin.ai-observability.index') }}" class="inline-flex items-center justify-center gap-2 rounded border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">
+                <i class="fas fa-rotate-left"></i>
+                Limpiar
+            </a>
         </div>
     </form>
 

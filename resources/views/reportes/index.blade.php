@@ -12,7 +12,7 @@
 
     <!-- FILTROS -->
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
-        <form action="{{ route('reportes.index') }}" method="GET" class="space-y-4">
+        <form action="{{ route('reportes.index') }}" method="GET" class="space-y-4" data-auto-filter-form>
             <div class="grid grid-cols-1 md:grid-cols-6 gap-4">
 
                 <div>
@@ -55,10 +55,10 @@
                 </div>
 
                 <div class="flex flex-col sm:flex-row items-stretch sm:items-end gap-2 md:col-span-2">
-                    <button type="submit"
-                        class="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
-                        <i class="fas fa-filter mr-2"></i>Aplicar filtros
-                    </button>
+                    <a href="{{ route('reportes.index') }}"
+                        class="flex-1 bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors text-center">
+                        <i class="fas fa-times mr-2"></i>Limpiar
+                    </a>
                     <button type="submit"
                         name="export_format"
                         value="pdf"

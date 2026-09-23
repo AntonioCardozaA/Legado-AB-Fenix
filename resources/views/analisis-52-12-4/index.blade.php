@@ -188,10 +188,34 @@
     .lef-alert.error { background: #fee2e2; color: #991b1b; }
     .lef-alert.info { background: #eff6ff; color: #1e40af; border-color: #bfdbfe; }
     .lef-table-wrap { overflow-x: auto; max-width: 100%; -webkit-overflow-scrolling: touch; }
-    .lef-table { width: 100%; border-collapse: collapse; font-size: 0.86rem; }
-    .lef-table th, .lef-table td { padding: 10px 12px; border-bottom: 1px solid #e2e8f0; text-align: left; vertical-align: middle; }
-    .lef-table th { background: #f8fafc; color: #475569; text-transform: uppercase; font-size: 0.72rem; letter-spacing: 0.04em; }
-    .lef-delete { color: #b91c1c; font-weight: 900; border: 0; background: transparent; cursor: pointer; }
+    .lef-table { width: 100%; min-width: 1110px; border-collapse: collapse; table-layout: fixed; font-size: 0.86rem; }
+    .lef-table th, .lef-table td { padding: 10px 12px; border-bottom: 1px solid #e2e8f0; text-align: left; vertical-align: middle; overflow-wrap: anywhere; }
+    .lef-table th { background: #f8fafc; color: #475569; text-transform: uppercase; font-size: 0.72rem; line-height: 1.25; letter-spacing: 0.04em; overflow-wrap: normal; word-break: normal; }
+    .lef-table th:nth-child(1), .lef-table td:nth-child(1) { width: 58px; }
+    .lef-table th:nth-child(2), .lef-table td:nth-child(2) { width: 230px; }
+    .lef-table th:nth-child(3), .lef-table td:nth-child(3) { width: 145px; }
+    .lef-table th:nth-child(4), .lef-table td:nth-child(4) { width: 170px; }
+    .lef-table th:nth-child(5), .lef-table td:nth-child(5) { width: 155px; }
+    .lef-table th:nth-child(6), .lef-table td:nth-child(6),
+    .lef-table th:nth-child(7), .lef-table td:nth-child(7),
+    .lef-table th:nth-child(8), .lef-table td:nth-child(8) { width: 88px; }
+    .lef-table th:nth-child(9), .lef-table td:nth-child(9) { width: 92px; text-align: right; }
+    .lef-delete {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 34px;
+        border: 0;
+        border-radius: 999px;
+        padding: 0 12px;
+        background: #fef2f2;
+        color: #b91c1c;
+        font-weight: 900;
+        line-height: 1;
+        white-space: nowrap;
+        cursor: pointer;
+    }
+    .lef-delete:hover { background: #fee2e2; color: #991b1b; }
     .lef-action.is-loading i { animation: lef-spin 0.8s linear infinite; }
     @keyframes lef-spin { to { transform: rotate(360deg); } }
     @media (min-width: 1180px) { .lef-grid.two { grid-template-columns: minmax(0, 1fr); } }
@@ -202,11 +226,18 @@
         .lef-panel-header { align-items: stretch; }
         .lef-lines { margin-inline: -0.25rem; padding-inline: 0.25rem; }
         .lef-line-tab { padding-inline: 14px; }
+        .lef-table-wrap { overflow-x: visible; }
+        .lef-table { min-width: 0; border-collapse: separate; border-spacing: 0; }
         .lef-table thead { display: none; }
         .lef-table, .lef-table tbody, .lef-table tr, .lef-table td { display: block; width: 100%; }
-        .lef-table tr { border-bottom: 1px solid #e2e8f0; padding: 10px 12px; }
-        .lef-table td { display: grid; grid-template-columns: minmax(110px, 0.42fr) minmax(0, 1fr); gap: 10px; border-bottom: 0; padding: 7px 0; }
+        .lef-table tbody { display: grid; gap: 12px; padding: 12px; }
+        .lef-table tr { border: 1px solid #e2e8f0; border-radius: 14px; padding: 10px 12px; background: #fff; box-shadow: 0 8px 18px rgba(15, 23, 42, 0.05); }
+        .lef-table td { display: grid; grid-template-columns: minmax(118px, 0.44fr) minmax(0, 1fr); gap: 10px; border-bottom: 0; padding: 8px 0; text-align: left !important; }
         .lef-table td::before { content: attr(data-label); color: #64748b; font-size: 0.72rem; font-weight: 900; letter-spacing: 0.04em; text-transform: uppercase; }
+        .lef-table td[colspan] { display: block; text-align: center !important; color: #64748b; }
+        .lef-table td[colspan]::before { content: none; }
+        .lef-table td[data-label="Acciones"] { align-items: center; }
+        .lef-delete { width: 100%; max-width: 160px; }
     }
     @media (max-width: 480px) {
         .lef-title-icon { display: none; }

@@ -518,7 +518,7 @@
             FILTROS DE BÚSQUEDA:
         </div>
         
-        <form method="GET" action="{{ route('reportes.componentes') }}" id="filterForm">
+        <form method="GET" action="{{ route('reportes.componentes') }}" id="filterForm" data-auto-filter-form>
             <div class="advanced-filters-grid">
                 <div class="filter-group">
                     <label><i class="fas fa-calendar-alt mr-1"></i> Periodo</label>
@@ -570,11 +570,6 @@
             </div>
 
             <div class="filters-row mt-4">
-                <button type="submit" class="btn-apply">
-                    <i class="fas fa-search"></i>
-                    Aplicar filtros
-                </button>
-                
                 <a href="{{ route('reportes.componentes') }}" class="btn-clear">
                     <i class="fas fa-times"></i>
                     Limpiar

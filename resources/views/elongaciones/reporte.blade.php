@@ -6,9 +6,9 @@
     
     <div class="row mb-4">
         <div class="col-md-12">
-            <form method="GET" action="{{ route('elongaciones.reporte') }}" class="row">
+            <form method="GET" action="{{ route('elongaciones.reporte') }}" class="row" data-auto-filter-form>
                 <div class="col-md-4">
-                    <select name="linea" class="form-control" onchange="this.form.submit()">
+                    <select name="linea" class="form-control">
                         <option value="">Todas las líneas</option>
                         @foreach(['L-01', 'L-02', 'L-03', 'L-04', 'L-05', 'L-06', 'L-07'] as $lineaOpt)
                             <option value="{{ $lineaOpt }}" 
@@ -17,6 +17,11 @@
                             </option>
                         @endforeach
                     </select>
+                </div>
+                <div class="col-md-2">
+                    <a href="{{ route('elongaciones.reporte') }}" class="btn btn-outline-secondary w-100">
+                        Limpiar
+                    </a>
                 </div>
             </form>
         </div>

@@ -23,7 +23,7 @@
         </div>
 
         <div class="card-body">
-            <form method="GET" action="{{ route('analisis.index') }}">
+            <form method="GET" action="{{ route('analisis.index') }}" data-auto-filter-form>
                 <div class="row g-3">
 
                     {{-- Lavadora --}}
@@ -73,10 +73,6 @@
 
                     {{-- Botones --}}
                     <div class="col-md-2 d-flex align-items-end gap-2">
-                        <button class="btn btn-primary w-100">
-                            <i class="fas fa-search me-1"></i> Filtrar
-                        </button>
-
                         <a href="{{ route('analisis.index') }}"
                            class="btn btn-outline-secondary w-100">
                             Limpiar

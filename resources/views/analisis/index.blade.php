@@ -19,7 +19,7 @@
         <div class="rounded border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">{{ session('success') }}</div>
     @endif
 
-    <form method="GET" action="{{ route('analisis.index') }}" class="grid gap-3 rounded bg-white p-4 shadow sm:grid-cols-2 lg:grid-cols-5">
+    <form method="GET" action="{{ route('analisis.index') }}" class="grid gap-3 rounded bg-white p-4 shadow sm:grid-cols-2 lg:grid-cols-5" data-auto-filter-form>
         <select name="linea_id" class="rounded border-gray-300 text-sm">
             <option value="">Todas las lineas</option>
             @foreach($lineas as $linea)
@@ -44,7 +44,6 @@
         <input type="month" name="fecha" value="{{ request('fecha') }}" class="rounded border-gray-300 text-sm">
 
         <div class="flex gap-2">
-            <button class="flex-1 rounded bg-gray-900 px-4 py-2 text-sm font-semibold text-white hover:bg-gray-800">Filtrar</button>
             <a href="{{ route('analisis.index') }}" class="rounded border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">Limpiar</a>
         </div>
     </form>

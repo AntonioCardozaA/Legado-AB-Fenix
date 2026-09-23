@@ -586,7 +586,7 @@
             <h2><i class="fas fa-filter text-blue-600 mr-2"></i>Filtros</h2>
         </div>
 
-        <form method="GET" class="filter-grid">
+        <form method="GET" class="filter-grid" data-auto-filter-form>
             <div>
                 <label class="field-label" for="preset">Periodo</label>
                 <select id="preset" name="preset" class="field-control">
@@ -626,10 +626,6 @@
             </div>
 
             <div class="filter-actions">
-                <button type="submit" class="create-action">
-                    <i class="fas fa-chart-column"></i>
-                    Actualizar tablero
-                </button>
                 <a href="{{ route('lavadora.costos.index') }}" class="create-action create-action--secondary">
                     <i class="fas fa-rotate-left"></i>
                     Limpiar

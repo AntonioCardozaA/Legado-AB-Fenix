@@ -1604,7 +1604,7 @@
                 </a>
             </div>
             
-            <form method="GET" action="{{ route('analisis-lavadora.index') }}" id="filterForm">
+            <form method="GET" action="{{ route('analisis-lavadora.index') }}" id="filterForm" data-auto-filter-form>
                 <div class="lineas-grid">
                     @foreach($lineasFiltradas as $l)
                         <div class="linea-item {{ request('linea_id') == $l->id ? 'active' : '' }}" 
@@ -1633,11 +1633,6 @@
                         <i id="advancedFiltersIcon" class="fas fa-chevron-down ml-1"></i>
                     </div>
                     
-                    <button type="submit" class="btn-apply">
-                        <i class="fas fa-search"></i>
-                        Aplicar filtros
-                    </button>
-                    
                     <a href="{{ route('analisis-lavadora.index', ['linea_id' => 'todas']) }}" class="btn-clear">
                         <i class="fas fa-times"></i>
                         Limpiar
@@ -1645,7 +1640,7 @@
                 </div>
 
                 {{-- PANEL DE FILTROS AVANZADOS --}}
-                <div id="advancedFiltersPanel" class="advanced-filters-panel {{ request()->has('componente_id') || request()->has('reductor') || request()->has('fecha') || request()->has('estado') ? 'show' : '' }}">
+                <div id="advancedFiltersPanel" class="advanced-filters-panel">
                     <div class="advanced-filters-grid">
                         <div class="filter-group">
                             <label><i class="fas fa-cog mr-1"></i> Componente</label>

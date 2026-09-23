@@ -1839,7 +1839,7 @@
     @if(isset($lineasFiltradas) && $lineasFiltradas->count() > 0)
     <div class="filters-section">
         {{-- LÍNEAS: con las pasteurizadoras específicas --}}
-        <form method="GET" action="{{ $analisisRoute('index') }}" id="filterForm">
+        <form method="GET" action="{{ $analisisRoute('index') }}" id="filterForm" data-auto-filter-form>
             <div class="lineas-title">
                 LÍNEAS DE PASTEURIZADORA:
             </div>
@@ -1869,11 +1869,6 @@
                     <i id="advancedFiltersIcon" class="fas fa-chevron-down ml-1"></i>
                 </div>
                 
-                <button type="submit" class="btn-apply">
-                    <i class="fas fa-search"></i>
-                    Aplicar filtros
-                </button>
-                
                 <a href="{{ $analisisRoute('index', ['linea_id' => $lineaSeleccionadaId]) }}" class="btn-clear">
                     <i class="fas fa-times"></i>
                     Limpiar
@@ -1881,7 +1876,7 @@
             </div>
 
             {{-- PANEL DE FILTROS AVANZADOS --}}
-            <div id="advancedFiltersPanel" class="advanced-filters-panel {{ request()->has('modulo') || request()->has('estado') ? 'show' : '' }}">
+            <div id="advancedFiltersPanel" class="advanced-filters-panel">
                 <div class="advanced-filters-grid">
                     <div class="filter-group">
                         <label><i class="fas fa-cube mr-1"></i> Módulo</label>
