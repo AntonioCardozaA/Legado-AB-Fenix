@@ -106,6 +106,7 @@ class AssistantChatTest extends TestCase
             'description' => 'Se detecto desgaste y se requiere inspeccion dirigida.',
             'context_data' => ['hallazgo' => 'desgaste'],
             'status' => MaintenanceEvent::STATUS_DETECTED,
+            'fingerprint' => 'assistant-chat-servo-context',
             'detected_at' => now()->subHour(),
         ]);
 
@@ -178,6 +179,92 @@ class AssistantChatTest extends TestCase
             ->assertJsonCount(2, 'messages')
             ->assertJsonPath('messages.0.role', 'user')
             ->assertJsonPath('messages.1.role', 'assistant');
+    }
+
+    public function test_store_sends_only_previous_messages_as_ai_history(): void
+    {
+        config([
+            'maintenance_ai.enabled' => true,
+        ]);
+
+        $capturingProvider = new class implements AiProviderInterface
+        {
+            public array $payloads = [];
+
+            public function generateStructuredActionPlan(array $payload): array
+            {
+                $this->payloads[] = $payload;
+
+                return [
+                    'data' => [
+                        'answer' => 'Respuesta sin duplicar la pregunta actual.',
+                        'key_points' => [],
+                        'next_steps' => [],
+                        'sources' => [],
+                        'confidence' => 0.9,
+                    ],
+                    'raw' => [],
+                    'meta' => [
+                        'provider' => 'fake',
+                        'model' => 'history-test-model',
+                    ],
+                ];
+            }
+
+            public function createEmbedding(string $content): array
+            {
+                return [];
+            }
+
+            public function extractDocumentText(array $payload): string
+            {
+                return '';
+            }
+        };
+
+        $this->app->instance(AiProviderInterface::class, $capturingProvider);
+
+        $user = $this->authenticatedUser();
+
+        AssistantMessage::create([
+            'user_id' => $user->id,
+            'role' => 'user',
+            'content' => 'Pregunta anterior',
+        ]);
+        AssistantMessage::create([
+            'user_id' => $user->id,
+            'role' => 'assistant',
+            'content' => 'Respuesta anterior',
+        ]);
+
+        $currentQuestion = 'Pregunta actual que no debe duplicarse en historial';
+
+        $this->actingAs($user)
+            ->postJson(route('assistant-chat.store'), [
+                'message' => $currentQuestion,
+                'page_context' => [
+                    'module' => User::MODULE_LAVADORA,
+                    'page_title' => 'Chat operativo',
+                    'current_path' => '/dashboard/lavadoras',
+                ],
+            ])
+            ->assertOk()
+            ->assertJsonPath('user_message.content', $currentQuestion)
+            ->assertJsonPath('message.content', 'Respuesta sin duplicar la pregunta actual.');
+
+        $payload = json_decode((string) ($capturingProvider->payloads[0]['user_prompt'] ?? ''), true);
+
+        $this->assertSame($currentQuestion, $payload['question'] ?? null);
+        $this->assertSame([
+            ['role' => 'user', 'content' => 'Pregunta anterior'],
+            ['role' => 'assistant', 'content' => 'Respuesta anterior'],
+        ], $payload['recent_conversation'] ?? null);
+
+        $this->assertDatabaseCount('assistant_messages', 4);
+        $this->assertSame(
+            ['user', 'assistant', 'user', 'assistant'],
+            AssistantMessage::query()->where('user_id', $user->id)->oldest('id')->pluck('role')->all()
+        );
     }
 
     public function test_authenticated_user_can_clear_chat_history(): void
