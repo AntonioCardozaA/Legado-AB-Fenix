@@ -520,7 +520,7 @@ class AccessPermissionCatalog
             ['routes' => ['analisis-tendencia-mensual.pasteurizadora.index', 'analisis-tendencia-mensual.pasteurizadora.analisis-*', 'analisis-tendencia-mensual.pasteurizadora.show'], 'methods' => ['GET'], 'permission' => 'ver tendencias pasteurizadora'],
             ['routes' => ['analisis-tendencia-mensual.pasteurizadora.create'], 'methods' => ['GET'], 'permission' => 'crear tendencias pasteurizadora'],
             ['routes' => ['analisis-tendencia-mensual.pasteurizadora.store'], 'permission' => 'crear tendencias pasteurizadora'],
-            ['routes' => ['lef52124.index', 'lef52124.periods', 'lef52124.data'], 'methods' => ['GET'], 'permission' => 'ver 52-12-4'],
+            ['routes' => ['lef52124.index', 'lef52124.periods', 'lef52124.data', 'lef52124.trend.washer-machine'], 'methods' => ['GET'], 'permission' => 'ver 52-12-4'],
             ['routes' => ['lef52124.store'], 'permission' => 'importar datos 52-12-4'],
             ['routes' => ['lef52124.destroy'], 'permission' => 'eliminar importaciones 52-12-4'],
 

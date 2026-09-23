@@ -303,6 +303,10 @@
                 </div>
             </div>
             <div style="margin-top: 14px; display: flex; justify-content: flex-end;">
+                <button class="lef-action secondary" type="button" data-trend-toggle style="margin-right: 10px;">
+                    <i class="fas fa-chart-line"></i>
+                    <span data-trend-label>Ver tendencia</span>
+                </button>
                 <button class="lef-action secondary" type="button" data-clear-filters>
                     <i class="fas fa-rotate-left"></i>
                     <span data-clear-label>Limpiar</span>
@@ -332,8 +336,27 @@
         </section>
     </div>
 
+    <section class="lef-panel" data-trend-panel hidden>
+        <div class="lef-panel-header">
+            <div>
+                <h2 class="lef-panel-title">Tendencia 52-12-4 - Maquina LAVADORA</h2>
+                <p style="margin: 4px 0 0; color: #64748b; font-size: 0.84rem;" data-trend-title>
+                    Enero a diciembre 2025 y 2026
+                </p>
+            </div>
+        </div>
+        <div class="lef-panel-body">
+            <div class="lef-alert info" data-trend-empty hidden></div>
+            <div class="lef-chart-wrap" data-trend-chart-wrap>
+                <div class="lef-chart-inner" style="min-width: 980px;">
+                    <canvas id="washerTrendChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </section>
+
     @if($canManage)
-        <section class="lef-panel">
+        <section class="lef-panel" id="historial-importaciones">
             <div class="lef-panel-header"><h2 class="lef-panel-title">Historial de importaciones</h2></div>
             <div class="lef-table-wrap">
                 <table class="lef-table">
@@ -362,6 +385,11 @@
                     </tbody>
                 </table>
             </div>
+            @if($imports->hasPages())
+                <div style="border-top: 1px solid #e2e8f0; padding: 14px 18px;">
+                    {{ $imports->links() }}
+                </div>
+            @endif
         </section>
     @endif
 </div>
@@ -369,7 +397,11 @@
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     const lineas = @json($lineasPayload);
-    const endpoints = { data: @json(route('lef52124.data')), periods: @json(route('lef52124.periods')) };
+    const endpoints = {
+        data: @json(route('lef52124.data')),
+        periods: @json(route('lef52124.periods')),
+        trend: @json(route('lef52124.trend.washer-machine')),
+    };
     const initialFilters = { lineaId: Number(@json($selectedLineaId)), dataDate: null, period: 'all', analysis: 'all' };
     const state = {
         lineaId: initialFilters.lineaId,
@@ -379,6 +411,9 @@ document.addEventListener('DOMContentLoaded', function () {
         loadingPeriods: false,
         dataRequestId: 0,
         activeDataController: null,
+        trendVisible: false,
+        trendRequestId: 0,
+        activeTrendController: null,
     };
     const charts = {};
     const compactQuery = window.matchMedia('(max-width: 640px)');
@@ -401,7 +436,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 const meta = chart.getDatasetMeta(datasetIndex);
                 if (meta.hidden) return;
                 meta.data.forEach((bar, index) => {
-                    const value = Number(dataset.data[index]);
+                    const raw = dataset.data[index];
+                    if (raw === null || raw === undefined || raw === '') return;
+                    const value = Number(raw);
                     if (Number.isFinite(value)) ctx.fillText(formatNumber(value), bar.x, Math.max(12, bar.y - 4));
                 });
             });
@@ -414,6 +451,12 @@ document.addEventListener('DOMContentLoaded', function () {
         period: document.querySelector('[data-filter-period]'),
         clear: document.querySelector('[data-clear-filters]'),
         clearLabel: document.querySelector('[data-clear-label]'),
+        trendButton: document.querySelector('[data-trend-toggle]'),
+        trendLabel: document.querySelector('[data-trend-label]'),
+        trendPanel: document.querySelector('[data-trend-panel]'),
+        trendTitle: document.querySelector('[data-trend-title]'),
+        trendEmpty: document.querySelector('[data-trend-empty]'),
+        trendChartWrap: document.querySelector('[data-trend-chart-wrap]'),
         feedback: document.querySelector('[data-feedback]'),
         kpis: document.querySelector('[data-kpis]'),
         washerKpis: document.querySelector('[data-washer-kpis]'),
@@ -422,11 +465,13 @@ document.addEventListener('DOMContentLoaded', function () {
     };
 
     document.querySelector('[data-toggle-import]')?.addEventListener('click', toggleImportPanel);
+    nodes.trendButton?.addEventListener('click', toggleTrendPanel);
     nodes.clear?.addEventListener('click', resetFilters);
     document.querySelectorAll('[data-line-tab]').forEach((button) => button.addEventListener('click', () => {
         state.lineaId = Number(button.dataset.lineaId);
         selectLineTab();
         loadPeriods(true);
+        if (state.trendVisible) loadTrend();
     }));
     nodes.date?.addEventListener('change', () => { state.dataDate = nodes.date.value || null; loadData(); });
     nodes.analysis?.addEventListener('change', () => { state.analysis = nodes.analysis.value; loadData(); });
@@ -443,6 +488,116 @@ document.addEventListener('DOMContentLoaded', function () {
         if (!panel) return;
         panel.hidden = !panel.hidden;
         if (!panel.hidden) panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+    function toggleTrendPanel() {
+        state.trendVisible = !state.trendVisible;
+        if (nodes.trendPanel) nodes.trendPanel.hidden = !state.trendVisible;
+        if (nodes.trendLabel) nodes.trendLabel.textContent = state.trendVisible ? 'Ocultar tendencia' : 'Ver tendencia';
+
+        if (state.trendVisible) {
+            loadTrend();
+            nodes.trendPanel?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    }
+    function loadTrend() {
+        if (!state.lineaId || !state.trendVisible) return;
+        const requestId = ++state.trendRequestId;
+        state.activeTrendController?.abort();
+        state.activeTrendController = new AbortController();
+        setTrendLoading(true);
+
+        fetch(`${endpoints.trend}?linea_id=${encodeURIComponent(state.lineaId)}`, {
+            headers: { 'Accept': 'application/json' },
+            signal: state.activeTrendController.signal
+        })
+            .then((response) => {
+                if (!response.ok) throw new Error('No se pudo cargar la tendencia de Lavadora.');
+                return response.json();
+            })
+            .then((payload) => {
+                if (requestId !== state.trendRequestId) return;
+                renderTrend(payload);
+            })
+            .catch((error) => {
+                if (error.name === 'AbortError') return;
+                renderTrendEmpty(error.message || 'No se pudo cargar la tendencia de Lavadora.');
+            })
+            .finally(() => {
+                if (requestId !== state.trendRequestId) return;
+                setTrendLoading(false);
+            });
+    }
+    function setTrendLoading(isLoading) {
+        if (!nodes.trendButton) return;
+        nodes.trendButton.disabled = isLoading;
+        nodes.trendButton.classList.toggle('is-loading', isLoading);
+        nodes.trendButton.setAttribute('aria-busy', isLoading ? 'true' : 'false');
+        if (nodes.trendLabel) nodes.trendLabel.textContent = isLoading ? 'Cargando...' : (state.trendVisible ? 'Ocultar tendencia' : 'Ver tendencia');
+    }
+    function renderTrend(payload) {
+        if (!payload.has_data) {
+            renderTrendEmpty(`No existen registros mensuales 52-12-4 para la maquina Lavadora en ${currentLineName()} durante 2025 o 2026.`);
+            return;
+        }
+
+        if (nodes.trendTitle) {
+            nodes.trendTitle.textContent = `${payload.machine_name || 'LAVADORA'} | ${payload.linea || currentLineName()} | Enero-diciembre 2025 y 2026`;
+        }
+
+        if (nodes.trendEmpty) nodes.trendEmpty.hidden = true;
+        if (nodes.trendChartWrap) nodes.trendChartWrap.hidden = false;
+
+        const canvas = document.getElementById('washerTrendChart');
+        if (!canvas) return;
+
+        charts.washerTrendChart?.destroy();
+        const yearStyles = {
+            2025: { dash: [7, 5], alpha: 0.78 },
+            2026: { dash: [], alpha: 1 },
+        };
+        const trendColors = {
+            52: '#16a34a',
+            12: '#dc2626',
+            4: '#f97316',
+        };
+        const datasets = [];
+
+        (payload.years || [2025, 2026]).forEach((year) => {
+            const rows = payload.series?.[year] || [];
+            periodDefinitions.forEach((period) => {
+                datasets.push({
+                    label: `${year} - ${period.label}`,
+                    data: rows.map((row) => row[period.valueKey]),
+                    borderColor: trendColors[period.key],
+                    backgroundColor: trendColors[period.key],
+                    borderDash: yearStyles[year]?.dash || [],
+                    borderWidth: year === 2026 ? 3 : 2,
+                    pointRadius: compactQuery.matches ? 3 : 4,
+                    pointHoverRadius: compactQuery.matches ? 5 : 6,
+                    tension: 0.28,
+                    spanGaps: false,
+                });
+            });
+        });
+
+        charts.washerTrendChart = new Chart(canvas, {
+            type: 'line',
+            data: {
+                labels: payload.months || ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'],
+                datasets,
+            },
+            plugins: [valueLabelPlugin],
+            options: trendChartOptions(),
+        });
+    }
+    function renderTrendEmpty(message) {
+        charts.washerTrendChart?.destroy();
+        delete charts.washerTrendChart;
+        if (nodes.trendChartWrap) nodes.trendChartWrap.hidden = true;
+        if (nodes.trendEmpty) {
+            nodes.trendEmpty.textContent = message;
+            nodes.trendEmpty.hidden = false;
+        }
     }
     function selectLineTab() {
         document.querySelectorAll('[data-line-tab]').forEach((button) => button.classList.toggle('active', Number(button.dataset.lineaId) === Number(state.lineaId)));
@@ -658,6 +813,50 @@ document.addEventListener('DOMContentLoaded', function () {
                     grace: '18%',
                     grid: { color: 'rgba(148, 163, 184, 0.20)' },
                     title: { display: !compact, text: yTitle, color: '#64748b', font: { weight: 'bold' } },
+                    ticks: { callback: (value) => formatNumber(value), color: '#475569', font: { size: compact ? 10 : 11 } }
+                }
+            }
+        };
+    }
+    function trendChartOptions() {
+        const compact = compactQuery.matches;
+        return {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: { duration: 450 },
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+                legend: {
+                    position: compact ? 'bottom' : 'top',
+                    labels: {
+                        usePointStyle: true,
+                        boxWidth: 8,
+                        padding: compact ? 10 : 14,
+                        color: '#334155',
+                        font: { size: compact ? 10 : 12, weight: '700' }
+                    }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(15, 23, 42, 0.96)',
+                    titleColor: '#fff',
+                    bodyColor: '#e2e8f0',
+                    callbacks: {
+                        label: (context) => `${context.dataset.label}: ${context.raw === null ? 'Sin registro' : formatNumber(context.raw)}`,
+                    }
+                }
+            },
+            layout: { padding: { top: compact ? 12 : 18, right: 12, bottom: compact ? 12 : 18, left: 4 } },
+            scales: {
+                x: {
+                    grid: { color: 'rgba(148, 163, 184, 0.12)' },
+                    title: { display: !compact, text: 'Mes', color: '#64748b', font: { weight: 'bold' } },
+                    ticks: { color: '#475569', font: { size: compact ? 10 : 11, weight: '700' } }
+                },
+                y: {
+                    beginAtZero: true,
+                    grace: '18%',
+                    grid: { color: 'rgba(148, 163, 184, 0.20)' },
+                    title: { display: !compact, text: 'Valor LEF', color: '#64748b', font: { weight: 'bold' } },
                     ticks: { callback: (value) => formatNumber(value), color: '#475569', font: { size: compact ? 10 : 11 } }
                 }
             }

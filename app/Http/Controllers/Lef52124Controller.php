@@ -28,8 +28,9 @@ class Lef52124Controller extends Controller
         $imports = $canManage
             ? Lef52124Import::with(['linea:id,nombre', 'user:id,name'])
                 ->latest()
-                ->take(25)
-                ->get()
+                ->paginate(10, ['*'], 'importaciones_page')
+                ->withQueryString()
+                ->fragment('historial-importaciones')
             : collect();
 
         return view('analisis-52-12-4.index', compact('lineas', 'selectedLineaId', 'canManage', 'imports'));
@@ -106,6 +107,84 @@ class Lef52124Controller extends Controller
             'parts' => $parts,
             'washer' => $washer ? $this->itemPayload($washer) : null,
             'comparison' => $this->comparisonPayload($lineas, $import->data_date),
+        ]);
+    }
+
+    public function washerMachineTrend(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'linea_id' => ['required', 'integer', 'exists:lineas,id'],
+        ]);
+
+        $years = [2025, 2026];
+        $imports = Lef52124Import::with([
+            'linea:id,nombre',
+            'items' => fn ($query) => $query->where('type', Lef52124Item::TYPE_MACHINE),
+        ])
+            ->where('linea_id', $validated['linea_id'])
+            ->where('status', 'success')
+            ->whereBetween('data_date', ['2025-01-01', '2026-12-31'])
+            ->orderByDesc('data_date')
+            ->orderByDesc('created_at')
+            ->get();
+
+        $machineName = null;
+        $series = collect($years)
+            ->mapWithKeys(function (int $year) use ($imports, &$machineName) {
+                $months = collect(range(1, 12))
+                    ->map(function (int $month) use ($imports, $year, &$machineName) {
+                        $monthImports = $imports
+                            ->filter(fn (Lef52124Import $item) => (int) $item->data_date->year === $year
+                                && (int) $item->data_date->month === $month);
+                        $import = null;
+                        $machine = null;
+
+                        foreach ($monthImports as $candidateImport) {
+                            $candidateMachine = $candidateImport->items
+                                ->first(fn (Lef52124Item $item) => str_contains($this->normalizeName($item->item_name), 'lavadora'));
+
+                            if ($candidateMachine) {
+                                $import = $candidateImport;
+                                $machine = $candidateMachine;
+                                break;
+                            }
+                        }
+
+                        if ($machine && !$machineName) {
+                            $machineName = $machine->item_name;
+                        }
+
+                        return [
+                            'month' => $month,
+                            'import_id' => $import?->id,
+                            'data_date' => $import?->data_date?->format('Y-m-d'),
+                            'value_52_weeks' => $machine ? (float) $machine->value_52_weeks : null,
+                            'value_12_weeks' => $machine ? (float) $machine->value_12_weeks : null,
+                            'value_4_weeks' => $machine ? (float) $machine->value_4_weeks : null,
+                        ];
+                    })
+                    ->values();
+
+                return [$year => $months];
+            })
+            ->all();
+
+        $hasData = collect($series)
+            ->flatten(1)
+            ->contains(fn (array $month) => $month['value_52_weeks'] !== null
+                || $month['value_12_weeks'] !== null
+                || $month['value_4_weeks'] !== null);
+
+        return response()->json([
+            'has_data' => $hasData,
+            'linea' => $imports->first()?->linea?->nombre ?: Linea::find($validated['linea_id'])?->nombre,
+            'machine_name' => $machineName ?: 'LAVADORA',
+            'years' => $years,
+            'months' => [
+                'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
+                'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic',
+            ],
+            'series' => $series,
         ]);
     }
 

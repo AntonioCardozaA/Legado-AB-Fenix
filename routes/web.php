@@ -158,6 +158,7 @@ Route::prefix('pasteurizadora')->group(function () {
             Route::get('/', 'index')->name('index');
             Route::get('/periodos', 'periods')->name('periods');
             Route::get('/datos', 'data')->name('data');
+            Route::get('/tendencia-lavadora', 'washerMachineTrend')->name('trend.washer-machine');
             Route::post('/importar', 'store')->name('store');
             Route::delete('/importaciones/{import}', 'destroy')->name('destroy');
         });
