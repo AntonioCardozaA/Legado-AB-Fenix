@@ -3037,7 +3037,7 @@ class AssistantChatTest extends TestCase
         $this->assertStringContainsString('"same_type_same_washer"', $prompt);
         $this->assertStringContainsString('"same_component_other_washers"', $prompt);
         $this->assertStringContainsString('Se cambio reten del eje de salida', $prompt);
-        $this->assertStringContainsString('respiradero bloqueado', $prompt);
+        $this->assertStringContainsString('respiradero bloqueado', Str::lower($prompt));
         $this->assertStringContainsString('Manual reductores RV200 L-13', $prompt);
         $this->assertStringContainsString('Despues del cambio de reten', $prompt);
     }

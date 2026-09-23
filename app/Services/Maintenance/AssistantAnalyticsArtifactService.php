@@ -85,7 +85,7 @@ class AssistantAnalyticsArtifactService
         }
 
         $datasetKey = $this->normalizeDataset((string) ($intent['dataset'] ?? ''), $question);
-        $outputs = $this->normalizeOutputs((array) ($intent['outputs'] ?? []), $question);
+        $outputs = $this->normalizeOutputs((array) ($intent['outputs'] ?? []), $question, $datasetKey);
         $lineas = $this->normalizeLineas((array) ($intent['lineas'] ?? []), $question);
         $dateRange = $this->normalizeDateRange((array) ($intent['date_range'] ?? []), $question);
         $chartType = $this->normalizeChartType((string) ($intent['chart_type'] ?? ''), $question);
@@ -3949,7 +3949,7 @@ class AssistantAnalyticsArtifactService
      * @param  array<int, mixed>  $outputs
      * @return array<int, string>
      */
-    private function normalizeOutputs(array $outputs, string $question): array
+    private function normalizeOutputs(array $outputs, string $question, string $datasetKey = ''): array
     {
         $normalized = $this->normalize($question);
         $requestsExcel = str_contains($normalized, 'excel')
@@ -3974,7 +3974,10 @@ class AssistantAnalyticsArtifactService
             $selected[] = 'excel';
         }
 
-        if ($requestsExplicitImage || $providerRequestedImage || (str_contains($normalized, 'graf') && ! $requestsCanonicalExcel)) {
+        if ($requestsExplicitImage
+            || $providerRequestedImage
+            || (str_contains($normalized, 'graf') && (! $requestsCanonicalExcel || $this->shouldAttachChartImageWithExcel($normalized, $datasetKey)))
+        ) {
             $selected[] = 'image';
         }
 
@@ -3983,6 +3986,13 @@ class AssistantAnalyticsArtifactService
         }
 
         return array_values(array_unique($selected !== [] ? $selected : ['image']));
+    }
+
+    private function shouldAttachChartImageWithExcel(string $normalizedQuestion, string $datasetKey): bool
+    {
+        return $datasetKey === 'analisis_lavadora'
+            && str_contains($normalizedQuestion, 'estado')
+            && str_contains($normalizedQuestion, 'component');
     }
 
     /**
