@@ -10,6 +10,7 @@ use App\Models\Linea;
 use App\Models\MaintenanceEvent;
 use App\Models\PlanAccion;
 use App\Models\User;
+use App\Models\WasherKnowledgeChunk;
 use App\Models\WasherKnowledgeDocument;
 use App\Notifications\WasherAiPlanPendingReviewNotification;
 use App\Services\Maintenance\WasherActionPlanGenerator;
