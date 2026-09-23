@@ -22,6 +22,7 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use PhpOffice\PhpSpreadsheet\IOFactory;
+use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
@@ -1518,7 +1519,7 @@ class AssistantChatTest extends TestCase
         $this->assertSame([], $response->json('message.metadata.artifacts') ?? []);
     }
 
-    public function test_widget_is_rendered_on_authenticated_layout_pages(): void
+    public function test_widget_is_rendered_only_for_users_with_assistant_permission(): void
     {
         $user = $this->authenticatedUser();
 
@@ -1527,6 +1528,41 @@ class AssistantChatTest extends TestCase
             ->assertOk()
             ->assertSee('Abrir chat')
             ->assertSee('assistant-chat-widget', false);
+
+        $restrictedUser = $this->authenticatedUser();
+        $this->enableCustomPermissions($restrictedUser, ['usar asistente ia']);
+
+        $this->actingAs($restrictedUser)
+            ->get(route('profile.edit'))
+            ->assertOk()
+            ->assertDontSee('Abrir chat')
+            ->assertDontSee('assistant-chat-widget', false);
+    }
+
+    public function test_widget_is_not_rendered_for_excentricos_restricted_profile(): void
+    {
+        Role::firstOrCreate([
+            'name' => User::ROLE_CAPTURISTA_EXCENTRICOS,
+            'guard_name' => 'web',
+        ]);
+
+        Linea::create([
+            'nombre' => 'P-03',
+            'descripcion' => 'Pasteurizadora de prueba',
+            'tipo' => User::MODULE_PASTEURIZADORA,
+            'activo' => true,
+        ]);
+
+        $user = User::factory()->create([
+            'activo' => true,
+        ]);
+        $user->assignRole(User::ROLE_CAPTURISTA_EXCENTRICOS);
+
+        $this->actingAs($user)
+            ->get(route('pasteurizadora.analisis-pasteurizadora.excentricos.index'))
+            ->assertOk()
+            ->assertDontSee('Abrir chat')
+            ->assertDontSee('assistant-chat-widget', false);
     }
 
     public function test_chat_answers_with_live_elongation_ranking_for_comparative_questions(): void
@@ -2925,6 +2961,21 @@ class AssistantChatTest extends TestCase
         $user->assignRole(User::ROLE_TECNICO);
 
         return $user;
+    }
+
+    /**
+     * @param  array<int, string>  $permissions
+     */
+    private function enableCustomPermissions(User $user, array $permissions): void
+    {
+        foreach ([User::customAccessControlPermissionName(), ...$permissions] as $permission) {
+            Permission::firstOrCreate([
+                'name' => $permission,
+                'guard_name' => 'web',
+            ]);
+        }
+
+        $user->givePermissionTo([User::customAccessControlPermissionName(), ...$permissions]);
     }
 
     private function seedRefactionCostKnowledge(User $user): void

@@ -1092,9 +1092,9 @@
 </div>
 
 @auth
-    @unless(auth()->user()?->usesPasteurizadoraExcentricosAccessProfile())
+    @if(auth()->user()?->canUseCustomPermission('usar asistente ia') && ! auth()->user()?->usesPasteurizadoraExcentricosAccessProfile())
         @include('layouts.partials.assistant-chat')
-    @endunless
+    @endif
 @endauth
 
 <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
