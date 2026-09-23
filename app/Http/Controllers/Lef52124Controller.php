@@ -385,13 +385,7 @@ class Lef52124Controller extends Controller
 
     private function defaultLineaId(Collection $lineas): ?int
     {
-        $latestImport = Lef52124Import::whereIn('linea_id', $lineas->pluck('id'))
-            ->where('status', 'success')
-            ->latest('data_date')
-            ->latest()
-            ->first();
-
-        return $latestImport?->linea_id ?: $lineas->first()?->id;
+        return $lineas->first()?->id;
     }
 
     private function normalizeName(string $value): string
