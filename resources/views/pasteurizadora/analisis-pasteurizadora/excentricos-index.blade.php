@@ -120,6 +120,11 @@
         container-type: inline-size;
     }
 
+    .excentricos-shell,
+    .excentricos-shell * {
+        min-width: 0;
+    }
+
     .excentricos-top-panel {
         background:
             linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.98) 56%, rgba(239, 246, 255, 0.98)),
@@ -128,7 +133,7 @@
 
     .excentricos-selector-grid {
         display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 7rem), 1fr));
         gap: 0.45rem;
         width: 100%;
     }
@@ -138,24 +143,25 @@
         min-width: 0;
         padding-inline: 0.45rem;
         font-size: 0.78rem;
-        line-height: 1;
-        white-space: nowrap;
+        line-height: 1.15;
+        text-align: center;
+        overflow-wrap: anywhere;
     }
 
     .excentricos-machine-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(min(100%, 30rem), 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 27rem), 1fr));
         gap: 1rem;
     }
 
     .excentricos-module-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 11.5rem), 1fr));
         gap: 0.75rem;
     }
 
     .excentricos-module-tile {
-        min-height: 15rem;
+        min-height: clamp(12.25rem, 18vw, 15rem);
     }
 
     .excentricos-diagram-section {
@@ -163,7 +169,7 @@
     }
 
     .excentricos-diagram-image {
-        max-height: 32rem;
+        max-height: clamp(16rem, 60vh, 32rem);
         width: 100%;
         max-width: 100%;
         object-fit: contain;
@@ -247,8 +253,8 @@
 
     .image-grid-enhanced {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-        gap: 20px;
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
+        gap: 1rem;
     }
 
     .image-grid-enhanced .image-item {
@@ -352,23 +358,34 @@
     }
 
     @media (max-width: 768px) {
-        .image-grid-enhanced {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 12px;
-        }
-
         .image-grid-enhanced .grid-image {
             height: 120px;
         }
     }
 
-    @media (max-width: 480px) {
-        .image-grid-enhanced {
-            grid-template-columns: 1fr;
-        }
-    }
-
     @media (max-width: 640px) {
+        .excentricos-shell {
+            padding-left: 0.75rem;
+            padding-right: 0.75rem;
+        }
+
+        .excentricos-selector-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .excentricos-machine-grid {
+            gap: 0.75rem;
+        }
+
+        .excentricos-module-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.6rem;
+        }
+
+        .excentricos-module-tile {
+            min-height: 12.75rem;
+        }
+
         .excentricos-diagram-section {
             margin-left: -0.75rem;
             margin-right: -0.75rem;
@@ -386,12 +403,12 @@
             border-right-width: 0;
             border-radius: 0;
             padding: 0;
-            min-width: 900px;
-            width: 900px;
+            min-width: min(48rem, 220vw);
+            width: min(48rem, 220vw);
         }
 
         .excentricos-diagram-image {
-            width: 900px;
+            width: min(48rem, 220vw);
             max-width: none;
             max-height: none;
         }
@@ -406,19 +423,13 @@
             font-size: 0.72rem;
             padding-inline: 0.35rem;
         }
-    }
-
-    @container (max-width: 520px) {
-        .excentricos-module-grid {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-        }
 
         .excentricos-module-tile {
-            min-height: 15rem;
+            min-height: auto;
         }
     }
 
-    @container (max-width: 340px) {
+    @media (max-width: 330px) {
         .excentricos-module-grid {
             grid-template-columns: 1fr;
         }
@@ -553,9 +564,9 @@
     @keydown.window="imagenAbierta && $event.key === 'ArrowLeft' && cambiarImagen(-1); imagenAbierta && $event.key === 'ArrowRight' && cambiarImagen(1)"
 >
     <section class="excentricos-top-panel overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
-        <div class="flex flex-col gap-5 p-4 sm:p-5 lg:flex-row lg:items-end lg:justify-between">
-            <div class="flex min-w-0 items-center gap-4">
-                <div class="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-blue-100 bg-white shadow-sm">
+        <div class="flex flex-col gap-4 p-3 sm:gap-5 sm:p-5 lg:flex-row lg:items-end lg:justify-between">
+            <div class="flex min-w-0 items-center gap-3 sm:gap-4">
+                <div class="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-blue-100 bg-white shadow-sm sm:h-16 sm:w-16">
                     <img
                         src="{{ asset('images/componentes-pasteurizadora/EXCENTRICOS.png') }}"
                         alt="Excentricos"
@@ -564,10 +575,10 @@
                     >
                 </div>
                 <div class="min-w-0">
-                    <h1 class="break-words text-2xl font-black leading-tight text-slate-950 sm:text-3xl">
+                    <h1 class="break-words text-xl font-black leading-tight text-slate-950 sm:text-3xl">
                         Excentricos de Pasteurizadoras
                     </h1>
-                    <p class="mt-1 truncate text-sm font-semibold text-slate-500">
+                    <p class="mt-1 break-words text-sm font-semibold text-slate-500">
                         {{ $lineaSeleccionada?->nombre ?? 'Sin pasteurizadoras disponibles' }}
                     </p>
                 </div>
@@ -611,23 +622,23 @@
 
     @if($lineaSeleccionada)
         <section class="excentricos-diagram-section rounded-lg border border-slate-200 bg-white shadow-sm">
-            <header class="flex flex-col gap-3 border-b border-slate-100 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <header class="flex flex-col gap-3 border-b border-slate-100 px-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-4 sm:py-4">
                 <div class="min-w-0">
-                    <h2 class="flex min-w-0 items-center gap-2 text-lg font-black text-slate-900">
+                    <h2 class="flex min-w-0 items-start gap-2 text-base font-black text-slate-900 sm:items-center sm:text-lg">
                         <i class="fas fa-diagram-project shrink-0 text-blue-600"></i>
-                        <span class="truncate">{{ $lineaSeleccionada->nombre }}</span>
+                        <span class="break-words">{{ $lineaSeleccionada->nombre }}</span>
                     </h2>
                 </div>
 
                 <div class="flex flex-wrap gap-2 text-xs font-black uppercase text-slate-500">
                     @if($tipoPasteurizadora)
-                        <span class="rounded-full border border-slate-200 bg-slate-50 px-3 py-1">
+                        <span class="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 sm:px-3">
                             Tipo {{ $tipoPasteurizadora }}
                         </span>
                     @endif
 
                     @if($totalModulosDiagrama > 0)
-                        <span class="rounded-full border border-blue-100 bg-blue-50 px-3 py-1 text-blue-700">
+                        <span class="rounded-full border border-blue-100 bg-blue-50 px-2.5 py-1 text-blue-700 sm:px-3">
                             {{ $totalModulosDiagrama }} modulos
                         </span>
                     @endif
@@ -653,7 +664,7 @@
                     @endif
                 </div>
             @else
-                <div class="bg-slate-50 px-4 py-5">
+                <div class="bg-slate-50 px-3 py-4 sm:px-4 sm:py-5">
                     <div class="rounded-lg border border-dashed border-amber-300 bg-amber-50 px-4 py-5 text-sm font-semibold text-amber-800">
                         No hay un diagrama disponible para {{ $lineaSeleccionada->nombre }}.
                         Agrega una imagen en <span class="font-bold">{{ $diagramaBase }}</span>
@@ -687,14 +698,14 @@
             @continue(!$linea)
 
             <section class="min-w-0 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
-                <header class="border-b border-slate-100 bg-slate-50 px-4 py-4">
+                <header class="border-b border-slate-100 bg-slate-50 px-3 py-3 sm:px-4 sm:py-4">
                     <div class="flex min-w-0 items-start gap-3">
-                        <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-blue-600 text-white shadow-sm">
+                        <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-600 text-white shadow-sm sm:h-12 sm:w-12">
                             <i class="fas fa-temperature-half text-lg"></i>
                         </div>
                         <div class="min-w-0">
-                            <h2 class="truncate text-xl font-black text-slate-950">{{ $linea->nombre }}</h2>
-                            <p class="mt-1 truncate text-xs font-black uppercase text-slate-500">
+                            <h2 class="break-words text-lg font-black leading-tight text-slate-950 sm:text-xl">{{ $linea->nombre }}</h2>
+                            <p class="mt-1 break-words text-xs font-black uppercase text-slate-500">
                                 {{ $totalModulos }} modulos disponibles
                             </p>
                         </div>
@@ -744,13 +755,13 @@
                         @endphp
 
                         <article
-                            class="excentricos-module-tile group relative flex min-w-0 flex-col justify-between overflow-hidden rounded-lg border px-3 py-3 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 {{ $meta['tile'] }}"
+                            class="excentricos-module-tile group relative flex min-w-0 flex-col justify-between overflow-hidden rounded-lg border px-2.5 py-3 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 sm:px-3 {{ $meta['tile'] }}"
                         >
                             <span class="absolute inset-x-0 top-0 h-1 {{ $meta['accent'] }}"></span>
 
                             <span class="flex items-start gap-2">
                                 <span class="min-w-0">
-                                    <span class="block break-words text-lg font-black leading-tight text-slate-950 sm:text-xl">
+                                    <span class="block break-words text-base font-black leading-tight text-slate-950 sm:text-xl">
                                         Modulo {{ $modulo['modulo'] }}
                                     </span>
                                     <span class="mt-0.5 block break-words text-[11px] font-black uppercase leading-tight text-slate-400">
@@ -764,7 +775,7 @@
                                     <span class="block text-[10px] font-black uppercase tracking-wide text-slate-400">
                                         ESTADO
                                     </span>
-                                    <span class="mt-1 flex w-full items-start gap-1.5 rounded-lg px-2.5 py-2 text-xs font-black leading-tight ring-1 {{ $meta['pill'] }}" title="{{ $meta['label'] }}">
+                                    <span class="mt-1 flex w-full items-start gap-1.5 rounded-lg px-2 py-2 text-[11px] font-black leading-tight ring-1 sm:px-2.5 sm:text-xs {{ $meta['pill'] }}" title="{{ $meta['label'] }}">
                                         <i class="fas {{ $meta['icon'] }} mt-0.5 shrink-0"></i>
                                         <span class="min-w-0 flex-1 break-words">{{ $meta['short'] }}</span>
                                     </span>
@@ -785,18 +796,18 @@
                                 @if($ultimo)
                                     <button
                                         type="button"
-                                        class="inline-flex min-h-9 w-full items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-xs font-black text-slate-700 shadow-sm transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                                        class="inline-flex min-h-9 w-full items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-2 text-xs font-black text-slate-700 shadow-sm transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 sm:px-3"
                                         @click.stop='abrirDetalle(@json($detalleModal, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP))'
                                     >
                                         <i class="fas fa-eye"></i>
-                                        <span>Ver detalles</span>
+                                        <span class="break-words leading-tight">Ver detalles</span>
                                     </button>
                                 @endif
 
                                 <a
                                     href="{{ $modulo['capturar_url'] }}"
                                     aria-label="Capturar Excentricos {{ $linea->nombre }} Modulo {{ $modulo['modulo'] }}"
-                                    class="inline-flex min-h-9 w-full items-center justify-between gap-2 rounded-lg bg-blue-600 px-3 text-xs font-black text-white shadow-sm transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                                    class="inline-flex min-h-9 w-full items-center justify-between gap-2 rounded-lg bg-blue-600 px-2 text-xs font-black text-white shadow-sm transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 sm:px-3"
                                 >
                                     <span class="min-w-0 break-words leading-tight">Capturar revision</span>
                                     <i class="fas fa-chevron-right shrink-0 text-[10px] transition group-hover:translate-x-0.5"></i>
@@ -817,7 +828,7 @@
         x-cloak
         x-show="detalleAbierto"
         x-transition.opacity
-        class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-2 sm:p-4"
         role="dialog"
         aria-modal="true"
         aria-labelledby="excentricos-detail-title"
@@ -833,15 +844,15 @@
             x-show="detalleAbierto"
             x-transition
             @click.stop
-            class="animate-modalIn relative z-10 flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-xl bg-white shadow-xl"
+            class="animate-modalIn relative z-10 flex max-h-[94svh] w-full max-w-4xl flex-col overflow-hidden rounded-xl bg-white shadow-xl sm:max-h-[90vh]"
         >
-            <div class="border-b border-gray-100 px-6 py-4">
+            <div class="border-b border-gray-100 px-3 py-3 sm:px-6 sm:py-4">
                 <div class="flex items-center justify-between gap-4">
                     <div class="flex min-w-0 items-center gap-3">
                         <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gray-100">
                             <i class="fas fa-chart-line text-sm text-gray-600"></i>
                         </div>
-                        <h3 id="excentricos-detail-title" class="min-w-0 truncate font-medium text-gray-900">
+                        <h3 id="excentricos-detail-title" class="min-w-0 break-words font-medium text-gray-900">
                             Detalle del Analisis
                         </h3>
                     </div>
@@ -856,64 +867,64 @@
                 </div>
             </div>
 
-            <div class="custom-scrollbar overflow-auto bg-gray-50 p-5 sm:p-8" style="max-height: calc(90vh - 100px);">
-                <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-                    <div class="rounded-lg border-l-4 border-gray-700 bg-white p-5 shadow-sm transition-all hover:shadow-md">
+            <div class="custom-scrollbar overflow-auto bg-gray-50 p-3 sm:p-5 lg:p-8" style="max-height: calc(94svh - 72px);">
+                <div class="grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2 lg:grid-cols-3">
+                    <div class="rounded-lg border-l-4 border-gray-700 bg-white p-3 shadow-sm transition-all hover:shadow-md sm:p-5">
                         <div class="flex items-start gap-3">
-                            <div class="rounded-lg bg-gray-100 p-3">
-                                <i class="fas fa-temperature-half text-xl text-gray-700"></i>
+                            <div class="rounded-lg bg-gray-100 p-2 sm:p-3">
+                                <i class="fas fa-temperature-half text-lg text-gray-700 sm:text-xl"></i>
                             </div>
                             <div class="min-w-0 flex-1">
                                 <p class="font-mono text-xs font-semibold uppercase tracking-wider text-gray-500">Pasteurizadora</p>
-                                <p class="mt-1 break-words text-lg font-bold text-gray-800" x-text="detalle.linea"></p>
+                                <p class="mt-1 break-words text-base font-bold text-gray-800 sm:text-lg" x-text="detalle.linea"></p>
                             </div>
                         </div>
                     </div>
 
-                    <div class="rounded-lg border-l-4 border-gray-700 bg-white p-5 shadow-sm transition-all hover:shadow-md">
+                    <div class="rounded-lg border-l-4 border-gray-700 bg-white p-3 shadow-sm transition-all hover:shadow-md sm:p-5">
                         <div class="flex items-start gap-3">
-                            <div class="rounded-lg bg-gray-100 p-3">
-                                <i class="fas fa-cog text-xl text-gray-700"></i>
+                            <div class="rounded-lg bg-gray-100 p-2 sm:p-3">
+                                <i class="fas fa-cog text-lg text-gray-700 sm:text-xl"></i>
                             </div>
                             <div class="min-w-0 flex-1">
                                 <p class="font-mono text-xs font-semibold uppercase tracking-wider text-gray-500">Componente</p>
-                                <p class="mt-1 break-words text-lg font-bold text-gray-800" x-text="detalle.componente"></p>
+                                <p class="mt-1 break-words text-base font-bold text-gray-800 sm:text-lg" x-text="detalle.componente"></p>
                             </div>
                         </div>
                     </div>
 
-                    <div class="rounded-lg border-l-4 border-gray-700 bg-white p-5 shadow-sm transition-all hover:shadow-md">
+                    <div class="rounded-lg border-l-4 border-gray-700 bg-white p-3 shadow-sm transition-all hover:shadow-md sm:p-5">
                         <div class="flex items-start gap-3">
-                            <div class="rounded-lg bg-gray-100 p-3">
-                                <i class="fas fa-cubes-stacked text-xl text-gray-700"></i>
+                            <div class="rounded-lg bg-gray-100 p-2 sm:p-3">
+                                <i class="fas fa-cubes-stacked text-lg text-gray-700 sm:text-xl"></i>
                             </div>
                             <div class="min-w-0 flex-1">
                                 <p class="font-mono text-xs font-semibold uppercase tracking-wider text-gray-500">Modulo</p>
-                                <p class="mt-1 break-words text-lg font-bold text-gray-800" x-text="detalle.modulo"></p>
+                                <p class="mt-1 break-words text-base font-bold text-gray-800 sm:text-lg" x-text="detalle.modulo"></p>
                             </div>
                         </div>
                     </div>
 
-                    <div class="rounded-lg border-l-4 border-gray-700 bg-white p-5 shadow-sm transition-all hover:shadow-md">
+                    <div class="rounded-lg border-l-4 border-gray-700 bg-white p-3 shadow-sm transition-all hover:shadow-md sm:p-5">
                         <div class="flex items-start gap-3">
-                            <div class="rounded-lg bg-gray-100 p-3">
-                                <i class="fas fa-layer-group text-xl text-gray-700"></i>
+                            <div class="rounded-lg bg-gray-100 p-2 sm:p-3">
+                                <i class="fas fa-layer-group text-lg text-gray-700 sm:text-xl"></i>
                             </div>
                             <div class="min-w-0 flex-1">
                                 <p class="font-mono text-xs font-semibold uppercase tracking-wider text-gray-500">Nivel</p>
-                                <p class="mt-1 break-words text-lg font-bold text-gray-800" x-text="detalle.nivel"></p>
+                                <p class="mt-1 break-words text-base font-bold text-gray-800 sm:text-lg" x-text="detalle.nivel"></p>
                             </div>
                         </div>
                     </div>
 
-                    <div class="rounded-lg border-l-4 border-gray-700 bg-white p-5 shadow-sm transition-all hover:shadow-md">
+                    <div class="rounded-lg border-l-4 border-gray-700 bg-white p-3 shadow-sm transition-all hover:shadow-md sm:p-5">
                         <div class="flex items-start gap-3">
-                            <div class="rounded-lg bg-gray-100 p-3">
-                                <i class="fas fa-arrows-alt-h text-xl text-gray-700"></i>
+                            <div class="rounded-lg bg-gray-100 p-2 sm:p-3">
+                                <i class="fas fa-arrows-alt-h text-lg text-gray-700 sm:text-xl"></i>
                             </div>
                             <div class="min-w-0 flex-1">
                                 <p class="font-mono text-xs font-semibold uppercase tracking-wider text-gray-500">Lado</p>
-                                <p class="mt-1 break-words text-lg font-bold text-gray-800" x-text="detalle.lado"></p>
+                                <p class="mt-1 break-words text-base font-bold text-gray-800 sm:text-lg" x-text="detalle.lado"></p>
                                 <div class="mt-2">
                                     <span class="lado-badge" :class="detalle.lado === 'VAPOR' ? 'vapor' : 'pasillo'">
                                         <i class="fas" :class="detalle.lado === 'VAPOR' ? 'fa-wind' : 'fa-walking'"></i>
@@ -924,14 +935,14 @@
                         </div>
                     </div>
 
-                    <div class="rounded-lg border-l-4 border-gray-700 bg-white p-5 shadow-sm transition-all hover:shadow-md">
+                    <div class="rounded-lg border-l-4 border-gray-700 bg-white p-3 shadow-sm transition-all hover:shadow-md sm:p-5">
                         <div class="flex items-start gap-3">
-                            <div class="rounded-lg bg-gray-100 p-3">
-                                <i class="far fa-calendar-alt text-xl text-gray-700"></i>
+                            <div class="rounded-lg bg-gray-100 p-2 sm:p-3">
+                                <i class="far fa-calendar-alt text-lg text-gray-700 sm:text-xl"></i>
                             </div>
                             <div class="min-w-0 flex-1">
                                 <p class="font-mono text-xs font-semibold uppercase tracking-wider text-gray-500">Fecha</p>
-                                <p class="mt-1 break-words font-mono text-lg font-bold text-gray-800">
+                                <p class="mt-1 break-words font-mono text-base font-bold text-gray-800 sm:text-lg">
                                     <span x-text="detalle.fecha"></span>
                                 </p>
                             </div>
@@ -939,45 +950,45 @@
                     </div>
                 </div>
 
-                <div class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
-                    <div class="rounded-lg border border-blue-200 bg-white p-5 shadow-sm">
-                        <div class="mb-4 flex items-center gap-3">
+                <div class="mt-4 grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2">
+                    <div class="rounded-lg border border-blue-200 bg-white p-3 shadow-sm sm:p-5">
+                        <div class="mb-3 flex items-center gap-3 sm:mb-4">
                             <div class="rounded-lg bg-blue-100 p-2">
                                 <i class="fas fa-user-check text-blue-600"></i>
                             </div>
-                            <h4 class="border-b-2 border-blue-200 text-sm font-semibold uppercase tracking-wider text-gray-700">Responsable</h4>
+                            <h4 class="break-words border-b-2 border-blue-200 text-sm font-semibold uppercase tracking-wider text-gray-700">Responsable</h4>
                         </div>
                         <div class="flex justify-center">
-                            <div class="w-full rounded-lg bg-blue-50 px-6 py-3 text-center text-sm font-semibold text-blue-700">
+                            <div class="w-full rounded-lg bg-blue-50 px-3 py-3 text-center text-sm font-semibold text-blue-700 sm:px-6">
                                 Realizado por: <span x-text="detalle.responsable"></span>
                             </div>
                         </div>
                     </div>
 
-                    <div class="rounded-lg border border-green-200 bg-white p-5 shadow-sm">
-                        <div class="mb-4 flex items-center gap-3">
+                    <div class="rounded-lg border border-green-200 bg-white p-3 shadow-sm sm:p-5">
+                        <div class="mb-3 flex items-center gap-3 sm:mb-4">
                             <div class="rounded-lg bg-green-100 p-2">
                                 <i class="fas fa-clipboard-check text-green-600"></i>
                             </div>
-                            <h4 class="border-b-2 border-green-200 text-sm font-semibold uppercase tracking-wider text-gray-700">Estado</h4>
+                            <h4 class="break-words border-b-2 border-green-200 text-sm font-semibold uppercase tracking-wider text-gray-700">Estado</h4>
                         </div>
                         <div class="flex justify-center">
-                            <div class="w-full rounded-lg px-6 py-3 text-center font-mono text-sm tracking-wider text-white" :class="detalle.estadoModalClase">
+                            <div class="w-full rounded-lg px-3 py-3 text-center font-mono text-sm tracking-wider text-white sm:px-6" :class="detalle.estadoModalClase">
                                 <i class="fas mr-1" :class="detalle.estadoIcono"></i>
                                 <span x-text="detalle.estado"></span>
                             </div>
                         </div>
                     </div>
 
-                    <div class="rounded-lg border border-blue-200 bg-white p-5 shadow-sm">
-                        <div class="mb-4 flex items-center justify-between gap-3">
+                    <div class="rounded-lg border border-blue-200 bg-white p-3 shadow-sm sm:p-5">
+                        <div class="mb-3 flex flex-col gap-3 sm:mb-4 sm:flex-row sm:items-center sm:justify-between">
                             <div class="flex items-center gap-3">
                                 <div class="rounded-lg bg-blue-100 p-2">
                                     <i class="fas fa-list-check text-blue-600"></i>
                                 </div>
-                                <h4 class="border-b-2 border-blue-200 text-sm font-semibold uppercase tracking-wider text-gray-700">Piezas revisadas</h4>
+                                <h4 class="break-words border-b-2 border-blue-200 text-sm font-semibold uppercase tracking-wider text-gray-700">Piezas revisadas</h4>
                             </div>
-                            <span class="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700" x-text="detalle.avance"></span>
+                            <span class="w-fit rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700" x-text="detalle.avance"></span>
                         </div>
                         <div class="flex flex-wrap gap-2" x-show="detalle.componentes.length > 0">
                             <template x-for="pieza in detalle.componentes" :key="pieza">
@@ -992,31 +1003,31 @@
                         </p>
                     </div>
 
-                    <div class="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
-                        <div class="mb-4 flex items-center gap-3">
+                    <div class="rounded-lg border border-gray-200 bg-white p-3 shadow-sm sm:p-5">
+                        <div class="mb-3 flex items-center gap-3 sm:mb-4">
                             <div class="rounded-lg bg-gray-200 p-2">
                                 <i class="fas fa-sticky-note text-gray-700"></i>
                             </div>
-                            <h4 class="font-mono text-sm font-semibold uppercase tracking-wider text-gray-700">Actividad</h4>
+                            <h4 class="break-words font-mono text-sm font-semibold uppercase tracking-wider text-gray-700">Actividad</h4>
                         </div>
-                        <div class="rounded-lg border border-gray-200 bg-gray-50 p-4">
+                        <div class="rounded-lg border border-gray-200 bg-gray-50 p-3 sm:p-4">
                             <p class="whitespace-pre-line break-words text-sm leading-relaxed text-gray-700" x-text="detalle.actividad"></p>
                         </div>
                     </div>
                 </div>
 
-                <div class="mt-6" x-show="detalle.evidencias.length > 0">
-                    <div class="px-6 py-4 text-gray-700">
+                <div class="mt-5 sm:mt-6" x-show="detalle.evidencias.length > 0">
+                    <div class="px-1 py-3 text-gray-700 sm:px-6 sm:py-4">
                         <div class="flex items-center gap-3">
                             <div class="rounded-lg p-2">
                                 <i class="fas fa-images text-xl"></i>
                             </div>
                             <div>
-                                <h4 class="font-mono text-lg font-bold uppercase tracking-wider">Evidencia Fotografica</h4>
+                                <h4 class="break-words font-mono text-base font-bold uppercase tracking-wider sm:text-lg">Evidencia Fotografica</h4>
                             </div>
                         </div>
                     </div>
-                    <div class="border-x-2 border-b-2 border-gray-200 bg-white p-6">
+                    <div class="border-x-2 border-b-2 border-gray-200 bg-white p-3 sm:p-6">
                         <div class="image-grid-enhanced">
                             <template x-for="(foto, index) in detalle.evidencias" :key="foto">
                                 <button
@@ -1039,18 +1050,18 @@
                     </div>
                 </div>
 
-                <div class="mt-8 flex flex-col gap-3 border-t border-gray-200 pt-4 sm:flex-row sm:justify-end">
+                <div class="mt-6 flex flex-col gap-3 border-t border-gray-200 pt-4 sm:mt-8 sm:flex-row sm:justify-end">
                     <a
                         :href="detalle.capturarUrl"
-                        class="flex w-full items-center justify-center gap-2 rounded-lg border border-gray-700 bg-gray-800 px-6 py-3 font-medium text-white shadow-md transition-all hover:bg-gray-900 hover:shadow-lg sm:w-auto"
+                        class="flex w-full items-center justify-center gap-2 rounded-lg border border-gray-700 bg-gray-800 px-4 py-3 text-center font-medium text-white shadow-md transition-all hover:bg-gray-900 hover:shadow-lg sm:w-auto sm:px-6"
                     >
                         <i class="fas fa-plus"></i>
-                        Capturar nueva revision
+                        <span class="break-words leading-tight">Capturar nueva revision</span>
                     </a>
 
                     <button
                         type="button"
-                        class="flex w-full items-center justify-center gap-2 rounded-lg border border-gray-300 bg-gray-200 px-6 py-3 font-medium text-gray-700 shadow-md transition-all hover:bg-gray-300 hover:shadow-lg sm:w-auto"
+                        class="flex w-full items-center justify-center gap-2 rounded-lg border border-gray-300 bg-gray-200 px-4 py-3 font-medium text-gray-700 shadow-md transition-all hover:bg-gray-300 hover:shadow-lg sm:w-auto sm:px-6"
                         @click="cerrarDetalle()"
                     >
                         <i class="fas fa-times"></i>
@@ -1066,7 +1077,7 @@
         x-cloak
         x-show="imagenAbierta"
         x-transition.opacity
-        class="fixed inset-0 z-[60] flex items-center justify-center bg-black/95 p-3 sm:p-6"
+        class="fixed inset-0 z-[60] flex items-center justify-center bg-black/95 p-2 sm:p-6"
         role="dialog"
         aria-modal="true"
         aria-label="Evidencia fotografica"
@@ -1075,7 +1086,7 @@
         <div class="relative flex h-full w-full max-w-6xl items-center justify-center" @click.stop>
             <button
                 type="button"
-                class="absolute right-2 top-2 z-20 flex h-11 w-11 items-center justify-center rounded-lg border border-white/20 bg-black/50 text-white backdrop-blur transition hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-white sm:right-4 sm:top-4"
+                class="absolute right-2 top-2 z-20 flex h-10 w-10 items-center justify-center rounded-lg border border-white/20 bg-black/50 text-white backdrop-blur transition hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-white sm:right-4 sm:top-4 sm:h-11 sm:w-11"
                 aria-label="Cerrar imagen"
                 @click="cerrarImagen()"
             >
@@ -1107,7 +1118,7 @@
                 <img
                     :src="imagenActual"
                     :alt="'Evidencia ' + (imagenActualIndex + 1)"
-                    class="max-h-[84vh] max-w-full rounded-lg border border-white/10 object-contain shadow-2xl"
+                    class="max-h-[82svh] max-w-full rounded-lg border border-white/10 object-contain shadow-2xl sm:max-h-[84vh]"
                     draggable="false"
                 >
             </div>
@@ -1123,7 +1134,7 @@
             </button>
 
             <div
-                class="absolute bottom-4 left-1/2 z-20 -translate-x-1/2 rounded-lg border border-white/10 bg-black/70 px-4 py-2 font-mono text-sm text-white backdrop-blur"
+                class="absolute bottom-3 left-1/2 z-20 -translate-x-1/2 rounded-lg border border-white/10 bg-black/70 px-3 py-2 font-mono text-xs text-white backdrop-blur sm:bottom-4 sm:px-4 sm:text-sm"
                 x-show="detalle.evidencias.length > 0"
                 x-text="(imagenActualIndex + 1) + ' / ' + detalle.evidencias.length"
             ></div>
