@@ -28,6 +28,7 @@ use App\Http\Controllers\AiObservabilityController;
 use App\Http\Controllers\CronQueueController;
 use App\Http\Controllers\GlobalSearchController;
 use App\Http\Controllers\PasteurizadoraAiPlanReviewController;
+use App\Http\Controllers\PasteurizadoraKnowledgeDocumentController;
 use App\Http\Controllers\WasherAiPlanReviewController;
 use App\Http\Controllers\WasherKnowledgeDocumentController;
 use App\Http\Controllers\Lef52124Controller;
@@ -641,6 +642,16 @@ Route::prefix('pasteurizadora')->group(function () {
     Route::prefix('lavadora/documentos-conocimiento')
         ->name('lavadora.knowledge-documents.')
         ->controller(WasherKnowledgeDocumentController::class)
+        ->group(function () {
+            Route::get('/', 'index')->name('index');
+            Route::get('/crear', 'create')->name('create');
+            Route::post('/', 'store')->name('store');
+            Route::post('/{document}/reindex', 'reindex')->name('reindex');
+        });
+
+    Route::prefix('pasteurizadora/documentos-conocimiento')
+        ->name('pasteurizadora.knowledge-documents.')
+        ->controller(PasteurizadoraKnowledgeDocumentController::class)
         ->group(function () {
             Route::get('/', 'index')->name('index');
             Route::get('/crear', 'create')->name('create');

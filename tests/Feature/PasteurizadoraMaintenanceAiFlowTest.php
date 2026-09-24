@@ -10,11 +10,14 @@ use App\Models\CentralHidraulicaComponente;
 use App\Models\CentralHidraulicaConfiguracion;
 use App\Models\Linea;
 use App\Models\MaintenanceEvent;
+use App\Models\PasteurizadoraKnowledgeChunk;
+use App\Models\PasteurizadoraKnowledgeDocument;
 use App\Models\PlanAccion;
 use App\Models\User;
 use App\Notifications\PasteurizadoraAiPlanPendingReviewNotification;
 use App\Services\Maintenance\PasteurizadoraActionPlanGenerator;
 use App\Services\Maintenance\PasteurizadoraMaintenanceOrchestrator;
+use App\Services\Maintenance\PasteurizadoraTechnicalContextRetriever;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Queue;
@@ -292,6 +295,94 @@ class PasteurizadoraMaintenanceAiFlowTest extends TestCase
             ->get(route('plan-accion.index', ['tipo' => User::MODULE_PASTEURIZADORA]))
             ->assertOk()
             ->assertSee('CAMBIAR ANILLAS VALIDADO');
+    }
+
+    public function test_store_pasteurizadora_knowledge_document_indexes_text_content(): void
+    {
+        config([
+            'maintenance_ai.enabled' => false,
+        ]);
+
+        $admin = $this->userWithRole(User::ROLE_ADMIN, true);
+        $linea = Linea::create([
+            'nombre' => 'P-03',
+            'tipo' => User::MODULE_PASTEURIZADORA,
+            'activo' => true,
+        ]);
+
+        $response = $this->actingAs($admin)->post(route('pasteurizadora.knowledge-documents.store'), [
+            'title' => 'Manual anillas P-03',
+            'linea_id' => $linea->id,
+            'area' => AnalisisPasteurizadora::AREA_MECANICA,
+            'component_code' => 'ANILLAS',
+            'document_type' => 'manual tecnico',
+            'lifecycle_status' => 'vigente',
+            'extracted_text' => 'Para desgaste de anillas en pasteurizadora P-03 revisar alineacion, modulo y lado vapor antes del cambio.',
+        ]);
+
+        $response->assertRedirect(route('pasteurizadora.knowledge-documents.index'));
+
+        $document = PasteurizadoraKnowledgeDocument::query()->firstOrFail();
+
+        $this->assertSame('indexed', $document->indexing_status);
+        $this->assertSame(AnalisisPasteurizadora::AREA_MECANICA, $document->area);
+        $this->assertSame('ANILLAS', $document->component_code);
+        $this->assertSame('Anillas (Ventanas-Cortinas)', $document->component_name);
+        $this->assertDatabaseHas('pasteurizadora_knowledge_chunks', [
+            'document_id' => $document->id,
+            'chunk_index' => 1,
+        ]);
+    }
+
+    public function test_pasteurizadora_technical_context_includes_indexed_knowledge_documents(): void
+    {
+        config([
+            'maintenance_ai.enabled' => false,
+            'maintenance_ai.technical_context.document_limit' => 3,
+        ]);
+
+        $admin = $this->userWithRole(User::ROLE_ADMIN, true);
+        $linea = Linea::create([
+            'nombre' => 'P-03',
+            'tipo' => User::MODULE_PASTEURIZADORA,
+            'activo' => true,
+        ]);
+
+        $document = PasteurizadoraKnowledgeDocument::create([
+            'linea_id' => $linea->id,
+            'area' => AnalisisPasteurizadora::AREA_MECANICA,
+            'component_code' => 'ANILLAS',
+            'component_name' => 'Anillas (Ventanas-Cortinas)',
+            'modulo' => 2,
+            'lado' => 'vapor',
+            'title' => 'Guia tecnica anillas P-03',
+            'document_type' => 'manual tecnico',
+            'lifecycle_status' => 'vigente',
+            'storage_disk' => 'local',
+            'uploaded_by' => $admin->id,
+            'uploaded_at' => now(),
+            'indexing_status' => 'indexed',
+            'extracted_text' => 'Las anillas con desgaste severo requieren verificar alineacion, juego y rozamiento en lado vapor.',
+            'indexed_at' => now(),
+        ]);
+
+        PasteurizadoraKnowledgeChunk::create([
+            'document_id' => $document->id,
+            'chunk_index' => 1,
+            'content' => 'Las anillas con desgaste severo requieren verificar alineacion, juego y rozamiento en lado vapor.',
+            'searchable_text' => 'anillas desgaste severo verificar alineacion juego rozamiento lado vapor',
+            'token_count' => 12,
+        ]);
+
+        $context = app(PasteurizadoraTechnicalContextRetriever::class)->forQuestion(
+            'Dame una solucion para desgaste severo de anillas en P-03 modulo 2 lado vapor',
+            ['module' => User::MODULE_PASTEURIZADORA],
+            $admin
+        );
+
+        $this->assertSame(1, data_get($context, 'coverage.technical_sources_count'));
+        $this->assertStringContainsString('Guia tecnica anillas P-03', (string) data_get($context, 'technical_sources.0.reference'));
+        $this->assertStringContainsString('alineacion', (string) data_get($context, 'technical_sources.0.content'));
     }
 
     public function test_assistant_prompt_includes_pasteurizadora_ai_plan_context(): void

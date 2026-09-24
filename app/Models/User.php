@@ -243,6 +243,13 @@ public function canManageWasherKnowledgeDocuments(): bool
             && $this->canUseCustomPermission('gestionar conocimiento lavadora');
 }
 
+public function canManagePasteurizadoraKnowledgeDocuments(): bool
+{
+    return $this->hasAnyRole(self::elevatedMaintenanceRoles())
+            && $this->canAccessModule(self::MODULE_PASTEURIZADORA)
+            && $this->canUseCustomPermission('gestionar conocimiento pasteurizadora');
+}
+
 public function canDeleteAnalysis(): bool
 {
     return $this->canDeleteAnalysisWithPermission(self::PERMISSION_DELETE_ANALYSIS);

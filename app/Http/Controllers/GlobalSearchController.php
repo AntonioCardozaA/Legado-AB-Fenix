@@ -663,6 +663,24 @@ class GlobalSearchController extends Controller
                 'keywords' => ['crear', 'cargar', 'documento', 'conocimiento', 'manual'],
             ],
             [
+                'title' => 'Documentos de conocimiento Pasteurizadora',
+                'description' => 'Base de conocimiento tecnica para pasteurizadoras',
+                'section' => 'IA',
+                'icon' => 'fa-file-lines',
+                'route' => ['pasteurizadora.knowledge-documents.index'],
+                'can' => fn (User $user): bool => $user->canManagePasteurizadoraKnowledgeDocuments(),
+                'keywords' => ['documentos', 'conocimiento', 'base', 'pasteurizadora', 'manuales'],
+            ],
+            [
+                'title' => 'Crear documento de conocimiento Pasteurizadora',
+                'description' => 'Cargar informacion tecnica de pasteurizadora',
+                'section' => 'IA',
+                'icon' => 'fa-file-circle-plus',
+                'route' => ['pasteurizadora.knowledge-documents.create'],
+                'can' => fn (User $user): bool => $user->canManagePasteurizadoraKnowledgeDocuments(),
+                'keywords' => ['crear', 'cargar', 'documento', 'conocimiento', 'manual', 'pasteurizadora'],
+            ],
+            [
                 'title' => 'Costos Lavadora',
                 'description' => 'Vista de costos por analisis y refacciones',
                 'section' => 'Lavadora',
@@ -949,6 +967,10 @@ class GlobalSearchController extends Controller
             return $user->canManageWasherKnowledgeDocuments();
         }
 
+        if (Str::startsWith($routeName, 'pasteurizadora.knowledge-documents.')) {
+            return $user->canManagePasteurizadoraKnowledgeDocuments();
+        }
+
         if ($routeName === 'lavadora.costos.index' || Str::startsWith($routeName, 'admin.costos.')) {
             return $user->canAccessLavadoraCosts();
         }
@@ -1076,7 +1098,7 @@ class GlobalSearchController extends Controller
 
     private function sectionForRoute(string $routeName): string
     {
-        if (Str::startsWith($routeName, ['assistant-chat.', 'lavadora.knowledge-documents.', 'plan-accion.ai.'])) {
+        if (Str::startsWith($routeName, ['assistant-chat.', 'lavadora.knowledge-documents.', 'pasteurizadora.knowledge-documents.', 'plan-accion.ai.'])) {
             return 'IA';
         }
 
@@ -1137,7 +1159,7 @@ class GlobalSearchController extends Controller
             return 'fa-robot';
         }
 
-        if (Str::startsWith($routeName, 'lavadora.knowledge-documents.')) {
+        if (Str::startsWith($routeName, ['lavadora.knowledge-documents.', 'pasteurizadora.knowledge-documents.'])) {
             return 'fa-file-lines';
         }
 

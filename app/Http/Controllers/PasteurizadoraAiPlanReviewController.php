@@ -82,7 +82,12 @@ class PasteurizadoraAiPlanReviewController extends Controller
         $modulePluralLabel = 'pasteurizadoras';
         $operationalPlansRoute = route('plan-accion.index', ['tipo' => User::MODULE_PASTEURIZADORA]);
         $routeNames = $this->routeNames();
-        $knowledgeRoutes = [];
+        $knowledgeRoutes = $request->user()?->canManagePasteurizadoraKnowledgeDocuments()
+            ? [
+                'index' => 'pasteurizadora.knowledge-documents.index',
+                'create' => 'pasteurizadora.knowledge-documents.create',
+            ]
+            : [];
         $componentFallback = 'Componente de pasteurizadora';
         $areaOptions = collect(PlanAccion::areasPasteurizadoraOpciones())
             ->filter(fn (string $label, string $key): bool => $request->user()?->canAccessPasteurizadoraArea($key) ?? false)

@@ -3,7 +3,7 @@
 namespace App\Services\Maintenance;
 
 use App\Contracts\AiProviderInterface;
-use App\Models\WasherKnowledgeDocument;
+use Illuminate\Database\Eloquent\Model;
 use Throwable;
 
 class DocumentIndexer
@@ -15,7 +15,7 @@ class DocumentIndexer
     ) {
     }
 
-    public function index(WasherKnowledgeDocument $document): WasherKnowledgeDocument
+    public function index(Model $document): Model
     {
         $document->chunks()->delete();
 

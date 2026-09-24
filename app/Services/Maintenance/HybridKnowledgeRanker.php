@@ -3,7 +3,7 @@
 namespace App\Services\Maintenance;
 
 use App\Contracts\AiProviderInterface;
-use App\Models\WasherKnowledgeChunk;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 use Throwable;
 
@@ -99,7 +99,7 @@ class HybridKnowledgeRanker
      * @return array<string, mixed>
      */
     public function rankChunk(
-        WasherKnowledgeChunk $chunk,
+        Model $chunk,
         array $profile,
         array $context = [],
         array $queryEmbedding = []
@@ -144,14 +144,14 @@ class HybridKnowledgeRanker
      * @param  array<string, mixed>  $ranking
      * @return array<string, mixed>
      */
-    public function toKnowledgeItem(WasherKnowledgeChunk $chunk, array $ranking, int $contentLimit = 1200): array
+    public function toKnowledgeItem(Model $chunk, array $ranking, int $contentLimit = 1200): array
     {
         $document = $chunk->document;
 
         return [
             'score' => $ranking['score'],
             'type' => $this->documentTypeToKnowledgeType((string) ($document?->document_type ?? 'manual')),
-            'reference' => trim((string) ($document?->title ?? 'Documento tecnico')) . ' · fragmento ' . $chunk->chunk_index,
+            'reference' => trim((string) ($document?->title ?? 'Documento tecnico')) . ' - fragmento ' . $chunk->chunk_index,
             'content' => $this->sanitizer->sanitizeText((string) $chunk->content, $contentLimit),
             'document_id' => $document?->getKey(),
             'chunk_id' => $chunk->getKey(),
@@ -159,7 +159,7 @@ class HybridKnowledgeRanker
             'page' => $chunk->metadata['page'] ?? null,
             'section' => $chunk->metadata['section'] ?? null,
             'linea' => $document?->linea?->nombre,
-            'componente' => $document?->componente?->nombre,
+            'componente' => $document?->componente?->nombre ?? $document?->component_name ?? $document?->component_code,
             'document_type' => $document?->document_type,
             'version' => $document?->version,
             'effective_at' => optional($document?->effective_at)->toDateString(),
@@ -334,7 +334,7 @@ class HybridKnowledgeRanker
      * @param  array<string, mixed>  $profile
      * @param  array<string, mixed>  $context
      */
-    private function metadataScore(WasherKnowledgeChunk $chunk, array $profile, array $context): float
+    private function metadataScore(Model $chunk, array $profile, array $context): float
     {
         $score = 0.0;
         $document = $chunk->document;
@@ -456,3 +456,4 @@ class HybridKnowledgeRanker
         };
     }
 }
+

@@ -3,9 +3,12 @@
 namespace App\Services\Maintenance;
 
 use App\Models\PlanAccion;
+use App\Models\PasteurizadoraKnowledgeChunk;
+use App\Models\PasteurizadoraKnowledgeDocument;
 use App\Models\User;
 use App\Models\WasherKnowledgeChunk;
 use App\Models\WasherKnowledgeDocument;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
@@ -34,10 +37,20 @@ class AssistantKnowledgeSearchService
         $path = Str::lower((string) ($pageContext['current_path'] ?? ''));
         $limit = max(1, (int) config('maintenance_ai.chat.max_context_items', 5));
         $canUseWasherKnowledge = $this->userCanUseWasherKnowledge($user);
-        $knowledgeDocuments = $canUseWasherKnowledge
-            ? $this->searchKnowledgeDocuments($profile)
+        $canUsePasteurizadoraKnowledge = $this->userCanUsePasteurizadoraKnowledge($user);
+        $washerKnowledgeDocuments = $canUseWasherKnowledge
+            ? $this->searchKnowledgeDocuments($profile, WasherKnowledgeDocument::class, User::MODULE_LAVADORA)
             : collect();
-        $preferredDocumentIds = $knowledgeDocuments
+        $pasteurizadoraKnowledgeDocuments = $canUsePasteurizadoraKnowledge
+            ? $this->searchKnowledgeDocuments($profile, PasteurizadoraKnowledgeDocument::class, User::MODULE_PASTEURIZADORA)
+            : collect();
+        $washerPreferredDocumentIds = $washerKnowledgeDocuments
+            ->pluck('document_id')
+            ->filter()
+            ->map(fn ($id) => (int) $id)
+            ->take(12)
+            ->all();
+        $pasteurizadoraPreferredDocumentIds = $pasteurizadoraKnowledgeDocuments
             ->pluck('document_id')
             ->filter()
             ->map(fn ($id) => (int) $id)
@@ -45,8 +58,10 @@ class AssistantKnowledgeSearchService
             ->all();
 
         return $this->searchPlans($profile['tokens'], $module, $recordId, $path, $user)
-            ->concat($knowledgeDocuments)
-            ->concat($canUseWasherKnowledge ? $this->searchKnowledgeChunks($profile, $queryEmbedding, $preferredDocumentIds) : collect())
+            ->concat($washerKnowledgeDocuments)
+            ->concat($pasteurizadoraKnowledgeDocuments)
+            ->concat($canUseWasherKnowledge ? $this->searchKnowledgeChunks($profile, $queryEmbedding, $washerPreferredDocumentIds, WasherKnowledgeChunk::class, User::MODULE_LAVADORA) : collect())
+            ->concat($canUsePasteurizadoraKnowledge ? $this->searchKnowledgeChunks($profile, $queryEmbedding, $pasteurizadoraPreferredDocumentIds, PasteurizadoraKnowledgeChunk::class, User::MODULE_PASTEURIZADORA) : collect())
             ->sortByDesc('score')
             ->take($limit)
             ->values()
@@ -145,6 +160,11 @@ class AssistantKnowledgeSearchService
         return $user?->canAccessModule(User::MODULE_LAVADORA) ?? false;
     }
 
+    private function userCanUsePasteurizadoraKnowledge(?User $user): bool
+    {
+        return $user?->canAccessModule(User::MODULE_PASTEURIZADORA) ?? false;
+    }
+
     private function userCanViewPlan(?User $user, PlanAccion $plan): bool
     {
         if (!$user) {
@@ -173,7 +193,7 @@ class AssistantKnowledgeSearchService
      * @param  array<string, mixed>  $profile
      * @return Collection<int, array<string, mixed>>
      */
-    private function searchKnowledgeDocuments(array $profile): Collection
+    private function searchKnowledgeDocuments(array $profile, string $documentClass, string $module): Collection
     {
         $tokens = $profile['tokens'] ?? [];
 
@@ -181,7 +201,7 @@ class AssistantKnowledgeSearchService
             return collect();
         }
 
-        return WasherKnowledgeDocument::query()
+        return $documentClass::query()
             ->with(['linea', 'componente'])
             ->where('indexing_status', 'indexed')
             ->where(function ($query): void {
@@ -189,12 +209,19 @@ class AssistantKnowledgeSearchService
                     ->orWhereNull('lifecycle_status');
             })
             ->get()
-            ->map(function (WasherKnowledgeDocument $document) use ($profile, $tokens): array {
+            ->map(function (Model $document) use ($profile, $tokens, $module): array {
                 $haystack = implode(' ', array_filter([
                     (string) $document->title,
                     (string) $document->document_type,
                     (string) ($document->linea?->nombre ?? ''),
                     (string) ($document->componente?->nombre ?? ''),
+                    (string) ($document->component_name ?? ''),
+                    (string) ($document->component_code ?? ''),
+                    (string) ($document->area ?? ''),
+                    (string) ($document->modulo ?? ''),
+                    (string) ($document->nivel ?? ''),
+                    (string) ($document->piso ?? ''),
+                    (string) ($document->lado ?? ''),
                     (string) $document->extracted_text,
                 ]));
                 $score = $this->scoreTokens($tokens, $haystack) + $this->knowledgeMetadataBoost(
@@ -202,6 +229,8 @@ class AssistantKnowledgeSearchService
                     (string) ($document->linea?->nombre ?? ''),
                     implode(' ', array_filter([
                         (string) ($document->componente?->nombre ?? ''),
+                        (string) ($document->component_name ?? ''),
+                        (string) ($document->component_code ?? ''),
                         (string) $document->title,
                         (string) $document->extracted_text,
                     ]))
@@ -210,7 +239,10 @@ class AssistantKnowledgeSearchService
                     'Documento: ' . $document->title,
                     $document->document_type ? 'Tipo: ' . $document->document_type : null,
                     $document->linea?->nombre ? 'Linea: ' . $document->linea->nombre : null,
-                    $document->componente?->nombre ? 'Componente: ' . $document->componente->nombre : null,
+                    ($document->componente?->nombre ?? $document->component_name ?? $document->component_code ?? null)
+                        ? 'Componente: ' . ($document->componente?->nombre ?? $document->component_name ?? $document->component_code)
+                        : null,
+                    ($document->area ?? null) ? 'Area: ' . $document->area : null,
                     $this->sanitizer->sanitizeText((string) ($document->extracted_text ?: $document->title), 700),
                 ]));
 
@@ -220,7 +252,7 @@ class AssistantKnowledgeSearchService
                     'type' => $this->normalizeDocumentType((string) $document->document_type),
                     'reference' => (string) $document->title,
                     'content' => $this->sanitizer->sanitizeText($summary, 900),
-                    'module' => User::MODULE_LAVADORA,
+                    'module' => $module,
                 ];
             })
             ->filter(fn (array $item): bool => $item['score'] > 0);
@@ -232,7 +264,7 @@ class AssistantKnowledgeSearchService
      * @param  array<int, int>  $preferredDocumentIds
      * @return Collection<int, array<string, mixed>>
      */
-    private function searchKnowledgeChunks(array $profile, array $queryEmbedding = [], array $preferredDocumentIds = []): Collection
+    private function searchKnowledgeChunks(array $profile, array $queryEmbedding = [], array $preferredDocumentIds = [], string $chunkClass = WasherKnowledgeChunk::class, string $module = User::MODULE_LAVADORA): Collection
     {
         $tokens = $profile['tokens'] ?? [];
 
@@ -240,7 +272,7 @@ class AssistantKnowledgeSearchService
             return collect();
         }
 
-        $chunks = WasherKnowledgeChunk::query()
+        $chunks = $chunkClass::query()
             ->with('document.linea', 'document.componente')
             ->whereHas('document', function ($query): void {
                 $query->where('indexing_status', 'indexed')
@@ -257,7 +289,7 @@ class AssistantKnowledgeSearchService
             ->get();
 
         return $chunks
-            ->map(function (WasherKnowledgeChunk $chunk) use ($profile, $preferredDocumentIds, $queryEmbedding): array {
+            ->map(function (Model $chunk) use ($profile, $preferredDocumentIds, $queryEmbedding, $module): array {
                 $document = $chunk->document;
                 $ranking = $this->ranker->rankChunk($chunk, $profile, [], $queryEmbedding);
                 $item = $this->ranker->toKnowledgeItem($chunk, $ranking, 900);
@@ -267,7 +299,7 @@ class AssistantKnowledgeSearchService
                     $item['score_breakdown']['document_match'] = true;
                 }
 
-                $item['module'] = User::MODULE_LAVADORA;
+                $item['module'] = $module;
 
                 return $item;
             })

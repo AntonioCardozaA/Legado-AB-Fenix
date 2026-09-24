@@ -3,7 +3,7 @@
 namespace App\Services\Maintenance;
 
 use App\Contracts\AiProviderInterface;
-use App\Models\WasherKnowledgeDocument;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
 use RuntimeException;
@@ -24,7 +24,7 @@ class DocumentContentExtractor
     ) {
     }
 
-    public function extract(WasherKnowledgeDocument $document): string
+    public function extract(Model $document): string
     {
         if (filled($document->extracted_text)) {
             return $this->sanitizer->sanitizeText($document->extracted_text, 30000);
@@ -47,7 +47,7 @@ class DocumentContentExtractor
         return '';
     }
 
-    private function extractTextLikeContent(WasherKnowledgeDocument $document, string $extension): string
+    private function extractTextLikeContent(Model $document, string $extension): string
     {
         $raw = Storage::disk($document->storage_disk)->get($document->storage_path);
 
@@ -58,7 +58,7 @@ class DocumentContentExtractor
         return $this->sanitizer->sanitizeText($raw, 30000);
     }
 
-    private function extractPdfContent(WasherKnowledgeDocument $document): string
+    private function extractPdfContent(Model $document): string
     {
         $raw = Storage::disk($document->storage_disk)->get($document->storage_path);
         $text = trim($this->pdfParser->parseContent($raw)->getText());
@@ -81,7 +81,7 @@ class DocumentContentExtractor
 
             return $this->sanitizer->sanitizeText($ocrText, 30000);
         } catch (Throwable $exception) {
-            Log::warning('PDF OCR fallback failed for washer knowledge document.', [
+            Log::warning('PDF OCR fallback failed for maintenance knowledge document.', [
                 'document_id' => $document->id,
                 'filename' => $document->original_filename,
                 'error' => $exception->getMessage(),

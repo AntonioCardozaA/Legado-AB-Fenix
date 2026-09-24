@@ -320,6 +320,24 @@ class AccessPermissionCatalog
                     ],
                 ],
             ],
+            'ia_pasteurizadora' => [
+                'label' => 'IA de Pasteurizadora',
+                'description' => 'Planes generados por IA y conocimiento tecnico de pasteurizadora.',
+                'permissions' => [
+                    'revisar planes ia pasteurizadora' => [
+                        'label' => 'Revisar planes IA',
+                        'description' => 'Aprueba, rechaza o solicita informacion.',
+                    ],
+                    'ver conocimiento pasteurizadora' => [
+                        'label' => 'Ver conocimiento',
+                        'description' => 'Consulta documentos tecnicos.',
+                    ],
+                    'gestionar conocimiento pasteurizadora' => [
+                        'label' => 'Gestionar conocimiento',
+                        'description' => 'Carga, reindexa y administra documentos.',
+                    ],
+                ],
+            ],
             'analisis_legacy' => [
                 'label' => 'Legado y elongaciones',
                 'description' => 'Analisis original y mediciones.',
@@ -536,6 +554,10 @@ class AccessPermissionCatalog
             ['routes' => ['plan-accion.ai.approve', 'plan-accion.ai.reject', 'plan-accion.ai.request-information'], 'permission' => 'revisar planes ia lavadora'],
             ['routes' => ['lavadora.knowledge-documents.index'], 'methods' => ['GET'], 'permission' => 'ver conocimiento lavadora'],
             ['routes' => ['lavadora.knowledge-documents.create', 'lavadora.knowledge-documents.store', 'lavadora.knowledge-documents.reindex'], 'permission' => 'gestionar conocimiento lavadora'],
+            ['routes' => ['plan-accion.ai.pasteurizadora.index', 'plan-accion.ai.pasteurizadora.review'], 'methods' => ['GET'], 'permission' => 'revisar planes ia pasteurizadora'],
+            ['routes' => ['plan-accion.ai.pasteurizadora.approve', 'plan-accion.ai.pasteurizadora.reject', 'plan-accion.ai.pasteurizadora.request-information'], 'permission' => 'revisar planes ia pasteurizadora'],
+            ['routes' => ['pasteurizadora.knowledge-documents.index'], 'methods' => ['GET'], 'permission' => 'ver conocimiento pasteurizadora'],
+            ['routes' => ['pasteurizadora.knowledge-documents.create', 'pasteurizadora.knowledge-documents.store', 'pasteurizadora.knowledge-documents.reindex'], 'permission' => 'gestionar conocimiento pasteurizadora'],
 
             ['routes' => ['reportes.index', 'reportes.show*', 'reportes.elongacion', 'reportes.componentes', 'reportes.paros', 'reportes.pasteurizadora'], 'methods' => ['GET'], 'permission' => 'ver reportes'],
             ['routes' => ['reportes.export-*'], 'permission' => 'exportar reportes'],

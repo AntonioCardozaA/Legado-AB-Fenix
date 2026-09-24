@@ -8,6 +8,7 @@ use App\Models\CentralHidraulicaComponente;
 use App\Models\Linea;
 use App\Models\MaintenanceEvent;
 use App\Models\MaintenanceHistoryChunk;
+use App\Models\PasteurizadoraKnowledgeChunk;
 use App\Models\PlanAccion;
 use App\Models\User;
 use Illuminate\Support\Collection;
@@ -221,9 +222,12 @@ class PasteurizadoraTechnicalContextRetriever
         }
 
         $historicalSources = $this->historicalSources($profile, $user);
+        $technicalSources = $this->technicalSources($profile);
         $bucketCounts = collect($historicalSources)
             ->map(fn (array $items): int => count($items))
             ->all();
+        $hasHistory = collect($bucketCounts)->sum() > 0;
+        $hasTechnicalSources = count($technicalSources) > 0;
 
         return [
             'available' => true,
@@ -232,17 +236,17 @@ class PasteurizadoraTechnicalContextRetriever
             'detected_context' => $this->detectedContext($profile),
             'search_priority' => array_values(self::BUCKET_LABELS),
             'historical_sources' => $historicalSources,
-            'technical_sources' => [],
+            'technical_sources' => $technicalSources,
             'coverage' => [
                 'historical_records_count' => collect($bucketCounts)->sum(),
                 'historical_records_by_priority' => $bucketCounts,
-                'technical_sources_count' => 0,
+                'technical_sources_count' => count($technicalSources),
                 'has_same_component_history' => ($bucketCounts[self::BUCKET_SAME_COMPONENT_SAME_POSITION] ?? 0) > 0
                     || ($bucketCounts[self::BUCKET_SAME_COMPONENT_SAME_PASTEURIZER] ?? 0) > 0,
                 'has_same_position_history' => ($bucketCounts[self::BUCKET_SAME_COMPONENT_SAME_POSITION] ?? 0) > 0,
                 'has_same_component_other_pasteurizers_history' => ($bucketCounts[self::BUCKET_SAME_COMPONENT_OTHER_PASTEURIZERS] ?? 0) > 0,
                 'has_similar_failure_history' => ($bucketCounts[self::BUCKET_SIMILAR_FAILURE_OTHER_COMPONENTS] ?? 0) > 0,
-                'warnings' => $this->coverageWarnings(collect($bucketCounts)->sum() > 0),
+                'warnings' => $this->coverageWarnings($hasHistory, $hasTechnicalSources),
             ],
         ];
     }
@@ -1104,6 +1108,111 @@ class PasteurizadoraTechnicalContextRetriever
     }
 
     /**
+     * @param  array<string, mixed>  $profile
+     * @return array<int, array<string, mixed>>
+     */
+    private function technicalSources(array $profile): array
+    {
+        $queryEmbedding = $this->ranker->queryEmbedding((string) ($profile['query'] ?? ''));
+        $context = [
+            'linea_id' => $profile['linea_ids'][0] ?? null,
+        ];
+
+        return PasteurizadoraKnowledgeChunk::query()
+            ->with('document.linea', 'document.componente', 'document.centralComponente')
+            ->whereHas('document', function ($query): void {
+                $query->where('indexing_status', 'indexed')
+                    ->where(function ($documentQuery): void {
+                        $documentQuery->where('lifecycle_status', 'vigente')
+                            ->orWhereNull('lifecycle_status');
+                    });
+            })
+            ->latest('updated_at')
+            ->limit($this->candidateLimit())
+            ->get()
+            ->map(function (PasteurizadoraKnowledgeChunk $chunk) use ($profile, $queryEmbedding, $context): array {
+                $ranking = $this->ranker->rankChunk($chunk, $profile, $context, $queryEmbedding);
+                $ranking['score'] += $this->technicalSourceBoost($chunk, $profile);
+
+                $item = $this->ranker->toKnowledgeItem($chunk, $ranking, 900);
+                $item['source_group'] = 'base_conocimiento';
+                $item['area'] = $chunk->document?->area;
+
+                return $item;
+            })
+            ->filter(fn (array $item): bool => $this->ranker->shouldKeep($item))
+            ->sortByDesc('score')
+            ->take($this->technicalSourceLimit())
+            ->values()
+            ->map(fn (array $item): array => $this->stripScore($item))
+            ->all();
+    }
+
+    /**
+     * @param  array<string, mixed>  $profile
+     */
+    private function technicalSourceBoost(PasteurizadoraKnowledgeChunk $chunk, array $profile): float
+    {
+        $document = $chunk->document;
+        $boost = 0.0;
+        $lineaIds = $profile['linea_ids'] ?? [];
+        $componentCodes = array_map(fn ($item): string => Str::upper((string) $item), $profile['component_codes'] ?? []);
+        $componentTerms = $profile['component_terms'] ?? [];
+        $damageTerms = $profile['damage']['terms'] ?? [];
+        $areas = $profile['areas'] ?? [];
+        $modulos = array_map('strval', $profile['modulos'] ?? []);
+        $niveles = array_map(fn ($item): string => Str::lower(Str::ascii((string) $item)), $profile['niveles'] ?? []);
+        $lados = array_map(fn ($item): string => Str::lower(Str::ascii((string) $item)), $profile['lados'] ?? []);
+
+        if ($lineaIds !== [] && $document?->linea_id && in_array((int) $document->linea_id, $lineaIds, true)) {
+            $boost += 5.0;
+        }
+
+        if ($areas !== [] && $document?->area && in_array((string) $document->area, $areas, true)) {
+            $boost += 3.0;
+        }
+
+        if ($componentCodes !== [] && $document?->component_code && in_array(Str::upper((string) $document->component_code), $componentCodes, true)) {
+            $boost += 5.0;
+        }
+
+        if ($modulos !== [] && $document?->modulo && in_array((string) $document->modulo, $modulos, true)) {
+            $boost += 2.0;
+        }
+
+        if ($niveles !== [] && $document?->nivel && in_array(Str::lower(Str::ascii((string) $document->nivel)), $niveles, true)) {
+            $boost += 2.0;
+        }
+
+        if ($lados !== [] && $document?->lado && in_array(Str::lower(Str::ascii((string) $document->lado)), $lados, true)) {
+            $boost += 2.0;
+        }
+
+        $haystackTokens = $this->ranker->tokenize(implode(' ', array_filter([
+            (string) ($document?->title ?? ''),
+            (string) ($document?->component_name ?? ''),
+            (string) ($document?->component_code ?? ''),
+            (string) ($document?->area ?? ''),
+            (string) ($document?->modulo ?? ''),
+            (string) ($document?->nivel ?? ''),
+            (string) ($document?->piso ?? ''),
+            (string) ($document?->lado ?? ''),
+            (string) $chunk->content,
+            (string) $chunk->searchable_text,
+        ])));
+
+        if ($componentTerms !== [] && $this->tokensOverlap($componentTerms, $haystackTokens)) {
+            $boost += 3.0;
+        }
+
+        if ($damageTerms !== [] && $this->tokensOverlap($damageTerms, $haystackTokens)) {
+            $boost += 4.0;
+        }
+
+        return $boost;
+    }
+
+    /**
      * @param  array<string, mixed>  $rankerProfile
      * @param  array<int, string>  $lineas
      * @param  array<string, mixed>  $pageContext
@@ -1402,13 +1511,19 @@ class PasteurizadoraTechnicalContextRetriever
         ];
     }
 
-    private function coverageWarnings(bool $hasHistory): array
+    private function coverageWarnings(bool $hasHistory, bool $hasTechnicalSources = false): array
     {
-        if ($hasHistory) {
-            return [];
+        $warnings = [];
+
+        if (!$hasHistory) {
+            $warnings[] = 'No se encontraron antecedentes internos de Pasteurizadora para el contexto detectado.';
         }
 
-        return ['No se encontraron antecedentes internos de Pasteurizadora para el contexto detectado.'];
+        if (!$hasTechnicalSources) {
+            $warnings[] = 'No se encontraron documentos tecnicos indexados de Pasteurizadora para este contexto.';
+        }
+
+        return $warnings;
     }
 
     private function historyLimitPerBucket(): int
@@ -1434,6 +1549,11 @@ class PasteurizadoraTechnicalContextRetriever
     private function historyIndexMinScore(): float
     {
         return (float) config('maintenance_ai.history_index.min_score', 2.0);
+    }
+
+    private function technicalSourceLimit(): int
+    {
+        return max(1, (int) config('maintenance_ai.technical_context.document_limit', 4));
     }
 
     /**

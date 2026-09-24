@@ -269,7 +269,8 @@ class PasteurizadoraContextBuilder
      */
     private function buildKnowledge(array $technicalContext): array
     {
-        return collect(data_get($technicalContext, 'historical_sources', []))
+        $historicalSources = collect(data_get($technicalContext, 'historical_sources', []))
+            ->flatMap(fn (array $bucket): array => $bucket)
             ->take(5)
             ->map(fn (array $source): array => [
                 'type' => data_get($source, 'type', 'revision'),
@@ -287,6 +288,27 @@ class PasteurizadoraContextBuilder
                 'componente' => data_get($source, 'summary.component.name'),
                 'score_breakdown' => data_get($source, 'score_breakdown'),
             ])
+            ->values();
+
+        $technicalSources = collect(data_get($technicalContext, 'technical_sources', []))
+            ->take(5)
+            ->map(fn (array $source): array => [
+                'type' => data_get($source, 'type', 'manual'),
+                'reference' => data_get($source, 'reference', 'Documento tecnico de pasteurizadora'),
+                'content' => $this->sanitizer->sanitizeText((string) data_get($source, 'content', ''), 1000),
+                'document_id' => data_get($source, 'document_id'),
+                'chunk_id' => data_get($source, 'chunk_id'),
+                'chunk_index' => data_get($source, 'chunk_index'),
+                'page' => data_get($source, 'page'),
+                'section' => data_get($source, 'section'),
+                'linea' => data_get($source, 'linea'),
+                'componente' => data_get($source, 'componente'),
+                'score_breakdown' => data_get($source, 'score_breakdown'),
+            ]);
+
+        return $technicalSources
+            ->concat($historicalSources)
+            ->take(6)
             ->values()
             ->all();
     }
