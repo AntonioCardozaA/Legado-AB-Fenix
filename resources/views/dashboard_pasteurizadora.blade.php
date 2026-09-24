@@ -2968,7 +2968,7 @@
                     </div>
                 </div>
             </div>
-            <form method="GET" action="{{ route('dashboard.global.pasteurizadoras') }}" class="trend-filter-form dashboard-trend-filters">
+            <form method="GET" action="{{ route('dashboard.global.pasteurizadoras') }}" class="trend-filter-form dashboard-trend-filters" data-auto-filter-form>
                 <input type="hidden" name="parte" value="{{ \App\Models\AnalisisPasteurizadora::AREA_MECANICA }}">
                 <select id="analisis52124PasteurizadoraLineaSelect" class="panel-select pasteur-trend-line-select" data-pasteur-trend-card="52124">
                     @forelse(($analisis52124Pasteurizadora['lineas'] ?? []) as $lineaTrend)
@@ -2987,10 +2987,10 @@
                     <label>Hasta</label>
                     <input type="date" name="{{ data_get($trendFilters, 'tendencia.to_param', 'trend_52124_hasta') }}" value="{{ data_get($trendFilters, 'tendencia.to_input', '') }}">
                 </div>
-                <button type="submit" class="trend-filter-button">
-                    <i class="fas fa-filter"></i>
-                    Aplicar
-                </button>
+                <a href="{{ route('dashboard.global.pasteurizadoras', ['parte' => \App\Models\AnalisisPasteurizadora::AREA_MECANICA]) }}" class="trend-open-link">
+                    <i class="fas fa-rotate-left"></i>
+                    Limpiar
+                </a>
                 @if($puedeVerTendenciasPasteurizadora)
                     <a href="{{ route('analisis-tendencia-mensual.pasteurizadora.analisis-52-12-4', ['area' => \App\Models\AnalisisPasteurizadora::AREA_MECANICA]) }}" class="trend-open-link">
                         <i class="fas fa-up-right-from-square"></i>
@@ -3055,7 +3055,7 @@
                     </div>
                 </div>
             </div>
-            <form method="GET" action="{{ route('dashboard.global.pasteurizadoras') }}" class="trend-filter-form dashboard-trend-filters">
+            <form method="GET" action="{{ route('dashboard.global.pasteurizadoras') }}" class="trend-filter-form dashboard-trend-filters" data-auto-filter-form>
                 <input type="hidden" name="parte" value="{{ \App\Models\AnalisisPasteurizadora::AREA_MECANICA }}">
                 <select id="analisis30147PasteurizadoraLineaSelect" class="panel-select pasteur-trend-line-select" data-pasteur-trend-card="30147">
                     @forelse(($analisis30147Pasteurizadora['lineas'] ?? []) as $lineaTrend)
@@ -3074,10 +3074,10 @@
                     <label>Hasta</label>
                     <input type="date" name="{{ data_get($trendFilters, 'tendencia30147.to_param', 'trend_30147_hasta') }}" value="{{ data_get($trendFilters, 'tendencia30147.to_input', '') }}">
                 </div>
-                <button type="submit" class="trend-filter-button">
-                    <i class="fas fa-filter"></i>
-                    Aplicar
-                </button>
+                <a href="{{ route('dashboard.global.pasteurizadoras', ['parte' => \App\Models\AnalisisPasteurizadora::AREA_MECANICA]) }}" class="trend-open-link">
+                    <i class="fas fa-rotate-left"></i>
+                    Limpiar
+                </a>
                 @if($puedeVerTendenciasPasteurizadora)
                     <a href="{{ route('analisis-tendencia-mensual.pasteurizadora.analisis-30-14-7', ['area' => \App\Models\AnalisisPasteurizadora::AREA_MECANICA]) }}" class="trend-open-link">
                         <i class="fas fa-up-right-from-square"></i>
@@ -3575,7 +3575,7 @@
                         </div>
                     </div>
                 </div>
-                <form method="GET" action="{{ route('dashboard.global.pasteurizadoras') }}" class="trend-filter-form dashboard-trend-filters">
+                <form method="GET" action="{{ route('dashboard.global.pasteurizadoras') }}" class="trend-filter-form dashboard-trend-filters" data-auto-filter-form>
                     <input type="hidden" name="parte" value="{{ \App\Models\AnalisisPasteurizadora::AREA_CENTRAL_HIDRAULICA }}">
                     <select id="analisis52124CentralHidraulicaLineaSelect" class="panel-select pasteur-trend-line-select" data-pasteur-trend-card="central52124">
                         @forelse(($analisis52124CentralHidraulica['lineas'] ?? []) as $lineaTrend)
@@ -3594,10 +3594,10 @@
                         <label>Hasta</label>
                         <input type="date" name="{{ data_get($trendFilters, 'tendencia.to_param', 'trend_52124_hasta') }}" value="{{ data_get($trendFilters, 'tendencia.to_input', '') }}">
                     </div>
-                    <button type="submit" class="trend-filter-button">
-                        <i class="fas fa-filter"></i>
-                        Aplicar
-                    </button>
+                    <a href="{{ route('dashboard.global.pasteurizadoras', ['parte' => \App\Models\AnalisisPasteurizadora::AREA_CENTRAL_HIDRAULICA]) }}" class="trend-open-link">
+                        <i class="fas fa-rotate-left"></i>
+                        Limpiar
+                    </a>
                     @if($puedeVerTendenciasPasteurizadora)
                         <a href="{{ route('analisis-tendencia-mensual.pasteurizadora.analisis-52-12-4', ['area' => \App\Models\AnalisisPasteurizadora::AREA_CENTRAL_HIDRAULICA]) }}" class="trend-open-link">
                             <i class="fas fa-up-right-from-square"></i>
@@ -3663,7 +3663,7 @@
                         </div>
                     </div>
                 </div>
-                <form method="GET" action="{{ route('dashboard.global.pasteurizadoras') }}" class="trend-filter-form dashboard-trend-filters">
+                <form method="GET" action="{{ route('dashboard.global.pasteurizadoras') }}" class="trend-filter-form dashboard-trend-filters" data-auto-filter-form>
                     <input type="hidden" name="parte" value="{{ \App\Models\AnalisisPasteurizadora::AREA_CENTRAL_HIDRAULICA }}">
                     <select id="analisis30147CentralHidraulicaLineaSelect" class="panel-select pasteur-trend-line-select" data-pasteur-trend-card="central30147">
                         @forelse(($analisis30147CentralHidraulica['lineas'] ?? []) as $lineaTrend)
@@ -3682,10 +3682,10 @@
                         <label>Hasta</label>
                         <input type="date" name="{{ data_get($trendFilters, 'tendencia30147.to_param', 'trend_30147_hasta') }}" value="{{ data_get($trendFilters, 'tendencia30147.to_input', '') }}">
                     </div>
-                    <button type="submit" class="trend-filter-button">
-                        <i class="fas fa-filter"></i>
-                        Aplicar
-                    </button>
+                    <a href="{{ route('dashboard.global.pasteurizadoras', ['parte' => \App\Models\AnalisisPasteurizadora::AREA_CENTRAL_HIDRAULICA]) }}" class="trend-open-link">
+                        <i class="fas fa-rotate-left"></i>
+                        Limpiar
+                    </a>
                     @if($puedeVerTendenciasPasteurizadora)
                         <a href="{{ route('analisis-tendencia-mensual.pasteurizadora.analisis-30-14-7', ['area' => \App\Models\AnalisisPasteurizadora::AREA_CENTRAL_HIDRAULICA]) }}" class="trend-open-link">
                             <i class="fas fa-up-right-from-square"></i>

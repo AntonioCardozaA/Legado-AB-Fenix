@@ -15,7 +15,7 @@
     </div>
 
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
-        <form method="GET" action="{{ route('elongaciones.ciclos.comparacion') }}" class="flex flex-col md:flex-row gap-4 md:items-end">
+        <form method="GET" action="{{ route('elongaciones.ciclos.comparacion') }}" class="flex flex-col md:flex-row gap-4 md:items-end" data-auto-filter-form>
             <div class="w-full md:max-w-sm">
                 <label for="linea" class="block text-sm font-medium text-gray-700 mb-1">Línea</label>
                 <select name="linea" id="linea" class="block w-full rounded-lg border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
@@ -25,9 +25,9 @@
                 </select>
             </div>
             <div class="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
-                <button type="submit" class="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition sm:w-auto">
-                    <i class="fas fa-filter mr-1"></i> Consultar
-                </button>
+                <a href="{{ route('elongaciones.ciclos.comparacion') }}" class="w-full px-4 py-2 bg-gray-100 text-center text-gray-700 rounded-lg hover:bg-gray-200 transition sm:w-auto">
+                    <i class="fas fa-times mr-1"></i> Limpiar
+                </a>
                 <a href="{{ route('elongaciones.create', ['linea' => $lineaSeleccionada]) }}" class="create-action">
                     <i class="fas fa-plus-circle mr-1"></i> Nuevo registro
                 </a>

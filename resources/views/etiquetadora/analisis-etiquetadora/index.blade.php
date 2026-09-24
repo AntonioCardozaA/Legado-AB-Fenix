@@ -52,7 +52,7 @@
             LINEAS DE ETIQUETADORA:
         </div>
 
-        <form method="GET" action="{{ route('analisis-etiquetadora.index') }}" id="filterForm">
+        <form method="GET" action="{{ route('analisis-etiquetadora.index') }}" id="filterForm" data-auto-filter-form>
             <div class="lineas-grid">
                 @foreach($lineas as $linea)
                     <button type="button"
@@ -75,11 +75,6 @@
                     <i class="fas fa-sliders-h"></i>
                     Filtros avanzados
                     <i id="advancedFiltersIcon" class="fas {{ $filtrosAvanzadosActivos ? 'fa-chevron-up' : 'fa-chevron-down' }} ml-1"></i>
-                </button>
-
-                <button type="submit" class="btn-apply">
-                    <i class="fas fa-search"></i>
-                    Aplicar filtros
                 </button>
 
                 <a href="{{ route('analisis-etiquetadora.index') }}" class="btn-clear">

@@ -52,7 +52,7 @@
 
     <div class="space-y-4">
         <div>
-            <form action="{{ route('admin.users.index') }}" method="GET" class="rounded-xl border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
+            <form action="{{ route('admin.users.index') }}" method="GET" class="rounded-xl border border-slate-200 bg-white p-3 shadow-sm sm:p-4" data-auto-filter-form>
                 <div class="mb-3 flex items-center justify-between gap-3">
                     <div>
                         <h2 class="text-base font-bold text-slate-900">Buscar</h2>
@@ -92,10 +92,6 @@
                     </div>
 
                     <div class="flex flex-col gap-2 sm:flex-row">
-                        <button type="submit" class="w-full rounded bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 sm:w-auto">
-                            Filtrar
-                        </button>
-
                         @if($activeFilters !== [])
                             <a href="{{ route('admin.users.index') }}" class="w-full rounded border border-gray-300 px-4 py-2 text-center text-sm font-semibold text-gray-700 hover:bg-gray-50 sm:w-auto">
                                 Limpiar

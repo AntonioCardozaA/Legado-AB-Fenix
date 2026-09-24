@@ -753,7 +753,7 @@
             </div>
         </div>
 
-        <form method="GET" class="toolbar-grid" style="margin-bottom: 1rem;">
+        <form method="GET" class="toolbar-grid" style="margin-bottom: 1rem;" data-auto-filter-form>
             <div class="field-span-2">
                 <label class="field-label" for="catalog-q">Buscar</label>
                 <input id="catalog-q" name="q" class="field-control" value="{{ $filters['q'] ?? '' }}" placeholder="SKU, concepto o categoría">
@@ -785,10 +785,6 @@
                 </select>
             </div>
             <div class="field-actions">
-                <button type="submit" class="create-action">
-                    <i class="fas fa-filter"></i>
-                    Filtrar
-                </button>
                 <a href="{{ route('admin.costos.index') }}" class="create-action create-action--secondary">
                     <i class="fas fa-rotate-left"></i>
                     Limpiar

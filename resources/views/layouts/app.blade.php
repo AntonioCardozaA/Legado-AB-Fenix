@@ -1499,6 +1499,135 @@ setInterval(refreshNotifications, 30000);
 })();
 </script>
 
+<script>
+(function() {
+    const formSelector = 'form[data-auto-filter-form]';
+    const ignoredInputTypes = new Set(['button', 'submit', 'reset', 'file', 'hidden']);
+    const textInputTypes = new Set(['text', 'search', 'email', 'number', 'tel', 'url', 'password']);
+    const pendingTimers = new WeakMap();
+
+    function getForm(element) {
+        return element?.closest?.(formSelector) || null;
+    }
+
+    function isFilterControl(element) {
+        if (!(element instanceof HTMLInputElement || element instanceof HTMLSelectElement || element instanceof HTMLTextAreaElement)) {
+            return false;
+        }
+
+        if (!element.name || element.disabled || element.matches('[data-auto-filter-ignore]')) {
+            return false;
+        }
+
+        if (element instanceof HTMLInputElement && ignoredInputTypes.has(element.type)) {
+            return false;
+        }
+
+        return Boolean(getForm(element));
+    }
+
+    function shouldWaitForCommit(element) {
+        return element instanceof HTMLTextAreaElement
+            || (element instanceof HTMLInputElement && textInputTypes.has(element.type || 'text'));
+    }
+
+    function buildFilterUrl(form) {
+        const url = new URL(form.getAttribute('action') || window.location.href, window.location.href);
+        const data = new FormData(form);
+
+        for (const key of Array.from(url.searchParams.keys())) {
+            url.searchParams.delete(key);
+        }
+
+        data.forEach(function(value, key) {
+            if (value instanceof File || value === null) {
+                return;
+            }
+
+            if (String(value).trim() === '') {
+                url.searchParams.delete(key);
+                return;
+            }
+
+            if (key.endsWith('[]')) {
+                url.searchParams.append(key, value);
+                return;
+            }
+
+            url.searchParams.set(key, value);
+        });
+
+        url.searchParams.delete('page');
+        url.searchParams.delete('importaciones_page');
+
+        return url.toString();
+    }
+
+    function submitFilter(form) {
+        if (!(form instanceof HTMLFormElement) || form.dataset.autoFilterLoading === 'true') {
+            return;
+        }
+
+        form.dataset.autoFilterLoading = 'true';
+        window.location.assign(buildFilterUrl(form));
+    }
+
+    function scheduleSubmit(form) {
+        const delay = Number(form.dataset.autoFilterDebounce || 0);
+        const previousTimer = pendingTimers.get(form);
+
+        if (previousTimer) {
+            window.clearTimeout(previousTimer);
+        }
+
+        if (delay > 0) {
+            pendingTimers.set(form, window.setTimeout(() => submitFilter(form), delay));
+            return;
+        }
+
+        submitFilter(form);
+    }
+
+    document.addEventListener('change', function(event) {
+        const control = event.target;
+
+        if (!isFilterControl(control)) {
+            return;
+        }
+
+        scheduleSubmit(getForm(control));
+    }, true);
+
+    document.addEventListener('keydown', function(event) {
+        const control = event.target;
+
+        if (event.key !== 'Enter' || !isFilterControl(control) || !shouldWaitForCommit(control)) {
+            return;
+        }
+
+        event.preventDefault();
+        scheduleSubmit(getForm(control));
+    }, true);
+
+    document.addEventListener('submit', function(event) {
+        const form = event.target;
+
+        if (!(form instanceof HTMLFormElement) || !form.matches(formSelector)) {
+            return;
+        }
+
+        const submitter = event.submitter;
+
+        if (submitter instanceof HTMLElement && (submitter.hasAttribute('formaction') || submitter.matches('[data-auto-filter-ignore]'))) {
+            return;
+        }
+
+        event.preventDefault();
+        scheduleSubmit(form);
+    }, true);
+})();
+</script>
+
 @hasSection('scripts')
     @yield('scripts')
 @endif

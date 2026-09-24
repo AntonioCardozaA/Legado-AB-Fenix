@@ -9,7 +9,7 @@
         <p class="text-sm text-gray-500">Resumen de avance por linea y componente.</p>
     </div>
 
-    <form method="GET" class="flex flex-col gap-3 rounded bg-white p-4 shadow sm:flex-row sm:flex-wrap">
+    <form method="GET" class="flex flex-col gap-3 rounded bg-white p-4 shadow sm:flex-row sm:flex-wrap" data-auto-filter-form>
         <select name="tipo" class="w-full rounded border-gray-300 text-sm sm:w-auto">
             <option value="lavadora" @selected(($tipoSeleccionado ?? 'lavadora') === 'lavadora')>Lavadora</option>
             @if($canSeePasteurizadora ?? ($canAccessPasteurizadora ?? true))
@@ -21,7 +21,9 @@
                 <option value="{{ $linea->id }}" @selected(optional($lineaSeleccionada ?? null)->id === $linea->id)>{{ $linea->nombre }}</option>
             @endforeach
         </select>
-        <button class="w-full rounded bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 sm:w-auto">Filtrar</button>
+        <a href="{{ route('historico-revisados.index') }}" class="w-full rounded border border-gray-300 px-4 py-2 text-center text-sm font-semibold text-gray-700 hover:bg-gray-50 sm:w-auto">
+            Limpiar
+        </a>
     </form>
 
     <div class="rounded bg-white p-5 shadow">

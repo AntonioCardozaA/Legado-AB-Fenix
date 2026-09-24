@@ -15,15 +15,25 @@
             <h1 class="mt-1 text-2xl font-black tracking-tight text-gray-950">Notificaciones</h1>
         </div>
 
-        @if($pendingNotifications > 0)
-            <form action="{{ route('notifications.read-all') }}" method="POST" class="w-full sm:w-auto">
-                @csrf
-                <button type="submit" class="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-blue-700 sm:w-auto">
-                    <i class="fas fa-check-double"></i>
-                    Marcar todas como leidas
-                </button>
-            </form>
-        @endif
+        <div class="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:justify-end">
+            <a
+                href="{{ $returnUrl ?? route('dashboard') }}"
+                class="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-bold text-gray-700 shadow-sm transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700 sm:w-auto"
+            >
+                <i class="fas fa-arrow-left"></i>
+                Volver
+            </a>
+
+            @if($pendingNotifications > 0)
+                <form action="{{ route('notifications.read-all') }}" method="POST" class="w-full sm:w-auto">
+                    @csrf
+                    <button type="submit" class="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-blue-700 sm:w-auto">
+                        <i class="fas fa-check-double"></i>
+                        Marcar todas como leidas
+                    </button>
+                </form>
+            @endif
+        </div>
     </div>
 
     <div class="grid gap-3 md:grid-cols-3">
@@ -286,9 +296,24 @@
     </div>
 
     @if($notifications->hasPages())
-        <div class="rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm">
+        <div class="notifications-pagination rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm">
             {{ $notifications->links() }}
         </div>
     @endif
 </div>
+
+<style>
+    .notifications-pagination {
+        margin-bottom: 5.5rem;
+    }
+
+    @media (min-width: 640px) {
+        .notifications-pagination nav > div:last-child {
+            align-items: flex-start !important;
+            flex-direction: column !important;
+            gap: 0.75rem;
+            justify-content: flex-start !important;
+        }
+    }
+</style>
 @endsection

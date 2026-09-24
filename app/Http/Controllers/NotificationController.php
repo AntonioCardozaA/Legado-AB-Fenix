@@ -20,6 +20,20 @@ class NotificationController extends Controller
 
     public function index(Request $request): View
     {
+        $dashboardUrl = route('dashboard');
+        $notificationsPath = '/' . ltrim((string) parse_url(route('notifications.index', [], false), PHP_URL_PATH), '/');
+        $previousUrl = url()->previous($dashboardUrl);
+        $previousPath = '/' . ltrim((string) parse_url($previousUrl, PHP_URL_PATH), '/');
+        $previousHost = parse_url($previousUrl, PHP_URL_HOST);
+        $isSameHost = blank($previousHost) || $previousHost === $request->getHost();
+        $isNotificationsUrl = $previousPath === $notificationsPath
+            || str_starts_with($previousPath, rtrim($notificationsPath, '/') . '/');
+
+        if ($isSameHost && ! $isNotificationsUrl && $previousUrl !== $request->fullUrl()) {
+            $request->session()->put('notifications.return_url', $previousUrl);
+        }
+
+        $returnUrl = $request->session()->get('notifications.return_url', $dashboardUrl);
         $perPage = 20;
         $page = LengthAwarePaginator::resolveCurrentPage();
         $availableNotifications = $this->notificationVisibilityService
@@ -37,7 +51,7 @@ class NotificationController extends Controller
         $unreadCount = $this->notificationVisibilityService
             ->availableUnreadNotificationsCountFor($request->user());
 
-        return view('notifications.index', compact('notifications', 'unreadCount'));
+        return view('notifications.index', compact('notifications', 'unreadCount', 'returnUrl'));
     }
 
     public function markAsRead(Request $request, string $id): JsonResponse|RedirectResponse

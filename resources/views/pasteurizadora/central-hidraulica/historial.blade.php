@@ -55,7 +55,7 @@
     </div>
 
     <section class="mb-6 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-        <form method="GET" action="{{ $analisisRoute('historial') }}" class="grid gap-4 md:grid-cols-2 xl:grid-cols-6">
+        <form method="GET" action="{{ $analisisRoute('historial') }}" class="grid gap-4 md:grid-cols-2 xl:grid-cols-6" data-auto-filter-form>
             <div>
                 <label class="mb-1 block text-xs font-bold uppercase tracking-wide text-gray-500">Pasteurizadora</label>
                 <select name="linea_id" class="block w-full rounded-lg border-gray-300 text-sm focus:border-blue-500 focus:ring-blue-500">
@@ -97,10 +97,10 @@
                 <input type="month" name="fecha" value="{{ request('fecha') }}" class="block w-full rounded-lg border-gray-300 text-sm focus:border-blue-500 focus:ring-blue-500">
             </div>
             <div class="flex items-end">
-                <button type="submit" class="create-action create-action--compact w-full">
-                    <i class="fas fa-filter"></i>
-                    Filtrar
-                </button>
+                <a href="{{ $analisisRoute('historial') }}" class="create-action create-action--compact create-action--secondary w-full">
+                    <i class="fas fa-rotate-left"></i>
+                    Limpiar
+                </a>
             </div>
         </form>
     </section>

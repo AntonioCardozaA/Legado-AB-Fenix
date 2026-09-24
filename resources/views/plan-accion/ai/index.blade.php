@@ -91,7 +91,7 @@
         </div>
     </div>
 
-    <form method="GET" class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+    <form method="GET" class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm" data-auto-filter-form>
         <div class="grid gap-4 md:grid-cols-{{ $areaOptions ? '4' : '3' }}">
             <div>
                 <label for="linea_id" class="mb-2 block text-sm font-semibold text-slate-700">Linea</label>
@@ -122,10 +122,6 @@
                 </select>
             </div>
             <div class="flex items-end gap-3">
-                <button type="submit" class="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-3 text-sm font-bold text-white transition hover:bg-slate-800">
-                    <i class="fas fa-filter"></i>
-                    Filtrar
-                </button>
                 <a href="{{ route($routeNames['index']) }}" class="inline-flex items-center gap-2 rounded-xl border border-slate-300 px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
                     <i class="fas fa-rotate-left"></i>
                     Limpiar
