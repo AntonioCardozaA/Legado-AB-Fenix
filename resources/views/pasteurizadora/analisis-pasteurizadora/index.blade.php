@@ -2226,6 +2226,7 @@
                                                 $registro = $registroNormal ?: $registroQuick;
                                                 $hasQuickData = $registroQuick !== null;
                                                 $hasData = $registro !== null;
+                                                $isNew = $registro?->created_at && $registro->created_at->gt(now()->subDays(3));
                                                 $totalComponentesComponente = $compData['cantidad'] ?? 0;
                                                 $esBrazoTorsion = \App\Models\AnalisisPasteurizadora::esBrazoTorsion($codigo);
                                                 $requiereLadoComponente = \App\Models\AnalisisPasteurizadora::requiereLado($linea->nombre, $codigo);
@@ -2355,6 +2356,7 @@
                                                         'imagenes' => $registro->evidencia_fotos ?? [],
                                                         'componentes_revisados' => $componentesRevisadosAcumulados,
                                                         'total_componentes' => $totalComponentesComponente ?: $registro->total_componentes,
+                                                        'is_new' => $isNew,
                                                         'estado_por_nivel' => $hasNormalAnalysis ? null : $estadoPorNivel,
                                                         'pendientes_por_nivel' => [
                                                             'SUPERIOR' => !$hasNormalAnalysis && isset($estadoPorNivel['SUPERIOR']) && !$estadoPorNivel['SUPERIOR']['completado'] 
@@ -2406,6 +2408,10 @@
                                                     ]) }})"
                                                 @endif>
                                                 @if($hasData)
+                                                    @if($isNew)
+                                                        <div class="badge-new">NUEVO</div>
+                                                    @endif
+
                                                     <div class="pasteur-cell-content">
                                                         <div class="pasteur-cell-info-card">
                                                             <div class="info-line">

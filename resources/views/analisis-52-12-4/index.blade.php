@@ -200,6 +200,11 @@
     .lef-table th:nth-child(7), .lef-table td:nth-child(7),
     .lef-table th:nth-child(8), .lef-table td:nth-child(8) { width: 88px; }
     .lef-table th:nth-child(9), .lef-table td:nth-child(9) { width: 92px; text-align: right; }
+    #historial-importaciones { margin-bottom: 112px; }
+    .lef-import-pagination {
+        border-top: 1px solid #e2e8f0;
+        padding: 14px 240px 14px 18px;
+    }
     .lef-delete {
         display: inline-flex;
         align-items: center;
@@ -238,6 +243,8 @@
         .lef-table td[colspan]::before { content: none; }
         .lef-table td[data-label="Acciones"] { align-items: center; }
         .lef-delete { width: 100%; max-width: 160px; }
+        #historial-importaciones { margin-bottom: 132px; }
+        .lef-import-pagination { padding: 14px 18px 96px; }
     }
     @media (max-width: 480px) {
         .lef-title-icon { display: none; }
@@ -417,7 +424,7 @@
                 </table>
             </div>
             @if($imports->hasPages())
-                <div style="border-top: 1px solid #e2e8f0; padding: 14px 18px;">
+                <div class="lef-import-pagination">
                     {{ $imports->links() }}
                 </div>
             @endif

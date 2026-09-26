@@ -208,6 +208,10 @@
         return $normalizeImages($imagenes);
     };
 
+    $getRepairImages = function ($registro) use ($normalizeImages) {
+        return $normalizeImages(data_get($registro, 'evidencias_reparacion', []));
+    };
+
     $formatDate = function ($value) {
         if (!$value) {
             return 'Sin fecha';
@@ -345,8 +349,8 @@
         return collect($flattenLavadoraAnalisis($lineaReporte['analisis_agrupados'] ?? []));
     };
 
-    $lineEvidenceCount = function ($lineaReporte) use ($getLineAnalisis, $getImages) {
-        return $getLineAnalisis($lineaReporte)->sum(fn ($registro) => count($getImages($registro)));
+    $lineEvidenceCount = function ($lineaReporte) use ($getLineAnalisis, $getImages, $getRepairImages) {
+        return $getLineAnalisis($lineaReporte)->sum(fn ($registro) => count($getImages($registro)) + count($getRepairImages($registro)));
     };
 
     $totalComponentesResumen = function ($resumen) {
@@ -509,6 +513,8 @@
     $totalDesgasteDocumento = $lineasReporte->sum(fn ($linea) => data_get($linea, 'resumen.componentes_severos_moderados', 0));
     $totalParosDocumento = $lineasReporte->sum(fn ($linea) => data_get($linea, 'resumen.total_paros', data_get($linea, 'resumen.paros_count', 0)));
     $totalEvidenciasDocumento = $lineasReporte->sum(fn ($linea) => $lineEvidenceCount($linea));
+    $totalPlanesDocumento = $lineasReporte->sum(fn ($linea) => data_get($linea, 'resumen.planes_pendientes', data_get($linea, 'planes_pendientes', 0)));
+    $documentGeneratedAt = now();
     $lineasConAnalisis = $lineasReporte->filter(fn ($linea) => $getLineAnalisis($linea)->isNotEmpty())->count();
     $estadoDocumento = $totalCriticosDocumento > 0
         ? 'CRITICO'
@@ -518,7 +524,10 @@
             || collect(data_get($lineaReporte, 'paros', []))->isNotEmpty()
             || collect(data_get($lineaReporte, 'elongaciones', []))->isNotEmpty()
             || collect(data_get($lineaReporte, 'reductores', []))->isNotEmpty()
-            || collect(data_get($lineaReporte, 'modulos', []))->isNotEmpty();
+            || collect(data_get($lineaReporte, 'modulos', []))->isNotEmpty()
+            || collect(data_get($lineaReporte, 'componentes', []))->isNotEmpty()
+            || collect(data_get($lineaReporte, 'componentes_lista', []))->isNotEmpty()
+            || ((int) data_get($lineaReporte, 'resumen.total_componentes', 0) > 0);
     };
     $lineasDetalle = $esReporteLinea
         ? $lineasReporte
@@ -926,7 +935,7 @@
                     <td class="cover-document-cell">
                         <div class="kicker">Documento</div>
                         <div class="strong">{{ $documentCode }}</div>
-                        <div class="muted small">Generado: {{ now()->format('d/m/Y H:i') }}</div>
+                        <div class="muted small">Generado: {{ $documentGeneratedAt->format('d/m/Y H:i') }}</div>
                     </td>
                 </tr>
             </table>
@@ -979,9 +988,30 @@
                 <span class="kpi-value">{{ $totalDesgasteDocumento }}</span>
             </td>
             </tr>
+            <tr>
+            <td class="metric-card">
+                <span class="kicker">Planes pendientes</span>
+                <span class="kpi-value">{{ $totalPlanesDocumento }}</span>
+            </td>
+            <td class="metric-card">
+                <span class="kicker">Paros</span>
+                <span class="kpi-value">{{ $totalParosDocumento }}</span>
+            </td>
+            <td class="metric-card">
+                <span class="kicker">Evidencias</span>
+                <span class="kpi-value">{{ $totalEvidenciasDocumento }}</span>
+            </td>
+            <td class="metric-card">
+                <span class="kicker">Lineas documentadas</span>
+                <span class="kpi-value">{{ $lineasDetalle->count() }}</span>
+            </td>
+            </tr>
         </table>
 
         <div class="executive-note">
+            <strong>Documento actualizado:</strong>
+            Incluye analisis del periodo, estado actual, componentes agregados al catalogo, evidencias, paros y planes pendientes disponibles al momento de generar la descarga.
+            <br>
             <strong>Resumen:</strong>
             @if($totalAnalisisDocumento === 0)
                 No se encontraron analisis para el periodo seleccionado. Conviene validar filtros, captura de datos y programa de inspeccion.
@@ -1008,6 +1038,10 @@
                     <th>Componentes</th>
                     <th>Criticos</th>
                     <th>Revision / desgaste</th>
+                    <th>Planes</th>
+                    <th>Paros</th>
+                    <th>Evidencias</th>
+                    <th>Ultima act.</th>
                     <th>Estado</th>
                 </tr>
             </thead>
@@ -1018,22 +1052,28 @@
                         $resumen = data_get($lineaReporte, 'resumen', []);
                         $estadoGeneral = data_get($resumen, 'estado_general.texto', data_get($lineaReporte, 'estado_general.texto', 'Sin datos'));
                         $totalComponentes = $totalComponentesResumen($resumen);
+                        $analisisLineaResumen = $getLineAnalisis($lineaReporte);
+                        $ultimoResumenLinea = $analisisLineaResumen->sortByDesc(fn ($registro) => data_get($registro, 'fecha_analisis'))->first();
                     @endphp
                     <tr>
                         <td><span class="strong">{{ optional($linea)->nombre ?? 'Sin linea' }}</span></td>
                         <td>{{ data_get($lineaReporte, 'tipo_equipo', $tipoSingular) }}</td>
-                        <td>{{ $getLineAnalisis($lineaReporte)->count() }}</td>
+                        <td>{{ $analisisLineaResumen->count() }}</td>
                         <td>
                             {{ data_get($resumen, 'componentes_revisados', 0) }} / {{ $totalComponentes }}
                             <div class="progress"><div class="progress-fill" style="width: {{ $coveragePercent(data_get($resumen, 'componentes_revisados', 0), $totalComponentes) }}%;"></div></div>
                         </td>
                         <td>{{ data_get($resumen, 'componentes_criticos', 0) }}</td>
                         <td>{{ data_get($resumen, 'componentes_revision', 0) }} / {{ data_get($resumen, 'componentes_severos_moderados', 0) }}</td>
+                        <td>{{ data_get($resumen, 'planes_pendientes', data_get($lineaReporte, 'planes_pendientes', 0)) }}</td>
+                        <td>{{ data_get($resumen, 'total_paros', data_get($lineaReporte, 'paros_count', collect(data_get($lineaReporte, 'paros', []))->count())) }}</td>
+                        <td>{{ $lineEvidenceCount($lineaReporte) }}</td>
+                        <td>{{ $formatDate(data_get($ultimoResumenLinea, 'fecha_analisis')) }}</td>
                         <td><span class="badge {{ $stateClass($estadoGeneral) }}">{{ $estadoGeneral }}</span></td>
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="9">No hay datos para el periodo seleccionado.</td>
+                        <td colspan="11">No hay datos para el periodo seleccionado.</td>
                     </tr>
                 @endforelse
             </tbody>
@@ -1461,7 +1501,10 @@
 
             @forelse($analisisPlanos as $registro)
                 @php
-                    $imagenes = $getImages($registro);
+                    $imagenes = array_values(array_unique(array_merge(
+                        $getImages($registro),
+                        $getRepairImages($registro)
+                    )));
                     $estado = data_get($registro, 'estado', 'Sin estado');
                     $componenteCodigo = $esPasteurizadora
                         ? data_get($registro, 'componente', data_get($registro, 'componente_codigo'))
@@ -1516,6 +1559,38 @@
                             $makeFact('Planes PCM', $planesPcm, true),
                         ]));
                     } else {
+                        $cierreTecnico = collect([
+                            'Estado' => data_get($registro, 'estado_correccion'),
+                            'Fecha' => data_get($registro, 'fecha_correccion'),
+                            'Responsable' => data_get($registro, 'responsable_trabajo'),
+                        ])
+                            ->filter(fn ($value) => $hasUsefulValue($value))
+                            ->map(fn ($value, $label) => $label . ': ' . $formatValue($value))
+                            ->implode(' | ');
+
+                        $intervencion = collect([
+                            'Tipo' => data_get($registro, 'tipo_intervencion'),
+                            'Instalado' => data_get($registro, 'componente_instalado'),
+                            'Parte' => data_get($registro, 'numero_parte'),
+                            'Proveedor' => data_get($registro, 'proveedor'),
+                            'Garantia' => data_get($registro, 'garantia'),
+                            'Cambio' => data_get($registro, 'fecha_cambio'),
+                        ])
+                            ->filter(fn ($value) => $hasUsefulValue($value))
+                            ->map(fn ($value, $label) => $label . ': ' . $formatValue($value))
+                            ->implode(' | ');
+
+                        $costos = collect([
+                            'Refacciones' => data_get($registro, 'costo_refacciones'),
+                            'Mano de obra' => data_get($registro, 'costo_mano_obra'),
+                            'Externos' => data_get($registro, 'costo_servicios_externos'),
+                            'Total' => data_get($registro, 'costo_total_intervencion'),
+                            'Horas' => data_get($registro, 'tiempo_reparacion_horas'),
+                        ])
+                            ->filter(fn ($value) => $hasUsefulValue($value))
+                            ->map(fn ($value, $label) => $label . ': ' . $formatValue($value))
+                            ->implode(' | ');
+
                         $analysisFacts = array_values(array_filter([
                             $makeFact('Componente', trim($componenteNombre . ' (' . ($componenteCodigo ?: 'N/A') . ')')),
                             $makeFact(\App\Support\LavadoraCatalog::etiquetaReductorParaValor($nombreLinea, data_get($registro, 'reductor')), \App\Support\LavadoraCatalog::nombreReductorParaLinea($nombreLinea, data_get($registro, 'reductor'))),
@@ -1524,6 +1599,11 @@
                             $makeFact('Responsable', $responsableRegistro),
                             $makeFact('Registrado', data_get($registro, 'created_at')),
                             $makeFact('Actividad', data_get($registro, 'actividad'), true),
+                            $makeFact('Cierre tecnico', $cierreTecnico, true),
+                            $makeFact('Intervencion', $intervencion, true),
+                            $makeFact('Costos y tiempo', $costos, true),
+                            $makeFact('Observaciones reparacion', data_get($registro, 'observaciones_reparacion'), true),
+                            $makeFact('Comentarios costos', data_get($registro, 'comentarios_costos'), true),
                         ]));
                     }
                 @endphp

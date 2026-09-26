@@ -646,6 +646,7 @@ class ReporteController extends Controller
             $elongacionesLinea = $elongaciones->get($linea->nombre, collect([]));
             $tendenciasLinea = $filasTendenciaPorLinea->get($linea->id, collect());
             $historicosLinea = $historicos->get($linea->id, collect([]));
+            $estadisticasLinea = $estadisticasAnalisis->get($linea->id);
             $ultimaRevision = $ultimasRevisiones->get($linea->id);
             $historicoRevisados = $this->calcularHistoricoRevisadosLavadora($linea);
             $registrosLinea = $estadoActual->get($linea->id, collect([]));
@@ -662,6 +663,11 @@ class ReporteController extends Controller
                 ->filter(fn ($codigo) => $codigo !== 'SIN_COMPONENTE')
                 ->unique()
                 ->count();
+            $totalAnalisisPeriodo = (int) ($estadisticasLinea->total_analisis ?? 0);
+            $componentesRevisadosPeriodo = (int) ($estadisticasLinea->componentes_revisados ?? 0);
+            $componentesCriticosPeriodo = (int) ($estadisticasLinea->componentes_criticos ?? 0);
+            $componentesDesgastePeriodo = (int) ($estadisticasLinea->componentes_severos_moderados ?? 0);
+            $componentesRevisionPeriodo = (int) ($estadisticasLinea->componentes_revision ?? 0);
 
             $ultimaElongacion = $elongacionesLinea
                 ->sortByDesc(fn ($registro) => (string) ($registro->created_at ?? ''))
@@ -673,8 +679,12 @@ class ReporteController extends Controller
 
             // ⚠️ IMPORTANTE: Todo debe estar DENTRO de este array
             $reporteGeneral[$linea->id] = [
-                'total_analisis' => $registrosLinea->count(),
-                'componentes_revisados' => $componentesRevisados,
+                'total_analisis' => $totalAnalisisPeriodo,
+                'analisis_periodo' => $totalAnalisisPeriodo,
+                'analisis_estado_actual' => $registrosLinea->count(),
+                'componentes_revisados' => $componentesRevisadosPeriodo,
+                'componentes_revisados_periodo' => $componentesRevisadosPeriodo,
+                'componentes_con_estado_actual' => $componentesRevisados,
                 'total_componentes' => count($this->componentesPorLinea[$linea->nombre] ?? []),
                 'acciones_pendientes' => $registrosLinea->filter(fn ($registro) => $this->esEstadoDanadoReporte($registro->estado))->count(),
                 'planes_pendientes' => $planesLinea->count(),
@@ -699,8 +709,11 @@ class ReporteController extends Controller
                     ? Carbon::parse($ultimaRevision->fecha_restablecimiento)->format('d/m/Y')
                     : null,
                 'componentes_criticos' => $registrosLinea->filter(fn ($registro) => $this->esEstadoDanadoReporte($registro->estado))->count(),
+                'componentes_criticos_periodo' => $componentesCriticosPeriodo,
                 'componentes_severos_moderados' => $registrosLinea->filter(fn ($registro) => $this->esEstadoDesgasteReporte($registro->estado))->count(),
+                'componentes_severos_moderados_periodo' => $componentesDesgastePeriodo,
                 'componentes_revision' => $registrosLinea->filter(fn ($registro) => $this->esEstadoRevisionReporte($registro->estado))->count(),
+                'componentes_revision_periodo' => $componentesRevisionPeriodo,
                 'reductores_count' => count($this->reductoresPorLinea[$linea->nombre] ?? []),
                 'estado_general' => $this->determinarEstadoGeneralDesdeRegistros($registrosLinea)
             ];
