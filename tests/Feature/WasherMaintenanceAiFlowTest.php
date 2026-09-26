@@ -278,7 +278,8 @@ class WasherMaintenanceAiFlowTest extends TestCase
 
         $this->assertSame('approved', $plan->estado);
         $this->assertSame($admin->id, $plan->reviewed_by);
-        $this->assertNull($plan->responsable_id);
+        $this->assertSame($admin->id, $plan->responsable_id);
+        $this->assertSame($admin->id, $plan->registrado_por_id);
         $this->assertSame('Cambiar servo validado', $plan->approved_content['title']);
         $this->assertSame('Se ajusto fecha y prioridad despues de revisar historico.', $plan->final_observations);
         $this->assertSame([
@@ -288,6 +289,7 @@ class WasherMaintenanceAiFlowTest extends TestCase
         ], $plan->approved_content['recommended_actions'][0]);
         $this->assertNull($plan->estimated_hours);
         $this->assertSame(MaintenanceEvent::STATUS_PLAN_GENERATED, $plan->maintenanceEvent->fresh()->status);
+        $this->assertNotSame($ignoredResponsable->id, $plan->responsable_id);
 
         $this->actingAs($admin)
             ->get(route('plan-accion.ai.review', ['planAccion' => $plan->id]))

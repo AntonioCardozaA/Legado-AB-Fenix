@@ -91,8 +91,9 @@ class WasherAiPlanReviewController extends Controller
         $plan = $this->resolvePlan($request->user(), $planAccion);
         $structured = $this->validator->validate($request->structuredPayload());
         $reviewedAt = now();
+        $reviewerId = (int) $request->user()->id;
 
-        DB::transaction(function () use ($plan, $request, $structured, $reviewedAt): void {
+        DB::transaction(function () use ($plan, $request, $structured, $reviewedAt, $reviewerId): void {
             $plan->fill([
                 'actividad' => $structured['title'],
                 'priority_level' => $structured['priority'],
@@ -108,7 +109,9 @@ class WasherAiPlanReviewController extends Controller
                 'fecha_pcm1' => $structured['suggested_due_date'],
                 'estimated_cost_total' => $structured['estimated_cost']['maximum'] ?? null,
                 'estimated_hours' => null,
-                'reviewed_by' => $request->user()->id,
+                'responsable_id' => $plan->responsable_id ?: $reviewerId,
+                'registrado_por_id' => $reviewerId,
+                'reviewed_by' => $reviewerId,
                 'reviewed_at' => $reviewedAt,
                 'rejection_reason' => null,
                 'observaciones' => $request->validated('review_notes') ?: $structured['technical_justification'],
@@ -118,7 +121,7 @@ class WasherAiPlanReviewController extends Controller
             $plan->appendReviewHistory([
                 'action' => 'approved',
                 'performed_at' => $reviewedAt->toIso8601String(),
-                'performed_by' => $request->user()->id,
+                'performed_by' => $reviewerId,
                 'notes' => $request->validated('review_notes'),
             ]);
 

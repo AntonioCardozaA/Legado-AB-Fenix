@@ -251,7 +251,9 @@ class PasteurizadoraMaintenanceAiFlowTest extends TestCase
         $admin = $this->userWithRole(User::ROLE_ADMIN, true);
         $technician = $this->userWithRole(User::ROLE_TECNICO, true);
         $this->grantPasteurizadoraAccess($technician);
+        $configuredResponsable = User::factory()->create(['activo' => true]);
         $plan = $this->createPendingAiPlan($admin);
+        $plan->update(['responsable_id' => $configuredResponsable->id]);
 
         $this->actingAs($technician)
             ->get(route('plan-accion.ai.pasteurizadora.review', ['planAccion' => $plan->id]))
@@ -286,6 +288,8 @@ class PasteurizadoraMaintenanceAiFlowTest extends TestCase
 
         $this->assertSame('approved', $plan->estado);
         $this->assertSame($admin->id, $plan->reviewed_by);
+        $this->assertSame($configuredResponsable->id, $plan->responsable_id);
+        $this->assertSame($admin->id, $plan->registrado_por_id);
         $this->assertSame(User::MODULE_PASTEURIZADORA, $plan->tipo_equipo);
         $this->assertSame(AnalisisPasteurizadora::AREA_MECANICA, $plan->area_pasteurizadora);
         $this->assertSame('Cambiar anillas validado', $plan->approved_content['title']);
