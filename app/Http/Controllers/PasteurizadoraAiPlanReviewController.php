@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\ReviewPasteurizadoraAiPlanRequest;
+use App\Jobs\GeneratePasteurizadoraActionPlan;
 use App\Models\AnalisisPasteurizadora;
 use App\Models\MaintenanceEvent;
 use App\Models\Linea;
@@ -13,6 +14,7 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Throwable;
 
 class PasteurizadoraAiPlanReviewController extends Controller
 {
@@ -256,6 +258,55 @@ class PasteurizadoraAiPlanReviewController extends Controller
             ->with('success', 'La sugerencia quedo marcada como pendiente de informacion adicional.');
     }
 
+    public function regenerate(Request $request, PlanAccion $planAccion): RedirectResponse
+    {
+        $plan = $this->resolvePlan($request->user(), $planAccion);
+        abort_unless($plan->estado === 'requires_information', 404);
+        abort_unless($plan->maintenanceEvent, 422, 'La sugerencia no tiene un evento de mantenimiento asociado.');
+
+        $validated = $request->validate([
+            'additional_context' => ['required', 'string', 'max:3000'],
+        ]);
+
+        $requestedAt = now();
+        $message = trim($validated['additional_context']);
+        $reviewer = $request->user();
+        $event = $plan->maintenanceEvent;
+
+        DB::transaction(function () use ($event, $message, $plan, $requestedAt, $reviewer): void {
+            $context = $event->context_data ?? [];
+            $context['ai_regeneration_context'] = [
+                'additional_information' => $message,
+                'requested_by_id' => $reviewer?->id,
+                'requested_by_name' => $reviewer?->name,
+                'requested_at' => $requestedAt->toIso8601String(),
+                'plan_id' => $plan->id,
+                'module' => User::MODULE_PASTEURIZADORA,
+                'area' => $plan->area_pasteurizadora,
+            ];
+
+            $event->update([
+                'context_data' => $context,
+                'status' => MaintenanceEvent::STATUS_PROCESSING,
+            ]);
+
+            $plan->appendReviewHistory([
+                'action' => 'regeneration_requested',
+                'performed_at' => $requestedAt->toIso8601String(),
+                'performed_by' => $reviewer?->id,
+                'message' => $message,
+            ]);
+            $plan->final_observations = $message;
+            $plan->save();
+        });
+
+        $this->dispatchRegeneration((int) $event->id);
+
+        return redirect()
+            ->route('plan-accion.ai.pasteurizadora.review', ['planAccion' => $plan->id])
+            ->with('success', 'La sugerencia se esta regenerando con la informacion adicional del revisor.');
+    }
+
     private function ensureAccess(?User $user): void
     {
         abort_unless(
@@ -338,6 +389,51 @@ class PasteurizadoraAiPlanReviewController extends Controller
             ->all();
     }
 
+    private function dispatchRegeneration(int $maintenanceEventId): void
+    {
+        $queue = (string) config('maintenance_ai.queue', 'default');
+        $mode = $this->dispatchMode();
+
+        if ($mode === 'queue') {
+            GeneratePasteurizadoraActionPlan::dispatch($maintenanceEventId)->onQueue($queue);
+
+            return;
+        }
+
+        if ($mode === 'after_response' && !app()->runningInConsole()) {
+            app()->terminating(function () use ($maintenanceEventId): void {
+                $this->runRegenerationInline($maintenanceEventId);
+            });
+
+            return;
+        }
+
+        $this->runRegenerationInline($maintenanceEventId, $mode === 'sync');
+    }
+
+    private function dispatchMode(): string
+    {
+        $mode = strtolower((string) config('maintenance_ai.dispatch_mode', 'queue'));
+        $allowed = ['queue', 'sync', 'after_response'];
+
+        return in_array($mode, $allowed, true) ? $mode : 'queue';
+    }
+
+    private function runRegenerationInline(int $maintenanceEventId, bool $rethrow = false): void
+    {
+        $job = new GeneratePasteurizadoraActionPlan($maintenanceEventId);
+
+        try {
+            $job->handle(app(\App\Services\Maintenance\PasteurizadoraActionPlanGenerator::class));
+        } catch (Throwable $exception) {
+            $job->failed($exception);
+
+            if ($rethrow) {
+                throw $exception;
+            }
+        }
+    }
+
     /**
      * @return array<string, string>
      */
@@ -349,6 +445,7 @@ class PasteurizadoraAiPlanReviewController extends Controller
             'approve' => 'plan-accion.ai.pasteurizadora.approve',
             'reject' => 'plan-accion.ai.pasteurizadora.reject',
             'request_information' => 'plan-accion.ai.pasteurizadora.request-information',
+            'regenerate' => 'plan-accion.ai.pasteurizadora.regenerate',
         ];
     }
 }

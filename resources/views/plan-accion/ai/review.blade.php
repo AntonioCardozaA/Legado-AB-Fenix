@@ -12,6 +12,7 @@
         'approve' => 'plan-accion.ai.approve',
         'reject' => 'plan-accion.ai.reject',
         'request_information' => 'plan-accion.ai.request-information',
+        'regenerate' => 'plan-accion.ai.regenerate',
     ];
     $componentFallback = $componentFallback ?? 'Cadena de lavadora';
     $actions = old('recommended_actions', $structured['recommended_actions'] ?? []);
@@ -33,6 +34,8 @@
         'approved' => 'Sugerencia aprobada',
         'rejected' => 'Sugerencia rechazada',
         'requested_information' => 'Informacion adicional solicitada',
+        'regeneration_requested' => 'Regeneracion solicitada',
+        'regenerated' => 'Sugerencia regenerada',
     ];
     $currentMaintenanceTypeLabel = $maintenanceTypeLabels[$plan->maintenance_type] ?? ucfirst((string) $plan->maintenance_type);
     $currentStatusLabel = $statusLabels[$plan->estado] ?? ucfirst(str_replace('_', ' ', (string) $plan->estado));
@@ -275,6 +278,20 @@
                     </button>
                 </form>
             </section>
+
+            @if($requiresManualReview)
+                <section class="rounded-2xl border border-blue-200 bg-blue-50 p-5 shadow-sm">
+                    <h2 class="text-sm font-black uppercase tracking-wide text-blue-800">Regenerar con informacion adicional</h2>
+                    <form action="{{ route($routeNames['regenerate'], ['planAccion' => $plan->id]) }}" method="POST" class="mt-4 space-y-3">
+                        @csrf
+                        <textarea name="additional_context" rows="5" required placeholder="Agrega la informacion de campo, criterio tecnico o dato faltante que la IA debe usar para regenerar la sugerencia." class="w-full rounded-xl border-blue-200 text-sm focus:border-blue-500 focus:ring-blue-500">{{ old('additional_context') }}</textarea>
+                        <button type="submit" class="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-3 text-sm font-bold text-white transition hover:bg-blue-700">
+                            <i class="fas fa-rotate"></i>
+                            Regenerar con informacion adicional
+                        </button>
+                    </form>
+                </section>
+            @endif
 
             <section class="rounded-2xl border border-orange-200 bg-orange-50 p-5 shadow-sm">
                 <h2 class="text-sm font-black uppercase tracking-wide text-orange-800">Solicitar informacion</h2>

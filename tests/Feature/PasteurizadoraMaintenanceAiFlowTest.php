@@ -309,6 +309,114 @@ class PasteurizadoraMaintenanceAiFlowTest extends TestCase
             ->assertSee('CAMBIAR ANILLAS VALIDADO');
     }
 
+    public function test_reviewer_can_regenerate_pasteurizadora_requires_information_plan_with_additional_context(): void
+    {
+        Notification::fake();
+
+        config([
+            'maintenance_ai.enabled' => true,
+            'maintenance_ai.provider' => 'openai',
+            'maintenance_ai.dispatch_mode' => 'sync',
+        ]);
+
+        $admin = $this->userWithRole(User::ROLE_ADMIN, true);
+        $plan = $this->createPendingAiPlan($admin);
+        $plan->update([
+            'estado' => 'requires_information',
+            'final_observations' => 'Falta validar modulo y lado.',
+        ]);
+
+        $capturingProvider = new class implements AiProviderInterface
+        {
+            public array $payloads = [];
+
+            public function generateStructuredActionPlan(array $payload): array
+            {
+                $this->payloads[] = $payload;
+
+                return [
+                    'data' => [
+                        'title' => 'Cambiar anillas regenerado con modulo',
+                        'priority' => 'high',
+                        'maintenance_type' => 'corrective',
+                        'detected_problem' => 'Anillas con dano confirmado en modulo 1 lado vapor.',
+                        'technical_justification' => 'El revisor confirmo ubicacion exacta y condicion critica.',
+                        'recommended_actions' => [
+                            [
+                                'order' => 1,
+                                'activity' => 'Cambiar anillas en modulo 1 lado vapor',
+                                'technical_detail' => 'Bloquear energia y sustituir anillas danadas en la ubicacion confirmada.',
+                            ],
+                        ],
+                        'suggested_due_date' => '2026-08-23',
+                        'risk_if_not_executed' => 'Paro de pasteurizadora por arrastre irregular.',
+                        'estimated_cost' => [
+                            'minimum' => 0,
+                            'maximum' => 0,
+                            'currency' => 'MXN',
+                            'based_on_historical_data' => false,
+                        ],
+                        'knowledge_sources' => [
+                            [
+                                'type' => 'revision',
+                                'reference' => 'Informacion adicional del revisor',
+                                'document_id' => null,
+                                'chunk_index' => null,
+                                'page' => null,
+                                'section' => null,
+                            ],
+                        ],
+                        'confidence' => 0.87,
+                        'requires_human_approval' => true,
+                        'missing_information' => [],
+                    ],
+                    'raw' => ['provider' => 'fake'],
+                    'meta' => [
+                        'provider' => 'openai',
+                        'model' => 'pasteurizadora-regeneration-test',
+                    ],
+                ];
+            }
+
+            public function createEmbedding(string $content): array
+            {
+                return [];
+            }
+
+            public function extractDocumentText(array $payload): string
+            {
+                return '';
+            }
+        };
+
+        $this->app->instance(AiProviderInterface::class, $capturingProvider);
+
+        $message = 'Confirmado: modulo 1, nivel superior, lado vapor; hay vibracion al avance.';
+
+        $this->actingAs($admin)
+            ->post(route('plan-accion.ai.pasteurizadora.regenerate', ['planAccion' => $plan->id]), [
+                'additional_context' => $message,
+            ])
+            ->assertRedirect(route('plan-accion.ai.pasteurizadora.review', ['planAccion' => $plan->id]));
+
+        $plan->refresh();
+        $event = $plan->maintenanceEvent->fresh();
+        $historyActions = collect($plan->review_history)->pluck('action')->all();
+        $prompt = (string) ($capturingProvider->payloads[0]['user_prompt'] ?? '');
+
+        $this->assertSame('pending_review', $plan->estado);
+        $this->assertSame('CAMBIAR ANILLAS REGENERADO CON MODULO', $plan->actividad);
+        $this->assertNull($plan->final_observations);
+        $this->assertSame(MaintenanceEvent::STATUS_PLAN_GENERATED, $event->status);
+        $this->assertSame($message, data_get($event->context_data, 'ai_regeneration_context.additional_information'));
+        $this->assertContains('regeneration_requested', $historyActions);
+        $this->assertContains('regenerated', $historyActions);
+        $this->assertStringContainsString('"review_context"', $prompt);
+        $this->assertStringContainsString($message, $prompt);
+
+        Notification::assertSentTo($admin, PasteurizadoraAiPlanPendingReviewNotification::class);
+    }
+
     public function test_store_pasteurizadora_knowledge_document_indexes_text_content(): void
     {
         config([

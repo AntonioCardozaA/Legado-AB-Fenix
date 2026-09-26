@@ -67,6 +67,9 @@ class PasteurizadoraActionPlanGenerator
         /** @var PlanAccion $plan */
         $plan = DB::transaction(function () use ($context, $event, $prompt, $response, $validated) {
             $plan = $this->resolveDraftPlan($event);
+            $isRegeneration = $plan->exists
+                && $plan->estado === 'requires_information'
+                && filled(data_get($event->context_data, 'ai_regeneration_context.additional_information'));
 
             $plan->fill([
                 'linea_id' => $event->linea_id,
@@ -97,13 +100,20 @@ class PasteurizadoraActionPlanGenerator
                 'fecha_pcm1' => $validated['suggested_due_date'],
                 'estimated_cost_total' => $validated['estimated_cost']['maximum'] ?? null,
                 'estimated_hours' => null,
+                'reviewed_by' => null,
+                'reviewed_at' => null,
+                'rejection_reason' => null,
+                'final_observations' => null,
             ]);
 
             $plan->appendReviewHistory([
-                'action' => 'generated',
+                'action' => $isRegeneration ? 'regenerated' : 'generated',
                 'performed_at' => now()->toIso8601String(),
                 'provider' => $response['meta']['provider'] ?? config('maintenance_ai.provider'),
                 'model' => $response['meta']['model'] ?? null,
+                'context_message' => $isRegeneration
+                    ? data_get($event->context_data, 'ai_regeneration_context.additional_information')
+                    : null,
             ]);
 
             $plan->save();

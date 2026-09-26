@@ -626,6 +626,7 @@ Route::prefix('pasteurizadora')->group(function () {
             Route::post('/{planAccion}/approve', 'approve')->name('approve');
             Route::post('/{planAccion}/reject', 'reject')->name('reject');
             Route::post('/{planAccion}/request-information', 'requestInformation')->name('request-information');
+            Route::post('/{planAccion}/regenerate', 'regenerate')->name('regenerate');
         });
 
     Route::prefix('plan-accion/ai/pasteurizadora')
@@ -637,6 +638,7 @@ Route::prefix('pasteurizadora')->group(function () {
             Route::post('/{planAccion}/approve', 'approve')->name('approve');
             Route::post('/{planAccion}/reject', 'reject')->name('reject');
             Route::post('/{planAccion}/request-information', 'requestInformation')->name('request-information');
+            Route::post('/{planAccion}/regenerate', 'regenerate')->name('regenerate');
         });
 
     Route::prefix('lavadora/documentos-conocimiento')

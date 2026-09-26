@@ -63,6 +63,7 @@ class WasherActionPlanPromptBuilder
             'current' => $context['current'] ?? [],
             'history' => $context['history'] ?? [],
             'technical_context' => $context['technical_context'] ?? [],
+            'review_context' => $context['review_context'] ?? [],
             'risk' => $context['risk'] ?? [],
             'costs' => $context['costs'] ?? [],
             'knowledge' => $knowledge,
@@ -76,6 +77,7 @@ class WasherActionPlanPromptBuilder
                 'Only cite sources included in technical_context or the knowledge list.',
                 'Do not convert a suggestion into a mandatory instruction.',
                 'Keep every section concise and avoid unnecessary detail.',
+                'When review_context.additional_information is present, use it as reviewer-supplied field context for regenerating the suggestion.',
             ],
         ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
 

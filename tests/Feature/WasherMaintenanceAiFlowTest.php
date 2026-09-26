@@ -313,6 +313,113 @@ class WasherMaintenanceAiFlowTest extends TestCase
             ->assertJsonPath('maintenance_event.title', 'Componente danado');
     }
 
+    public function test_reviewer_can_regenerate_requires_information_plan_with_additional_context(): void
+    {
+        Notification::fake();
+
+        config([
+            'maintenance_ai.enabled' => true,
+            'maintenance_ai.provider' => 'openai',
+            'maintenance_ai.dispatch_mode' => 'sync',
+        ]);
+
+        $admin = $this->userWithRole(User::ROLE_ADMIN, true);
+        $plan = $this->createPendingAiPlan();
+        $plan->update([
+            'estado' => 'requires_information',
+            'final_observations' => 'Falta validar temperatura del servo.',
+        ]);
+
+        $capturingProvider = new class implements AiProviderInterface
+        {
+            public array $payloads = [];
+
+            public function generateStructuredActionPlan(array $payload): array
+            {
+                $this->payloads[] = $payload;
+
+                return [
+                    'data' => [
+                        'title' => 'Cambiar servo regenerado con temperatura',
+                        'priority' => 'high',
+                        'maintenance_type' => 'corrective',
+                        'detected_problem' => 'Servo con desgaste y temperatura elevada confirmada.',
+                        'technical_justification' => 'El revisor confirmo temperatura fuera de rango y riesgo de paro.',
+                        'recommended_actions' => [
+                            [
+                                'order' => 1,
+                                'activity' => 'Cambiar servo y revisar temperatura',
+                                'technical_detail' => 'Aislar energia, reemplazar servo y validar temperatura posterior.',
+                            ],
+                        ],
+                        'suggested_due_date' => '2026-07-23',
+                        'risk_if_not_executed' => 'Paro de linea por sobrecalentamiento.',
+                        'estimated_cost' => [
+                            'minimum' => 1500,
+                            'maximum' => 2100,
+                            'currency' => 'MXN',
+                            'based_on_historical_data' => false,
+                        ],
+                        'knowledge_sources' => [
+                            [
+                                'type' => 'revision',
+                                'reference' => 'Informacion adicional del revisor',
+                                'document_id' => null,
+                                'page' => null,
+                                'section' => null,
+                            ],
+                        ],
+                        'confidence' => 0.86,
+                        'requires_human_approval' => true,
+                        'missing_information' => [],
+                    ],
+                    'raw' => ['provider' => 'fake'],
+                    'meta' => [
+                        'provider' => 'openai',
+                        'model' => 'regeneration-test',
+                    ],
+                ];
+            }
+
+            public function createEmbedding(string $content): array
+            {
+                return [];
+            }
+
+            public function extractDocumentText(array $payload): string
+            {
+                return '';
+            }
+        };
+
+        $this->app->instance(AiProviderInterface::class, $capturingProvider);
+
+        $message = 'La temperatura medida fue 82 C y el ruido aumenta al operar con carga.';
+
+        $this->actingAs($admin)
+            ->post(route('plan-accion.ai.regenerate', ['planAccion' => $plan->id]), [
+                'additional_context' => $message,
+            ])
+            ->assertRedirect(route('plan-accion.ai.review', ['planAccion' => $plan->id]));
+
+        $plan->refresh();
+        $event = $plan->maintenanceEvent->fresh();
+        $historyActions = collect($plan->review_history)->pluck('action')->all();
+        $prompt = (string) ($capturingProvider->payloads[0]['user_prompt'] ?? '');
+
+        $this->assertSame('pending_review', $plan->estado);
+        $this->assertSame('CAMBIAR SERVO REGENERADO CON TEMPERATURA', $plan->actividad);
+        $this->assertNull($plan->final_observations);
+        $this->assertSame(MaintenanceEvent::STATUS_PLAN_GENERATED, $event->status);
+        $this->assertSame($message, data_get($event->context_data, 'ai_regeneration_context.additional_information'));
+        $this->assertContains('regeneration_requested', $historyActions);
+        $this->assertContains('regenerated', $historyActions);
+        $this->assertStringContainsString('"review_context"', $prompt);
+        $this->assertStringContainsString($message, $prompt);
+
+        Notification::assertSentTo($admin, WasherAiPlanPendingReviewNotification::class);
+    }
+
     public function test_store_knowledge_document_indexes_text_file_uploads(): void
     {
         Storage::fake('local');

@@ -50,8 +50,34 @@ class WasherContextBuilder
                 'status' => $event->status,
                 'summary' => $this->sanitizer->sanitizeText($event->description, 1000),
             ],
+            'review_context' => $this->buildReviewContext($event),
             'costs' => $costs,
             'knowledge' => $knowledge,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function buildReviewContext(MaintenanceEvent $event): array
+    {
+        $context = data_get($event->context_data, 'ai_regeneration_context', []);
+
+        if (!is_array($context)) {
+            return [];
+        }
+
+        $message = trim((string) data_get($context, 'additional_information', ''));
+
+        if ($message === '') {
+            return [];
+        }
+
+        return [
+            'additional_information' => $this->sanitizer->sanitizeText($message, 2000),
+            'requested_by_name' => $this->sanitizer->sanitizeText((string) data_get($context, 'requested_by_name', ''), 120),
+            'requested_at' => data_get($context, 'requested_at'),
+            'plan_id' => data_get($context, 'plan_id'),
         ];
     }
 
