@@ -138,8 +138,10 @@ class PasteurizadoraAiPlanReviewController extends Controller
         $structured = $this->validator->validate($request->structuredPayload());
         $reviewedAt = now();
         $reviewerId = (int) $request->user()->id;
+        $reviewNotes = $request->validated('review_notes');
+        $operationalObservations = PlanAccion::buildOperationalObservations($structured, $reviewNotes);
 
-        DB::transaction(function () use ($plan, $request, $structured, $reviewedAt, $reviewerId): void {
+        DB::transaction(function () use ($plan, $structured, $reviewedAt, $reviewerId, $reviewNotes, $operationalObservations): void {
             $plan->fill([
                 'actividad' => $structured['title'],
                 'priority_level' => $structured['priority'],
@@ -160,15 +162,15 @@ class PasteurizadoraAiPlanReviewController extends Controller
                 'reviewed_by' => $reviewerId,
                 'reviewed_at' => $reviewedAt,
                 'rejection_reason' => null,
-                'observaciones' => $request->validated('review_notes') ?: $structured['technical_justification'],
-                'final_observations' => $request->validated('review_notes'),
+                'observaciones' => $operationalObservations,
+                'final_observations' => $reviewNotes,
             ]);
 
             $plan->appendReviewHistory([
                 'action' => 'approved',
                 'performed_at' => $reviewedAt->toIso8601String(),
                 'performed_by' => $reviewerId,
-                'notes' => $request->validated('review_notes'),
+                'notes' => $reviewNotes,
             ]);
 
             $plan->save();

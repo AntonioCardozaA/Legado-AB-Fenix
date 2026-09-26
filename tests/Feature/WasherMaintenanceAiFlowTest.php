@@ -282,6 +282,9 @@ class WasherMaintenanceAiFlowTest extends TestCase
         $this->assertSame($admin->id, $plan->registrado_por_id);
         $this->assertSame('Cambiar servo validado', $plan->approved_content['title']);
         $this->assertSame('Se ajusto fecha y prioridad despues de revisar historico.', $plan->final_observations);
+        $this->assertStringContainsString('Acciones recomendadas:', $plan->observaciones);
+        $this->assertStringContainsString('1. Cambiar servo - Aislar energia y montar servo nuevo.', $plan->observaciones);
+        $this->assertStringContainsString('Notas del revisor:', $plan->observaciones);
         $this->assertSame([
             'order' => 1,
             'activity' => 'Cambiar servo',
@@ -305,6 +308,7 @@ class WasherMaintenanceAiFlowTest extends TestCase
             ->assertOk()
             ->assertJsonPath('structured_content.detected_problem', 'Desgaste critico confirmado por revision humana.')
             ->assertJsonPath('structured_content.recommended_actions.0.activity', 'Cambiar servo')
+            ->assertJsonPath('recommended_actions_summary', '1. Cambiar servo - Aislar energia y montar servo nuevo.')
             ->assertJsonPath('source_label', 'Generado por IA')
             ->assertJsonPath('maintenance_event.title', 'Componente danado');
     }

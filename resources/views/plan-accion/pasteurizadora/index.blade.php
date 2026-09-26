@@ -1356,6 +1356,35 @@ document.addEventListener('DOMContentLoaded', function() {
         const articleBorderClasses = data.completado ? 'border-emerald-100' : 'border-blue-100';
         const areaLabels = { mecanica: 'Mecanica', central_hidraulica: 'Hidraulica' };
         const areaLabel = areaLabels[data.area_pasteurizadora] || data.area_pasteurizadora_label || 'No especificada';
+        const normalizeObject = value => value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+        const structuredContent = normalizeObject(data.structured_content);
+        const approvedContent = normalizeObject(data.approved_content);
+        const generatedContent = normalizeObject(data.original_generated_content);
+        const aiContent = Object.keys(structuredContent).length
+            ? structuredContent
+            : (Object.keys(approvedContent).length ? approvedContent : generatedContent);
+        const recommendedActions = Array.isArray(aiContent.recommended_actions) ? aiContent.recommended_actions : [];
+        const hasAiDetails = data.source === 'ai' || Object.keys(aiContent).length > 0 || recommendedActions.length > 0;
+        const formatMultiline = value => escapeHtml(value).replace(/\n/g, '<br>');
+        const recommendedActionsHtml = hasAiDetails ? `
+            <div class="rounded-xl border border-amber-200 bg-white p-4 shadow-sm">
+                <p class="text-xs font-bold uppercase tracking-wide text-amber-700">Acciones recomendadas</p>
+                <div class="mt-3 space-y-3">
+                    ${recommendedActions.length ? recommendedActions.map((action, index) => `
+                        <div class="rounded-xl border border-amber-100 bg-amber-50/70 p-4">
+                            <p class="font-bold text-zinc-950">${escapeHtml(String(action.order || index + 1))}. ${escapeHtml(action.activity || 'Sin actividad definida')}</p>
+                            ${action.technical_detail ? `
+                                <p class="mt-2 text-sm leading-6 text-zinc-700">${formatMultiline(String(action.technical_detail))}</p>
+                            ` : ''}
+                        </div>
+                    `).join('') : `
+                        <p class="rounded-xl border border-dashed border-amber-200 bg-white px-4 py-5 text-sm text-zinc-500">
+                            No se registraron acciones en la aprobacion.
+                        </p>
+                    `}
+                </div>
+            </div>
+        ` : '';
         const pcmCards = ['fecha_pcm1', 'fecha_pcm2', 'fecha_pcm3', 'fecha_pcm4']
             .map((campo, index) => {
                 const tone = pcmTone(data[campo]);
@@ -1408,10 +1437,12 @@ document.addEventListener('DOMContentLoaded', function() {
                         <p class="mt-2 font-bold">${escapeHtml(areaLabel)}</p>
                     </div>
 
+                    ${recommendedActionsHtml}
+
                     ${data.observaciones ? `
                         <div class="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
                             <p class="text-xs font-bold uppercase tracking-wide text-zinc-500">Observaciones</p>
-                            <p class="mt-2 text-sm leading-6 text-zinc-700">${escapeHtml(data.observaciones)}</p>
+                            <p class="mt-2 text-sm leading-6 text-zinc-700">${formatMultiline(data.observaciones)}</p>
                         </div>
                     ` : ''}
                 </div>

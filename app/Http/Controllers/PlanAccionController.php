@@ -330,6 +330,7 @@ class PlanAccionController extends Controller
         $this->ensureCanViewPlan($plan);
 
         $plan->setAttribute('structured_content', $plan->currentStructuredContent());
+        $plan->setAttribute('recommended_actions_summary', $plan->recommendedActionsSummary());
         $plan->setAttribute('source_label', $plan->sourceLabel());
         $plan->setAttribute('maintenance_event_source_url', $plan->maintenanceEvent?->sourceUrl());
         $plan->setAttribute('effectiveness_label', $plan->effectivenessLabel());

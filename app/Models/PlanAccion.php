@@ -305,6 +305,81 @@ class PlanAccion extends Model
     }
 
     /**
+     * @param  array<string, mixed>  $structured
+     */
+    public static function buildOperationalObservations(array $structured, ?string $reviewNotes = null): string
+    {
+        $sections = [];
+
+        $technicalJustification = trim((string) data_get($structured, 'technical_justification', ''));
+        if ($technicalJustification !== '') {
+            $sections[] = "Justificacion tecnica:\n".$technicalJustification;
+        }
+
+        $recommendedActions = self::formatRecommendedActionsSummary(data_get($structured, 'recommended_actions', []));
+        if ($recommendedActions !== '') {
+            $sections[] = "Acciones recomendadas:\n".$recommendedActions;
+        }
+
+        $risk = trim((string) data_get($structured, 'risk_if_not_executed', ''));
+        if ($risk !== '') {
+            $sections[] = "Riesgo si no se ejecuta:\n".$risk;
+        }
+
+        $notes = trim((string) $reviewNotes);
+        if ($notes !== '') {
+            $sections[] = "Notas del revisor:\n".$notes;
+        }
+
+        if ($sections === []) {
+            return trim((string) data_get($structured, 'detected_problem', ''));
+        }
+
+        return implode("\n\n", $sections);
+    }
+
+    public function recommendedActionsSummary(): ?string
+    {
+        $summary = self::formatRecommendedActionsSummary(
+            data_get($this->currentStructuredContent(), 'recommended_actions', [])
+        );
+
+        return $summary !== '' ? $summary : null;
+    }
+
+    private static function formatRecommendedActionsSummary(mixed $actions): string
+    {
+        if (!is_array($actions)) {
+            return '';
+        }
+
+        $lines = [];
+
+        foreach (array_values($actions) as $index => $action) {
+            if (!is_array($action)) {
+                continue;
+            }
+
+            $order = (int) data_get($action, 'order', $index + 1);
+            $activity = trim((string) data_get($action, 'activity', ''));
+            $detail = trim((string) data_get($action, 'technical_detail', ''));
+
+            if ($activity === '' && $detail === '') {
+                continue;
+            }
+
+            $line = max(1, $order).'. '.($activity !== '' ? $activity : 'Actividad recomendada');
+            if ($detail !== '') {
+                $line .= ' - '.$detail;
+            }
+
+            $lines[] = $line;
+        }
+
+        return implode("\n", $lines);
+    }
+
+    /**
      * @param  array<string, mixed>  $entry
      */
     public function appendReviewHistory(array $entry): void

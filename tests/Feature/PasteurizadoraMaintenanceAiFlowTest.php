@@ -293,7 +293,15 @@ class PasteurizadoraMaintenanceAiFlowTest extends TestCase
         $this->assertSame(User::MODULE_PASTEURIZADORA, $plan->tipo_equipo);
         $this->assertSame(AnalisisPasteurizadora::AREA_MECANICA, $plan->area_pasteurizadora);
         $this->assertSame('Cambiar anillas validado', $plan->approved_content['title']);
+        $this->assertStringContainsString('Acciones recomendadas:', $plan->observaciones);
+        $this->assertStringContainsString('1. Cambiar anillas - Bloquear energia, desmontar el conjunto y montar anillas nuevas.', $plan->observaciones);
         $this->assertSame(MaintenanceEvent::STATUS_PLAN_GENERATED, $plan->maintenanceEvent->fresh()->status);
+
+        $this->actingAs($admin)
+            ->getJson(route('plan-accion.show', ['plan_accion' => $plan->id, 'tipo' => User::MODULE_PASTEURIZADORA]))
+            ->assertOk()
+            ->assertJsonPath('structured_content.recommended_actions.0.activity', 'Cambiar anillas')
+            ->assertJsonPath('recommended_actions_summary', '1. Cambiar anillas - Bloquear energia, desmontar el conjunto y montar anillas nuevas.');
 
         $this->actingAs($admin)
             ->get(route('plan-accion.index', ['tipo' => User::MODULE_PASTEURIZADORA]))
