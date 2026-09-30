@@ -2174,76 +2174,12 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
-    function promptExecutionFeedback() {
-        return Swal.fire({
-            title: 'Cerrar actividad',
-            html: `
-                <div class="space-y-3 text-left">
-                    <div>
-                        <label class="mb-1 block text-sm font-semibold text-slate-700">Costo real total</label>
-                        <input id="swal_actual_cost_total" type="number" min="0" step="0.01" class="swal2-input" placeholder="0.00" style="width: 100%; margin: 0;">
-                    </div>
-                    <div>
-                        <label class="mb-1 block text-sm font-semibold text-slate-700">Horas reales</label>
-                        <input id="swal_actual_hours" type="number" min="0" step="0.01" class="swal2-input" placeholder="0.00" style="width: 100%; margin: 0;">
-                    </div>
-                    <div>
-                        <label class="mb-1 block text-sm font-semibold text-slate-700">Efectividad</label>
-                        <select id="swal_effectiveness" class="swal2-select" style="width: 100%; margin: 0;">
-                            <option value="">Sin evaluar</option>
-                            <option value="effective">Efectivo</option>
-                            <option value="partially_effective">Parcialmente efectivo</option>
-                            <option value="ineffective">No efectivo</option>
-                            <option value="not_evaluable">No evaluable</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="mb-1 block text-sm font-semibold text-slate-700">Resultado de ejecucion</label>
-                        <textarea id="swal_execution_result" class="swal2-textarea" maxlength="3000" placeholder="Que se hizo y como quedo el equipo." style="width: 100%; margin: 0;"></textarea>
-                    </div>
-                </div>
-            `,
-            focusConfirm: false,
-            showCancelButton: true,
-            confirmButtonText: 'Guardar cierre',
-            cancelButtonText: 'Cancelar',
-            preConfirm: () => {
-                const cost = document.getElementById('swal_actual_cost_total').value.trim();
-                const hours = document.getElementById('swal_actual_hours').value.trim();
-                const effectiveness = document.getElementById('swal_effectiveness').value;
-                const result = document.getElementById('swal_execution_result').value.trim();
-
-                if (cost !== '' && Number(cost) < 0) {
-                    Swal.showValidationMessage('El costo real no puede ser negativo.');
-                    return false;
-                }
-
-                if (hours !== '' && Number(hours) < 0) {
-                    Swal.showValidationMessage('Las horas reales no pueden ser negativas.');
-                    return false;
-                }
-
-                return {
-                    actual_cost_total: cost === '' ? null : cost,
-                    actual_hours: hours === '' ? null : hours,
-                    effectiveness: effectiveness || null,
-                    execution_result: result || null,
-                };
-            },
-        }).then(result => result.isConfirmed ? result.value : null);
-    }
-
     // Checklist
     document.querySelectorAll('.checklist-btn').forEach(btn => {
-        btn.addEventListener('click', async function() {
+        btn.addEventListener('click', function() {
             const id = this.dataset.id;
             const boton = this;
-            const alreadyCompleted = boton.classList.contains('completado');
-            const payload = alreadyCompleted ? {} : await promptExecutionFeedback();
-
-            if (!alreadyCompleted && payload === null) {
-                return;
-            }
+            const payload = {};
             
             fetch(`/plan-accion/${id}/checklist`, {
                 method: 'POST',
