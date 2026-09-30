@@ -3,9 +3,13 @@
 namespace App\Services\Maintenance;
 
 use App\Contracts\AiProviderInterface;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Factory as HttpFactory;
+use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\RequestException;
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\Log;
 use RuntimeException;
 
 class GeminiProvider implements AiProviderInterface
@@ -17,18 +21,17 @@ class GeminiProvider implements AiProviderInterface
 
     public function generateStructuredActionPlan(array $payload): array
     {
-        $config = config('maintenance_ai.providers.gemini');
-        $model = $payload['model'] ?? ($config['model'] ?? 'gemini-3.5-flash');
+        $config = (array) config('maintenance_ai.providers.gemini');
+        $model = GeminiRequestSupport::normalizeModelName((string) ($payload['model'] ?? ($config['model'] ?? 'gemini-3.5-flash')));
+        $endpoint = GeminiRequestSupport::endpoint($config, 'models/' . $model . ':generateContent');
         $startedAt = microtime(true);
 
-        $response = $this->http
-            ->timeout((int) config('maintenance_ai.timeout', 30))
-            ->retry((int) config('maintenance_ai.max_retries', 2), 500)
-            ->withHeaders([
-                'x-goog-api-key' => (string) ($config['api_key'] ?? ''),
-            ])
-            ->acceptJson()
-            ->post(rtrim((string) ($config['base_url'] ?? ''), '/') . '/models/' . $model . ':generateContent', [
+        $response = $this->postJson(
+            $config,
+            (string) ($payload['flow'] ?? $payload['schema_name'] ?? 'generate_structured_action_plan'),
+            $model,
+            $endpoint,
+            [
                 'contents' => [
                     [
                         'role' => 'user',
@@ -50,7 +53,9 @@ class GeminiProvider implements AiProviderInterface
                     'responseMimeType' => 'application/json',
                     'responseJsonSchema' => $payload['schema'],
                 ],
-            ]);
+            ],
+            $startedAt
+        );
 
         if ($response->failed()) {
             throw new RequestException($response);
@@ -83,21 +88,20 @@ class GeminiProvider implements AiProviderInterface
 
     public function createEmbedding(string $content): array
     {
-        $config = config('maintenance_ai.providers.gemini');
-        $model = $config['embedding_model'] ?? 'gemini-embedding-2';
+        $config = (array) config('maintenance_ai.providers.gemini');
+        $model = GeminiRequestSupport::normalizeModelName((string) ($config['embedding_model'] ?? 'gemini-embedding-2'));
 
         if (trim($content) === '') {
             return [];
         }
 
-        $response = $this->http
-            ->timeout((int) config('maintenance_ai.timeout', 30))
-            ->retry((int) config('maintenance_ai.max_retries', 2), 500)
-            ->withHeaders([
-                'x-goog-api-key' => (string) ($config['api_key'] ?? ''),
-            ])
-            ->acceptJson()
-            ->post(rtrim((string) ($config['base_url'] ?? ''), '/') . '/models/' . $model . ':embedContent', [
+        $endpoint = GeminiRequestSupport::endpoint($config, 'models/' . $model . ':embedContent');
+        $response = $this->postJson(
+            $config,
+            'create_embedding',
+            $model,
+            $endpoint,
+            [
                 'model' => 'models/' . $model,
                 'content' => [
                     'parts' => [
@@ -106,7 +110,9 @@ class GeminiProvider implements AiProviderInterface
                         ],
                     ],
                 ],
-            ]);
+            ],
+            microtime(true)
+        );
 
         if ($response->failed()) {
             throw new RequestException($response);
@@ -122,17 +128,16 @@ class GeminiProvider implements AiProviderInterface
 
     public function extractDocumentText(array $payload): string
     {
-        $config = config('maintenance_ai.providers.gemini');
-        $model = $payload['model'] ?? ($config['model'] ?? 'gemini-3.5-flash');
+        $config = (array) config('maintenance_ai.providers.gemini');
+        $model = GeminiRequestSupport::normalizeModelName((string) ($payload['model'] ?? ($config['model'] ?? 'gemini-3.5-flash')));
+        $endpoint = GeminiRequestSupport::endpoint($config, 'models/' . $model . ':generateContent');
 
-        $response = $this->http
-            ->timeout((int) config('maintenance_ai.timeout', 30))
-            ->retry((int) config('maintenance_ai.max_retries', 2), 500)
-            ->withHeaders([
-                'x-goog-api-key' => (string) ($config['api_key'] ?? ''),
-            ])
-            ->acceptJson()
-            ->post(rtrim((string) ($config['base_url'] ?? ''), '/') . '/models/' . $model . ':generateContent', [
+        $response = $this->postJson(
+            $config,
+            'extract_document_text',
+            $model,
+            $endpoint,
+            [
                 'contents' => [[
                     'parts' => [
                         [
@@ -147,7 +152,9 @@ class GeminiProvider implements AiProviderInterface
                         ],
                     ],
                 ]],
-            ]);
+            ],
+            microtime(true)
+        );
 
         if ($response->failed()) {
             throw new RequestException($response);
@@ -156,5 +163,53 @@ class GeminiProvider implements AiProviderInterface
         $text = Arr::get($response->json(), 'candidates.0.content.parts.0.text');
 
         return is_string($text) ? trim($text) : '';
+    }
+
+    /**
+     * @param  array<string, mixed>  $config
+     * @param  array<string, mixed>  $payload
+     */
+    private function postJson(
+        array $config,
+        string $flow,
+        string $model,
+        string $endpoint,
+        array $payload,
+        float $startedAt
+    ): Response {
+        try {
+            return $this->geminiRequest($config)->post($endpoint, $payload);
+        } catch (ConnectionException $exception) {
+            Log::warning(
+                'Gemini connection failed.',
+                GeminiRequestSupport::logContext($flow, $model, $endpoint, $exception, $startedAt)
+            );
+
+            throw $exception;
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $config
+     */
+    private function geminiRequest(array $config): PendingRequest
+    {
+        $apiKey = trim((string) ($config['api_key'] ?? ''));
+
+        if ($apiKey === '') {
+            throw new RuntimeException('Gemini API key is not configured.');
+        }
+
+        return $this->http
+            ->connectTimeout(GeminiRequestSupport::connectionTimeout())
+            ->timeout(GeminiRequestSupport::totalTimeout())
+            ->retry((int) config('maintenance_ai.max_retries', 2), 500, function ($exception): bool {
+                return !($exception instanceof ConnectionException
+                    && GeminiRequestSupport::isDnsResolutionError($exception));
+            })
+            ->withHeaders([
+                'x-goog-api-key' => $apiKey,
+            ])
+            ->acceptJson();
     }
 }

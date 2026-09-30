@@ -5,21 +5,20 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class AssistantMessage extends Model
+class AssistantConversation extends Model
 {
     use HasFactory;
 
     protected $fillable = [
         'user_id',
-        'conversation_id',
-        'role',
-        'content',
-        'metadata',
+        'title',
+        'last_message_at',
     ];
 
     protected $casts = [
-        'metadata' => 'array',
+        'last_message_at' => 'datetime',
     ];
 
     public function user(): BelongsTo
@@ -27,8 +26,8 @@ class AssistantMessage extends Model
         return $this->belongsTo(User::class);
     }
 
-    public function conversation(): BelongsTo
+    public function messages(): HasMany
     {
-        return $this->belongsTo(AssistantConversation::class, 'conversation_id');
+        return $this->hasMany(AssistantMessage::class, 'conversation_id');
     }
 }

@@ -63,6 +63,12 @@ Route::middleware(['auth', 'throttle:assistant-chat', 'pasteurizadora.excentrico
         Route::get('/', 'index')->name('index');
         Route::post('/', 'store')->name('store');
         Route::delete('/', 'destroy')->name('destroy');
+        Route::get('/conversaciones/{conversation}', 'show')
+            ->whereNumber('conversation')
+            ->name('conversations.show');
+        Route::delete('/conversaciones/{conversation}', 'destroyConversation')
+            ->whereNumber('conversation')
+            ->name('conversations.destroy');
         Route::get('/{message}/artefactos/{artifact}', 'artifact')
             ->whereNumber('message')
             ->whereNumber('artifact')

@@ -88,6 +88,8 @@ class EnsureTechnicianAccess
             'assistant-chat.index',
             'assistant-chat.store',
             'assistant-chat.destroy',
+            'assistant-chat.conversations.show',
+            'assistant-chat.conversations.destroy',
             'assistant-chat.artifact',
 
             // Rutas exactas permitidas

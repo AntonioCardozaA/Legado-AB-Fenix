@@ -494,7 +494,7 @@ class AccessPermissionCatalog
             ['routes' => ['dashboard.global.lavadoras', 'dashboard.operativo.lavadora', 'dashboard_lavadora', 'lavadora.dashboard', 'api.danos-tendencia'], 'permission' => 'ver dashboard lavadoras'],
             ['routes' => ['dashboard.global.pasteurizadoras', 'dashboard.operativo.pasteurizadora', 'dashboard_pasteurizadora', 'pasteurizadora.dashboard'], 'permission' => 'ver dashboard pasteurizadoras'],
             ['routes' => ['dashboard.global.etiquetadoras', 'dashboard_etiquetadora', 'etiquetadora.dashboard'], 'permission' => 'ver dashboard etiquetadoras'],
-            ['routes' => ['assistant-chat.index', 'assistant-chat.store', 'assistant-chat.destroy', 'assistant-chat.artifact'], 'permission' => 'usar asistente ia'],
+            ['routes' => ['assistant-chat.index', 'assistant-chat.store', 'assistant-chat.destroy', 'assistant-chat.conversations.show', 'assistant-chat.conversations.destroy', 'assistant-chat.artifact'], 'permission' => 'usar asistente ia'],
 
             ['routes' => ['admin.users.index', 'admin.users.edit'], 'methods' => ['GET'], 'permission' => 'gestionar usuarios'],
             ['routes' => ['admin.users.store', 'admin.users.update', 'admin.users.destroy', 'admin.users.permissions.update'], 'permission' => 'gestionar usuarios'],

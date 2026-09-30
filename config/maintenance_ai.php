@@ -2,8 +2,9 @@
 
 return [
     'enabled' => (bool) env('AI_ENABLED', false),
-    'provider' => env('AI_PROVIDER', 'openai'),
-    'timeout' => (int) env('AI_TIMEOUT', 30),
+    'provider' => env('AI_PROVIDER', 'gemini'),
+    'connect_timeout' => (int) env('AI_CONNECT_TIMEOUT', 10),
+    'timeout' => (int) env('AI_TIMEOUT', 60),
     'job_timeout' => env('AI_JOB_TIMEOUT') !== null ? (int) env('AI_JOB_TIMEOUT') : null,
     'max_retries' => (int) env('AI_MAX_RETRIES', 2),
     'queue' => env('AI_QUEUE', 'maintenance-ai'),
@@ -38,6 +39,17 @@ return [
         'max_stored_messages' => (int) env('AI_CHAT_MAX_STORED_MESSAGES', 30),
         'max_context_items' => (int) env('AI_CHAT_MAX_CONTEXT_ITEMS', 5),
         'rate_limit_per_minute' => (int) env('AI_CHAT_RATE_LIMIT_PER_MINUTE', 12),
+    ],
+    'web_search' => [
+        'enabled' => (bool) env('AI_WEB_SEARCH_ENABLED', false),
+        'mode' => env('AI_WEB_SEARCH_MODE', 'hybrid'),
+        'provider' => env('AI_WEB_SEARCH_PROVIDER', env('AI_PROVIDER', 'gemini')),
+        'fallback_provider' => env('AI_WEB_SEARCH_FALLBACK_PROVIDER'),
+        'context_size' => env('AI_WEB_SEARCH_CONTEXT_SIZE', 'low'),
+        'max_context_chars' => (int) env('AI_WEB_SEARCH_MAX_CONTEXT_CHARS', 2400),
+        'min_internal_items_before_skip' => (int) env('AI_WEB_SEARCH_MIN_INTERNAL_ITEMS_BEFORE_SKIP', 1),
+        'openai_model' => env('OPENAI_WEB_SEARCH_MODEL', env('OPENAI_MODEL', env('AI_MODEL', 'gpt-5.6'))),
+        'gemini_model' => env('GEMINI_WEB_SEARCH_MODEL', env('GEMINI_MODEL', env('AI_MODEL', 'gemini-3.6-flash'))),
     ],
     'platform_context' => [
         'schema_table_limit' => (int) env('AI_PLATFORM_SCHEMA_TABLE_LIMIT', 8),

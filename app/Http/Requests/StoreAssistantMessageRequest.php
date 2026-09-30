@@ -20,6 +20,7 @@ class StoreAssistantMessageRequest extends FormRequest
     {
         return [
             'message' => ['required', 'string', 'max:5000'],
+            'conversation_id' => ['nullable', 'integer'],
             'page_context' => ['sometimes', 'array'],
             'page_context.page_title' => ['nullable', 'string', 'max:255'],
             'page_context.current_url' => ['nullable', 'string', 'max:500'],

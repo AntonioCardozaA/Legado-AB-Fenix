@@ -1278,10 +1278,10 @@ class AssistantAnalyticsArtifactService
             ->first();
 
         $dataset['summary_cards'] = [
-            ['label' => 'Danados / criticos', 'value' => (string) $damagedRecords->count(), 'tone' => $damagedRecords->isNotEmpty() ? 'critical' : 'normal'],
-            ['label' => 'Requieren revision', 'value' => (string) $reviewRecords->count(), 'tone' => $reviewRecords->isNotEmpty() ? 'warning' : 'normal'],
-            ['label' => 'Desgaste severo/mod.', 'value' => (string) $wearRecords->count(), 'tone' => $wearRecords->isNotEmpty() ? 'warning' : 'normal'],
-            ['label' => 'Cambiados', 'value' => (string) $changedRecords->count(), 'tone' => 'normal'],
+            ['label' => 'Danados / criticos', 'value' => (string) $damagedRecords->count(), 'tone' => $damagedRecords->isNotEmpty() ? 'critical' : 'normal', 'color' => $this->washerStateColor('Danados')],
+            ['label' => 'Requieren revision', 'value' => (string) $reviewRecords->count(), 'tone' => $reviewRecords->isNotEmpty() ? 'warning' : 'normal', 'color' => $this->washerStateColor('Requieren revision')],
+            ['label' => 'Desgaste severo/mod.', 'value' => (string) $wearRecords->count(), 'tone' => $wearRecords->isNotEmpty() ? 'warning' : 'normal', 'color' => $this->washerStateColor('Desgaste')],
+            ['label' => 'Cambiados', 'value' => (string) $changedRecords->count(), 'tone' => 'changed', 'color' => $this->washerStateColor('Cambiados')],
         ];
         $dataset['summary_rows'] = [
             ['Reporte', (string) ($dataset['title'] ?? 'Analisis de lavadora')],
@@ -1302,19 +1302,19 @@ class AssistantAnalyticsArtifactService
                 [
                     'label' => 'Danados / criticos',
                     'value' => $damagedRecords->count(),
-                    'color' => '#dc2626',
+                    'color' => $this->washerStateColor('Danados'),
                     'tone' => 'critical',
                 ],
                 [
                     'label' => 'Requieren revision',
                     'value' => $reviewRecords->count(),
-                    'color' => '#f59e0b',
+                    'color' => $this->washerStateColor('Requieren revision'),
                     'tone' => 'warning',
                 ],
                 [
                     'label' => 'Desgaste severo/mod.',
                     'value' => $wearRecords->count(),
-                    'color' => '#ea580c',
+                    'color' => $this->washerStateColor('Desgaste'),
                     'tone' => 'warning',
                 ],
             ],
@@ -1957,9 +1957,9 @@ class AssistantAnalyticsArtifactService
             'rows' => $rows,
             'series' => [
                 ['name' => 'Registros', 'points' => $totalPoints],
-                ['name' => 'Danados / criticos', 'points' => $damagedPoints],
-                ['name' => 'Requieren revision', 'points' => $reviewPoints],
-                ['name' => 'Desgaste severo/mod.', 'points' => $wearPoints],
+                ['name' => 'Danados / criticos', 'points' => $damagedPoints, 'color' => $this->washerStateColor('Danados')],
+                ['name' => 'Requieren revision', 'points' => $reviewPoints, 'color' => $this->washerStateColor('Requieren revision')],
+                ['name' => 'Desgaste severo/mod.', 'points' => $wearPoints, 'color' => $this->washerStateColor('Desgaste')],
             ],
             'x_label' => 'Periodo',
             'y_label' => 'Cantidad',
@@ -1978,7 +1978,7 @@ class AssistantAnalyticsArtifactService
             $dataset['x_label'] = 'Lavadora';
             $dataset['y_label'] = 'Componentes danados';
             $dataset['series'] = [
-                ['name' => 'Danados / criticos', 'points' => $damagedPoints],
+                ['name' => 'Danados / criticos', 'points' => $damagedPoints, 'color' => $this->washerStateColor('Danados')],
             ];
             $dataset['source_reference'] = 'analisis_componentes por linea';
         }
@@ -2036,32 +2036,32 @@ class AssistantAnalyticsArtifactService
         $states = [
             [
                 'label' => 'Buen estado',
-                'color' => '#16a34a',
+                'color' => $this->washerStateColor('Buen estado'),
                 'tone' => 'normal',
                 'matches' => fn (AnalisisLavadora $record): bool => AnalisisLavadora::esEstadoBueno($record->estado_operativo),
             ],
             [
                 'label' => 'Requieren revision',
-                'color' => '#f59e0b',
+                'color' => $this->washerStateColor('Requieren revision'),
                 'tone' => 'warning',
                 'matches' => fn (AnalisisLavadora $record): bool => AnalisisLavadora::esEstadoRequiereRevision($record->estado_operativo),
             ],
             [
                 'label' => 'Severo / Moderado',
-                'color' => '#ea580c',
+                'color' => $this->washerStateColor('Desgaste'),
                 'tone' => 'warning',
                 'matches' => fn (AnalisisLavadora $record): bool => AnalisisLavadora::esEstadoDesgaste($record->estado_operativo),
             ],
             [
                 'label' => 'Danados',
-                'color' => '#dc2626',
+                'color' => $this->washerStateColor('Danados'),
                 'tone' => 'critical',
                 'matches' => fn (AnalisisLavadora $record): bool => AnalisisLavadora::esEstadoDanado($record->estado_operativo),
             ],
             [
                 'label' => 'Cambiados',
-                'color' => '#16a34a',
-                'tone' => 'normal',
+                'color' => $this->washerStateColor('Cambiados'),
+                'tone' => 'changed',
                 'matches' => fn (AnalisisLavadora $record): bool => AnalisisLavadora::esEstadoCambiado($record->estado_operativo),
             ],
         ];
@@ -2570,6 +2570,8 @@ class AssistantAnalyticsArtifactService
 
             $series[] = [
                 'name' => $heading === 'Danados' ? 'Danados / criticos %' : $heading.' %',
+                'color' => $this->washerStateColor($heading),
+                'tone' => $this->washerStateTone($heading),
                 'points' => collect($rows)
                     ->filter(fn ($row): bool => is_array($row))
                     ->map(function (array $row) use ($labelIndex, $totalIndex, $valueIndex): array {
@@ -2890,12 +2892,8 @@ class AssistantAnalyticsArtifactService
             $x = 46 + (($cardWidth + 18) * $index);
             $y = 142;
             $tone = (string) ($card['tone'] ?? 'neutral');
-            $accent = match ($tone) {
-                'critical' => '#dc2626',
-                'warning' => '#d97706',
-                'normal' => '#16a34a',
-                default => '#2563eb',
-            };
+            $cardColor = (string) ($card['color'] ?? '');
+            $accent = $this->isHexColor($cardColor) ? $cardColor : $this->toneHex($tone);
 
             $svg[] = '<rect x="'.$x.'" y="'.$y.'" width="'.$cardWidth.'" height="'.$cardHeight.'" rx="16" fill="#ffffff" stroke="#e2e8f0"/>';
             $svg[] = '<rect x="'.$x.'" y="'.$y.'" width="6" height="'.$cardHeight.'" rx="3" fill="'.$accent.'"/>';
@@ -3071,7 +3069,11 @@ class AssistantAnalyticsArtifactService
             $cardHeight = 76;
             $x = 46 + (($cardWidth + 18) * $index);
             $y = 142;
-            $accent = $this->pngColor($image, $this->toneHex((string) ($card['tone'] ?? 'neutral')));
+            $cardColor = (string) ($card['color'] ?? '');
+            $accent = $this->pngColor(
+                $image,
+                $this->isHexColor($cardColor) ? $cardColor : $this->toneHex((string) ($card['tone'] ?? 'neutral'))
+            );
 
             imagefilledrectangle($image, $x, $y, $x + $cardWidth, $y + $cardHeight, $white);
             imagerectangle($image, $x, $y, $x + $cardWidth, $y + $cardHeight, $border);
@@ -3198,7 +3200,8 @@ class AssistantAnalyticsArtifactService
     {
         $points = array_values(array_filter((array) ($series['points'] ?? []), fn ($item): bool => is_array($item)));
         $count = max(1, count($points));
-        $color = $this->pngColor($image, $this->seriesHex($series, $index));
+        $seriesColorHex = $this->seriesHex($series, $index);
+        $color = $this->pngColor($image, $seriesColorHex);
         $labelColor = $this->pngColor($image, '#0f172a');
         $previous = null;
 
@@ -3237,7 +3240,10 @@ class AssistantAnalyticsArtifactService
             $critical = (bool) ($point['critical'] ?? false) || ($datasetType === 'elongaciones' && $this->elongacionTone($value) === 'critical');
             $pointSize = $critical ? 16 : 10;
             $outlineSize = $critical ? 18 : 12;
-            $pointColor = $this->pngColor($image, $this->pointHex($point, (float) $value, $datasetType));
+            $pointColor = $this->pngColor(
+                $image,
+                $this->pointHexForSeries($point, (float) $value, $datasetType, $seriesColorHex)
+            );
 
             imagefilledellipse($image, $x, $y, $pointSize, $pointSize, $pointColor);
             imageellipse($image, $x, $y, $outlineSize, $outlineSize, $this->pngColor($image, '#ffffff'));
@@ -3473,8 +3479,42 @@ class AssistantAnalyticsArtifactService
             'critical' => '#dc2626',
             'warning' => '#d97706',
             'normal' => '#16a34a',
+            'changed' => '#0284c7',
             default => '#2563eb',
         };
+    }
+
+    private function washerStateColor(string $label): string
+    {
+        $normalized = $this->normalize($label);
+
+        return match (true) {
+            str_contains($normalized, 'danado') || str_contains($normalized, 'critico') => '#dc2626',
+            str_contains($normalized, 'requieren revision') || str_contains($normalized, 'requiere revision') => '#ca8a04',
+            str_contains($normalized, 'desgaste') || str_contains($normalized, 'severo') || str_contains($normalized, 'moderado') => '#ea580c',
+            str_contains($normalized, 'cambiado') => '#0284c7',
+            str_contains($normalized, 'buen estado') => '#059669',
+            default => '',
+        };
+    }
+
+    private function washerStateTone(string $label): string
+    {
+        $normalized = $this->normalize($label);
+
+        return match (true) {
+            str_contains($normalized, 'danado') || str_contains($normalized, 'critico') => 'critical',
+            str_contains($normalized, 'requieren revision') || str_contains($normalized, 'requiere revision') => 'warning',
+            str_contains($normalized, 'desgaste') || str_contains($normalized, 'severo') || str_contains($normalized, 'moderado') => 'warning',
+            str_contains($normalized, 'cambiado') => 'changed',
+            str_contains($normalized, 'buen estado') => 'normal',
+            default => 'neutral',
+        };
+    }
+
+    private function isHexColor(string $color): bool
+    {
+        return preg_match('/^#[0-9a-fA-F]{6}$/', $color) === 1;
     }
 
     private function valueHex(float $value, string $datasetType): string
@@ -3497,9 +3537,29 @@ class AssistantAnalyticsArtifactService
     {
         $color = (string) ($point['color'] ?? '');
 
-        return preg_match('/^#[0-9a-fA-F]{6}$/', $color) === 1
-            ? $color
+        if ($this->isHexColor($color)) {
+            return $color;
+        }
+
+        $stateColor = $this->washerStateColor((string) ($point['label'] ?? ''));
+
+        return $this->isHexColor($stateColor)
+            ? $stateColor
             : $this->valueHex($value, $datasetType);
+    }
+
+    /**
+     * @param  array<string, mixed>  $point
+     */
+    private function pointHexForSeries(array $point, float $value, string $datasetType, string $seriesColor): string
+    {
+        $pointColor = $this->pointHex($point, $value, $datasetType);
+
+        if ($datasetType === 'elongaciones' || $this->isHexColor((string) ($point['color'] ?? ''))) {
+            return $pointColor;
+        }
+
+        return $this->isHexColor($seriesColor) ? $seriesColor : $pointColor;
     }
 
     /**
@@ -3509,8 +3569,14 @@ class AssistantAnalyticsArtifactService
     {
         $color = (string) ($series['color'] ?? '');
 
-        return preg_match('/^#[0-9a-fA-F]{6}$/', $color) === 1
-            ? $color
+        if ($this->isHexColor($color)) {
+            return $color;
+        }
+
+        $stateColor = $this->washerStateColor((string) ($series['name'] ?? ''));
+
+        return $this->isHexColor($stateColor)
+            ? $stateColor
             : $this->chartColors[$index % count($this->chartColors)];
     }
 
@@ -3565,7 +3631,7 @@ class AssistantAnalyticsArtifactService
             $radius = $critical ? 7 : 5;
             $strokeWidth = $critical ? 3 : 2;
 
-            $pointColor = $this->pointHex($point, $value, $datasetType);
+            $pointColor = $this->pointHexForSeries($point, $value, $datasetType, $color);
             $svg[] = '<circle cx="'.round($x, 2).'" cy="'.round($y, 2).'" r="'.$radius.'" fill="'.$pointColor.'" stroke="#ffffff" stroke-width="'.$strokeWidth.'"/>';
 
             if ($showPointValues) {
