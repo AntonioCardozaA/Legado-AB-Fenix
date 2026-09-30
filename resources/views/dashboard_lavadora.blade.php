@@ -692,9 +692,7 @@
     }
 
     .chart-card:has(#analisis52124Chart) > .chart-description,
-    .chart-card:has(#analisis30147Chart) > .chart-description,
-    .chart-card:has(#analisis52124Chart) > .chart-container + div:not(.chart-shell),
-    .chart-card:has(#analisis30147Chart) > .chart-container + div:not(.chart-shell) {
+    .chart-card:has(#analisis52124Chart) > .chart-container + div:not(.chart-shell) {
         display: none;
     }
 
@@ -3062,6 +3060,298 @@
         line-height: 1.2;
     }
 
+    .trend-overview-shell {
+        display: grid;
+        gap: 14px;
+        min-width: 0;
+    }
+
+    .trend-overview-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr));
+        gap: 10px;
+        min-width: 0;
+    }
+
+    .trend-overview-card {
+        border: 1px solid rgba(148, 163, 184, 0.18);
+        border-left: 4px solid var(--trend-accent, #3b82f6);
+        border-radius: 12px;
+        padding: 12px;
+        background: rgba(255, 255, 255, 0.9);
+        min-width: 0;
+    }
+
+    .trend-overview-card-header {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        align-items: flex-start;
+    }
+
+    .trend-overview-line {
+        font-size: 14px;
+        font-weight: 900;
+        color: #0f172a;
+    }
+
+    .trend-overview-total {
+        padding: 4px 8px;
+        border-radius: 999px;
+        background: rgba(15, 23, 42, 0.06);
+        color: #334155;
+        font-size: 10px;
+        font-weight: 800;
+        white-space: nowrap;
+    }
+
+    .trend-overview-values {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+        margin-top: 10px;
+    }
+
+    .trend-overview-value {
+        min-width: 0;
+    }
+
+    .trend-overview-value span {
+        display: block;
+        font-size: 10px;
+        color: #64748b;
+        font-weight: 800;
+        text-transform: uppercase;
+    }
+
+    .trend-overview-value strong {
+        display: block;
+        margin-top: 2px;
+        font-size: 18px;
+        color: #0f172a;
+        line-height: 1.1;
+    }
+
+    .trend-overview-chart-panel {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 10px;
+        padding: 12px;
+        border: 1px solid rgba(148, 163, 184, 0.16);
+        border-radius: 14px;
+        background: rgba(248, 250, 252, 0.72);
+        min-width: 0;
+    }
+
+    .trend-overview-chart-panel .chart-shell {
+        margin: 0;
+    }
+
+    .trend-overview-chart-panel .chart-container {
+        height: clamp(340px, 34vw, 460px);
+    }
+
+    .trend-overview-secondary {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 10px;
+        margin-top: 14px;
+    }
+
+    .trend-overview-secondary .chart-container {
+        height: clamp(300px, 30vw, 410px);
+    }
+
+    .trend-overview-criteria {
+        margin-top: 10px;
+    }
+
+    .lef-embedded {
+        --lef-navy: rgb(31, 35, 72);
+        --lef-blue: #1e40af;
+        --lef-yellow: #f59e0b;
+        --lef-border: #e2e8f0;
+        --lef-muted: #64748b;
+        --lef-text: #0f172a;
+        display: grid;
+        gap: 14px;
+    }
+
+    .lef-embedded * {
+        min-width: 0;
+    }
+
+    .lef-lines {
+        display: flex;
+        gap: 8px;
+        overflow-x: auto;
+        padding: 4px 2px 10px;
+        scrollbar-width: thin;
+    }
+
+    .lef-line-tab {
+        flex: 0 0 auto;
+        border: 1px solid #cbd5e1;
+        background: #fff;
+        color: #334155;
+        border-radius: 12px;
+        min-height: 42px;
+        padding: 0 16px;
+        font-weight: 900;
+        cursor: pointer;
+    }
+
+    .lef-line-tab.active {
+        border-color: var(--lef-navy);
+        background: var(--lef-navy);
+        color: #fff;
+    }
+
+    .lef-panel {
+        background: #fff;
+        border: 1px solid var(--lef-border);
+        border-radius: 14px;
+        box-shadow: 0 10px 22px rgba(15, 23, 42, 0.06);
+        overflow: hidden;
+    }
+
+    .lef-panel-header {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 14px 16px;
+        border-bottom: 1px solid #eef2f7;
+        background: linear-gradient(180deg, #fff, #f8fafc);
+        flex-wrap: wrap;
+    }
+
+    .lef-panel-title {
+        margin: 0;
+        font-size: 0.98rem;
+        font-weight: 900;
+        color: var(--lef-navy);
+    }
+
+    .lef-panel-body {
+        padding: 14px;
+    }
+
+    .lef-filters {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr));
+        gap: 12px;
+        align-items: end;
+    }
+
+    .lef-field label {
+        display: block;
+        margin-bottom: 6px;
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--lef-muted);
+        font-weight: 900;
+    }
+
+    .lef-field :where(select, input) {
+        width: 100%;
+        min-height: 42px;
+        border: 1px solid #cbd5e1;
+        border-radius: 12px;
+        padding: 0.56rem 0.76rem;
+        color: var(--lef-text);
+        background: #fff;
+        font-weight: 700;
+    }
+
+    .lef-action {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        min-height: 42px;
+        border-radius: 12px;
+        padding: 0.58rem 1rem;
+        background: #f8fafc;
+        color: #334155 !important;
+        border: 1px solid #cbd5e1;
+        font-weight: 800;
+    }
+
+    .lef-alert {
+        border-radius: 12px;
+        padding: 11px 13px;
+        font-weight: 800;
+    }
+
+    .lef-alert.info { background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; }
+    .lef-alert.error { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+
+    .lef-kpis {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 210px), 1fr));
+        gap: 12px;
+    }
+
+    .lef-kpi {
+        min-height: 112px;
+        display: flex;
+        flex-direction: column;
+        background: #fff;
+        border: 1px solid var(--lef-border);
+        border-top: 4px solid var(--lef-yellow);
+        border-radius: 14px;
+        padding: 13px;
+    }
+
+    .lef-kpi-label {
+        color: #566987;
+        font-size: 0.72rem;
+        line-height: 1.35;
+        text-transform: uppercase;
+        font-weight: 900;
+    }
+
+    .lef-kpi-value {
+        margin-top: 9px;
+        color: var(--lef-navy);
+        font-size: 1.18rem;
+        line-height: 1.16;
+        font-weight: 900;
+        overflow-wrap: anywhere;
+    }
+
+    .lef-kpi-meta {
+        margin-top: auto;
+        padding-top: 8px;
+        color: #475569;
+        font-size: 0.8rem;
+    }
+
+    .lef-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 14px;
+    }
+
+    .lef-chart-wrap {
+        width: 100%;
+        overflow-x: auto;
+        min-height: clamp(340px, 48vh, 440px);
+    }
+
+    .lef-chart-inner {
+        position: relative;
+        width: 100%;
+        height: clamp(340px, 48vh, 420px);
+        min-width: min(760px, 100%);
+    }
+
+    .lef-chart-inner.compact {
+        min-width: min(420px, 100%);
+        height: clamp(260px, 38vh, 320px);
+    }
+
     @media (max-width: 1024px) {
         .trend-executive-brief {
             grid-template-columns: 1fr;
@@ -3564,49 +3854,93 @@
             </div>
         </div>
 
-        {{-- Gráfica 4: Análisis 30-14-7 --}}
-        <div class="chart-card trend-card trend-card-side">
-            <h3>
-                <i class="fas fa-chart-line"></i>
-                <span>Análisis 30-14-7 | Tendencia de Daños</span>
-            </h3>
-            <div class="chart-container">
-                <canvas id="analisis30147Chart"></canvas>
-            </div>
-            <div class="chart-description">
-                <i class="fas fa-info-circle"></i>
-                30-14-7
-            </div>
-        </div>
     </div>
 
     <div class="dashboard-panels-full">
         <div class="chart-card trend-card trend-card-primary">
         <h3>
-            <i class="fas fa-chart-line"></i>
-            <span>Análisis 52-12-4 | Tendencia de Daños</span>
+            <i class="fas fa-chart-column"></i>
+            <span>LEF-52-12-4</span>
         </h3>
-        <div class="chart-container">
-            <canvas id="analisis52124Chart"></canvas>
-        </div>
-        <div class="trend-window-legend">
-            <div class="trend-window-legend-item">
-                <div class="trend-window-legend-swatch" style="background: linear-gradient(135deg, rgba(59, 130, 246, 0.85), rgba(59, 130, 246, 1)); box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);"></div>
-                <span class="trend-window-legend-label">52 semanas</span>
+            <div class="lef-embedded" data-lef-dashboard-embedded>
+                <div class="lef-lines" role="tablist" aria-label="Lineas 52-12-4">
+                    @forelse($lef52124Lineas as $linea)
+                        <button type="button" class="lef-line-tab {{ (int) $lef52124SelectedLineaId === (int) $linea->id ? 'active' : '' }}" data-lef-line-tab data-linea-id="{{ $linea->id }}">{{ $linea->nombre }}</button>
+                    @empty
+                        <span class="text-sm text-gray-500">No hay lineas activas configuradas.</span>
+                    @endforelse
+                </div>
+
+                <div class="lef-panel">
+                    <div class="lef-panel-header"><h2 class="lef-panel-title">Filtros</h2></div>
+                    <div class="lef-panel-body">
+                        <div class="lef-filters">
+                            <div class="lef-field"><label for="dashboard_lef_filter_date">Fecha / periodo</label><input id="dashboard_lef_filter_date" type="date" data-lef-filter-date></div>
+                            <div class="lef-field">
+                                <label for="dashboard_lef_filter_analysis">Tipo de analisis</label>
+                                <select id="dashboard_lef_filter_analysis" data-lef-filter-analysis>
+                                    <option value="all">Vista general</option>
+                                    <option value="machines">Maquinas</option>
+                                    <option value="parts">Partes de Lavadora</option>
+                                    <option value="washer">Linea general</option>
+                                    <option value="comparison">Comparacion entre lineas</option>
+                                </select>
+                            </div>
+                            <div class="lef-field">
+                                <label for="dashboard_lef_filter_period">Periodo</label>
+                                <select id="dashboard_lef_filter_period" data-lef-filter-period>
+                                    <option value="all">Comparativo 52-12-4</option>
+                                    <option value="52">Ventana 52 semanas</option>
+                                    <option value="12">Ventana 12 semanas</option>
+                                    <option value="4">Ventana 4 semanas</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div style="margin-top: 14px; display: flex; justify-content: flex-end; gap: 10px; flex-wrap: wrap;">
+                            <button class="lef-action" type="button" data-lef-trend-toggle><i class="fas fa-chart-line"></i><span data-lef-trend-label>Ver tendencia</span></button>
+                            <button class="lef-action" type="button" data-lef-clear-filters><i class="fas fa-rotate-left"></i><span data-lef-clear-label>Limpiar</span></button>
+                        </div>
+                        <div class="lef-alert info" data-lef-feedback hidden style="margin-top: 14px;"></div>
+                    </div>
+                </div>
+
+                <div class="lef-kpis" data-lef-kpis></div>
+                <div class="lef-grid" data-lef-charts>
+                    <section class="lef-panel" data-lef-card="machines">
+                        <div class="lef-panel-header"><h2 class="lef-panel-title" data-lef-machines-title>Pareto de LEF - Maquinas</h2></div>
+                        <div class="lef-panel-body"><div class="lef-chart-wrap"><div class="lef-chart-inner" data-lef-chart-width="machines"><canvas id="dashboardMachinesChart"></canvas></div></div></div>
+                    </section>
+                    <section class="lef-panel" data-lef-card="parts">
+                        <div class="lef-panel-header"><h2 class="lef-panel-title">Pareto de LEF - Partes de Lavadora</h2></div>
+                        <div class="lef-panel-body"><div class="lef-chart-wrap"><div class="lef-chart-inner" data-lef-chart-width="parts"><canvas id="dashboardPartsChart"></canvas></div></div></div>
+                    </section>
+                    <section class="lef-panel" data-lef-card="washer">
+                        <div class="lef-panel-header"><h2 class="lef-panel-title">LEF 52-12-4 - Linea general</h2></div>
+                        <div class="lef-panel-body"><div class="lef-kpis" data-lef-washer-kpis></div><div class="lef-chart-wrap"><div class="lef-chart-inner compact"><canvas id="dashboardWasherChart"></canvas></div></div></div>
+                    </section>
+                    <section class="lef-panel" data-lef-card="comparison">
+                        <div class="lef-panel-header"><h2 class="lef-panel-title">Comparativo 52-12-4 general entre lineas</h2></div>
+                        <div class="lef-panel-body"><div class="lef-chart-wrap"><div class="lef-chart-inner" data-lef-chart-width="comparison"><canvas id="dashboardComparisonChart"></canvas></div></div></div>
+                    </section>
+                </div>
+
+                <section class="lef-panel" data-lef-trend-panel hidden>
+                    <div class="lef-panel-header">
+                        <div>
+                            <h2 class="lef-panel-title">Tendencia 52-12-4 - Maquina LAVADORA</h2>
+                            <p style="margin: 4px 0 0; color: #64748b; font-size: 0.84rem;" data-lef-trend-title>Enero a diciembre 2025 y 2026</p>
+                        </div>
+                    </div>
+                    <div class="lef-panel-body">
+                        <div class="lef-alert info" data-lef-trend-empty hidden></div>
+                        <div class="lef-chart-wrap" data-lef-trend-chart-wrap>
+                            <div class="lef-chart-inner" style="min-width: 980px;">
+                                <canvas id="dashboardWasherTrendChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </section>
             </div>
-            <div class="trend-window-legend-item">
-                <div class="trend-window-legend-swatch" style="background: linear-gradient(135deg, rgba(245, 158, 11, 0.85), rgba(245, 158, 11, 1)); box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);"></div>
-                <span class="trend-window-legend-label">12 semanas</span>
-            </div>
-            <div class="trend-window-legend-item">
-                <div class="trend-window-legend-swatch" style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.85), rgba(16, 185, 129, 1)); box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);"></div>
-                <span class="trend-window-legend-label">4 semanas</span>
-            </div>
-        </div>
-        <div class="chart-description">
-            <i class="fas fa-info-circle"></i>
-            52-12-4
-        </div>
         </div>
     </div>
 </div>
@@ -3627,6 +3961,422 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const root = document.querySelector('[data-lef-dashboard-embedded]');
+    if (!root || typeof Chart === 'undefined') return;
+
+    const lineas = @json($lef52124Lineas->map(fn ($linea) => ['id' => $linea->id, 'nombre' => $linea->nombre])->values());
+    const endpoints = {
+        data: @json(route('lef52124.data')),
+        periods: @json(route('lef52124.periods')),
+        trend: @json(route('lef52124.trend.washer-machine')),
+    };
+    const initialFilters = { lineaId: Number(@json($lef52124SelectedLineaId)), dataDate: null, period: 'all', analysis: 'all' };
+    const state = {
+        lineaId: initialFilters.lineaId,
+        dataDate: null,
+        period: 'all',
+        analysis: 'all',
+        loadingPeriods: false,
+        dataRequestId: 0,
+        activeDataController: null,
+        trendVisible: false,
+        trendRequestId: 0,
+        activeTrendController: null,
+    };
+    const charts = {};
+    const compactQuery = window.matchMedia('(max-width: 640px)');
+    const colors = { weeks52: '#f59e0b', weeks12: '#fdba74', weeks4: '#fbbf24', highlight: '#1e40af' };
+    const periodDefinitions = [
+        { key: '52', label: '52 SEM', datasetLabel: '1 - 52 SEM', valueKey: 'value_52_weeks', formattedKey: 'formatted_52', topKey: 'top_52', washerKey: 'washer_52', color: colors.weeks52, highlightColor: colors.highlight },
+        { key: '12', label: '12 SEM', datasetLabel: '2 - 12 SEM', valueKey: 'value_12_weeks', formattedKey: 'formatted_12', topKey: 'top_12', washerKey: 'washer_12', color: colors.weeks12, highlightColor: '#2563eb' },
+        { key: '4', label: '4 SEM', datasetLabel: '3 - 4 SEM', valueKey: 'value_4_weeks', formattedKey: 'formatted_4', topKey: 'top_4', washerKey: 'washer_4', color: colors.weeks4, highlightColor: '#60a5fa' },
+    ];
+    const valueLabelPlugin = {
+        id: 'dashboardLefValueLabels',
+        afterDatasetsDraw(chart) {
+            const ctx = chart.ctx;
+            ctx.save();
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'bottom';
+            ctx.fillStyle = '#1f2348';
+            ctx.font = `700 ${compactQuery.matches ? 8 : 10}px sans-serif`;
+            chart.data.datasets.forEach((dataset, datasetIndex) => {
+                const meta = chart.getDatasetMeta(datasetIndex);
+                if (meta.hidden) return;
+                meta.data.forEach((bar, index) => {
+                    const raw = dataset.data[index];
+                    if (raw === null || raw === undefined || raw === '') return;
+                    const value = Number(raw);
+                    if (Number.isFinite(value)) ctx.fillText(formatNumber(value), bar.x, Math.max(12, bar.y - 4));
+                });
+            });
+            ctx.restore();
+        }
+    };
+    const nodes = {
+        date: root.querySelector('[data-lef-filter-date]'),
+        analysis: root.querySelector('[data-lef-filter-analysis]'),
+        period: root.querySelector('[data-lef-filter-period]'),
+        clear: root.querySelector('[data-lef-clear-filters]'),
+        clearLabel: root.querySelector('[data-lef-clear-label]'),
+        trendButton: root.querySelector('[data-lef-trend-toggle]'),
+        trendLabel: root.querySelector('[data-lef-trend-label]'),
+        trendPanel: root.querySelector('[data-lef-trend-panel]'),
+        trendTitle: root.querySelector('[data-lef-trend-title]'),
+        trendEmpty: root.querySelector('[data-lef-trend-empty]'),
+        trendChartWrap: root.querySelector('[data-lef-trend-chart-wrap]'),
+        feedback: root.querySelector('[data-lef-feedback]'),
+        kpis: root.querySelector('[data-lef-kpis]'),
+        washerKpis: root.querySelector('[data-lef-washer-kpis]'),
+        charts: root.querySelector('[data-lef-charts]'),
+        machinesTitle: root.querySelector('[data-lef-machines-title]'),
+    };
+
+    nodes.trendButton?.addEventListener('click', toggleTrendPanel);
+    nodes.clear?.addEventListener('click', resetFilters);
+    root.querySelectorAll('[data-lef-line-tab]').forEach((button) => button.addEventListener('click', () => {
+        state.lineaId = Number(button.dataset.lineaId);
+        selectLineTab();
+        loadPeriods(true);
+        if (state.trendVisible) loadTrend();
+    }));
+    nodes.date?.addEventListener('change', () => { state.dataDate = nodes.date.value || null; loadData(); });
+    nodes.analysis?.addEventListener('change', () => { state.analysis = nodes.analysis.value; loadData(); });
+    nodes.period?.addEventListener('change', () => { state.period = nodes.period.value; loadData(); });
+    compactQuery.addEventListener?.('change', loadData);
+
+    loadPeriods(true);
+
+    function toggleTrendPanel() {
+        state.trendVisible = !state.trendVisible;
+        if (nodes.trendPanel) nodes.trendPanel.hidden = !state.trendVisible;
+        if (nodes.trendLabel) nodes.trendLabel.textContent = state.trendVisible ? 'Ocultar tendencia' : 'Ver tendencia';
+        if (state.trendVisible) loadTrend();
+    }
+
+    function loadTrend() {
+        if (!state.lineaId || !state.trendVisible) return;
+        const requestId = ++state.trendRequestId;
+        state.activeTrendController?.abort();
+        state.activeTrendController = new AbortController();
+        setTrendLoading(true);
+        fetch(`${endpoints.trend}?linea_id=${encodeURIComponent(state.lineaId)}`, { headers: { Accept: 'application/json' }, signal: state.activeTrendController.signal })
+            .then((response) => {
+                if (!response.ok) throw new Error('No se pudo cargar la tendencia de Lavadora.');
+                return response.json();
+            })
+            .then((payload) => {
+                if (requestId === state.trendRequestId) renderTrend(payload);
+            })
+            .catch((error) => {
+                if (error.name !== 'AbortError') renderTrendEmpty(error.message || 'No se pudo cargar la tendencia de Lavadora.');
+            })
+            .finally(() => {
+                if (requestId === state.trendRequestId) setTrendLoading(false);
+            });
+    }
+
+    function setTrendLoading(isLoading) {
+        if (!nodes.trendButton) return;
+        nodes.trendButton.disabled = isLoading;
+        if (nodes.trendLabel) nodes.trendLabel.textContent = isLoading ? 'Cargando...' : (state.trendVisible ? 'Ocultar tendencia' : 'Ver tendencia');
+    }
+
+    function renderTrend(payload) {
+        if (!payload.has_data) {
+            renderTrendEmpty(`No existen registros mensuales 52-12-4 para la maquina Lavadora en ${currentLineName()} durante 2025 o 2026.`);
+            return;
+        }
+        if (nodes.trendTitle) nodes.trendTitle.textContent = `${payload.machine_name || 'LAVADORA'} | ${payload.linea || currentLineName()} | Enero-diciembre 2025 y 2026`;
+        if (nodes.trendEmpty) nodes.trendEmpty.hidden = true;
+        if (nodes.trendChartWrap) nodes.trendChartWrap.hidden = false;
+
+        const canvas = document.getElementById('dashboardWasherTrendChart');
+        if (!canvas) return;
+
+        charts.washerTrendChart?.destroy();
+        const trendColors = { 52: '#16a34a', 12: '#dc2626', 4: '#f97316' };
+        const datasets = [];
+        (payload.years || [2025, 2026]).forEach((year) => {
+            const rows = payload.series?.[year] || [];
+            periodDefinitions.forEach((period) => {
+                datasets.push({
+                    label: `${year} - ${period.label}`,
+                    data: rows.map((row) => row[period.valueKey]),
+                    borderColor: trendColors[period.key],
+                    backgroundColor: trendColors[period.key],
+                    borderDash: year === 2025 ? [7, 5] : [],
+                    borderWidth: year === 2026 ? 3 : 2,
+                    pointRadius: compactQuery.matches ? 3 : 4,
+                    pointHoverRadius: compactQuery.matches ? 5 : 6,
+                    tension: 0.28,
+                    spanGaps: false,
+                });
+            });
+        });
+        charts.washerTrendChart = new Chart(canvas, {
+            type: 'line',
+            data: { labels: payload.months || ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'], datasets },
+            plugins: [valueLabelPlugin],
+            options: trendChartOptions(),
+        });
+    }
+
+    function renderTrendEmpty(message) {
+        charts.washerTrendChart?.destroy();
+        delete charts.washerTrendChart;
+        if (nodes.trendChartWrap) nodes.trendChartWrap.hidden = true;
+        if (nodes.trendEmpty) {
+            nodes.trendEmpty.textContent = message;
+            nodes.trendEmpty.hidden = false;
+        }
+    }
+
+    function selectLineTab() {
+        root.querySelectorAll('[data-lef-line-tab]').forEach((button) => button.classList.toggle('active', Number(button.dataset.lineaId) === Number(state.lineaId)));
+    }
+
+    function syncStateFromControls() {
+        if (nodes.date) state.dataDate = nodes.date.value || null;
+        if (nodes.analysis) state.analysis = nodes.analysis.value || 'all';
+        if (nodes.period) state.period = nodes.period.value || 'all';
+        selectLineTab();
+    }
+
+    function resetFilters() {
+        const lineChanged = Number(state.lineaId) !== Number(initialFilters.lineaId);
+        state.lineaId = initialFilters.lineaId;
+        state.dataDate = initialFilters.dataDate;
+        state.period = initialFilters.period;
+        state.analysis = initialFilters.analysis;
+        if (nodes.date) nodes.date.value = '';
+        if (nodes.analysis) nodes.analysis.value = initialFilters.analysis;
+        if (nodes.period) nodes.period.value = initialFilters.period;
+        selectLineTab();
+        hideFeedback();
+        lineChanged ? loadPeriods(true) : loadData();
+    }
+
+    function loadPeriods(resetImport) {
+        if (!state.lineaId || state.loadingPeriods) return;
+        state.loadingPeriods = true;
+        fetch(`${endpoints.periods}?linea_id=${encodeURIComponent(state.lineaId)}`, { headers: { Accept: 'application/json' } })
+            .then((response) => {
+                if (!response.ok) throw new Error('No se pudieron consultar los periodos disponibles.');
+                return response.json();
+            })
+            .then((data) => {
+                const imports = data.items || [];
+                if (nodes.date) {
+                    if (resetImport) nodes.date.value = '';
+                    nodes.date.min = imports.length ? imports[imports.length - 1].data_date : '';
+                    nodes.date.max = imports.length ? imports[0].data_date : '';
+                    nodes.date.disabled = false;
+                    state.dataDate = nodes.date.value || null;
+                }
+            })
+            .catch((error) => showFeedback(error.message || 'No se pudieron consultar los periodos disponibles.', 'error'))
+            .finally(() => { state.loadingPeriods = false; loadData(); });
+    }
+
+    function loadData() {
+        syncStateFromControls();
+        if (!state.lineaId) return;
+        const requestId = ++state.dataRequestId;
+        state.activeDataController?.abort();
+        state.activeDataController = new AbortController();
+        const params = new URLSearchParams({ linea_id: state.lineaId, period: state.period, analysis_type: state.analysis });
+        if (state.dataDate) params.set('data_date', state.dataDate);
+        fetch(`${endpoints.data}?${params.toString()}`, { headers: { Accept: 'application/json' }, signal: state.activeDataController.signal })
+            .then((response) => {
+                if (!response.ok) throw new Error('No se pudieron cargar los datos 52-12-4.');
+                return response.json();
+            })
+            .then((payload) => {
+                if (requestId !== state.dataRequestId) return;
+                hideFeedback();
+                renderDashboard(payload);
+            })
+            .catch((error) => {
+                if (error.name !== 'AbortError') renderEmpty(error.message || 'No se pudieron cargar los datos 52-12-4.');
+            });
+    }
+
+    function renderDashboard(payload) {
+        if (!payload.has_data) return renderEmpty(payload.message || 'No existen datos 52-12-4 para la linea seleccionada.');
+        nodes.charts.hidden = false;
+        renderKpis(payload.summary || {});
+        renderWasherKpis(payload.washer);
+        renderVisibility();
+        nodes.machinesTitle.textContent = 'Pareto de LEF - Maquinas';
+        renderGroupedBar('dashboardMachinesChart', payload.machines || [], 'Maquina');
+        renderGroupedBar('dashboardPartsChart', payload.parts || [], 'Parte');
+        renderWasherChart(payload.washer);
+        renderComparisonChart(payload.comparison || []);
+    }
+
+    function renderEmpty(message) {
+        destroyAll();
+        nodes.kpis.innerHTML = '';
+        nodes.washerKpis.innerHTML = '';
+        nodes.charts.hidden = true;
+        showFeedback(message, 'error');
+    }
+
+    function showFeedback(message, type = 'info') {
+        if (!nodes.feedback) return;
+        nodes.feedback.textContent = message;
+        nodes.feedback.className = `lef-alert ${type}`;
+        nodes.feedback.hidden = false;
+    }
+
+    function hideFeedback() {
+        if (nodes.feedback) nodes.feedback.hidden = true;
+    }
+
+    function renderVisibility() {
+        const visible = { machines: ['all', 'machines'].includes(state.analysis), parts: ['all', 'parts'].includes(state.analysis), washer: ['all', 'washer'].includes(state.analysis), comparison: ['all', 'comparison'].includes(state.analysis) };
+        Object.entries(visible).forEach(([key, show]) => {
+            const card = root.querySelector(`[data-lef-card="${key}"]`);
+            if (card) card.hidden = !show;
+        });
+    }
+
+    function renderKpis(summary) {
+        const periods = selectedPeriodDefinitions();
+        const cards = [['Linea seleccionada', summary.linea || currentLineName(), '']];
+        periods.forEach((period) => {
+            const top = summary[period.topKey];
+            cards.push([`Mayor afectacion ${period.label}`, top?.name || 'Sin dato', top?.value || '']);
+        });
+        periods.forEach((period) => cards.push([`LEF linea general ${period.label}`, summary[period.washerKey] || 'Sin dato', '']));
+        nodes.kpis.innerHTML = cards.map(kpiMarkup).join('');
+    }
+
+    function renderWasherKpis(washer) {
+        nodes.washerKpis.innerHTML = selectedPeriodDefinitions()
+            .map((period) => [period.label, washer?.[period.formattedKey] || 'Sin dato', washer?.name || 'Linea general'])
+            .map(kpiMarkup)
+            .join('');
+    }
+
+    function kpiMarkup([label, value, meta]) {
+        return `<div class="lef-kpi"><div class="lef-kpi-label">${escapeHtml(label)}</div><div class="lef-kpi-value">${escapeHtml(value ?? '')}</div><div class="lef-kpi-meta">${escapeHtml(meta || '')}</div></div>`;
+    }
+
+    function renderGroupedBar(canvasId, rows, xLabel) {
+        const canvas = document.getElementById(canvasId);
+        if (!canvas) return;
+        setChartWidth(canvasId === 'dashboardMachinesChart' ? 'machines' : 'parts', rows.length, rows.map((row) => row.name));
+        charts[canvasId]?.destroy();
+        charts[canvasId] = new Chart(canvas, { type: 'bar', data: { labels: rows.map((row) => row.name), datasets: datasetsForRows(rows) }, plugins: [valueLabelPlugin], options: baseChartOptions(xLabel, 'Valor LEF') });
+    }
+
+    function renderWasherChart(row) {
+        const canvas = document.getElementById('dashboardWasherChart');
+        if (!canvas) return;
+        const periods = selectedPeriodDefinitions();
+        charts.dashboardWasherChart?.destroy();
+        charts.dashboardWasherChart = new Chart(canvas, { type: 'bar', data: { labels: periods.map((period) => period.label), datasets: [{ label: row?.name || 'Linea general', data: periods.map((period) => row ? row[period.valueKey] : 0), backgroundColor: periods.map((period) => period.color), borderRadius: 8 }] }, plugins: [valueLabelPlugin], options: baseChartOptions('Periodo', 'Valor LEF', false) });
+    }
+
+    function renderComparisonChart(rows) {
+        const canvas = document.getElementById('dashboardComparisonChart');
+        if (!canvas) return;
+        setChartWidth('comparison', rows.length, rows.map((row) => row.linea));
+        charts.dashboardComparisonChart?.destroy();
+        charts.dashboardComparisonChart = new Chart(canvas, { type: 'bar', data: { labels: rows.map((row) => row.linea), datasets: selectedPeriodDefinitions().map((period) => dataset(period.datasetLabel, rows.map((row) => row[period.valueKey]), period.color)) }, plugins: [valueLabelPlugin], options: baseChartOptions('Linea', 'Valor LEF', false) });
+    }
+
+    function datasetsForRows(rows) {
+        return selectedPeriodDefinitions().map((period) => dataset(period.datasetLabel, rows.map((row) => row[period.valueKey]), period.color));
+    }
+
+    function selectedPeriodDefinitions() {
+        return state.period === 'all' ? periodDefinitions : periodDefinitions.filter((period) => period.key === state.period);
+    }
+
+    function dataset(label, data, backgroundColor) {
+        return { label, data, backgroundColor, borderRadius: 7, borderSkipped: false, maxBarThickness: compactQuery.matches ? 26 : 44 };
+    }
+
+    function baseChartOptions(xTitle, yTitle, rotate = true) {
+        const compact = compactQuery.matches;
+        return {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: { duration: 450 },
+            plugins: {
+                datalabels: { display: false },
+                legend: { position: compact ? 'bottom' : 'top', labels: { usePointStyle: true, boxWidth: 8, color: '#334155', font: { size: compact ? 10 : 12, weight: '700' } } },
+                tooltip: { backgroundColor: 'rgba(15, 23, 42, 0.96)', titleColor: '#fff', bodyColor: '#e2e8f0', callbacks: { label: (context) => `${context.dataset.label}: ${formatNumber(context.raw)}` } }
+            },
+            layout: { padding: { top: compact ? 12 : 18, right: 8, bottom: compact ? 12 : 18, left: 4 } },
+            scales: {
+                x: { grid: { display: false }, title: { display: !compact, text: xTitle, color: '#64748b', font: { weight: 'bold' } }, ticks: { autoSkip: false, maxRotation: rotate ? (compact ? 0 : 18) : 0, color: '#475569', font: { size: compact ? 9 : 10, weight: '700' }, callback(value) { return wrapLabel(this.getLabelForValue(value), compact ? 12 : 16); } } },
+                y: { beginAtZero: true, grace: '18%', grid: { color: 'rgba(148, 163, 184, 0.20)' }, title: { display: !compact, text: yTitle, color: '#64748b', font: { weight: 'bold' } }, ticks: { callback: (value) => formatNumber(value), color: '#475569', font: { size: compact ? 10 : 11 } } }
+            }
+        };
+    }
+
+    function trendChartOptions() {
+        const compact = compactQuery.matches;
+        return {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: { duration: 450 },
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+                datalabels: { display: false },
+                legend: { position: compact ? 'bottom' : 'top', labels: { usePointStyle: true, boxWidth: 8, color: '#334155', font: { size: compact ? 10 : 12, weight: '700' } } },
+                tooltip: { backgroundColor: 'rgba(15, 23, 42, 0.96)', titleColor: '#fff', bodyColor: '#e2e8f0', callbacks: { label: (context) => `${context.dataset.label}: ${context.raw === null ? 'Sin registro' : formatNumber(context.raw)}` } }
+            },
+            scales: {
+                x: { grid: { color: 'rgba(148, 163, 184, 0.12)' }, ticks: { color: '#475569', font: { size: compact ? 10 : 11, weight: '700' } } },
+                y: { beginAtZero: true, grace: '18%', grid: { color: 'rgba(148, 163, 184, 0.20)' }, ticks: { callback: (value) => formatNumber(value), color: '#475569', font: { size: compact ? 10 : 11 } } }
+            }
+        };
+    }
+
+    function setChartWidth(key, total, labels = []) {
+        const node = root.querySelector(`[data-lef-chart-width="${key}"]`);
+        if (!node) return;
+        const minimum = compactQuery.matches ? 520 : 760;
+        const longestLabel = labels.reduce((max, label) => Math.max(max, String(label || '').length), 0);
+        const perItem = (compactQuery.matches ? 78 : 118) + Math.min(longestLabel, 36);
+        node.style.minWidth = `${Math.max(minimum, total * perItem)}px`;
+    }
+
+    function destroyAll() { Object.keys(charts).forEach((key) => { charts[key]?.destroy(); delete charts[key]; }); }
+    function currentLineName() { return lineas.find((linea) => Number(linea.id) === Number(state.lineaId))?.nombre || 'Sin linea'; }
+    function formatNumber(value) { if (value === null || value === undefined || Number.isNaN(Number(value))) return '0.00'; return Number(value).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+    function wrapLabel(value, limit) {
+        const words = String(value || '').replace(/([/-])/g, '$1 ').split(/\s+/).filter(Boolean);
+        const lines = [];
+        let currentLine = '';
+        words.forEach((word) => {
+            if (word.length > limit) {
+                if (currentLine) lines.push(currentLine);
+                for (let index = 0; index < word.length; index += limit) lines.push(word.slice(index, index + limit));
+                currentLine = '';
+                return;
+            }
+            const nextLine = currentLine ? `${currentLine} ${word}` : word;
+            if (nextLine.length <= limit) {
+                currentLine = nextLine;
+                return;
+            }
+            if (currentLine) lines.push(currentLine);
+            currentLine = word;
+        });
+        if (currentLine) lines.push(currentLine);
+        return lines.length ? lines : [''];
+    }
+    function escapeHtml(value) { return String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;'); }
+});
+</script>
 <script>
     let fallasChart, componentesChart, elongacionesChart, analisis52124Chart;
 
@@ -3995,7 +4745,7 @@
         // ─────────────────────────────────────────────────────────────────
         if (false) {
         const analisis52124Ctx = document.getElementById('analisis52124Chart').getContext('2d');
-        const analisis52124Data = @json($analisis52124);
+        const analisis52124Data = [];
 
         const lineasMap = new Map();
         analisis52124Data.forEach(item => {
@@ -4450,9 +5200,8 @@
         ranking: @json($rankingDanos),
         elongaciones: @json($evolucionElongaciones),
         historico: @json($historicoRevisiones),
-        trendFilters: @json($trendFilters ?? []),
-        tendencia: @json($analisis52124),
-        tendencia30147: @json($analisis30147)
+        trendFilters: {},
+        tendencia: null
     };
 
     const charts = {
@@ -4461,7 +5210,7 @@
         elongaciones: null,
         historico: null,
         tendencia: null,
-        tendencia30147: null
+        tendenciaLineas: null
     };
 
     const state = {
@@ -4471,9 +5220,7 @@
         elongacionLineaId: data.elongaciones?.default_linea_id ?? data.lineas?.[0]?.id ?? null,
         historicoScope: 'Todas',
         tendenciaLineaId: data.tendencia?.default_linea_id ?? data.lineas?.[0]?.id ?? null,
-        tendencia30147LineaId: data.tendencia30147?.default_linea_id ?? data.lineas?.[0]?.id ?? null,
-        tendenciaChartType: 'bar',
-        tendencia30147ChartType: 'bar'
+        tendenciaChartType: 'bar'
     };
 
     let layoutReady = false;
@@ -4496,8 +5243,6 @@
         safeRenderSection('ranking', renderRanking);
         safeRenderSection('elongaciones', renderElongaciones);
         safeRenderSection('historico', renderHistorico);
-        safeRenderSection('tendencia', renderTendencia);
-        safeRenderSection('tendencia30147', renderTendencia30147);
     };
 
     window.initCharts = window.dashboardLavadoraInitCharts;
@@ -4562,12 +5307,6 @@
                 setChartState('historico', true, 'Error al cargar historico', 'No fue posible construir la tendencia mensual de revisiones.', 'fa-triangle-exclamation');
                 break;
             }
-            case 'tendencia':
-                handleTrendRenderFailure(getTrendConfig52124(), error);
-                break;
-            case 'tendencia30147':
-                handleTrendRenderFailure(getTrendConfig30147(), error);
-                break;
             default:
                 break;
         }
@@ -4579,8 +5318,6 @@
         setupRankingCard();
         setupElongacionesCard();
         setupHistoricoCard();
-        setupTendenciaCard();
-        setupTendencia30147Card();
     }
 
     function setupFallasCard() {
@@ -4754,49 +5491,62 @@
     }
 
     function setupTendenciaCard() {
-        setupDamageTrendCard({
-            cardId: 'analisis52124Chart',
-            analysisLabel: 'Analisis 52-12-4',
-            title: 'Analisis 52-12-4 | Tendencia de daños',
-            icon: 'fas fa-wave-square',
-            prefix: 'analisis52124',
-            actionsId: 'tendenciaActions',
-            selectId: 'analisis52124LineaSelect',
-            filterFromName: data.trendFilters?.tendencia?.from_param ?? 'trend_52124_desde',
-            filterToName: data.trendFilters?.tendencia?.to_param ?? 'trend_52124_hasta',
-            filterFromValue: data.trendFilters?.tendencia?.from_input ?? '',
-            filterToValue: data.trendFilters?.tendencia?.to_input ?? '',
-            preserveInputs: [
-                { name: data.trendFilters?.tendencia30147?.from_param ?? 'trend_30147_desde', value: data.trendFilters?.tendencia30147?.from_input ?? '' },
-                { name: data.trendFilters?.tendencia30147?.to_param ?? 'trend_30147_hasta', value: data.trendFilters?.tendencia30147?.to_input ?? '' }
-            ],
-            stateKey: 'tendenciaLineaId',
-            chartTypeKey: 'tendenciaChartType',
-            renderFn: renderTendencia
-        });
-    }
+        const card = cardFromCanvas('analisis52124Chart');
+        if (!card) return;
 
-    function setupTendencia30147Card() {
-        setupDamageTrendCard({
-            cardId: 'analisis30147Chart',
-            analysisLabel: 'Analisis 30-14-7',
-            title: 'Analisis 30-14-7 | Tendencia de daños',
-            icon: 'fas fa-chart-line',
-            prefix: 'analisis30147',
-            actionsId: 'tendencia30147Actions',
-            selectId: 'analisis30147LineaSelect',
-            filterFromName: data.trendFilters?.tendencia30147?.from_param ?? 'trend_30147_desde',
-            filterToName: data.trendFilters?.tendencia30147?.to_param ?? 'trend_30147_hasta',
-            filterFromValue: data.trendFilters?.tendencia30147?.from_input ?? '',
-            filterToValue: data.trendFilters?.tendencia30147?.to_input ?? '',
-            preserveInputs: [
-                { name: data.trendFilters?.tendencia?.from_param ?? 'trend_52124_desde', value: data.trendFilters?.tendencia?.from_input ?? '' },
-                { name: data.trendFilters?.tendencia?.to_param ?? 'trend_52124_hasta', value: data.trendFilters?.tendencia?.to_input ?? '' }
-            ],
-            stateKey: 'tendencia30147LineaId',
-            chartTypeKey: 'tendencia30147ChartType',
-            renderFn: renderTendencia30147
-        });
+        card.classList.add('dashboard-panel');
+        updateCardTitle(card, 'Analisis 52-12-4 | Comparativo por lavadora', 'fas fa-wave-square');
+        card.querySelectorAll('.chart-description').forEach((node) => node.remove());
+        Array.from(card.children)
+            .filter((node) => node.tagName === 'DIV' && !node.classList.contains('chart-container') && !node.classList.contains('chart-shell') && node.id !== 'tendenciaActions' && node.id !== 'analisis52124Overview')
+            .forEach((node) => node.remove());
+
+        ensureAfterHeading(card, 'tendenciaActions', `
+            <form id="tendenciaActions" class="panel-actions trend-filter-form" method="GET" action="${escapeHtml(data.dashboardUrl || '')}" style="margin-bottom: 18px; justify-content: flex-start;" data-auto-filter-form>
+                <label class="trend-date-field">
+                    <span>Desde</span>
+                    <input type="date" name="${escapeHtml(data.trendFilters?.tendencia?.from_param ?? 'trend_52124_desde')}" value="${escapeHtml(data.trendFilters?.tendencia?.from_input ?? '')}" class="panel-date-input">
+                </label>
+                <label class="trend-date-field">
+                    <span>Hasta</span>
+                    <input type="date" name="${escapeHtml(data.trendFilters?.tendencia?.to_param ?? 'trend_52124_hasta')}" value="${escapeHtml(data.trendFilters?.tendencia?.to_input ?? '')}" class="panel-date-input">
+                </label>
+                <a href="${escapeHtml(data.dashboardUrl || '')}" class="panel-button">
+                    <i class="fas fa-rotate-left"></i>
+                    Limpiar
+                </a>
+            </form>
+        `);
+        ensureAfterElement('tendenciaActions', 'analisis52124Overview', `
+            <div id="analisis52124Overview" class="trend-overview-shell">
+                <div class="trend-executive-topbar">
+                    <div id="analisis52124Caption" class="trend-executive-caption"></div>
+                    <div class="trend-executive-view-selector" aria-label="Ventanas del analisis">
+                        <span class="trend-executive-view-btn active">52 semanas</span>
+                        <span class="trend-executive-view-btn active">12 semanas</span>
+                        <span class="trend-executive-view-btn active">4 semanas</span>
+                    </div>
+                </div>
+                <div id="analisis52124LineCards" class="trend-overview-grid"></div>
+            </div>
+        `);
+        ensureChartShell('analisis52124Chart', 'analisis52124', { tall: true });
+
+        const shell = document.querySelector('[data-chart-container="analisis52124"]')?.closest('.chart-shell');
+        if (shell && !document.getElementById('analisis52124LineasChart')) {
+            shell.classList.add('trend-overview-chart-panel');
+            shell.insertAdjacentHTML('afterend', `
+                <div class="trend-overview-secondary">
+                    <div class="subpanel-title">Evolucion de 4 semanas por lavadora</div>
+                    <div class="chart-shell">
+                        <div class="chart-container" data-chart-container="analisis52124Lineas">
+                            <canvas id="analisis52124LineasChart"></canvas>
+                        </div>
+                    </div>
+                    <div id="analisis52124Criteria" class="legend-inline trend-overview-criteria"></div>
+                </div>
+            `);
+        }
     }
 
     function setupDamageTrendCard(config) {
@@ -5858,23 +6608,247 @@
     }
 
     function renderTendencia() {
-        const config = getTrendConfig52124();
-
-        try {
-            renderDamageTrendCardCompact(config);
-        } catch (error) {
-            handleTrendRenderFailure(config, error);
-        }
+        renderTrend52124Overview();
     }
 
-    function renderTendencia30147() {
-        const config = getTrendConfig30147();
+    function renderTrend52124Overview() {
+        const dataset = data.tendencia || {};
+        const rows = Array.isArray(dataset.lineas) ? dataset.lineas : [];
+        const validRows = rows.filter((row) => row && Array.isArray(row.series));
+        const labels = validRows.find((row) => Array.isArray(row.labels) && row.labels.length)?.labels || [];
+        const caption = document.getElementById('analisis52124Caption');
+        const cards = document.getElementById('analisis52124LineCards');
+        const criteria = document.getElementById('analisis52124Criteria');
 
-        try {
-            renderDamageTrendCardCompact(config);
-        } catch (error) {
-            handleTrendRenderFailure(config, error);
+        if (caption) {
+            const periodo = dataset.periodo?.label ? `Periodo: ${dataset.periodo.label}. ` : '';
+            const corte = labels.length ? `Corte actual: ${labels[labels.length - 1]}.` : 'Sin corte disponible.';
+            caption.textContent = `${periodo}${corte}`;
         }
+
+        if (criteria) {
+            criteria.innerHTML = trendCriteriaMarkup(dataset.criterios || [], dataset.periodo || {});
+        }
+
+        if (!validRows.length || !labels.length) {
+            if (cards) cards.innerHTML = '';
+            charts.tendencia = destroy(charts.tendencia);
+            charts.tendenciaLineas = destroy(charts.tendenciaLineas);
+            setChartState('analisis52124', true, 'Sin tendencia disponible', 'Aun no existe historial suficiente para calcular las ventanas 52-12-4.', 'fa-wave-square');
+            const secondary = document.querySelector('[data-chart-container="analisis52124Lineas"]');
+            if (secondary) secondary.hidden = true;
+            return;
+        }
+
+        const rowsWithValues = validRows.map((row, index) => {
+            const value52 = latestTrendValue(row, 'semanas_52', '52');
+            const value12 = latestTrendValue(row, 'semanas_12', '12');
+            const value4 = latestTrendValue(row, 'semanas_4', '4');
+
+            return {
+                ...row,
+                value52,
+                value12,
+                value4,
+                color: trendLineColor(index),
+                totalPeriodo: Number(row.resumen?.total_fallas || 0)
+            };
+        });
+
+        if (cards) {
+            cards.innerHTML = rowsWithValues.map((row) => `
+                <article class="trend-overview-card" style="--trend-accent: ${row.color}">
+                    <div class="trend-overview-card-header">
+                        <div class="trend-overview-line">${escapeHtml(row.linea || 'Sin linea')}</div>
+                        <div class="trend-overview-total">${number(row.totalPeriodo, 0)} periodo</div>
+                    </div>
+                    <div class="trend-overview-values">
+                        <div class="trend-overview-value"><span>52 sem</span><strong>${number(row.value52, 0)}</strong></div>
+                        <div class="trend-overview-value"><span>12 sem</span><strong>${number(row.value12, 0)}</strong></div>
+                        <div class="trend-overview-value"><span>4 sem</span><strong>${number(row.value4, 0)}</strong></div>
+                    </div>
+                </article>
+            `).join('');
+        }
+
+        renderTrend52124BarChart(rowsWithValues);
+        renderTrend52124LineChart(rowsWithValues, labels);
+    }
+
+    function renderTrend52124BarChart(rows) {
+        const canvas = document.getElementById('analisis52124Chart');
+        if (!canvas) return;
+
+        charts.tendencia = destroy(charts.tendencia);
+        setChartState('analisis52124', false);
+
+        charts.tendencia = new Chart(canvas.getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: rows.map((row) => row.linea || 'Sin linea'),
+                datasets: [
+                    {
+                        label: '52 semanas',
+                        data: rows.map((row) => row.value52),
+                        backgroundColor: 'rgba(37, 99, 235, 0.82)',
+                        borderColor: '#2563eb',
+                        borderWidth: 2,
+                        borderRadius: 8,
+                        borderSkipped: false,
+                        maxBarThickness: 34
+                    },
+                    {
+                        label: '12 semanas',
+                        data: rows.map((row) => row.value12),
+                        backgroundColor: 'rgba(245, 158, 11, 0.84)',
+                        borderColor: '#d97706',
+                        borderWidth: 2,
+                        borderRadius: 8,
+                        borderSkipped: false,
+                        maxBarThickness: 34
+                    },
+                    {
+                        label: '4 semanas',
+                        data: rows.map((row) => row.value4),
+                        backgroundColor: 'rgba(16, 185, 129, 0.84)',
+                        borderColor: '#059669',
+                        borderWidth: 2,
+                        borderRadius: 8,
+                        borderSkipped: false,
+                        maxBarThickness: 34
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        labels: { usePointStyle: true, pointStyle: 'rectRounded', color: '#334155', font: { size: 12, weight: '800' } }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(15, 23, 42, 0.96)',
+                        titleColor: '#fff',
+                        bodyColor: '#e2e8f0',
+                        callbacks: {
+                            label: (context) => `${context.dataset.label}: ${number(context.raw || 0, 0)} daños`
+                        }
+                    },
+                    datalabels: {
+                        display: (context) => Number(context.raw || 0) > 0,
+                        anchor: 'end',
+                        align: 'top',
+                        offset: 4,
+                        clamp: true,
+                        color: '#0f172a',
+                        formatter: (value) => number(value, 0),
+                        font: { size: 10, weight: '800' }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: { display: false },
+                        ticks: { color: '#334155', font: { size: 11, weight: '800' } }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        grace: '18%',
+                        grid: { color: 'rgba(148, 163, 184, 0.16)' },
+                        title: { display: true, text: 'Daños por ventana', color: '#64748b', font: { size: 12, weight: '800' } },
+                        ticks: { precision: 0, color: '#64748b' }
+                    }
+                }
+            }
+        });
+    }
+
+    function renderTrend52124LineChart(rows, labels) {
+        const canvas = document.getElementById('analisis52124LineasChart');
+        const container = document.querySelector('[data-chart-container="analisis52124Lineas"]');
+        if (!canvas || !container) return;
+
+        container.hidden = false;
+        charts.tendenciaLineas = destroy(charts.tendenciaLineas);
+        charts.tendenciaLineas = new Chart(canvas.getContext('2d'), {
+            type: 'line',
+            data: {
+                labels,
+                datasets: rows.map((row) => {
+                    const serie = findTrendSeries(row, 'semanas_4', '4');
+
+                    return {
+                        label: row.linea || 'Sin linea',
+                        data: Array.isArray(serie?.data) ? serie.data.map((value) => Number(value || 0)) : [],
+                        borderColor: row.color,
+                        backgroundColor: `${row.color}22`,
+                        borderWidth: 3,
+                        pointRadius: 3,
+                        pointHoverRadius: 6,
+                        pointBackgroundColor: row.color,
+                        pointBorderColor: '#ffffff',
+                        pointBorderWidth: 2,
+                        tension: 0.32,
+                        fill: false
+                    };
+                })
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { mode: 'nearest', intersect: false },
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: { usePointStyle: true, pointStyle: 'line', color: '#334155', font: { size: 11, weight: '800' } }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(15, 23, 42, 0.96)',
+                        titleColor: '#fff',
+                        bodyColor: '#e2e8f0',
+                        callbacks: {
+                            label: (context) => `${context.dataset.label}: ${number(context.raw || 0, 0)} daños en 4 semanas`
+                        }
+                    },
+                    datalabels: { display: false }
+                },
+                scales: {
+                    x: {
+                        grid: { display: false },
+                        ticks: { color: '#475569', maxRotation: 0, autoSkip: true, font: { size: 10, weight: '700' } }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: 'rgba(148, 163, 184, 0.16)' },
+                        title: { display: true, text: 'Daños en 4 semanas', color: '#64748b', font: { size: 12, weight: '800' } },
+                        ticks: { precision: 0, color: '#64748b' }
+                    }
+                }
+            }
+        });
+    }
+
+    function findTrendSeries(row, key, labelNeedle) {
+        const series = Array.isArray(row?.series) ? row.series : [];
+        const needle = String(labelNeedle || '').toLowerCase();
+
+        return series.find((serie) => serie.key === key)
+            || series.find((serie) => String(serie.label || '').toLowerCase().includes(needle))
+            || null;
+    }
+
+    function latestTrendValue(row, key, labelNeedle) {
+        const serie = findTrendSeries(row, key, labelNeedle);
+        const values = Array.isArray(serie?.data) ? serie.data : [];
+
+        return Number(values.length ? values[values.length - 1] : 0);
+    }
+
+    function trendLineColor(index) {
+        const palette = ['#2563eb', '#dc2626', '#059669', '#d97706', '#7c3aed', '#0f766e', '#db2777', '#475569'];
+
+        return palette[index % palette.length];
     }
 
     function getTrendConfig52124() {
@@ -5893,25 +6867,6 @@
             emptyTitle: 'Sin tendencia disponible',
             emptyMessage: 'Aun no existe historial suficiente para calcular las ventanas 52-12-4.',
             emptyIcon: 'fa-wave-square'
-        };
-    }
-
-    function getTrendConfig30147() {
-        return {
-            dataKey: 'tendencia30147',
-            chartKey: 'tendencia30147',
-            analysisLabel: 'Analisis 30-14-7',
-            cardId: 'analisis30147Chart',
-            prefix: 'analisis30147',
-            selectId: 'analisis30147LineaSelect',
-            statsId: 'analisis30147Stats',
-            detailsId: 'analisis30147Breakdown',
-            criteriaId: 'analisis30147Criteria',
-            stateKey: 'tendencia30147LineaId',
-            chartTypeKey: 'tendencia30147ChartType',
-            emptyTitle: 'Sin tendencia disponible',
-            emptyMessage: 'Aun no existe historial suficiente para calcular las ventanas 30-14-7.',
-            emptyIcon: 'fa-chart-line'
         };
     }
 
