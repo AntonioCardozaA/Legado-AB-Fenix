@@ -74,7 +74,7 @@
                         onclick="toggleAdvancedFilters()">
                     <i class="fas fa-sliders-h"></i>
                     Filtros avanzados
-                    <i id="advancedFiltersIcon" class="fas {{ $filtrosAvanzadosActivos ? 'fa-chevron-up' : 'fa-chevron-down' }} ml-1"></i>
+                    <i id="advancedFiltersIcon" class="fas fa-chevron-down ml-1"></i>
                 </button>
 
                 <a href="{{ route('analisis-etiquetadora.index') }}" class="btn-clear">
@@ -83,7 +83,7 @@
                 </a>
             </div>
 
-            <div id="advancedFiltersPanel" class="advanced-filters-panel {{ $filtrosAvanzadosActivos ? 'show' : '' }}">
+            <div id="advancedFiltersPanel" class="advanced-filters-panel">
                 <div class="advanced-filters-grid">
                     <div class="filter-group">
                         <label><i class="fas fa-tags mr-1"></i> Maquina</label>

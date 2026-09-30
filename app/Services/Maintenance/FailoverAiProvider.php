@@ -34,6 +34,10 @@ class FailoverAiProvider implements AiProviderInterface
                     if (!$this->shouldTryNextAttempt($exception)) {
                         throw $exception;
                     }
+
+                    if ($this->shouldSkipRemainingModels($exception)) {
+                        break;
+                    }
                 }
             }
         }
@@ -76,6 +80,10 @@ class FailoverAiProvider implements AiProviderInterface
 
                     if (!$this->shouldTryNextAttempt($exception)) {
                         throw $exception;
+                    }
+
+                    if ($this->shouldSkipRemainingModels($exception)) {
+                        break;
                     }
                 }
             }
@@ -177,6 +185,12 @@ class FailoverAiProvider implements AiProviderInterface
         }
 
         return false;
+    }
+
+    private function shouldSkipRemainingModels(Throwable $exception): bool
+    {
+        return $exception instanceof ConnectionException
+            && GeminiRequestSupport::isDnsResolutionError($exception);
     }
 
     private function normalizeModelName(string $model): string

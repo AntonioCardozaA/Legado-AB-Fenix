@@ -124,6 +124,8 @@ php artisan schedule:run
 - `AI_ENABLED`, `AI_PROVIDER`, `AI_FALLBACK_PROVIDER`, `AI_QUEUE`, `AI_DISPATCH_MODE`, `AI_HISTORY_INDEX_QUEUE`: activacion, proveedor, fallback, cola prioritaria para planes IA y cola separada para indexacion historica.
 - `OPENAI_API_KEY`, `OPENAI_MODEL`, `OPENAI_EMBEDDING_MODEL`: credenciales y modelos de OpenAI para chat, planes, OCR y embeddings.
 - `GEMINI_API_KEY`, `GEMINI_MODEL`, `GEMINI_EMBEDDING_MODEL`: credenciales y modelos Gemini si se usa como proveedor principal o fallback.
+- `AI_WEB_SEARCH_ENABLED`, `AI_WEB_SEARCH_MODE`, `AI_WEB_SEARCH_PROVIDER`, `AI_WEB_SEARCH_FALLBACK_PROVIDER`: activan el modo hibrido del asistente; primero usa datos internos/base de conocimiento y solo consulta web cuando la pregunta lo requiere o falta evidencia interna.
+- `OPENAI_WEB_SEARCH_MODEL`, `GEMINI_WEB_SEARCH_MODEL`, `AI_WEB_SEARCH_CONTEXT_SIZE`: modelos y tamano de contexto para busqueda web externa.
 - `AI_CHAT_RATE_LIMIT_PER_MINUTE`: limite por usuario/IP para controlar costo y abuso del chat.
 - `AI_KNOWLEDGE_SEMANTIC_QUERY_ENABLED`, `AI_KNOWLEDGE_CANDIDATE_LIMIT`, `AI_KNOWLEDGE_*_WEIGHT`: controlan el ranking hibrido de documentos para el chatbot y los planes IA.
 

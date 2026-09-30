@@ -2,7 +2,8 @@
     id="assistant-chat-widget"
     data-fetch-url="{{ route('assistant-chat.index', [], false) }}"
     data-send-url="{{ route('assistant-chat.store', [], false) }}"
-    data-clear-url="{{ route('assistant-chat.destroy', [], false) }}"
+    data-conversation-url-template="{{ route('assistant-chat.conversations.show', ['conversation' => '__CONVERSATION__'], false) }}"
+    data-conversation-delete-url-template="{{ route('assistant-chat.conversations.destroy', ['conversation' => '__CONVERSATION__'], false) }}"
     data-csrf-token="{{ csrf_token() }}"
     class="fixed bottom-4 right-4 z-[90] sm:bottom-6 sm:right-6"
 >
@@ -24,17 +25,39 @@
                     <div>
                     <p class="text-xs font-bold uppercase tracking-[0.25em] text-slate-300">ABFenix.ai</p>
                     <h3 class="mt-1 text-lg font-black">Chat operativo</h3>
+                    <p id="assistant-chat-active-title" class="mt-0.5 max-w-[11rem] truncate text-xs font-semibold text-slate-400 sm:max-w-[14rem]">Nuevo chat</p>
                     </div>
                 </div>
                 <div class="flex items-center gap-2">
                     <button
-                        id="assistant-chat-clear"
+                        id="assistant-chat-new"
                         type="button"
                         class="assistant-chat-header-action inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white transition hover:bg-white/12"
-                        title="Limpiar historial"
+                        title="Nuevo chat"
+                        aria-label="Nuevo chat"
                     >
-                        <i class="fas fa-broom text-sm"></i>
+                        <i class="fas fa-pen-to-square text-sm"></i>
                     </button>
+                    <div class="relative">
+                        <button
+                            id="assistant-chat-history"
+                            type="button"
+                            class="assistant-chat-header-action inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white transition hover:bg-white/12"
+                            title="Historial"
+                            aria-label="Historial de conversaciones"
+                        >
+                            <i class="fas fa-clock-rotate-left text-sm"></i>
+                        </button>
+                        <div
+                            id="assistant-chat-history-menu"
+                            class="assistant-chat-history-menu absolute right-0 top-11 z-20 hidden w-72 max-w-[calc(100vw-3rem)] overflow-hidden rounded-2xl border border-slate-200 bg-white text-slate-800 shadow-2xl shadow-slate-950/20"
+                        >
+                            <div class="border-b border-slate-100 px-4 py-3">
+                                <p class="text-xs font-black uppercase tracking-[0.2em] text-slate-400">Recientes</p>
+                            </div>
+                            <div id="assistant-chat-conversations" class="max-h-80 overflow-y-auto py-2"></div>
+                        </div>
+                    </div>
                     <button
                         id="assistant-chat-close"
                         type="button"
@@ -119,6 +142,72 @@
 
     #assistant-chat-widget .assistant-chat-header-action:hover {
         background: rgba(255, 255, 255, 0.14);
+    }
+
+    #assistant-chat-widget .assistant-chat-history-menu {
+        max-width: min(18rem, calc(100vw - 3rem));
+    }
+
+    #assistant-chat-widget .assistant-chat-conversation {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 8px 6px 16px;
+        transition: background 160ms ease, color 160ms ease;
+    }
+
+    #assistant-chat-widget .assistant-chat-conversation:hover {
+        background: #f8fafc;
+    }
+
+    #assistant-chat-widget .assistant-chat-conversation--active {
+        background: #fff7ed;
+        color: #9a3412;
+    }
+
+    #assistant-chat-widget .assistant-chat-conversation--active:hover {
+        background: #ffedd5;
+    }
+
+    #assistant-chat-widget .assistant-chat-conversation-title {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-size: 13px;
+        font-weight: 800;
+    }
+
+    #assistant-chat-widget .assistant-chat-conversation-date {
+        font-size: 11px;
+        font-weight: 700;
+        color: #94a3b8;
+    }
+
+    #assistant-chat-widget .assistant-chat-conversation-open {
+        min-width: 0;
+        flex: 1 1 auto;
+        display: grid;
+        gap: 2px;
+        padding: 4px 0;
+        text-align: left;
+    }
+
+    #assistant-chat-widget .assistant-chat-conversation-delete {
+        flex: 0 0 auto;
+        width: 1.9rem;
+        height: 1.9rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 999px;
+        color: #94a3b8;
+        transition: background 160ms ease, color 160ms ease;
+    }
+
+    #assistant-chat-widget .assistant-chat-conversation-delete:hover {
+        background: #fee2e2;
+        color: #b91c1c;
     }
 
     #assistant-chat-widget .assistant-chat-send-button {
@@ -223,13 +312,18 @@
 
     const fetchUrl = widget.dataset.fetchUrl || '';
     const sendUrl = widget.dataset.sendUrl || '';
-    const clearUrl = widget.dataset.clearUrl || '';
+    const conversationUrlTemplate = widget.dataset.conversationUrlTemplate || '';
+    const conversationDeleteUrlTemplate = widget.dataset.conversationDeleteUrlTemplate || '';
     const csrfToken = widget.dataset.csrfToken || '';
 
     const panel = document.getElementById('assistant-chat-panel');
     const toggleButton = document.getElementById('assistant-chat-toggle');
     const closeButton = document.getElementById('assistant-chat-close');
-    const clearButton = document.getElementById('assistant-chat-clear');
+    const newChatButton = document.getElementById('assistant-chat-new');
+    const historyButton = document.getElementById('assistant-chat-history');
+    const historyMenu = document.getElementById('assistant-chat-history-menu');
+    const conversationsContainer = document.getElementById('assistant-chat-conversations');
+    const activeTitle = document.getElementById('assistant-chat-active-title');
     const messagesContainer = document.getElementById('assistant-chat-messages');
     const draftInput = document.getElementById('assistant-chat-draft');
     const sendButton = document.getElementById('assistant-chat-send');
@@ -241,6 +335,8 @@
     let sending = false;
     let historyLoaded = false;
     let messages = [];
+    let conversations = [];
+    let activeConversationId = null;
     const assistantBrand = 'ABFenix.ai';
 
     const introMessage = {
@@ -249,6 +345,8 @@
         content: 'Hola, soy su asistente ABFenix.ai. ¿En qué puedo ayudarte?',
         metadata: {},
     };
+
+    introMessage.content = 'Hola, soy su asistente ABFenix.ai. \u00bfEn qu\u00e9 puedo ayudarte?';
 
     function escapeHtml(value) {
         return String(value)
@@ -267,10 +365,25 @@
         return Array.isArray(message?.metadata?.sources) && message.metadata.sources.length > 0;
     }
 
-    function formatSources(message) {
+    function safeExternalUrl(value) {
+        const url = String(value || '').trim();
+
+        return /^https?:\/\//i.test(url) ? url : '';
+    }
+
+    function renderSources(message) {
         return message.metadata.sources
             .slice(0, 2)
-            .map(source => source.reference || source.type || 'Referencia')
+            .map(source => {
+                const label = escapeHtml(source.reference || source.type || 'Referencia');
+                const url = safeExternalUrl(source.url);
+
+                if (!url) {
+                    return label;
+                }
+
+                return `<a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer" class="underline decoration-dotted underline-offset-2">${label}</a>`;
+            })
             .join(' | ');
     }
 
@@ -329,6 +442,79 @@
         return messages.length > 0 ? messages : [introMessage];
     }
 
+    function conversationUrl(id) {
+        return conversationUrlTemplate.replace('__CONVERSATION__', encodeURIComponent(String(id)));
+    }
+
+    function conversationDeleteUrl(id) {
+        return conversationDeleteUrlTemplate.replace('__CONVERSATION__', encodeURIComponent(String(id)));
+    }
+
+    function updateActiveTitle() {
+        const active = conversations.find(conversation => Number(conversation.id) === Number(activeConversationId));
+        const title = active ? active.title : 'Nuevo chat';
+
+        if (activeTitle) {
+            activeTitle.textContent = title || 'Nuevo chat';
+        }
+    }
+
+    function renderConversations() {
+        if (!conversationsContainer) {
+            return;
+        }
+
+        if (!Array.isArray(conversations) || conversations.length === 0) {
+            conversationsContainer.innerHTML = `
+                <div class="px-4 py-6 text-center text-sm font-semibold text-slate-500">
+                    A\u00fan no hay conversaciones guardadas.
+                </div>
+            `;
+            updateActiveTitle();
+            return;
+        }
+
+        conversationsContainer.innerHTML = conversations.map(conversation => {
+            const isActive = Number(conversation.id) === Number(activeConversationId);
+            const activeClass = isActive ? 'assistant-chat-conversation--active' : '';
+            const date = conversation.created_at_label || conversation.last_message_at_human || '';
+
+            return `
+                <div class="assistant-chat-conversation ${activeClass}" data-conversation-row="${escapeHtml(conversation.id)}">
+                    <button
+                        type="button"
+                        class="assistant-chat-conversation-open"
+                        data-conversation-id="${escapeHtml(conversation.id)}"
+                        title="${escapeHtml(conversation.title || 'Chat operativo')}"
+                    >
+                        <span class="assistant-chat-conversation-title">${escapeHtml(conversation.title || 'Chat operativo')}</span>
+                        <span class="assistant-chat-conversation-date">${escapeHtml(date)}</span>
+                    </button>
+                    <button
+                        type="button"
+                        class="assistant-chat-conversation-delete"
+                        data-conversation-delete-id="${escapeHtml(conversation.id)}"
+                        title="Eliminar chat"
+                        aria-label="Eliminar chat"
+                    >
+                        <i class="fas fa-trash-can text-[11px]"></i>
+                    </button>
+                </div>
+            `;
+        }).join('');
+
+        updateActiveTitle();
+    }
+
+    function closeHistoryMenu() {
+        historyMenu?.classList.add('hidden');
+    }
+
+    function toggleHistoryMenu() {
+        historyMenu?.classList.toggle('hidden');
+        renderConversations();
+    }
+
     function setSendingState(active) {
         sending = active;
         sendButton.disabled = active || draftInput.value.trim() === '';
@@ -355,7 +541,7 @@
                         ${hasArtifacts(message) ? renderArtifacts(message) : ''}
                         ${hasSources(message) ? `
                             <p class="assistant-chat-source mt-3 text-[11px] font-medium">
-                                Base usada: ${escapeHtml(formatSources(message))}
+                                Fuentes usadas: ${renderSources(message)}
                             </p>
                         ` : ''}
                     </div>
@@ -414,9 +600,12 @@
         };
     }
 
-    async function loadHistory() {
+    async function loadHistory(conversationId = null) {
         try {
-            const response = await fetch(fetchUrl, {
+            const url = conversationId
+                ? fetchUrl + (fetchUrl.includes('?') ? '&' : '?') + 'conversation_id=' + encodeURIComponent(String(conversationId))
+                : fetchUrl;
+            const response = await fetch(url, {
                 headers: {
                     'Accept': 'application/json',
                 },
@@ -428,13 +617,121 @@
 
             const data = await response.json();
             messages = Array.isArray(data.messages) ? data.messages : [];
+            conversations = Array.isArray(data.conversations) ? data.conversations : conversations;
+            activeConversationId = data.active_conversation_id || data.active_conversation?.id || null;
             historyLoaded = true;
+            renderConversations();
             renderMessages();
         } catch (error) {
             messages = [];
             historyLoaded = true;
+            renderConversations();
             renderMessages();
         }
+    }
+
+    async function loadConversation(conversationId) {
+        if (!conversationId || sending || conversationUrlTemplate === '') {
+            return;
+        }
+
+        try {
+            const response = await fetch(conversationUrl(conversationId), {
+                headers: {
+                    'Accept': 'application/json',
+                },
+            });
+
+            if (!response.ok) {
+                throw new Error('conversation');
+            }
+
+            const data = await response.json();
+            messages = Array.isArray(data.messages) ? data.messages : [];
+            activeConversationId = data.conversation?.id || conversationId;
+            historyLoaded = true;
+            closeHistoryMenu();
+            renderConversations();
+            renderMessages();
+        } catch (error) {
+            //
+        }
+    }
+
+    async function confirmConversationDelete() {
+        if (window.Swal) {
+            const result = await window.Swal.fire({
+                title: 'Eliminar chat',
+                text: 'Se eliminar\u00e1 esta conversaci\u00f3n del historial.',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'S\u00ed, eliminar',
+                cancelButtonText: 'Cancelar',
+                confirmButtonColor: '#dc2626',
+                cancelButtonColor: '#94a3b8',
+            });
+
+            return result.isConfirmed;
+        }
+
+        return window.confirm('Se eliminar\u00e1 esta conversaci\u00f3n del historial.');
+    }
+
+    async function deleteConversation(conversationId) {
+        if (!conversationId || sending || conversationDeleteUrlTemplate === '') {
+            return;
+        }
+
+        const confirmed = await confirmConversationDelete();
+
+        if (!confirmed) {
+            return;
+        }
+
+        try {
+            const wasActive = Number(conversationId) === Number(activeConversationId);
+            const response = await fetch(conversationDeleteUrl(conversationId), {
+                method: 'DELETE',
+                headers: {
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken,
+                },
+            });
+
+            if (!response.ok) {
+                throw new Error('delete-conversation');
+            }
+
+            const data = await response.json();
+            conversations = Array.isArray(data.conversations) ? data.conversations : [];
+            activeConversationId = wasActive
+                ? (data.active_conversation_id || null)
+                : activeConversationId;
+            messages = wasActive
+                ? (Array.isArray(data.messages) ? data.messages : [])
+                : messages;
+
+            closeHistoryMenu();
+            renderConversations();
+            renderMessages();
+        } catch (error) {
+            //
+        }
+    }
+
+    function startNewChat() {
+        if (sending) {
+            return;
+        }
+
+        activeConversationId = null;
+        messages = [];
+        historyLoaded = true;
+        closeHistoryMenu();
+        renderConversations();
+        renderMessages();
+        updateSendButton();
+        draftInput.focus();
     }
 
     async function sendMessage() {
@@ -457,6 +754,7 @@
                 },
                 body: JSON.stringify({
                     message,
+                    conversation_id: activeConversationId,
                     page_context: pageContext(),
                 }),
             });
@@ -466,6 +764,14 @@
             }
 
             const data = await response.json();
+
+            if (data.conversation) {
+                activeConversationId = data.conversation.id;
+            }
+
+            if (Array.isArray(data.conversations)) {
+                conversations = data.conversations;
+            }
 
             if (data.user_message) {
                 messages.push(data.user_message);
@@ -477,6 +783,7 @@
 
             draftInput.value = '';
             historyLoaded = true;
+            renderConversations();
         } catch (error) {
             messages.push({
                 id: 'assistant-error-' + Date.now(),
@@ -491,45 +798,6 @@
             setSendingState(false);
             renderMessages();
             updateSendButton();
-        }
-    }
-
-    async function clearHistory() {
-        let confirmed = window.confirm('Se borrarán los mensajes guardados de este chat.');
-
-        if (window.Swal) {
-            const result = await window.Swal.fire({
-                title: 'Limpiar historial',
-                text: 'Se borrarán los mensajes guardados de este chat.',
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonText: 'Sí, limpiar',
-                cancelButtonText: 'Cancelar',
-                confirmButtonColor: '#2563eb',
-                cancelButtonColor: '#94a3b8',
-            });
-
-            confirmed = result.isConfirmed;
-        }
-
-        if (!confirmed) {
-            return;
-        }
-
-        try {
-            await fetch(clearUrl, {
-                method: 'DELETE',
-                headers: {
-                    'Accept': 'application/json',
-                    'X-CSRF-TOKEN': csrfToken,
-                },
-            });
-
-            messages = [];
-            historyLoaded = true;
-            renderMessages();
-        } catch (error) {
-            //
         }
     }
 
@@ -553,7 +821,37 @@
 
     toggleButton.addEventListener('click', openPanel);
     closeButton?.addEventListener('click', closePanel);
-    clearButton?.addEventListener('click', clearHistory);
+    newChatButton?.addEventListener('click', startNewChat);
+    historyButton?.addEventListener('click', toggleHistoryMenu);
+    conversationsContainer?.addEventListener('click', event => {
+        const target = event.target instanceof Element ? event.target : event.target?.parentElement;
+        const deleteButton = target?.closest('[data-conversation-delete-id]');
+
+        if (deleteButton) {
+            event.stopPropagation();
+            deleteConversation(deleteButton.dataset.conversationDeleteId);
+            return;
+        }
+
+        const button = target?.closest('[data-conversation-id]');
+
+        if (!button) {
+            return;
+        }
+
+        loadConversation(button.dataset.conversationId);
+    });
+    document.addEventListener('click', event => {
+        if (!historyMenu || historyMenu.classList.contains('hidden')) {
+            return;
+        }
+
+        if (historyMenu.contains(event.target) || historyButton?.contains(event.target)) {
+            return;
+        }
+
+        closeHistoryMenu();
+    });
     sendButton.addEventListener('click', sendMessage);
     draftInput.addEventListener('input', updateSendButton);
     draftInput.addEventListener('keydown', event => {
@@ -564,6 +862,7 @@
     });
 
     renderMessages();
+    renderConversations();
     updateSendButton();
 })();
 </script>

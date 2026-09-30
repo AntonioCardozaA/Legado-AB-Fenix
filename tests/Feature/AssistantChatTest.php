@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Contracts\AiProviderInterface;
 use App\Models\AnalisisLavadora;
+use App\Models\AssistantConversation;
 use App\Models\AssistantMessage;
 use App\Models\CadenaCiclo;
 use App\Models\Componente;
@@ -17,7 +18,9 @@ use App\Models\PlanAccion;
 use App\Models\User;
 use App\Models\WasherKnowledgeChunk;
 use App\Models\WasherKnowledgeDocument;
+use App\Services\Maintenance\AssistantWebSearchService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -154,6 +157,8 @@ class AssistantChatTest extends TestCase
             ->assertJsonPath('message.role', 'assistant')
             ->assertJsonPath('message.metadata.provider', 'fake');
 
+        $this->assertStringStartsWith('Dame contexto global del modulo de accion', (string) $response->json('conversation.title'));
+
         $capturedPayload = $capturingProvider->payloads[0] ?? [];
         $userPrompt = (string) ($capturedPayload['user_prompt'] ?? '');
 
@@ -167,8 +172,10 @@ class AssistantChatTest extends TestCase
         $this->assertStringContainsString('L-04', $userPrompt);
 
         $this->assertDatabaseCount('assistant_messages', 2);
+        $this->assertDatabaseCount('assistant_conversations', 1);
         $this->assertDatabaseHas('assistant_messages', [
             'user_id' => $user->id,
+            'conversation_id' => $response->json('conversation.id'),
             'role' => 'user',
             'content' => 'Dame contexto global del modulo de accion sobre el servo chico en L-04 con fotos y eventos',
         ]);
@@ -176,6 +183,8 @@ class AssistantChatTest extends TestCase
         $this->actingAs($user)
             ->getJson(route('assistant-chat.index'))
             ->assertOk()
+            ->assertJsonCount(1, 'conversations')
+            ->assertJsonPath('active_conversation.id', $response->json('conversation.id'))
             ->assertJsonCount(2, 'messages')
             ->assertJsonPath('messages.0.role', 'user')
             ->assertJsonPath('messages.1.role', 'assistant');
@@ -225,16 +234,34 @@ class AssistantChatTest extends TestCase
         $this->app->instance(AiProviderInterface::class, $capturingProvider);
 
         $user = $this->authenticatedUser();
+        $conversation = AssistantConversation::create([
+            'user_id' => $user->id,
+            'title' => 'Pregunta anterior',
+            'last_message_at' => now(),
+        ]);
 
         AssistantMessage::create([
             'user_id' => $user->id,
+            'conversation_id' => $conversation->id,
             'role' => 'user',
             'content' => 'Pregunta anterior',
         ]);
         AssistantMessage::create([
             'user_id' => $user->id,
+            'conversation_id' => $conversation->id,
             'role' => 'assistant',
             'content' => 'Respuesta anterior',
+        ]);
+        $separateConversation = AssistantConversation::create([
+            'user_id' => $user->id,
+            'title' => 'Otro hilo',
+            'last_message_at' => now()->subMinute(),
+        ]);
+        AssistantMessage::create([
+            'user_id' => $user->id,
+            'conversation_id' => $separateConversation->id,
+            'role' => 'user',
+            'content' => 'Pregunta de otro hilo que no debe mezclarse',
         ]);
 
         $currentQuestion = 'Pregunta actual que no debe duplicarse en historial';
@@ -242,6 +269,7 @@ class AssistantChatTest extends TestCase
         $this->actingAs($user)
             ->postJson(route('assistant-chat.store'), [
                 'message' => $currentQuestion,
+                'conversation_id' => $conversation->id,
                 'page_context' => [
                     'module' => User::MODULE_LAVADORA,
                     'page_title' => 'Chat operativo',
@@ -260,25 +288,458 @@ class AssistantChatTest extends TestCase
             ['role' => 'assistant', 'content' => 'Respuesta anterior'],
         ], $payload['recent_conversation'] ?? null);
 
-        $this->assertDatabaseCount('assistant_messages', 4);
+        $this->assertDatabaseCount('assistant_messages', 5);
         $this->assertSame(
             ['user', 'assistant', 'user', 'assistant'],
-            AssistantMessage::query()->where('user_id', $user->id)->oldest('id')->pluck('role')->all()
+            AssistantMessage::query()->where('conversation_id', $conversation->id)->oldest('id')->pluck('role')->all()
         );
+    }
+
+    public function test_chat_history_lists_conversations_recent_first_and_enforces_user_scope(): void
+    {
+        $user = $this->authenticatedUser();
+        $otherUser = $this->authenticatedUser();
+
+        $olderConversation = AssistantConversation::create([
+            'user_id' => $user->id,
+            'title' => 'Revisar servo grande',
+            'last_message_at' => now()->subDay(),
+            'created_at' => now()->subDay(),
+            'updated_at' => now()->subDay(),
+        ]);
+        $recentConversation = AssistantConversation::create([
+            'user_id' => $user->id,
+            'title' => 'Comparar elongaciones',
+            'last_message_at' => now(),
+        ]);
+        $otherConversation = AssistantConversation::create([
+            'user_id' => $otherUser->id,
+            'title' => 'Chat privado de otro usuario',
+            'last_message_at' => now()->addMinute(),
+        ]);
+
+        AssistantMessage::create([
+            'user_id' => $user->id,
+            'conversation_id' => $olderConversation->id,
+            'role' => 'user',
+            'content' => 'Como esta el servo grande',
+        ]);
+        AssistantMessage::create([
+            'user_id' => $user->id,
+            'conversation_id' => $recentConversation->id,
+            'role' => 'user',
+            'content' => 'Compara elongaciones',
+        ]);
+        AssistantMessage::create([
+            'user_id' => $otherUser->id,
+            'conversation_id' => $otherConversation->id,
+            'role' => 'user',
+            'content' => 'Mensaje ajeno',
+        ]);
+
+        $this->actingAs($user)
+            ->getJson(route('assistant-chat.index'))
+            ->assertOk()
+            ->assertJsonCount(2, 'conversations')
+            ->assertJsonPath('conversations.0.id', $recentConversation->id)
+            ->assertJsonPath('conversations.1.id', $olderConversation->id)
+            ->assertJsonPath('active_conversation.id', $recentConversation->id)
+            ->assertJsonPath('messages.0.content', 'Compara elongaciones');
+
+        $this->actingAs($user)
+            ->getJson(route('assistant-chat.conversations.show', $olderConversation))
+            ->assertOk()
+            ->assertJsonPath('conversation.id', $olderConversation->id)
+            ->assertJsonPath('messages.0.content', 'Como esta el servo grande');
+
+        $this->actingAs($otherUser)
+            ->getJson(route('assistant-chat.conversations.show', $olderConversation))
+            ->assertNotFound();
+
+        $this->actingAs($otherUser)
+            ->postJson(route('assistant-chat.store'), [
+                'message' => 'Intento usar un hilo ajeno',
+                'conversation_id' => $olderConversation->id,
+            ])
+            ->assertNotFound();
+    }
+
+    public function test_user_can_delete_one_conversation_without_removing_other_chats(): void
+    {
+        $user = $this->authenticatedUser();
+        $otherUser = $this->authenticatedUser();
+
+        $conversationToDelete = AssistantConversation::create([
+            'user_id' => $user->id,
+            'title' => 'Chat a eliminar',
+            'last_message_at' => now()->subMinute(),
+        ]);
+        $conversationToKeep = AssistantConversation::create([
+            'user_id' => $user->id,
+            'title' => 'Chat a conservar',
+            'last_message_at' => now(),
+        ]);
+        $otherConversation = AssistantConversation::create([
+            'user_id' => $otherUser->id,
+            'title' => 'Chat ajeno',
+            'last_message_at' => now(),
+        ]);
+
+        AssistantMessage::create([
+            'user_id' => $user->id,
+            'conversation_id' => $conversationToDelete->id,
+            'role' => 'user',
+            'content' => 'Borrar este hilo',
+        ]);
+        AssistantMessage::create([
+            'user_id' => $user->id,
+            'conversation_id' => $conversationToKeep->id,
+            'role' => 'user',
+            'content' => 'Conservar este hilo',
+        ]);
+
+        $this->actingAs($user)
+            ->deleteJson(route('assistant-chat.conversations.destroy', $conversationToDelete))
+            ->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonCount(1, 'conversations')
+            ->assertJsonPath('conversations.0.id', $conversationToKeep->id)
+            ->assertJsonPath('active_conversation.id', $conversationToKeep->id)
+            ->assertJsonPath('messages.0.content', 'Conservar este hilo');
+
+        $this->assertDatabaseMissing('assistant_conversations', [
+            'id' => $conversationToDelete->id,
+        ]);
+        $this->assertDatabaseMissing('assistant_messages', [
+            'conversation_id' => $conversationToDelete->id,
+        ]);
+        $this->assertDatabaseHas('assistant_conversations', [
+            'id' => $conversationToKeep->id,
+        ]);
+
+        $this->actingAs($user)
+            ->deleteJson(route('assistant-chat.conversations.destroy', $otherConversation))
+            ->assertNotFound();
+    }
+
+    public function test_chat_includes_web_context_in_hybrid_mode_when_needed(): void
+    {
+        config([
+            'maintenance_ai.enabled' => true,
+            'maintenance_ai.web_search.enabled' => true,
+            'maintenance_ai.web_search.mode' => 'hybrid',
+            'maintenance_ai.web_search.provider' => 'gemini',
+        ]);
+
+        $capturingProvider = new class implements AiProviderInterface
+        {
+            public array $payloads = [];
+
+            public function generateStructuredActionPlan(array $payload): array
+            {
+                $this->payloads[] = $payload;
+
+                return [
+                    'data' => [
+                        'answer' => 'La base interna no contiene ficha de fabricante suficiente; complemento con informacion web externa.',
+                        'key_points' => [
+                            'El dato web debe validarse contra el componente instalado antes de comprar.',
+                        ],
+                        'next_steps' => [],
+                        'sources' => [
+                            [
+                                'type' => 'web',
+                                'reference' => 'Manual tecnico fabricante',
+                            ],
+                        ],
+                        'confidence' => 0.78,
+                    ],
+                    'raw' => [],
+                    'meta' => [
+                        'provider' => 'fake',
+                        'model' => 'hybrid-web-test',
+                    ],
+                ];
+            }
+
+            public function createEmbedding(string $content): array
+            {
+                return [];
+            }
+
+            public function extractDocumentText(array $payload): string
+            {
+                return '';
+            }
+        };
+
+        $webSearch = new class extends AssistantWebSearchService
+        {
+            public int $calls = 0;
+
+            public function __construct()
+            {
+            }
+
+            public function searchIfNeeded(string $question, array $knowledge, array $platformContext, array $technicalContext): array
+            {
+                $this->calls++;
+
+                return [
+                    'enabled' => true,
+                    'used' => true,
+                    'reason' => 'explicit_web_request',
+                    'provider' => 'gemini',
+                    'query' => $question,
+                    'summary' => 'Ficha tecnica web externa: revisar torque, viscosidad recomendada y equivalencias del fabricante.',
+                    'sources' => [
+                        [
+                            'type' => 'web',
+                            'reference' => 'Manual tecnico fabricante',
+                            'url' => 'https://fabricante.example/manual',
+                        ],
+                    ],
+                    'error' => null,
+                ];
+            }
+        };
+
+        $this->app->instance(AiProviderInterface::class, $capturingProvider);
+        $this->app->instance(AssistantWebSearchService::class, $webSearch);
+
+        $response = $this->actingAs($this->authenticatedUser())->postJson(route('assistant-chat.store'), [
+            'message' => 'Busca en la web la ficha tecnica actual del aceite para reductor RV200 y comparala con la base interna',
+            'page_context' => [
+                'module' => User::MODULE_LAVADORA,
+                'page_title' => 'Asistente IA',
+                'current_path' => '/dashboard/lavadora',
+            ],
+        ]);
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('message.metadata.web_search.used', true)
+            ->assertJsonPath('message.metadata.web_search.provider', 'gemini')
+            ->assertJsonPath('message.metadata.sources.0.type', 'web');
+
+        $this->assertSame(1, $webSearch->calls);
+        $prompt = (string) ($capturingProvider->payloads[0]['user_prompt'] ?? '');
+        $this->assertStringContainsString('"web_context"', $prompt);
+        $this->assertStringContainsString('Ficha tecnica web externa', $prompt);
+        $this->assertStringContainsString('https://fabricante.example/manual', $prompt);
+    }
+
+    public function test_chat_returns_web_context_fallback_when_ai_provider_fails_after_search(): void
+    {
+        config([
+            'maintenance_ai.enabled' => true,
+            'maintenance_ai.web_search.enabled' => true,
+            'maintenance_ai.web_search.mode' => 'hybrid',
+            'maintenance_ai.web_search.provider' => 'gemini',
+        ]);
+
+        $failingProvider = new class implements AiProviderInterface
+        {
+            public function generateStructuredActionPlan(array $payload): array
+            {
+                throw new \RuntimeException('Gemini did not return structured text output.');
+            }
+
+            public function createEmbedding(string $content): array
+            {
+                return [];
+            }
+
+            public function extractDocumentText(array $payload): string
+            {
+                return '';
+            }
+        };
+
+        $webSearch = new class extends AssistantWebSearchService
+        {
+            public function __construct()
+            {
+            }
+
+            public function searchIfNeeded(string $question, array $knowledge, array $platformContext, array $technicalContext): array
+            {
+                return [
+                    'enabled' => true,
+                    'used' => true,
+                    'reason' => 'explicit_web_request',
+                    'provider' => 'gemini',
+                    'query' => $question,
+                    'summary' => 'El fabricante recomienda validar viscosidad, torque y compatibilidad exacta antes de sustituir el aceite del reductor.',
+                    'sources' => [
+                        [
+                            'type' => 'web',
+                            'reference' => 'Ficha tecnica fabricante',
+                            'url' => 'https://fabricante.example/ficha-tecnica',
+                        ],
+                    ],
+                    'error' => null,
+                ];
+            }
+        };
+
+        $this->app->instance(AiProviderInterface::class, $failingProvider);
+        $this->app->instance(AssistantWebSearchService::class, $webSearch);
+
+        $response = $this->actingAs($this->authenticatedUser())->postJson(route('assistant-chat.store'), [
+            'message' => 'Busca en la web la ficha tecnica actual del aceite para reductor RV200',
+            'page_context' => [
+                'module' => User::MODULE_LAVADORA,
+                'page_title' => 'Asistente IA',
+                'current_path' => '/asistente/chat',
+            ],
+        ]);
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('message.metadata.provider', 'web-search')
+            ->assertJsonPath('message.metadata.fallback', true)
+            ->assertJsonPath('message.metadata.web_search.used', true)
+            ->assertJsonPath('message.metadata.sources.0.url', 'https://fabricante.example/ficha-tecnica');
+
+        $content = (string) $response->json('message.content');
+        $this->assertStringContainsString('informacion web externa', $content);
+        $this->assertStringContainsString('viscosidad, torque y compatibilidad', $content);
+        $this->assertStringNotContainsString('No pude responder en este momento', $content);
+    }
+
+    public function test_web_search_service_uses_gemini_interactions_google_search_tool(): void
+    {
+        config([
+            'maintenance_ai.web_search.enabled' => true,
+            'maintenance_ai.web_search.mode' => 'hybrid',
+            'maintenance_ai.web_search.provider' => 'gemini',
+            'maintenance_ai.web_search.gemini_model' => 'gemini-3.6-flash',
+            'maintenance_ai.providers.gemini.api_key' => 'test-gemini-key',
+            'maintenance_ai.providers.gemini.base_url' => 'https://generativelanguage.googleapis.com/v1beta',
+        ]);
+
+        Http::fake([
+            'https://generativelanguage.googleapis.com/v1beta/interactions' => Http::response([
+                'steps' => [
+                    [
+                        'type' => 'model_output',
+                        'content' => [
+                            [
+                                'type' => 'text',
+                                'text' => 'Respuesta web con datos tecnicos vigentes.',
+                                'annotations' => [
+                                    [
+                                        'type' => 'url_citation',
+                                        'url' => 'https://fabricante.example/manual',
+                                        'title' => 'Manual del fabricante',
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
+            ]),
+        ]);
+
+        $result = $this->app->make(AssistantWebSearchService::class)->searchIfNeeded(
+            'Busca en internet la ficha tecnica actual del aceite para reductor RV200',
+            [],
+            ['query_matches' => []],
+            ['coverage' => ['historical_records_count' => 0, 'technical_sources_count' => 0]]
+        );
+
+        $this->assertTrue($result['used']);
+        $this->assertSame('gemini', $result['provider']);
+        $this->assertSame('Respuesta web con datos tecnicos vigentes.', $result['summary']);
+        $this->assertSame('https://fabricante.example/manual', $result['sources'][0]['url'] ?? null);
+
+        Http::assertSent(function ($request): bool {
+            $payload = $request->data();
+
+            return $request->url() === 'https://generativelanguage.googleapis.com/v1beta/interactions'
+                && ($payload['model'] ?? null) === 'gemini-3.6-flash'
+                && ($payload['tools'][0]['type'] ?? null) === 'google_search'
+                && str_contains((string) ($payload['input'] ?? ''), 'Consulta del usuario');
+        });
+    }
+
+    public function test_web_search_service_uses_web_for_oil_leak_diagnostics_even_with_internal_context(): void
+    {
+        config([
+            'maintenance_ai.web_search.enabled' => true,
+            'maintenance_ai.web_search.mode' => 'hybrid',
+            'maintenance_ai.web_search.provider' => 'gemini',
+            'maintenance_ai.web_search.gemini_model' => 'gemini-3.6-flash',
+            'maintenance_ai.providers.gemini.api_key' => 'test-gemini-key',
+            'maintenance_ai.providers.gemini.base_url' => 'https://generativelanguage.googleapis.com/v1beta',
+        ]);
+
+        Http::fake([
+            'https://generativelanguage.googleapis.com/v1beta/interactions' => Http::response([
+                'steps' => [
+                    [
+                        'type' => 'model_output',
+                        'content' => [
+                            [
+                                'type' => 'text',
+                                'text' => 'Diagnostico web: revisar retenes, respiradero, nivel de aceite y desgaste del eje.',
+                                'annotations' => [
+                                    [
+                                        'type' => 'url_citation',
+                                        'url' => 'https://fabricante.example/reductores/fugas',
+                                        'title' => 'Diagnostico de fugas',
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
+            ]),
+        ]);
+
+        $result = $this->app->make(AssistantWebSearchService::class)->searchIfNeeded(
+            'Que puede causar fuga de aceite en un reductor industrial?',
+            [
+                ['reference' => 'Documento interno de lubricantes'],
+            ],
+            [
+                'query_matches' => [
+                    ['title' => 'Aceite Glygoyle_460'],
+                ],
+            ],
+            [
+                'coverage' => [
+                    'historical_records_count' => 2,
+                    'technical_sources_count' => 1,
+                ],
+            ]
+        );
+
+        $this->assertTrue($result['used']);
+        $this->assertSame('diagnostic_reference_request', $result['reason']);
+        $this->assertSame('Diagnostico web: revisar retenes, respiradero, nivel de aceite y desgaste del eje.', $result['summary']);
     }
 
     public function test_authenticated_user_can_clear_chat_history(): void
     {
         $user = $this->authenticatedUser();
+        $conversation = AssistantConversation::create([
+            'user_id' => $user->id,
+            'title' => 'Mensaje temporal',
+            'last_message_at' => now(),
+        ]);
 
         AssistantMessage::create([
             'user_id' => $user->id,
+            'conversation_id' => $conversation->id,
             'role' => 'user',
             'content' => 'Mensaje temporal',
         ]);
 
         AssistantMessage::create([
             'user_id' => $user->id,
+            'conversation_id' => $conversation->id,
             'role' => 'assistant',
             'content' => 'Respuesta temporal',
         ]);
@@ -291,6 +752,7 @@ class AssistantChatTest extends TestCase
             ]);
 
         $this->assertDatabaseCount('assistant_messages', 0);
+        $this->assertDatabaseCount('assistant_conversations', 0);
     }
 
     public function test_chat_generates_elongation_chart_and_excel_artifacts_from_prompt(): void
@@ -1282,7 +1744,7 @@ class AssistantChatTest extends TestCase
         }
 
         $response = $this->actingAs($user)->postJson(route('assistant-chat.store'), [
-            'message' => 'Grafica el estado de componentes requiere revision severo moderado danados y cambiados de la linea 5 en imagen y Excel',
+            'message' => 'Grafica el estado de componentes requiere revision severo moderado danados y cambiados de la linea 5 en SVG y Excel',
             'page_context' => [
                 'module' => User::MODULE_LAVADORA,
                 'page_title' => 'Chat operativo',
@@ -1298,13 +1760,15 @@ class AssistantChatTest extends TestCase
 
         $assistantMessage = AssistantMessage::findOrFail((int) $response->json('message.id'));
         $storedArtifacts = $assistantMessage->metadata['artifacts'];
-        $this->assertContains($storedArtifacts[0]['kind'], ['image', 'svg']);
+        $this->assertSame('svg', $storedArtifacts[0]['kind']);
         $this->assertSame('excel', $storedArtifacts[1]['kind']);
-        if (($storedArtifacts[0]['kind'] ?? null) === 'image') {
-            $this->assertStringStartsWith("\x89PNG", Storage::disk('local')->get($storedArtifacts[0]['path']));
-        } else {
-            $this->assertStringContainsString('<svg', Storage::disk('local')->get($storedArtifacts[0]['path']));
-        }
+
+        $svg = Storage::disk('local')->get($storedArtifacts[0]['path']);
+        $this->assertStringContainsString('<svg', $svg);
+        $this->assertStringContainsString('fill="#ca8a04"', $svg);
+        $this->assertStringContainsString('fill="#ea580c"', $svg);
+        $this->assertStringContainsString('fill="#dc2626"', $svg);
+        $this->assertStringContainsString('fill="#0284c7"', $svg);
 
         $spreadsheet = IOFactory::load(Storage::disk('local')->path($storedArtifacts[1]['path']));
         $tendencia = $spreadsheet->getSheetByName('Tendencia');
@@ -1615,8 +2079,11 @@ class AssistantChatTest extends TestCase
             ->assertOk()
             ->assertSee('Abrir chat')
             ->assertSee('assistant-chat-widget', false)
+            ->assertSee('Nuevo chat')
+            ->assertSee('Historial de conversaciones')
             ->assertSee('Hola, soy su asistente ABFenix.ai. ¿En qué puedo ayudarte?', false)
             ->assertSee('Enter envía', false)
+            ->assertDontSee('Limpiar historial', false)
             ->assertDontSee('Â¿En quÃ© puedo ayudarte?', false);
 
         $widgetHtml = view('layouts.partials.assistant-chat')->render();
@@ -2831,6 +3298,198 @@ class AssistantChatTest extends TestCase
 
         $this->assertStringContainsString('Guia tecnica de lubricacion L-09', $userPrompt);
         $this->assertStringContainsString('confirmar el uso de Glygoyle_30', $userPrompt);
+    }
+
+    public function test_oil_leak_cause_question_uses_diagnostic_web_context_instead_of_lubricant_lookup(): void
+    {
+        config([
+            'maintenance_ai.enabled' => true,
+            'maintenance_ai.web_search.enabled' => true,
+            'maintenance_ai.web_search.mode' => 'hybrid',
+        ]);
+
+        $capturingProvider = new class implements AiProviderInterface
+        {
+            public array $payloads = [];
+
+            public function generateStructuredActionPlan(array $payload): array
+            {
+                $this->payloads[] = $payload;
+
+                return [
+                    'data' => [
+                        'answer' => 'Una fuga de aceite en un reductor industrial puede originarse por retenes desgastados, respiradero bloqueado, sobrellenado, empaques danados o desgaste en ejes/superficies de sello.',
+                        'key_points' => [
+                            'La informacion web externa se debe cruzar con el historial interno y la placa del reductor.',
+                        ],
+                        'next_steps' => [
+                            'Inspeccionar retenes, respiradero, nivel de aceite y zona exacta donde aparece la fuga.',
+                        ],
+                        'sources' => [
+                            [
+                                'type' => 'web',
+                                'reference' => 'Guia externa de diagnostico de reductores',
+                            ],
+                        ],
+                        'confidence' => 0.82,
+                    ],
+                    'raw' => [],
+                    'meta' => [
+                        'provider' => 'fake',
+                        'model' => 'oil-leak-diagnostic-test',
+                    ],
+                ];
+            }
+
+            public function createEmbedding(string $content): array
+            {
+                return [];
+            }
+
+            public function extractDocumentText(array $payload): string
+            {
+                return '';
+            }
+        };
+
+        $webSearch = new class extends AssistantWebSearchService
+        {
+            public int $calls = 0;
+
+            public function __construct()
+            {
+            }
+
+            public function searchIfNeeded(string $question, array $knowledge, array $platformContext, array $technicalContext): array
+            {
+                $this->calls++;
+
+                return [
+                    'enabled' => true,
+                    'used' => true,
+                    'reason' => 'diagnostic_reference_request',
+                    'provider' => 'gemini',
+                    'query' => $question,
+                    'summary' => 'Fuentes externas relacionan fugas de reductores con retenes, respiraderos obstruidos, exceso de aceite, empaques y desgaste del eje.',
+                    'sources' => [
+                        [
+                            'type' => 'web',
+                            'reference' => 'Guia externa de diagnostico de reductores',
+                            'url' => 'https://fabricante.example/reductores/fugas',
+                        ],
+                    ],
+                    'error' => null,
+                ];
+            }
+        };
+
+        $this->app->instance(AiProviderInterface::class, $capturingProvider);
+        $this->app->instance(AssistantWebSearchService::class, $webSearch);
+
+        $response = $this->actingAs($this->authenticatedUser())->postJson(route('assistant-chat.store'), [
+            'message' => 'Que puede causar fuga de aceite en un reductor industrial?',
+            'page_context' => [
+                'module' => User::MODULE_LAVADORA,
+                'page_title' => 'Asistente IA',
+                'current_path' => '/asistente/chat',
+            ],
+        ]);
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('message.metadata.provider', 'fake')
+            ->assertJsonPath('message.metadata.web_search.used', true)
+            ->assertJsonPath('message.metadata.web_search.reason', 'diagnostic_reference_request');
+
+        $this->assertSame(1, $webSearch->calls);
+        $this->assertStringContainsString('retenes desgastados', (string) $response->json('message.content'));
+        $this->assertStringNotContainsString('SKU 4057131', (string) $response->json('message.content'));
+
+        $prompt = (string) ($capturingProvider->payloads[0]['user_prompt'] ?? '');
+        $this->assertStringContainsString('"web_context"', $prompt);
+        $this->assertStringContainsString('Fuentes externas relacionan fugas', $prompt);
+    }
+
+    public function test_oil_leak_question_gets_local_diagnostic_fallback_when_web_and_ai_fail(): void
+    {
+        config([
+            'maintenance_ai.enabled' => true,
+            'maintenance_ai.web_search.enabled' => true,
+            'maintenance_ai.web_search.mode' => 'hybrid',
+        ]);
+
+        $failingProvider = new class implements AiProviderInterface
+        {
+            public function generateStructuredActionPlan(array $payload): array
+            {
+                throw new \RuntimeException('Gemini is unavailable.');
+            }
+
+            public function createEmbedding(string $content): array
+            {
+                return [];
+            }
+
+            public function extractDocumentText(array $payload): string
+            {
+                return '';
+            }
+        };
+
+        $webSearch = new class extends AssistantWebSearchService
+        {
+            public function __construct()
+            {
+            }
+
+            public function searchIfNeeded(string $question, array $knowledge, array $platformContext, array $technicalContext): array
+            {
+                return [
+                    'enabled' => true,
+                    'used' => false,
+                    'reason' => 'diagnostic_reference_request',
+                    'provider' => null,
+                    'query' => $question,
+                    'summary' => null,
+                    'sources' => [],
+                    'error' => 'HTTP request returned status code 429',
+                ];
+            }
+        };
+
+        $this->app->instance(AiProviderInterface::class, $failingProvider);
+        $this->app->instance(AssistantWebSearchService::class, $webSearch);
+
+        $response = $this->actingAs($this->authenticatedUser())->postJson(route('assistant-chat.store'), [
+            'message' => 'Que puede causar fuga de aceite en un reductor industrial?',
+            'page_context' => [
+                'module' => User::MODULE_LAVADORA,
+                'page_title' => 'Asistente IA',
+                'current_path' => '/asistente/chat',
+            ],
+        ]);
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('message.metadata.provider', 'diagnostic-fallback')
+            ->assertJsonPath('message.metadata.fallback', true)
+            ->assertJsonPath('message.metadata.web_search.error', 'HTTP request returned status code 429');
+
+        $content = (string) $response->json('message.content');
+        $this->assertStringContainsString('Las fugas de aceite en un reductor industrial suelen venir', $content);
+        $this->assertStringContainsString('Causas probables', $content);
+        $this->assertStringContainsString('Retenes o sellos desgastados', $content);
+        $this->assertStringContainsString('Respiradero obstruido', $content);
+        $this->assertStringContainsString('presión interna', $content);
+        $this->assertStringContainsString('dañados', $content);
+        $this->assertStringContainsString('Revisión recomendada', $content);
+        $this->assertStringNotContainsString('La consulta web externa no estuvo disponible', $content);
+        $this->assertStringNotContainsString('Revise la cuota', $content);
+        $this->assertStringNotContainsString('modelo externo', $content);
+        $this->assertStringNotContainsString('Refas y Costos', $content);
+        $this->assertStringNotContainsString('No pude responder en este momento', $content);
+        $this->assertStringNotContainsString('SKU 4057131', $content);
+        $this->assertSame([], $response->json('message.metadata.sources'));
     }
 
     public function test_chat_includes_prioritized_technical_context_for_oil_leak_solution(): void
