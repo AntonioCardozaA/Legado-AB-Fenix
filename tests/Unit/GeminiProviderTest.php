@@ -4,6 +4,7 @@ namespace Tests\Unit;
 
 use App\Services\Maintenance\GeminiProvider;
 use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
@@ -78,6 +79,76 @@ class GeminiProviderTest extends TestCase
             $this->fail('Expected a Gemini DNS connection exception.');
         } catch (ConnectionException) {
             $this->assertSame(1, $attempts);
+        }
+    }
+
+    public function test_it_retries_transient_http_errors_with_backoff_before_succeeding(): void
+    {
+        config([
+            'maintenance_ai.connect_timeout' => 10,
+            'maintenance_ai.timeout' => 60,
+            'maintenance_ai.max_retries' => 3,
+            'maintenance_ai.providers.gemini.api_key' => 'test-key',
+            'maintenance_ai.providers.gemini.base_url' => 'https://generativelanguage.googleapis.com/v1beta',
+            'maintenance_ai.providers.gemini.model' => 'gemini-3.6-flash',
+            'maintenance_ai.providers.gemini.retry_backoff_ms' => [0, 0, 0],
+        ]);
+
+        Http::fake([
+            'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent' => Http::sequence()
+                ->push(['error' => ['message' => 'This model is currently experiencing high demand']], 503)
+                ->push(['error' => ['message' => 'Still busy']], 503)
+                ->push([
+                    'candidates' => [
+                        [
+                            'content' => [
+                                'parts' => [
+                                    ['text' => json_encode(['answer' => 'ok'])],
+                                ],
+                            ],
+                        ],
+                    ],
+                ], 200),
+        ]);
+
+        $result = app(GeminiProvider::class)->generateStructuredActionPlan([
+            'system_prompt' => 'system',
+            'user_prompt' => 'user',
+            'schema' => ['type' => 'object'],
+        ]);
+
+        $this->assertSame('ok', $result['data']['answer']);
+        Http::assertSentCount(3);
+    }
+
+    public function test_it_does_not_retry_non_transient_http_errors(): void
+    {
+        config([
+            'maintenance_ai.connect_timeout' => 10,
+            'maintenance_ai.timeout' => 60,
+            'maintenance_ai.max_retries' => 3,
+            'maintenance_ai.providers.gemini.api_key' => 'test-key',
+            'maintenance_ai.providers.gemini.base_url' => 'https://generativelanguage.googleapis.com/v1beta',
+            'maintenance_ai.providers.gemini.model' => 'gemini-3.6-flash',
+            'maintenance_ai.providers.gemini.retry_backoff_ms' => [0, 0, 0],
+        ]);
+
+        Http::fake([
+            'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent' => Http::response([
+                'error' => ['message' => 'Invalid request'],
+            ], 400),
+        ]);
+
+        $this->expectException(RequestException::class);
+
+        try {
+            app(GeminiProvider::class)->generateStructuredActionPlan([
+                'system_prompt' => 'system',
+                'user_prompt' => 'user',
+                'schema' => ['type' => 'object'],
+            ]);
+        } finally {
+            Http::assertSentCount(1);
         }
     }
 }

@@ -6,7 +6,10 @@ use App\Services\Maintenance\FailoverAiProvider;
 use App\Services\Maintenance\GeminiProvider;
 use App\Services\Maintenance\NullAiProvider;
 use App\Services\Maintenance\OpenAiProvider;
+use GuzzleHttp\Psr7\Response as PsrResponse;
 use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\Client\RequestException;
+use Illuminate\Http\Client\Response;
 use Tests\TestCase;
 
 class FailoverAiProviderTest extends TestCase
@@ -93,5 +96,84 @@ class FailoverAiProviderTest extends TestCase
         $this->assertSame(['gemini-3.6-flash', 'gemini-3.5-flash-lite'], $gemini->attemptedModels);
         $this->assertTrue($result['data']['ok']);
         $this->assertSame('gemini-3.5-flash-lite', $result['meta']['model']);
+    }
+
+    public function test_it_does_not_try_fallback_models_for_not_found_errors(): void
+    {
+        config([
+            'maintenance_ai.provider' => 'gemini',
+            'maintenance_ai.fallback.provider' => null,
+            'maintenance_ai.providers.gemini.api_key' => 'test-key',
+            'maintenance_ai.providers.gemini.base_url' => 'https://example.test',
+            'maintenance_ai.providers.gemini.model' => 'gemini-3.6-flash',
+            'maintenance_ai.providers.gemini.fallback_models' => [
+                'gemini-3.5-flash-lite',
+            ],
+        ]);
+
+        $gemini = new class extends GeminiProvider
+        {
+            public array $attemptedModels = [];
+
+            public function __construct()
+            {
+            }
+
+            public function generateStructuredActionPlan(array $payload): array
+            {
+                $model = (string) ($payload['model'] ?? '');
+                $this->attemptedModels[] = $model;
+
+                throw new RequestException(new Response(new PsrResponse(404, [], json_encode([
+                    'error' => ['message' => 'model not found'],
+                ]))));
+            }
+
+            public function createEmbedding(string $content): array
+            {
+                return [];
+            }
+
+            public function extractDocumentText(array $payload): string
+            {
+                return '';
+            }
+        };
+
+        $openai = new class extends OpenAiProvider
+        {
+            public function __construct()
+            {
+            }
+
+            public function generateStructuredActionPlan(array $payload): array
+            {
+                throw new ConnectionException('should not be called');
+            }
+
+            public function createEmbedding(string $content): array
+            {
+                return [];
+            }
+
+            public function extractDocumentText(array $payload): string
+            {
+                return '';
+            }
+        };
+
+        $provider = new FailoverAiProvider($gemini, $openai, new NullAiProvider());
+
+        $this->expectException(RequestException::class);
+
+        try {
+            $provider->generateStructuredActionPlan([
+                'system_prompt' => 'test',
+                'user_prompt' => 'test',
+                'schema' => ['type' => 'object'],
+            ]);
+        } finally {
+            $this->assertSame(['gemini-3.6-flash'], $gemini->attemptedModels);
+        }
     }
 }

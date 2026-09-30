@@ -21,10 +21,11 @@ class FailoverAiProvider implements AiProviderInterface
     {
         $lastException = null;
 
-        foreach ($this->providerChain() as $providerName) {
-            foreach ($this->generationModelChain($providerName, $payload['model'] ?? null) as $model) {
+        foreach ($this->providerChain() as $providerIndex => $providerName) {
+            foreach ($this->generationModelChain($providerName, $payload['model'] ?? null) as $index => $model) {
                 $attemptPayload = $payload;
                 $attemptPayload['model'] = $model;
+                $attemptPayload['_fallback_model'] = $providerIndex > 0 || $index > 0;
 
                 try {
                     return $this->provider($providerName)->generateStructuredActionPlan($attemptPayload);
@@ -68,10 +69,11 @@ class FailoverAiProvider implements AiProviderInterface
     {
         $lastException = null;
 
-        foreach ($this->providerChain() as $providerName) {
-            foreach ($this->generationModelChain($providerName, $payload['model'] ?? null) as $model) {
+        foreach ($this->providerChain() as $providerIndex => $providerName) {
+            foreach ($this->generationModelChain($providerName, $payload['model'] ?? null) as $index => $model) {
                 $attemptPayload = $payload;
                 $attemptPayload['model'] = $model;
+                $attemptPayload['_fallback_model'] = $providerIndex > 0 || $index > 0;
 
                 try {
                     return $this->provider($providerName)->extractDocumentText($attemptPayload);
@@ -166,13 +168,9 @@ class FailoverAiProvider implements AiProviderInterface
 
         if ($exception instanceof RequestException) {
             $status = $exception->response?->status();
-            $transientStatuses = (array) config('maintenance_ai.fallback.transient_statuses', [408, 429, 500, 502, 503, 504]);
+            $transientStatuses = (array) config('maintenance_ai.fallback.transient_statuses', GeminiRequestSupport::TRANSIENT_HTTP_STATUSES);
 
             if ($status !== null && in_array($status, $transientStatuses, true)) {
-                return true;
-            }
-
-            if ($status === 404) {
                 return true;
             }
         }

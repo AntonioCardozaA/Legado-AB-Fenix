@@ -2,11 +2,15 @@
 
 namespace App\Services\Maintenance;
 
+use Illuminate\Http\Client\RequestException;
+use Illuminate\Http\Client\Response;
 use Throwable;
 
 final class GeminiRequestSupport
 {
     public const CONNECTION_ERROR_MESSAGE = 'No fue posible conectar temporalmente con el servicio de inteligencia artificial. Intenta nuevamente en unos momentos.';
+    public const HIGH_DEMAND_MESSAGE = 'ABFenix.AI está experimentando alta demanda en este momento. Intenta nuevamente en unos momentos.';
+    public const TRANSIENT_HTTP_STATUSES = [408, 429, 500, 502, 503, 504];
 
     /**
      * @param  array<string, mixed>  $config
@@ -93,6 +97,54 @@ final class GeminiRequestSupport
         return self::CONNECTION_ERROR_MESSAGE;
     }
 
+    public static function publicFailureMessage(Throwable $exception): ?string
+    {
+        if (self::isTransientHttpException($exception)) {
+            return self::HIGH_DEMAND_MESSAGE;
+        }
+
+        if ($exception instanceof \Illuminate\Http\Client\ConnectionException) {
+            return self::CONNECTION_ERROR_MESSAGE;
+        }
+
+        return null;
+    }
+
+    public static function isTransientHttpStatus(?int $status): bool
+    {
+        return $status !== null && in_array($status, self::TRANSIENT_HTTP_STATUSES, true);
+    }
+
+    public static function isTransientHttpException(Throwable $exception): bool
+    {
+        return $exception instanceof RequestException
+            && self::isTransientHttpStatus($exception->response?->status());
+    }
+
+    public static function responseMessage(?Response $response): ?string
+    {
+        if ($response === null) {
+            return null;
+        }
+
+        $json = $response->json();
+
+        if (is_array($json)) {
+            $message = data_get($json, 'error.message')
+                ?? data_get($json, 'message')
+                ?? data_get($json, 'candidates.0.finishReason')
+                ?? data_get($json, 'promptFeedback.blockReason');
+
+            if (is_scalar($message) && trim((string) $message) !== '') {
+                return self::truncateLogValue((string) $message);
+            }
+        }
+
+        $body = trim($response->body());
+
+        return $body !== '' ? self::truncateLogValue($body) : null;
+    }
+
     /**
      * @return array<string, mixed>
      */
@@ -114,5 +166,12 @@ final class GeminiRequestSupport
             'duration_ms' => (int) round((microtime(true) - $startedAt) * 1000),
             'dns_resolution_error' => self::isDnsResolutionError($exception),
         ];
+    }
+
+    private static function truncateLogValue(string $value, int $limit = 500): string
+    {
+        $value = trim($value);
+
+        return mb_strlen($value) > $limit ? mb_substr($value, 0, $limit) : $value;
     }
 }
