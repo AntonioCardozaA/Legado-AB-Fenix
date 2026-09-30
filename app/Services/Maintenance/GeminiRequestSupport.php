@@ -2,6 +2,7 @@
 
 namespace App\Services\Maintenance;
 
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\Client\Response;
 use Throwable;
@@ -9,6 +10,7 @@ use Throwable;
 final class GeminiRequestSupport
 {
     public const CONNECTION_ERROR_MESSAGE = 'No fue posible conectar temporalmente con el servicio de inteligencia artificial. Intenta nuevamente en unos momentos.';
+    public const TIMEOUT_MESSAGE = 'La inteligencia artificial tardó más de lo esperado en responder. Intenta nuevamente.';
     public const HIGH_DEMAND_MESSAGE = 'ABFenix.AI está experimentando alta demanda en este momento. Intenta nuevamente en unos momentos.';
     public const TRANSIENT_HTTP_STATUSES = [408, 429, 500, 502, 503, 504];
 
@@ -73,12 +75,38 @@ final class GeminiRequestSupport
 
     public static function connectionTimeout(): int
     {
-        return max(1, (int) config('maintenance_ai.connect_timeout', 10));
+        return max(1, (int) config(
+            'maintenance_ai.providers.gemini.connect_timeout',
+            config('maintenance_ai.connect_timeout', 10)
+        ));
     }
 
     public static function totalTimeout(): int
     {
-        return max(self::connectionTimeout(), (int) config('maintenance_ai.timeout', 60));
+        return max(self::connectionTimeout(), (int) config(
+            'maintenance_ai.providers.gemini.request_timeout',
+            config('maintenance_ai.timeout', 60)
+        ));
+    }
+
+    public static function isTimeoutException(Throwable $exception): bool
+    {
+        if ($exception instanceof RequestException) {
+            $status = $exception->response?->status();
+
+            if ($status === 408 || $status === 504) {
+                return true;
+            }
+        }
+
+        $message = strtolower($exception->getMessage());
+
+        return str_contains($message, 'curl error 28')
+            || str_contains($message, 'operation timed out')
+            || str_contains($message, 'timed out after')
+            || str_contains($message, 'connection timed out')
+            || str_contains($message, 'request timed out')
+            || str_contains($message, 'timeout was reached');
     }
 
     public static function isDnsResolutionError(Throwable $exception): bool
@@ -94,16 +122,24 @@ final class GeminiRequestSupport
 
     public static function publicConnectionMessage(Throwable $exception): string
     {
+        if (self::isTimeoutException($exception)) {
+            return self::TIMEOUT_MESSAGE;
+        }
+
         return self::CONNECTION_ERROR_MESSAGE;
     }
 
     public static function publicFailureMessage(Throwable $exception): ?string
     {
+        if (self::isTimeoutException($exception)) {
+            return self::TIMEOUT_MESSAGE;
+        }
+
         if (self::isTransientHttpException($exception)) {
             return self::HIGH_DEMAND_MESSAGE;
         }
 
-        if ($exception instanceof \Illuminate\Http\Client\ConnectionException) {
+        if ($exception instanceof ConnectionException) {
             return self::CONNECTION_ERROR_MESSAGE;
         }
 
@@ -164,7 +200,11 @@ final class GeminiRequestSupport
             'exception_type' => get_class($exception),
             'technical_message' => $exception->getMessage(),
             'duration_ms' => (int) round((microtime(true) - $startedAt) * 1000),
+            'connect_timeout_seconds' => self::connectionTimeout(),
+            'request_timeout_seconds' => self::totalTimeout(),
+            'timeout_error' => self::isTimeoutException($exception),
             'dns_resolution_error' => self::isDnsResolutionError($exception),
+            'exception' => $exception,
         ];
     }
 

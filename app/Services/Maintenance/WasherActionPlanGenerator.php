@@ -131,7 +131,8 @@ class WasherActionPlanGenerator
     {
         $context = $this->contextBuilder->build($event);
         $structured = $this->fallbackStructuredContent($event, $context, $exception);
-        $error = $this->truncate($exception->getMessage(), 500);
+        $technicalError = $this->truncate($exception->getMessage(), 500);
+        $publicError = $this->publicErrorMessage($exception);
 
         $this->interactionLogger->failure(null, 'washer_action_plan_fallback', $exception, [
             'source_type' => 'maintenance_event',
@@ -147,7 +148,7 @@ class WasherActionPlanGenerator
         ]);
 
         /** @var PlanAccion $plan */
-        $plan = DB::transaction(function () use ($context, $event, $structured, $error) {
+        $plan = DB::transaction(function () use ($context, $event, $structured, $technicalError, $publicError) {
             $plan = $this->resolveDraftPlan($event);
             $shouldNotify = !$plan->exists;
 
@@ -166,7 +167,8 @@ class WasherActionPlanGenerator
                 'ai_provider' => config('maintenance_ai.provider'),
                 'ai_model' => config('maintenance_ai.providers.' . config('maintenance_ai.provider') . '.model'),
                 'ai_original_response' => [
-                    'error' => $error,
+                    'error' => $technicalError,
+                    'public_error' => $publicError,
                     'fallback' => true,
                 ],
                 'original_generated_content' => $structured,
@@ -176,7 +178,8 @@ class WasherActionPlanGenerator
                     'component_name' => $context['current']['component_name'] ?? null,
                     'linea_nombre' => $context['current']['linea_nombre'] ?? null,
                     'event_type' => $event->event_type,
-                    'fallback_error' => $error,
+                    'fallback_error' => $technicalError,
+                    'fallback_public_error' => $publicError,
                 ],
                 'confidence_level' => $structured['confidence'],
                 'prompt_version' => config('maintenance_ai.prompt_version'),
@@ -193,7 +196,7 @@ class WasherActionPlanGenerator
                 'reviewed_by' => null,
                 'reviewed_at' => null,
                 'rejection_reason' => null,
-                'final_observations' => $error,
+                'final_observations' => $publicError,
             ]);
 
             $plan->appendReviewHistory([
@@ -201,7 +204,8 @@ class WasherActionPlanGenerator
                 'performed_at' => now()->toIso8601String(),
                 'provider' => config('maintenance_ai.provider'),
                 'model' => config('maintenance_ai.providers.' . config('maintenance_ai.provider') . '.model'),
-                'error' => $error,
+                'error' => $technicalError,
+                'public_error' => $publicError,
             ]);
 
             $plan->save();
@@ -235,7 +239,7 @@ class WasherActionPlanGenerator
     {
         $component = $context['current']['component_name'] ?? 'componente';
         $linea = $context['current']['linea_nombre'] ?? 'lavadora';
-        $error = $this->truncate($exception->getMessage(), 400);
+        $error = $this->publicErrorMessage($exception);
 
         return [
             'title' => 'Revision manual requerida: ' . $component . ' en ' . $linea,
@@ -302,5 +306,11 @@ class WasherActionPlanGenerator
     private function truncate(?string $value, int $limit): string
     {
         return Str::limit(trim((string) $value), $limit, '');
+    }
+
+    private function publicErrorMessage(Throwable $exception): string
+    {
+        return GeminiRequestSupport::publicFailureMessage($exception)
+            ?? $this->truncate($exception->getMessage(), 500);
     }
 }

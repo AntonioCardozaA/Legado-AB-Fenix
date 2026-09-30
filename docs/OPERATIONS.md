@@ -71,6 +71,9 @@ AI_DISPATCH_MODE=queue
 AI_QUEUE=maintenance-ai
 AI_HISTORY_INDEX_QUEUE=default
 AI_TIMEOUT=60
+GEMINI_CONNECT_TIMEOUT=10
+GEMINI_REQUEST_TIMEOUT=60
+GEMINI_MAX_RETRIES=1
 AI_JOB_TIMEOUT=240
 DB_QUEUE_RETRY_AFTER=300
 AI_CHAT_RATE_LIMIT_PER_MINUTE=12
@@ -87,7 +90,7 @@ Levantar un worker dedicado o compartido que atienda la cola configurada:
 php artisan queue:work --queue=maintenance-ai,default --tries=3 --timeout=240
 ```
 
-Despues de desplegar migraciones, revisar la tabla `ai_interaction_logs` para validar latencia, errores, proveedor/modelo y consumo de tokens. Si suben errores 429/5xx, ajustar `AI_MAX_RETRIES`, fallback y limite del chat antes de subir capacidad.
+Despues de desplegar migraciones, revisar la tabla `ai_interaction_logs` para validar latencia, errores, proveedor/modelo y consumo de tokens. Para Gemini, `GEMINI_CONNECT_TIMEOUT` controla solo el establecimiento de conexion y `GEMINI_REQUEST_TIMEOUT` el tiempo total de respuesta. Si suben errores 429/5xx, ajustar `GEMINI_MAX_RETRIES`, `AI_MAX_RETRIES`, fallback y limite del chat antes de subir capacidad.
 
 El RAG de documentos usa ranking hibrido: tokens, metadata de linea/componente y embeddings cuando `AI_KNOWLEDGE_SEMANTIC_QUERY_ENABLED=true`. Si el chat sube de latencia o costo, bajar `AI_KNOWLEDGE_CANDIDATE_LIMIT` o desactivar busqueda semantica de consulta temporalmente.
 

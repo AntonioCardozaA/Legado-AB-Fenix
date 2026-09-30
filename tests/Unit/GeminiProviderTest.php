@@ -3,6 +3,7 @@
 namespace Tests\Unit;
 
 use App\Services\Maintenance\GeminiProvider;
+use App\Services\Maintenance\GeminiRequestSupport;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\Client\Request;
@@ -11,6 +12,34 @@ use Tests\TestCase;
 
 class GeminiProviderTest extends TestCase
 {
+    public function test_it_uses_gemini_specific_timeout_configuration(): void
+    {
+        config([
+            'maintenance_ai.connect_timeout' => 3,
+            'maintenance_ai.timeout' => 20,
+            'maintenance_ai.providers.gemini.connect_timeout' => 10,
+            'maintenance_ai.providers.gemini.request_timeout' => 60,
+        ]);
+
+        $this->assertSame(10, GeminiRequestSupport::connectionTimeout());
+        $this->assertSame(60, GeminiRequestSupport::totalTimeout());
+    }
+
+    public function test_it_maps_curl_timeout_to_public_message(): void
+    {
+        $exception = new ConnectionException('cURL error 28: Operation timed out after 20002 milliseconds with 0 bytes received');
+
+        $this->assertTrue(GeminiRequestSupport::isTimeoutException($exception));
+        $this->assertSame(
+            'La inteligencia artificial tardó más de lo esperado en responder. Intenta nuevamente.',
+            GeminiRequestSupport::publicFailureMessage($exception)
+        );
+        $this->assertSame(
+            'La inteligencia artificial tardó más de lo esperado en responder. Intenta nuevamente.',
+            GeminiRequestSupport::publicConnectionMessage($exception)
+        );
+    }
+
     public function test_it_normalizes_gemini_base_url_and_model_before_posting(): void
     {
         config([

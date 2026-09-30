@@ -109,6 +109,10 @@ return [
             'model' => env('GEMINI_PRIMARY_MODEL', env('GEMINI_MODEL', env('AI_MODEL', 'gemini-3.5-flash'))),
             'embedding_model' => env('GEMINI_EMBEDDING_MODEL', env('AI_EMBEDDING_MODEL', 'gemini-embedding-2')),
             'api_key' => env('GEMINI_API_KEY', env('AI_API_KEY')),
+            'connect_timeout' => (int) env('GEMINI_CONNECT_TIMEOUT', env('AI_CONNECT_TIMEOUT', 10)),
+            'request_timeout' => (int) env('GEMINI_REQUEST_TIMEOUT', env('AI_TIMEOUT', 60)),
+            'max_retries' => env('GEMINI_MAX_RETRIES') !== null ? (int) env('GEMINI_MAX_RETRIES') : null,
+            'large_prompt_warning_chars' => (int) env('GEMINI_LARGE_PROMPT_WARNING_CHARS', 30000),
             'retry_backoff_ms' => array_values(array_filter(array_map(
                 static fn ($value) => is_numeric(trim((string) $value)) ? max(0, (int) trim((string) $value)) : null,
                 explode(',', (string) env('GEMINI_RETRY_BACKOFF_MS', '1000,2000,4000'))

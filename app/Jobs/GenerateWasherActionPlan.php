@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Models\MaintenanceEvent;
+use App\Services\Maintenance\GeminiRequestSupport;
 use App\Services\Maintenance\WasherActionPlanGenerator;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -84,7 +85,7 @@ class GenerateWasherActionPlan implements ShouldQueue
             return max(10, (int) $configured);
         }
 
-        $requestTimeout = max(10, (int) config('maintenance_ai.timeout', 30));
+        $requestTimeout = max(10, (int) config('maintenance_ai.timeout', 30), GeminiRequestSupport::totalTimeout());
         $httpAttempts = max(1, (int) config('maintenance_ai.max_retries', 2) + 1);
         $providerAttempts = $this->providerAttemptCount();
 

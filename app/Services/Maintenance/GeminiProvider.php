@@ -182,8 +182,11 @@ class GeminiProvider implements AiProviderInterface
         float $startedAt,
         bool $fallbackUsed
     ): Response {
-        $maxRetries = max(0, (int) config('maintenance_ai.max_retries', 3));
+        $maxRetries = $this->maxRetries($config);
         $maxAttempts = $maxRetries + 1;
+        $requestPayloadChars = $this->payloadChars($payload);
+
+        $this->logLargePromptIfNeeded($flow, $model, $endpoint, $requestPayloadChars, $fallbackUsed);
 
         for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
             $attemptStartedAt = microtime(true);
@@ -203,6 +206,7 @@ class GeminiProvider implements AiProviderInterface
                     $startedAt,
                     $attemptStartedAt,
                     $fallbackUsed,
+                    $requestPayloadChars,
                     $response,
                     null,
                     $shouldRetry,
@@ -228,6 +232,7 @@ class GeminiProvider implements AiProviderInterface
                     $startedAt,
                     $attemptStartedAt,
                     $fallbackUsed,
+                    $requestPayloadChars,
                     null,
                     $exception,
                     $shouldRetry,
@@ -243,6 +248,16 @@ class GeminiProvider implements AiProviderInterface
         }
 
         throw new RuntimeException('Gemini request retry loop ended unexpectedly.');
+    }
+
+    /**
+     * @param  array<string, mixed>  $config
+     */
+    private function maxRetries(array $config): int
+    {
+        return max(0, is_numeric($config['max_retries'] ?? null)
+            ? (int) $config['max_retries']
+            : (int) config('maintenance_ai.max_retries', 1));
     }
 
     /**
@@ -345,6 +360,7 @@ class GeminiProvider implements AiProviderInterface
         float $startedAt,
         float $attemptStartedAt,
         bool $fallbackUsed,
+        int $requestPayloadChars,
         ?Response $response,
         ?ConnectionException $exception,
         bool $retryable,
@@ -360,9 +376,12 @@ class GeminiProvider implements AiProviderInterface
             'http_status' => $status,
             'duration_ms' => (int) round((microtime(true) - $attemptStartedAt) * 1000),
             'total_duration_ms' => (int) round((microtime(true) - $startedAt) * 1000),
+            'connect_timeout_seconds' => GeminiRequestSupport::connectionTimeout(),
+            'request_timeout_seconds' => GeminiRequestSupport::totalTimeout(),
             'fallback_used' => $fallbackUsed,
             'retryable' => $retryable,
             'next_retry_delay_ms' => $nextRetryDelayMs,
+            'request_payload_chars' => $requestPayloadChars,
             'gemini_message' => GeminiRequestSupport::responseMessage($response),
         ];
 
@@ -370,7 +389,9 @@ class GeminiProvider implements AiProviderInterface
             $context['endpoint'] = $endpoint;
             $context['exception_type'] = get_class($exception);
             $context['technical_message'] = $exception->getMessage();
+            $context['timeout_error'] = GeminiRequestSupport::isTimeoutException($exception);
             $context['dns_resolution_error'] = GeminiRequestSupport::isDnsResolutionError($exception);
+            $context['exception'] = $exception;
 
             Log::warning('Gemini connection attempt failed.', $context);
 
@@ -386,5 +407,40 @@ class GeminiProvider implements AiProviderInterface
         }
 
         Log::info('Gemini HTTP attempt succeeded.', $context);
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     */
+    private function payloadChars(array $payload): int
+    {
+        return mb_strlen((string) json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+    }
+
+    private function logLargePromptIfNeeded(
+        string $flow,
+        string $model,
+        string $endpoint,
+        int $requestPayloadChars,
+        bool $fallbackUsed
+    ): void {
+        $threshold = max(1, (int) config('maintenance_ai.providers.gemini.large_prompt_warning_chars', 30000));
+
+        if ($requestPayloadChars < $threshold) {
+            return;
+        }
+
+        Log::warning('Gemini request payload is large.', [
+            'flow' => $flow,
+            'date' => now()->toIso8601String(),
+            'provider' => 'gemini',
+            'model' => $model,
+            'endpoint' => $endpoint,
+            'request_payload_chars' => $requestPayloadChars,
+            'large_prompt_warning_chars' => $threshold,
+            'connect_timeout_seconds' => GeminiRequestSupport::connectionTimeout(),
+            'request_timeout_seconds' => GeminiRequestSupport::totalTimeout(),
+            'fallback_used' => $fallbackUsed,
+        ]);
     }
 }
