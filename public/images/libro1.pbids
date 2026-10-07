@@ -1,0 +1,17 @@
+{
+  "version": "0.1",
+  "connections": [
+    {
+      "details": {
+        "protocol": "file",
+        "address": {
+          "path": "d:\\descargas\\libro1.xlsx"
+        },
+        "authentication": null,
+        "query": null
+      },
+      "options": {},
+      "mode": null
+    }
+  ]
+}
