@@ -4,28 +4,26 @@ namespace App\Http\Controllers;
 
 use App\Models\Lef52124Import;
 use App\Models\Lef52124Item;
-use App\Models\Lef52124CostEntry;
 use App\Models\Linea;
 use App\Models\User;
-use App\Services\Lef52124CostImportService;
 use App\Services\Lef52124ImportService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Collection;
-use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class Lef52124Controller extends Controller
 {
-    private const INITIAL_LINES = ['L-04', 'L-05', 'L-06', 'L-07', 'L-09', 'L-12', 'L-13'];
+    public function __construct(private readonly Lef52124DataService $dataService)
+    {
+    }
 
     public function index(Request $request): View
     {
-        $lineas = $this->lineas();
-        $selectedLineaId = (int) ($request->integer('linea_id') ?: $this->defaultLineaId($lineas));
+        $lineas = $this->dataService->lineas();
+        $selectedLineaId = (int) ($request->integer('linea_id') ?: $this->dataService->defaultLineaId($lineas));
         $canManage = $this->canManage($request->user());
         $imports = $canManage
             ? Lef52124Import::with(['linea:id,nombre', 'user:id,name'])
@@ -44,16 +42,7 @@ class Lef52124Controller extends Controller
             'linea_id' => ['required', 'integer', 'exists:lineas,id'],
         ]);
 
-        $imports = Lef52124Import::where('linea_id', $validated['linea_id'])
-            ->where('status', 'success')
-            ->orderByDesc('data_date')
-            ->orderByDesc('created_at')
-            ->get()
-            ->map(fn (Lef52124Import $import) => $this->importPayload($import));
-
-        return response()->json([
-            'items' => $imports,
-        ]);
+        return response()->json($this->dataService->periodsPayload((int) $validated['linea_id']));
     }
 
     public function data(Request $request): JsonResponse
@@ -66,50 +55,7 @@ class Lef52124Controller extends Controller
             'analysis_type' => ['nullable', 'in:all,machines,parts,washer,comparison'],
         ]);
 
-        $lineas = $this->lineas();
-        $lineaId = (int) ($validated['linea_id'] ?? $this->defaultLineaId($lineas));
-        $period = $validated['period'] ?? 'all';
-        $analysisType = $validated['analysis_type'] ?? 'all';
-        $import = $this->resolveImport($lineaId, $validated['import_id'] ?? null, $validated['data_date'] ?? null);
-
-        if (!$import) {
-            return response()->json([
-                'has_data' => false,
-                'message' => 'No existen datos 52-12-4 para la linea seleccionada.',
-                'lineas' => $lineas->map(fn (Linea $linea) => ['id' => $linea->id, 'nombre' => $linea->nombre])->values(),
-                'imports' => [],
-            ]);
-        }
-
-        $items = $import->items()->get();
-        $sortColumn = $this->periodColumn($period);
-        $machines = $this->itemsPayload(
-            $items->where('type', Lef52124Item::TYPE_MACHINE)->values(),
-            $sortColumn
-        );
-        $parts = $this->itemsPayload($items->where('type', Lef52124Item::TYPE_PART)->values(), $sortColumn);
-        $washer = $items->where('type', Lef52124Item::TYPE_LINE)->values()->first();
-
-        return response()->json([
-            'has_data' => true,
-            'linea' => [
-                'id' => $import->linea_id,
-                'nombre' => $import->linea?->nombre,
-            ],
-            'import' => $this->importPayload($import),
-            'imports' => Lef52124Import::where('linea_id', $import->linea_id)
-                ->where('status', 'success')
-                ->orderByDesc('data_date')
-                ->orderByDesc('created_at')
-                ->get()
-                ->map(fn (Lef52124Import $item) => $this->importPayload($item))
-                ->values(),
-            'summary' => $this->summaryPayload($import, $items),
-            'machines' => $machines,
-            'parts' => $parts,
-            'washer' => $washer ? $this->itemPayload($washer) : null,
-            'comparison' => $this->comparisonPayload($lineas, $import->data_date),
-        ]);
+        return response()->json($this->dataService->dataPayload($validated));
     }
 
     public function washerMachineTrend(Request $request): JsonResponse
@@ -118,76 +64,7 @@ class Lef52124Controller extends Controller
             'linea_id' => ['required', 'integer', 'exists:lineas,id'],
         ]);
 
-        $years = [2025, 2026];
-        $imports = Lef52124Import::with([
-            'linea:id,nombre',
-            'items' => fn ($query) => $query->where('type', Lef52124Item::TYPE_MACHINE),
-        ])
-            ->where('linea_id', $validated['linea_id'])
-            ->where('status', 'success')
-            ->whereBetween('data_date', ['2025-01-01', '2026-12-31'])
-            ->orderByDesc('data_date')
-            ->orderByDesc('created_at')
-            ->get();
-
-        $machineName = null;
-        $series = collect($years)
-            ->mapWithKeys(function (int $year) use ($imports, &$machineName) {
-                $months = collect(range(1, 12))
-                    ->map(function (int $month) use ($imports, $year, &$machineName) {
-                        $monthImports = $imports
-                            ->filter(fn (Lef52124Import $item) => (int) $item->data_date->year === $year
-                                && (int) $item->data_date->month === $month);
-                        $import = null;
-                        $machine = null;
-
-                        foreach ($monthImports as $candidateImport) {
-                            $candidateMachine = $candidateImport->items
-                                ->first(fn (Lef52124Item $item) => str_contains($this->normalizeName($item->item_name), 'lavadora'));
-
-                            if ($candidateMachine) {
-                                $import = $candidateImport;
-                                $machine = $candidateMachine;
-                                break;
-                            }
-                        }
-
-                        if ($machine && !$machineName) {
-                            $machineName = $machine->item_name;
-                        }
-
-                        return [
-                            'month' => $month,
-                            'import_id' => $import?->id,
-                            'data_date' => $import?->data_date?->format('Y-m-d'),
-                            'value_52_weeks' => $machine ? (float) $machine->value_52_weeks : null,
-                            'value_12_weeks' => $machine ? (float) $machine->value_12_weeks : null,
-                            'value_4_weeks' => $machine ? (float) $machine->value_4_weeks : null,
-                        ];
-                    })
-                    ->values();
-
-                return [$year => $months];
-            })
-            ->all();
-
-        $hasData = collect($series)
-            ->flatten(1)
-            ->contains(fn (array $month) => $month['value_52_weeks'] !== null
-                || $month['value_12_weeks'] !== null
-                || $month['value_4_weeks'] !== null);
-
-        return response()->json([
-            'has_data' => $hasData,
-            'linea' => $imports->first()?->linea?->nombre ?: Linea::find($validated['linea_id'])?->nombre,
-            'machine_name' => $machineName ?: 'LAVADORA',
-            'years' => $years,
-            'months' => [
-                'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
-                'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic',
-            ],
-            'series' => $series,
-        ]);
+        return response()->json($this->dataService->washerMachineTrendPayload((int) $validated['linea_id']));
     }
 
     public function costData(Request $request): JsonResponse
@@ -291,32 +168,6 @@ class Lef52124Controller extends Controller
         return redirect()
             ->route('lef52124.index', ['linea_id' => $lineaId])
             ->with('success', 'Importacion eliminada correctamente.');
-    }
-
-    public function importCosts(Request $request, Lef52124CostImportService $service): RedirectResponse
-    {
-        $this->ensureAdmin($request);
-
-        $validated = $request->validate([
-            'fallback_linea_id' => ['nullable', 'integer', 'exists:lineas,id'],
-            'archivo_costos' => ['required', 'file', 'mimes:xls,xlsx', 'max:20480'],
-        ]);
-
-        try {
-            $summary = $service->import(
-                $request->file('archivo_costos'),
-                !empty($validated['fallback_linea_id']) ? Linea::find($validated['fallback_linea_id']) : null,
-                $request->user()
-            );
-        } catch (\Throwable $exception) {
-            throw ValidationException::withMessages([
-                'archivo_costos' => $exception->getMessage(),
-            ]);
-        }
-
-        return redirect()
-            ->route('lef52124.index', ['linea_id' => $validated['fallback_linea_id'] ?? $this->defaultLineaId($this->lineas())])
-            ->with('success', 'Documento de costos importado correctamente: '.$summary['processed'].' renglones procesados.');
     }
 
     private function resolveImport(int $lineaId, ?int $importId, ?string $dataDate = null): ?Lef52124Import
