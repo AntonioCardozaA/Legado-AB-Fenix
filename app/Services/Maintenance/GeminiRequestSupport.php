@@ -2,11 +2,17 @@
 
 namespace App\Services\Maintenance;
 
+use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\Client\RequestException;
+use Illuminate\Http\Client\Response;
 use Throwable;
 
 final class GeminiRequestSupport
 {
     public const CONNECTION_ERROR_MESSAGE = 'No fue posible conectar temporalmente con el servicio de inteligencia artificial. Intenta nuevamente en unos momentos.';
+    public const TIMEOUT_MESSAGE = 'La inteligencia artificial tardó más de lo esperado en responder. Intenta nuevamente.';
+    public const HIGH_DEMAND_MESSAGE = 'ABFenix.AI está experimentando alta demanda en este momento. Intenta nuevamente en unos momentos.';
+    public const TRANSIENT_HTTP_STATUSES = [408, 429, 500, 502, 503, 504];
 
     /**
      * @param  array<string, mixed>  $config
@@ -69,12 +75,38 @@ final class GeminiRequestSupport
 
     public static function connectionTimeout(): int
     {
-        return max(1, (int) config('maintenance_ai.connect_timeout', 10));
+        return max(1, (int) config(
+            'maintenance_ai.providers.gemini.connect_timeout',
+            config('maintenance_ai.connect_timeout', 10)
+        ));
     }
 
     public static function totalTimeout(): int
     {
-        return max(self::connectionTimeout(), (int) config('maintenance_ai.timeout', 60));
+        return max(self::connectionTimeout(), (int) config(
+            'maintenance_ai.providers.gemini.request_timeout',
+            config('maintenance_ai.timeout', 60)
+        ));
+    }
+
+    public static function isTimeoutException(Throwable $exception): bool
+    {
+        if ($exception instanceof RequestException) {
+            $status = $exception->response?->status();
+
+            if ($status === 408 || $status === 504) {
+                return true;
+            }
+        }
+
+        $message = strtolower($exception->getMessage());
+
+        return str_contains($message, 'curl error 28')
+            || str_contains($message, 'operation timed out')
+            || str_contains($message, 'timed out after')
+            || str_contains($message, 'connection timed out')
+            || str_contains($message, 'request timed out')
+            || str_contains($message, 'timeout was reached');
     }
 
     public static function isDnsResolutionError(Throwable $exception): bool
@@ -90,7 +122,63 @@ final class GeminiRequestSupport
 
     public static function publicConnectionMessage(Throwable $exception): string
     {
+        if (self::isTimeoutException($exception)) {
+            return self::TIMEOUT_MESSAGE;
+        }
+
         return self::CONNECTION_ERROR_MESSAGE;
+    }
+
+    public static function publicFailureMessage(Throwable $exception): ?string
+    {
+        if (self::isTimeoutException($exception)) {
+            return self::TIMEOUT_MESSAGE;
+        }
+
+        if (self::isTransientHttpException($exception)) {
+            return self::HIGH_DEMAND_MESSAGE;
+        }
+
+        if ($exception instanceof ConnectionException) {
+            return self::CONNECTION_ERROR_MESSAGE;
+        }
+
+        return null;
+    }
+
+    public static function isTransientHttpStatus(?int $status): bool
+    {
+        return $status !== null && in_array($status, self::TRANSIENT_HTTP_STATUSES, true);
+    }
+
+    public static function isTransientHttpException(Throwable $exception): bool
+    {
+        return $exception instanceof RequestException
+            && self::isTransientHttpStatus($exception->response?->status());
+    }
+
+    public static function responseMessage(?Response $response): ?string
+    {
+        if ($response === null) {
+            return null;
+        }
+
+        $json = $response->json();
+
+        if (is_array($json)) {
+            $message = data_get($json, 'error.message')
+                ?? data_get($json, 'message')
+                ?? data_get($json, 'candidates.0.finishReason')
+                ?? data_get($json, 'promptFeedback.blockReason');
+
+            if (is_scalar($message) && trim((string) $message) !== '') {
+                return self::truncateLogValue((string) $message);
+            }
+        }
+
+        $body = trim($response->body());
+
+        return $body !== '' ? self::truncateLogValue($body) : null;
     }
 
     /**
@@ -112,7 +200,18 @@ final class GeminiRequestSupport
             'exception_type' => get_class($exception),
             'technical_message' => $exception->getMessage(),
             'duration_ms' => (int) round((microtime(true) - $startedAt) * 1000),
+            'connect_timeout_seconds' => self::connectionTimeout(),
+            'request_timeout_seconds' => self::totalTimeout(),
+            'timeout_error' => self::isTimeoutException($exception),
             'dns_resolution_error' => self::isDnsResolutionError($exception),
+            'exception' => $exception,
         ];
+    }
+
+    private static function truncateLogValue(string $value, int $limit = 500): string
+    {
+        $value = trim($value);
+
+        return mb_strlen($value) > $limit ? mb_substr($value, 0, $limit) : $value;
     }
 }

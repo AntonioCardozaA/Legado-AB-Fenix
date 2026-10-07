@@ -6,7 +6,7 @@ return [
     'connect_timeout' => (int) env('AI_CONNECT_TIMEOUT', 10),
     'timeout' => (int) env('AI_TIMEOUT', 60),
     'job_timeout' => env('AI_JOB_TIMEOUT') !== null ? (int) env('AI_JOB_TIMEOUT') : null,
-    'max_retries' => (int) env('AI_MAX_RETRIES', 2),
+    'max_retries' => (int) env('AI_MAX_RETRIES', 3),
     'queue' => env('AI_QUEUE', 'maintenance-ai'),
     'dispatch_mode' => env('AI_DISPATCH_MODE', env('APP_ENV') === 'local' ? 'after_response' : 'queue'),
     'fallback' => [
@@ -106,13 +106,25 @@ return [
         ],
         'gemini' => [
             'base_url' => rtrim((string) env('GEMINI_BASE_URL', 'https://generativelanguage.googleapis.com/v1beta'), '/'),
-            'model' => env('GEMINI_MODEL', env('AI_MODEL', 'gemini-3.5-flash')),
+            'model' => env('GEMINI_PRIMARY_MODEL', env('GEMINI_MODEL', env('AI_MODEL', 'gemini-3.5-flash'))),
             'embedding_model' => env('GEMINI_EMBEDDING_MODEL', env('AI_EMBEDDING_MODEL', 'gemini-embedding-2')),
             'api_key' => env('GEMINI_API_KEY', env('AI_API_KEY')),
-            'fallback_models' => array_values(array_filter(array_map(
+            'connect_timeout' => (int) env('GEMINI_CONNECT_TIMEOUT', env('AI_CONNECT_TIMEOUT', 10)),
+            'request_timeout' => (int) env('GEMINI_REQUEST_TIMEOUT', env('AI_TIMEOUT', 60)),
+            'max_retries' => env('GEMINI_MAX_RETRIES') !== null ? (int) env('GEMINI_MAX_RETRIES') : null,
+            'large_prompt_warning_chars' => (int) env('GEMINI_LARGE_PROMPT_WARNING_CHARS', 30000),
+            'retry_backoff_ms' => array_values(array_filter(array_map(
+                static fn ($value) => is_numeric(trim((string) $value)) ? max(0, (int) trim((string) $value)) : null,
+                explode(',', (string) env('GEMINI_RETRY_BACKOFF_MS', '1000,2000,4000'))
+            ), static fn ($value) => $value !== null)),
+            'retry_after_max_seconds' => (int) env('GEMINI_RETRY_AFTER_MAX_SECONDS', 10),
+            'fallback_models' => array_values(array_unique(array_filter(array_map(
                 static fn ($value) => trim((string) $value),
-                explode(',', (string) env('GEMINI_FALLBACK_MODELS', ''))
-            ))),
+                array_merge(
+                    [env('GEMINI_FALLBACK_MODEL')],
+                    explode(',', (string) env('GEMINI_FALLBACK_MODELS', ''))
+                )
+            ), static fn ($value) => $value !== ''))),
         ],
     ],
 ];

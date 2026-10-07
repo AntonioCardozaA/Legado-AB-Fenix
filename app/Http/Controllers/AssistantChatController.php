@@ -145,9 +145,8 @@ class AssistantChatController extends Controller
             );
         } catch (Throwable $exception) {
             report($exception);
-            $publicMessage = $exception instanceof ConnectionException
-                ? GeminiRequestSupport::publicConnectionMessage($exception)
-                : 'No pude responder en este momento. Intenta de nuevo en unos segundos o formula una pregunta mas especifica.';
+            $publicMessage = GeminiRequestSupport::publicFailureMessage($exception)
+                ?? 'No pude responder en este momento. Intenta de nuevo en unos segundos o formula una pregunta mas especifica.';
 
             $interactionLogger->failure($user, 'assistant_chat', $publicMessage, [
                 'input_chars' => mb_strlen((string) $payload['message']),

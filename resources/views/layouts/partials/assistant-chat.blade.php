@@ -24,7 +24,6 @@
                     </span>
                     <div>
                     <p class="text-xs font-bold uppercase tracking-[0.25em] text-slate-300">ABFenix.ai</p>
-                    <h3 class="mt-1 text-lg font-black">Chat operativo</h3>
                     <p id="assistant-chat-active-title" class="mt-0.5 max-w-[11rem] truncate text-xs font-semibold text-slate-400 sm:max-w-[14rem]">Nuevo chat</p>
                     </div>
                 </div>
