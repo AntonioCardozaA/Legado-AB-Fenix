@@ -12,8 +12,8 @@
         class="mb-3 hidden h-[70vh] w-[calc(100vw-2rem)] max-w-md flex-col overflow-hidden rounded-[1.6rem] border border-slate-900/10 bg-white shadow-2xl shadow-slate-950/20 sm:h-[38rem]"
     >
         <div class="assistant-chat-header border-b border-white/10 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 px-5 py-4 text-white">
-            <div class="flex items-start justify-between gap-4">
-                <div class="flex items-start gap-3">
+            <div class="flex items-center justify-between gap-4">
+                <div class="flex min-w-0 items-center gap-3">
                     <span class="assistant-chat-brandmark inline-flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white ring-1 ring-amber-300/40">
                         <img
                             src="{{ asset('images/abfenix-ai-chat.png') }}"
@@ -22,9 +22,9 @@
                             style="transform: scale(2.2);"
                         >
                     </span>
-                    <div>
-                    <p class="text-xs font-bold uppercase tracking-[0.25em] text-slate-300">ABFenix.ai</p>
-                    <p id="assistant-chat-active-title" class="mt-0.5 max-w-[11rem] truncate text-xs font-semibold text-slate-400 sm:max-w-[14rem]">Nuevo chat</p>
+                    <div class="flex h-12 min-w-0 flex-col justify-center">
+                        <p class="text-xs font-bold uppercase tracking-[0.25em] text-slate-300">ABFenix.ai</p>
+                        <p id="assistant-chat-active-title" class="mt-0.5 max-w-[11rem] truncate text-xs font-semibold text-slate-400 sm:max-w-[14rem]">Nuevo chat</p>
                     </div>
                 </div>
                 <div class="flex items-center gap-2">

@@ -4,8 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Models\Lef52124Import;
 use App\Models\Lef52124Item;
+use App\Models\Lef52124CostEntry;
 use App\Models\Linea;
 use App\Models\User;
+use App\Services\Lef52124CostImportService;
 use App\Services\Lef52124ImportService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -188,6 +190,68 @@ class Lef52124Controller extends Controller
         ]);
     }
 
+    public function costData(Request $request): JsonResponse
+    {
+        $request->validate([
+            'linea_id' => ['nullable', 'integer', 'exists:lineas,id'],
+        ]);
+
+        $lineaId = $request->integer('linea_id') ?: null;
+        $entries = Lef52124CostEntry::query()
+            ->with('linea:id,nombre')
+            ->whereIn('year', [2025, 2026])
+            ->when($lineaId, fn ($query) => $query->where('linea_id', $lineaId))
+            ->get();
+
+        $monthLabels = [
+            1 => 'Ene', 2 => 'Feb', 3 => 'Mar', 4 => 'Abr',
+            5 => 'May', 6 => 'Jun', 7 => 'Jul', 8 => 'Ago',
+            9 => 'Sep', 10 => 'Oct', 11 => 'Nov', 12 => 'Dic',
+        ];
+        $monthly = collect(range(1, 12))->map(function (int $month) use ($entries, $monthLabels): array {
+            $rows = $entries->where('month', $month);
+
+            return [
+                'month' => $month,
+                'label' => $monthLabels[$month],
+                '2025' => round((float) $rows->where('year', 2025)->sum('amount'), 2),
+                '2026' => round((float) $rows->where('year', 2026)->sum('amount'), 2),
+            ];
+        })->values();
+
+        $byLine = $entries
+            ->groupBy(fn (Lef52124CostEntry $entry) => $entry->linea_id ?: 'unassigned')
+            ->map(function (Collection $rows): array {
+                return [
+                    'linea' => $rows->first()->linea?->nombre ?? 'Sin linea asignada',
+                    '2025' => round((float) $rows->where('year', 2025)->sum('amount'), 2),
+                    '2026' => round((float) $rows->where('year', 2026)->sum('amount'), 2),
+                    'total' => round((float) $rows->sum('amount'), 2),
+                ];
+            })
+            ->sortByDesc('total')
+            ->values();
+
+        $total2025 = round((float) $entries->where('year', 2025)->sum('amount'), 2);
+        $total2026 = round((float) $entries->where('year', 2026)->sum('amount'), 2);
+        $savings = round($total2025 - $total2026, 2);
+
+        return response()->json([
+            'has_data' => $entries->isNotEmpty(),
+            'linea' => $lineaId ? Linea::find($lineaId)?->nombre : 'Todas las lavadoras',
+            'summary' => [
+                'total' => round((float) $entries->sum('amount'), 2),
+                '2025' => $total2025,
+                '2026' => $total2026,
+                'savings' => $savings,
+                'savings_percent' => $total2025 > 0 ? round(($savings / $total2025) * 100, 2) : 0,
+                'records' => $entries->count(),
+            ],
+            'monthly' => $monthly,
+            'by_line' => $byLine,
+        ]);
+    }
+
     public function store(Request $request, Lef52124ImportService $service): RedirectResponse
     {
         $this->ensureAdmin($request);
@@ -227,6 +291,32 @@ class Lef52124Controller extends Controller
         return redirect()
             ->route('lef52124.index', ['linea_id' => $lineaId])
             ->with('success', 'Importacion eliminada correctamente.');
+    }
+
+    public function importCosts(Request $request, Lef52124CostImportService $service): RedirectResponse
+    {
+        $this->ensureAdmin($request);
+
+        $validated = $request->validate([
+            'fallback_linea_id' => ['nullable', 'integer', 'exists:lineas,id'],
+            'archivo_costos' => ['required', 'file', 'mimes:xls,xlsx', 'max:20480'],
+        ]);
+
+        try {
+            $summary = $service->import(
+                $request->file('archivo_costos'),
+                !empty($validated['fallback_linea_id']) ? Linea::find($validated['fallback_linea_id']) : null,
+                $request->user()
+            );
+        } catch (\Throwable $exception) {
+            throw ValidationException::withMessages([
+                'archivo_costos' => $exception->getMessage(),
+            ]);
+        }
+
+        return redirect()
+            ->route('lef52124.index', ['linea_id' => $validated['fallback_linea_id'] ?? $this->defaultLineaId($this->lineas())])
+            ->with('success', 'Documento de costos importado correctamente: '.$summary['processed'].' renglones procesados.');
     }
 
     private function resolveImport(int $lineaId, ?int $importId, ?string $dataDate = null): ?Lef52124Import

@@ -130,6 +130,52 @@
     .lef-panel-title { margin: 0; font-size: 0.98rem; font-weight: 900; color: var(--lef-navy); overflow-wrap: anywhere; }
     .lef-panel-body { padding: clamp(14px, 2vw, 18px); }
     .lef-filters, .lef-import-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr)); gap: 12px; align-items: end; }
+    .lef-import-grid[hidden] { display: none !important; }
+    .lef-cost-dashboard {
+        margin-top: 18px;
+        padding: clamp(14px, 2vw, 24px);
+        border-radius: 18px;
+        background-image:
+            linear-gradient(rgba(241, 245, 249, 0.86), rgba(255, 255, 255, 0.90)),
+            url('/images/fondo.png');
+        background-size: cover;
+        background-position: center;
+        border: 1px solid #d7e0e8;
+    }
+    .lef-cost-titlebar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+    .lef-cost-brand { display: flex; align-items: center; gap: 14px; }
+    .lef-cost-titlebar h3 { margin: 0; color: #0f172a; font-size: clamp(1.15rem, 2vw, 1.6rem); font-weight: 950; }
+    .lef-cost-titlebar p { margin: 4px 0 0; color: #64748b; font-size: 0.82rem; font-weight: 700; }
+    .lef-cost-line-tabs { display: flex; gap: 2px; overflow-x: auto; margin-bottom: 16px; padding-bottom: 4px; }
+    .lef-cost-line-tab { min-width: 78px; min-height: 36px; padding: 0 14px; border: 1px solid #cbd5e1; background: #020617; color: #fff; font-size: 0.78rem; font-weight: 900; cursor: pointer; }
+    .lef-cost-line-tab:first-child { border-radius: 8px 0 0 8px; }
+    .lef-cost-line-tab:last-child { border-radius: 0 8px 8px 0; }
+    .lef-cost-line-tab.active { background: #1e40af; border-color: #1e40af; }
+    .lef-cost-summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 16px; }
+    .lef-cost-summary[hidden], .lef-cost-charts[hidden] { display: none !important; }
+    .lef-cost-card { overflow: hidden; border-radius: 12px; background: rgba(255,255,255,0.94); border: 1px solid rgba(148,163,184,0.34); box-shadow: 0 10px 20px rgba(15,23,42,0.08); }
+    .lef-cost-card-head { padding: 9px 12px; color: #0f172a; font-size: 0.94rem; font-weight: 950; text-align: center; }
+    .lef-cost-card-head.year-2025 { background: #00e85c; }
+    .lef-cost-card-head.year-2026 { background: #218b43; color: #fff; }
+    .lef-cost-card-head.savings { background: #e3c52c; }
+    .lef-cost-card-head.percent { background: #9ca3af; }
+    .lef-cost-card-body { min-height: 78px; display: grid; place-items: center; gap: 3px; padding: 10px; text-align: center; }
+    .lef-cost-card-label { color: #64748b; font-size: 0.7rem; font-weight: 900; text-transform: uppercase; }
+    .lef-cost-card-value { color: #111827; font-size: clamp(1.08rem, 2vw, 1.5rem); font-weight: 950; }
+    .lef-cost-card-meta { color: #475569; font-size: 0.72rem; font-weight: 800; }
+    .lef-cost-charts { display: grid; grid-template-columns: minmax(0, 1.75fr) minmax(290px, 0.9fr); gap: 14px; }
+    .lef-cost-chart-card { min-width: 0; padding: 12px; border: 1px solid rgba(148,163,184,0.28); border-radius: 14px; background: rgba(255,255,255,0.87); }
+    .lef-cost-chart-card h4 { margin: 0 0 8px; color: #334155; font-size: 0.9rem; font-weight: 950; text-align: center; }
+    .lef-cost-chart-wrap { position: relative; height: 350px; min-height: 350px; }
+    .lef-cost-chart-wrap.doughnut { height: 350px; min-height: 350px; }
+    @media (max-width: 900px) {
+        .lef-cost-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .lef-cost-charts { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 520px) {
+        .lef-cost-summary { grid-template-columns: 1fr; }
+        .lef-cost-chart-wrap, .lef-cost-chart-wrap.doughnut { height: 280px; min-height: 280px; }
+    }
     .lef-field label { display: block; margin-bottom: 6px; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--lef-muted); font-weight: 900; }
     .lef-field :where(select, input, textarea) {
         width: 100%;
@@ -200,11 +246,6 @@
     .lef-table th:nth-child(7), .lef-table td:nth-child(7),
     .lef-table th:nth-child(8), .lef-table td:nth-child(8) { width: 88px; }
     .lef-table th:nth-child(9), .lef-table td:nth-child(9) { width: 92px; text-align: right; }
-    #historial-importaciones { margin-bottom: 112px; }
-    .lef-import-pagination {
-        border-top: 1px solid #e2e8f0;
-        padding: 14px 240px 14px 18px;
-    }
     .lef-delete {
         display: inline-flex;
         align-items: center;
@@ -243,8 +284,6 @@
         .lef-table td[colspan]::before { content: none; }
         .lef-table td[data-label="Acciones"] { align-items: center; }
         .lef-delete { width: 100%; max-width: 160px; }
-        #historial-importaciones { margin-bottom: 132px; }
-        .lef-import-pagination { padding: 14px 18px 96px; }
     }
     @media (max-width: 480px) {
         .lef-title-icon { display: none; }
@@ -345,6 +384,10 @@
                     <i class="fas fa-chart-line"></i>
                     <span data-trend-label>Ver tendencia</span>
                 </button>
+                <button class="lef-action secondary" type="button" data-cost-trend-toggle style="margin-right: 10px;">
+                    <i class="fas fa-coins"></i>
+                    <span data-cost-trend-label>Tendencia de costos</span>
+                </button>
                 <button class="lef-action secondary" type="button" data-clear-filters>
                     <i class="fas fa-rotate-left"></i>
                     <span data-clear-label>Limpiar</span>
@@ -393,6 +436,77 @@
         </div>
     </section>
 
+    <section class="lef-panel" data-cost-trend-panel hidden>
+        <div class="lef-panel-header">
+            <div>
+                <h2 class="lef-panel-title">Tendencia de costos - 52-12-4</h2>
+                <p style="margin: 4px 0 0; color: #64748b; font-size: 0.84rem;">
+                    Esta vista queda preparada para mostrar el documento de costos por línea.
+                </p>
+            </div>
+        </div>
+        <div class="lef-panel-body">
+            @if($canManage)
+                <button class="lef-action secondary" type="button" data-toggle-cost-import>
+                    <i class="fas fa-file-arrow-up"></i>
+                    <span data-cost-import-label>Agregar documento de costos</span>
+                </button>
+                <form id="lefCostImportPanel" class="lef-import-grid" action="{{ route('lef52124.costs.import') }}" method="POST" enctype="multipart/form-data" hidden style="margin-top: 14px;">
+                    @csrf
+                    <div class="lef-field">
+                        <label for="archivo_costos">Documento de costos</label>
+                        <input id="archivo_costos" type="file" name="archivo_costos" accept=".xls,.xlsx" required>
+                    </div>
+                    <div class="lef-field">
+                        <label for="fallback_linea_id">Linea de respaldo</label>
+                        <select id="fallback_linea_id" name="fallback_linea_id">
+                            <option value="">Detectar linea del documento</option>
+                            @foreach($lineas as $linea)
+                                <option value="{{ $linea->id }}" @selected((int) $selectedLineaId === (int) $linea->id)>{{ $linea->nombre }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <button class="lef-action" type="submit">
+                        <i class="fas fa-upload"></i>
+                        Importar costos
+                    </button>
+                </form>
+            @endif
+            <div class="lef-cost-dashboard">
+                <div class="lef-cost-titlebar">
+                    <div class="lef-cost-brand">
+                        <div>
+                            <h3>Costos Lavadoras</h3>
+                            <p data-cost-line-title>Todas las lavadoras</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="lef-cost-line-tabs" data-cost-line-tabs>
+                    <button type="button" class="lef-cost-line-tab active" data-cost-line-id="">Todas</button>
+                    @foreach($lineas as $linea)
+                        <button type="button" class="lef-cost-line-tab" data-cost-line-id="{{ $linea->id }}">{{ $linea->nombre }}</button>
+                    @endforeach
+                </div>
+                <div class="lef-cost-summary" data-cost-kpis hidden></div>
+                <div class="lef-cost-charts" data-cost-charts hidden>
+                    <section class="lef-cost-chart-card">
+                        <h4>Costo Total 2025 y Costo Total 2026</h4>
+                        <div class="lef-cost-chart-wrap"><canvas id="costMonthlyChart"></canvas></div>
+                    </section>
+                    <section class="lef-cost-chart-card">
+                        <h4>Costo Total 2025 y Costo Total 2026</h4>
+                        <div class="lef-cost-chart-wrap doughnut"><canvas id="costShareChart"></canvas></div>
+                    </section>
+                </div>
+            </div>
+            <div class="lef-alert info" data-cost-empty hidden style="margin-top: 14px; margin-bottom: 0;"></div>
+            <div class="lef-alert info" data-cost-note style="margin-bottom: 0;">
+                <i class="fas fa-file-invoice-dollar"></i>
+                Cuando compartas el documento de costos, aquí se agregará su comparativo y tendencia sin modificar el dashboard 52-12-4.
+            </div>
+        </div>
+    </section>
+
     @if($canManage)
         <section class="lef-panel" id="historial-importaciones">
             <div class="lef-panel-header"><h2 class="lef-panel-title">Historial de importaciones</h2></div>
@@ -424,7 +538,7 @@
                 </table>
             </div>
             @if($imports->hasPages())
-                <div class="lef-import-pagination">
+                <div style="border-top: 1px solid #e2e8f0; padding: 14px 18px;">
                     {{ $imports->links() }}
                 </div>
             @endif
@@ -439,6 +553,7 @@ document.addEventListener('DOMContentLoaded', function () {
         data: @json(route('lef52124.data')),
         periods: @json(route('lef52124.periods')),
         trend: @json(route('lef52124.trend.washer-machine')),
+        costs: @json(route('lef52124.costs.data')),
     };
     const initialFilters = { lineaId: Number(@json($selectedLineaId)), dataDate: null, period: 'all', analysis: 'all' };
     const state = {
@@ -452,6 +567,7 @@ document.addEventListener('DOMContentLoaded', function () {
         trendVisible: false,
         trendRequestId: 0,
         activeTrendController: null,
+        costLineId: null,
     };
     const charts = {};
     const compactQuery = window.matchMedia('(max-width: 640px)');
@@ -495,6 +611,18 @@ document.addEventListener('DOMContentLoaded', function () {
         trendTitle: document.querySelector('[data-trend-title]'),
         trendEmpty: document.querySelector('[data-trend-empty]'),
         trendChartWrap: document.querySelector('[data-trend-chart-wrap]'),
+        costTrendButton: document.querySelector('[data-cost-trend-toggle]'),
+        costTrendLabel: document.querySelector('[data-cost-trend-label]'),
+        costTrendPanel: document.querySelector('[data-cost-trend-panel]'),
+        costImportButton: document.querySelector('[data-toggle-cost-import]'),
+        costImportLabel: document.querySelector('[data-cost-import-label]'),
+        costImportPanel: document.querySelector('#lefCostImportPanel'),
+        costKpis: document.querySelector('[data-cost-kpis]'),
+        costCharts: document.querySelector('[data-cost-charts]'),
+        costEmpty: document.querySelector('[data-cost-empty]'),
+        costNote: document.querySelector('[data-cost-note]'),
+        costLineTabs: document.querySelector('[data-cost-line-tabs]'),
+        costLineTitle: document.querySelector('[data-cost-line-title]'),
         feedback: document.querySelector('[data-feedback]'),
         kpis: document.querySelector('[data-kpis]'),
         washerKpis: document.querySelector('[data-washer-kpis]'),
@@ -504,12 +632,20 @@ document.addEventListener('DOMContentLoaded', function () {
 
     document.querySelector('[data-toggle-import]')?.addEventListener('click', toggleImportPanel);
     nodes.trendButton?.addEventListener('click', toggleTrendPanel);
+    nodes.costTrendButton?.addEventListener('click', toggleCostTrendPanel);
+    nodes.costImportButton?.addEventListener('click', toggleCostImportPanel);
     nodes.clear?.addEventListener('click', resetFilters);
     document.querySelectorAll('[data-line-tab]').forEach((button) => button.addEventListener('click', () => {
         state.lineaId = Number(button.dataset.lineaId);
         selectLineTab();
         loadPeriods(true);
         if (state.trendVisible) loadTrend();
+    }));
+    document.querySelectorAll('[data-cost-line-id]').forEach((button) => button.addEventListener('click', () => {
+        const value = button.dataset.costLineId || '';
+        state.costLineId = value ? Number(value) : null;
+        document.querySelectorAll('[data-cost-line-id]').forEach((item) => item.classList.toggle('active', item === button));
+        loadCostData();
     }));
     nodes.date?.addEventListener('change', () => { state.dataDate = nodes.date.value || null; loadData(); });
     nodes.analysis?.addEventListener('change', () => { state.analysis = nodes.analysis.value; loadData(); });
@@ -536,6 +672,132 @@ document.addEventListener('DOMContentLoaded', function () {
             loadTrend();
             nodes.trendPanel?.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
+    }
+    function toggleCostTrendPanel() {
+        if (!nodes.costTrendPanel) return;
+        const isVisible = nodes.costTrendPanel.hidden;
+        nodes.costTrendPanel.hidden = !isVisible;
+        if (nodes.costTrendLabel) nodes.costTrendLabel.textContent = isVisible ? 'Ocultar costos' : 'Tendencia de costos';
+        nodes.costTrendButton?.setAttribute('aria-expanded', isVisible ? 'true' : 'false');
+        if (isVisible) {
+            loadCostData();
+            nodes.costTrendPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    }
+    function toggleCostImportPanel() {
+        if (!nodes.costImportPanel) return;
+        const isVisible = nodes.costImportPanel.hidden;
+        nodes.costImportPanel.hidden = !isVisible;
+        if (nodes.costImportLabel) nodes.costImportLabel.textContent = isVisible ? 'Ocultar carga de costos' : 'Agregar documento de costos';
+        nodes.costImportButton?.setAttribute('aria-expanded', isVisible ? 'true' : 'false');
+    }
+    function loadCostData() {
+        if (!nodes.costCharts || !endpoints.costs) return;
+        nodes.costCharts.hidden = true;
+        if (nodes.costEmpty) nodes.costEmpty.hidden = true;
+        const params = state.costLineId ? `?linea_id=${encodeURIComponent(state.costLineId)}` : '';
+        fetch(`${endpoints.costs}${params}`, { headers: { 'Accept': 'application/json' } })
+            .then((response) => {
+                if (!response.ok) throw new Error('No se pudieron cargar los costos importados.');
+                return response.json();
+            })
+            .then(renderCostDashboard)
+            .catch((error) => renderCostEmpty(error.message || 'No se pudieron cargar los costos importados.'));
+    }
+    function renderCostDashboard(payload) {
+        if (!payload.has_data) {
+            renderCostEmpty('Todavia no hay costos importados para mostrar.');
+            return;
+        }
+
+        if (nodes.costEmpty) nodes.costEmpty.hidden = true;
+        if (nodes.costNote) nodes.costNote.hidden = true;
+        if (nodes.costCharts) nodes.costCharts.hidden = false;
+        if (nodes.costLineTitle) nodes.costLineTitle.textContent = payload.linea || 'Todas las lavadoras';
+        if (nodes.costKpis) {
+            const summary = payload.summary || {};
+            const savingsLabel = Number(summary.savings || 0) >= 0 ? 'Ahorro' : 'Incremento';
+            nodes.costKpis.hidden = false;
+            nodes.costKpis.innerHTML =
+                '<article class="lef-cost-card"><div class="lef-cost-card-head year-2025">2025</div><div class="lef-cost-card-body"><span class="lef-cost-card-label">Costo total 2025</span><strong class="lef-cost-card-value">' + formatCompactCurrency(summary['2025']) + '</strong><span class="lef-cost-card-meta">' + formatNumber(summary['2025']) + ' MXN</span></div></article>' +
+                '<article class="lef-cost-card"><div class="lef-cost-card-head year-2026">2026</div><div class="lef-cost-card-body"><span class="lef-cost-card-label">Costo total 2026</span><strong class="lef-cost-card-value">' + formatCompactCurrency(summary['2026']) + '</strong><span class="lef-cost-card-meta">' + formatNumber(summary['2026']) + ' MXN</span></div></article>' +
+                '<article class="lef-cost-card"><div class="lef-cost-card-head savings">' + savingsLabel.toUpperCase() + '</div><div class="lef-cost-card-body"><span class="lef-cost-card-label">' + savingsLabel + '</span><strong class="lef-cost-card-value">' + formatCompactCurrency(Math.abs(Number(summary.savings || 0))) + '</strong><span class="lef-cost-card-meta">' + (summary.records || 0) + ' registros</span></div></article>' +
+                '<article class="lef-cost-card"><div class="lef-cost-card-head percent">AHORRO %</div><div class="lef-cost-card-body"><span class="lef-cost-card-label">Variacion contra 2025</span><strong class="lef-cost-card-value">' + formatNumber(summary.savings_percent || 0) + '%</strong><span class="lef-cost-card-meta">Comparativo anual</span></div></article>';
+        }
+
+        const monthly = payload.monthly || [];
+        charts.costMonthlyChart?.destroy();
+        const costValueLabels = {
+            id: 'lefCostValueLabels',
+            afterDatasetsDraw(chart) {
+                const ctx = chart.ctx;
+                ctx.save();
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'bottom';
+                ctx.fillStyle = '#1f2937';
+                ctx.font = '700 10px sans-serif';
+                chart.data.datasets.forEach((dataset, datasetIndex) => {
+                    const meta = chart.getDatasetMeta(datasetIndex);
+                    meta.data.forEach((bar, index) => {
+                        const value = Number(dataset.data[index] || 0);
+                        if (value > 0) ctx.fillText(formatCompactCurrency(value), bar.x, Math.max(12, bar.y - 6));
+                    });
+                });
+                ctx.restore();
+            },
+        };
+        charts.costMonthlyChart = new Chart(document.getElementById('costMonthlyChart'), {
+            type: 'bar',
+            data: {
+                labels: monthly.map((row) => row.label),
+                datasets: [
+                    { label: 'Costo Total 2025', data: monthly.map((row) => row['2025']), backgroundColor: '#00e85c', borderColor: '#00c94f', borderWidth: 1, borderRadius: 4 },
+                    { label: 'Costo Total 2026', data: monthly.map((row) => row['2026']), backgroundColor: '#45aa3d', borderColor: '#26832f', borderWidth: 1, borderRadius: 4 },
+                ],
+            },
+            plugins: [costValueLabels],
+            options: costChartOptions('Mes'),
+        });
+
+        charts.costShareChart?.destroy();
+        const summary = payload.summary || {};
+        charts.costShareChart = new Chart(document.getElementById('costShareChart'), {
+            type: 'doughnut',
+            data: {
+                labels: ['Costo Total 2025', 'Costo Total 2026'],
+                datasets: [
+                    { data: [summary['2025'] || 0, summary['2026'] || 0], backgroundColor: ['#00e85c', '#45aa3d'], borderColor: '#ffffff', borderWidth: 3 },
+                ],
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '56%',
+                plugins: {
+                    legend: { position: 'bottom', labels: { usePointStyle: true, color: '#334155', font: { weight: '800' } } },
+                    tooltip: { callbacks: { label: (context) => context.label + ': ' + formatCurrency(context.raw) } },
+                },
+            },
+        });
+    }
+    function renderCostEmpty(message) {
+        charts.costMonthlyChart?.destroy();
+        charts.costShareChart?.destroy();
+        delete charts.costMonthlyChart;
+        delete charts.costShareChart;
+        if (nodes.costCharts) nodes.costCharts.hidden = true;
+        if (nodes.costKpis) nodes.costKpis.hidden = true;
+        if (nodes.costNote) nodes.costNote.hidden = false;
+        if (nodes.costEmpty) {
+            nodes.costEmpty.textContent = message;
+            nodes.costEmpty.hidden = false;
+        }
+    }
+    function costChartOptions(xTitle) {
+        const options = baseChartOptions(xTitle, 'Costo (MXN)', false);
+        options.plugins.tooltip.callbacks.label = (context) => `${context.dataset.label}: ${formatCurrency(context.raw)}`;
+        options.scales.y.ticks.callback = (value) => formatCurrency(value);
+        return options;
     }
     function loadTrend() {
         if (!state.lineaId || !state.trendVisible) return;
@@ -911,6 +1173,15 @@ document.addEventListener('DOMContentLoaded', function () {
     function destroyAll() { Object.keys(charts).forEach((key) => { charts[key]?.destroy(); delete charts[key]; }); }
     function currentLineName() { return lineas.find((linea) => Number(linea.id) === Number(state.lineaId))?.nombre || 'Sin linea'; }
     function formatNumber(value) { if (value === null || value === undefined || Number.isNaN(Number(value))) return '0.00'; return Number(value).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+    function formatCurrency(value) { if (value === null || value === undefined || Number.isNaN(Number(value))) return '$0.00'; return Number(value).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' }); }
+    function formatCompactCurrency(value) {
+        const number = Number(value || 0);
+        const sign = number < 0 ? '-' : '';
+        const absolute = Math.abs(number);
+        if (absolute >= 1000000) return sign + '$' + (absolute / 1000000).toLocaleString('es-MX', { maximumFractionDigits: 2 }) + ' mill.';
+        if (absolute >= 1000) return sign + '$' + (absolute / 1000).toLocaleString('es-MX', { maximumFractionDigits: 1 }) + ' mil';
+        return formatCurrency(number);
+    }
     function wrapLabel(value, limit) {
         const words = String(value || '').replace(/([/-])/g, '$1 ').split(/\s+/).filter(Boolean);
         const lines = [];

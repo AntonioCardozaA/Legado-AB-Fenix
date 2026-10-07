@@ -19,6 +19,7 @@
     $pasteurizadoras = collect($estadoPasteurizadoras);
     $resumenPasteurizadora = $resumenPasteurizadora ?? [];
     $fallasPorLineaPasteurizadora = collect($fallasPorLineaPasteurizadora ?? []);
+    $componentesDanadosPasteurizadora = collect($componentesDanadosPasteurizadora ?? []);
     $historicoRevisionesPasteurizadora = collect($historicoRevisionesPasteurizadora ?? []);
     $analisis52124Pasteurizadora = $analisis52124Pasteurizadora ?? ['lineas' => [], 'criterios' => []];
     $analisis30147Pasteurizadora = $analisis30147Pasteurizadora ?? ['lineas' => [], 'criterios' => []];
@@ -2738,6 +2739,20 @@
                 Datos reales desde análisis activos de pasteurizadora
             </div>
         </div>
+
+        <div class="chart-card componentes-card">
+            <h3>
+                <i class="fas fa-chart-pie"></i>
+                <span>Componentes Más Dañados</span>
+            </h3>
+            <div class="chart-container">
+                <canvas id="componentesPasteurizadoraChart"></canvas>
+            </div>
+            <div class="chart-description">
+                <i class="fas fa-info-circle"></i>
+                Componentes mecánicos con mayor incidencia de daño o desgaste
+            </div>
+        </div>
     </div>
 
     <div class="dashboard-panels-grid">
@@ -3753,10 +3768,11 @@
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-    let fallasPasteurizadoraChart, planesPasteurizadoraChart, avanceRevisionPasteurizadoraChart, analisis52124PasteurizadoraChart, analisis30147PasteurizadoraChart;
+    let fallasMechanicalChart, componentesPasteurizadoraChart, planesPasteurizadoraChart, avanceRevisionPasteurizadoraChart, analisis52124PasteurizadoraChart, analisis30147PasteurizadoraChart;
     let fallasCentralHidraulicaChart, planesCentralHidraulicaChart, avanceRevisionCentralHidraulicaChart, analisis52124CentralHidraulicaChart, analisis30147CentralHidraulicaChart;
     const pasteurizadorasData = @json($esDashboardMecanica ? $pasteurizadoras->values() : []);
     const fallasPorLineaPasteurizadora = @json($esDashboardMecanica ? $fallasPorLineaPasteurizadora->values() : []);
+    const componentesDanadosPasteurizadora = @json($esDashboardMecanica ? $componentesDanadosPasteurizadora->values() : []);
     const planesAccionDashboardPasteurizadora = @json($esDashboardMecanica ? $planesAccionDashboardPasteurizadora : ['por_linea' => []]);
     const avanceRevisionPasteurizadora = @json($esDashboardMecanica ? $avanceRevisionPasteurizadora : ['labels' => [], 'porcentajes' => []]);
     const analisis52124Pasteurizadora = @json($esDashboardMecanica ? $analisis52124Pasteurizadora : ['lineas' => []]);
@@ -3864,11 +3880,11 @@
     });
 
     function initCharts() {
-        const fallasCanvas = document.getElementById('fallasPasteurizadoraChart');
+        const fallasCanvas = document.getElementById(@json($esDashboardMecanica ? 'fallasPasteurizadoraChart' : ''));
 
         if (fallasCanvas) {
             const fallasCtx = fallasCanvas.getContext('2d');
-            fallasPasteurizadoraChart = new Chart(fallasCtx, {
+            fallasMechanicalChart = new Chart(fallasCtx, {
             type: 'bar',
             data: {
                 labels: fallasPorLineaPasteurizadora.map(item => item.linea),
@@ -3946,6 +3962,7 @@
             });
         }
 
+        componentesPasteurizadoraChart = buildComponentesPasteurizadoraChart();
         planesPasteurizadoraChart = buildPlanesPasteurizadoraChart();
         avanceRevisionPasteurizadoraChart = buildAvanceRevisionPasteurizadoraChart();
         analisis52124PasteurizadoraChart = buildPasteurizadoraTrendChart(
@@ -3973,68 +3990,127 @@
         );
     }
 
-    function buildPlanesPasteurizadoraChart() {
-        const canvas = document.getElementById('planesPasteurizadoraChart');
+    function buildComponentesPasteurizadoraChart() {
+        const canvas = document.getElementById('componentesPasteurizadoraChart');
         if (!canvas) return null;
 
-        const rows = Array.isArray(planesAccionDashboardPasteurizadora?.por_linea)
-            ? planesAccionDashboardPasteurizadora.por_linea
+        const rows = Array.isArray(componentesDanadosPasteurizadora)
+            ? componentesDanadosPasteurizadora.filter((item) => Number(item.total_danios || 0) > 0)
             : [];
 
         return new Chart(canvas.getContext('2d'), {
-            type: 'bar',
+            type: 'doughnut',
             data: {
-                labels: rows.map(item => item.linea || 'N/A'),
-                datasets: [
-                    {
-                        label: 'Abiertos',
-                        data: rows.map(item => Number(item.abiertos || 0)),
-                        backgroundColor: 'rgba(239, 68, 68, 0.86)',
-                        borderColor: '#dc2626',
-                        borderWidth: 2,
-                        borderRadius: 10,
-                        borderSkipped: false
-                    },
-                    {
-                        label: 'Completados',
-                        data: rows.map(item => Number(item.completados || 0)),
-                        backgroundColor: 'rgba(16, 185, 129, 0.86)',
-                        borderColor: '#059669',
-                        borderWidth: 2,
-                        borderRadius: 10,
-                        borderSkipped: false
-                    }
-                ]
+                labels: rows.map((item) => item.componente || 'Sin componente'),
+                datasets: [{
+                    data: rows.map((item) => Number(item.total_danios || 0)),
+                    backgroundColor: [
+                        'rgba(239, 68, 68, 0.9)',
+                        'rgba(245, 158, 11, 0.9)',
+                        'rgba(16, 185, 129, 0.9)',
+                        'rgba(59, 130, 246, 0.9)',
+                        'rgba(139, 92, 246, 0.9)',
+                        'rgba(236, 72, 153, 0.9)',
+                    ],
+                    borderColor: ['#dc2626', '#d97706', '#059669', '#2563eb', '#7c3aed', '#db2777'],
+                    borderWidth: 3,
+                    borderRadius: 8,
+                    hoverBorderWidth: 5,
+                    hoverOffset: 12,
+                    spacing: 3,
+                }],
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        grid: { color: 'rgba(0, 0, 0, 0.05)', drawBorder: false, drawTicks: false },
-                        ticks: { font: { size: 12, weight: 600 }, color: '#64748b', precision: 0 }
-                    },
-                    x: {
-                        grid: { display: false, drawBorder: false },
-                        ticks: { font: { size: 12, weight: 600 }, color: '#334155' }
-                    }
-                },
+                cutout: '62%',
                 plugins: {
                     legend: {
-                        position: 'top',
-                        labels: { usePointStyle: true, padding: 18, font: { size: 12, weight: 'bold' }, color: '#334155' }
+                        position: 'right',
+                        labels: {
+                            color: '#334155',
+                            padding: 16,
+                            usePointStyle: true,
+                            pointStyle: 'circle',
+                            boxWidth: 10,
+                            font: { size: 12, weight: 600, family: "'Inter', sans-serif" },
+                        },
                     },
+                    tooltip: {
+                        backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                        titleColor: '#ffffff',
+                        bodyColor: '#e0e7ff',
+                        borderColor: '#f59e0b',
+                        borderWidth: 2,
+                        padding: 14,
+                        callbacks: {
+                            label: (context) => {
+                                const total = context.dataset.data.reduce((sum, value) => sum + Number(value || 0), 0);
+                                const value = Number(context.raw || 0);
+                                const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : '0.0';
+                                return [`Daños: ${value}`, `${percentage}%`];
+                            },
+                        },
+                    },
+                },
+            },
+        });
+    }
+
+    function buildPlanesPasteurizadoraChart() {
+        const canvas = document.getElementById('planesPasteurizadoraChart');
+        if (!canvas) return null;
+
+        const summary = planesAccionDashboardPasteurizadora?.resumen || {};
+        return new Chart(canvas.getContext('2d'), {
+            type: 'doughnut',
+            data: {
+                labels: ['Pendientes críticos', 'Activos programados', 'Completados'],
+                datasets: [{
+                    data: [
+                        Number(summary.pendientes || 0),
+                        Number(summary.programados || 0),
+                        Number(summary.completados || 0),
+                    ],
+                    backgroundColor: ['rgba(239, 68, 68, 0.92)', 'rgba(245, 158, 11, 0.88)', 'rgba(16, 185, 129, 0.88)'],
+                    borderColor: ['#dc2626', '#d97706', '#059669'],
+                    borderWidth: 2,
+                    hoverOffset: 10,
+                }],
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '68%',
+                plugins: {
+                    legend: { display: false },
                     tooltip: {
                         backgroundColor: 'rgba(15, 23, 42, 0.95)',
                         titleColor: '#ffffff',
                         bodyColor: '#e0e7ff',
                         borderColor: '#3b82f6',
                         borderWidth: 2,
-                        padding: 14
-                    }
-                }
-            }
+                        padding: 14,
+                        callbacks: { label: context => `${context.label}: ${context.raw}` },
+                    },
+                },
+            },
+            plugins: [{
+                id: 'pasteurPlanesCenterLabel',
+                beforeDraw(chart) {
+                    const { ctx } = chart;
+                    ctx.save();
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillStyle = '#0f172a';
+                    ctx.font = '700 24px sans-serif';
+                    ctx.fillText(`${Number(summary.avance || 0)}%`, chart.width / 2, chart.height / 2 - 6);
+                    ctx.fillStyle = '#64748b';
+                    ctx.font = '600 11px sans-serif';
+                    ctx.fillText('avance global', chart.width / 2, chart.height / 2 + 16);
+                    ctx.restore();
+                },
+            }],
         });
     }
 
