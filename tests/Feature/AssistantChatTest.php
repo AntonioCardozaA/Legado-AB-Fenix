@@ -660,7 +660,8 @@ class AssistantChatTest extends TestCase
             return $request->url() === 'https://generativelanguage.googleapis.com/v1beta/interactions'
                 && ($payload['model'] ?? null) === 'gemini-3.6-flash'
                 && ($payload['tools'][0]['type'] ?? null) === 'google_search'
-                && str_contains((string) ($payload['input'] ?? ''), 'Consulta del usuario');
+                && str_contains((string) ($payload['input'] ?? ''), 'Consulta del usuario')
+                && str_contains((string) ($payload['input'] ?? ''), 'causa probable, evidencia observable y accion recomendada');
         });
     }
 
@@ -3408,6 +3409,7 @@ class AssistantChatTest extends TestCase
         $prompt = (string) ($capturingProvider->payloads[0]['user_prompt'] ?? '');
         $this->assertStringContainsString('"web_context"', $prompt);
         $this->assertStringContainsString('Fuentes externas relacionan fugas', $prompt);
+        $this->assertStringContainsString('formato de diagnostico con causa probable, evidencia observable y accion recomendada', $prompt);
     }
 
     public function test_oil_leak_question_gets_local_diagnostic_fallback_when_web_and_ai_fail(): void
@@ -3477,12 +3479,17 @@ class AssistantChatTest extends TestCase
 
         $content = (string) $response->json('message.content');
         $this->assertStringContainsString('Las fugas de aceite en un reductor industrial suelen venir', $content);
-        $this->assertStringContainsString('Causas probables', $content);
-        $this->assertStringContainsString('Retenes o sellos desgastados', $content);
+        $this->assertStringContainsString('Diagnostico probable', $content);
+        $this->assertStringContainsString('| Causa probable | Evidencia observable | Accion recomendada |', $content);
+        $this->assertStringContainsString('Sellos o retenes desgastados', $content);
         $this->assertStringContainsString('Respiradero obstruido', $content);
-        $this->assertStringContainsString('presión interna', $content);
-        $this->assertStringContainsString('dañados', $content);
-        $this->assertStringContainsString('Revisión recomendada', $content);
+        $this->assertStringContainsString('Sobrellenado o nivel incorrecto', $content);
+        $this->assertStringContainsString('Temperatura alta o presion interna excesiva', $content);
+        $this->assertStringContainsString('Desgaste, ranura, rayadura', $content);
+        $this->assertStringContainsString('Juntas, empaques, tapas', $content);
+        $this->assertStringContainsString('Carcasa fisurada', $content);
+        $this->assertStringContainsString('Lubricante incorrecto', $content);
+        $this->assertStringContainsString('Revision inicial recomendada', $content);
         $this->assertStringNotContainsString('La consulta web externa no estuvo disponible', $content);
         $this->assertStringNotContainsString('Revise la cuota', $content);
         $this->assertStringNotContainsString('modelo externo', $content);

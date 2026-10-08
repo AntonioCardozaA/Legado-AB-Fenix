@@ -362,6 +362,7 @@ class AssistantWebSearchService
             'Consulta del usuario: ' . $this->sanitizer->sanitizeText($question, 500),
             'Prioridad: informacion tecnica, vigente y verificable.',
             'Si hay datos de fabricante, manual oficial, ficha tecnica, norma o precio actual, priorizalos.',
+            'Para diagnosticos de fuga de aceite en reductores industriales, consulta causas tecnicas probables y entrega hallazgos en formato: causa probable, evidencia observable y accion recomendada. Considera sellos, retenes, respiradero, sobrellenado, temperatura, presion interna, desgaste de eje, juntas, carcasa y lubricante incorrecto.',
             'No respondas con datos internos del sistema; eso se agregara aparte por la aplicacion.',
         ]);
     }

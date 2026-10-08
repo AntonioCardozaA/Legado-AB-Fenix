@@ -242,6 +242,7 @@ class OperationsAssistantService
                 'Si usas web_context, mencionar que es informacion web externa y citar sus fuentes en sources con type web.',
                 'Si falta informacion, decirlo claramente sin inventar.',
                 'Cuando aplique, entregar pasos accionables punto por punto.',
+                'Si la pregunta trata fugas de aceite en reductores industriales, entregar formato de diagnostico con causa probable, evidencia observable y accion recomendada; cubrir sellos/retenes, respiradero, sobrellenado, temperatura, presion interna, desgaste de eje, juntas, carcasa y lubricante incorrecto cuando apliquen.',
             ],
         ];
 
@@ -267,6 +268,7 @@ class OperationsAssistantService
             'Si existe web_context.used, puedes usarlo solo como complemento externo y debes distinguirlo de historial, documentos internos e inferencias.',
             'No uses informacion web para inventar estados internos, historiales, costos registrados, responsables o actividades ejecutadas.',
             'Si citas informacion web, agrega fuentes de type web en el campo sources.',
+            'Para fugas de aceite en reductores industriales, responde como diagnostico operativo: causa probable, evidencia observable y accion recomendada; cruza primero manuales/base interna e historial, y usa web_context como referencia externa complementaria.',
             'Si platform_context ya incluye un ranking, panorama o comparativo actual, respondelo directamente sin decir que faltan datos.',
             'No inventes estados de equipos, costos, responsables ni trabajos ejecutados.',
             'Si el contexto no alcanza para responder con certeza, dilo explicitamente y sugiere el siguiente dato o modulo a revisar.',
@@ -392,9 +394,21 @@ class OperationsAssistantService
         }
 
         $content = implode("\n\n", [
-            'Las fugas de aceite en un reductor industrial suelen venir de problemas de sellado, presión interna, nivel incorrecto o desgaste mecánico.',
-            "Causas probables:\n- Retenes o sellos desgastados, endurecidos, mal instalados o dañados.\n- Respiradero obstruido; aumenta la presión interna y empuja aceite por sellos o tapas.\n- Sobrellenado o nivel incorrecto de aceite.\n- Empaques, juntas, tapas o tornillería floja o deteriorada.\n- Eje con desgaste, ranura, rayadura o desalineación en la zona del retén.\n- Temperatura alta, vibración, contaminación del lubricante o viscosidad incorrecta.\n- Fisura en carcasa o daño por golpe.",
-            "Revisión recomendada:\n- Limpia el reductor y ubica el punto exacto de salida.\n- Verifica el nivel de aceite con el equipo detenido y en posición correcta.\n- Revisa y limpia el respiradero.\n- Inspecciona retenes, tapas, juntas y condición del eje.\n- Si la fuga sale por el eje, programa cambio de retén y corrige desgaste o desalineación antes de montar el sello nuevo.",
+            'Las fugas de aceite en un reductor industrial suelen venir de problemas de sellado, presion interna, nivel incorrecto, temperatura alta, desgaste mecanico o lubricante inadecuado. Usa este diagnostico como base y cruzalo con manuales internos, placa del reductor e historial de la linea.',
+            implode("\n", [
+                'Diagnostico probable:',
+                '| Causa probable | Evidencia observable | Accion recomendada |',
+                '| --- | --- | --- |',
+                '| Sellos o retenes desgastados, endurecidos, cortados o mal instalados | Aceite alrededor del eje de entrada/salida, goteo despues de operar, labio del reten humedo o con residuo | Cambiar reten/sello con medida y material correctos; revisar orientacion, alojamiento y acabado del eje antes de montar |',
+                '| Respiradero obstruido, mal ubicado o ausente | Fuga en varios puntos, aceite expulsado por retenes/tapas, respiradero tapado con polvo/pintura o sin paso de aire | Limpiar o reemplazar respiradero; confirmar posicion de montaje y que el venteo iguale la presion interna |',
+                '| Sobrellenado o nivel incorrecto de aceite | Nivel por arriba de mirilla/tapon de nivel, aceite saliendo por respiradero, espuma o calentamiento por batido | Drenar hasta nivel especificado por manual/placa, verificar con equipo detenido y en posicion correcta |',
+                '| Temperatura alta o presion interna excesiva | Carcasa muy caliente, olor a aceite degradado, fuga aumenta al calentarse, varios sellos sudan | Revisar carga, ventilacion, aletas/cooler, nivel y viscosidad; corregir causa termica antes de cambiar sellos |',
+                '| Desgaste, ranura, rayadura, excentricidad o desalineacion del eje | Marca circular en zona del reten, juego radial, vibracion, fuga recurrente tras cambiar reten | Medir eje y rodamientos; reparar superficie, instalar camisa de reparacion o reemplazar eje/rodamiento segun condicion |',
+                '| Juntas, empaques, tapas, mirillas o tapones flojos/deteriorados | Humedad en linea de union, tornilleria floja, aceite en tapa, mirilla o tapon de drenado/llenado | Reapretar con torque correcto si aplica, reemplazar junta/O-ring/sellador y revisar planitud de superficies |',
+                '| Carcasa fisurada, porosa o deformada | Fuga localizada en fundicion, grieta visible, fuga que no coincide con sellos ni juntas, antecedente de golpe | Limpiar y hacer inspeccion visual/tintes; reparar o sustituir carcasa y validar alineacion/fijacion |',
+                '| Lubricante incorrecto, contaminado o incompatible | Aceite espumoso, cambio de viscosidad/color/olor, mezcla de lubricantes, fuga tras cambio de aceite | Confirmar ISO VG/tipo con manual o placa; drenar, limpiar y rellenar con lubricante especificado; no mezclar aceites incompatibles |',
+            ]),
+            "Revision inicial recomendada:\n- Limpia el reductor y marca el primer punto donde reaparece aceite.\n- Verifica nivel, tipo de lubricante y posicion de montaje contra manual/placa.\n- Revisa respiradero antes de condenar retenes.\n- Si la fuga sale por eje, inspecciona reten, superficie del eje, juego de rodamientos y alineacion.\n- Documenta evidencia fotografica, temperatura aproximada y condicion del aceite para comparar con historial interno.",
         ]);
 
         $this->interactionLogger->fallback($user, 'assistant_chat', [
