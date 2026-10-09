@@ -287,6 +287,9 @@ class AssistantChatTest extends TestCase
             ['role' => 'user', 'content' => 'Pregunta anterior'],
             ['role' => 'assistant', 'content' => 'Respuesta anterior'],
         ], $payload['recent_conversation'] ?? null);
+        $this->assertStringContainsString('user: Pregunta anterior', (string) ($payload['retrieval_context_query'] ?? ''));
+        $this->assertStringContainsString('assistant: Respuesta anterior', (string) ($payload['retrieval_context_query'] ?? ''));
+        $this->assertStringNotContainsString('Pregunta de otro hilo que no debe mezclarse', (string) ($payload['retrieval_context_query'] ?? ''));
 
         $this->assertDatabaseCount('assistant_messages', 5);
         $this->assertSame(
@@ -2781,6 +2784,13 @@ class AssistantChatTest extends TestCase
         $content = (string) $response->json('message.content');
         $this->assertStringContainsString('L-07', $content);
         $this->assertStringContainsString('3 componentes', $content);
+        $this->assertStringContainsString('Componentes criticos dentro de esa lavadora: 2', $content);
+        $this->assertStringContainsString('Componentes criticos principales:', $content);
+        $this->assertStringContainsString('Servo Grande', $content);
+        $this->assertStringContainsString('Cadena Principal', $content);
+        $this->assertStringContainsString('Ranking actual por lavadora:', $content);
+        $this->assertStringContainsString('1. L-07: 3 danados, 2 criticos', $content);
+        $this->assertStringContainsString('2. L-04: 1 danados, 0 criticos', $content);
     }
 
     public function test_chat_answers_with_refaction_cost_for_specific_washer_line(): void
@@ -3202,6 +3212,114 @@ class AssistantChatTest extends TestCase
         $this->assertStringContainsString('Manual de lubricacion servo chico L-09', $content);
     }
 
+    public function test_chat_uses_previous_user_context_for_internal_lubrication_lookup(): void
+    {
+        config([
+            'maintenance_ai.enabled' => true,
+        ]);
+
+        $capturingProvider = new class implements AiProviderInterface
+        {
+            public array $payloads = [];
+
+            public function generateStructuredActionPlan(array $payload): array
+            {
+                $this->payloads[] = $payload;
+
+                return [
+                    'data' => [
+                        'answer' => 'No deberia usarse el proveedor para esta consulta contextual.',
+                        'key_points' => [],
+                        'next_steps' => [],
+                        'sources' => [],
+                        'confidence' => 0.5,
+                    ],
+                    'raw' => [],
+                    'meta' => [
+                        'provider' => 'fake',
+                        'model' => 'unused-model',
+                    ],
+                ];
+            }
+
+            public function createEmbedding(string $content): array
+            {
+                return [];
+            }
+
+            public function extractDocumentText(array $payload): string
+            {
+                return '';
+            }
+        };
+
+        $this->app->instance(AiProviderInterface::class, $capturingProvider);
+
+        $user = $this->authenticatedUser();
+        $item = CostCatalogItem::create([
+            'sku' => '4057131',
+            'nombre' => 'Glygoyle_460',
+            'categoria' => 'Lubricante',
+            'unidad_medida' => 'Litro',
+            'costo_unitario' => 465.25,
+            'activo' => true,
+            'aliases' => ['ACEITE', 'LUBRICANTE', 'RV200'],
+        ]);
+
+        CostAutomationRule::create([
+            'cost_catalog_item_id' => $item->id,
+            'linea_nombre' => 'L-13',
+            'component_code' => 'RV200',
+            'trigger_type' => CostAutomationRule::TRIGGER_ACTIVIDAD_KEYWORD,
+            'trigger_keyword' => 'ACEITE',
+            'quantity' => 20,
+            'priority' => 100,
+            'activo' => true,
+        ]);
+
+        $conversation = AssistantConversation::create([
+            'user_id' => $user->id,
+            'title' => 'Fuga L-13 RV200',
+            'last_message_at' => now()->subMinute(),
+        ]);
+
+        AssistantMessage::create([
+            'user_id' => $user->id,
+            'conversation_id' => $conversation->id,
+            'role' => 'user',
+            'content' => 'Analiza la fuga de aceite en la lavadora L-13 con reductor RV200.',
+        ]);
+
+        AssistantMessage::create([
+            'user_id' => $user->id,
+            'conversation_id' => $conversation->id,
+            'role' => 'assistant',
+            'content' => 'Se revisa L-13 y RV200.',
+        ]);
+
+        $response = $this->actingAs($user)->postJson(route('assistant-chat.store'), [
+            'message' => 'Y ese reductor que aceite lleva?',
+            'conversation_id' => $conversation->id,
+            'page_context' => [
+                'module' => User::MODULE_LAVADORA,
+                'page_title' => 'Chat operativo',
+                'current_path' => '/asistente/chat',
+                'section' => 'Consulta tecnica',
+            ],
+        ]);
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('message.metadata.provider', 'platform-insights');
+
+        $this->assertSame([], $capturingProvider->payloads);
+        $content = (string) $response->json('message.content');
+        $this->assertStringContainsString('Glygoyle_460', $content);
+        $this->assertStringContainsString('SKU 4057131', $content);
+        $this->assertStringContainsString('20 LT', $content);
+        $this->assertStringContainsString('L-13', $content);
+    }
+
     public function test_chat_includes_uploaded_knowledge_documents_in_ai_context(): void
     {
         config([
@@ -3497,6 +3615,56 @@ class AssistantChatTest extends TestCase
         $this->assertStringNotContainsString('No pude responder en este momento', $content);
         $this->assertStringNotContainsString('SKU 4057131', $content);
         $this->assertSame([], $response->json('message.metadata.sources'));
+    }
+
+    public function test_technical_washer_question_gets_structured_fallback_when_ai_fails_without_internal_match(): void
+    {
+        config([
+            'maintenance_ai.enabled' => true,
+            'maintenance_ai.web_search.enabled' => false,
+        ]);
+
+        $failingProvider = new class implements AiProviderInterface
+        {
+            public function generateStructuredActionPlan(array $payload): array
+            {
+                throw new \RuntimeException('Provider unavailable.');
+            }
+
+            public function createEmbedding(string $content): array
+            {
+                return [];
+            }
+
+            public function extractDocumentText(array $payload): string
+            {
+                return '';
+            }
+        };
+
+        $this->app->instance(AiProviderInterface::class, $failingProvider);
+
+        $response = $this->actingAs($this->authenticatedUser())->postJson(route('assistant-chat.store'), [
+            'message' => 'Como atiendo elongacion alta en cadena de lavadora si no tengo el dato interno exacto?',
+            'page_context' => [
+                'module' => User::MODULE_LAVADORA,
+                'page_title' => 'Asistente IA',
+                'current_path' => '/asistente/chat',
+            ],
+        ]);
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('message.metadata.provider', 'technical-fallback')
+            ->assertJsonPath('message.metadata.fallback', true);
+
+        $content = (string) $response->json('message.content');
+        $this->assertStringContainsString('Dato interno:', $content);
+        $this->assertStringContainsString('Recomendacion tecnica:', $content);
+        $this->assertStringContainsString('Validacion pendiente:', $content);
+        $this->assertStringContainsString('Ultima medicion de elongacion', $content);
+        $this->assertStringContainsString('Lavadora o linea exacta', $content);
+        $this->assertStringNotContainsString('No pude responder en este momento', $content);
     }
 
     public function test_chat_includes_prioritized_technical_context_for_oil_leak_solution(): void

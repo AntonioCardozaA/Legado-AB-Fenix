@@ -186,13 +186,19 @@ class AssistantWebSearchService
         return str_contains($normalized, 'reductor')
             || str_contains($normalized, 'servo')
             || str_contains($normalized, 'cadena')
+            || str_contains($normalized, 'elongacion')
             || str_contains($normalized, 'lavadora')
             || str_contains($normalized, 'pasteur')
             || str_contains($normalized, 'aceite')
             || str_contains($normalized, 'lubric')
             || str_contains($normalized, 'refaccion')
+            || str_contains($normalized, 'refacciones')
+            || str_contains($normalized, 'catarina')
+            || str_contains($normalized, 'chumacera')
+            || str_contains($normalized, 'cunero')
             || str_contains($normalized, 'sku')
             || str_contains($normalized, 'falla')
+            || str_contains($normalized, 'mantenimiento')
             || str_contains($normalized, 'diagnostico')
             || str_contains($normalized, 'solucion');
     }
@@ -362,6 +368,7 @@ class AssistantWebSearchService
             'Consulta del usuario: ' . $this->sanitizer->sanitizeText($question, 500),
             'Prioridad: informacion tecnica, vigente y verificable.',
             'Si hay datos de fabricante, manual oficial, ficha tecnica, norma o precio actual, priorizalos.',
+            'Para lavadoras industriales, reductores, cadenas, elongacion, aceites, refacciones y mantenimiento, busca informacion actualizada de fabricante, manuales, fichas tecnicas, compatibilidades y criterios de inspeccion.',
             'Para diagnosticos de fuga de aceite en reductores industriales, consulta causas tecnicas probables y entrega hallazgos en formato: causa probable, evidencia observable y accion recomendada. Considera sellos, retenes, respiradero, sobrellenado, temperatura, presion interna, desgaste de eje, juntas, carcasa y lubricante incorrecto.',
             'No respondas con datos internos del sistema; eso se agregara aparte por la aplicacion.',
         ]);
