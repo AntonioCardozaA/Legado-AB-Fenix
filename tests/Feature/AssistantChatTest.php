@@ -320,6 +320,106 @@ class AssistantChatTest extends TestCase
         $this->assertStringNotContainsString('Dato faltante:', (string) $response->json('message.content'));
     }
 
+    public function test_chat_returns_normalized_source_traceability_metadata(): void
+    {
+        config([
+            'maintenance_ai.enabled' => true,
+        ]);
+
+        $provider = new class implements AiProviderInterface
+        {
+            public function generateStructuredActionPlan(array $payload): array
+            {
+                return [
+                    'data' => [
+                        'answer' => 'Segun documento tecnico, el manual RV200 indica revisar respiradero y retenes antes de cambiar el reductor.',
+                        'key_points' => [],
+                        'next_steps' => [
+                            'Recomendacion inferida: validar evidencia en campo antes de ejecutar.',
+                        ],
+                        'sources' => [
+                            [
+                                'type' => 'knowledge_document',
+                                'reference' => 'Manual RV200 - fragmento 1',
+                            ],
+                        ],
+                        'confidence' => 0.86,
+                    ],
+                    'raw' => [],
+                    'meta' => [
+                        'provider' => 'fake',
+                        'model' => 'traceability-test',
+                    ],
+                ];
+            }
+
+            public function createEmbedding(string $content): array
+            {
+                return [];
+            }
+
+            public function extractDocumentText(array $payload): string
+            {
+                return '';
+            }
+        };
+
+        $this->app->instance(AiProviderInterface::class, $provider);
+
+        $user = $this->authenticatedUser();
+        $linea = Linea::create([
+            'nombre' => 'L-13',
+            'tipo' => User::MODULE_LAVADORA,
+            'activo' => true,
+        ]);
+        $document = WasherKnowledgeDocument::create([
+            'linea_id' => $linea->id,
+            'title' => 'Manual RV200',
+            'document_type' => 'manual tecnico',
+            'version' => '1',
+            'lifecycle_status' => 'vigente',
+            'storage_disk' => 'local',
+            'storage_path' => 'knowledge/manual-rv200.txt',
+            'original_filename' => 'manual-rv200.txt',
+            'mime_type' => 'text/plain',
+            'uploaded_by' => $user->id,
+            'uploaded_at' => now(),
+            'indexing_status' => 'indexed',
+            'indexed_at' => now(),
+        ]);
+        WasherKnowledgeChunk::create([
+            'document_id' => $document->id,
+            'chunk_index' => 1,
+            'content' => 'Manual RV200 indica revisar respiradero y retenes antes de cambiar el reductor.',
+            'searchable_text' => 'manual rv200 revisar respiradero retenes cambiar reductor',
+            'token_count' => 10,
+        ]);
+
+        $response = $this->actingAs($user)->postJson(route('assistant-chat.store'), [
+            'message' => 'Busca en linea y dime que dice el Manual RV200 sobre fugas de aceite.',
+            'page_context' => [
+                'module' => User::MODULE_LAVADORA,
+                'page_title' => 'Chat tecnico',
+                'linea_nombre' => 'L-13',
+            ],
+        ]);
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('message.metadata.sources.0.type', 'knowledge_document')
+            ->assertJsonPath('message.metadata.sources.0.reference', 'Manual RV200 - fragmento 1')
+            ->assertJsonPath('message.metadata.sources.0.document_id', $document->id)
+            ->assertJsonPath('message.metadata.sources.0.document', 'Manual RV200')
+            ->assertJsonPath('message.metadata.sources.0.chunk_index', 1)
+            ->assertJsonPath('message.metadata.sources.0.table', 'washer_knowledge_documents')
+            ->assertJsonPath('message.metadata.sources.0.module', User::MODULE_LAVADORA);
+
+        $content = (string) $response->json('message.content');
+
+        $this->assertStringContainsString('segun documento tecnico', Str::lower(Str::ascii($content)));
+        $this->assertStringContainsString('recomendacion inferida', Str::lower(Str::ascii($content)));
+    }
+
     public function test_store_sends_only_previous_messages_as_ai_history(): void
     {
         config([

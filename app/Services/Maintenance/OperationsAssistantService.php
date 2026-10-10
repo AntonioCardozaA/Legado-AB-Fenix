@@ -165,7 +165,17 @@ class OperationsAssistantService
         ]);
         $structured = $grounding['structured'];
         $groundingReport = $grounding['report'];
-        $content = $this->composeMessage($structured);
+        $sources = $this->mergeResponseSources(
+            Arr::get($structured, 'sources', []),
+            (array) ($webContext['sources'] ?? []),
+            [
+                'platform_context' => $platformContext,
+                'technical_context' => $technicalContext,
+                'knowledge' => $knowledge,
+                'web_context' => $webContext,
+            ]
+        );
+        $content = $this->composeMessage($structured, $sources, $groundingReport);
 
         $this->interactionLogger->success($user, 'assistant_chat', $response, [
             'input_chars' => mb_strlen($payload['system_prompt'] . $payload['user_prompt']),
@@ -187,11 +197,6 @@ class OperationsAssistantService
                 'page_context' => $safePageContext,
             ],
         ]);
-
-        $sources = $this->mergeResponseSources(
-            Arr::get($structured, 'sources', []),
-            (array) ($webContext['sources'] ?? [])
-        );
 
         return [
             'content' => $content,
@@ -253,6 +258,7 @@ class OperationsAssistantService
                 'Tomar como prioridad el bloque platform_context para responder con vision global de la plataforma y no solo de la pagina actual.',
                 'Para soluciones tecnicas o diagnosticos, usar technical_recommendation_context como fuente principal de antecedentes, respetando su orden de prioridad.',
                 'Diferenciar claramente entre historial de la plataforma, informacion de manuales/base de conocimiento y recomendaciones inferidas.',
+                'Cuando ayude a leer la respuesta, mencionar "segun historial interno", "segun documento tecnico" o "recomendacion inferida".',
                 'Para preguntas tecnicas de lavadoras, reductores, cadenas, elongacion, aceites, refacciones o mantenimiento, estructurar la respuesta diferenciando: Dato interno, Recomendacion tecnica y Validacion pendiente.',
                 'No inventar antecedentes, reparaciones, resultados, refacciones, costos ni evidencia que no aparezcan en el contexto.',
                 'Toda afirmacion critica sobre equipos, refacciones, costos, responsables, fechas, estados, planes o historial debe citar una fuente interna/documento/registro o quedar marcada como inferencia/recomendacion.',
@@ -290,6 +296,7 @@ class OperationsAssistantService
             'Para lavadoras, reductores, cadenas, elongacion, aceites, refacciones y mantenimiento, consulta primero base interna viva: module_insights, historial tecnico, documentos indexados, costos/refacciones y contexto conversacional inmediato.',
             'Recuerda el contexto inmediato de preguntas anteriores, especialmente rankings, picos historicos, elongacion, lineas, reductores y componentes criticos.',
             'Separa en la respuesta lo observado en historial/base interna, lo encontrado en documentos o web externa y lo que recomiendas como inferencia tecnica.',
+            'Cuando sea util, usa etiquetas visibles como "segun historial interno", "segun documento tecnico" o "recomendacion inferida".',
             'Si module_insights incluye refaction_cost_lookup, tomalo como referencia estructurada valida para responder refacciones, costos unitarios, SKUs, compatibilidad por linea y consumibles de lavadora.',
             'Si module_insights incluye lubrication_lookup, tomalo como una referencia estructurada valida para responder preguntas de aceite, lubricante, litros, SKU y consumibles de lavadora.',
             'Si module_insights incluye pasteurizadora, usalo para planes de accion, analisis, recomendaciones IA y contexto operativo relacionado con pasteurizadora.',
@@ -309,22 +316,21 @@ class OperationsAssistantService
     /**
      * @param  mixed  $structuredSources
      * @param  array<int, mixed>  $webSources
-     * @return array<int, array<string, string>>
+     * @param  array<string, mixed>  $context
+     * @return array<int, array<string, mixed>>
      */
-    private function mergeResponseSources(mixed $structuredSources, array $webSources): array
+    private function mergeResponseSources(mixed $structuredSources, array $webSources, array $context = []): array
     {
+        $evidenceIndex = $this->sourceEvidenceIndex($context);
         $sources = collect(is_array($structuredSources) ? $structuredSources : [])
             ->filter(fn ($source): bool => is_array($source))
-            ->map(fn (array $source): array => array_filter([
-                'type' => is_scalar($source['type'] ?? null) ? (string) $source['type'] : 'context',
-                'reference' => is_scalar($source['reference'] ?? null) ? (string) $source['reference'] : null,
-            ], static fn ($value): bool => $value !== null && $value !== ''))
+            ->map(fn (array $source): array => $this->normalizeResponseSource($source, $evidenceIndex))
             ->filter(fn (array $source): bool => ($source['reference'] ?? '') !== '')
             ->values();
 
         collect($webSources)
             ->filter(fn ($source): bool => is_array($source))
-            ->each(function (array $source) use ($sources): void {
+            ->each(function (array $source) use ($sources, $evidenceIndex): void {
                 $reference = is_scalar($source['reference'] ?? null)
                     ? (string) $source['reference']
                     : (string) ($source['url'] ?? '');
@@ -333,11 +339,11 @@ class OperationsAssistantService
                     return;
                 }
 
-                $sources->push(array_filter([
+                $sources->push($this->normalizeResponseSource([
                     'type' => 'web',
                     'reference' => $reference,
                     'url' => is_scalar($source['url'] ?? null) ? (string) $source['url'] : null,
-                ], static fn ($value): bool => $value !== null && $value !== ''));
+                ], $evidenceIndex));
             });
 
         return $sources
@@ -345,6 +351,157 @@ class OperationsAssistantService
             ->take(6)
             ->values()
             ->all();
+    }
+
+    /**
+     * @param  array<string, mixed>  $source
+     * @param  array<string, array<string, mixed>>  $evidenceIndex
+     * @return array<string, mixed>
+     */
+    private function normalizeResponseSource(array $source, array $evidenceIndex): array
+    {
+        $reference = is_scalar($source['reference'] ?? null)
+            ? trim((string) $source['reference'])
+            : trim((string) ($source['url'] ?? ''));
+        $type = is_scalar($source['type'] ?? null) && trim((string) $source['type']) !== ''
+            ? trim((string) $source['type'])
+            : 'context';
+        $matched = $evidenceIndex[$this->sourceKey($type, $reference)]
+            ?? $evidenceIndex[$this->sourceKey('', $reference)]
+            ?? [];
+
+        return array_filter([
+            'type' => $type,
+            'reference' => $reference,
+            'record_id' => $this->sourceInt($source['record_id'] ?? $source['source_id'] ?? $source['id'] ?? $matched['record_id'] ?? null),
+            'document_id' => $this->sourceInt($source['document_id'] ?? $matched['document_id'] ?? null),
+            'document' => $this->sourceString($source['document'] ?? $source['document_title'] ?? $matched['document'] ?? null)
+                ?: $this->documentNameFromReference($reference),
+            'chunk_index' => $this->sourceInt($source['chunk_index'] ?? $matched['chunk_index'] ?? null),
+            'chunk_id' => $this->sourceInt($source['chunk_id'] ?? $matched['chunk_id'] ?? null),
+            'table' => $this->sourceString($source['table'] ?? $matched['table'] ?? null)
+                ?: $this->inferredSourceTable($type, $this->sourceString($source['module'] ?? $matched['module'] ?? null)),
+            'module' => $this->sourceString($source['module'] ?? $matched['module'] ?? null),
+            'url' => $this->sourceString($source['url'] ?? $matched['url'] ?? null),
+        ], static fn ($value): bool => $value !== null && $value !== '');
+    }
+
+    /**
+     * @param  array<string, mixed>  $context
+     * @return array<string, array<string, mixed>>
+     */
+    private function sourceEvidenceIndex(array $context): array
+    {
+        $index = [];
+
+        foreach (['platform_context', 'technical_context', 'knowledge', 'web_context'] as $key) {
+            $this->collectSourceEvidence($context[$key] ?? [], $index, [
+                'module' => data_get($context, 'platform_context.page_context.module')
+                    ?: data_get($context, 'web_context.module'),
+            ]);
+        }
+
+        return $index;
+    }
+
+    /**
+     * @param  mixed  $value
+     * @param  array<string, array<string, mixed>>  $index
+     * @param  array<string, mixed>  $parent
+     */
+    private function collectSourceEvidence(mixed $value, array &$index, array $parent = []): void
+    {
+        if (!is_array($value)) {
+            return;
+        }
+
+        $module = $this->sourceString($value['module'] ?? $value['tipo_equipo'] ?? $parent['module'] ?? null);
+        $table = $this->sourceString($value['table'] ?? $value['source_table'] ?? $parent['table'] ?? null);
+        $reference = $this->sourceString($value['reference'] ?? $value['title'] ?? $value['name'] ?? $value['url'] ?? null);
+        $type = $this->sourceString($value['type'] ?? $value['source_type'] ?? $value['document_type'] ?? null) ?: 'context';
+        $document = $this->sourceString($value['document'] ?? $value['document_title'] ?? $value['title'] ?? null);
+        $recordId = $this->sourceInt($value['record_id'] ?? $value['source_id'] ?? $value['plan_id'] ?? $value['event_id'] ?? $value['analysis_id'] ?? $value['analisis_id'] ?? null);
+
+        if ($reference !== null && $reference !== '') {
+            $metadata = [
+                'record_id' => $recordId,
+                'document_id' => $this->sourceInt($value['document_id'] ?? null),
+                'document' => $document,
+                'chunk_index' => $this->sourceInt($value['chunk_index'] ?? null),
+                'chunk_id' => $this->sourceInt($value['chunk_id'] ?? null),
+                'table' => $table,
+                'module' => $module,
+                'url' => $this->sourceString($value['url'] ?? null),
+            ];
+
+            $index[$this->sourceKey($type, $reference)] = array_filter($metadata, static fn ($item): bool => $item !== null && $item !== '');
+            $index[$this->sourceKey('', $reference)] = array_filter($metadata, static fn ($item): bool => $item !== null && $item !== '');
+        }
+
+        foreach ($value as $child) {
+            if (is_array($child)) {
+                $this->collectSourceEvidence($child, $index, array_filter([
+                    'module' => $module,
+                    'table' => $table,
+                ], static fn ($item): bool => $item !== null && $item !== ''));
+            }
+        }
+    }
+
+    private function sourceKey(string $type, string $reference): string
+    {
+        return Str::lower(Str::ascii(trim($type))).'|'.Str::lower(Str::ascii(trim($reference)));
+    }
+
+    private function sourceString(mixed $value): ?string
+    {
+        if (!is_scalar($value)) {
+            return null;
+        }
+
+        $value = trim((string) $value);
+
+        return $value !== '' ? Str::limit($value, 255, '') : null;
+    }
+
+    private function sourceInt(mixed $value): ?int
+    {
+        return is_numeric($value) ? (int) $value : null;
+    }
+
+    private function inferredSourceTable(string $type, ?string $module): ?string
+    {
+        $type = Str::lower(Str::ascii($type));
+        $module = Str::lower(Str::ascii((string) $module));
+
+        if (str_contains($type, 'plan')) {
+            return 'plan_accion';
+        }
+
+        if (str_contains($type, 'knowledge') || str_contains($type, 'document') || str_contains($type, 'manual')) {
+            return $module === User::MODULE_PASTEURIZADORA
+                ? 'pasteurizadora_knowledge_documents'
+                : 'washer_knowledge_documents';
+        }
+
+        if (str_contains($type, 'cost') || str_contains($type, 'refaction') || str_contains($type, 'lubrication')) {
+            return 'lavadora_cost_entries';
+        }
+
+        if (str_contains($type, 'event')) {
+            return 'maintenance_events';
+        }
+
+        return null;
+    }
+
+    private function documentNameFromReference(string $reference): ?string
+    {
+        if (preg_match('/^(.*?)\s+-\s+fragmento\s+\d+/iu', $reference, $matches) === 1) {
+            return trim($matches[1]);
+        }
+
+        return null;
     }
 
     /**
@@ -831,14 +988,21 @@ class OperationsAssistantService
 
     /**
      * @param  array<string, mixed>  $structured
+     * @param  array<int, array<string, mixed>>  $sources
+     * @param  array<string, mixed>  $groundingReport
      */
-    private function composeMessage(array $structured): string
+    private function composeMessage(array $structured, array $sources = [], array $groundingReport = []): string
     {
         $answer = $this->sanitizer->sanitizeText((string) ($structured['answer'] ?? ''), 1200);
         $keyPoints = $this->sanitizeStringList($structured['key_points'] ?? [], 220);
         $nextSteps = $this->sanitizeStringList($structured['next_steps'] ?? [], 220);
+        $traceability = $this->traceabilityText($sources, $groundingReport);
 
         $parts = array_filter([$answer]);
+
+        if ($traceability !== null) {
+            $parts[] = $traceability;
+        }
 
         if ($keyPoints !== []) {
             $parts[] = "Puntos clave:\n- " . implode("\n- ", $keyPoints);
@@ -851,6 +1015,39 @@ class OperationsAssistantService
         return trim(implode("\n\n", $parts)) !== ''
             ? trim(implode("\n\n", $parts))
             : 'No pude construir una respuesta util con el contexto actual. Intenta preguntar de otra forma.';
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $sources
+     * @param  array<string, mixed>  $groundingReport
+     */
+    private function traceabilityText(array $sources, array $groundingReport): ?string
+    {
+        $labels = [];
+
+        foreach ($sources as $source) {
+            $type = Str::lower(Str::ascii((string) ($source['type'] ?? '')));
+
+            if (str_contains($type, 'histor') || str_contains($type, 'plan') || str_contains($type, 'platform') || str_contains($type, 'internal')) {
+                $labels[] = 'segun historial interno';
+            }
+
+            if (str_contains($type, 'knowledge') || str_contains($type, 'document') || str_contains($type, 'manual') || isset($source['document_id']) || isset($source['chunk_index'])) {
+                $labels[] = 'segun documento tecnico';
+            }
+        }
+
+        if ((int) ($groundingReport['inference_claims_count'] ?? 0) > 0) {
+            $labels[] = 'recomendacion inferida';
+        }
+
+        $labels = array_values(array_unique($labels));
+
+        if ($labels === []) {
+            return null;
+        }
+
+        return 'Trazabilidad: '.implode('; ', $labels).'.';
     }
 
     /**
