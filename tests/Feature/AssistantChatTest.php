@@ -190,6 +190,136 @@ class AssistantChatTest extends TestCase
             ->assertJsonPath('messages.1.role', 'assistant');
     }
 
+    public function test_chat_marks_unsupported_internal_claims_as_missing_data(): void
+    {
+        config([
+            'maintenance_ai.enabled' => true,
+            'maintenance_ai.chat.ungrounded_confidence_cap' => 0.45,
+        ]);
+
+        $provider = new class implements AiProviderInterface
+        {
+            public function generateStructuredActionPlan(array $payload): array
+            {
+                return [
+                    'data' => [
+                        'answer' => 'El responsable Juan Perez aprobo el Plan #999 para L-99 el 2026-10-10 con costo $50,000 MXN.',
+                        'key_points' => [
+                            'El estado del plan es aprobado.',
+                        ],
+                        'next_steps' => [
+                            'Ejecutar la compra de la refaccion SKU ABC-999.',
+                        ],
+                        'sources' => [
+                            [
+                                'type' => 'operational_plan',
+                                'reference' => 'Plan #999',
+                            ],
+                        ],
+                        'confidence' => 0.91,
+                    ],
+                    'raw' => [],
+                    'meta' => [
+                        'provider' => 'fake',
+                        'model' => 'hallucination-test',
+                    ],
+                ];
+            }
+
+            public function createEmbedding(string $content): array
+            {
+                return [];
+            }
+
+            public function extractDocumentText(array $payload): string
+            {
+                return '';
+            }
+        };
+
+        $this->app->instance(AiProviderInterface::class, $provider);
+
+        $response = $this->actingAs($this->authenticatedUser())->postJson(route('assistant-chat.store'), [
+            'message' => 'Busca en linea y dime quien aprobo el plan 999 y cuanto cuesta.',
+            'page_context' => [
+                'module' => User::MODULE_LAVADORA,
+                'page_title' => 'Chat operativo',
+            ],
+        ]);
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('message.metadata.provider', 'fake')
+            ->assertJsonPath('message.metadata.confidence', 0.45);
+
+        $content = (string) $response->json('message.content');
+
+        $this->assertStringContainsString('Dato faltante:', $content);
+        $this->assertStringContainsString('responsable', $content);
+        $this->assertGreaterThan(0, (int) $response->json('message.metadata.response_grounding.unsupported_claims_count'));
+        $this->assertGreaterThan(0, (int) $response->json('message.metadata.response_grounding.unsupported_sources_count'));
+    }
+
+    public function test_chat_allows_critical_recommendations_when_marked_as_inference(): void
+    {
+        config([
+            'maintenance_ai.enabled' => true,
+        ]);
+
+        $provider = new class implements AiProviderInterface
+        {
+            public function generateStructuredActionPlan(array $payload): array
+            {
+                return [
+                    'data' => [
+                        'answer' => 'Como inferencia tecnica, recomiendo revisar el responsable del plan y validar costo de refaccion antes de ejecutarlo.',
+                        'key_points' => [
+                            'Validacion pendiente: confirmar fecha, SKU y estado del plan en la base interna.',
+                        ],
+                        'next_steps' => [
+                            'Validar el dato en el registro operativo antes de ejecutar.',
+                        ],
+                        'sources' => [],
+                        'confidence' => 0.82,
+                    ],
+                    'raw' => [],
+                    'meta' => [
+                        'provider' => 'fake',
+                        'model' => 'inference-test',
+                    ],
+                ];
+            }
+
+            public function createEmbedding(string $content): array
+            {
+                return [];
+            }
+
+            public function extractDocumentText(array $payload): string
+            {
+                return '';
+            }
+        };
+
+        $this->app->instance(AiProviderInterface::class, $provider);
+
+        $response = $this->actingAs($this->authenticatedUser())->postJson(route('assistant-chat.store'), [
+            'message' => 'Busca en linea y dime que recomiendas para validar un plan sin datos completos.',
+            'page_context' => [
+                'module' => User::MODULE_LAVADORA,
+                'page_title' => 'Chat operativo',
+            ],
+        ]);
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('message.metadata.provider', 'fake')
+            ->assertJsonPath('message.metadata.confidence', 0.82)
+            ->assertJsonPath('message.metadata.response_grounding.unsupported_claims_count', 0);
+
+        $this->assertStringNotContainsString('Dato faltante:', (string) $response->json('message.content'));
+    }
+
     public function test_store_sends_only_previous_messages_as_ai_history(): void
     {
         config([

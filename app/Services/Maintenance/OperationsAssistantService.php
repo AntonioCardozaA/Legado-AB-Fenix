@@ -19,7 +19,8 @@ class OperationsAssistantService
         private readonly OperationsPlatformContextService $platformContext,
         private readonly WasherTechnicalContextRetriever $washerTechnicalContext,
         private readonly PasteurizadoraTechnicalContextRetriever $pasteurizadoraTechnicalContext,
-        private readonly AiInteractionLogger $interactionLogger
+        private readonly AiInteractionLogger $interactionLogger,
+        private readonly AssistantResponseGroundingGuard $responseGroundingGuard
     ) {
     }
 
@@ -157,6 +158,13 @@ class OperationsAssistantService
         }
 
         $structured = is_array($response['data'] ?? null) ? $response['data'] : [];
+        $grounding = $this->responseGroundingGuard->validate($structured, [
+            'platform_context' => $platformContext,
+            'technical_context' => $technicalContext,
+            'knowledge' => $knowledge,
+        ]);
+        $structured = $grounding['structured'];
+        $groundingReport = $grounding['report'];
         $content = $this->composeMessage($structured);
 
         $this->interactionLogger->success($user, 'assistant_chat', $response, [
@@ -173,6 +181,9 @@ class OperationsAssistantService
                 'web_search_reason' => $webContext['reason'] ?? null,
                 'web_search_provider' => $webContext['provider'] ?? null,
                 'web_sources_count' => count((array) ($webContext['sources'] ?? [])),
+                'response_grounding' => $groundingReport,
+                'unsupported_critical_claims' => $groundingReport['unsupported_claims_count'] ?? 0,
+                'unsupported_sources_count' => $groundingReport['unsupported_sources_count'] ?? 0,
                 'page_context' => $safePageContext,
             ],
         ]);
@@ -195,6 +206,7 @@ class OperationsAssistantService
                 'platform_recent_evidence' => count($platformContext['recent_evidence'] ?? []),
                 'technical_context_records' => $this->technicalContextRecordCount($technicalContext),
                 'technical_context_sources' => (int) data_get($technicalContext, 'coverage.technical_sources_count', 0),
+                'response_grounding' => $groundingReport,
                 'web_search' => [
                     'enabled' => (bool) ($webContext['enabled'] ?? false),
                     'used' => (bool) ($webContext['used'] ?? false),
@@ -243,6 +255,7 @@ class OperationsAssistantService
                 'Diferenciar claramente entre historial de la plataforma, informacion de manuales/base de conocimiento y recomendaciones inferidas.',
                 'Para preguntas tecnicas de lavadoras, reductores, cadenas, elongacion, aceites, refacciones o mantenimiento, estructurar la respuesta diferenciando: Dato interno, Recomendacion tecnica y Validacion pendiente.',
                 'No inventar antecedentes, reparaciones, resultados, refacciones, costos ni evidencia que no aparezcan en el contexto.',
+                'Toda afirmacion critica sobre equipos, refacciones, costos, responsables, fechas, estados, planes o historial debe citar una fuente interna/documento/registro o quedar marcada como inferencia/recomendacion.',
                 'Si no hay antecedentes suficientes, indicarlo y apoyarse primero en technical_sources, relevant_context o web_context; si tampoco alcanzan, decir exactamente que dato interno falta validar.',
                 'Priorizar module_insights cuando exista, porque resume comparativos, rankings y estados actuales listos para responder.',
                 'Si module_insights contiene lubrication_lookup o coincidencias de documentos indexados, usarlos antes de concluir que falta informacion.',
@@ -287,6 +300,7 @@ class OperationsAssistantService
             'Para fugas de aceite en reductores industriales, responde como diagnostico operativo: causa probable, evidencia observable y accion recomendada; cruza primero manuales/base interna e historial, y usa web_context como referencia externa complementaria.',
             'Si platform_context ya incluye un ranking, panorama o comparativo actual, respondelo directamente sin decir que faltan datos.',
             'No inventes estados de equipos, costos, responsables ni trabajos ejecutados.',
+            'Si afirmas datos internos sobre equipos, refacciones, costos, responsables, fechas, estados, planes o historial, deben estar respaldados por contexto interno o fuentes; si no, marcarlos como inferencia/recomendacion y nombrar el dato faltante.',
             'Si el contexto no alcanza para responder con certeza, dilo explicitamente y nombra el dato interno pendiente: linea, componente, reductor, SKU, aceite, fecha de analisis, evidencia, manual/placa o ciclo de cadena, segun aplique.',
             'Evita explicaciones largas. Prioriza claridad y utilidad operativa.',
         ]);
