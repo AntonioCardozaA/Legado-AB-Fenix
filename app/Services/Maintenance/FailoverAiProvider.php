@@ -10,11 +10,15 @@ use Throwable;
 
 class FailoverAiProvider implements AiProviderInterface
 {
+    private readonly AiProviderCircuitBreaker $circuitBreaker;
+
     public function __construct(
         private readonly GeminiProvider $geminiProvider,
         private readonly OpenAiProvider $openAiProvider,
-        private readonly NullAiProvider $nullAiProvider
+        private readonly NullAiProvider $nullAiProvider,
+        ?AiProviderCircuitBreaker $circuitBreaker = null
     ) {
+        $this->circuitBreaker = $circuitBreaker ?? app(AiProviderCircuitBreaker::class);
     }
 
     public function generateStructuredActionPlan(array $payload): array
@@ -23,14 +27,29 @@ class FailoverAiProvider implements AiProviderInterface
 
         foreach ($this->providerChain() as $providerIndex => $providerName) {
             foreach ($this->generationModelChain($providerName, $payload['model'] ?? null) as $index => $model) {
+                if ($this->circuitBreaker->isOpen($providerName, $model, 'generation')) {
+                    $lastException = new RuntimeException("AI circuit breaker is open for {$providerName}/{$model}.");
+
+                    continue;
+                }
+
                 $attemptPayload = $payload;
                 $attemptPayload['model'] = $model;
                 $attemptPayload['_fallback_model'] = $providerIndex > 0 || $index > 0;
 
                 try {
-                    return $this->provider($providerName)->generateStructuredActionPlan($attemptPayload);
+                    $response = $this->provider($providerName)->generateStructuredActionPlan($attemptPayload);
+                    $this->circuitBreaker->recordSuccess($providerName, $model, 'generation');
+                    $response['meta'] = array_merge((array) ($response['meta'] ?? []), [
+                        'fallback_used' => $providerIndex > 0 || $index > 0,
+                        'fallback_provider_index' => $providerIndex,
+                        'fallback_model_index' => $index,
+                    ]);
+
+                    return $response;
                 } catch (Throwable $exception) {
                     $lastException = $exception;
+                    $this->circuitBreaker->recordFailure($providerName, $model, 'generation', $this->failureCategory($exception));
 
                     if (!$this->shouldTryNextAttempt($exception)) {
                         throw $exception;
@@ -51,10 +70,22 @@ class FailoverAiProvider implements AiProviderInterface
         $lastException = null;
 
         foreach ($this->providerChain() as $providerName) {
+            $model = data_get(config('maintenance_ai'), 'providers.' . $providerName . '.embedding_model');
+
+            if ($this->circuitBreaker->isOpen($providerName, is_string($model) ? $model : null, 'embedding')) {
+                $lastException = new RuntimeException("AI circuit breaker is open for {$providerName}/embedding.");
+
+                continue;
+            }
+
             try {
-                return $this->provider($providerName)->createEmbedding($content);
+                $embedding = $this->provider($providerName)->createEmbedding($content);
+                $this->circuitBreaker->recordSuccess($providerName, is_string($model) ? $model : null, 'embedding');
+
+                return $embedding;
             } catch (Throwable $exception) {
                 $lastException = $exception;
+                $this->circuitBreaker->recordFailure($providerName, is_string($model) ? $model : null, 'embedding', $this->failureCategory($exception));
 
                 if (!$this->shouldTryNextAttempt($exception)) {
                     throw $exception;
@@ -71,14 +102,24 @@ class FailoverAiProvider implements AiProviderInterface
 
         foreach ($this->providerChain() as $providerIndex => $providerName) {
             foreach ($this->generationModelChain($providerName, $payload['model'] ?? null) as $index => $model) {
+                if ($this->circuitBreaker->isOpen($providerName, $model, 'document_extraction')) {
+                    $lastException = new RuntimeException("AI circuit breaker is open for {$providerName}/{$model}.");
+
+                    continue;
+                }
+
                 $attemptPayload = $payload;
                 $attemptPayload['model'] = $model;
                 $attemptPayload['_fallback_model'] = $providerIndex > 0 || $index > 0;
 
                 try {
-                    return $this->provider($providerName)->extractDocumentText($attemptPayload);
+                    $text = $this->provider($providerName)->extractDocumentText($attemptPayload);
+                    $this->circuitBreaker->recordSuccess($providerName, $model, 'document_extraction');
+
+                    return $text;
                 } catch (Throwable $exception) {
                     $lastException = $exception;
+                    $this->circuitBreaker->recordFailure($providerName, $model, 'document_extraction', $this->failureCategory($exception));
 
                     if (!$this->shouldTryNextAttempt($exception)) {
                         throw $exception;
@@ -183,6 +224,21 @@ class FailoverAiProvider implements AiProviderInterface
         }
 
         return false;
+    }
+
+    private function failureCategory(Throwable $exception): string
+    {
+        if ($exception instanceof RuntimeException) {
+            $message = strtolower($exception->getMessage());
+
+            if (str_contains($message, 'did not return structured text output')
+                || str_contains($message, 'returned invalid json')
+                || str_contains($message, 'invalid json')) {
+                return 'quality';
+            }
+        }
+
+        return 'availability';
     }
 
     private function shouldSkipRemainingModels(Throwable $exception): bool

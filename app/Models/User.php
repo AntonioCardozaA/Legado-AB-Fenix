@@ -216,6 +216,7 @@ public function canReviewPasteurizadoraAiPlans(?string $area = null): bool
 {
     if (!$this->hasAnyRole(self::elevatedMaintenanceRoles())
         || !$this->canAccessModule(self::MODULE_PASTEURIZADORA)
+        || !$this->canUseCustomPermission('revisar planes ia pasteurizadora')
     ) {
         return false;
     }

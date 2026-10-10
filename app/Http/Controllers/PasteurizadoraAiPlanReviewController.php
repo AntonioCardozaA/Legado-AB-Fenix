@@ -10,6 +10,7 @@ use App\Models\Linea;
 use App\Models\PlanAccion;
 use App\Models\User;
 use App\Services\Maintenance\StructuredActionPlanValidator;
+use App\Services\Maintenance\StructuredOutputGroundingVerifier;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -19,7 +20,8 @@ use Throwable;
 class PasteurizadoraAiPlanReviewController extends Controller
 {
     public function __construct(
-        private readonly StructuredActionPlanValidator $validator
+        private readonly StructuredActionPlanValidator $validator,
+        private readonly StructuredOutputGroundingVerifier $groundingVerifier
     ) {
     }
 
@@ -138,6 +140,7 @@ class PasteurizadoraAiPlanReviewController extends Controller
     {
         $plan = $this->resolvePlan($request->user(), $planAccion);
         $structured = $this->validator->validate($request->structuredPayload());
+        $this->groundingVerifier->assertApprovalGrounded($plan, $structured);
         $reviewedAt = now();
         $reviewerId = (int) $request->user()->id;
         $reviewNotes = $request->validated('review_notes');

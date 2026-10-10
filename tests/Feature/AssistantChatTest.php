@@ -815,6 +815,7 @@ class AssistantChatTest extends TestCase
         $this->app->instance(AiProviderInterface::class, $capturingProvider);
 
         $user = $this->authenticatedUser();
+
         $linea = Linea::create([
             'nombre' => 'L-05',
             'tipo' => User::MODULE_LAVADORA,
@@ -976,6 +977,7 @@ class AssistantChatTest extends TestCase
         $this->app->instance(AiProviderInterface::class, $capturingProvider);
 
         $user = $this->authenticatedUser();
+
         $linea = Linea::create([
             'nombre' => 'L-05',
             'tipo' => User::MODULE_LAVADORA,
@@ -1533,6 +1535,11 @@ class AssistantChatTest extends TestCase
         $this->app->instance(AiProviderInterface::class, $capturingProvider);
 
         $user = $this->authenticatedUser();
+        $this->enableCustomPermissions($user, [
+            User::PERMISSION_ACCESS_LAVADORA_COSTS,
+        ]);
+        $user = $user->fresh();
+
         $linea = Linea::create([
             'nombre' => 'L-05',
             'tipo' => User::MODULE_LAVADORA,

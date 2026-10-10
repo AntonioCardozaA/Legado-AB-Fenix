@@ -71,7 +71,7 @@ class WasherActionPlanSchema
                         'additionalProperties' => false,
                         'required' => ['type', 'reference', 'document_id', 'page', 'section'],
                         'properties' => [
-                            'type' => ['type' => 'string', 'enum' => ['manual', 'procedure', 'historical_plan', 'revision', 'cost_history']],
+                            'type' => ['type' => 'string', 'enum' => ['manual', 'procedure', 'historical_plan', 'revision', 'cost_history', 'web']],
                             'reference' => ['type' => 'string'],
                             'document_id' => ['type' => ['integer', 'null']],
                             'chunk_index' => ['type' => ['integer', 'null']],
@@ -112,7 +112,7 @@ class WasherActionPlanSchema
             $dot . 'estimated_cost.currency' => ['required', 'string', 'size:3'],
             $dot . 'estimated_cost.based_on_historical_data' => ['required', 'boolean'],
             $dot . 'knowledge_sources' => ['required', 'array'],
-            $dot . 'knowledge_sources.*.type' => ['required', 'in:manual,procedure,historical_plan,revision,cost_history'],
+            $dot . 'knowledge_sources.*.type' => ['required', 'in:manual,procedure,historical_plan,revision,cost_history,web'],
             $dot . 'knowledge_sources.*.reference' => ['required', 'string'],
             $dot . 'knowledge_sources.*.document_id' => ['nullable', 'integer'],
             $dot . 'knowledge_sources.*.chunk_index' => ['nullable', 'integer'],

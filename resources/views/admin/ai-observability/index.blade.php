@@ -129,6 +129,32 @@
 
     <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <div class="rounded bg-white p-5 shadow">
+            <div class="text-xs font-semibold uppercase tracking-wide text-gray-500">Grounding</div>
+            <div class="mt-2 text-3xl font-bold text-gray-900">{{ $metrics['avg_grounding_score'] !== null ? number_format($metrics['avg_grounding_score'], 1) . '%' : 'N/D' }}</div>
+            <p class="mt-2 text-sm text-gray-500">{{ number_format($metrics['valid_sources_total']) }} fuentes validas</p>
+        </div>
+
+        <div class="rounded bg-white p-5 shadow">
+            <div class="text-xs font-semibold uppercase tracking-wide text-gray-500">Fuentes invalidas</div>
+            <div class="mt-2 text-3xl font-bold text-amber-600">{{ number_format($metrics['invalid_sources_total']) }}</div>
+            <p class="mt-2 text-sm text-gray-500">Citas no verificadas</p>
+        </div>
+
+        <div class="rounded bg-white p-5 shadow">
+            <div class="text-xs font-semibold uppercase tracking-wide text-gray-500">Costo IA</div>
+            <div class="mt-2 text-3xl font-bold text-gray-900">${{ number_format($metrics['estimated_cost_usd'], 4) }}</div>
+            <p class="mt-2 text-sm text-gray-500">Estimado por proveedor</p>
+        </div>
+
+        <div class="rounded bg-white p-5 shadow">
+            <div class="text-xs font-semibold uppercase tracking-wide text-gray-500">Documentos RAG</div>
+            <div class="mt-2 text-3xl font-bold text-gray-900">{{ number_format($documents['indexed']) }}/{{ number_format($documents['total']) }}</div>
+            <p class="mt-2 text-sm text-gray-500">{{ number_format($documents['current']) }} vigentes, {{ number_format($documents['obsolete']) }} obsoletos</p>
+        </div>
+    </div>
+
+    <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <div class="rounded bg-white p-5 shadow">
             <div class="text-xs font-semibold uppercase tracking-wide text-gray-500">Planes IA</div>
             <div class="mt-2 text-3xl font-bold text-gray-900">{{ number_format($plans['total']) }}</div>
             <p class="mt-2 text-sm text-gray-500">{{ number_format($plans['review_queue']) }} pendientes de revision</p>
@@ -276,6 +302,20 @@
                     @endforelse
                 </div>
             </div>
+
+            <div class="border-t border-gray-100 px-5 py-4">
+                <div class="mb-3 text-xs font-bold uppercase tracking-wide text-gray-500">Estado documentos</div>
+                <div class="grid gap-3 sm:grid-cols-2">
+                    <div class="rounded border border-gray-200 p-3 text-sm">
+                        <div class="font-semibold text-gray-900">Lavadora</div>
+                        <div class="mt-1 text-gray-500">{{ number_format($documents['washer']['indexed_rate'], 1) }}% indexado</div>
+                    </div>
+                    <div class="rounded border border-gray-200 p-3 text-sm">
+                        <div class="font-semibold text-gray-900">Pasteurizadora</div>
+                        <div class="mt-1 text-gray-500">{{ number_format($documents['pasteurizadora']['indexed_rate'], 1) }}% indexado</div>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <div class="rounded bg-white shadow">
@@ -405,6 +445,7 @@
                         <th class="px-5 py-3">Flujo</th>
                         <th class="px-5 py-3">Estado</th>
                         <th class="px-5 py-3">Proveedor</th>
+                        <th class="px-5 py-3 text-right">Grounding</th>
                         <th class="px-5 py-3 text-right">Latencia</th>
                         <th class="px-5 py-3 text-right">Tokens</th>
                     </tr>
@@ -425,6 +466,9 @@
                                 <div class="text-xs text-gray-500">{{ $interaction->model ?: 'Sin modelo' }}</div>
                             </td>
                             <td class="whitespace-nowrap px-5 py-3 text-right text-gray-600">
+                                {{ $interaction->grounding_score !== null ? number_format((float) $interaction->grounding_score * 100, 1) . '%' : 'N/D' }}
+                            </td>
+                            <td class="whitespace-nowrap px-5 py-3 text-right text-gray-600">
                                 {{ $interaction->response_time_ms !== null ? number_format($interaction->response_time_ms) . ' ms' : 'N/D' }}
                             </td>
                             <td class="whitespace-nowrap px-5 py-3 text-right font-semibold text-gray-800">
@@ -433,7 +477,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7" class="px-5 py-10 text-center text-gray-500">Sin interacciones con esos filtros.</td>
+                            <td colspan="8" class="px-5 py-10 text-center text-gray-500">Sin interacciones con esos filtros.</td>
                         </tr>
                     @endforelse
                 </tbody>

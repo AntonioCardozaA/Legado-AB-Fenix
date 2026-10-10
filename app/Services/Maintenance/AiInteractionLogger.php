@@ -19,6 +19,23 @@ class AiInteractionLogger
     {
         $meta = is_array($response['meta'] ?? null) ? $response['meta'] : [];
         $usage = is_array($meta['usage'] ?? null) ? $meta['usage'] : [];
+        $metadata = is_array($attributes['metadata'] ?? null) ? $attributes['metadata'] : [];
+        $metadata = array_merge($metadata, array_filter([
+            'fallback_used' => $meta['fallback_used'] ?? null,
+            'fallback_provider_index' => $meta['fallback_provider_index'] ?? null,
+            'fallback_model_index' => $meta['fallback_model_index'] ?? null,
+        ], static fn ($value): bool => $value !== null));
+        $attributes['metadata'] = $metadata;
+        $promptTokens = $this->firstNumeric($usage, [
+            'input_tokens',
+            'prompt_tokens',
+            'promptTokenCount',
+        ]);
+        $completionTokens = $this->firstNumeric($usage, [
+            'output_tokens',
+            'completion_tokens',
+            'candidatesTokenCount',
+        ]);
 
         $this->write(array_merge($attributes, [
             'user_id' => $user?->id,
@@ -28,20 +45,13 @@ class AiInteractionLogger
             'model' => $meta['model'] ?? null,
             'response_time_ms' => $meta['response_time_ms'] ?? null,
             'usage' => $usage,
-            'prompt_tokens' => $this->firstNumeric($usage, [
-                'input_tokens',
-                'prompt_tokens',
-                'promptTokenCount',
-            ]),
-            'completion_tokens' => $this->firstNumeric($usage, [
-                'output_tokens',
-                'completion_tokens',
-                'candidatesTokenCount',
-            ]),
+            'prompt_tokens' => $promptTokens,
+            'completion_tokens' => $completionTokens,
             'total_tokens' => $this->firstNumeric($usage, [
                 'total_tokens',
                 'totalTokenCount',
             ]),
+            'estimated_cost_usd' => $this->estimatedCostUsd((string) ($meta['provider'] ?? ''), $promptTokens, $completionTokens),
         ]));
     }
 
@@ -91,6 +101,10 @@ class AiInteractionLogger
                 'prompt_tokens' => $this->nullableInteger($values['prompt_tokens'] ?? null),
                 'completion_tokens' => $this->nullableInteger($values['completion_tokens'] ?? null),
                 'total_tokens' => $this->nullableInteger($values['total_tokens'] ?? null),
+                'grounding_score' => $this->nullableFloat($values['grounding_score'] ?? data_get($values, 'metadata.grounding.score')),
+                'valid_sources_count' => $this->nullableInteger($values['valid_sources_count'] ?? data_get($values, 'metadata.grounding.valid_source_count')),
+                'invalid_sources_count' => $this->nullableInteger($values['invalid_sources_count'] ?? data_get($values, 'metadata.grounding.invalid_source_count')),
+                'estimated_cost_usd' => $this->nullableFloat($values['estimated_cost_usd'] ?? data_get($values, 'metadata.estimated_cost_usd')),
                 'usage' => $this->arrayOrNull($values['usage'] ?? null),
                 'metadata' => $this->arrayOrNull($values['metadata'] ?? null),
                 'error_message' => $this->nullableString($values['error_message'] ?? null, 500),
@@ -123,6 +137,27 @@ class AiInteractionLogger
     private function nullableInteger(mixed $value): ?int
     {
         return is_numeric($value) ? max(0, (int) $value) : null;
+    }
+
+    private function nullableFloat(mixed $value): ?float
+    {
+        return is_numeric($value) ? max(0.0, (float) $value) : null;
+    }
+
+    private function estimatedCostUsd(string $provider, ?int $promptTokens, ?int $completionTokens): ?float
+    {
+        $provider = Str::lower(trim($provider));
+        $inputCost = data_get(config('maintenance_ai.costs'), $provider.'.input_per_million_tokens');
+        $outputCost = data_get(config('maintenance_ai.costs'), $provider.'.output_per_million_tokens');
+
+        if (! is_numeric($inputCost) && ! is_numeric($outputCost)) {
+            return null;
+        }
+
+        $input = ($promptTokens ?? 0) * (is_numeric($inputCost) ? (float) $inputCost : 0.0) / 1000000;
+        $output = ($completionTokens ?? 0) * (is_numeric($outputCost) ? (float) $outputCost : 0.0) / 1000000;
+
+        return round($input + $output, 6);
     }
 
     private function nullableString(mixed $value, int $limit): ?string
