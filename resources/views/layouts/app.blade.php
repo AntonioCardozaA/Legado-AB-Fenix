@@ -667,6 +667,7 @@
                 $puedeVerLef52124 = $usuarioActual?->canUseCustomPermission('ver 52-12-4') ?? false;
                 $puedeGestionarUsuarios = $usuarioActual?->canUseCustomPermission('gestionar usuarios') ?? false;
                 $puedeVerObservabilidadIa = $usuarioActual?->canViewAiObservability() ?? false;
+                $esAdministrador = $usuarioActual?->hasRole(\App\Models\User::ROLE_ADMIN) ?? false;
             @endphp
 
             @if($usaPerfilExcentricos)
@@ -773,6 +774,16 @@
                        class="nav-link flex items-center px-4 py-3 rounded-lg {{ request()->routeIs('admin.users.*') ? 'nav-active' : '' }}">
                         <i class="fas fa-user-shield w-5 mr-3 text-gray-500"></i>
                         Gestion de usuarios
+                    </a>
+                @endif
+
+                @if($esAdministrador)
+                    <a href="{{ route('admin.videos.index') }}"
+                       @click="if (!isDesktop) sidebarOpen = false"
+                       aria-label="Videos del administrador"
+                       class="nav-link flex items-center px-4 py-3 rounded-lg {{ request()->routeIs('admin.videos.*') ? 'nav-active' : '' }}">
+                        <i class="fas fa-film w-5 mr-3 text-gray-500"></i>
+                        Videos
                     </a>
                 @endif
 

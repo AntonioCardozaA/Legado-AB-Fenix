@@ -307,6 +307,9 @@
         @if($canManage)
             <button class="lef-action on-dark" type="button" data-toggle-import><i class="fas fa-file-import"></i>Importar datos 52-12-4</button>
         @endif
+        <a class="lef-action secondary" href="{{ route('lef52124.export') }}">
+            <i class="fas fa-file-excel"></i>Descargar Excel de todas las líneas
+        </a>
     </div>
 
     @if(session('success')) <div class="lef-alert success">{{ session('success') }}</div> @endif
@@ -637,7 +640,10 @@ document.addEventListener('DOMContentLoaded', function () {
     nodes.clear?.addEventListener('click', resetFilters);
     document.querySelectorAll('[data-line-tab]').forEach((button) => button.addEventListener('click', () => {
         state.lineaId = Number(button.dataset.lineaId);
+        state.dataDate = null;
+        if (nodes.date) nodes.date.value = '';
         selectLineTab();
+        syncStateFromControls();
         loadPeriods(true);
         if (state.trendVisible) loadTrend();
     }));

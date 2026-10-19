@@ -32,6 +32,7 @@ use App\Http\Controllers\PasteurizadoraKnowledgeDocumentController;
 use App\Http\Controllers\WasherAiPlanReviewController;
 use App\Http\Controllers\WasherKnowledgeDocumentController;
 use App\Http\Controllers\Lef52124Controller;
+use App\Http\Controllers\AdminVideoController;
 
 /*
 |--------------------------------------------------------------------------
@@ -165,6 +166,7 @@ Route::prefix('pasteurizadora')->group(function () {
             Route::get('/', 'index')->name('index');
             Route::get('/periodos', 'periods')->name('periods');
             Route::get('/datos', 'data')->name('data');
+            Route::get('/exportar/excel', 'exportExcel')->name('export');
             Route::get('/tendencia-lavadora', 'washerMachineTrend')->name('trend.washer-machine');
             Route::get('/costos/datos', 'costData')->name('costs.data');
             Route::post('/costos/importar', 'importCosts')->name('costs.import');
@@ -199,6 +201,17 @@ Route::prefix('pasteurizadora')->group(function () {
             Route::put('/{user}', 'update')->name('update');
             Route::delete('/{user}', 'destroy')->name('destroy');
             Route::patch('/{user}/permisos', 'updatePermissions')->name('permissions.update');
+        });
+
+    Route::prefix('admin/videos')
+        ->name('admin.videos.')
+        ->middleware('role:admin')
+        ->controller(AdminVideoController::class)
+        ->group(function () {
+            Route::get('/', 'index')->name('index');
+            Route::post('/', 'store')->name('store');
+            Route::get('/{video}/stream', 'stream')->name('stream');
+            Route::delete('/{video}', 'destroy')->name('destroy');
         });
 
     Route::prefix('admin/control-gastos')
