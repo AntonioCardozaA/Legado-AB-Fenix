@@ -33,6 +33,33 @@ return [
         'pdf_ocr_detail' => env('AI_KNOWLEDGE_PDF_OCR_DETAIL', 'high'),
         'pdf_ocr_model' => env('AI_KNOWLEDGE_PDF_OCR_MODEL'),
     ],
+    'grounding' => [
+        'min_score_for_approval' => (float) env('AI_GROUNDING_MIN_SCORE_FOR_APPROVAL', 0.2),
+        'ungrounded_confidence_cap' => (float) env('AI_UNGROUNDED_CONFIDENCE_CAP', 0.45),
+        'weak_grounding_confidence_cap' => (float) env('AI_WEAK_GROUNDING_CONFIDENCE_CAP', 0.65),
+        'block_approval_without_sources' => filter_var(env('AI_BLOCK_UNGROUNDED_APPROVAL', true), FILTER_VALIDATE_BOOLEAN),
+    ],
+    'circuit_breaker' => [
+        'enabled' => filter_var(env('AI_CIRCUIT_BREAKER_ENABLED', true), FILTER_VALIDATE_BOOLEAN),
+        'availability_failure_threshold' => (int) env('AI_CIRCUIT_AVAILABILITY_FAILURE_THRESHOLD', 3),
+        'quality_failure_threshold' => (int) env('AI_CIRCUIT_QUALITY_FAILURE_THRESHOLD', 2),
+        'failure_window_seconds' => (int) env('AI_CIRCUIT_FAILURE_WINDOW_SECONDS', 300),
+        'open_seconds' => (int) env('AI_CIRCUIT_OPEN_SECONDS', 120),
+    ],
+    'reports' => [
+        'preview_enabled' => filter_var(env('AI_REPORT_PREVIEW_ENABLED', true), FILTER_VALIDATE_BOOLEAN),
+        'preview_row_threshold' => (int) env('AI_REPORT_PREVIEW_ROW_THRESHOLD', 500),
+    ],
+    'costs' => [
+        'openai' => [
+            'input_per_million_tokens' => env('AI_OPENAI_INPUT_COST_PER_1M'),
+            'output_per_million_tokens' => env('AI_OPENAI_OUTPUT_COST_PER_1M'),
+        ],
+        'gemini' => [
+            'input_per_million_tokens' => env('AI_GEMINI_INPUT_COST_PER_1M'),
+            'output_per_million_tokens' => env('AI_GEMINI_OUTPUT_COST_PER_1M'),
+        ],
+    ],
     'chat' => [
         'model' => env('AI_CHAT_MODEL', env('AI_MODEL')),
         'history_window' => (int) env('AI_CHAT_HISTORY_WINDOW', 8),

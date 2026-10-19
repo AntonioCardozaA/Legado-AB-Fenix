@@ -3032,6 +3032,14 @@ class OperationsPlatformContextService
                     'problematic_components' => $items->count(),
                     'critical_components' => $items->filter(fn (AnalisisLavadora $analysis): bool => $this->isCriticalWasherState($analysis->estado))->count(),
                     'latest_review_date' => optional($items->sortByDesc('fecha_analisis')->first()?->fecha_analisis)->toDateString(),
+                    'critical_top_components' => $items
+                        ->filter(fn (AnalisisLavadora $analysis): bool => $this->isCriticalWasherState($analysis->estado))
+                        ->groupBy(fn (AnalisisLavadora $analysis) => $analysis->componente?->nombre ?: 'Sin componente')
+                        ->map(fn (Collection $componentItems, string $name): array => ['componente' => $name, 'total' => $componentItems->count()])
+                        ->sortByDesc('total')
+                        ->take(5)
+                        ->values()
+                        ->all(),
                     'top_components' => $items
                         ->groupBy(fn (AnalisisLavadora $analysis) => $analysis->componente?->nombre ?: 'Sin componente')
                         ->map(fn (Collection $componentItems, string $name): array => ['componente' => $name, 'total' => $componentItems->count()])

@@ -13,6 +13,7 @@ class WasherContextBuilder
     public function __construct(
         private readonly KnowledgeRetriever $knowledgeRetriever,
         private readonly WasherTechnicalContextRetriever $technicalContextRetriever,
+        private readonly AssistantWebSearchService $webSearch,
         private readonly PromptSafetySanitizer $sanitizer
     ) {
     }
@@ -31,6 +32,12 @@ class WasherContextBuilder
             'linea_nombre' => $current['linea_nombre'] ?? null,
             'estado' => $current['estado'] ?? null,
         ]);
+        $webContext = $this->webSearch->searchIfNeeded(
+            $this->webSearchQuestion($event, $current),
+            $knowledge,
+            [],
+            $technicalContext
+        );
 
         return [
             'event' => [
@@ -53,7 +60,26 @@ class WasherContextBuilder
             'review_context' => $this->buildReviewContext($event),
             'costs' => $costs,
             'knowledge' => $knowledge,
+            'web_context' => $webContext,
         ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $current
+     */
+    private function webSearchQuestion(MaintenanceEvent $event, array $current): string
+    {
+        return implode(' ', array_filter([
+            'Fuentes externas web para plan de accion de mantenimiento industrial.',
+            'Priorizar fabricante, ficha tecnica, manual oficial, norma, catalogo, compatibilidad y diagnostico tecnico vigente.',
+            'Equipo: lavadora industrial.',
+            isset($current['linea_nombre']) ? 'Linea: ' . $current['linea_nombre'] . '.' : null,
+            isset($current['component_name']) ? 'Componente: ' . $current['component_name'] . '.' : null,
+            isset($current['component_code']) ? 'Codigo: ' . $current['component_code'] . '.' : null,
+            isset($current['estado']) ? 'Estado observado: ' . $current['estado'] . '.' : null,
+            $event->title ? 'Evento: ' . $event->title . '.' : null,
+            $event->description ? 'Descripcion: ' . $event->description . '.' : null,
+        ]));
     }
 
     /**

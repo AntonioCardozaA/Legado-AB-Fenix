@@ -19,7 +19,8 @@ class OperationsAssistantService
         private readonly OperationsPlatformContextService $platformContext,
         private readonly WasherTechnicalContextRetriever $washerTechnicalContext,
         private readonly PasteurizadoraTechnicalContextRetriever $pasteurizadoraTechnicalContext,
-        private readonly AiInteractionLogger $interactionLogger
+        private readonly AiInteractionLogger $interactionLogger,
+        private readonly AssistantResponseGroundingGuard $responseGroundingGuard
     ) {
     }
 
@@ -41,6 +42,7 @@ class OperationsAssistantService
 
         $safePageContext = $this->sanitizePageContext($pageContext);
         $conversation = $this->sanitizeHistory($history);
+        $retrievalQuestion = $this->contextualRetrievalQuestion($question, $conversation, $safePageContext);
 
         if ($this->analyticsArtifacts->looksLikeArtifactRequest($question)) {
             if (!(bool) config('maintenance_ai.enabled', false)) {
@@ -79,10 +81,10 @@ class OperationsAssistantService
             }
         }
 
-        $platformContext = $this->buildPlatformContext($user, $question, $safePageContext);
+        $platformContext = $this->buildPlatformContext($user, $retrievalQuestion, $safePageContext);
 
-        if (!$this->shouldUseHybridWebPath($question)
-            && ($deterministicReply = $this->resolveDeterministicReply($question, $platformContext))) {
+        if (!$this->explicitlyRequestsExternalContext($retrievalQuestion)
+            && ($deterministicReply = $this->resolveDeterministicReply($question, $platformContext)) !== null) {
             $this->interactionLogger->fallback($user, 'assistant_chat', [
                 'provider' => data_get($deterministicReply, 'metadata.provider'),
                 'model' => data_get($deterministicReply, 'metadata.model'),
@@ -114,13 +116,13 @@ class OperationsAssistantService
             ];
         }
 
-        $technicalContext = $this->technicalContextForQuestion($question, $safePageContext, $user);
-        $knowledge = $this->knowledgeSearch->search($question, $safePageContext, $user);
-        $webContext = $this->webSearch->searchIfNeeded($question, $knowledge, $platformContext, $technicalContext);
+        $technicalContext = $this->technicalContextForQuestion($retrievalQuestion, $safePageContext, $user);
+        $knowledge = $this->knowledgeSearch->search($retrievalQuestion, $safePageContext, $user);
+        $webContext = $this->webSearch->searchIfNeeded($retrievalQuestion, $knowledge, $platformContext, $technicalContext);
 
         $payload = [
             'system_prompt' => $this->systemPrompt(),
-            'user_prompt' => $this->userPrompt($user, $question, $conversation, $safePageContext, $knowledge, $platformContext, $technicalContext, $webContext),
+            'user_prompt' => $this->userPrompt($user, $question, $conversation, $safePageContext, $knowledge, $platformContext, $technicalContext, $webContext, $retrievalQuestion),
             'schema_name' => 'operations_assistant_reply',
             'schema' => $this->schema(),
         ];
@@ -146,11 +148,34 @@ class OperationsAssistantService
                 return $diagnosticFallback;
             }
 
+            if (($technicalFallback = $this->technicalFallbackReply($user, $question, $payload, $platformContext, $knowledge, $technicalContext, $webContext)) !== null) {
+                report($exception);
+
+                return $technicalFallback;
+            }
+
             throw $exception;
         }
 
         $structured = is_array($response['data'] ?? null) ? $response['data'] : [];
-        $content = $this->composeMessage($structured);
+        $grounding = $this->responseGroundingGuard->validate($structured, [
+            'platform_context' => $platformContext,
+            'technical_context' => $technicalContext,
+            'knowledge' => $knowledge,
+        ]);
+        $structured = $grounding['structured'];
+        $groundingReport = $grounding['report'];
+        $sources = $this->mergeResponseSources(
+            Arr::get($structured, 'sources', []),
+            (array) ($webContext['sources'] ?? []),
+            [
+                'platform_context' => $platformContext,
+                'technical_context' => $technicalContext,
+                'knowledge' => $knowledge,
+                'web_context' => $webContext,
+            ]
+        );
+        $content = $this->composeMessage($structured, $sources, $groundingReport);
 
         $this->interactionLogger->success($user, 'assistant_chat', $response, [
             'input_chars' => mb_strlen($payload['system_prompt'] . $payload['user_prompt']),
@@ -166,14 +191,12 @@ class OperationsAssistantService
                 'web_search_reason' => $webContext['reason'] ?? null,
                 'web_search_provider' => $webContext['provider'] ?? null,
                 'web_sources_count' => count((array) ($webContext['sources'] ?? [])),
+                'response_grounding' => $groundingReport,
+                'unsupported_critical_claims' => $groundingReport['unsupported_claims_count'] ?? 0,
+                'unsupported_sources_count' => $groundingReport['unsupported_sources_count'] ?? 0,
                 'page_context' => $safePageContext,
             ],
         ]);
-
-        $sources = $this->mergeResponseSources(
-            Arr::get($structured, 'sources', []),
-            (array) ($webContext['sources'] ?? [])
-        );
 
         return [
             'content' => $content,
@@ -188,6 +211,7 @@ class OperationsAssistantService
                 'platform_recent_evidence' => count($platformContext['recent_evidence'] ?? []),
                 'technical_context_records' => $this->technicalContextRecordCount($technicalContext),
                 'technical_context_sources' => (int) data_get($technicalContext, 'coverage.technical_sources_count', 0),
+                'response_grounding' => $groundingReport,
                 'web_search' => [
                     'enabled' => (bool) ($webContext['enabled'] ?? false),
                     'used' => (bool) ($webContext['used'] ?? false),
@@ -208,14 +232,19 @@ class OperationsAssistantService
      * @param  array<string, mixed>  $technicalContext
      * @param  array<string, mixed>  $webContext
      */
-    private function userPrompt(User $user, string $question, array $history, array $pageContext, array $knowledge, array $platformContext, array $technicalContext, array $webContext): string
+    private function userPrompt(User $user, string $question, array $history, array $pageContext, array $knowledge, array $platformContext, array $technicalContext, array $webContext, ?string $retrievalQuestion = null): string
     {
+        $retrievalQuestion = $retrievalQuestion !== null && trim($retrievalQuestion) !== $question
+            ? $this->sanitizer->sanitizeText($retrievalQuestion, 1600)
+            : null;
+
         $payload = [
             'user' => [
                 'name' => $user->name,
                 'role' => $user->role_label,
             ],
             'question' => $question,
+            'retrieval_context_query' => $retrievalQuestion,
             'page_context' => $pageContext,
             'recent_conversation' => $history,
             'relevant_context' => $knowledge,
@@ -229,19 +258,24 @@ class OperationsAssistantService
                 'Tomar como prioridad el bloque platform_context para responder con vision global de la plataforma y no solo de la pagina actual.',
                 'Para soluciones tecnicas o diagnosticos, usar technical_recommendation_context como fuente principal de antecedentes, respetando su orden de prioridad.',
                 'Diferenciar claramente entre historial de la plataforma, informacion de manuales/base de conocimiento y recomendaciones inferidas.',
+                'Cuando ayude a leer la respuesta, mencionar "segun historial interno", "segun documento tecnico" o "recomendacion inferida".',
+                'Para preguntas tecnicas de lavadoras, reductores, cadenas, elongacion, aceites, refacciones o mantenimiento, estructurar la respuesta diferenciando: Dato interno, Recomendacion tecnica y Validacion pendiente.',
                 'No inventar antecedentes, reparaciones, resultados, refacciones, costos ni evidencia que no aparezcan en el contexto.',
-                'Si no hay antecedentes suficientes, indicarlo y apoyarse primero en technical_sources o relevant_context; si tampoco alcanzan, decir que falta evidencia interna.',
+                'Toda afirmacion critica sobre equipos, refacciones, costos, responsables, fechas, estados, planes o historial debe citar una fuente interna/documento/registro o quedar marcada como inferencia/recomendacion.',
+                'Si no hay antecedentes suficientes, indicarlo y apoyarse primero en technical_sources, relevant_context o web_context; si tampoco alcanzan, decir exactamente que dato interno falta validar.',
                 'Priorizar module_insights cuando exista, porque resume comparativos, rankings y estados actuales listos para responder.',
                 'Si module_insights contiene lubrication_lookup o coincidencias de documentos indexados, usarlos antes de concluir que falta informacion.',
                 'Si module_insights contiene refaction_cost_lookup, usarlo como fuente principal para responder costos, SKUs, compatibilidad por linea y refacciones de lavadora.',
                 'Si module_insights contiene pasteurizadora, usarlo para responder sobre planes, hallazgos, recomendaciones, estado actual, modulos, niveles, lados y componentes de pasteurizadora.',
                 'Cuando relevant_context incluya documentos, priorizar fragmentos con document_id, chunk_index y mayor score_breakdown.',
                 'Si la pregunta pide maximos, minimos, ranking o comparativos, usar primero los resumenes comparativos presentes en platform_context.',
+                'Si retrieval_context_query existe, entenderlo solo como contexto de recuperacion interna para resolver referencias conversacionales como "esa lavadora", "ese reductor" o "ese componente"; responder siempre la question original.',
                 'Usar web_context solo si web_context.used es true y siempre despues de revisar platform_context, technical_recommendation_context y relevant_context.',
                 'Cuando web_context exista, tratarlo como complemento externo para informacion vigente, fabricantes, normas, fichas tecnicas o precios actuales; no reemplaza los datos internos.',
                 'Si usas web_context, mencionar que es informacion web externa y citar sus fuentes en sources con type web.',
                 'Si falta informacion, decirlo claramente sin inventar.',
                 'Cuando aplique, entregar pasos accionables punto por punto.',
+                'Si la pregunta trata fugas de aceite en reductores industriales, entregar formato de diagnostico con causa probable, evidencia observable y accion recomendada; cubrir sellos/retenes, respiradero, sobrellenado, temperatura, presion interna, desgaste de eje, juntas, carcasa y lubricante incorrecto cuando apliquen.',
             ],
         ];
 
@@ -259,7 +293,10 @@ class OperationsAssistantService
             'Si existe module_insights, usalo como fuente primaria para rankings, comparativos, tendencias y estado actual de componentes o lineas.',
             'Si la pregunta pide una solucion tecnica, diagnostico o plan de intervencion, usa technical_recommendation_context antes que conocimiento general.',
             'Respeta el orden de antecedentes del modulo consultado: mismo componente y equipo/posicion, mismo tipo en el mismo equipo, mismo componente en otros equipos, fallas similares, manuales/base de conocimiento.',
-            'Separa en la respuesta lo observado en historial, lo encontrado en documentos y lo que recomiendas como inferencia tecnica.',
+            'Para lavadoras, reductores, cadenas, elongacion, aceites, refacciones y mantenimiento, consulta primero base interna viva: module_insights, historial tecnico, documentos indexados, costos/refacciones y contexto conversacional inmediato.',
+            'Recuerda el contexto inmediato de preguntas anteriores, especialmente rankings, picos historicos, elongacion, lineas, reductores y componentes criticos.',
+            'Separa en la respuesta lo observado en historial/base interna, lo encontrado en documentos o web externa y lo que recomiendas como inferencia tecnica.',
+            'Cuando sea util, usa etiquetas visibles como "segun historial interno", "segun documento tecnico" o "recomendacion inferida".',
             'Si module_insights incluye refaction_cost_lookup, tomalo como referencia estructurada valida para responder refacciones, costos unitarios, SKUs, compatibilidad por linea y consumibles de lavadora.',
             'Si module_insights incluye lubrication_lookup, tomalo como una referencia estructurada valida para responder preguntas de aceite, lubricante, litros, SKU y consumibles de lavadora.',
             'Si module_insights incluye pasteurizadora, usalo para planes de accion, analisis, recomendaciones IA y contexto operativo relacionado con pasteurizadora.',
@@ -267,9 +304,11 @@ class OperationsAssistantService
             'Si existe web_context.used, puedes usarlo solo como complemento externo y debes distinguirlo de historial, documentos internos e inferencias.',
             'No uses informacion web para inventar estados internos, historiales, costos registrados, responsables o actividades ejecutadas.',
             'Si citas informacion web, agrega fuentes de type web en el campo sources.',
+            'Para fugas de aceite en reductores industriales, responde como diagnostico operativo: causa probable, evidencia observable y accion recomendada; cruza primero manuales/base interna e historial, y usa web_context como referencia externa complementaria.',
             'Si platform_context ya incluye un ranking, panorama o comparativo actual, respondelo directamente sin decir que faltan datos.',
             'No inventes estados de equipos, costos, responsables ni trabajos ejecutados.',
-            'Si el contexto no alcanza para responder con certeza, dilo explicitamente y sugiere el siguiente dato o modulo a revisar.',
+            'Si afirmas datos internos sobre equipos, refacciones, costos, responsables, fechas, estados, planes o historial, deben estar respaldados por contexto interno o fuentes; si no, marcarlos como inferencia/recomendacion y nombrar el dato faltante.',
+            'Si el contexto no alcanza para responder con certeza, dilo explicitamente y nombra el dato interno pendiente: linea, componente, reductor, SKU, aceite, fecha de analisis, evidencia, manual/placa o ciclo de cadena, segun aplique.',
             'Evita explicaciones largas. Prioriza claridad y utilidad operativa.',
         ]);
     }
@@ -277,22 +316,21 @@ class OperationsAssistantService
     /**
      * @param  mixed  $structuredSources
      * @param  array<int, mixed>  $webSources
-     * @return array<int, array<string, string>>
+     * @param  array<string, mixed>  $context
+     * @return array<int, array<string, mixed>>
      */
-    private function mergeResponseSources(mixed $structuredSources, array $webSources): array
+    private function mergeResponseSources(mixed $structuredSources, array $webSources, array $context = []): array
     {
+        $evidenceIndex = $this->sourceEvidenceIndex($context);
         $sources = collect(is_array($structuredSources) ? $structuredSources : [])
             ->filter(fn ($source): bool => is_array($source))
-            ->map(fn (array $source): array => array_filter([
-                'type' => is_scalar($source['type'] ?? null) ? (string) $source['type'] : 'context',
-                'reference' => is_scalar($source['reference'] ?? null) ? (string) $source['reference'] : null,
-            ], static fn ($value): bool => $value !== null && $value !== ''))
+            ->map(fn (array $source): array => $this->normalizeResponseSource($source, $evidenceIndex))
             ->filter(fn (array $source): bool => ($source['reference'] ?? '') !== '')
             ->values();
 
         collect($webSources)
             ->filter(fn ($source): bool => is_array($source))
-            ->each(function (array $source) use ($sources): void {
+            ->each(function (array $source) use ($sources, $evidenceIndex): void {
                 $reference = is_scalar($source['reference'] ?? null)
                     ? (string) $source['reference']
                     : (string) ($source['url'] ?? '');
@@ -301,11 +339,11 @@ class OperationsAssistantService
                     return;
                 }
 
-                $sources->push(array_filter([
+                $sources->push($this->normalizeResponseSource([
                     'type' => 'web',
                     'reference' => $reference,
                     'url' => is_scalar($source['url'] ?? null) ? (string) $source['url'] : null,
-                ], static fn ($value): bool => $value !== null && $value !== ''));
+                ], $evidenceIndex));
             });
 
         return $sources
@@ -313,6 +351,157 @@ class OperationsAssistantService
             ->take(6)
             ->values()
             ->all();
+    }
+
+    /**
+     * @param  array<string, mixed>  $source
+     * @param  array<string, array<string, mixed>>  $evidenceIndex
+     * @return array<string, mixed>
+     */
+    private function normalizeResponseSource(array $source, array $evidenceIndex): array
+    {
+        $reference = is_scalar($source['reference'] ?? null)
+            ? trim((string) $source['reference'])
+            : trim((string) ($source['url'] ?? ''));
+        $type = is_scalar($source['type'] ?? null) && trim((string) $source['type']) !== ''
+            ? trim((string) $source['type'])
+            : 'context';
+        $matched = $evidenceIndex[$this->sourceKey($type, $reference)]
+            ?? $evidenceIndex[$this->sourceKey('', $reference)]
+            ?? [];
+
+        return array_filter([
+            'type' => $type,
+            'reference' => $reference,
+            'record_id' => $this->sourceInt($source['record_id'] ?? $source['source_id'] ?? $source['id'] ?? $matched['record_id'] ?? null),
+            'document_id' => $this->sourceInt($source['document_id'] ?? $matched['document_id'] ?? null),
+            'document' => $this->sourceString($source['document'] ?? $source['document_title'] ?? $matched['document'] ?? null)
+                ?: $this->documentNameFromReference($reference),
+            'chunk_index' => $this->sourceInt($source['chunk_index'] ?? $matched['chunk_index'] ?? null),
+            'chunk_id' => $this->sourceInt($source['chunk_id'] ?? $matched['chunk_id'] ?? null),
+            'table' => $this->sourceString($source['table'] ?? $matched['table'] ?? null)
+                ?: $this->inferredSourceTable($type, $this->sourceString($source['module'] ?? $matched['module'] ?? null)),
+            'module' => $this->sourceString($source['module'] ?? $matched['module'] ?? null),
+            'url' => $this->sourceString($source['url'] ?? $matched['url'] ?? null),
+        ], static fn ($value): bool => $value !== null && $value !== '');
+    }
+
+    /**
+     * @param  array<string, mixed>  $context
+     * @return array<string, array<string, mixed>>
+     */
+    private function sourceEvidenceIndex(array $context): array
+    {
+        $index = [];
+
+        foreach (['platform_context', 'technical_context', 'knowledge', 'web_context'] as $key) {
+            $this->collectSourceEvidence($context[$key] ?? [], $index, [
+                'module' => data_get($context, 'platform_context.page_context.module')
+                    ?: data_get($context, 'web_context.module'),
+            ]);
+        }
+
+        return $index;
+    }
+
+    /**
+     * @param  mixed  $value
+     * @param  array<string, array<string, mixed>>  $index
+     * @param  array<string, mixed>  $parent
+     */
+    private function collectSourceEvidence(mixed $value, array &$index, array $parent = []): void
+    {
+        if (!is_array($value)) {
+            return;
+        }
+
+        $module = $this->sourceString($value['module'] ?? $value['tipo_equipo'] ?? $parent['module'] ?? null);
+        $table = $this->sourceString($value['table'] ?? $value['source_table'] ?? $parent['table'] ?? null);
+        $reference = $this->sourceString($value['reference'] ?? $value['title'] ?? $value['name'] ?? $value['url'] ?? null);
+        $type = $this->sourceString($value['type'] ?? $value['source_type'] ?? $value['document_type'] ?? null) ?: 'context';
+        $document = $this->sourceString($value['document'] ?? $value['document_title'] ?? $value['title'] ?? null);
+        $recordId = $this->sourceInt($value['record_id'] ?? $value['source_id'] ?? $value['plan_id'] ?? $value['event_id'] ?? $value['analysis_id'] ?? $value['analisis_id'] ?? null);
+
+        if ($reference !== null && $reference !== '') {
+            $metadata = [
+                'record_id' => $recordId,
+                'document_id' => $this->sourceInt($value['document_id'] ?? null),
+                'document' => $document,
+                'chunk_index' => $this->sourceInt($value['chunk_index'] ?? null),
+                'chunk_id' => $this->sourceInt($value['chunk_id'] ?? null),
+                'table' => $table,
+                'module' => $module,
+                'url' => $this->sourceString($value['url'] ?? null),
+            ];
+
+            $index[$this->sourceKey($type, $reference)] = array_filter($metadata, static fn ($item): bool => $item !== null && $item !== '');
+            $index[$this->sourceKey('', $reference)] = array_filter($metadata, static fn ($item): bool => $item !== null && $item !== '');
+        }
+
+        foreach ($value as $child) {
+            if (is_array($child)) {
+                $this->collectSourceEvidence($child, $index, array_filter([
+                    'module' => $module,
+                    'table' => $table,
+                ], static fn ($item): bool => $item !== null && $item !== ''));
+            }
+        }
+    }
+
+    private function sourceKey(string $type, string $reference): string
+    {
+        return Str::lower(Str::ascii(trim($type))).'|'.Str::lower(Str::ascii(trim($reference)));
+    }
+
+    private function sourceString(mixed $value): ?string
+    {
+        if (!is_scalar($value)) {
+            return null;
+        }
+
+        $value = trim((string) $value);
+
+        return $value !== '' ? Str::limit($value, 255, '') : null;
+    }
+
+    private function sourceInt(mixed $value): ?int
+    {
+        return is_numeric($value) ? (int) $value : null;
+    }
+
+    private function inferredSourceTable(string $type, ?string $module): ?string
+    {
+        $type = Str::lower(Str::ascii($type));
+        $module = Str::lower(Str::ascii((string) $module));
+
+        if (str_contains($type, 'plan')) {
+            return 'plan_accion';
+        }
+
+        if (str_contains($type, 'knowledge') || str_contains($type, 'document') || str_contains($type, 'manual')) {
+            return $module === User::MODULE_PASTEURIZADORA
+                ? 'pasteurizadora_knowledge_documents'
+                : 'washer_knowledge_documents';
+        }
+
+        if (str_contains($type, 'cost') || str_contains($type, 'refaction') || str_contains($type, 'lubrication')) {
+            return 'lavadora_cost_entries';
+        }
+
+        if (str_contains($type, 'event')) {
+            return 'maintenance_events';
+        }
+
+        return null;
+    }
+
+    private function documentNameFromReference(string $reference): ?string
+    {
+        if (preg_match('/^(.*?)\s+-\s+fragmento\s+\d+/iu', $reference, $matches) === 1) {
+            return trim($matches[1]);
+        }
+
+        return null;
     }
 
     /**
@@ -392,9 +581,21 @@ class OperationsAssistantService
         }
 
         $content = implode("\n\n", [
-            'Las fugas de aceite en un reductor industrial suelen venir de problemas de sellado, presión interna, nivel incorrecto o desgaste mecánico.',
-            "Causas probables:\n- Retenes o sellos desgastados, endurecidos, mal instalados o dañados.\n- Respiradero obstruido; aumenta la presión interna y empuja aceite por sellos o tapas.\n- Sobrellenado o nivel incorrecto de aceite.\n- Empaques, juntas, tapas o tornillería floja o deteriorada.\n- Eje con desgaste, ranura, rayadura o desalineación en la zona del retén.\n- Temperatura alta, vibración, contaminación del lubricante o viscosidad incorrecta.\n- Fisura en carcasa o daño por golpe.",
-            "Revisión recomendada:\n- Limpia el reductor y ubica el punto exacto de salida.\n- Verifica el nivel de aceite con el equipo detenido y en posición correcta.\n- Revisa y limpia el respiradero.\n- Inspecciona retenes, tapas, juntas y condición del eje.\n- Si la fuga sale por el eje, programa cambio de retén y corrige desgaste o desalineación antes de montar el sello nuevo.",
+            'Las fugas de aceite en un reductor industrial suelen venir de problemas de sellado, presion interna, nivel incorrecto, temperatura alta, desgaste mecanico o lubricante inadecuado. Usa este diagnostico como base y cruzalo con manuales internos, placa del reductor e historial de la linea.',
+            implode("\n", [
+                'Diagnostico probable:',
+                '| Causa probable | Evidencia observable | Accion recomendada |',
+                '| --- | --- | --- |',
+                '| Sellos o retenes desgastados, endurecidos, cortados o mal instalados | Aceite alrededor del eje de entrada/salida, goteo despues de operar, labio del reten humedo o con residuo | Cambiar reten/sello con medida y material correctos; revisar orientacion, alojamiento y acabado del eje antes de montar |',
+                '| Respiradero obstruido, mal ubicado o ausente | Fuga en varios puntos, aceite expulsado por retenes/tapas, respiradero tapado con polvo/pintura o sin paso de aire | Limpiar o reemplazar respiradero; confirmar posicion de montaje y que el venteo iguale la presion interna |',
+                '| Sobrellenado o nivel incorrecto de aceite | Nivel por arriba de mirilla/tapon de nivel, aceite saliendo por respiradero, espuma o calentamiento por batido | Drenar hasta nivel especificado por manual/placa, verificar con equipo detenido y en posicion correcta |',
+                '| Temperatura alta o presion interna excesiva | Carcasa muy caliente, olor a aceite degradado, fuga aumenta al calentarse, varios sellos sudan | Revisar carga, ventilacion, aletas/cooler, nivel y viscosidad; corregir causa termica antes de cambiar sellos |',
+                '| Desgaste, ranura, rayadura, excentricidad o desalineacion del eje | Marca circular en zona del reten, juego radial, vibracion, fuga recurrente tras cambiar reten | Medir eje y rodamientos; reparar superficie, instalar camisa de reparacion o reemplazar eje/rodamiento segun condicion |',
+                '| Juntas, empaques, tapas, mirillas o tapones flojos/deteriorados | Humedad en linea de union, tornilleria floja, aceite en tapa, mirilla o tapon de drenado/llenado | Reapretar con torque correcto si aplica, reemplazar junta/O-ring/sellador y revisar planitud de superficies |',
+                '| Carcasa fisurada, porosa o deformada | Fuga localizada en fundicion, grieta visible, fuga que no coincide con sellos ni juntas, antecedente de golpe | Limpiar y hacer inspeccion visual/tintes; reparar o sustituir carcasa y validar alineacion/fijacion |',
+                '| Lubricante incorrecto, contaminado o incompatible | Aceite espumoso, cambio de viscosidad/color/olor, mezcla de lubricantes, fuga tras cambio de aceite | Confirmar ISO VG/tipo con manual o placa; drenar, limpiar y rellenar con lubricante especificado; no mezclar aceites incompatibles |',
+            ]),
+            "Revision inicial recomendada:\n- Limpia el reductor y marca el primer punto donde reaparece aceite.\n- Verifica nivel, tipo de lubricante y posicion de montaje contra manual/placa.\n- Revisa respiradero antes de condenar retenes.\n- Si la fuga sale por eje, inspecciona reten, superficie del eje, juego de rodamientos y alineacion.\n- Documenta evidencia fotografica, temperatura aproximada y condicion del aceite para comparar con historial interno.",
         ]);
 
         $this->interactionLogger->fallback($user, 'assistant_chat', [
@@ -434,6 +635,80 @@ class OperationsAssistantService
     }
 
     /**
+     * @param  array<string, mixed>  $payload
+     * @param  array<string, mixed>  $platformContext
+     * @param  array<int, array<string, mixed>>  $knowledge
+     * @param  array<string, mixed>  $technicalContext
+     * @param  array<string, mixed>  $webContext
+     * @return array{content: string, metadata: array<string, mixed>}|null
+     */
+    private function technicalFallbackReply(User $user, string $question, array $payload, array $platformContext, array $knowledge, array $technicalContext, array $webContext): ?array
+    {
+        $normalized = Str::lower(Str::ascii($question));
+
+        if (!$this->looksLikeWasherTechnicalQuestion($normalized)) {
+            return null;
+        }
+
+        $internalCount = count((array) ($platformContext['query_matches'] ?? []))
+            + count((array) ($platformContext['recent_evidence'] ?? []))
+            + count($knowledge)
+            + $this->technicalContextRecordCount($technicalContext);
+        $recommendations = $this->technicalFallbackRecommendations($normalized);
+        $pending = $this->technicalFallbackPendingData($normalized);
+        $webSummary = $this->sanitizer->sanitizeText((string) ($webContext['summary'] ?? ''), 700);
+
+        $content = trim(implode("\n\n", array_filter([
+            "Dato interno:\n- " . ($internalCount > 0
+                ? 'Encontre contexto interno parcial relacionado, pero no una respuesta estructurada suficiente para cerrar la consulta automaticamente.'
+                : 'No encontre un dato interno exacto que cierre la consulta con la base actual disponible para el asistente.'),
+            $webSummary !== ''
+                ? "Informacion web externa:\n- " . $webSummary
+                : null,
+            "Recomendacion tecnica:\n- " . implode("\n- ", $recommendations),
+            "Validacion pendiente:\n- " . implode("\n- ", $pending),
+        ])));
+
+        $this->interactionLogger->fallback($user, 'assistant_chat', [
+            'provider' => 'technical-fallback',
+            'model' => 'local-washer-technical-fallback',
+            'input_chars' => mb_strlen((string) ($payload['system_prompt'] ?? '') . (string) ($payload['user_prompt'] ?? '')),
+            'output_chars' => mb_strlen($content),
+            'metadata' => [
+                'mode' => 'local_technical_after_ai_failure',
+                'question_excerpt' => $this->sanitizer->sanitizeText($question, 240),
+                'internal_context_count' => $internalCount,
+                'web_search_used' => (bool) ($webContext['used'] ?? false),
+                'web_search_error' => $webContext['error'] ?? null,
+            ],
+        ]);
+
+        return [
+            'content' => $content,
+            'metadata' => [
+                'provider' => 'technical-fallback',
+                'model' => 'local-washer-technical-fallback',
+                'confidence' => $internalCount > 0 ? 0.62 : 0.48,
+                'sources' => $this->mergeResponseSources(
+                    $internalCount > 0 ? [['type' => 'internal_context', 'reference' => 'platform_context/technical_context']] : [],
+                    (array) ($webContext['sources'] ?? [])
+                ),
+                'fallback' => true,
+                'technical_context_records' => $this->technicalContextRecordCount($technicalContext),
+                'knowledge_count' => count($knowledge),
+                'web_search' => [
+                    'enabled' => (bool) ($webContext['enabled'] ?? false),
+                    'used' => (bool) ($webContext['used'] ?? false),
+                    'reason' => $webContext['reason'] ?? null,
+                    'provider' => $webContext['provider'] ?? null,
+                    'sources_count' => count((array) ($webContext['sources'] ?? [])),
+                    'error' => $webContext['error'] ?? null,
+                ],
+            ],
+        ];
+    }
+
+    /**
      * @param  array<string, mixed>  $technicalContext
      */
     private function technicalContextRecordCount(array $technicalContext): int
@@ -468,6 +743,65 @@ class OperationsAssistantService
             || $this->looksLikeLeakDiagnosisQuestion($normalized);
     }
 
+    private function explicitlyRequestsExternalContext(string $question): bool
+    {
+        $normalized = Str::lower(Str::ascii($question));
+
+        return str_contains($normalized, 'web')
+            || str_contains($normalized, 'internet')
+            || str_contains($normalized, 'google')
+            || str_contains($normalized, 'busca en linea')
+            || str_contains($normalized, 'buscar en linea')
+            || str_contains($normalized, 'busca afuera')
+            || str_contains($normalized, 'fuentes externas')
+            || str_contains($normalized, 'fabricante')
+            || str_contains($normalized, 'ficha tecnica')
+            || str_contains($normalized, 'manual oficial')
+            || str_contains($normalized, 'catalogo')
+            || str_contains($normalized, 'norma')
+            || str_contains($normalized, 'estandar')
+            || str_contains($normalized, 'precio actualizado')
+            || str_contains($normalized, 'costo actualizado')
+            || str_contains($normalized, 'equivalente');
+    }
+
+    /**
+     * @param  array<int, array<string, string>>  $history
+     * @param  array<string, mixed>  $pageContext
+     */
+    private function contextualRetrievalQuestion(string $question, array $history, array $pageContext): string
+    {
+        $contextParts = collect($history)
+            ->filter(fn (array $entry): bool => in_array($entry['role'] ?? null, ['user', 'assistant'], true))
+            ->take(-4)
+            ->map(function (array $entry): string {
+                $role = ($entry['role'] ?? null) === 'assistant' ? 'assistant' : 'user';
+                $limit = $role === 'assistant' ? 320 : 420;
+
+                return $role . ': ' . $this->sanitizer->sanitizeText((string) ($entry['content'] ?? ''), $limit);
+            })
+            ->filter()
+            ->values()
+            ->all();
+
+        $pageParts = array_filter([
+            $pageContext['linea_nombre'] ?? null,
+            $pageContext['entity_label'] ?? null,
+            $pageContext['component_name'] ?? null,
+            $pageContext['component_code'] ?? null,
+            $pageContext['module'] ?? null,
+            $pageContext['section'] ?? null,
+        ], static fn ($value): bool => is_scalar($value) && trim((string) $value) !== '');
+
+        $retrievalQuestion = trim(implode("\n", array_filter([
+            $contextParts !== [] ? 'Contexto conversacional previo del usuario: ' . implode(' | ', $contextParts) : null,
+            $pageParts !== [] ? 'Contexto de pagina: ' . implode(' | ', array_map(fn ($value): string => (string) $value, $pageParts)) : null,
+            'Pregunta actual: ' . $question,
+        ])));
+
+        return $this->sanitizer->sanitizeText($retrievalQuestion !== '' ? $retrievalQuestion : $question, 1800);
+    }
+
     private function looksLikeLeakDiagnosisQuestion(string $normalized): bool
     {
         $mentionsLeak = str_contains($normalized, 'fuga')
@@ -483,6 +817,91 @@ class OperationsAssistantService
         return str_contains($normalized, 'aceite')
             || str_contains($normalized, 'reductor')
             || str_contains($normalized, 'lubric');
+    }
+
+    private function looksLikeWasherTechnicalQuestion(string $normalized): bool
+    {
+        return str_contains($normalized, 'lavadora')
+            || str_contains($normalized, 'reductor')
+            || str_contains($normalized, 'rv')
+            || str_contains($normalized, 'cadena')
+            || str_contains($normalized, 'elongacion')
+            || str_contains($normalized, 'aceite')
+            || str_contains($normalized, 'lubric')
+            || str_contains($normalized, 'refaccion')
+            || str_contains($normalized, 'refacciones')
+            || str_contains($normalized, 'catarina')
+            || str_contains($normalized, 'chumacera')
+            || str_contains($normalized, 'eje')
+            || str_contains($normalized, 'cunero')
+            || str_contains($normalized, 'mantenimiento');
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function technicalFallbackRecommendations(string $normalized): array
+    {
+        $recommendations = [];
+
+        if (str_contains($normalized, 'elongacion')) {
+            $recommendations[] = 'Comparar la ultima medicion de elongacion contra los umbrales configurados y revisar si el valor maximo esta en lado bombas o vapor.';
+            $recommendations[] = 'Validar tendencia del ciclo activo contra el pico historico antes de decidir cambio de cadena.';
+        }
+
+        if (str_contains($normalized, 'cadena') || str_contains($normalized, 'catarina')) {
+            $recommendations[] = 'Inspeccionar cadena, catarinas, tension, alineacion, desgaste de dientes, lubricacion, guardas y juego en chumaceras antes de cambiar una sola pieza.';
+        }
+
+        if (str_contains($normalized, 'reductor') || str_contains($normalized, 'rv')) {
+            $recommendations[] = 'Revisar nivel y tipo de aceite, temperatura, respiradero, retenes, eje, rodamientos, carcasa y evidencia de fuga o vibracion.';
+        }
+
+        if (str_contains($normalized, 'aceite') || str_contains($normalized, 'lubric')) {
+            $recommendations[] = 'Confirmar aceite por placa/manual o registro interno de lubricacion; no mezclar viscosidades ni bases incompatibles.';
+        }
+
+        if (str_contains($normalized, 'refaccion') || str_contains($normalized, 'refacciones') || str_contains($normalized, 'chumacera') || str_contains($normalized, 'eje') || str_contains($normalized, 'cunero')) {
+            $recommendations[] = 'Separar refacciones obligatorias de consumibles y herrajes: pieza principal, cadena/catarina asociada, chumaceras, eje, cuna/cunero, tornilleria, guardas y lubricante.';
+        }
+
+        if ($recommendations === []) {
+            $recommendations[] = 'Aislar el equipo, confirmar condicion fisica con evidencia, revisar historial de mantenimiento y comparar contra manual o placa del componente.';
+        }
+
+        return array_values(array_unique($recommendations));
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function technicalFallbackPendingData(string $normalized): array
+    {
+        $pending = [];
+
+        if ($this->extractLineReferences($normalized) === []) {
+            $pending[] = 'Lavadora o linea exacta, por ejemplo L-05 o L-13.';
+        }
+
+        if (str_contains($normalized, 'reductor') || str_contains($normalized, 'rv')) {
+            $pending[] = 'Tipo/codigo del reductor instalado, placa y posicion de montaje.';
+        }
+
+        if (str_contains($normalized, 'aceite') || str_contains($normalized, 'lubric')) {
+            $pending[] = 'Aceite registrado internamente: nombre, SKU, viscosidad ISO VG, cantidad en litros y documento/manual vigente.';
+        }
+
+        if (str_contains($normalized, 'elongacion') || str_contains($normalized, 'cadena')) {
+            $pending[] = 'Ultima medicion de elongacion, ciclo de cadena activo, lado critico y pico historico por linea.';
+        }
+
+        if (str_contains($normalized, 'refaccion') || str_contains($normalized, 'refacciones') || str_contains($normalized, 'catarina') || str_contains($normalized, 'chumacera')) {
+            $pending[] = 'SKU interno, compatibilidad por linea, cantidad requerida, existencia/refaccion disponible y costo actualizado.';
+        }
+
+        $pending[] = 'Ultimo analisis con fecha, estado, actividad registrada y evidencia fotografica si existe.';
+
+        return array_values(array_unique($pending));
     }
 
     /**
@@ -569,14 +988,21 @@ class OperationsAssistantService
 
     /**
      * @param  array<string, mixed>  $structured
+     * @param  array<int, array<string, mixed>>  $sources
+     * @param  array<string, mixed>  $groundingReport
      */
-    private function composeMessage(array $structured): string
+    private function composeMessage(array $structured, array $sources = [], array $groundingReport = []): string
     {
         $answer = $this->sanitizer->sanitizeText((string) ($structured['answer'] ?? ''), 1200);
         $keyPoints = $this->sanitizeStringList($structured['key_points'] ?? [], 220);
         $nextSteps = $this->sanitizeStringList($structured['next_steps'] ?? [], 220);
+        $traceability = $this->traceabilityText($sources, $groundingReport);
 
         $parts = array_filter([$answer]);
+
+        if ($traceability !== null) {
+            $parts[] = $traceability;
+        }
 
         if ($keyPoints !== []) {
             $parts[] = "Puntos clave:\n- " . implode("\n- ", $keyPoints);
@@ -589,6 +1015,39 @@ class OperationsAssistantService
         return trim(implode("\n\n", $parts)) !== ''
             ? trim(implode("\n\n", $parts))
             : 'No pude construir una respuesta util con el contexto actual. Intenta preguntar de otra forma.';
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $sources
+     * @param  array<string, mixed>  $groundingReport
+     */
+    private function traceabilityText(array $sources, array $groundingReport): ?string
+    {
+        $labels = [];
+
+        foreach ($sources as $source) {
+            $type = Str::lower(Str::ascii((string) ($source['type'] ?? '')));
+
+            if (str_contains($type, 'histor') || str_contains($type, 'plan') || str_contains($type, 'platform') || str_contains($type, 'internal')) {
+                $labels[] = 'segun historial interno';
+            }
+
+            if (str_contains($type, 'knowledge') || str_contains($type, 'document') || str_contains($type, 'manual') || isset($source['document_id']) || isset($source['chunk_index'])) {
+                $labels[] = 'segun documento tecnico';
+            }
+        }
+
+        if ((int) ($groundingReport['inference_claims_count'] ?? 0) > 0) {
+            $labels[] = 'recomendacion inferida';
+        }
+
+        $labels = array_values(array_unique($labels));
+
+        if ($labels === []) {
+            return null;
+        }
+
+        return 'Trazabilidad: '.implode('; ', $labels).'.';
     }
 
     /**
@@ -987,6 +1446,24 @@ class OperationsAssistantService
             ->take(4)
             ->map(fn (array $item): string => ($item['componente'] ?? 'Sin componente') . ' (' . (int) ($item['total'] ?? 0) . ')')
             ->all();
+        $criticalComponents = collect($highestLine['critical_top_components'] ?? [])
+            ->take(4)
+            ->map(fn (array $item): string => ($item['componente'] ?? 'Sin componente') . ' (' . (int) ($item['total'] ?? 0) . ')')
+            ->all();
+        $ranking = collect(data_get($platformContext, 'module_insights.lavadora.current_damage_by_line.top_lines', []))
+            ->take(8)
+            ->map(function (array $item, int $index): string {
+                return ($index + 1) . '. '
+                    . ($item['linea'] ?? 'Sin linea')
+                    . ': '
+                    . (int) ($item['problematic_components'] ?? 0)
+                    . ' danados'
+                    . ', '
+                    . (int) ($item['critical_components'] ?? 0)
+                    . ' criticos'
+                    . (isset($item['latest_review_date']) ? ', ultima revision ' . $item['latest_review_date'] : '');
+            })
+            ->all();
 
         return $this->deterministicResponse(
             'La lavadora con mas componentes actualmente en estado problematico es '
@@ -996,11 +1473,13 @@ class OperationsAssistantService
                 . ' componentes comprometidos segun el ultimo analisis disponible por componente/reductor o servo-reductor/lado.',
             array_filter([
                 'Componentes criticos dentro de esa lavadora: ' . (int) ($highestLine['critical_components'] ?? 0) . '.',
+                $criticalComponents !== [] ? 'Componentes criticos principales: ' . implode(' | ', $criticalComponents) . '.' : null,
                 $components !== [] ? 'Componentes mas repetidos: ' . implode(' | ', $components) . '.' : null,
+                $ranking !== [] ? 'Ranking actual por lavadora: ' . implode(' || ', $ranking) . '.' : null,
                 isset($highestLine['latest_review_date']) ? 'Ultima revision considerada: ' . $highestLine['latest_review_date'] . '.' : null,
             ]),
             [
-                'Si quieres, te doy tambien el ranking actual completo de todas las lavadoras.',
+                'Revisa los registros fuente de la linea con mayor afectacion antes de programar cambios o compras.',
             ],
             [
                 ['type' => 'module_insights', 'reference' => 'lavadora.current_damage_by_line'],

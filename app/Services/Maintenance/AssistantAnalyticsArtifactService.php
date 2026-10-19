@@ -100,6 +100,12 @@ class AssistantAnalyticsArtifactService
             return $this->invalidLineReply($invalidLineas, $intentResult);
         }
 
+        $permissionDenial = $this->ensureDatasetAllowed($user, $datasetKey, $intentResult);
+
+        if ($permissionDenial !== null) {
+            return $permissionDenial;
+        }
+
         $dataset = $this->buildDataset($datasetKey, $intent, $lineas, $dateRange, $chartType, $question);
 
         if ($dataset === null || ($dataset['rows'] ?? []) === []) {
@@ -108,6 +114,10 @@ class AssistantAnalyticsArtifactService
 
         $chartType = $this->effectiveChartType($dataset, $chartType);
         $dataset = $this->withRuntimeFilters($dataset, $question, $datasetKey, $outputs, $lineas, $dateRange, $chartType);
+
+        if ($this->shouldPreviewDataset($dataset, $question)) {
+            return $this->previewReply($dataset, $datasetKey, $outputs, $lineas, $dateRange, $chartType, $intentResult);
+        }
 
         $artifacts = [];
 
@@ -144,6 +154,8 @@ class AssistantAnalyticsArtifactService
                     'lineas' => $lineas,
                     'date_range' => $this->serializeDateRange($dateRange),
                     'report_version' => (string) ($dataset['report_version'] ?? 'v1'),
+                    'row_count' => count((array) ($dataset['rows'] ?? [])),
+                    'filters' => $dataset['filter_rows'] ?? [],
                 ],
             ],
         ];
@@ -4669,6 +4681,130 @@ class AssistantAnalyticsArtifactService
         ];
 
         return $sheets;
+    }
+
+    /**
+     * @param  array{data: array<string, mixed>, meta: array<string, mixed>}  $intentResult
+     * @return array{content: string, metadata: array<string, mixed>}|null
+     */
+    private function ensureDatasetAllowed(User $user, string $datasetKey, array $intentResult): ?array
+    {
+        $allowed = match ($datasetKey) {
+            'elongaciones', 'analisis_lavadora' => $user->canAccessModule(User::MODULE_LAVADORA),
+            'costos_lavadora' => $user->canAccessModule(User::MODULE_LAVADORA) && $user->canAccessLavadoraCosts(),
+            'plan_accion' => $user->canViewPlanActionType(User::MODULE_LAVADORA),
+            default => true,
+        };
+
+        if ($allowed) {
+            return null;
+        }
+
+        return [
+            'content' => 'No genere el reporte porque tu usuario no tiene permiso para consultar ese dataset operativo.',
+            'metadata' => [
+                'provider' => Arr::get($intentResult, 'meta.provider'),
+                'model' => Arr::get($intentResult, 'meta.model'),
+                'confidence' => (float) Arr::get($intentResult, 'data.confidence', 0.7),
+                'artifact_request' => true,
+                'permission_denied_artifact_dataset' => true,
+                'dataset' => $datasetKey,
+            ],
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $dataset
+     */
+    private function shouldPreviewDataset(array $dataset, string $question): bool
+    {
+        if (! (bool) config('maintenance_ai.reports.preview_enabled', true)) {
+            return false;
+        }
+
+        $normalized = $this->normalize($question);
+
+        foreach (['previsualiza', 'vista previa', 'preview'] as $term) {
+            if (str_contains($normalized, $term)) {
+                return true;
+            }
+        }
+
+        $threshold = max(1, (int) config('maintenance_ai.reports.preview_row_threshold', 500));
+
+        return count((array) ($dataset['rows'] ?? [])) > $threshold
+            && ! $this->hasExplicitArtifactConfirmation($normalized);
+    }
+
+    private function hasExplicitArtifactConfirmation(string $normalizedQuestion): bool
+    {
+        foreach (['generar ahora', 'genera ahora', 'confirmo', 'confirmar', 'descargar', 'exportar', 'excel', 'xlsx', 'png', 'imagen'] as $term) {
+            if (str_contains($normalizedQuestion, $term)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param  array<string, mixed>  $dataset
+     * @param  array<int, string>  $outputs
+     * @param  array<int, string>  $lineas
+     * @param  array{from: CarbonImmutable|null, to: CarbonImmutable|null, label: string, preset: string}  $dateRange
+     * @param  array{data: array<string, mixed>, meta: array<string, mixed>}  $intentResult
+     * @return array{content: string, metadata: array<string, mixed>}
+     */
+    private function previewReply(
+        array $dataset,
+        string $datasetKey,
+        array $outputs,
+        array $lineas,
+        array $dateRange,
+        string $chartType,
+        array $intentResult
+    ): array {
+        $rows = (array) ($dataset['rows'] ?? []);
+        $headings = (array) ($dataset['headings'] ?? []);
+        $sample = array_slice($rows, 0, 5);
+        $content = 'Vista previa del dataset '.$this->readableDatasetName($datasetKey).': '
+            .count($rows)
+            .' filas, '
+            .($lineas === [] ? 'todas las lineas' : $this->displayLineScope($lineas))
+            .', periodo '
+            .$dateRange['label']
+            .'. Confirma la generacion si quieres crear los artefactos pesados.';
+
+        if ($headings !== [] && $sample !== []) {
+            $content .= "\n\nPrimeras filas:\n";
+
+            foreach ($sample as $row) {
+                $content .= '- '.Str::limit(implode(' | ', array_map(static fn ($value): string => (string) $value, (array) $row)), 220, '')."\n";
+            }
+
+            $content = rtrim($content);
+        }
+
+        return [
+            'content' => $content,
+            'metadata' => [
+                'provider' => Arr::get($intentResult, 'meta.provider'),
+                'model' => Arr::get($intentResult, 'meta.model'),
+                'confidence' => (float) Arr::get($intentResult, 'data.confidence', 0.7),
+                'artifact_request' => true,
+                'artifact_preview' => true,
+                'intent' => [
+                    'dataset' => $datasetKey,
+                    'outputs' => $outputs,
+                    'chart_type' => $chartType,
+                    'lineas' => $lineas,
+                    'date_range' => $this->serializeDateRange($dateRange),
+                    'report_version' => (string) ($dataset['report_version'] ?? 'v1'),
+                    'row_count' => count($rows),
+                    'filters' => $dataset['filter_rows'] ?? [],
+                ],
+            ],
+        ];
     }
 
     /**

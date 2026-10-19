@@ -25,6 +25,10 @@ class AiInteractionLog extends Model
         'prompt_tokens',
         'completion_tokens',
         'total_tokens',
+        'grounding_score',
+        'valid_sources_count',
+        'invalid_sources_count',
+        'estimated_cost_usd',
         'usage',
         'metadata',
         'error_message',
@@ -39,6 +43,10 @@ class AiInteractionLog extends Model
         'prompt_tokens' => 'integer',
         'completion_tokens' => 'integer',
         'total_tokens' => 'integer',
+        'grounding_score' => 'float',
+        'valid_sources_count' => 'integer',
+        'invalid_sources_count' => 'integer',
+        'estimated_cost_usd' => 'float',
     ];
 
     public function user(): BelongsTo

@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\AiInteractionLog;
+use App\Models\PasteurizadoraKnowledgeDocument;
 use App\Models\PlanAccion;
+use App\Models\WasherKnowledgeDocument;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -31,6 +33,7 @@ class AiObservabilityController extends Controller
         $metrics = $this->interactionMetrics($baseQuery);
         $rag = $this->ragInsights($baseQuery);
         $plans = $this->planMetrics($filters);
+        $documents = $this->documentLifecycleMetrics();
         $timeline = $this->timeline($baseQuery);
 
         $recentFailures = (clone $baseQuery)
@@ -57,8 +60,9 @@ class AiObservabilityController extends Controller
             'metrics' => $metrics,
             'rag' => $rag,
             'plans' => $plans,
+            'documents' => $documents,
             'timeline' => $timeline,
-            'healthSignals' => $this->healthSignals($metrics, $rag, $plans),
+            'healthSignals' => $this->healthSignals($metrics, $rag, $plans, $documents),
             'recentFailures' => $recentFailures,
             'recentInteractions' => $recentInteractions,
         ]);
@@ -147,6 +151,10 @@ class AiObservabilityController extends Controller
             'total_tokens' => (int) (clone $baseQuery)->sum('total_tokens'),
             'prompt_tokens' => (int) (clone $baseQuery)->sum('prompt_tokens'),
             'completion_tokens' => (int) (clone $baseQuery)->sum('completion_tokens'),
+            'avg_grounding_score' => $this->averagePercentage($baseQuery, 'grounding_score'),
+            'invalid_sources_total' => (int) (clone $baseQuery)->sum('invalid_sources_count'),
+            'valid_sources_total' => (int) (clone $baseQuery)->sum('valid_sources_count'),
+            'estimated_cost_usd' => (float) (clone $baseQuery)->sum('estimated_cost_usd'),
             'input_chars' => (int) (clone $baseQuery)->sum('input_chars'),
             'output_chars' => (int) (clone $baseQuery)->sum('output_chars'),
             'provider_breakdown' => $this->countsBy($baseQuery, 'provider', 8),
@@ -216,6 +224,45 @@ class AiObservabilityController extends Controller
             'platform_matches_total' => $logs->sum(fn (AiInteractionLog $log): int => $this->metadataInteger($log, ['platform_query_matches'])),
             'top_questions' => $questions,
             'module_breakdown' => $modules,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function documentLifecycleMetrics(): array
+    {
+        $washer = $this->documentLifecycleFor(WasherKnowledgeDocument::query());
+        $pasteurizadora = $this->documentLifecycleFor(PasteurizadoraKnowledgeDocument::query());
+
+        return [
+            'washer' => $washer,
+            'pasteurizadora' => $pasteurizadora,
+            'total' => $washer['total'] + $pasteurizadora['total'],
+            'current' => $washer['current'] + $pasteurizadora['current'],
+            'obsolete' => $washer['obsolete'] + $pasteurizadora['obsolete'],
+            'indexed' => $washer['indexed'] + $pasteurizadora['indexed'],
+            'failed' => $washer['failed'] + $pasteurizadora['failed'],
+            'pending' => $washer['pending'] + $pasteurizadora['pending'],
+        ];
+    }
+
+    private function documentLifecycleFor(Builder $query): array
+    {
+        $total = (clone $query)->count();
+        $current = (clone $query)->where('lifecycle_status', 'vigente')->count();
+        $obsolete = (clone $query)->where('lifecycle_status', 'obsoleto')->count();
+        $indexed = (clone $query)->where('indexing_status', 'indexed')->count();
+        $failed = (clone $query)->where('indexing_status', 'failed')->count();
+
+        return [
+            'total' => $total,
+            'current' => $current,
+            'obsolete' => $obsolete,
+            'indexed' => $indexed,
+            'failed' => $failed,
+            'pending' => max(0, $total - $indexed - $failed),
+            'indexed_rate' => $this->rate($indexed, $total),
         ];
     }
 
@@ -377,7 +424,7 @@ class AiObservabilityController extends Controller
     /**
      * @return array<int, array<string, string>>
      */
-    private function healthSignals(array $metrics, array $rag, array $plans): array
+    private function healthSignals(array $metrics, array $rag, array $plans, array $documents): array
     {
         $signals = [];
 
@@ -418,6 +465,30 @@ class AiObservabilityController extends Controller
                 'level' => 'warning',
                 'title' => 'Baja cobertura RAG',
                 'detail' => 'Pocas respuestas del chatbot usan documentos o fuentes.',
+            ];
+        }
+
+        if (($metrics['avg_grounding_score'] ?? null) !== null && $metrics['avg_grounding_score'] < 50) {
+            $signals[] = [
+                'level' => 'critical',
+                'title' => 'Grounding bajo',
+                'detail' => 'La evidencia citada valida menos del 50% en promedio.',
+            ];
+        }
+
+        if (($metrics['invalid_sources_total'] ?? 0) > 0) {
+            $signals[] = [
+                'level' => 'warning',
+                'title' => 'Fuentes no verificadas',
+                'detail' => 'Hay respuestas con citas que no empatan con el contexto entregado.',
+            ];
+        }
+
+        if (($documents['failed'] ?? 0) > 0) {
+            $signals[] = [
+                'level' => 'warning',
+                'title' => 'Documentos sin indice',
+                'detail' => 'Hay documentos RAG con indexacion fallida.',
             ];
         }
 
@@ -498,6 +569,15 @@ class AiObservabilityController extends Controller
         }
 
         return 0;
+    }
+
+    private function averagePercentage(Builder $baseQuery, string $column): ?float
+    {
+        $average = (clone $baseQuery)
+            ->whereNotNull($column)
+            ->avg($column);
+
+        return $average !== null ? round((float) $average * 100, 1) : null;
     }
 
     private function percentile(Collection $values, float $percentile): ?int

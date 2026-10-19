@@ -19,7 +19,8 @@ class PasteurizadoraActionPlanGenerator
         private readonly StructuredActionPlanValidator $validator,
         private readonly AiProviderInterface $aiProvider,
         private readonly PasteurizadoraActionPlanReviewNotifier $notifier,
-        private readonly AiInteractionLogger $interactionLogger
+        private readonly AiInteractionLogger $interactionLogger,
+        private readonly StructuredOutputGroundingVerifier $groundingVerifier
     ) {
     }
 
@@ -31,6 +32,9 @@ class PasteurizadoraActionPlanGenerator
         try {
             $response = $this->aiProvider->generateStructuredActionPlan($prompt);
             $validated = $this->validator->validate($response['data']);
+            $grounding = $this->groundingVerifier->assessActionPlan($validated, $context);
+            $validated = $grounding['structured'];
+            $groundingReport = $grounding['report'];
         } catch (Throwable $exception) {
             $this->interactionLogger->failure(null, 'pasteurizadora_action_plan_generation', $exception, [
                 'source_type' => 'maintenance_event',
@@ -61,11 +65,16 @@ class PasteurizadoraActionPlanGenerator
                 'component_code' => data_get($event->context_data, 'component_code'),
                 'confidence' => $validated['confidence'] ?? null,
                 'knowledge_sources_count' => count($validated['knowledge_sources'] ?? []),
+                'grounding' => $groundingReport,
+                'grounding_score' => $groundingReport['score'] ?? null,
+                'valid_sources_count' => $groundingReport['valid_source_count'] ?? null,
+                'invalid_sources_count' => $groundingReport['invalid_source_count'] ?? null,
+                'retrieved_chunk_ids' => $groundingReport['retrieved_chunk_ids'] ?? [],
             ],
         ]);
 
         /** @var PlanAccion $plan */
-        $plan = DB::transaction(function () use ($context, $event, $prompt, $response, $validated) {
+        $plan = DB::transaction(function () use ($context, $event, $prompt, $response, $validated, $groundingReport) {
             $plan = $this->resolveDraftPlan($event);
             $isRegeneration = $plan->exists
                 && $plan->estado === 'requires_information'
@@ -90,7 +99,9 @@ class PasteurizadoraActionPlanGenerator
                 'original_generated_content' => $validated,
                 'approved_content' => $plan->approved_content,
                 'knowledge_sources' => $validated['knowledge_sources'],
-                'source_metadata' => $this->sourceMetadata($context, $event),
+                'source_metadata' => array_merge($this->sourceMetadata($context, $event), [
+                    'grounding' => $groundingReport,
+                ]),
                 'confidence_level' => $validated['confidence'],
                 'prompt_version' => $prompt['prompt_version'],
                 'prompt_snapshot' => $prompt['prompt_snapshot'],
@@ -335,6 +346,14 @@ class PasteurizadoraActionPlanGenerator
             'event_type' => $event->event_type,
             'source_type' => $event->source_type,
             'source_id' => $event->source_id,
+            'web_search' => [
+                'enabled' => (bool) data_get($context, 'web_context.enabled', false),
+                'used' => (bool) data_get($context, 'web_context.used', false),
+                'reason' => data_get($context, 'web_context.reason'),
+                'provider' => data_get($context, 'web_context.provider'),
+                'sources_count' => count((array) data_get($context, 'web_context.sources', [])),
+                'error' => data_get($context, 'web_context.error'),
+            ],
         ];
     }
 

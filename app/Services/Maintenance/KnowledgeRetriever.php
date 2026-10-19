@@ -28,7 +28,7 @@ class KnowledgeRetriever
             (int) config('maintenance_ai.knowledge.candidate_limit', 80)
         );
 
-        $chunks = WasherKnowledgeChunk::query()
+        $rankedCandidates = WasherKnowledgeChunk::query()
             ->with('document.linea', 'document.componente')
             ->whereHas('document', function ($query) use ($event) {
                 $query->where('indexing_status', 'indexed')
@@ -49,10 +49,21 @@ class KnowledgeRetriever
 
                 return $item;
             })
+            ->values();
+
+        $chunks = $rankedCandidates
             ->filter(fn (array $item): bool => $this->ranker->shouldKeep($item))
             ->sortByDesc('score')
             ->take((int) config('maintenance_ai.max_knowledge_chunks', 6))
-            ->values();
+            ->values()
+            ->map(fn (array $item): array => array_merge($item, [
+                'retrieval_evaluation' => [
+                    'candidate_count' => $rankedCandidates->count(),
+                    'kept_count' => $rankedCandidates->filter(fn (array $candidate): bool => $this->ranker->shouldKeep($candidate))->count(),
+                    'recall_proxy' => $this->recallProxy($item, $rankedCandidates->count()),
+                    'min_score' => (float) config('maintenance_ai.knowledge.min_score', 1.0),
+                ],
+            ]));
 
         $historicalPlans = PlanAccion::query()
             ->with('maintenanceEvent.componente')
@@ -106,6 +117,19 @@ class KnowledgeRetriever
             $filters['linea_nombre'] ?? null,
             $filters['estado'] ?? null,
         ]));
+    }
+
+    private function recallProxy(array $item, int $candidateCount): float
+    {
+        if ($candidateCount <= 0) {
+            return 0.0;
+        }
+
+        $matchedTerms = (array) data_get($item, 'score_breakdown.matched_terms', []);
+        $lexical = (float) data_get($item, 'score_breakdown.lexical', 0);
+        $semantic = (float) data_get($item, 'score_breakdown.semantic', 0);
+
+        return round(min(1.0, (count($matchedTerms) / max(1, $candidateCount)) + ($lexical / 100) + ($semantic / 2)), 4);
     }
 
 }

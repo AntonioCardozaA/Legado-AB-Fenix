@@ -9,6 +9,7 @@ use App\Models\Linea;
 use App\Models\PlanAccion;
 use App\Models\User;
 use App\Services\Maintenance\StructuredActionPlanValidator;
+use App\Services\Maintenance\StructuredOutputGroundingVerifier;
 use App\Support\LavadoraCatalog;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
@@ -19,7 +20,8 @@ use Throwable;
 class WasherAiPlanReviewController extends Controller
 {
     public function __construct(
-        private readonly StructuredActionPlanValidator $validator
+        private readonly StructuredActionPlanValidator $validator,
+        private readonly StructuredOutputGroundingVerifier $groundingVerifier
     ) {
     }
 
@@ -92,6 +94,7 @@ class WasherAiPlanReviewController extends Controller
     {
         $plan = $this->resolvePlan($request->user(), $planAccion);
         $structured = $this->validator->validate($request->structuredPayload());
+        $this->groundingVerifier->assertApprovalGrounded($plan, $structured);
         $reviewedAt = now();
         $reviewerId = (int) $request->user()->id;
         $reviewNotes = $request->validated('review_notes');

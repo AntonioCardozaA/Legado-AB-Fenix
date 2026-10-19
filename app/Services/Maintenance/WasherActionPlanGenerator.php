@@ -17,7 +17,8 @@ class WasherActionPlanGenerator
         private readonly StructuredActionPlanValidator $validator,
         private readonly AiProviderInterface $aiProvider,
         private readonly WasherActionPlanReviewNotifier $notifier,
-        private readonly AiInteractionLogger $interactionLogger
+        private readonly AiInteractionLogger $interactionLogger,
+        private readonly StructuredOutputGroundingVerifier $groundingVerifier
     ) {
     }
 
@@ -29,6 +30,9 @@ class WasherActionPlanGenerator
         try {
             $response = $this->aiProvider->generateStructuredActionPlan($prompt);
             $validated = $this->validator->validate($response['data']);
+            $grounding = $this->groundingVerifier->assessActionPlan($validated, $context);
+            $validated = $grounding['structured'];
+            $groundingReport = $grounding['report'];
         } catch (Throwable $exception) {
             $this->interactionLogger->failure(null, 'washer_action_plan_generation', $exception, [
                 'source_type' => 'maintenance_event',
@@ -59,11 +63,16 @@ class WasherActionPlanGenerator
                 'severity' => $event->severity,
                 'confidence' => $validated['confidence'] ?? null,
                 'knowledge_sources_count' => count($validated['knowledge_sources'] ?? []),
+                'grounding' => $groundingReport,
+                'grounding_score' => $groundingReport['score'] ?? null,
+                'valid_sources_count' => $groundingReport['valid_source_count'] ?? null,
+                'invalid_sources_count' => $groundingReport['invalid_source_count'] ?? null,
+                'retrieved_chunk_ids' => $groundingReport['retrieved_chunk_ids'] ?? [],
             ],
         ]);
 
         /** @var PlanAccion $plan */
-        $plan = DB::transaction(function () use ($context, $event, $prompt, $response, $validated) {
+        $plan = DB::transaction(function () use ($context, $event, $prompt, $response, $validated, $groundingReport) {
             $plan = $this->resolveDraftPlan($event);
             $isRegeneration = $plan->exists
                 && $plan->estado === 'requires_information'
@@ -91,6 +100,15 @@ class WasherActionPlanGenerator
                     'component_name' => $context['current']['component_name'] ?? null,
                     'linea_nombre' => $context['current']['linea_nombre'] ?? null,
                     'event_type' => $event->event_type,
+                    'web_search' => [
+                        'enabled' => (bool) data_get($context, 'web_context.enabled', false),
+                        'used' => (bool) data_get($context, 'web_context.used', false),
+                        'reason' => data_get($context, 'web_context.reason'),
+                        'provider' => data_get($context, 'web_context.provider'),
+                        'sources_count' => count((array) data_get($context, 'web_context.sources', [])),
+                        'error' => data_get($context, 'web_context.error'),
+                    ],
+                    'grounding' => $groundingReport,
                 ],
                 'confidence_level' => $validated['confidence'],
                 'prompt_version' => $prompt['prompt_version'],
