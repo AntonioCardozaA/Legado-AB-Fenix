@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\AnalisisLavadora;
 use App\Models\CostAutomationRule;
 use App\Models\LavadoraCostEntry;
+use App\Support\LavadoraCatalog;
 use App\Support\LavadoraCostSupport;
 use Illuminate\Support\Collection;
 
@@ -110,9 +111,11 @@ class LavadoraCostSyncService
                     'quantity' => $preview['quantity'],
                     'unit_cost' => $preview['unit_cost'],
                     'total_cost' => $preview['total_cost'],
-                    'component_snapshot' => LavadoraCostSupport::displayComponentName(
-                        $analysis->componente?->nombre,
-                        $componentCode
+                    'component_snapshot' => LavadoraCatalog::nombreComponenteParaLinea(
+                        $analysis->linea?->nombre,
+                        $analysis->reductor,
+                        $analysis->componente?->codigo,
+                        $analysis->componente?->nombre
                     ),
                     'catalog_name_snapshot' => $preview['catalog_name'],
                     'catalog_sku_snapshot' => $preview['catalog_sku'],

@@ -483,7 +483,12 @@ class AdminRecordNotificationService
         if ($record instanceof AnalisisLavadora) {
             $record->loadMissing('componente');
 
-            return $record->componente?->nombre ?? 'Componente sin nombre';
+            return $record->componente
+                ? LavadoraCatalog::nombreVisibleComponente(
+                    $record->componente->nombre,
+                    $record->componente->codigo
+                )
+                : 'Componente sin nombre';
         }
 
         if ($record instanceof AnalisisPasteurizadora) {

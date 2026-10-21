@@ -25,26 +25,8 @@
     $ventanas30147Reporte = collect($analisis30147Reporte['ventanas'] ?? []);
     $ventanaPrincipal52124 = $ventanas52124Reporte->first();
     $ventanaPrincipal30147 = $ventanas30147Reporte->first();
-    $componentesRv250 = array_keys(array_filter(
-        \App\Support\LavadoraCatalog::COMPONENTE_NOMBRES,
-        fn ($label) => $label === 'RV250 Sin Fin Corona'
-    ));
-    $nombreComponenteLavadora = function ($nombre, $codigo = null) use ($componentesRv250) {
-        $nombreUpper = strtoupper((string) $nombre);
-        $codigoUpper = strtoupper((string) $codigo);
-
-        foreach ($componentesRv250 as $codigoBase) {
-            if (
-                $codigoUpper === $codigoBase
-                || str_contains($codigoUpper, $codigoBase)
-                || str_contains($nombreUpper, $codigoBase)
-            ) {
-                return 'RV250 Sin Fin Corona';
-            }
-        }
-
-        return trim((string) $nombre) !== '' ? $nombre : '-';
-    };
+    $nombreComponenteLavadora = fn ($nombre, $codigo = null) =>
+        \App\Support\LavadoraCatalog::nombreVisibleComponente($nombre, $codigo);
     $etiquetaVentanaResumen = function ($ventana) {
         $label = (string) ($ventana['label'] ?? '');
 
@@ -676,7 +658,7 @@
                         </div>
                         <div class="flex-1">
                             <div class="componente-nombre">{{ $componenteNombre }}</div>
-                            @if($componenteNombre !== 'RV250 Sin Fin Corona')
+                            @if($componenteNombre !== \App\Support\LavadoraCatalog::REDUCTOR_SIN_FIN_CORONA_VISIBLE)
                                 <div class="text-xs text-gray-500">{{ $componente['codigo'] }}</div>
                             @endif
                         </div>

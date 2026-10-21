@@ -40,4 +40,30 @@ class LavadoraCatalogSkuTest extends TestCase
         $this->assertSame('SKU: 4017810', $summary['label']);
         $this->assertSame('4017810', $summary['sku']);
     }
+
+    public function test_assigns_rv250_only_to_reductor_two_on_target_lines(): void
+    {
+        foreach (['L-05', 'L-12', 'L-13'] as $linea) {
+            $this->assertSame('RV200', LavadoraCatalog::modeloReductorSinFinCorona($linea, 'Reductor 1'));
+            $this->assertSame('RV250', LavadoraCatalog::modeloReductorSinFinCorona($linea, 'Reductor 2'));
+            $this->assertSame('RV200', LavadoraCatalog::modeloReductorSinFinCorona($linea, 'Reductor 3'));
+        }
+    }
+
+    public function test_uses_rv200_outside_target_lines(): void
+    {
+        $this->assertSame('RV200', LavadoraCatalog::modeloReductorSinFinCorona('L-04', 'Reductor 2'));
+    }
+
+    public function test_exposes_a_uniform_visible_name_for_both_models(): void
+    {
+        $this->assertSame(
+            LavadoraCatalog::REDUCTOR_SIN_FIN_CORONA_VISIBLE,
+            LavadoraCatalog::nombreVisibleComponente('RV200 Sin Fin Corona', 'L05_REDUCTOR_1_RV200')
+        );
+        $this->assertSame(
+            LavadoraCatalog::REDUCTOR_SIN_FIN_CORONA_VISIBLE,
+            LavadoraCatalog::nombreVisibleComponente('RV250 Sin Fin Corona', 'L05_REDUCTOR_2_RV200')
+        );
+    }
 }

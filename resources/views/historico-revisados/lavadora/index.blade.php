@@ -1354,26 +1354,11 @@
 $rutasImagenes = collect(\App\Support\LavadoraCatalog::COMPONENTE_CODIGOS_BASE)
     ->mapWithKeys(fn ($codigo) => [$codigo => asset("images/componentes-lavadora/{$codigo}.png")])
     ->all();
-$componentesRv250 = array_keys(array_filter(
-    \App\Support\LavadoraCatalog::COMPONENTE_NOMBRES,
-    fn ($label) => $label === 'RV250 Sin Fin Corona'
-));
-$nombreComponenteLavadora = function ($nombre, $codigo = null) use ($componentesRv250) {
-    $nombreUpper = strtoupper((string) $nombre);
-    $codigoUpper = strtoupper((string) $codigo);
-
-    foreach ($componentesRv250 as $codigoBase) {
-        if (
-            $codigoUpper === $codigoBase
-            || str_contains($codigoUpper, $codigoBase)
-            || str_contains($nombreUpper, $codigoBase)
-        ) {
-            return 'RV250 Sin Fin Corona';
-        }
-    }
-
-    return trim((string) $nombre) !== '' ? $nombre : '-';
-};
+$nombreComponenteLavadora = fn ($nombre, $codigo = null) =>
+    \App\Support\LavadoraCatalog::nombreVisibleComponente($nombre, $codigo);
+$ubicacionReductorVisible = fn ($ubicacion) => \App\Support\LavadoraCatalog::lineaTieneReductoresReales($lineaSeleccionada->nombre ?? null)
+    ? (\App\Support\LavadoraCatalog::ubicacionReductorConModelo($lineaSeleccionada->nombre ?? null, $ubicacion) ?? $ubicacion)
+    : $ubicacion;
 @endphp
 
 {{-- TABLA DE COMPONENTES --}}
@@ -1400,11 +1385,31 @@ $nombreComponenteLavadora = function ($nombre, $codigo = null) use ($componentes
                         @php
                             $nombreComponente = $nombreComponenteLavadora($data['nombre'] ?? null, $codigo);
                             $ultimoRevisado = data_get($data, 'resumen_ubicaciones.ultimo_revisado.ubicacion');
+                            $detalleUbicacionesVisible = collect(data_get($data, 'detalle_ubicaciones', []))
+                                ->map(function ($item) use ($ubicacionReductorVisible) {
+                                    if (isset($item['ubicacion'])) {
+                                        $item['ubicacion'] = $ubicacionReductorVisible($item['ubicacion']);
+                                    }
+
+                                    return $item;
+                                })
+                                ->all();
+                            $resumenUbicacionesVisible = data_get($data, 'resumen_ubicaciones', []);
+                            foreach (['proximo_revisar', 'ultimo_revisado'] as $resumenKey) {
+                                if (isset($resumenUbicacionesVisible[$resumenKey]['ubicacion'])) {
+                                    $resumenUbicacionesVisible[$resumenKey]['ubicacion'] = $ubicacionReductorVisible(
+                                        $resumenUbicacionesVisible[$resumenKey]['ubicacion']
+                                    );
+                                }
+                            }
+                            $ultimoRevisado = $ubicacionReductorVisible($ultimoRevisado);
                             $ultimaFechaRevisada = data_get($data, 'resumen_ubicaciones.ultimo_revisado.fecha_ultima_revision_formateada')
                                 ?? ($data['ultima_revision_formateada'] ?? null);
                             $modalPayload = array_replace($data, [
                                 'codigo' => $codigo,
                                 'nombre' => $nombreComponente,
+                                'detalle_ubicaciones' => $detalleUbicacionesVisible,
+                                'resumen_ubicaciones' => $resumenUbicacionesVisible,
                             ]);
                         @endphp
                         <tr>
@@ -1479,8 +1484,8 @@ $nombreComponenteLavadora = function ($nombre, $codigo = null) use ($componentes
                 $nombreComponente = $nombreComponenteLavadora($data['nombre'] ?? null, $codigo);
                 $nombreCorto = $nombreComponente;
                 if (strlen($nombreCorto) > 20) {
-                    if (strpos($nombreCorto, 'RV250') !== false) {
-                        $nombreCorto = 'RV250 S/F';
+                    if ($nombreComponente === \App\Support\LavadoraCatalog::REDUCTOR_SIN_FIN_CORONA_VISIBLE) {
+                        $nombreCorto = 'REDUCTOR S/F';
                     } elseif (strpos($nombreCorto, 'Baquelita') !== false) {
                         $nombreCorto = 'Buje Baquelita';
                     } elseif (strpos($nombreCorto, 'Sin Fin') !== false) {

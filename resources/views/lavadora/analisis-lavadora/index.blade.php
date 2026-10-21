@@ -1522,32 +1522,10 @@
         $etiquetaReductorLinea = fn ($lineaNombre = null, bool $plural = false, bool $uppercase = false) => \App\Support\LavadoraCatalog::etiquetaReductor($lineaNombre, $plural, $uppercase);
         $etiquetaReductorValorLinea = fn ($lineaNombre, $reductor, bool $uppercase = false) => \App\Support\LavadoraCatalog::etiquetaReductorParaValor($lineaNombre, $reductor, $uppercase);
         $nombreReductorLinea = fn ($lineaNombre, $reductor) => \App\Support\LavadoraCatalog::nombreReductorParaLinea($lineaNombre, $reductor) ?? $reductor;
+        $ubicacionReductorLinea = fn ($lineaNombre, $reductor) => \App\Support\LavadoraCatalog::ubicacionReductorConModelo($lineaNombre, $reductor) ?? $reductor;
         $skuResumenComponente = fn ($lineaNombre, $codigo) => \App\Support\LavadoraCatalog::resumenSkuComponente($lineaNombre, $codigo);
-        $componentesRv250 = array_keys(array_filter(
-            \App\Support\LavadoraCatalog::COMPONENTE_NOMBRES,
-            fn ($label) => $label === 'RV250 Sin Fin Corona'
-        ));
-        $codigoRv250SinFin = collect($componentesRv250)
-            ->first(fn ($codigo) => str_contains($codigo, 'SIN_FIN')) ?? ($componentesRv250[0] ?? null);
-        $esComponenteRv250 = function ($nombre, $codigo = null) use ($componentesRv250) {
-            $nombreUpper = strtoupper((string) $nombre);
-            $codigoUpper = strtoupper((string) $codigo);
-
-            foreach ($componentesRv250 as $codigoBase) {
-                if (
-                    $codigoUpper === $codigoBase
-                    || str_contains($codigoUpper, $codigoBase)
-                    || str_contains($nombreUpper, $codigoBase)
-                ) {
-                    return true;
-                }
-            }
-
-            return false;
-        };
-        $nombreComponenteLavadora = fn ($nombre, $codigo = null) => $esComponenteRv250($nombre, $codigo)
-            ? 'RV250 Sin Fin Corona'
-            : (trim((string) $nombre) !== '' ? $nombre : '-');
+        $nombreComponenteLavadora = fn ($nombre, $codigo = null) =>
+            \App\Support\LavadoraCatalog::nombreVisibleComponente($nombre, $codigo);
         
         // Filtrar solo las lavadoras que queremos mostrar siempre
         $lavadorasPermitidas = \App\Support\LavadoraCatalog::LINEAS;
@@ -2411,7 +2389,7 @@
                                         <tr>
                                             <th class="sticky-left cell-header text-blue-900 font-bold px-3 py-2 border text-center whitespace-nowrap text-sm align-top">
                                                 <div class="reductor-header">
-                                                    <div class="reductor-name">{{ $nombreReductorLinea($linea->nombre, $r) }}</div>
+                                                    <div class="reductor-name">{{ $ubicacionReductorLinea($linea->nombre, $r) }}</div>
                                                     <div class="reductor-label">{{ $etiquetaReductorValorLinea($linea->nombre, $r) }}</div>
                                                     <div class="text-xs text-gray-500 mt-1">
                                                         {{ $conteoReductor['total'] }}/{{ count($componentesLinea) }}
@@ -2480,7 +2458,7 @@
                                                         ),
                                                         'componente_codigo' => $registro->componente->codigo ?? $c->id,
                                                         'reductor' => $registro->reductor,
-                                                        'reductor_label' => $nombreReductorLinea($registro->linea->nombre ?? $linea->nombre, $registro->reductor),
+                                                        'reductor_label' => $ubicacionReductorLinea($registro->linea->nombre ?? $linea->nombre, $registro->reductor),
                                                         'reductor_tipo_label' => $etiquetaReductorValorLinea($registro->linea->nombre ?? $linea->nombre, $registro->reductor),
                                                         'lado' => $registro->lado ?? null,
                                                         'fecha_analisis' => isset($registro->fecha_analisis) ? $registro->fecha_analisis->format('d/m/Y') : '',
@@ -2741,8 +2719,8 @@
                 $componentesL12 = \App\Models\Componente::where('linea', 'L-12')->get();
                 
                 foreach ($componentesL12 as $comp) {
-                    if ($esComponenteRv250($comp->nombre, $comp->codigo)) {
-                        $mapaComponentesL12[$comp->id] = $codigoRv250SinFin;
+                    if (\App\Support\LavadoraCatalog::esReductorSinFinCorona($comp->codigo, $comp->nombre)) {
+                        $mapaComponentesL12[$comp->id] = 'RV200_SIN_FIN';
                     } elseif (str_contains($comp->codigo, 'BUJE_ESPIGA')) {
                         $mapaComponentesL12[$comp->id] = 'BUJE_ESPIGA';
                     } elseif (str_contains($comp->codigo, 'GUI_INF_TANQUE')) {
@@ -2998,7 +2976,7 @@
                                     <tr>
                                         <th class="sticky-left cell-header text-blue-900 font-bold px-3 py-2 border text-center whitespace-nowrap text-sm align-top">
                                             <div class="reductor-header">
-                                                <div class="reductor-name">{{ $nombreReductorLinea($lineaMostrar->nombre ?? null, $r) }}</div>
+                                                <div class="reductor-name">{{ $ubicacionReductorLinea($lineaMostrar->nombre ?? null, $r) }}</div>
                                                 <div class="reductor-label">{{ $etiquetaReductorValorLinea($lineaMostrar->nombre ?? null, $r) }}</div>
                                                 <div class="text-xs text-gray-500 mt-1">
                                                     {{ $conteoReductor['total'] }}/{{ count($componentesParaTabla) }}
@@ -3063,7 +3041,7 @@
                                                     ),
                                                     'componente_codigo' => $registro->componente->codigo ?? '',
                                                     'reductor' => $registro->reductor,
-                                                    'reductor_label' => $nombreReductorLinea($registro->linea->nombre ?? ($lineaMostrar->nombre ?? null), $registro->reductor),
+                                                    'reductor_label' => $ubicacionReductorLinea($registro->linea->nombre ?? ($lineaMostrar->nombre ?? null), $registro->reductor),
                                                     'reductor_tipo_label' => $etiquetaReductorValorLinea($registro->linea->nombre ?? ($lineaMostrar->nombre ?? null), $registro->reductor),
                                                     'lado' => $registro->lado ?? null,
                                                     'fecha_analisis' => isset($registro->fecha_analisis) ? $registro->fecha_analisis->format('d/m/Y') : '',
@@ -3324,7 +3302,7 @@
                                                 <tr>
                                                     <th class="sticky-left cell-header text-blue-900 font-bold px-3 py-2 border text-center whitespace-nowrap text-sm align-top">
                                                         <div class="reductor-header">
-                                                            <div class="reductor-name">{{ $nombreReductorLinea($linea->nombre, $r) }}</div>
+                                                            <div class="reductor-name">{{ $ubicacionReductorLinea($linea->nombre, $r) }}</div>
                                                             <div class="reductor-label">{{ $etiquetaReductorValorLinea($linea->nombre, $r) }}</div>
                                                             <div class="text-xs text-gray-500 mt-1">
                                                                 0/{{ count($componentesLinea) }}

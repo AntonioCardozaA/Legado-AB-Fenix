@@ -50,6 +50,34 @@ class AnalisisLavadoraUserTest extends TestCase
         $this->assertTrue($analisis->usuario->is($user));
     }
 
+    public function test_reductor_model_is_assigned_by_location_on_target_line(): void
+    {
+        $user = User::factory()->create();
+        $linea = Linea::create([
+            'nombre' => 'L-05',
+            'descripcion' => 'Lavadora de prueba',
+            'activo' => true,
+        ]);
+
+        foreach ([1 => 'RV200 Sin Fin Corona', 2 => 'RV250 Sin Fin Corona', 3 => 'RV200 Sin Fin Corona'] as $numero => $nombre) {
+            $this->actingAs($user)->post(route('analisis-lavadora.store'), [
+                'linea_id' => $linea->id,
+                'componente_codigo' => 'RV200',
+                'reductor' => "Reductor {$numero}",
+                'fecha_analisis' => now()->toDateString(),
+                'numero_orden' => sprintf('9050%04d', $numero),
+                'estado' => 'Buen estado',
+                'actividad' => "Validación de reductor {$numero}",
+            ])->assertRedirect();
+
+            $this->assertDatabaseHas('componentes', [
+                'linea' => 'L-05',
+                'reductor' => "Reductor {$numero}",
+                'nombre' => $nombre,
+            ]);
+        }
+    }
+
     public function test_store_allows_missing_order_number(): void
     {
         $user = User::factory()->create();

@@ -5,29 +5,8 @@
 @section('content')
 @php
     $reductorLabel = \App\Support\LavadoraCatalog::etiquetaReductor($linea->nombre ?? null);
-    $componentesRv250 = array_keys(array_filter(
-        \App\Support\LavadoraCatalog::COMPONENTE_NOMBRES,
-        fn ($label) => $label === 'RV250 Sin Fin Corona'
-    ));
-    $esComponenteRv250 = function ($nombre, $codigo = null) use ($componentesRv250) {
-        $nombreUpper = strtoupper((string) $nombre);
-        $codigoUpper = strtoupper((string) $codigo);
-
-        foreach ($componentesRv250 as $codigoBase) {
-            if (
-                $codigoUpper === $codigoBase
-                || str_contains($codigoUpper, $codigoBase)
-                || str_contains($nombreUpper, $codigoBase)
-            ) {
-                return true;
-            }
-        }
-
-        return false;
-    };
-    $nombreComponenteLavadora = fn ($nombre, $codigo = null) => $esComponenteRv250($nombre, $codigo)
-        ? 'RV250 Sin Fin Corona'
-        : $nombre;
+    $nombreComponenteLavadora = fn ($nombre, $codigo = null) =>
+        \App\Support\LavadoraCatalog::nombreVisibleComponente($nombre, $codigo);
 @endphp
 <div class="max-w-4xl mx-auto py-10 px-4">
     {{-- Header mejorado --}}
@@ -96,7 +75,7 @@
                         @foreach($componentesDisponibles as $codigo => $nombre)
                             @php
                                 $nombreVisible = $nombreComponenteLavadora($nombre, $codigo);
-                                $mostrarCodigo = !$esComponenteRv250($nombre, $codigo);
+                                $mostrarCodigo = !\App\Support\LavadoraCatalog::esReductorSinFinCorona($codigo, $nombre);
                             @endphp
                             <option value="{{ $codigo }}"
                                 {{ old('componente_codigo') == $codigo ? 'selected' : '' }}
@@ -125,7 +104,7 @@
                         @foreach($reductores as $reductor)
                             <option value="{{ $reductor }}"
                                 {{ old('reductor') == $reductor ? 'selected' : '' }}>
-                                {{ \App\Support\LavadoraCatalog::nombreReductorParaLinea($linea->nombre ?? null, $reductor) }}
+                                {{ \App\Support\LavadoraCatalog::ubicacionReductorConModelo($linea->nombre ?? null, $reductor) }}
                             </option>
                         @endforeach
                     </select>

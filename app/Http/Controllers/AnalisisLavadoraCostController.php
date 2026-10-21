@@ -6,6 +6,7 @@ use App\Models\AnalisisLavadora;
 use App\Models\CostAutomationRule;
 use App\Models\CostCatalogItem;
 use App\Models\LavadoraCostEntry;
+use App\Support\LavadoraCatalog;
 use App\Models\LavadoraCostRuleExclusion;
 use App\Services\LavadoraCostSyncService;
 use App\Support\LavadoraCostSupport;
@@ -172,9 +173,11 @@ class AnalisisLavadoraCostController extends Controller
                 'quantity' => $quantity,
                 'unit_cost' => $unitCost,
                 'total_cost' => round($quantity * $unitCost, 2),
-                'component_snapshot' => LavadoraCostSupport::displayComponentName(
-                    $analisislavadora->componente?->nombre,
-                    $componentCode
+                'component_snapshot' => LavadoraCatalog::nombreComponenteParaLinea(
+                    $analisislavadora->linea?->nombre,
+                    $analisislavadora->reductor,
+                    $analisislavadora->componente?->codigo,
+                    $analisislavadora->componente?->nombre
                 ),
                 'catalog_name_snapshot' => LavadoraCostSupport::displayText($catalogItem->nombre) ?: $catalogItem->nombre,
                 'catalog_sku_snapshot' => $catalogItem->sku,

@@ -5,28 +5,11 @@
 @section('content')
 @php
     $reductorLabel = \App\Support\LavadoraCatalog::etiquetaReductorParaValor($linea->nombre ?? null, $reductor);
-    $reductorNombre = \App\Support\LavadoraCatalog::nombreReductorParaLinea($linea->nombre ?? null, $reductor);
-    $componentesRv250 = array_keys(array_filter(
-        \App\Support\LavadoraCatalog::COMPONENTE_NOMBRES,
-        fn ($label) => $label === 'RV250 Sin Fin Corona'
-    ));
-    $nombreComponenteLavadora = function ($nombre, $codigo = null) use ($componentesRv250) {
-        $nombreUpper = strtoupper((string) $nombre);
-        $codigoUpper = strtoupper((string) $codigo);
-
-        foreach ($componentesRv250 as $codigoBase) {
-            if (
-                $codigoUpper === $codigoBase
-                || str_contains($codigoUpper, $codigoBase)
-                || str_contains($nombreUpper, $codigoBase)
-            ) {
-                return 'RV250 Sin Fin Corona';
-            }
-        }
-
-        return $nombre;
-    };
-    $componenteNombreVisible = $nombreComponenteLavadora($componente->nombre ?? '', $componente->codigo ?? null);
+    $reductorNombre = \App\Support\LavadoraCatalog::ubicacionReductorConModelo($linea->nombre ?? null, $reductor);
+    $componenteNombreVisible = \App\Support\LavadoraCatalog::nombreVisibleComponente(
+        $componente->nombre ?? '',
+        $componente->codigo ?? null
+    );
 @endphp
 <div class="max-w-2xl mx-auto px-4 py-8">
     <div class="bg-white rounded-2xl shadow-lg p-8">

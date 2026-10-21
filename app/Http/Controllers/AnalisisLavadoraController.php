@@ -403,7 +403,10 @@ public function index(Request $request)
         return [
             'id' => $registro->id,
             'linea' => $registro->linea->nombre ?? 'Linea no registrada',
-            'componente' => $registro->componente->nombre ?? 'Componente no registrado',
+            'componente' => LavadoraCatalog::nombreVisibleComponente(
+                $registro->componente->nombre ?? 'Componente no registrado',
+                $registro->componente->codigo ?? null
+            ),
             'componente_codigo' => $registro->componente->codigo ?? $registro->componente_id,
             'reductor' => $registro->reductor,
             'lado' => $registro->lado ?? null,
@@ -694,7 +697,7 @@ public function index(Request $request)
             try {
                 $componente = Componente::create([
                     'codigo' => $request->componente_codigo,
-                    'nombre' => $this->getNombreComponente($request->componente_codigo),
+                    'nombre' => $this->getNombreComponente($request->componente_codigo, $linea->nombre, $request->reductor),
                     'reductor' => $request->reductor,
                     'ubicacion' => $request->reductor,
                     'linea' => $linea->nombre,
@@ -733,7 +736,7 @@ public function index(Request $request)
                     $nuevoComponente = Componente::firstOrCreate(
                         ['codigo' => $request->componente_codigo . '_' . str_replace('-', '_', $linea->nombre)],
                         [
-                        'nombre' => $this->getNombreComponente($request->componente_codigo),
+                        'nombre' => $this->getNombreComponente($request->componente_codigo, $linea->nombre, $request->reductor),
                         'reductor' => $request->reductor,
                         'ubicacion' => $request->reductor,
                         'linea' => $linea->nombre,
@@ -846,7 +849,7 @@ $codigoLinea = $lineaFormateada . '_' . $reductorFormateado . '_' . $codigoBase;
 $componente = Componente::firstOrCreate(
     ['codigo' => $codigoLinea],
     [
-        'nombre'          => $this->getNombreComponente($codigoBase),
+        'nombre'          => $this->getNombreComponente($codigoBase, $linea->nombre, $request->reductor),
         'reductor'        => $request->reductor,
         'ubicacion'       => $request->reductor,
         'linea'           => $linea->nombre,
@@ -919,7 +922,7 @@ $componente = Componente::firstOrCreate(
 
             $mensaje = "🚨 *ALERTA DE COMPONENTE DAÑADO* 🚨\n\n"
                 . "🔧 Línea: {$linea->nombre}\n"
-                . "⚙️ Componente: {$componente->nombre}\n"
+                . "⚙️ Componente: " . LavadoraCatalog::nombreVisibleComponente($componente->nombre, $componente->codigo) . "\n"
                 . "📍 Reductor: {$request->reductor}\n"
                 . "📅 Fecha: {$request->fecha_analisis}\n"
                 . "🧾 Orden: {$numeroOrdenTexto}\n"
@@ -1009,9 +1012,9 @@ $componente = Componente::firstOrCreate(
     /**
      * Helper para obtener el nombre del componente
      */
-    private function getNombreComponente($codigo)
+    private function getNombreComponente($codigo, ?string $lineaNombre = null, ?string $reductor = null)
     {
-        return LavadoraCatalog::nombreComponente((string) $codigo);
+        return LavadoraCatalog::nombreComponenteParaLinea($lineaNombre, $reductor, (string) $codigo);
     }
 
     private function abortUnlessLavadora(Linea $linea): void
@@ -1727,12 +1730,12 @@ public function historicoRevisados(Request $request)
             'icono' => 'catarinas.png'
         ],
         'RV200' => [
-            'nombre' => 'RV250 SIN FIN CORONA',
+            'nombre' => LavadoraCatalog::REDUCTOR_SIN_FIN_CORONA_VISIBLE,
             'cantidad_total' => 15,
             'icono' => 'reductor-rv200.png'
         ],
         'RV200_SIN_FIN' => [
-            'nombre' => 'RV250 SIN FIN CORONA',
+            'nombre' => LavadoraCatalog::REDUCTOR_SIN_FIN_CORONA_VISIBLE,
             'cantidad_total' => 15,
             'icono' => 'reductor-sin-fin.png'
         ],

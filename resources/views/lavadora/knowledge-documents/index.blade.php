@@ -47,7 +47,7 @@
                     <option value="">Todos</option>
                     @foreach($componentes as $componente)
                         <option value="{{ $componente->id }}" @selected(request('componente_id') == $componente->id)>
-                            {{ $componente->nombre }}{{ $componente->codigo ? ' (' . $componente->codigo . ')' : '' }}
+                            {{ \App\Support\LavadoraCatalog::nombreVisibleComponente($componente->nombre, $componente->codigo) }}{{ $componente->codigo ? ' (' . $componente->codigo . ')' : '' }}
                         </option>
                     @endforeach
                 </select>
@@ -103,7 +103,7 @@
                             </td>
                             <td class="px-4 py-4 align-top text-slate-600">
                                 <p>{{ $document->linea?->nombre ?? 'General' }}</p>
-                                <p class="mt-1 text-xs">{{ $document->componente?->nombre ?? 'Todos los componentes' }}</p>
+                                <p class="mt-1 text-xs">{{ $document->componente ? \App\Support\LavadoraCatalog::nombreVisibleComponente($document->componente->nombre, $document->componente->codigo) : 'Todos los componentes' }}</p>
                             </td>
                             <td class="px-4 py-4 align-top">
                                 <span class="rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wide {{ $statusClasses }}">
