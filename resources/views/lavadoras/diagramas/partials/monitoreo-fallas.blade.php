@@ -77,10 +77,10 @@
     ];
 
     $severityLabel = [
-        'green' => 'Sin anomalias',
-        'yellow' => 'Advertencia',
-        'orange' => 'Atencion Inmediata',
-        'red' => 'Critico',
+        'green' => 'Buen estado',
+        'yellow' => 'Requiere revision',
+        'orange' => 'Desgaste severo o moderado',
+        'red' => 'Dañado - Requiere cambio',
     ];
 
     $formatearLadoMonitor = function ($lado) {
@@ -198,12 +198,20 @@
                 $nivelTooltip = $severityLabel[$severity] ?? $severity;
                 $reductorTooltip = \App\Support\LavadoraCatalog::nombreReductorParaLinea($lineaNombre, $grupo['reductor']) ?? $grupo['reductor'];
                 $ringRadius = max(24, ($posicion['r'] ?? 18) + 14);
+                // Se alternan colores, no componentes: estados distintos que
+                // comparten severidad conservan una sola representación visual.
+                $severityCycle = $afectados
+                    ->pluck('severity')
+                    ->filter(fn ($value) => array_key_exists($value, $severityRank))
+                    ->unique()
+                    ->values();
             @endphp
 
             <g
                 class="monitor-reductor monitor-severity-{{ $severity }} {{ $rank > 0 ? 'has-alerts' : 'is-healthy' }}"
                 data-monitor-tooltip
                 data-monitor-kind="reductor"
+                data-monitor-severities="{{ $severityCycle->implode(',') }}"
                 data-monitor-reductor="{{ e($reductorTooltip) }}"
                 data-monitor-componente="{{ e($componentesTooltip) }}"
                 data-monitor-lado="{{ e($ladosTooltip) }}"
@@ -239,16 +247,31 @@
                         // nombres como "REDUCTOR SIN FIN CORONA" dentro del SVG.
                         $labelWidth = max(128, 56 + (mb_strlen($nombreComponente) * 6.6));
                         $labelHeight = 24;
+                        $labelGap = 4;
+                        $stackHeight = ($stackCount * $labelHeight) + (($stackCount - 1) * $labelGap);
                         $stackX = $posicion['x'] - ($labelWidth / 2);
+                        $minStackY = 8;
+                        $maxStackY = max($minStackY, $baseHeight - $stackHeight - 8);
+                        $belowStackY = $posicion['y'] + $ringRadius + 16;
+                        $aboveStackY = $posicion['y'] - $ringRadius - $stackHeight - 16;
                         $stackYOptions = [
-                            $posicion['y'] + $ringRadius + 16,
-                            $posicion['y'] - $ringRadius - (($stackCount * ($labelHeight + 4)) + 16),
-                            $posicion['y'] + $ringRadius + 48,
-                            $posicion['y'] - $ringRadius - (($stackCount * ($labelHeight + 4)) + 48),
+                            $belowStackY,
+                            $aboveStackY,
+                            $belowStackY + 32,
+                            $aboveStackY - 32,
                         ];
-                        $stackY = $stackYOptions[$lane] ?? $stackYOptions[0];
+                        $stackY = collect($stackYOptions)
+                            ->first(fn ($candidate) => $candidate >= $minStackY && $candidate <= $maxStackY);
+
+                        if ($stackY === null) {
+                            // Si no cabe arriba ni abajo, se conserva todo el
+                            // bloque dentro del SVG para que las etiquetas no
+                            // terminen en la misma coordenada por el recorte.
+                            $stackY = min(max($stackYOptions[$lane] ?? $belowStackY, $minStackY), $maxStackY);
+                        }
+
                         $labelX = min(max(8, $stackX), max(8, $baseWidth - $labelWidth - 8));
-                        $labelY = min(max(12, $stackY + ($itemIndex * ($labelHeight + 4))), max(12, $baseHeight - $labelHeight - 8));
+                        $labelY = $stackY + ($itemIndex * ($labelHeight + $labelGap));
                         $iconX = $labelX + 13;
                         $iconY = $labelY + 12;
                         $connectorX = $labelX + ($labelWidth / 2);

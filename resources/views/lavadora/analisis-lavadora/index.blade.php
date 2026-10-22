@@ -1721,15 +1721,19 @@
                             return ['severity' => 'red', 'nivel' => 'Critico'];
                         }
 
-                        if ($estado === 'Desgaste severo' || \App\Models\AnalisisLavadora::esEstadoRequiereRevision($estado)) {
-                            return ['severity' => 'orange', 'nivel' => 'Atencion'];
-                        }
-
                         if (\App\Models\AnalisisLavadora::esEstadoDesgaste($estado)) {
-                            return ['severity' => 'yellow', 'nivel' => 'Advertencia'];
+                            return ['severity' => 'orange', 'nivel' => 'Desgaste'];
                         }
 
-                        return ['severity' => 'green', 'nivel' => 'Sin anomalias'];
+                        if (\App\Models\AnalisisLavadora::esEstadoRequiereRevision($estado)) {
+                            return ['severity' => 'yellow', 'nivel' => 'Requiere revision'];
+                        }
+
+                        if (\App\Models\AnalisisLavadora::esEstadoCambiado($estado)) {
+                            return null;
+                        }
+
+                        return ['severity' => 'green', 'nivel' => 'Buen estado'];
                     };
 
                     $monitorUltimos = [];
@@ -1757,6 +1761,7 @@
                         );
                         $estadoActual = $item->estado_operativo ?? \App\Models\AnalisisLavadora::ESTADO_BUENO;
                         $metaEstado = $monitorEstadoMeta($estadoActual);
+                        $omitirDelDiagrama = $metaEstado === null;
                         $fechaTs = isset($item->fecha_analisis) && $item->fecha_analisis ? $item->fecha_analisis->getTimestamp() : 0;
                         $itemId = $item->id ?? 0;
                         $lado = $item->lado ?? '';
@@ -1778,18 +1783,25 @@
                             'componente' => $nombreComponente,
                             'componente_codigo' => $codigoBase,
                             'estado' => $estadoActual,
-                            'severity' => $metaEstado['severity'],
-                            'nivel' => $metaEstado['nivel'],
+                            'severity' => $metaEstado['severity'] ?? 'green',
+                            'nivel' => $metaEstado['nivel'] ?? 'Cambiado',
+                            '_omitir_del_diagrama' => $omitirDelDiagrama,
                             'fecha' => isset($item->fecha_analisis) && $item->fecha_analisis ? $item->fecha_analisis->format('d/m/Y') : 'Sin fecha',
                             'observaciones' => $item->actividad ?: 'Sin observaciones',
                             'lado' => $lado,
                         ];
                     }
 
-                    $monitorAlertasDiagrama = array_values(array_map(function ($alerta) {
+                    $monitorAlertasDiagrama = array_values(array_filter(array_map(function ($alerta) {
+                        // Los cambiados se mantienen en la tabla, pero no se
+                        // representan como alertas dentro del diagrama.
+                        if (!empty($alerta['_omitir_del_diagrama'])) {
+                            return null;
+                        }
+
                         unset($alerta['_fecha_ts'], $alerta['_id']);
                         return $alerta;
-                    }, $monitorUltimos));
+                    }, $monitorUltimos), fn ($alerta) => $alerta !== null));
                 @endphp
 
                 @include('lavadora.analisis-lavadora.partials.diagrama-codigo', [

@@ -1,4 +1,65 @@
 document.addEventListener('DOMContentLoaded', function () {
+    var monitorSeverityClasses = [
+        'monitor-severity-green',
+        'monitor-severity-yellow',
+        'monitor-severity-orange',
+        'monitor-severity-red'
+    ];
+    var monitorCycleInterval = 3000;
+
+    function getMonitorSeverityCycle(target) {
+        return (target.dataset.monitorSeverities || '')
+            .split(',')
+            .map(function (severity) {
+                return severity.trim();
+            })
+            .filter(function (severity, index, severities) {
+                return monitorSeverityClasses.indexOf('monitor-severity-' + severity) !== -1
+                    && severities.indexOf(severity) === index;
+            });
+    }
+
+    function applyMonitorSeverity(target, severity) {
+        monitorSeverityClasses.forEach(function (className) {
+            target.classList.remove(className);
+        });
+
+        target.classList.add('monitor-severity-' + severity);
+    }
+
+    function setupMonitorColorAlternation(diagrama) {
+        var previousTimer = diagrama._monitorColorAlternationTimer;
+
+        if (previousTimer) {
+            window.clearInterval(previousTimer);
+            diagrama._monitorColorAlternationTimer = null;
+        }
+
+        var targets = Array.from(diagrama.querySelectorAll('[data-monitor-kind="reductor"][data-monitor-severities]'))
+            .map(function (target) {
+                return {
+                    element: target,
+                    severities: getMonitorSeverityCycle(target),
+                    index: 0
+                };
+            })
+            .filter(function (target) {
+                return target.severities.length > 1;
+            });
+
+        if (targets.length === 0) {
+            return;
+        }
+
+        // Un solo intervalo controla todas las ubicaciones del diagrama.
+        diagrama._monitorColorAlternationTimer = window.setInterval(function () {
+            targets.forEach(function (target) {
+                target.index = (target.index + 1) % target.severities.length;
+                applyMonitorSeverity(target.element, target.severities[target.index]);
+            });
+        }, monitorCycleInterval);
+    }
+
     document.querySelectorAll('[data-diagrama-lavadora]').forEach(function (diagrama) {
         var toggle = diagrama.querySelector('[data-action="toggle-animation"]');
         var reset = diagrama.querySelector('[data-action="reset-animation"]');
@@ -58,6 +119,28 @@ document.addEventListener('DOMContentLoaded', function () {
                 diagrama.style.setProperty('--duracion-catarina', sprocketDuration + 's');
             });
         }
+
+        setupMonitorColorAlternation(diagrama);
+
+        // Permite que la alternancia se recalcule si el contenido del diagrama
+        // se reemplaza dinámicamente sin crear intervalos duplicados.
+        var monitorObserver = new MutationObserver(function (mutations) {
+            var shouldRefresh = mutations.some(function (mutation) {
+                return mutation.type === 'childList'
+                    || (mutation.type === 'attributes' && mutation.attributeName === 'data-monitor-severities');
+            });
+
+            if (shouldRefresh) {
+                setupMonitorColorAlternation(diagrama);
+            }
+        });
+
+        monitorObserver.observe(diagrama, {
+            childList: true,
+            subtree: true,
+            attributes: true,
+            attributeFilter: ['data-monitor-severities']
+        });
     });
 
     var monitorTooltip = document.createElement('div');
@@ -79,18 +162,18 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function getMonitorColor(target) {
         if (target.classList.contains('monitor-severity-red')) {
-            return '#ef233c';
+            return '#ef4444';
         }
 
         if (target.classList.contains('monitor-severity-orange')) {
-            return '#ff7a1a';
+            return '#f97316';
         }
 
         if (target.classList.contains('monitor-severity-yellow')) {
-            return '#f4c430';
+            return '#f59e0b';
         }
 
-        return '#14b86a';
+        return '#10b981';
     }
 
     function buildMonitorTooltip(target) {
