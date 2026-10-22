@@ -499,6 +499,26 @@ class LavadoraCatalog
         return $nombre . ($sufijoUbicacion !== '' ? ' ' . $sufijoUbicacion : '') . ' — ' . $modelo . ' Sin Fin Corona';
     }
 
+    /**
+     * Devuelve la ubicación del reductor para un componente específico.
+     * El modelo RV solo corresponde al componente del reductor sin fin corona;
+     * los demás componentes deben mostrar únicamente el nombre y número de ubicación.
+     */
+    public static function ubicacionReductorParaComponente(
+        ?string $lineaNombre,
+        ?string $reductor,
+        ?string $componenteCodigo = null,
+        ?string $componenteNombre = null
+    ): ?string {
+        $nombre = self::nombreReductorParaLinea($lineaNombre, $reductor);
+
+        if (!$nombre || !self::esReductorSinFinCorona($componenteCodigo, $componenteNombre)) {
+            return $nombre;
+        }
+
+        return self::ubicacionReductorConModelo($lineaNombre, $reductor);
+    }
+
     public static function normalizarReductor(?string $valor): ?string
     {
         $valor = trim((string) $valor);

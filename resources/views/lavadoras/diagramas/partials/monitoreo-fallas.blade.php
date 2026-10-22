@@ -234,7 +234,10 @@
                         $itemRank = $severityRank[$itemSeverity] ?? 1;
                         $stackCount = max(1, $afectados->count());
                         $lane = $loop->parent->index % 4;
-                        $labelWidth = 128;
+                        $nombreComponente = data_get($item, 'componente', 'Componente');
+                        // El ancho debe adaptarse al nombre; las etiquetas fijas recortaban
+                        // nombres como "REDUCTOR SIN FIN CORONA" dentro del SVG.
+                        $labelWidth = max(128, 56 + (mb_strlen($nombreComponente) * 6.6));
                         $labelHeight = 24;
                         $stackX = $posicion['x'] - ($labelWidth / 2);
                         $stackYOptions = [
@@ -250,9 +253,7 @@
                         $iconY = $labelY + 12;
                         $connectorX = $labelX + ($labelWidth / 2);
                         $connectorY = $labelY + ($labelHeight / 2);
-                        $nombreComponente = data_get($item, 'componente', 'Componente');
                         $reductorItemTooltip = \App\Support\LavadoraCatalog::nombreReductorParaLinea($lineaNombre, data_get($item, 'reductor', $grupo['reductor'])) ?? data_get($item, 'reductor', $grupo['reductor']);
-                        $nombreCorto = \Illuminate\Support\Str::limit($nombreComponente, 18);
                         $nivelItem = $severityLabel[$itemSeverity] ?? data_get($item, 'nivel', 'Advertencia');
                         $ladoItem = $formatearLadoMonitor(data_get($item, 'lado'));
                     @endphp
@@ -282,7 +283,7 @@
                             d="M {{ $iconX }} {{ $iconY - 8 }} L {{ $iconX + 8 }} {{ $iconY + 7 }} L {{ $iconX - 8 }} {{ $iconY + 7 }} Z"
                         />
                         <text class="monitor-alert-bang" x="{{ $iconX }}" y="{{ $iconY + 5 }}" text-anchor="middle">!</text>
-                        <text class="monitor-componente-label" x="{{ $labelX + 28 }}" y="{{ $labelY + 16 }}">{{ $nombreCorto }}</text>
+                        <text class="monitor-componente-label" x="{{ $labelX + 28 }}" y="{{ $labelY + 16 }}">{{ $nombreComponente }}</text>
                     </g>
                 @endforeach
             @endif

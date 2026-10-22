@@ -13,7 +13,12 @@
         ->values();
     $estado = $analisislavadora->estado;
     $reductorLabel = \App\Support\LavadoraCatalog::etiquetaReductorParaValor($analisislavadora->linea->nombre ?? null, $analisislavadora->reductor);
-    $reductorNombre = \App\Support\LavadoraCatalog::ubicacionReductorConModelo($analisislavadora->linea->nombre ?? null, $analisislavadora->reductor);
+    $reductorNombre = \App\Support\LavadoraCatalog::ubicacionReductorParaComponente(
+        $analisislavadora->linea->nombre ?? null,
+        $analisislavadora->reductor,
+        $analisislavadora->componente->codigo ?? null,
+        $analisislavadora->componente->nombre ?? null
+    );
     $estadoStyles = match (true) {
         \App\Models\AnalisisLavadora::esEstadoDanado($estado) => [
             'class' => 'bg-red-50 text-red-700 border-red-200',

@@ -1856,7 +1856,12 @@
                 $estado = $item->estado_operativo ?? '';
                 $lineaNombre = $item->linea->nombre ?? 'Sin línea';
                 $componenteNombre = $nombreComponenteLavadora($item->componente->nombre ?? 'Sin componente', $item->componente->codigo ?? null);
-                $reductor = is_numeric($item->reductor) ? "Reductor {$item->reductor}" : $item->reductor;
+                $reductor = \App\Support\LavadoraCatalog::ubicacionReductorParaComponente(
+                    $lineaNombre,
+                    $item->reductor,
+                    $item->componente->codigo ?? null,
+                    $item->componente->nombre ?? null
+                ) ?? $item->reductor;
                 
                 if (\App\Models\AnalisisLavadora::esEstadoBueno($estado)) {
                     $analisisPorEstado['buen_estado'][] = [
@@ -2034,7 +2039,12 @@
                 $estado = $item->estado_operativo ?? '';
                     $lineaNombre = $item->linea->nombre ?? 'Sin línea';
                     $componenteNombre = $nombreComponenteLavadora($item->componente->nombre ?? 'Sin componente', $item->componente->codigo ?? null);
-                    $reductor = is_numeric($item->reductor) ? "Reductor {$item->reductor}" : $item->reductor;
+                    $reductor = \App\Support\LavadoraCatalog::ubicacionReductorParaComponente(
+                        $lineaNombre,
+                        $item->reductor,
+                        $item->componente->codigo ?? null,
+                        $item->componente->nombre ?? null
+                    ) ?? $item->reductor;
                     
                     $estadisticasGlobales['total']++;
                     

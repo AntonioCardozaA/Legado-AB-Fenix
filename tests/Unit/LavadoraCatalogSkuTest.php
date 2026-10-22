@@ -66,4 +66,24 @@ class LavadoraCatalogSkuTest extends TestCase
             LavadoraCatalog::nombreVisibleComponente('RV250 Sin Fin Corona', 'L05_REDUCTOR_2_RV200')
         );
     }
+
+    public function test_hides_reducer_model_for_other_components(): void
+    {
+        $this->assertSame(
+            'Reductor 4',
+            LavadoraCatalog::ubicacionReductorParaComponente('L-05', 'Reductor 4', 'BUJE_ESPIGA', 'Buje Baquelita-Espiga')
+        );
+    }
+
+    public function test_keeps_reducer_model_for_sin_fin_corona_component(): void
+    {
+        $this->assertStringContainsString(
+            'RV200 Sin Fin Corona',
+            LavadoraCatalog::ubicacionReductorParaComponente('L-05', 'Reductor 4', 'RV200', 'REDUCTOR SIN FIN CORONA')
+        );
+        $this->assertStringContainsString(
+            'RV250 Sin Fin Corona',
+            LavadoraCatalog::ubicacionReductorParaComponente('L-05', 'Reductor 2', 'RV200', 'REDUCTOR SIN FIN CORONA')
+        );
+    }
 }

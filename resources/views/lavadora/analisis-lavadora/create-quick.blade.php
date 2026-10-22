@@ -5,7 +5,12 @@
 @section('content')
 @php
     $reductorLabel = \App\Support\LavadoraCatalog::etiquetaReductorParaValor($linea->nombre ?? null, $reductor);
-    $reductorNombre = \App\Support\LavadoraCatalog::ubicacionReductorConModelo($linea->nombre ?? null, $reductor);
+    $reductorNombre = \App\Support\LavadoraCatalog::ubicacionReductorParaComponente(
+        $linea->nombre ?? null,
+        $reductor,
+        $componente->codigo ?? null,
+        $componente->nombre ?? null
+    );
     $componenteNombreVisible = \App\Support\LavadoraCatalog::nombreVisibleComponente(
         $componente->nombre ?? '',
         $componente->codigo ?? null

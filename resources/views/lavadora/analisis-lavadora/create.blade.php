@@ -104,7 +104,7 @@
                         @foreach($reductores as $reductor)
                             <option value="{{ $reductor }}"
                                 {{ old('reductor') == $reductor ? 'selected' : '' }}>
-                                {{ \App\Support\LavadoraCatalog::ubicacionReductorConModelo($linea->nombre ?? null, $reductor) }}
+                                {{ \App\Support\LavadoraCatalog::nombreReductorParaLinea($linea->nombre ?? null, $reductor) }}
                             </option>
                         @endforeach
                     </select>

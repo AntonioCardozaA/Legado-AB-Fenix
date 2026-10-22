@@ -6,7 +6,12 @@
 @php
     $puedeEditarFechaAnalisis = $puedeEditarFechaAnalisis ?? false;
     $reductorLabel = \App\Support\LavadoraCatalog::etiquetaReductorParaValor($analisisComponente->linea->nombre ?? null, $analisisComponente->reductor);
-    $reductorNombre = \App\Support\LavadoraCatalog::ubicacionReductorConModelo($analisisComponente->linea->nombre ?? null, $analisisComponente->reductor);
+    $reductorNombre = \App\Support\LavadoraCatalog::ubicacionReductorParaComponente(
+        $analisisComponente->linea->nombre ?? null,
+        $analisisComponente->reductor,
+        $analisisComponente->componente->codigo ?? null,
+        $analisisComponente->componente->nombre ?? null
+    );
 @endphp
 <div class="max-w-4xl mx-auto py-10 px-4">
     {{-- Header --}}
