@@ -154,6 +154,7 @@ class AdminUserManagementTest extends TestCase
         $this->assertSame('Operativo Actualizado', $employee->name);
         $this->assertSame('Supervisor de Turno', $employee->puesto);
         $this->assertFalse((bool) $employee->activo);
+        $this->assertSame(1, $employee->session_version);
         $this->assertTrue($employee->hasRole(User::ROLE_SUPERVISOR));
     }
 

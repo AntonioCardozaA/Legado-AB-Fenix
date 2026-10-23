@@ -220,7 +220,7 @@ class ElongacionReminderServiceTest extends TestCase
 
     public function test_it_creates_internal_notifications_throughout_the_alert_window_without_duplicates_on_the_same_day(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->withRole(User::ROLE_TECNICO)->create();
 
         $this->crearLinea('L-04');
         $this->crearElongacion('L-04', '2026-03-30 18:00:00');

@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\User;
 use App\Support\AccessPermissionCatalog;
 use Closure;
 use Illuminate\Http\Request;
@@ -28,7 +29,9 @@ class EnsureCustomPermissionAccess
             return $next($request);
         }
 
-        if (!$user || !$permission || $user->canUseCustomPermission($permission)) {
+        if (!$user || ($permission
+            ? $user->canUseCustomPermission($permission)
+            : $user->hasAnyRole(array_keys(User::roleLabels())))) {
             return $next($request);
         }
 

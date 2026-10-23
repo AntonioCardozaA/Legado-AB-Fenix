@@ -52,6 +52,7 @@ if (is_dir($frameworkBasePath)) {
     }
 }
 
+use App\Http\Middleware\EnsureActiveAccount;
 use App\Http\Middleware\EnsureCustomPermissionAccess;
 use App\Http\Middleware\EnsurePasteurizadoraExcentricosCaptureAccess;
 use App\Http\Middleware\EnsurePasteurizadoraAccess;
@@ -74,6 +75,8 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->web(append: [EnsureActiveAccount::class]);
+
         $middleware->redirectGuestsTo(fn (Request $request): string => route('login', absolute: false));
         $middleware->redirectUsersTo(function (Request $request): string {
             if ($request->user()?->usesPasteurizadoraExcentricosAccessProfile()) {

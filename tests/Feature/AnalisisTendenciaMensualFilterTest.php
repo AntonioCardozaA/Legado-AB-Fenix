@@ -15,7 +15,7 @@ class AnalisisTendenciaMensualFilterTest extends TestCase
 
     public function test_lavadora_trend_analysis_filters_visible_rows_by_date_range(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->withRole(User::ROLE_TECNICO)->create();
         $linea = Linea::create([
             'nombre' => 'L-04',
             'descripcion' => 'Lavadora de prueba',
@@ -54,7 +54,7 @@ class AnalisisTendenciaMensualFilterTest extends TestCase
 
     public function test_lavadora_trend_analysis_rejects_inverted_date_ranges(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->withRole(User::ROLE_TECNICO)->create();
         $linea = Linea::create([
             'nombre' => 'L-04',
             'descripcion' => 'Lavadora de prueba',

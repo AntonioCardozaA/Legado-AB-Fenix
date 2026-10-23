@@ -18,7 +18,7 @@ class AnalisisLavadoraUserTest extends TestCase
 
     public function test_store_saves_authenticated_user_for_index_display(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->withRole(User::ROLE_TECNICO)->create();
         $linea = Linea::create([
             'nombre' => 'L-04',
             'descripcion' => 'Lavadora de prueba',
@@ -80,7 +80,7 @@ class AnalisisLavadoraUserTest extends TestCase
 
     public function test_store_allows_missing_order_number(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->withRole(User::ROLE_TECNICO)->create();
         $linea = Linea::create([
             'nombre' => 'L-04',
             'descripcion' => 'Lavadora de prueba',
@@ -107,7 +107,7 @@ class AnalisisLavadoraUserTest extends TestCase
 
     public function test_store_rejects_order_number_that_is_not_exactly_eight_digits(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->withRole(User::ROLE_TECNICO)->create();
         $linea = Linea::create([
             'nombre' => 'L-04',
             'descripcion' => 'Lavadora de prueba',
@@ -137,7 +137,7 @@ class AnalisisLavadoraUserTest extends TestCase
 
     public function test_quick_store_without_order_redirects_to_index_when_redirect_points_to_quick_create(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->withRole(User::ROLE_TECNICO)->create();
         $linea = Linea::create([
             'nombre' => 'L-04',
             'descripcion' => 'Lavadora de prueba',
@@ -174,7 +174,7 @@ class AnalisisLavadoraUserTest extends TestCase
     {
         Queue::fake();
 
-        $user = User::factory()->create();
+        $user = User::factory()->withRole(User::ROLE_TECNICO)->create();
         $linea = Linea::create([
             'nombre' => 'L-04',
             'descripcion' => 'Lavadora de prueba',
@@ -202,7 +202,7 @@ class AnalisisLavadoraUserTest extends TestCase
 
     public function test_index_searches_component_across_all_lavadoras_with_line_suffix_codes(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->withRole(User::ROLE_TECNICO)->create();
         $linea = Linea::create([
             'nombre' => 'L-04',
             'descripcion' => 'Lavadora de prueba',
@@ -241,7 +241,7 @@ class AnalisisLavadoraUserTest extends TestCase
 
     public function test_index_visual_data_uses_latest_analysis_only(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->withRole(User::ROLE_TECNICO)->create();
         $linea = Linea::create([
             'nombre' => 'L-04',
             'descripcion' => 'Lavadora de prueba',
@@ -306,7 +306,7 @@ class AnalisisLavadoraUserTest extends TestCase
 
     public function test_washer_history_splits_side_based_components_by_side(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->withRole(User::ROLE_TECNICO)->create();
         $linea = Linea::create([
             'nombre' => 'L-07',
             'descripcion' => 'Lavadora de prueba',
@@ -369,7 +369,7 @@ class AnalisisLavadoraUserTest extends TestCase
 
     public function test_index_history_count_for_side_based_components_includes_both_sides(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->withRole(User::ROLE_TECNICO)->create();
         $linea = Linea::create([
             'nombre' => 'L-07',
             'descripcion' => 'Lavadora de prueba',
