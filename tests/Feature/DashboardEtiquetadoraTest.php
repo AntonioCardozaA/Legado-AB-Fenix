@@ -16,7 +16,7 @@ class DashboardEtiquetadoraTest extends TestCase
 
     public function test_dashboard_marks_catalog_machines_without_analysis_as_sin_datos(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->withRole(User::ROLE_TECNICO)->create();
 
         Linea::whereIn('nombre', EtiquetadoraCatalog::lineas())->update(['activo' => false]);
         Componente::where('tipo_equipo', EtiquetadoraCatalog::TIPO_EQUIPO)->update(['activo' => false]);
@@ -62,7 +62,7 @@ class DashboardEtiquetadoraTest extends TestCase
 
     public function test_dashboard_ignores_line_specific_components_from_other_etiquetadora_lines(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->withRole(User::ROLE_TECNICO)->create();
 
         Linea::whereIn('nombre', EtiquetadoraCatalog::lineas())->update(['activo' => false]);
         Componente::where('tipo_equipo', EtiquetadoraCatalog::TIPO_EQUIPO)->update(['activo' => false]);

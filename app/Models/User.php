@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Str;
 use Spatie\Permission\Exceptions\PermissionDoesNotExist;
 use Spatie\Permission\Traits\HasRoles;
 
@@ -12,6 +13,11 @@ class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable, HasRoles;
+
+    protected $attributes = [
+        'activo' => true,
+        'session_version' => 0,
+    ];
 
     /**
      * The attributes that are mass assignable.
@@ -79,7 +85,19 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'activo' => 'boolean',
+            'session_version' => 'integer',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        static::updating(function (User $user): void {
+            if ($user->isDirty('activo') && !$user->activo) {
+                $user->session_version = (int) $user->getRawOriginal('session_version') + 1;
+                $user->remember_token = Str::random(60);
+            }
+        });
     }
     public function notificationSettings()
 {
@@ -376,6 +394,10 @@ public function usesCustomPermissionAccess(): bool
 
 public function canUseCustomPermission(string $permission): bool
 {
+    if (!$this->activo) {
+        return false;
+    }
+
     if (!$this->usesCustomPermissionAccess()) {
         return \App\Support\AccessPermissionCatalog::defaultAllows($this, $permission);
     }
@@ -449,6 +471,10 @@ public function canAccessModule(string $module): bool
 {
     $module = strtolower($module);
 
+    if (!$this->activo || !isset(self::modulePermissionMap()[$module])) {
+        return false;
+    }
+
     if ($module === self::MODULE_PASTEURIZADORA && $this->usesPasteurizadoraExcentricosAccessProfile()) {
         return true;
     }
@@ -476,6 +502,14 @@ public function canAccessModuleByDefault(string $module): bool
 {
     $module = strtolower($module);
     $permission = self::modulePermissionMap()[$module] ?? null;
+
+    if (!$this->activo || !$permission) {
+        return false;
+    }
+
+    if (!$this->hasAnyRole(array_keys(self::roleLabels()))) {
+        return $this->hasPermissionThroughRoleSafely($permission);
+    }
 
     if ($this->hasRole(self::ROLE_ADMIN)) {
         return true;

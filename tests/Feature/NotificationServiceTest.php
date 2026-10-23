@@ -34,8 +34,8 @@ class NotificationServiceTest extends TestCase
             'activo' => true,
         ]);
 
-        $targetUser = User::factory()->create();
-        $otherUser = User::factory()->create();
+        $targetUser = User::factory()->withRole(User::ROLE_TECNICO)->create();
+        $otherUser = User::factory()->withRole(User::ROLE_TECNICO)->create();
 
         UserNotificationSetting::create([
             'user_id' => $targetUser->id,
@@ -101,7 +101,7 @@ class NotificationServiceTest extends TestCase
             'activo' => true,
         ]);
 
-        $targetUser = User::factory()->create();
+        $targetUser = User::factory()->withRole(User::ROLE_TECNICO)->create();
 
         UserNotificationSetting::create([
             'user_id' => $targetUser->id,

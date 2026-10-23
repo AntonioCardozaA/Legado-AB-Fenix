@@ -435,6 +435,20 @@ class AccessPermissionCatalog
 
     private static function allows(User $user, string $permission, bool $includeDirectUserPermissions): bool
     {
+        if (!$user->activo || !in_array($permission, self::names(), true)) {
+            return false;
+        }
+
+        if (!$user->hasAnyRole(array_keys(User::roleLabels()))) {
+            // Account management is available without granting operational access.
+            if (in_array($permission, ['ver perfil', 'editar perfil', 'ver notificaciones', 'gestionar notificaciones'], true)) {
+                return true;
+            }
+
+            return $includeDirectUserPermissions
+                && $user->getAllPermissions()->contains('name', $permission);
+        }
+
         if ($user->hasPasteurizadoraExcentricosRole()) {
             return $permission === User::PERMISSION_CAPTURE_PASTEURIZADORA_EXCENTRICOS;
         }

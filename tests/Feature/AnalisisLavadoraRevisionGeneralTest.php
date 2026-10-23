@@ -27,7 +27,7 @@ class AnalisisLavadoraRevisionGeneralTest extends TestCase
     {
         $this->withoutExceptionHandling();
 
-        $user = User::factory()->create();
+        $user = User::factory()->withRole(User::ROLE_TECNICO)->create();
         $linea = $this->crearLinea('L-04');
 
         $response = $this->actingAs($user)->get(route('analisis-lavadora.index', [
@@ -43,7 +43,7 @@ class AnalisisLavadoraRevisionGeneralTest extends TestCase
     {
         $this->withoutExceptionHandling();
 
-        $user = User::factory()->create();
+        $user = User::factory()->withRole(User::ROLE_TECNICO)->create();
         $linea = $this->crearLinea('L-04');
 
         $response = $this->actingAs($user)->get(route('analisis-lavadora.revision-general.create', [
@@ -68,7 +68,7 @@ class AnalisisLavadoraRevisionGeneralTest extends TestCase
 
         Carbon::setTestNow('2026-08-28 08:00:00');
 
-        $user = User::factory()->create();
+        $user = User::factory()->withRole(User::ROLE_TECNICO)->create();
         $linea = $this->crearLinea('L-04');
         $expectedCount = LavadoraRevisionPeriodicityService::CANTIDADES_POR_LADO['L-04'] * 2;
 
@@ -146,7 +146,7 @@ class AnalisisLavadoraRevisionGeneralTest extends TestCase
 
         Carbon::setTestNow('2026-08-28 08:00:00');
 
-        $user = User::factory()->create();
+        $user = User::factory()->withRole(User::ROLE_TECNICO)->create();
         $linea = $this->crearLinea('L-04');
         $guiaSuperior = $this->crearComponente($linea, 'GUI_SUP_TANQUE', 'Reductor 1');
         $catarina = $this->crearComponente($linea, 'CATARINAS', 'Reductor 9');

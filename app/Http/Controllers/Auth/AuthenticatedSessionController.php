@@ -47,6 +47,8 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
+        $request->session()->put('auth_session_version', (int) $request->user()->session_version);
+
         $request->session()->forget('url.intended');
 
         if ($request->user()?->usesPasteurizadoraExcentricosAccessProfile()) {

@@ -38,7 +38,7 @@ class ElongacionCycleTest extends TestCase
             'created_at' => now(),
         ]);
 
-        $response = $this->actingAs(User::factory()->create())
+        $response = $this->actingAs(User::factory()->withRole(User::ROLE_TECNICO)->create())
             ->get(route('elongaciones.index'));
 
         $response->assertOk();
@@ -70,7 +70,7 @@ class ElongacionCycleTest extends TestCase
             'updated_at' => '2026-05-09 18:00:00',
         ]);
 
-        $response = $this->actingAs(User::factory()->create())
+        $response = $this->actingAs(User::factory()->withRole(User::ROLE_TECNICO)->create())
             ->get(route('elongaciones.index', ['linea' => 'L-04']));
 
         $response->assertOk();
@@ -100,7 +100,7 @@ class ElongacionCycleTest extends TestCase
             'updated_at' => '2026-05-01 18:00:00',
         ]);
 
-        $response = $this->actingAs(User::factory()->create())
+        $response = $this->actingAs(User::factory()->withRole(User::ROLE_TECNICO)->create())
             ->get(route('elongaciones.index', ['linea' => 'L-05']));
 
         $response->assertOk();
@@ -135,7 +135,7 @@ class ElongacionCycleTest extends TestCase
             'updated_at' => '2026-06-25 18:00:00',
         ]);
 
-        $response = $this->actingAs(User::factory()->create())
+        $response = $this->actingAs(User::factory()->withRole(User::ROLE_TECNICO)->create())
             ->get(route('elongaciones.index', ['linea' => 'L-04']));
 
         $response->assertOk();
@@ -153,7 +153,7 @@ class ElongacionCycleTest extends TestCase
 
     public function test_store_creates_new_cycle_and_closes_previous_active_cycle(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->withRole(User::ROLE_TECNICO)->create();
         $linea = $this->crearLinea('L-04');
         $cicloActivo = $this->crearCiclo('L-04', 1, 'Proveedor anterior', [
             'linea_id' => $linea->id,
@@ -206,7 +206,7 @@ class ElongacionCycleTest extends TestCase
 
     public function test_store_without_new_cycle_uses_active_cycle(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->withRole(User::ROLE_TECNICO)->create();
         $linea = $this->crearLinea('L-05');
         $cicloActivo = $this->crearCiclo('L-05', 1, 'Proveedor continuidad', [
             'linea_id' => $linea->id,
@@ -229,7 +229,7 @@ class ElongacionCycleTest extends TestCase
 
     public function test_store_uses_previous_record_hodometer_as_interval_for_hours_worked(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->withRole(User::ROLE_TECNICO)->create();
         $linea = $this->crearLinea('L-05');
         $cicloActivo = $this->crearCiclo('L-05', 1, 'Proveedor continuidad', [
             'linea_id' => $linea->id,
@@ -258,7 +258,7 @@ class ElongacionCycleTest extends TestCase
 
     public function test_store_uses_first_real_cycle_hodometer_when_cycle_base_is_zero(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->withRole(User::ROLE_TECNICO)->create();
         $linea = $this->crearLinea('L-05');
         $cicloActivo = $this->crearCiclo('L-05', 1, 'Proveedor continuidad', [
             'linea_id' => $linea->id,
@@ -298,7 +298,7 @@ class ElongacionCycleTest extends TestCase
             'activa' => true,
         ]);
 
-        $response = $this->postElongacion(User::factory()->create(), $this->payloadBase('L-06', [
+        $response = $this->postElongacion(User::factory()->withRole(User::ROLE_TECNICO)->create(), $this->payloadBase('L-06', [
             'linea' => 'L-06',
             'cadena_ciclo_id' => $cicloCerrado->id,
         ]));
@@ -309,7 +309,7 @@ class ElongacionCycleTest extends TestCase
 
     public function test_store_creates_internal_notification_when_elongacion_reaches_purchase_limit(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->withRole(User::ROLE_TECNICO)->create();
         $linea = $this->crearLinea('L-04');
 
         $this->crearCiclo('L-04', 1, 'Proveedor compra', [
@@ -338,7 +338,7 @@ class ElongacionCycleTest extends TestCase
 
     public function test_store_creates_internal_notification_when_elongacion_exceeds_change_limit(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->withRole(User::ROLE_TECNICO)->create();
         $linea = $this->crearLinea('L-04');
 
         $this->crearCiclo('L-04', 1, 'Proveedor cambio', [

@@ -87,7 +87,7 @@ class AnalisisEtiquetadoraSeparationTest extends TestCase
 
     public function test_store_saves_selected_piece_checklist_for_multi_piece_component(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->withRole(User::ROLE_TECNICO)->create();
         [$linea, $componente] = $this->crearCatalogoEtiquetadora(cantidadTotal: 4);
 
         $response = $this->actingAs($user)->post(route('analisis-etiquetadora.store'), [
@@ -116,7 +116,7 @@ class AnalisisEtiquetadoraSeparationTest extends TestCase
 
     public function test_create_view_renders_piece_checklist_container(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->withRole(User::ROLE_TECNICO)->create();
         [$linea, $componente] = $this->crearCatalogoEtiquetadora(cantidadTotal: 4);
 
         $response = $this->actingAs($user)->get(route('analisis-etiquetadora.create', [
@@ -132,7 +132,7 @@ class AnalisisEtiquetadoraSeparationTest extends TestCase
 
     public function test_historial_without_linea_redirects_to_first_etiquetadora_line(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->withRole(User::ROLE_TECNICO)->create();
         [$linea] = $this->crearCatalogoEtiquetadora(cantidadTotal: 4);
 
         $response = $this->actingAs($user)->get(route('analisis-etiquetadora.historial'));
@@ -144,8 +144,8 @@ class AnalisisEtiquetadoraSeparationTest extends TestCase
 
     public function test_historial_counts_unique_reviewed_pieces_without_mixing_machines(): void
     {
-        $primerUsuario = User::factory()->create(['name' => 'Inspector A']);
-        $ultimoUsuario = User::factory()->create(['name' => 'Inspector B']);
+        $primerUsuario = User::factory()->withRole(User::ROLE_TECNICO)->create(['name' => 'Inspector A']);
+        $ultimoUsuario = User::factory()->withRole(User::ROLE_TECNICO)->create(['name' => 'Inspector B']);
         [$linea, $componenteA] = $this->crearCatalogoEtiquetadora(cantidadTotal: 4);
 
         $componenteB = Componente::create([
@@ -239,7 +239,7 @@ class AnalisisEtiquetadoraSeparationTest extends TestCase
 
     public function test_historial_keeps_same_component_separated_by_machine(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->withRole(User::ROLE_TECNICO)->create();
         $linea = Linea::create([
             'nombre' => 'L-04',
             'descripcion' => 'Linea 04 Etiquetadora',
@@ -283,7 +283,7 @@ class AnalisisEtiquetadoraSeparationTest extends TestCase
 
     public function test_historial_keeps_line_specific_components_only_on_matching_line(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->withRole(User::ROLE_TECNICO)->create();
         $lineaL04 = Linea::create([
             'nombre' => 'L-04',
             'descripcion' => 'Linea 04 Etiquetadora',
@@ -385,7 +385,7 @@ class AnalisisEtiquetadoraSeparationTest extends TestCase
 
     public function test_detail_modal_history_uses_analysis_history_view(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->withRole(User::ROLE_TECNICO)->create();
         [$linea, $componente] = $this->crearCatalogoEtiquetadora(cantidadTotal: 4);
 
         AnalisisEtiquetadora::create([
@@ -460,7 +460,7 @@ class AnalisisEtiquetadoraSeparationTest extends TestCase
 
     public function test_store_blocks_duplicate_pieces_inside_active_etiquetadora_cycle(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->withRole(User::ROLE_TECNICO)->create();
         [$linea, $componente] = $this->crearCatalogoEtiquetadora(cantidadTotal: 4);
 
         AnalisisEtiquetadora::create([
@@ -500,7 +500,7 @@ class AnalisisEtiquetadoraSeparationTest extends TestCase
 
     public function test_completed_etiquetadora_cycle_allows_starting_a_new_cycle(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->withRole(User::ROLE_TECNICO)->create();
         [$linea, $componente] = $this->crearCatalogoEtiquetadora(cantidadTotal: 4);
 
         foreach ([[1, 2], [3, 4]] as $index => $piezas) {
@@ -548,7 +548,7 @@ class AnalisisEtiquetadoraSeparationTest extends TestCase
 
     public function test_index_action_switches_between_continue_and_new_record_by_cycle_state(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->withRole(User::ROLE_TECNICO)->create();
         [$linea, $componente] = $this->crearCatalogoEtiquetadora(cantidadTotal: 4);
 
         AnalisisEtiquetadora::create([
@@ -600,7 +600,7 @@ class AnalisisEtiquetadoraSeparationTest extends TestCase
 
     public function test_index_renders_line_specific_labeling_process_diagram(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->withRole(User::ROLE_TECNICO)->create();
         $this->crearCatalogoEtiquetadora();
         $lineaL05 = Linea::create([
             'nombre' => 'L-05',
@@ -688,7 +688,7 @@ class AnalisisEtiquetadoraSeparationTest extends TestCase
 
     public function test_index_renders_line_four_with_real_bottle_and_real_labels(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->withRole(User::ROLE_TECNICO)->create();
         [$linea] = $this->crearCatalogoEtiquetadora();
 
         $response = $this->actingAs($user)->get(route('analisis-etiquetadora.index', [
@@ -721,7 +721,7 @@ class AnalisisEtiquetadoraSeparationTest extends TestCase
 
     public function test_index_renders_line_ten_with_real_barrilito_bottle(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->withRole(User::ROLE_TECNICO)->create();
         $linea = Linea::create([
             'nombre' => 'L-10',
             'descripcion' => 'Linea 10 Etiquetadora',
@@ -763,7 +763,7 @@ class AnalisisEtiquetadoraSeparationTest extends TestCase
 
     public function test_index_renders_line_twelve_with_three_real_modelo_bottles(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->withRole(User::ROLE_TECNICO)->create();
         $linea = Linea::create([
             'nombre' => 'L-12',
             'descripcion' => 'Linea 12 Etiquetadora',
@@ -813,7 +813,7 @@ class AnalisisEtiquetadoraSeparationTest extends TestCase
 
     public function test_index_renders_line_thirteen_with_shared_bottle_and_real_labels(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->withRole(User::ROLE_TECNICO)->create();
         $linea = Linea::create([
             'nombre' => 'L-13',
             'descripcion' => 'Linea 13 Etiquetadora',
@@ -858,7 +858,7 @@ class AnalisisEtiquetadoraSeparationTest extends TestCase
 
     public function test_index_renders_all_bottles_for_multi_presentation_line(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->withRole(User::ROLE_TECNICO)->create();
         $linea = Linea::create([
             'nombre' => 'L-06',
             'descripcion' => 'Linea 06 Etiquetadora',
@@ -927,7 +927,7 @@ class AnalisisEtiquetadoraSeparationTest extends TestCase
 
     public function test_index_hides_piece_quantities_and_progress_summary_for_multi_piece_components(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->withRole(User::ROLE_TECNICO)->create();
         [$linea, $componente] = $this->crearCatalogoEtiquetadora(cantidadTotal: 4);
 
         AnalisisEtiquetadora::create([
@@ -960,7 +960,7 @@ class AnalisisEtiquetadoraSeparationTest extends TestCase
 
     public function test_index_hides_quantities_when_component_has_no_analysis(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->withRole(User::ROLE_TECNICO)->create();
         [$linea] = $this->crearCatalogoEtiquetadora(cantidadTotal: 4);
 
         $response = $this->actingAs($user)->get(route('analisis-etiquetadora.index', [
@@ -978,7 +978,7 @@ class AnalisisEtiquetadoraSeparationTest extends TestCase
 
     public function test_index_ignores_components_and_records_from_another_etiquetadora_line(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->withRole(User::ROLE_TECNICO)->create();
         [$linea, $componente] = $this->crearCatalogoEtiquetadora();
         $lineaAjena = Linea::create([
             'nombre' => 'L-05',
@@ -1010,6 +1010,9 @@ class AnalisisEtiquetadoraSeparationTest extends TestCase
             'actividad' => 'Registro con componente de otra linea',
         ]);
 
+        // This assertion concerns the analysis list, not the global alert dropdown.
+        $user->notifications()->delete();
+
         $response = $this->actingAs($user)->get(route('analisis-etiquetadora.index', [
             'linea_id' => $linea->id,
             'maquina' => 'A',
@@ -1035,7 +1038,7 @@ class AnalisisEtiquetadoraSeparationTest extends TestCase
 
     public function test_index_keeps_line_specific_components_only_on_matching_line_and_trims_redundant_line_prefix(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->withRole(User::ROLE_TECNICO)->create();
         $lineaL04 = Linea::create([
             'nombre' => 'L-04',
             'descripcion' => 'Linea 04 Etiquetadora',
@@ -1104,7 +1107,7 @@ class AnalisisEtiquetadoraSeparationTest extends TestCase
 
     public function test_index_hides_presentation_group_label_for_platos_giratorios(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->withRole(User::ROLE_TECNICO)->create();
         $linea = Linea::create([
             'nombre' => 'L-04',
             'descripcion' => 'Linea 04 Etiquetadora',
@@ -1256,7 +1259,7 @@ class AnalisisEtiquetadoraSeparationTest extends TestCase
 
     public function test_index_store_historial_and_filters_keep_tulipa_and_goma_independent(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->withRole(User::ROLE_TECNICO)->create();
         $linea = Linea::create([
             'nombre' => 'L-04',
             'descripcion' => 'Linea 04 Etiquetadora',

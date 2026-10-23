@@ -15,7 +15,7 @@ class SendElongacionStatusNotificationsCommandTest extends TestCase
 
     public function test_command_supports_dry_run_and_sends_only_once_per_latest_record(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->withRole(User::ROLE_TECNICO)->create();
         $linea = Linea::create([
             'nombre' => 'L-04',
             'descripcion' => 'Linea de prueba',
@@ -75,7 +75,7 @@ class SendElongacionStatusNotificationsCommandTest extends TestCase
 
     public function test_command_ignores_status_alerts_from_closed_cycles(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->withRole(User::ROLE_TECNICO)->create();
         $linea = Linea::create([
             'nombre' => 'L-04',
             'descripcion' => 'Linea de prueba',
