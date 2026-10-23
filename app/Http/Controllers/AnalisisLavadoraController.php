@@ -40,13 +40,29 @@ class AnalisisLavadoraController extends Controller
      */
 public function index(Request $request)
 {
+    $lineaPorDefecto = Linea::where('activo', true)
+        ->where('nombre', 'L-04')
+        ->first();
+    $lineaSolicitada = $request->input('linea_id');
+    $lineaId = filled($lineaSolicitada) && $lineaSolicitada !== 'todas'
+        ? (int) $lineaSolicitada
+        : $lineaPorDefecto?->id;
+    $lineaSeleccionada = $lineaId
+        ? Linea::where('activo', true)->find($lineaId)
+        : null;
+    $lineaId = $lineaSeleccionada?->id ?? $lineaPorDefecto?->id;
+
+    if ($lineaId) {
+        $request->merge(['linea_id' => $lineaId]);
+    }
+
     $query = AnalisisLavadora::ultimosPorComponente()
         ->with(['linea', 'componente', 'usuario', 'usuarioCorreccion'])
         ->ordenVigente();
 
     // FILTROS
-    if ($request->filled('linea_id') && $request->linea_id !== 'todas') {
-        $query->where('linea_id', $request->linea_id);
+    if ($lineaId) {
+        $query->where('linea_id', $lineaId);
     }
 
     // Filtro por nombre de línea (desde el componente detail)
@@ -88,8 +104,8 @@ public function index(Request $request)
         ->with(['linea', 'componente', 'usuario', 'usuarioCorreccion']);
     
     // Aplicar los mismos filtros que al listado
-    if ($request->filled('linea_id') && $request->linea_id !== 'todas') {
-        $queryEstadisticas->where('linea_id', $request->linea_id);
+    if ($lineaId) {
+        $queryEstadisticas->where('linea_id', $lineaId);
     }
     
     if ($request->filled('linea_nombre')) {
@@ -134,22 +150,12 @@ public function index(Request $request)
     'L-13' => 'linea13.png',
     ];
     // Determinar qué líneas mostrar y los reductores
-    $lineaMostrar = 'Todas las líneas';
-    $reductoresMostrar = [];
-    $lineaSeleccionadaParaDiagrama = null;
+    $lineaSeleccionadaParaDiagrama = $lineaSeleccionada;
+    $lineaMostrar = $lineaSeleccionada?->nombre ?? 'L-04';
+    $reductoresMostrar = $lineaSeleccionada
+        ? $this->getReductoresPorLinea($lineaSeleccionada->nombre)
+        : [];
     
-    if ($request->filled('linea_id') && $request->linea_id !== 'todas') {
-        $linea = Linea::find($request->linea_id);
-        if ($linea) {
-            $lineaMostrar = $linea->nombre;
-            $reductoresMostrar = $this->getReductoresPorLinea($lineaMostrar);
-            $lineaSeleccionadaParaDiagrama = $linea;
-        }
-    } else {
-        // Si es "todas" o no hay línea seleccionada, no filtramos por línea
-        $reductoresMostrar = []; // Se usarán los reductores de cada línea en la vista
-    }
-
     $analisisMonitorDiagrama = collect();
 
     if ($lineaSeleccionadaParaDiagrama) {
