@@ -854,7 +854,7 @@
             width: 100%;
         }
     }
-    
+
     @media (max-width: 768px) {
         .filters-section {
             padding: 16px;
@@ -1487,13 +1487,6 @@
             </h1>
         </div>
 
-        <div class="create-actions create-actions--end">
-            <a href="{{ route('analisis-lavadora.select-linea') }}"
-               class="create-action">
-                <i class="fas fa-plus-circle"></i>
-                Nuevo Análisis
-            </a>
-        </div>
     </div>
 
     {{-- FILTROS ESTILO IMAGEN - CON VER MÁS FUNCIONAL --}}
@@ -1523,6 +1516,13 @@
         $etiquetaReductorValorLinea = fn ($lineaNombre, $reductor, bool $uppercase = false) => \App\Support\LavadoraCatalog::etiquetaReductorParaValor($lineaNombre, $reductor, $uppercase);
         $nombreReductorLinea = fn ($lineaNombre, $reductor) => \App\Support\LavadoraCatalog::nombreReductorParaLinea($lineaNombre, $reductor) ?? $reductor;
         $ubicacionReductorLinea = fn ($lineaNombre, $reductor) => \App\Support\LavadoraCatalog::ubicacionReductorConModelo($lineaNombre, $reductor) ?? $reductor;
+        $ubicacionReductorComponente = fn ($lineaNombre, $reductor, $componenteCodigo = null, $componenteNombre = null) =>
+            \App\Support\LavadoraCatalog::ubicacionReductorParaComponente(
+                $lineaNombre,
+                $reductor,
+                $componenteCodigo,
+                $componenteNombre
+            ) ?? $reductor;
         $skuResumenComponente = fn ($lineaNombre, $codigo) => \App\Support\LavadoraCatalog::resumenSkuComponente($lineaNombre, $codigo);
         $nombreComponenteLavadora = fn ($nombre, $codigo = null) =>
             \App\Support\LavadoraCatalog::nombreVisibleComponente($nombre, $codigo);
@@ -1537,10 +1537,8 @@
             ? $analisisCollection->pluck('linea_id')->filter()->unique()->values()
             : collect();
         
-        // Determinar si mostrar todas las lavadoras (por defecto TRUE)
-        // NO mostrar todas si hay filtros de componente, reductor o linea_nombre
-        $mostrarTodas = !request('linea_id') || request('linea_id') === 'todas';
-        $mostrarTodas = $mostrarTodas && !request('componente') && !request('reductor') && !request('linea_nombre');
+        // La vista trabaja siempre sobre una lavadora concreta.
+        $mostrarTodas = false;
         
         // Filtrar líneas permitidas
         $lineasFiltradas = $lineas->filter(function($linea) use ($lavadorasPermitidas) {
@@ -1574,12 +1572,6 @@
             <div class="lineas-title">
                 <i class="fas fa-washing-machine"></i>
                 LÍNEAS DE LAVADORA:
-                <!-- Todas -->
-                <a href="{{ route('analisis-lavadora.index', ['linea_id' => 'todas']) }}" 
-                   class="linea-item {{ $mostrarTodas ? 'active' : '' }}">
-                    <i class="fas fa-globe"></i>
-                    Todas
-                </a>
             </div>
             
             <form method="GET" action="{{ route('analisis-lavadora.index') }}" id="filterForm" data-auto-filter-form>
@@ -1611,7 +1603,7 @@
                         <i id="advancedFiltersIcon" class="fas fa-chevron-down ml-1"></i>
                     </div>
                     
-                    <a href="{{ route('analisis-lavadora.index', ['linea_id' => 'todas']) }}" class="btn-clear">
+                    <a href="{{ route('analisis-lavadora.index', ['linea_id' => request('linea_id')]) }}" class="btn-clear">
                         <i class="fas fa-times"></i>
                         Limpiar
                     </a>
@@ -2480,7 +2472,12 @@
                                                         ),
                                                         'componente_codigo' => $registro->componente->codigo ?? $c->id,
                                                         'reductor' => $registro->reductor,
-                                                        'reductor_label' => $ubicacionReductorLinea($registro->linea->nombre ?? $linea->nombre, $registro->reductor),
+                                                        'reductor_label' => $ubicacionReductorComponente(
+                                                            $registro->linea->nombre ?? $linea->nombre,
+                                                            $registro->reductor,
+                                                            $registro->componente->codigo ?? $c->id,
+                                                            $registro->componente->nombre ?? $c->nombre
+                                                        ),
                                                         'reductor_tipo_label' => $etiquetaReductorValorLinea($registro->linea->nombre ?? $linea->nombre, $registro->reductor),
                                                         'lado' => $registro->lado ?? null,
                                                         'fecha_analisis' => isset($registro->fecha_analisis) ? $registro->fecha_analisis->format('d/m/Y') : '',
@@ -3063,7 +3060,12 @@
                                                     ),
                                                     'componente_codigo' => $registro->componente->codigo ?? '',
                                                     'reductor' => $registro->reductor,
-                                                    'reductor_label' => $ubicacionReductorLinea($registro->linea->nombre ?? ($lineaMostrar->nombre ?? null), $registro->reductor),
+                                                    'reductor_label' => $ubicacionReductorComponente(
+                                                        $registro->linea->nombre ?? ($lineaMostrar->nombre ?? null),
+                                                        $registro->reductor,
+                                                        $registro->componente->codigo ?? '',
+                                                        $registro->componente->nombre ?? 'Sin nombre'
+                                                    ),
                                                     'reductor_tipo_label' => $etiquetaReductorValorLinea($registro->linea->nombre ?? ($lineaMostrar->nombre ?? null), $registro->reductor),
                                                     'lado' => $registro->lado ?? null,
                                                     'fecha_analisis' => isset($registro->fecha_analisis) ? $registro->fecha_analisis->format('d/m/Y') : '',
@@ -3211,7 +3213,6 @@
                                                             <i class="fas fa-clipboard"></i>
                                                         </div>
                                                         <p class="text-gray-500 text-xs mb-3">Sin análisis</p>
-                                                        
                                                         @if($lineaMostrar)
                                                             <a href="{{ route('analisis-lavadora.create-quick',[
                                                                 'linea_id' => $lineaMostrar->id,
@@ -3388,11 +3389,6 @@
                         @endforeach
                     </div>
                     
-                    <a href="{{ route('analisis-lavadora.select-linea') }}"
-                       class="create-action">
-                        <i class="fas fa-plus-circle"></i>
-                        Nuevo Análisis
-                    </a>
                 </div>
             @endif
         @endif
