@@ -417,27 +417,27 @@
 }
 
 .monitor-severity-green {
-    --monitor-color: #14b86a;
-    --monitor-rgb: 20, 184, 106;
-    --monitor-dark: #063f2b;
+    --monitor-color: #10b981;
+    --monitor-rgb: 16, 185, 129;
+    --monitor-dark: #065f46;
 }
 
 .monitor-severity-yellow {
-    --monitor-color: #f4c430;
-    --monitor-rgb: 244, 196, 48;
-    --monitor-dark: #4a3600;
+    --monitor-color: #f59e0b;
+    --monitor-rgb: 245, 158, 11;
+    --monitor-dark: #78350f;
 }
 
 .monitor-severity-orange {
-    --monitor-color: #ff7a1a;
-    --monitor-rgb: 255, 122, 26;
-    --monitor-dark: #4a1f00;
+    --monitor-color: #f97316;
+    --monitor-rgb: 249, 115, 22;
+    --monitor-dark: #7c2d12;
 }
 
 .monitor-severity-red {
-    --monitor-color: #ef233c;
-    --monitor-rgb: 239, 35, 60;
-    --monitor-dark: #4b0710;
+    --monitor-color: #ef4444;
+    --monitor-rgb: 239, 68, 68;
+    --monitor-dark: #7f1d1d;
 }
 
 .monitor-reductor-pulse,
@@ -447,6 +447,12 @@
 .monitor-componente-label-bg,
 .monitor-alert-icon {
     vector-effect: non-scaling-stroke;
+}
+
+.monitor-reductor-pulse,
+.monitor-reductor-halo,
+.monitor-reductor-core {
+    transition: fill 280ms ease, stroke 280ms ease, filter 280ms ease;
 }
 
 .monitor-reductor-pulse {

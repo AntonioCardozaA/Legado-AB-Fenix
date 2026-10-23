@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\Lef52124WorkbookExport;
 use App\Models\Lef52124Import;
 use App\Models\Lef52124Item;
 use App\Models\Linea;
 use App\Models\User;
+use App\Services\Lef52124DataService;
 use App\Services\Lef52124ImportService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -13,6 +15,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
+use Maatwebsite\Excel\Facades\Excel;
 
 class Lef52124Controller extends Controller
 {
@@ -56,6 +59,37 @@ class Lef52124Controller extends Controller
         ]);
 
         return response()->json($this->dataService->dataPayload($validated));
+    }
+
+    public function exportExcel()
+    {
+        $lineas = $this->dataService->lineas();
+        $lineaIds = $lineas->modelKeys();
+        $startDate = Carbon::create(2025, 1, 1)->startOfDay();
+        $endDate = now()->endOfDay();
+        $imports = Lef52124Import::with([
+            'linea:id,nombre',
+            'items' => fn ($query) => $query
+                ->whereIn('type', [Lef52124Item::TYPE_MACHINE, Lef52124Item::TYPE_LINE])
+                ->orderBy('item_name'),
+        ])
+            ->whereIn('linea_id', $lineaIds)
+            ->where('status', 'success')
+            ->whereBetween('data_date', [$startDate->toDateString(), $endDate->toDateString()])
+            ->orderBy('data_date')
+            ->orderBy('created_at')
+            ->get();
+
+        if ($imports->isEmpty()) {
+            return redirect()
+                ->route('lef52124.index')
+                ->with('warning', 'No hay datos 52-12-4 entre 2025 y la fecha actual de 2026 para descargar.');
+        }
+
+        return Excel::download(
+            new Lef52124WorkbookExport($imports, $lineas, $startDate, $endDate),
+            '52-12-4-todas-las-lineas-2025-a-'.now()->format('Y-m-d').'.xlsx'
+        );
     }
 
     public function washerMachineTrend(Request $request): JsonResponse

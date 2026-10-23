@@ -6,7 +6,12 @@
 @php
     $puedeEditarFechaAnalisis = $puedeEditarFechaAnalisis ?? false;
     $reductorLabel = \App\Support\LavadoraCatalog::etiquetaReductorParaValor($analisisComponente->linea->nombre ?? null, $analisisComponente->reductor);
-    $reductorNombre = \App\Support\LavadoraCatalog::nombreReductorParaLinea($analisisComponente->linea->nombre ?? null, $analisisComponente->reductor);
+    $reductorNombre = \App\Support\LavadoraCatalog::ubicacionReductorParaComponente(
+        $analisisComponente->linea->nombre ?? null,
+        $analisisComponente->reductor,
+        $analisisComponente->componente->codigo ?? null,
+        $analisisComponente->componente->nombre ?? null
+    );
 @endphp
 <div class="max-w-4xl mx-auto py-10 px-4">
     {{-- Header --}}
@@ -75,7 +80,10 @@
         <div>
             <p class="text-gray-600 font-semibold">Componente</p>
             <p class="text-gray-800">
-                {{ $analisisComponente->componente->nombre ?? 'Componente no encontrado' }}
+                {{ \App\Support\LavadoraCatalog::nombreVisibleComponente(
+                    $analisisComponente->componente->nombre ?? 'Componente no encontrado',
+                    $analisisComponente->componente->codigo ?? null
+                ) }}
                 @if($analisisComponente->componente->codigo ?? false)
                   
                 @endif

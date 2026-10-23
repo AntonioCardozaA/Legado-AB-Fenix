@@ -11,6 +11,9 @@ class LavadoraCatalog
 
     public const REDUCTOR_PRINCIPAL = 'Reductor Principal';
     public const FLECHA_LOCA = 'Flecha Loca';
+    public const REDUCTOR_SIN_FIN_CORONA_VISIBLE = 'REDUCTOR SIN FIN CORONA';
+    public const REDUCTOR_SIN_FIN_CORONA_MODELO_RV200 = 'RV200 Sin Fin Corona';
+    public const REDUCTOR_SIN_FIN_CORONA_MODELO_RV250 = 'RV250 Sin Fin Corona';
 
     public const PASO_CADENA_POR_LINEA = [
         'L-04' => 173,
@@ -44,8 +47,8 @@ class LavadoraCatalog
         'GUI_INT_TAQNQUE' => 'Guia Int Tanque',
         'GUI_SUP_TANQUE' => 'Guia Sup Tanque',
         'CATARINAS' => 'Catarinas',
-        'RV200' => 'RV250 Sin Fin Corona',
-        'RV200_SIN_FIN' => 'RV250 Sin Fin Corona',
+        'RV200' => self::REDUCTOR_SIN_FIN_CORONA_VISIBLE,
+        'RV200_SIN_FIN' => self::REDUCTOR_SIN_FIN_CORONA_VISIBLE,
     ];
 
     public const COMPONENTE_SKUS = [
@@ -93,7 +96,7 @@ class LavadoraCatalog
             'CATARINAS' => 'Catarinas',
         ],
         'L-05' => [
-            'RV200' => 'RV250 Sin Fin Corona',
+            'RV200' => self::REDUCTOR_SIN_FIN_CORONA_VISIBLE,
             'BUJE_ESPIGA' => 'Buje Baquelita-Espiga de flecha',
             'GUI_INF_TANQUE' => 'Guia Inferior',
             'GUI_INT_TANQUE' => 'Guia Intermedia',
@@ -137,7 +140,7 @@ class LavadoraCatalog
             'CATARINAS' => 'Catarinas',
         ],
         'L-12' => [
-            'RV200_SIN_FIN' => 'RV250 Sin Fin Corona',
+            'RV200_SIN_FIN' => self::REDUCTOR_SIN_FIN_CORONA_VISIBLE,
             'BUJE_ESPIGA' => 'Buje Baquelita-Espiga de flecha',
             'GUI_INF_TANQUE' => 'Guia Inferior',
             'GUI_INT_TANQUE' => 'Guia Intermedia',
@@ -145,7 +148,7 @@ class LavadoraCatalog
             'CATARINAS' => 'Catarinas',
         ],
         'L-13' => [
-            'RV200' => 'RV250 Sin Fin Corona',
+            'RV200' => self::REDUCTOR_SIN_FIN_CORONA_VISIBLE,
             'BUJE_ESPIGA' => 'Buje Baquelita-Espiga de flecha',
             'GUI_INF_TANQUE' => 'Guia Inferior',
             'GUI_INT_TANQUE' => 'Guia Intermedia',
@@ -315,6 +318,61 @@ class LavadoraCatalog
         return self::COMPONENTE_NOMBRES[$codigo] ?? $codigo;
     }
 
+    /**
+     * Devuelve el modelo físico del reductor instalado en una ubicación.
+     * La regla aplica únicamente a las líneas 5, 12 y 13.
+     */
+    public static function modeloReductorSinFinCorona(?string $lineaNombre, ?string $reductor): string
+    {
+        $reductor = self::normalizarReductor($reductor);
+
+        return self::lineaTieneReductoresReales($lineaNombre)
+            && $reductor === 'Reductor 2'
+            ? 'RV250'
+            : 'RV200';
+    }
+
+    public static function nombreComponenteParaLinea(
+        ?string $lineaNombre,
+        ?string $reductor,
+        ?string $codigo,
+        ?string $nombre = null
+    ): string {
+        $codigoNormalizado = strtoupper(trim((string) $codigo));
+
+        if (self::esReductorSinFinCorona($codigoNormalizado, null)) {
+            $modelo = self::modeloReductorSinFinCorona($lineaNombre, $reductor);
+
+            return $modelo === 'RV250'
+                ? self::REDUCTOR_SIN_FIN_CORONA_MODELO_RV250
+                : self::REDUCTOR_SIN_FIN_CORONA_MODELO_RV200;
+        }
+
+        return trim((string) $nombre) !== ''
+            ? (string) $nombre
+            : self::nombreComponente($codigoNormalizado);
+    }
+
+    public static function esReductorSinFinCorona(?string $codigo = null, ?string $nombre = null): bool
+    {
+        $codigoNormalizado = strtoupper(trim((string) $codigo));
+        $nombreNormalizado = Str::of((string) $nombre)->ascii()->upper()->squish()->value();
+
+        return str_contains($codigoNormalizado, 'RV200')
+            || str_contains($codigoNormalizado, 'RV250')
+            || (str_contains($nombreNormalizado, 'SIN FIN') && str_contains($nombreNormalizado, 'CORONA'))
+            || preg_match('/\bRV\s*(?:200|250)\b/', $nombreNormalizado) === 1;
+    }
+
+    public static function nombreVisibleComponente(?string $nombre, ?string $codigo = null): string
+    {
+        if (self::esReductorSinFinCorona($codigo, $nombre)) {
+            return self::REDUCTOR_SIN_FIN_CORONA_VISIBLE;
+        }
+
+        return trim((string) $nombre) !== '' ? (string) $nombre : '-';
+    }
+
     public static function pasoCadenaLinea(?string $lineaNombre): ?int
     {
         $lineaNombre = self::normalizarLineaSku($lineaNombre);
@@ -418,6 +476,47 @@ class LavadoraCatalog
         }
 
         return $reductor;
+    }
+
+    public static function ubicacionReductorConModelo(?string $lineaNombre, ?string $reductor): ?string
+    {
+        $nombre = self::nombreReductorParaLinea($lineaNombre, $reductor);
+
+        if (
+            !$nombre
+            || !self::lineaTieneReductoresReales($lineaNombre)
+            || preg_match('/^Reductor\s+[0-9]+$/i', $nombre) !== 1
+        ) {
+            return $nombre;
+        }
+
+        $modelo = self::modeloReductorSinFinCorona($lineaNombre, $nombre);
+        $sufijoUbicacion = '';
+        if (preg_match('/^Reductor\s+[0-9]+(.*)$/i', trim((string) $reductor), $matches) === 1) {
+            $sufijoUbicacion = trim($matches[1]);
+        }
+
+        return $nombre . ($sufijoUbicacion !== '' ? ' ' . $sufijoUbicacion : '') . ' — ' . $modelo . ' Sin Fin Corona';
+    }
+
+    /**
+     * Devuelve la ubicación del reductor para un componente específico.
+     * El modelo RV solo corresponde al componente del reductor sin fin corona;
+     * los demás componentes deben mostrar únicamente el nombre y número de ubicación.
+     */
+    public static function ubicacionReductorParaComponente(
+        ?string $lineaNombre,
+        ?string $reductor,
+        ?string $componenteCodigo = null,
+        ?string $componenteNombre = null
+    ): ?string {
+        $nombre = self::nombreReductorParaLinea($lineaNombre, $reductor);
+
+        if (!$nombre || !self::esReductorSinFinCorona($componenteCodigo, $componenteNombre)) {
+            return $nombre;
+        }
+
+        return self::ubicacionReductorConModelo($lineaNombre, $reductor);
     }
 
     public static function normalizarReductor(?string $valor): ?string

@@ -65,7 +65,7 @@
                     <option value="">Todos</option>
                     @foreach($componentes as $componente)
                         <option value="{{ $componente->id }}" @selected(old('componente_id') == $componente->id)>
-                            {{ $componente->nombre }}{{ $componente->codigo ? ' (' . $componente->codigo . ')' : '' }}
+                            {{ \App\Support\LavadoraCatalog::nombreVisibleComponente($componente->nombre, $componente->codigo) }}{{ $componente->codigo ? ' (' . $componente->codigo . ')' : '' }}
                         </option>
                     @endforeach
                 </select>

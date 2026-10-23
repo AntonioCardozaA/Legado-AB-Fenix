@@ -19,6 +19,7 @@ use App\Models\PlanAccion;
 use App\Models\User;
 use App\Models\WasherKnowledgeChunk;
 use App\Models\WasherKnowledgeDocument;
+use App\Support\LavadoraCatalog;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -1655,8 +1656,8 @@ class OperationsPlatformContextService
             'GUI_INT_TANQUE' => 'Guia Intermedia',
             'GUI_SUP_TANQUE' => 'Guia Superior',
             'CATARINAS' => 'Catarinas',
-            'RV200_SIN_FIN' => 'RV250 Sin Fin Corona',
-            'RV200' => 'RV250 Sin Fin Corona',
+            'RV200_SIN_FIN' => LavadoraCatalog::REDUCTOR_SIN_FIN_CORONA_VISIBLE,
+            'RV200' => LavadoraCatalog::REDUCTOR_SIN_FIN_CORONA_VISIBLE,
         ];
 
         return collect($codes)
@@ -2979,7 +2980,12 @@ class OperationsPlatformContextService
                         ->values()
                         ->all(),
                     'top_components' => $records
-                        ->groupBy(fn (AnalisisLavadora $analysis) => $analysis->componente?->nombre ?: 'Sin componente')
+                        ->groupBy(fn (AnalisisLavadora $analysis) => $analysis->componente
+                            ? LavadoraCatalog::nombreVisibleComponente(
+                                $analysis->componente->nombre,
+                                $analysis->componente->codigo
+                            )
+                            : 'Sin componente')
                         ->map(function (Collection $items, string $componentName): array {
                             $codes = $items
                                 ->map(fn (AnalisisLavadora $analysis) => $analysis->componente?->codigo)

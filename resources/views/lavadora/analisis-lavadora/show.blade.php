@@ -13,7 +13,12 @@
         ->values();
     $estado = $analisislavadora->estado;
     $reductorLabel = \App\Support\LavadoraCatalog::etiquetaReductorParaValor($analisislavadora->linea->nombre ?? null, $analisislavadora->reductor);
-    $reductorNombre = \App\Support\LavadoraCatalog::nombreReductorParaLinea($analisislavadora->linea->nombre ?? null, $analisislavadora->reductor);
+    $reductorNombre = \App\Support\LavadoraCatalog::ubicacionReductorParaComponente(
+        $analisislavadora->linea->nombre ?? null,
+        $analisislavadora->reductor,
+        $analisislavadora->componente->codigo ?? null,
+        $analisislavadora->componente->nombre ?? null
+    );
     $estadoStyles = match (true) {
         \App\Models\AnalisisLavadora::esEstadoDanado($estado) => [
             'class' => 'bg-red-50 text-red-700 border-red-200',
@@ -111,9 +116,12 @@
                             {{ $analisislavadora->linea->nombre ?? 'Lavadora ' . $analisislavadora->linea_id }}
                         </h1>
                         <p class="mt-2 max-w-3xl text-sm text-blue-50">
-                            {{ $analisislavadora->componente->nombre ?? 'Componente no asignado' }}
+                            {{ \App\Support\LavadoraCatalog::nombreVisibleComponente(
+                                $analisislavadora->componente->nombre ?? 'Componente no asignado',
+                                $analisislavadora->componente->codigo ?? null
+                            ) }}
                             @if($analisislavadora->reductor)
-                                <span class="mx-2 text-blue-200">|</span>{{ $analisislavadora->reductor }}
+                                <span class="mx-2 text-blue-200">|</span>{{ $reductorNombre }}
                             @endif
                         </p>
                     </div>
@@ -186,7 +194,7 @@
                 </div>
                 <div class="rounded-xl border p-4 {{ $estadoStyles['card'] }}">
                     <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Componente</p>
-                    <p class="mt-2 text-base font-semibold text-gray-900">{{ $analisislavadora->componente->nombre ?? 'N/A' }}</p>
+                    <p class="mt-2 text-base font-semibold text-gray-900">{{ \App\Support\LavadoraCatalog::nombreVisibleComponente($analisislavadora->componente->nombre ?? 'N/A', $analisislavadora->componente->codigo ?? null) }}</p>
                 </div>
                 <div class="rounded-xl border p-4 {{ $estadoStyles['card'] }}">
                     <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">{{ $reductorLabel }}</p>

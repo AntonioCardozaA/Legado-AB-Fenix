@@ -367,7 +367,7 @@
                                             <i class="fas fa-cog flex-shrink-0" style="color: rgb(31, 35, 72);"></i>
                                             <span class="text-xs font-semibold uppercase tracking-wider" style="color: rgb(31, 35, 72);">Componente</span>
                                         </div>
-                                        <p class="history-value font-medium text-gray-800">{{ $item->componente->nombre ?? 'N/A' }}</p>
+                                        <p class="history-value font-medium text-gray-800">{{ \App\Support\LavadoraCatalog::nombreVisibleComponente($item->componente->nombre ?? 'N/A', $item->componente->codigo ?? null) }}</p>
                                     </div>
                                     
                                     <div class="history-info-box bg-gradient-to-br" style="background: linear-gradient(to bottom right, rgba(31, 35, 72, 0.05), white); border-color: rgba(31, 35, 72, 0.2); border-width: 1px; border-style: solid; border-radius: 0.75rem; padding: 1rem;">

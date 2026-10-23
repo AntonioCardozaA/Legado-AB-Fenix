@@ -165,6 +165,7 @@ Route::prefix('pasteurizadora')->group(function () {
             Route::get('/', 'index')->name('index');
             Route::get('/periodos', 'periods')->name('periods');
             Route::get('/datos', 'data')->name('data');
+            Route::get('/exportar/excel', 'exportExcel')->name('export');
             Route::get('/tendencia-lavadora', 'washerMachineTrend')->name('trend.washer-machine');
             Route::get('/costos/datos', 'costData')->name('costs.data');
             Route::post('/costos/importar', 'importCosts')->name('costs.import');

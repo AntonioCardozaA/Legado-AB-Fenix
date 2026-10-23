@@ -205,10 +205,10 @@ class LavadorasSeeder extends Seeder
         $reductoresLinea5 = LavadoraCatalog::reductoresPorLinea('L-05');
 
         foreach ($reductoresLinea5 as $reductor) {
-            // RV250 Sin Fin Corona
+            // Reductor Sin Fin Corona: el modelo se determina por la ubicación.
             $this->createComponente([
                 'codigo' => $this->generateCodigo('L05', $reductor, 'RV200'),
-                'nombre' => 'RV250 Sin Fin Corona',
+                'nombre' => LavadoraCatalog::nombreComponenteParaLinea($linea->nombre, $reductor, 'RV200'),
                 'reductor' => $reductor,
                 'ubicacion' => $reductor,
                 'linea' => $linea->nombre,
@@ -629,10 +629,10 @@ class LavadorasSeeder extends Seeder
         $reductoresLinea12 = LavadoraCatalog::reductoresPorLinea('L-12');
 
         foreach ($reductoresLinea12 as $reductor) {
-            // RV250 Sin Fin Corona
+            // Reductor Sin Fin Corona: el modelo se determina por la ubicación.
             $this->createComponente([
                 'codigo' => $this->generateCodigo('L12', $reductor, 'RV200_SIN_FIN'),
-                'nombre' => 'RV250 Sin Fin Corona',
+                'nombre' => LavadoraCatalog::nombreComponenteParaLinea($linea->nombre, $reductor, 'RV200_SIN_FIN'),
                 'reductor' => $reductor,
                 'ubicacion' => $reductor,
                 'linea' => $linea->nombre,
@@ -705,10 +705,10 @@ class LavadorasSeeder extends Seeder
         $reductoresLinea13 = LavadoraCatalog::reductoresPorLinea('L-13');
 
         foreach ($reductoresLinea13 as $reductor) {
-            // RV250 Sin Fin Corona
+            // Reductor Sin Fin Corona: el modelo se determina por la ubicación.
             $this->createComponente([
                 'codigo' => $this->generateCodigo('L13', $reductor, 'RV200'),
-                'nombre' => 'RV250 Sin Fin Corona',
+                'nombre' => LavadoraCatalog::nombreComponenteParaLinea($linea->nombre, $reductor, 'RV200'),
                 'reductor' => $reductor,
                 'ubicacion' => $reductor,
                 'linea' => $linea->nombre,

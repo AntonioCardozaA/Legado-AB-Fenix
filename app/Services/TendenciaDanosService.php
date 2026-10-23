@@ -6,6 +6,7 @@ use App\Models\AnalisisLavadora;
 use App\Models\AnalisisCentralHidraulica;
 use App\Models\AnalisisPasteurizadora;
 use App\Models\Linea;
+use App\Support\LavadoraCatalog;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
@@ -430,7 +431,10 @@ class TendenciaDanosService
                     'type_key' => $this->normalizarEstadoDano($item->estado),
                     'linea_id' => $item->linea_id,
                     'linea' => $item->linea?->nombre ?? $lineaNombres->get($item->linea_id),
-                    'componente' => $item->componente?->nombre ?? $item->componente?->codigo,
+                    'componente' => LavadoraCatalog::nombreVisibleComponente(
+                        $item->componente?->nombre,
+                        $item->componente?->codigo
+                    ),
                     'componente_codigo' => $item->componente?->codigo,
                     'reductor' => $item->reductor,
                     'lado' => $lado,

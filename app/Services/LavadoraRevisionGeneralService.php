@@ -306,7 +306,7 @@ class LavadoraRevisionGeneralService
         return Componente::firstOrCreate(
             ['codigo' => $this->codigoComponente($linea, $reductor, $codigoBase)],
             [
-                'nombre' => LavadoraCatalog::nombreComponente($codigoBase),
+                'nombre' => LavadoraCatalog::nombreComponenteParaLinea($linea->nombre, $reductor, $codigoBase),
                 'reductor' => $reductor,
                 'ubicacion' => $reductor,
                 'linea' => $linea->nombre,
