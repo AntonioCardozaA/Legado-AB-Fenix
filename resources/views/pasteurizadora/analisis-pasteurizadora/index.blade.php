@@ -1391,6 +1391,25 @@
         min-width: 0;
     }
 
+    .pasteur-diagrama-scroll {
+        max-width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .pasteur-diagrama-imagen {
+        display: block;
+        margin-inline: auto;
+    }
+
+    @media (max-width: 768px) {
+        .pasteur-index-shell .pasteur-diagrama-imagen {
+            width: 100%;
+            min-width: 960px;
+            max-width: none;
+        }
+    }
+
     .pasteur-index-shell > .flex:first-child {
         width: 100%;
         background: transparent;
@@ -1933,11 +1952,11 @@
 
             @if($diagramaPasteurizadoraPath)
                 <div class="mt-4">
-                    <div class="flex justify-center">
+                    <div class="pasteur-diagrama-scroll" tabindex="0" role="region" aria-label="Diagrama de pasteurizadora {{ $lineaSeleccionada->nombre }} con desplazamiento horizontal">
                         <img
                             src="{{ asset($diagramaPasteurizadoraPath) }}"
                             alt="Diagrama Pasteurizadora {{ $lineaSeleccionada->nombre }}"
-                            class="max-w-full h-auto rounded-lg border border-gray-300 shadow-md"
+                            class="pasteur-diagrama-imagen max-w-full h-auto rounded-lg border border-gray-300 shadow-md"
                         >
                     </div>
 
