@@ -2224,30 +2224,20 @@
                                                 $registroNormal = $registrosNormales->first();
                                                 $hasNormalAnalysis = $registroNormal !== null;
                                                 $registro = $registroNormal ?: $registroQuick;
+                                                $numerosAnalisis = $registro?->componentes_revisados_lista ?? [];
                                                 $hasQuickData = $registroQuick !== null;
                                                 $hasData = $registro !== null;
                                                 $isNew = $registro?->created_at && $registro->created_at->gt(now()->subDays(3));
                                                 $totalComponentesComponente = $compData['cantidad'] ?? 0;
+                                                $numerosDelModulo = \App\Models\AnalisisPasteurizadora::getNumerosComponentesPorModulo($linea->nombre, $codigo, $moduloNumero);
                                                 $esBrazoTorsion = \App\Models\AnalisisPasteurizadora::esBrazoTorsion($codigo);
                                                 $requiereLadoComponente = \App\Models\AnalisisPasteurizadora::requiereLado($linea->nombre, $codigo);
                                                 $brazoAplicaModulo = !$esBrazoTorsion || $moduloNumero <= \App\Models\AnalisisPasteurizadora::getCantidadBrazosTorsionPorLinea($linea->nombre);
                                                 
                                                 $componentesRevisadosAcumulados = $hasNormalAnalysis
-                                                    ? collect(\App\Models\AnalisisPasteurizadora::normalizarComponentesRevisados(
-                                                        $registroNormal->componentes_revisados,
-                                                        $totalComponentesComponente
-                                                    ))->values()
+                                                    ? collect($registroNormal->componentes_revisados_lista)->values()
                                                     : $registrosQuick
-                                                        ->flatMap(function ($item) {
-                                                            if (is_array($item->componentes_revisados)) {
-                                                                return $item->componentes_revisados;
-                                                            }
-                                                            if (is_string($item->componentes_revisados)) {
-                                                                $decoded = json_decode($item->componentes_revisados, true);
-                                                                return is_array($decoded) ? $decoded : [];
-                                                            }
-                                                            return [];
-                                                        })
+                                                        ->flatMap(fn ($item) => $item->componentes_revisados_lista)
                                                         ->filter(fn($numeroComponente) => is_numeric($numeroComponente))
                                                         ->map(fn($numeroComponente) => (int) $numeroComponente)
                                                         ->unique()
@@ -2371,14 +2361,7 @@
                                                                 return ($item->created_at?->timestamp ?? 0) . '-' . str_pad((string) $item->id, 10, '0', STR_PAD_LEFT);
                                                             })
                                                             ->map(function ($item) use ($requiereLadoComponente) {
-                                                                $componentes = [];
-
-                                                                if (is_array($item->componentes_revisados)) {
-                                                                    $componentes = $item->componentes_revisados;
-                                                                } elseif (is_string($item->componentes_revisados)) {
-                                                                    $decoded = json_decode($item->componentes_revisados, true);
-                                                                    $componentes = is_array($decoded) ? $decoded : [];
-                                                                }
+                                                                $componentes = $item->componentes_revisados_lista;
 
                                                                 return [
                                                                     'id' => $item->id,
@@ -2407,6 +2390,9 @@
                                                         'historial_url' => $analisisRoute('historial', ['linea_id' => $linea->id, 'modulo' => $moduloNumero, 'componente' => $codigo])
                                                     ]) }})"
                                                 @endif>
+                                                @if(!$esBrazoTorsion && count($numerosDelModulo) > 0)
+                                                    <div class="text-xs font-semibold text-slate-500 mb-2">Piezas #{{ reset($numerosDelModulo) }}–#{{ end($numerosDelModulo) }}</div>
+                                                @endif
                                                 @if($hasData)
                                                     @if($isNew)
                                                         <div class="badge-new">NUEVO</div>
@@ -2431,6 +2417,7 @@
                                                                 <i class="fas fa-map-marker-alt text-blue-600 text-xs"></i>
                                                                 <span class="info-label">Ubicacion:</span>
                                                                 <span class="font-semibold text-gray-800">
+                                                                    {{ collect($numerosAnalisis)->map(fn ($numero) => '#' . $numero)->implode(', ') }}
                                                                     @if($requiereLadoComponente)
                                                                         {{ $registro->lado ? ucfirst(strtolower($registro->lado)) : 'Sin lado' }}
                                                                         {{ $registro->nivel ? '- ' . ucfirst(strtolower($registro->nivel)) : '' }}

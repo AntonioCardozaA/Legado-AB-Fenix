@@ -4188,6 +4188,8 @@ public function pasteurizadoraOperativo(Request $request)
             'nivel' => $item->nivel,
             'componente' => $item->componente,
             'componente_nombre' => $item->componente_nombre,
+            'componentes_revisados' => $item->componentes_revisados_lista,
+            'componentes_revisados_label' => $this->pasteurizadoraNumerosComponentesLabel($item),
             'lado' => $item->lado,
             'numero_orden' => $item->numero_orden,
             'estado' => $item->estado,
@@ -4210,6 +4212,7 @@ public function pasteurizadoraOperativo(Request $request)
             $items[] = [
                 'type' => 'componente',
                 'title' => $analisis->componente_nombre ?? 'Componente crítico',
+                'componentes_revisados_label' => $this->pasteurizadoraNumerosComponentesLabel($analisis),
                 'subtitle' => "Módulo {$analisis->modulo}" . ($analisis->lado ? " · {$analisis->lado}" : ''),
                 'image' => asset("images/componentes-pasteurizadora/{$codigo}.png"),
                 'fallback_image' => asset('images/icono_pas.png'),
@@ -4229,6 +4232,7 @@ public function pasteurizadoraOperativo(Request $request)
             $items[] = [
                 'type' => 'componente',
                 'title' => $analisis->componente_nombre ?? 'Componente con alerta',
+                'componentes_revisados_label' => $this->pasteurizadoraNumerosComponentesLabel($analisis),
                 'subtitle' => "Módulo {$analisis->modulo}" . ($analisis->lado ? " · {$analisis->lado}" : ''),
                 'image' => asset("images/componentes-pasteurizadora/{$codigo}.png"),
                 'fallback_image' => asset('images/icono_pas.png'),
@@ -4245,6 +4249,7 @@ public function pasteurizadoraOperativo(Request $request)
             $items[] = [
                 'type' => 'componente',
                 'title' => $analisis->componente_nombre ?? 'Componente en revisión',
+                'componentes_revisados_label' => $this->pasteurizadoraNumerosComponentesLabel($analisis),
                 'subtitle' => "Módulo {$analisis->modulo}" . ($analisis->lado ? " · {$analisis->lado}" : ''),
                 'image' => asset("images/componentes-pasteurizadora/{$codigo}.png"),
                 'fallback_image' => asset('images/icono_pas.png'),
@@ -4274,5 +4279,16 @@ public function pasteurizadoraOperativo(Request $request)
         }
 
         return [];
+    }
+
+    private function pasteurizadoraNumerosComponentesLabel(AnalisisPasteurizadora $analisis): string
+    {
+        $numeros = $analisis->componentes_revisados_lista;
+        if ($numeros === []) {
+            return '';
+        }
+
+        return (count($numeros) === 1 ? 'Componente ' : 'Componentes ')
+            . implode(', ', array_map(fn (int $numero) => '#' . $numero, $numeros));
     }
 }

@@ -146,9 +146,7 @@ class HistoricoRevisados extends Model
             return null;
         }
 
-        $cantidadTotal = AnalisisPasteurizadora::esBrazoTorsion($componente)
-            ? AnalisisPasteurizadora::getCantidadBrazosTorsionPorLinea($linea->nombre)
-            : ($componentesConfig[$componente]['cantidad'] ?? 0);
+        $cantidadTotal = \App\Support\PasteurizadoraNumeracion::total($linea->nombre, $componente);
 
         // Buscar todos los análisis de este componente
         $analisis = AnalisisPasteurizadora::queryForArea($area)
@@ -157,7 +155,9 @@ class HistoricoRevisados extends Model
             ->get();
 
         // Contar componentes revisados
-        $cantidadRevisada = $analisis->sum('cantidad_componentes_revisados');
+        $cantidadRevisada = AnalisisPasteurizadora::esBrazoTorsion($componente)
+            ? $analisis->sum('cantidad_componentes_revisados')
+            : $analisis->flatMap(fn ($registro) => $registro->componentes_revisados_lista)->unique()->count();
         $cantidadRevisada = min($cantidadRevisada, $cantidadTotal);
 
         // El porcentaje

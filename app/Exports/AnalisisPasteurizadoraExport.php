@@ -32,6 +32,7 @@ class AnalisisPasteurizadoraExport implements FromCollection, WithHeadings, With
             'Actividad',
             'Componentes revisados',
             'Total componentes',
+            'Numeros de componentes',
         ];
     }
 
@@ -49,6 +50,7 @@ class AnalisisPasteurizadoraExport implements FromCollection, WithHeadings, With
             $item->actividad,
             $item->cantidad_componentes_revisados,
             $item->total_componentes,
+            implode(', ', $item->componentes_revisados_lista),
         ];
     }
 }

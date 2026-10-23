@@ -436,7 +436,7 @@
                             </tr>
                             <tr>
                                 <td class="label">Cantidad revisada</td>
-                                <td>{{ (int) ($item->cantidad_componentes_revisados ?? 0) }} / {{ (int) ($item->total_componentes ?? 0) }}</td>
+                                <td>{{ (int) ($item->cantidad_componentes_revisados ?? 0) }} / {{ (int) ($item->total_componentes ?? 0) }} · #{{ implode(', #', $item->componentes_revisados_lista) }}</td>
                                 <td class="label">Resuelto por cambio</td>
                                 <td>{{ $formatValue($item->resuelto_por_cambio) }}</td>
                             </tr>

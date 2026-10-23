@@ -11,18 +11,18 @@
     $componentes = \App\Models\AnalisisPasteurizadora::getComponentesPorLinea($analisis->linea->nombre ?? null);
     $totalComponentes = (int) ($componentes[$analisis->componente]['cantidad'] ?? $analisis->total_componentes ?? 0);
     $componentesRevisados = \App\Models\AnalisisPasteurizadora::normalizarComponentesRevisados(
-        old('componentes_revisados', $analisis->componentes_revisados),
-        $totalComponentes
+        old('componentes_revisados', $analisis->componentes_revisados_lista)
     );
     $esBrazoTorsion = \App\Models\AnalisisPasteurizadora::esBrazoTorsion($analisis->componente);
     $esRegistroQuick = $analisis->es_registro_quick;
     $numeroComponenteSeleccionado = old('numero_componente', $analisis->numero_componente_principal);
 
     if (empty($componentesRevisados) && $analisis->cantidad_componentes_revisados && $totalComponentes > 0) {
-        $componentesRevisados = range(1, min($analisis->cantidad_componentes_revisados, $totalComponentes));
+        $componentesRevisados = $analisis->componentesRevisadosEfectivos();
     }
 
     $evidencias = $analisis->evidencia_fotos ?? [];
+    $numerosComponentes = $analisis->numerosComponentesDelModulo();
     if (!is_array($evidencias)) {
         $evidencias = json_decode($evidencias, true) ?? [];
     }
@@ -316,7 +316,7 @@
                     </div>
 
                     <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                        @for($i = 1; $i <= $totalComponentes; $i++)
+                        @foreach($numerosComponentes as $i)
                             <label class="flex items-center gap-3 rounded-lg border border-indigo-200 bg-white p-3 cursor-pointer transition hover:border-indigo-400 hover:shadow-sm">
                                 <input type="checkbox"
                                        name="componentes_revisados[]"
@@ -328,7 +328,7 @@
                                     {{ $analisis->componente }} #{{ $i }}
                                 </span>
                             </label>
-                        @endfor
+                        @endforeach
                     </div>
                     @error('componentes_revisados')<p class="text-red-500 text-sm mt-3">{{ $message }}</p>@enderror
                 </div>
@@ -346,12 +346,12 @@
                     </label>
 
                     @if($esBrazoTorsion)
-                        <input type="hidden" name="numero_componente" value="1">
+                        <input type="hidden" name="numero_componente" value="{{ $numerosComponentes[0] ?? 1 }}">
                         <div class="rounded-lg border border-indigo-200 bg-white px-4 py-3 text-sm text-indigo-800">
                             El Brazo de Torsion utiliza un registro unico por modulo.
                         </div>
                     @elseif($totalComponentes <= 1)
-                        <input type="hidden" name="numero_componente" value="1">
+                        <input type="hidden" name="numero_componente" value="{{ $numerosComponentes[0] ?? 1 }}">
                         <div class="rounded-lg border border-indigo-200 bg-white px-4 py-3 text-sm text-indigo-800">
                             Este componente solo tiene una pieza configurada en el modulo.
                         </div>
@@ -360,11 +360,11 @@
                                 id="numero_componente"
                                 class="w-full rounded-lg border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 @error('numero_componente') border-red-500 @enderror">
                             <option value="">Seleccionar pieza...</option>
-                            @for($i = 1; $i <= $totalComponentes; $i++)
+                            @foreach($numerosComponentes as $i)
                                 <option value="{{ $i }}" {{ (string) $numeroComponenteSeleccionado === (string) $i ? 'selected' : '' }}>
                                     Pieza #{{ $i }}
                                 </option>
-                            @endfor
+                            @endforeach
                         </select>
                         @error('numero_componente')<p class="text-red-500 text-sm mt-3">{{ $message }}</p>@enderror
                     @endif

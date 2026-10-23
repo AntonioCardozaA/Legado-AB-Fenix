@@ -10,6 +10,7 @@ use App\Services\AnalysisDeletionLogger;
 use App\Services\ImageEvidenceOptimizer;
 use App\Services\Maintenance\PasteurizadoraMaintenanceOrchestrator;
 use App\Services\TendenciaDanosService;
+use App\Support\PasteurizadoraNumeracion;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -618,7 +619,7 @@ class AnalisisPasteurizadoraController extends Controller
             $imagenes = [];
         }
 
-        $componentesRevisados = $registro->componentes_revisados;
+        $componentesRevisados = $registro->componentes_revisados_lista;
 
         if (is_string($componentesRevisados)) {
             $componentesRevisados = json_decode($componentesRevisados, true) ?? [];
@@ -644,7 +645,7 @@ class AnalisisPasteurizadoraController extends Controller
             ->orderByDesc('created_at')
             ->get()
             ->map(function (AnalisisPasteurizadora $item) use ($registro): array {
-                $componentes = $item->componentes_revisados;
+                $componentes = $item->componentes_revisados_lista;
 
                 if (is_string($componentes)) {
                     $componentes = json_decode($componentes, true) ?? [];
@@ -1090,8 +1091,7 @@ class AnalisisPasteurizadoraController extends Controller
     private function marcarRegistrosAnterioresComoResueltos($nuevoAnalisis)
     {
         $componentesObjetivo = AnalisisPasteurizadora::normalizarComponentesRevisados(
-            $nuevoAnalisis->componentes_revisados ?? [],
-            $nuevoAnalisis->total_componentes ?? null
+            $nuevoAnalisis->componentes_revisados ?? []
         );
 
         $registrosAnteriores = $this->analisisQuery()
@@ -1106,8 +1106,7 @@ class AnalisisPasteurizadoraController extends Controller
         if (!empty($componentesObjetivo)) {
             $registrosAnteriores = $registrosAnteriores->filter(function ($registro) use ($componentesObjetivo) {
                 $componentesRegistro = AnalisisPasteurizadora::normalizarComponentesRevisados(
-                    $registro->componentes_revisados,
-                    $registro->total_componentes
+                    $registro->componentes_revisados
                 );
 
                 return !empty(array_intersect($componentesObjetivo, $componentesRegistro));
@@ -2043,13 +2042,14 @@ class AnalisisPasteurizadoraController extends Controller
                 . '<td>' . e($item->estado) . '</td>'
                 . '<td>' . e($item->numero_orden) . '</td>'
                 . '<td>' . e($item->actividad) . '</td>'
+                . '<td>' . e(implode(', ', $item->componentes_revisados_lista)) . '</td>'
                 . '</tr>';
         })->implode('');
 
         return '<!doctype html><html><head><meta charset="utf-8"><title>Analisis Pasteurizadora</title></head><body>'
             . '<h1>Analisis Pasteurizadora</h1>'
             . '<table width="100%" border="1" cellspacing="0" cellpadding="4">'
-            . '<thead><tr><th>Fecha</th><th>Pasteurizadora</th><th>Modulo</th><th>Nivel</th><th>Lado</th><th>Componente</th><th>Estado</th><th>Orden</th><th>Actividad</th></tr></thead>'
+            . '<thead><tr><th>Fecha</th><th>Pasteurizadora</th><th>Modulo</th><th>Nivel</th><th>Lado</th><th>Componente</th><th>Estado</th><th>Orden</th><th>Actividad</th><th>Numeros de componentes</th></tr></thead>'
             . '<tbody>' . $rows . '</tbody>'
             . '</table></body></html>';
     }
@@ -2306,11 +2306,10 @@ class AnalisisPasteurizadoraController extends Controller
         }
 
         if (AnalisisPasteurizadora::esBrazoTorsion($componente) || $totalComponentes === 1) {
-            $componentesSeleccionados = [1];
+            $componentesSeleccionados = AnalisisPasteurizadora::getNumerosComponentesPorModulo($linea->nombre, $componente, $modulo);
         } else {
-            $componentesSeleccionados = AnalisisPasteurizadora::normalizarComponentesRevisados(
-                $request->input('componentes_revisados'),
-                $totalComponentes
+            $componentesSeleccionados = $this->validarNumerosComponentes(
+                $request->input('componentes_revisados', []), $linea, $componente, $modulo
             );
 
             if (empty($componentesSeleccionados)) {
@@ -2324,7 +2323,7 @@ class AnalisisPasteurizadoraController extends Controller
                     ]);
                 }
 
-                if ($numeroComponente < 1 || $numeroComponente > $totalComponentes) {
+                if (!in_array($numeroComponente, AnalisisPasteurizadora::getNumerosComponentesPorModulo($linea->nombre, $componente, $modulo), true)) {
                     throw ValidationException::withMessages([
                         'componentes_revisados' => 'La seleccion incluye componentes fuera del rango permitido.',
                         'numero_componente' => 'Seleccione un numero de componente valido para la configuracion actual.',
@@ -2387,11 +2386,10 @@ class AnalisisPasteurizadoraController extends Controller
         }
 
         if (AnalisisPasteurizadora::esBrazoTorsion($componente) || $totalComponentes === 1) {
-            $componentesSeleccionados = [1];
+            $componentesSeleccionados = AnalisisPasteurizadora::getNumerosComponentesPorModulo($linea->nombre, $componente, $modulo);
         } else {
-            $componentesSeleccionados = AnalisisPasteurizadora::normalizarComponentesRevisados(
-                $request->input('componentes_revisados'),
-                $totalComponentes
+            $componentesSeleccionados = $this->validarNumerosComponentes(
+                $request->input('componentes_revisados', []), $linea, $componente, $modulo
             );
 
             if (empty($componentesSeleccionados)) {
@@ -2447,9 +2445,8 @@ class AnalisisPasteurizadoraController extends Controller
             }
         }
 
-        $componentesSeleccionados = AnalisisPasteurizadora::normalizarComponentesRevisados(
-            $request->input('componentes_revisados'),
-            $totalComponentes
+        $componentesSeleccionados = $this->validarNumerosComponentes(
+            $request->input('componentes_revisados', []), $linea, $componente, $modulo
         );
 
         if (AnalisisPasteurizadora::esBrazoTorsion($componente)) {
@@ -2510,5 +2507,14 @@ class AnalisisPasteurizadoraController extends Controller
             $componente ?: $analisis->componente,
             $analisis->area ?: $this->currentArea()
         );
+    }
+
+    private function validarNumerosComponentes($value, Linea $linea, string $componente, int $modulo): array
+    {
+        try {
+            return PasteurizadoraNumeracion::validarSeleccion($value, $linea->nombre, $componente, $modulo);
+        } catch (\InvalidArgumentException $exception) {
+            throw ValidationException::withMessages(['componentes_revisados' => $exception->getMessage()]);
+        }
     }
 }

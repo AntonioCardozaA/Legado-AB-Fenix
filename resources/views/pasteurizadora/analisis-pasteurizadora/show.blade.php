@@ -68,13 +68,10 @@
         ],
     };
 
-    $componentesRevisados = \App\Models\AnalisisPasteurizadora::normalizarComponentesRevisados(
-        $analisis->componentes_revisados,
-        $analisis->total_componentes
-    );
+    $componentesRevisados = $analisis->componentes_revisados_lista;
 
     if (empty($componentesRevisados) && $analisis->cantidad_componentes_revisados) {
-        $componentesRevisados = range(1, min($analisis->cantidad_componentes_revisados, $analisis->total_componentes));
+        $componentesRevisados = $analisis->componentesRevisadosEfectivos();
     }
 
     $porcentajeAvance = (int) ($analisis->porcentaje_avance ?? 0);

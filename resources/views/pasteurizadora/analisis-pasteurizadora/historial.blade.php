@@ -281,28 +281,12 @@
                 $agrupados[$key]['registros'][] = $item;
                 $agrupados[$key]['total_registros']++;
 
-                // Normalizar componentes_revisados (array o JSON)
-                $componentes = [];
-                if (is_array($item->componentes_revisados)) {
-                    $componentes = $item->componentes_revisados;
-                } elseif (is_string($item->componentes_revisados)) {
-                    $decoded = json_decode($item->componentes_revisados, true);
-                    if (is_array($decoded)) {
-                        $componentes = $decoded;
-                    }
-                }
+                $componentes = $item->componentes_revisados_lista;
 
                 // Acumular componentes revisadas
                 foreach ($componentes as $num) {
                     if (is_numeric($num) && (int)$num > 0) {
                         $agrupados[$key]['todas_componentes_revisadas'][] = (int)$num;
-                    }
-                }
-
-                // Fallback si no hay array
-                if (empty($componentes) && is_numeric($item->cantidad_componentes_revisados)) {
-                    for ($i = 1; $i <= (int)$item->cantidad_componentes_revisados; $i++) {
-                        $agrupados[$key]['todas_componentes_revisadas'][] = $i;
                     }
                 }
 
@@ -618,15 +602,7 @@
 
                                 {{-- Información de componentes revisadas --}}
                                 @php
-                                $componentesRevisados = [];
-                                if (is_array($item->componentes_revisados)) {
-                                    $componentesRevisados = $item->componentes_revisados;
-                                } elseif (is_string($item->componentes_revisados)) {
-                                    $decoded = json_decode($item->componentes_revisados, true);
-                                    if (is_array($decoded)) {
-                                        $componentesRevisados = $decoded;
-                                    }
-                                }
+                                $componentesRevisados = $item->componentes_revisados_lista;
                                 $totalComponentes = (int) ($item->total_componentes ?? 0);
                                 $revisadas = count($componentesRevisados);
                                 $porcentaje = $totalComponentes > 0 ? (int) round(($revisadas / $totalComponentes) * 100) : 0;

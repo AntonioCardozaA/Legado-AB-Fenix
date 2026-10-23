@@ -719,6 +719,7 @@
                             $estado = $ultimo?->estado;
                             $meta = $estadoMeta($estado);
                             $piezas = $ultimo?->componentes_revisados_lista ?? [];
+                            $numerosDelModulo = \App\Models\AnalisisPasteurizadora::getNumerosComponentesPorModulo($linea->nombre, 'EXCENTRICOS', $modulo['modulo']);
                             $piezasTexto = !empty($piezas)
                                 ? collect($piezas)->map(fn ($pieza) => '#' . $pieza)->implode(', ')
                                 : '0 de ' . $modulo['total_componentes'];
@@ -767,6 +768,7 @@
                                     <span class="mt-0.5 block break-words text-[11px] font-black uppercase leading-tight text-slate-400">
                                         Excentricos
                                     </span>
+                                    <span class="block text-xs font-semibold text-slate-500">#{{ reset($numerosDelModulo) }}–#{{ end($numerosDelModulo) }}</span>
                                 </span>
                             </span>
 

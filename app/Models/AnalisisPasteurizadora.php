@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\UppercasesActividad;
+use App\Support\PasteurizadoraNumeracion;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -16,8 +17,11 @@ class AnalisisPasteurizadora extends Model
 
     protected $table = 'analisis_pasteurizadora';
 
+    protected $attributes = ['numeracion_version' => 2];
+
     protected $fillable = [
         'area',
+        'numeracion_version',
         'tipo_registro',
         'linea_id',
         'modulo',
@@ -57,6 +61,7 @@ class AnalisisPasteurizadora extends Model
 
     protected $casts = [
         'area' => 'string',
+        'numeracion_version' => 'integer',
         'tipo_registro' => 'string',
         'fecha_inicio' => 'date',
         'fecha_fin' => 'date',
@@ -443,6 +448,27 @@ class AnalisisPasteurizadora extends Model
         return (int) ($resolved['config']['cantidad'] ?? 0);
     }
 
+    public static function getNumerosComponentesPorModulo($lineaNombre, $componente, $modulo): array
+    {
+        return PasteurizadoraNumeracion::numeros($lineaNombre, (string) $componente, (int) $modulo);
+    }
+
+    public function numerosComponentesDelModulo(): array
+    {
+        return self::getNumerosComponentesPorModulo($this->linea?->nombre, $this->componente, $this->modulo);
+    }
+
+    /** Incluye la compatibilidad con registros antiguos que solo guardaban una cantidad. */
+    public function componentesRevisadosEfectivos(): array
+    {
+        $componentes = self::normalizarComponentesRevisados($this->componentes_revisados);
+        if ($componentes !== []) {
+            return $componentes;
+        }
+
+        return array_slice($this->numerosComponentesDelModulo(), 0, max(0, (int) $this->cantidad_componentes_revisados));
+    }
+
     public function getTotalComponentesPorComponente(): int
     {
         return self::getTotalComponentesPorLineaYComponente($this->linea?->nombre, $this->componente);
@@ -568,17 +594,7 @@ class AnalisisPasteurizadora extends Model
         return self::getResumenCicloComponente($lineaId, $modulo, $componente, $excludeId, $area, $tipoRegistro)['registros_actuales']
             ->when($alcanceRevision === self::ALCANCE_REVISION_NIVEL_LADO && $lado, fn (Collection $registros) => $registros->where('lado', $lado))
             ->when($alcanceRevision !== self::ALCANCE_REVISION_MODULO && $nivel, fn (Collection $registros) => $registros->where('nivel', $nivel))
-            ->flatMap(function ($registro) use ($totalComponentes) {
-                $componentes = self::normalizarComponentesRevisados($registro->componentes_revisados, $totalComponentes);
-
-                if (!empty($componentes)) {
-                    return $componentes;
-                }
-
-                $cantidad = min((int) ($registro->cantidad_componentes_revisados ?? 0), $totalComponentes);
-
-                return $cantidad > 0 ? range(1, $cantidad) : [];
-            })
+            ->flatMap(fn ($registro) => $registro->componentesRevisadosEfectivos())
             ->map(fn($item) => (int) $item)
             ->filter(fn($item) => $item > 0)
             ->unique()
@@ -597,7 +613,7 @@ class AnalisisPasteurizadora extends Model
         }
 
         return array_values(array_diff(
-            range(1, $totalComponentes),
+            self::getNumerosComponentesPorModulo($linea?->nombre, $componente, $modulo),
             self::getComponentesRevisadosRegistrados($lineaId, $modulo, $componente, $lado, $nivel, $excludeId, $area, $tipoRegistro)
         ));
     }
@@ -654,12 +670,7 @@ class AnalisisPasteurizadora extends Model
         $ultimoEstadoPorComponente = [];
 
         foreach ($registros as $registro) {
-            $componentes = self::normalizarComponentesRevisados($registro->componentes_revisados, $totalComponentes);
-
-            if (empty($componentes)) {
-                $cantidad = min((int) ($registro->cantidad_componentes_revisados ?? 0), $totalComponentes);
-                $componentes = $cantidad > 0 ? range(1, $cantidad) : [];
-            }
+            $componentes = $registro->componentesRevisadosEfectivos();
 
             foreach ($componentes as $numeroComponente) {
                 $ultimoEstadoPorComponente[(int) $numeroComponente] = $registro->estado;
@@ -670,7 +681,7 @@ class AnalisisPasteurizadora extends Model
             ->filter(fn ($estado) => self::esEstadoSeguimientoReinspeccion($estado))
             ->keys()
             ->map(fn ($numeroComponente) => (int) $numeroComponente)
-            ->filter(fn ($numeroComponente) => $numeroComponente > 0 && $numeroComponente <= $totalComponentes)
+            ->filter(fn ($numeroComponente) => in_array($numeroComponente, self::getNumerosComponentesPorModulo($linea?->nombre, $componente, $modulo), true))
             ->sort()
             ->values()
             ->all();
@@ -980,17 +991,7 @@ class AnalisisPasteurizadora extends Model
         foreach ($agrupado as $clave => $items) {
             $componentesUnicos = collect();
             foreach ($items as $item) {
-                $totalComponentes = (int) ($item->total_componentes ?? 0);
-                $componentes = self::normalizarComponentesRevisados(
-                    $item->componentes_revisados,
-                    $totalComponentes > 0 ? $totalComponentes : null
-                );
-
-                if (empty($componentes)) {
-                    $cantidad = (int) ($item->cantidad_componentes_revisados ?? 0);
-                    $limite = $totalComponentes > 0 ? min($cantidad, $totalComponentes) : $cantidad;
-                    $componentes = $limite > 0 ? range(1, $limite) : [];
-                }
+                $componentes = $item->componentesRevisadosEfectivos();
 
                 $componentesUnicos = $componentesUnicos->merge($componentes);
             }
@@ -1223,9 +1224,7 @@ class AnalisisPasteurizadora extends Model
 
     public function getComponentesRevisadosListaAttribute(): array
     {
-        $totalComponentes = $this->total_componentes ?: $this->getTotalComponentesPorComponente();
-
-        return self::normalizarComponentesRevisados($this->componentes_revisados, $totalComponentes);
+        return $this->componentesRevisadosEfectivos();
     }
 
     public function getNumeroComponentePrincipalAttribute(): ?int
@@ -1236,7 +1235,7 @@ class AnalisisPasteurizadora extends Model
     public function getPorcentajeAvanceAttribute()
     {
         $total = $this->total_componentes ?? 0;
-        $revisadas = count(self::normalizarComponentesRevisados($this->componentes_revisados, $total));
+        $revisadas = count($this->componentesRevisadosEfectivos());
 
         if ($revisadas === 0) {
             $revisadas = $this->cantidad_componentes_revisados ?? 0;
@@ -1355,7 +1354,7 @@ class AnalisisPasteurizadora extends Model
 
     public function setComponentesRevisadosAttribute($value)
     {
-        $componentes = self::normalizarComponentesRevisados($value, $this->attributes['total_componentes'] ?? null);
+        $componentes = self::normalizarComponentesRevisados($value);
 
         $this->attributes['componentes_revisados'] = json_encode($componentes);
         $this->attributes['cantidad_componentes_revisados'] = count($componentes);
@@ -1420,12 +1419,7 @@ class AnalisisPasteurizadora extends Model
         string $alcanceRevision = self::ALCANCE_REVISION_NIVEL_LADO
     ): array
     {
-        $componentes = self::normalizarComponentesRevisados($registro->componentes_revisados, $totalComponentes);
-
-        if (empty($componentes)) {
-            $cantidad = min((int) ($registro->cantidad_componentes_revisados ?? 0), $totalComponentes);
-            $componentes = $cantidad > 0 ? range(1, $cantidad) : [];
-        }
+        $componentes = $registro->componentesRevisadosEfectivos();
 
         if ($alcanceRevision === self::ALCANCE_REVISION_MODULO) {
             $estado['componentes'] = collect(array_merge($estado['componentes'] ?? [], $componentes))

@@ -8,11 +8,12 @@
     $analisisRoute = fn ($name, $params = []) => route($analisisRoutePrefix . '.' . $name, $params);
     $componentesLinea = \App\Models\AnalisisPasteurizadora::getComponentesPorLinea($linea->nombre);
     $totalModulos = \App\Models\AnalisisPasteurizadora::getModulosPorLinea($linea->nombre);
-    $componentesConfiguracion = collect($componentesLinea)->map(function ($config, $codigo) {
+    $componentesConfiguracion = collect($componentesLinea)->map(function ($config, $codigo) use ($linea) {
         return [
             'codigo' => $codigo,
             'nombre' => $config['nombre'],
             'cantidad' => (int) ($config['cantidad'] ?? 0),
+            'numeros_por_modulo' => \App\Support\PasteurizadoraNumeracion::configuracion($linea->nombre, $codigo),
             'es_brazo_torsion' => \App\Models\AnalisisPasteurizadora::esBrazoTorsion($codigo),
         ];
     })->values();
@@ -559,17 +560,18 @@ function renderChecklistComponentes({ reiniciarSeleccion = false } = {}) {
         return;
     }
 
+    const numeros = componente.numeros_por_modulo[moduloSelect.value] || [];
     if (reiniciarSeleccion) {
-        componentesSeleccionados = componente.cantidad === 1 ? [1] : [];
+        componentesSeleccionados = numeros.length === 1 ? [...numeros] : [];
     } else {
-        componentesSeleccionados = componentesSeleccionados.filter((numero) => numero <= componente.cantidad);
+        componentesSeleccionados = componentesSeleccionados.filter((numero) => numeros.includes(numero));
 
         if (componente.cantidad === 1 && componentesSeleccionados.length === 0) {
-            componentesSeleccionados = [1];
+            componentesSeleccionados = [...numeros];
         }
     }
 
-    for (let indice = 1; indice <= componente.cantidad; indice++) {
+    for (const indice of numeros) {
         const seleccionado = componentesSeleccionados.includes(indice);
         const label = document.createElement('label');
         label.className = 'flex items-center gap-3 p-3 bg-white rounded-lg border border-gray-200 hover:border-blue-400 hover:shadow-md transition cursor-pointer';
@@ -778,7 +780,7 @@ if (soportaDataTransferFotos) {
 }
 
 componenteSelect.addEventListener('change', () => renderChecklistComponentes({ reiniciarSeleccion: true }));
-moduloSelect.addEventListener('change', actualizarResumenFormulario);
+moduloSelect.addEventListener('change', () => renderChecklistComponentes({ reiniciarSeleccion: true }));
 ladoSelect.addEventListener('change', actualizarResumenFormulario);
 nivelSelect.addEventListener('change', actualizarResumenFormulario);
 

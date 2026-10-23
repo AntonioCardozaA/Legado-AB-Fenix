@@ -8,11 +8,12 @@
     $analisisRoute = fn ($name, $params = []) => route($analisisRoutePrefix . '.' . $name, $params);
     $componentesLinea = \App\Models\AnalisisPasteurizadora::getComponentesPorLinea($linea->nombre);
     $totalModulos = \App\Models\AnalisisPasteurizadora::getModulosPorLinea($linea->nombre);
-    $componentesConfiguracion = collect($componentesLinea)->map(function ($config, $codigo) {
+    $componentesConfiguracion = collect($componentesLinea)->map(function ($config, $codigo) use ($linea) {
         return [
             'codigo' => $codigo,
             'nombre' => $config['nombre'],
             'cantidad' => (int) ($config['cantidad'] ?? 0),
+            'numeros_por_modulo' => \App\Support\PasteurizadoraNumeracion::configuracion($linea->nombre, $codigo),
             'es_brazo_torsion' => \App\Models\AnalisisPasteurizadora::esBrazoTorsion($codigo),
         ];
     })->values();
@@ -486,11 +487,13 @@ function renderChecklist() {
     }
 
     const total = Math.max(parseInt(componente.cantidad, 10) || 0, 0);
+    const numeros = componente.numeros_por_modulo[moduloSelect.value] || [];
+    componentesSeleccionados = componentesSeleccionados.filter((numero) => numeros.includes(numero));
     if (total <= 1) {
         checklistSection.hidden = true;
         checklistHeader.hidden = true;
         checklistHelp.textContent = '';
-        componentesSeleccionados = total === 1 ? [1] : [];
+        componentesSeleccionados = total === 1 ? [...numeros] : [];
         componentesInput.value = JSON.stringify(componentesSeleccionados);
         actualizarResumenFormulario();
         return;
@@ -500,7 +503,7 @@ function renderChecklist() {
     checklistHeader.hidden = false;
     checklistHelp.textContent = '';
 
-    for (let indice = 1; indice <= total; indice++) {
+    for (const indice of numeros) {
         const seleccionado = componentesSeleccionados.includes(indice) || total === 1;
         const label = document.createElement('label');
         label.className = 'flex items-center gap-3 rounded-lg border border-gray-200 bg-white p-3 transition hover:border-blue-400 hover:shadow-md';
@@ -528,7 +531,10 @@ componenteSelect.addEventListener('change', () => {
     componentesSeleccionados = [];
     renderChecklist();
 });
-moduloSelect.addEventListener('change', actualizarResumenFormulario);
+moduloSelect.addEventListener('change', () => {
+    componentesSeleccionados = [];
+    renderChecklist();
+});
 
 const evidenciaFotosInput = document.getElementById('evidencia_fotos');
 const evidenciaFotosGaleriaInput = document.getElementById('evidencia_fotos_galeria');

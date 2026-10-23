@@ -2633,6 +2633,9 @@
                                                 @if(!empty($item['subtitle']) && $item['subtitle'] !== ($item['meta'] ?? null))
                                                     <div class="carousel-slide-subtitle">{{ $item['subtitle'] }}</div>
                                                 @endif
+                                                @if(!empty($item['componentes_revisados_label']))
+                                                    <div class="carousel-slide-meta font-semibold">{{ $item['componentes_revisados_label'] }}</div>
+                                                @endif
                                                 @if(!empty($item['detail']) || !empty($item['description']))
                                                     <div class="carousel-slide-detail">{{ $item['detail'] ?? $item['description'] }}</div>
                                                 @endif
@@ -4842,6 +4845,7 @@
             const image = analysis.image || analysis.fallback_image || fallback;
             const location = pasteurizadoraAnalysisLocation(analysis, mode);
             const componentName = analysis.componente_nombre || analysis.componente?.nombre || 'Componente';
+            const componentNumbersLabel = analysis.componentes_revisados_label || '';
             const dateLabel = analysis.fecha_formateada || formatModalDate(analysis.fecha_analisis);
             const orderLabel = analysis.numero_orden ? `Orden: ${analysis.numero_orden}` : null;
 
@@ -4855,6 +4859,7 @@
                                 </div>
                                 <div class="flex-1 min-w-0">
                                     <div class="componente-nombre">${escapeHtml(componentName)}</div>
+                                    ${componentNumbersLabel ? `<p class="text-sm font-semibold text-gray-700 mt-1">${escapeHtml(componentNumbersLabel)}</p>` : ''}
                                 </div>
                             </div>
                             ${location ? `<p class="text-sm text-gray-600 mt-2">${escapeHtml(location)}</p>` : ''}

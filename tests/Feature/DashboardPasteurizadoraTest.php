@@ -115,6 +115,36 @@ class DashboardPasteurizadoraTest extends TestCase
         $this->assertSame(1, data_get($tendenciaCentral, 'global.total_fallas'));
     }
 
+    public function test_mechanical_cards_and_modal_include_global_component_numbers_for_every_alert_state(): void
+    {
+        $linea = $this->crearLineaPasteurizadora('P-06');
+        $casos = [
+            'critico' => [AnalisisPasteurizadora::ESTADO_DANADO, [76, 80], 'Componentes #76, #80'],
+            'severo' => ['Desgaste severo', [77], 'Componente #77'],
+            'moderado' => ['Desgaste moderado', [78], 'Componente #78'],
+            'revision' => [AnalisisPasteurizadora::ESTADO_REQUIERE_REVISION, [79], 'Componente #79'],
+        ];
+        foreach ($casos as [$estado, $numeros]) {
+            $this->crearAnalisis($linea, [
+                'modulo' => 16, 'estado' => $estado,
+                'componentes_revisados' => $numeros, 'total_componentes' => 5,
+            ]);
+        }
+
+        $response = $this->actingAs($this->userWithRole(User::ROLE_ADMIN))
+            ->get(route('dashboard.global.pasteurizadoras'));
+        $response->assertOk();
+        $equipo = collect($response->viewData('estadoPasteurizadoras'))->firstWhere('id', $linea->id);
+        foreach ($casos as $clave => [$estado, $numeros, $etiqueta]) {
+            $detalle = $equipo['estado']['analisis_por_estado'][$clave][0];
+            $this->assertSame($numeros, $detalle['componentes_revisados']);
+            $this->assertSame($etiqueta, $detalle['componentes_revisados_label']);
+            $tarjeta = collect($equipo['estado']['alert_carousel'])->firstWhere('estado_key', $clave);
+            $this->assertSame($etiqueta, $tarjeta['componentes_revisados_label']);
+            $response->assertSee('<div class="carousel-slide-meta font-semibold">' . $etiqueta . '</div>', false);
+        }
+    }
+
     private function userWithRole(string $role): User
     {
         Role::firstOrCreate([
