@@ -42,6 +42,7 @@ class User extends Authenticatable
     public const ROLE_INGENIERO_MANTENIMIENTO = 'ingeniero_mantenimiento';
     public const ROLE_TECNICO = 'tecnico';
     public const ROLE_PROGRAMADOR_DE_MANTENIMIENTO = 'programador_de_mantenimiento';
+    // Identificador existente del rol Lubricador; conserva las asignaciones de usuarios.
     public const ROLE_CAPTURISTA_EXCENTRICOS = 'capturista_excentricos';
 
     public const MODULE_LAVADORA = 'lavadora';
@@ -136,7 +137,7 @@ public static function roleLabels(): array
         self::ROLE_INGENIERO_MANTENIMIENTO => 'Ingeniero de Mantenimiento',
         self::ROLE_TECNICO => 'Tecnico',
         self::ROLE_PROGRAMADOR_DE_MANTENIMIENTO => 'Programador de Mantenimiento',
-        self::ROLE_CAPTURISTA_EXCENTRICOS => 'Capturista de Excentricos',
+        self::ROLE_CAPTURISTA_EXCENTRICOS => 'Lubricador',
     ];
 }
 

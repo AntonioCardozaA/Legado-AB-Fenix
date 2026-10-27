@@ -29,7 +29,7 @@ class EnsurePasteurizadoraExcentricosCaptureAccess
             return $next($request);
         }
 
-        $message = 'Este acceso solo permite registrar y consultar Excentricos de Pasteurizadoras.';
+        $message = 'Este acceso solo permite registrar y consultar excentricos, rodajas y pistas de Pasteurizadoras.';
 
         if ($request->expectsJson()) {
             return response()->json([

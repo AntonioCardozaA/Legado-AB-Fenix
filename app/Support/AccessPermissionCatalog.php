@@ -141,8 +141,8 @@ class AccessPermissionCatalog
                         'description' => 'Analisis hidraulico.',
                     ],
                     User::PERMISSION_CAPTURE_PASTEURIZADORA_EXCENTRICOS => [
-                        'label' => 'Captura Excentricos',
-                        'description' => 'Acceso exclusivo a modulos y Excentricos.',
+                        'label' => 'Captura de Lubricador',
+                        'description' => 'Acceso exclusivo a revisiones de excentricos, rodajas y pistas.',
                     ],
                     'crear analisis pasteurizadora' => [
                         'label' => 'Crear',

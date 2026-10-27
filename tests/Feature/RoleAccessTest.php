@@ -161,7 +161,10 @@ class RoleAccessTest extends TestCase
         $this->actingAs($user)
             ->get($exclusiveRoute)
             ->assertOk()
-            ->assertSee('Excentricos de Pasteurizadoras')
+            ->assertSee('Revisiones de Lubricador')
+            ->assertSee('Seleccionar componente a revisar')
+            ->assertDontSee('Rodajas')
+            ->assertSee('Pistas')
             ->assertSee($linea->nombre)
             ->assertSee(asset('images/Diagramas-Pasteurizadoras/linea3.png'), false)
             ->assertSee('TRABAJA CON NORMALIDAD')
@@ -209,7 +212,7 @@ class RoleAccessTest extends TestCase
             ->assertRedirect('/');
     }
 
-    public function test_capturista_excentricos_can_store_only_excentricos_without_order_number(): void
+    public function test_lubricador_can_store_excentricos_without_order_number_and_rejects_other_components(): void
     {
         $linea = Linea::create([
             'nombre' => 'P-03',
@@ -252,7 +255,7 @@ class RoleAccessTest extends TestCase
                 'linea_id' => $linea->id,
             ]))
             ->assertOk()
-            ->assertSee('Indicador')
+            ->assertSee('ESTADO')
             ->assertSee(AnalisisPasteurizadora::ESTADO_BUENO)
             ->assertSee('Ver detalles')
             ->assertSee('Detalle del Analisis')
@@ -294,8 +297,133 @@ class RoleAccessTest extends TestCase
         $this->actingAs($admin)
             ->get(route('admin.users.index'))
             ->assertOk()
-            ->assertSee('Capturista de Excentricos')
-            ->assertSee('Captura Excentricos');
+            ->assertSee('Lubricador')
+            ->assertSee('Captura de Lubricador');
+    }
+
+    public function test_lubricador_captures_rodajas_and_pistas_with_separate_details_and_global_numbers(): void
+    {
+        $linea = Linea::create(['nombre' => 'P-06', 'activo' => true]);
+        $otraLinea = Linea::create(['nombre' => 'P-07', 'activo' => true]);
+        $user = $this->userWithRole(User::ROLE_CAPTURISTA_EXCENTRICOS);
+        $this->assertSame('Lubricador', $user->role_label);
+        $this->actingAs($user);
+
+        foreach (['RODAJAS' => [31, 32], 'PISTAS' => [61, 64]] as $codigo => [$inicio, $fin]) {
+            $nombre = AnalisisPasteurizadora::COMPONENTES_LUBRICADOR[$codigo];
+            $indexUrl = route('pasteurizadora.analisis-pasteurizadora.excentricos.index', [
+                'linea_id' => $linea->id, 'componente' => $codigo,
+            ]);
+            $captureUrl = route('pasteurizadora.analisis-pasteurizadora.create-quick', [
+                'linea_id' => $linea->id, 'modulo' => 16, 'componente' => $codigo,
+            ]);
+
+            $this->get($indexUrl)->assertOk()
+                ->assertSee('Rodajas')
+                ->assertSee('Pistas')
+                ->assertSee($captureUrl)
+                ->assertSee("#{$inicio}–#{$fin}", false)
+                ->assertSee(route('pasteurizadora.analisis-pasteurizadora.excentricos.index', [
+                    'linea_id' => $otraLinea->id, 'componente' => $codigo,
+                ]));
+
+            $this->get($captureUrl)->assertOk()
+                ->assertSee('Capturar ' . $nombre)
+                ->assertSee($indexUrl)
+                ->assertDontSee('name="numero_orden"', false);
+
+            $this->post(route('pasteurizadora.analisis-pasteurizadora.store-quick'), [
+                'linea_id' => $linea->id,
+                'modulo' => 16,
+                'nivel' => 'INFERIOR',
+                'componente' => $codigo,
+                'lado' => 'PASILLO',
+                'fecha_analisis' => now()->toDateString(),
+                'numero_orden' => 'NO-APLICA',
+                'estado' => AnalisisPasteurizadora::ESTADO_REQUIERE_REVISION,
+                'actividad' => 'Revision independiente de ' . $codigo,
+                'componentes_revisados' => json_encode([$inicio]),
+            ])->assertSessionHasNoErrors()->assertRedirect($indexUrl);
+
+            $registro = AnalisisPasteurizadora::where('componente', $codigo)->firstOrFail();
+            $this->assertSame([$inicio], $registro->componentes_revisados_lista);
+            $this->assertSame($user->id, $registro->usuario_id);
+            $this->assertNull($registro->numero_orden);
+
+            $this->get($indexUrl)->assertOk()
+                ->assertSee('REVISION INDEPENDIENTE DE ' . $codigo)
+                ->assertSee('Ver detalles')
+                ->assertDontSee('REVISION INDEPENDIENTE DE ' . ($codigo === 'RODAJAS' ? 'PISTAS' : 'RODAJAS'));
+        }
+
+        $this->get(route('pasteurizadora.analisis-pasteurizadora.excentricos.index', ['linea_id' => $linea->id]))
+            ->assertOk()
+            ->assertDontSee('REVISION INDEPENDIENTE DE RODAJAS')
+            ->assertDontSee('REVISION INDEPENDIENTE DE PISTAS');
+    }
+
+    public function test_lubricador_respects_components_configured_for_simple_pasteurizadoras(): void
+    {
+        $linea = Linea::create(['nombre' => 'P-03', 'activo' => true]);
+        $this->actingAs($this->userWithRole(User::ROLE_CAPTURISTA_EXCENTRICOS));
+
+        $this->get(route('pasteurizadora.analisis-pasteurizadora.excentricos.index', [
+            'linea_id' => $linea->id, 'componente' => 'RODAJAS',
+        ]))->assertOk()
+            ->assertViewHas('componenteSeleccionado', AnalisisPasteurizadora::COMPONENTE_EXCENTRICOS)
+            ->assertSee('Capturar Excentricos')
+            ->assertSee('Pistas')
+            ->assertDontSee('Rodajas')
+            ->assertDontSee('No hay rodajas configuradas para P-03.');
+
+        $datos = [
+            'linea_id' => $linea->id,
+            'modulo' => 9,
+            'nivel' => 'SUPERIOR',
+            'componente' => 'RODAJAS',
+            'lado' => 'VAPOR',
+            'fecha_analisis' => now()->toDateString(),
+            'estado' => AnalisisPasteurizadora::ESTADO_BUENO,
+            'actividad' => 'Revision de pistas de equipo sencillo',
+            'componentes_revisados' => json_encode([17]),
+        ];
+
+        $this->post(route('pasteurizadora.analisis-pasteurizadora.store-quick'), $datos)
+            ->assertSessionHasErrors('componente');
+        $this->assertDatabaseCount('analisis_pasteurizadora', 0);
+
+        $datos['componente'] = 'PISTAS';
+        $this->post(route('pasteurizadora.analisis-pasteurizadora.store-quick'), $datos)
+            ->assertSessionHasNoErrors()
+            ->assertRedirect(route('pasteurizadora.analisis-pasteurizadora.excentricos.index', [
+                'linea_id' => $linea->id, 'componente' => 'PISTAS',
+            ]));
+        $this->assertDatabaseHas('analisis_pasteurizadora', ['componente' => 'PISTAS', 'modulo' => 9]);
+
+        $this->get(route('pasteurizadora.analisis-pasteurizadora.excentricos.index', [
+            'linea_id' => $linea->id, 'componente' => 'ANILLAS',
+        ]))->assertForbidden();
+    }
+
+    public function test_other_roles_keep_their_existing_pasteurizadora_views(): void
+    {
+        $linea = Linea::create(['nombre' => 'P-06', 'activo' => true]);
+        $this->actingAs($this->userWithRole(User::ROLE_ADMIN));
+
+        $this->get(route('pasteurizadora.analisis-pasteurizadora.index', ['linea_id' => $linea->id]))
+            ->assertOk()
+            ->assertDontSee('Revisiones de Lubricador')
+            ->assertDontSee('Seleccionar componente a revisar');
+
+        $this->get(route('pasteurizadora.analisis-pasteurizadora.excentricos.index', [
+            'linea_id' => $linea->id, 'componente' => 'RODAJAS',
+        ]))->assertOk()
+            ->assertSee('Excentricos de Pasteurizadoras')
+            ->assertDontSee('Seleccionar componente a revisar');
+
+        $this->get(route('pasteurizadora.analisis-pasteurizadora.create-quick', [
+            'linea_id' => $linea->id, 'modulo' => 1, 'componente' => 'ANILLAS',
+        ]))->assertOk()->assertSee('Agregar Analisis')->assertSee('name="numero_orden"', false);
     }
 
     public function test_programador_de_mantenimiento_matches_supervisor_permissions_and_ui(): void

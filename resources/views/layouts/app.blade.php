@@ -672,10 +672,10 @@
             @if($usaPerfilExcentricos)
                 <a href="{{ route('pasteurizadora.analisis-pasteurizadora.excentricos.index') }}"
                    @click="if (!isDesktop) sidebarOpen = false"
-                   aria-label="Reviciones de Excentricos"
+                   aria-label="Revisiones de Lubricador"
                    class="nav-link flex items-center px-4 py-3 rounded-lg {{ request()->routeIs('pasteurizadora.analisis-pasteurizadora.excentricos.*') || request()->routeIs('pasteurizadora.analisis-pasteurizadora.create-quick') ? 'nav-active' : '' }}">
                     <i class="fas fa-clipboard-check w-5 mr-3 text-gray-500"></i>
-                    Excentricos
+                    Lubricador
                 </a>
             @else
             @if($puedeVerDashboardPrincipal)

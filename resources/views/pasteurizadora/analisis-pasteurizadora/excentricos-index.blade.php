@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Reviciones de Excentricos')
+@section('title', $usesExcentricosCaptureProfile ? 'Revisiones de Lubricador' : 'Reviciones de Excentricos')
 
 @section('content')
 @php
@@ -568,15 +568,15 @@
             <div class="flex min-w-0 items-center gap-3 sm:gap-4">
                 <div class="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-blue-100 bg-white shadow-sm sm:h-16 sm:w-16">
                     <img
-                        src="{{ asset('images/componentes-pasteurizadora/EXCENTRICOS.png') }}"
-                        alt="Excentricos"
+                        src="{{ asset('images/componentes-pasteurizadora/' . $componenteSeleccionado . '.png') }}"
+                        alt="{{ $componentesCaptura[$componenteSeleccionado] }}"
                         class="h-full w-full object-contain"
                         onerror="this.src='{{ asset('images/icono_pas.png') }}'"
                     >
                 </div>
                 <div class="min-w-0">
                     <h1 class="break-words text-xl font-black leading-tight text-slate-950 sm:text-3xl">
-                        Excentricos de Pasteurizadoras
+                        {{ $usesExcentricosCaptureProfile ? 'Revisiones de Lubricador' : 'Excentricos de Pasteurizadoras' }}
                     </h1>
                     <p class="mt-1 break-words text-sm font-semibold text-slate-500">
                         {{ $lineaSeleccionada?->nombre ?? 'Sin pasteurizadoras disponibles' }}
@@ -594,7 +594,7 @@
                             $activa = $lineaSeleccionada?->id === $linea->id;
                         @endphp
                         <a
-                            href="{{ route('pasteurizadora.analisis-pasteurizadora.excentricos.index', ['linea_id' => $linea->id]) }}"
+                            href="{{ route('pasteurizadora.analisis-pasteurizadora.excentricos.index', array_merge(['linea_id' => $linea->id], $componenteSeleccionado !== 'EXCENTRICOS' ? ['componente' => $componenteSeleccionado] : [])) }}"
                             @if($activa) aria-current="page" @endif
                             class="excentricos-selector-btn inline-flex items-center justify-center rounded-lg border font-black shadow-sm transition focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 {{ $activa ? 'border-blue-600 bg-blue-600 text-white' : 'border-slate-200 bg-white text-slate-700 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700' }}"
                         >
@@ -611,6 +611,23 @@
             </div>
         </div>
     </section>
+
+    @if($usesExcentricosCaptureProfile)
+        <section class="rounded-lg border border-slate-200 bg-white p-3 shadow-sm sm:p-5">
+            <h2 class="mb-3 text-sm font-bold text-slate-700">Componente a revisar</h2>
+            <nav aria-label="Seleccionar componente a revisar" class="grid grid-cols-1 gap-2 {{ count($componentesAplicablesCaptura) === 3 ? 'sm:grid-cols-3' : 'sm:grid-cols-2' }}">
+                @foreach($componentesAplicablesCaptura as $codigo => $nombre)
+                    <a
+                        href="{{ route('pasteurizadora.analisis-pasteurizadora.excentricos.index', array_merge(['linea_id' => $lineaSeleccionada?->id], $codigo !== 'EXCENTRICOS' ? ['componente' => $codigo] : [])) }}"
+                        @if($componenteSeleccionado === $codigo) aria-current="page" @endif
+                        class="inline-flex min-h-11 items-center justify-center rounded-lg border px-4 py-3 text-sm font-bold transition focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 {{ $componenteSeleccionado === $codigo ? 'border-blue-600 bg-blue-600 text-white' : 'border-slate-200 bg-white text-slate-700 hover:bg-blue-50' }}"
+                    >
+                        {{ $nombre }}
+                    </a>
+                @endforeach
+            </nav>
+        </section>
+    @endif
 
     @php
         $diagramaPath = data_get($diagramaPasteurizadora, 'path');
@@ -719,7 +736,7 @@
                             $estado = $ultimo?->estado;
                             $meta = $estadoMeta($estado);
                             $piezas = $ultimo?->componentes_revisados_lista ?? [];
-                            $numerosDelModulo = \App\Models\AnalisisPasteurizadora::getNumerosComponentesPorModulo($linea->nombre, 'EXCENTRICOS', $modulo['modulo']);
+                            $numerosDelModulo = \App\Models\AnalisisPasteurizadora::getNumerosComponentesPorModulo($linea->nombre, $modulo['componente_codigo'], $modulo['modulo']);
                             $piezasTexto = !empty($piezas)
                                 ? collect($piezas)->map(fn ($pieza) => '#' . $pieza)->implode(', ')
                                 : '0 de ' . $modulo['total_componentes'];
@@ -766,7 +783,7 @@
                                         Modulo {{ $modulo['modulo'] }}
                                     </span>
                                     <span class="mt-0.5 block break-words text-[11px] font-black uppercase leading-tight text-slate-400">
-                                        Excentricos
+                                        {{ $usesExcentricosCaptureProfile ? $modulo['componente_nombre'] : 'Excentricos' }}
                                     </span>
                                     <span class="block text-xs font-semibold text-slate-500">#{{ reset($numerosDelModulo) }}–#{{ end($numerosDelModulo) }}</span>
                                 </span>
@@ -808,7 +825,7 @@
 
                                 <a
                                     href="{{ $modulo['capturar_url'] }}"
-                                    aria-label="Capturar Excentricos {{ $linea->nombre }} Modulo {{ $modulo['modulo'] }}"
+                                    aria-label="Capturar {{ $componentesCaptura[$modulo['componente_codigo']] }} {{ $linea->nombre }} Modulo {{ $modulo['modulo'] }}"
                                     class="inline-flex min-h-9 w-full items-center justify-between gap-2 rounded-lg bg-blue-600 px-2 text-xs font-black text-white shadow-sm transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 sm:px-3"
                                 >
                                     <span class="min-w-0 break-words leading-tight">Capturar revision</span>
@@ -821,7 +838,11 @@
             </section>
         @empty
             <div class="rounded-lg border border-slate-200 bg-white px-4 py-6 text-center text-sm font-bold text-slate-500 shadow-sm">
-                No hay modulos disponibles para capturar.
+                @if($usesExcentricosCaptureProfile && $lineaSeleccionada)
+                    No hay {{ strtolower($componentesCaptura[$componenteSeleccionado]) }} configuradas para {{ $lineaSeleccionada->nombre }}.
+                @else
+                    No hay modulos disponibles para capturar.
+                @endif
             </div>
         @endforelse
     </div>

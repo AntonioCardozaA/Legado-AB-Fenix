@@ -100,6 +100,13 @@ class AnalisisPasteurizadora extends Model
     public const COMPONENTE_VIGAS_FIJAS = 'VIGAS_FIJAS';
     public const COMPONENTE_REGLILLAS = 'REGLILLAS';
     public const COMPONENTE_EXCENTRICOS = 'EXCENTRICOS';
+
+    public const COMPONENTES_LUBRICADOR = [
+        self::COMPONENTE_EXCENTRICOS => 'Excentricos',
+        'RODAJAS' => 'Rodajas',
+        'PISTAS' => 'Pistas',
+    ];
+
     public const ALCANCE_REVISION_NIVEL_LADO = 'nivel_lado';
     public const ALCANCE_REVISION_NIVEL = 'nivel';
     public const ALCANCE_REVISION_MODULO = 'modulo';

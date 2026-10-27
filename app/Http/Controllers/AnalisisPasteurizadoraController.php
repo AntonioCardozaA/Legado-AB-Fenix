@@ -57,18 +57,27 @@ class AnalisisPasteurizadoraController extends Controller
         return $request->user()?->usesPasteurizadoraExcentricosAccessProfile() ?? false;
     }
 
-    private function isExcentricosComponent(mixed $componente): bool
+    private function isLubricadorComponent(mixed $componente): bool
     {
-        return strtoupper(trim((string) $componente)) === AnalisisPasteurizadora::COMPONENTE_EXCENTRICOS;
+        return is_string($componente)
+            && array_key_exists(strtoupper(trim($componente)), AnalisisPasteurizadora::COMPONENTES_LUBRICADOR);
     }
 
-    private function ensureExcentricosComponentForRestrictedProfile(Request $request, mixed $componente): void
+    private function ensureLubricadorComponentForRestrictedProfile(Request $request, mixed $componente): void
     {
-        if (!$this->isExcentricosCaptureProfile($request) || $this->isExcentricosComponent($componente)) {
+        if (!$this->isExcentricosCaptureProfile($request) || $this->isLubricadorComponent($componente)) {
             return;
         }
 
-        abort(403, 'Este acceso solo permite registrar Excentricos de Pasteurizadoras.');
+        abort(403, 'Este acceso solo permite registrar excentricos, rodajas y pistas de Pasteurizadoras.');
+    }
+
+    private function lubricadorIndexParameters(mixed $lineaId, string $componente): array
+    {
+        return array_merge(
+            ['linea_id' => $lineaId],
+            $componente !== AnalisisPasteurizadora::COMPONENTE_EXCENTRICOS ? ['componente' => $componente] : [],
+        );
     }
 
     private function pasteurizadoraNombresConfigurados(): array
@@ -521,6 +530,22 @@ class AnalisisPasteurizadoraController extends Controller
         $lineasVisibles = $lineaSeleccionada ? collect([$lineaSeleccionada]) : collect();
         $lineaIds = $lineasVisibles->pluck('id')->all();
         $componente = AnalisisPasteurizadora::COMPONENTE_EXCENTRICOS;
+        $componentesAplicablesCaptura = $lineaSeleccionada
+            ? array_intersect_key(
+                AnalisisPasteurizadora::COMPONENTES_LUBRICADOR,
+                AnalisisPasteurizadora::getComponentesPorLinea($lineaSeleccionada->nombre),
+            )
+            : [];
+
+        if ($this->isExcentricosCaptureProfile($request)) {
+            $componente = $request->input('componente', $componente);
+            $this->ensureLubricadorComponentForRestrictedProfile($request, $componente);
+            $componente = strtoupper(trim($componente));
+
+            if (!array_key_exists($componente, $componentesAplicablesCaptura)) {
+                $componente = AnalisisPasteurizadora::COMPONENTE_EXCENTRICOS;
+            }
+        }
 
         $registros = empty($lineaIds)
             ? collect()
@@ -589,6 +614,9 @@ class AnalisisPasteurizadoraController extends Controller
             'filas' => $filas,
             'pasteurizadoras' => $pasteurizadoras,
             'diagramaPasteurizadora' => $diagramaPasteurizadora,
+            'componenteSeleccionado' => $componente,
+            'componentesCaptura' => AnalisisPasteurizadora::COMPONENTES_LUBRICADOR,
+            'componentesAplicablesCaptura' => $componentesAplicablesCaptura,
         ]);
     }
 
@@ -782,13 +810,13 @@ class AnalisisPasteurizadoraController extends Controller
         $componente = $request->get('componente');
 
         if ($this->isExcentricosCaptureProfile($request)) {
-            if (!$this->isExcentricosComponent($componente)) {
+            if (!$this->isLubricadorComponent($componente)) {
                 return redirect()
                     ->route($this->routeName('excentricos.index'))
-                    ->with('error', 'Este acceso solo permite capturar Excentricos.');
+                    ->with('error', 'Este acceso solo permite capturar excentricos, rodajas y pistas.');
             }
 
-            $componente = AnalisisPasteurizadora::COMPONENTE_EXCENTRICOS;
+            $componente = strtoupper(trim($componente));
         }
 
         $totalModulos = AnalisisPasteurizadora::getModulosPorLinea($linea->nombre);
@@ -807,7 +835,9 @@ class AnalisisPasteurizadoraController extends Controller
                 : $this->routeName('index');
 
             return redirect()
-                ->route($fallbackRoute, ['linea_id' => $linea->id])
+                ->route($fallbackRoute, $this->isExcentricosCaptureProfile($request)
+                    ? $this->lubricadorIndexParameters($linea->id, $componente)
+                    : ['linea_id' => $linea->id])
                 ->with('error', 'Selecciona un recuadro de modulo y componente para capturar el analisis.');
         }
 
@@ -943,7 +973,7 @@ class AnalisisPasteurizadoraController extends Controller
 
     public function storeQuick(Request $request)
     {
-        $this->ensureExcentricosComponentForRestrictedProfile($request, $request->input('componente'));
+        $this->ensureLubricadorComponentForRestrictedProfile($request, $request->input('componente'));
 
         if ($this->isExcentricosCaptureProfile($request)) {
             $request->merge(['numero_orden' => null]);
@@ -1019,8 +1049,8 @@ class AnalisisPasteurizadoraController extends Controller
 
         $redirect = $this->isExcentricosCaptureProfile($request)
             ? redirect()
-                ->route($this->routeName('excentricos.index'), ['linea_id' => $validated['linea_id']])
-                ->with('success', 'Revision de Excentricos registrada correctamente.')
+                ->route($this->routeName('excentricos.index'), $this->lubricadorIndexParameters($validated['linea_id'], $validated['componente']))
+                ->with('success', 'Revision de ' . AnalisisPasteurizadora::COMPONENTES_LUBRICADOR[$validated['componente']] . ' registrada correctamente.')
             : redirect()
                 ->route($this->routeName('index'), ['linea_id' => $validated['linea_id']])
                 ->with('success', 'Analisis registrado correctamente.');

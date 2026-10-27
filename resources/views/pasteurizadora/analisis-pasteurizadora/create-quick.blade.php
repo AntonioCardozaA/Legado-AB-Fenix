@@ -30,7 +30,7 @@
         ]
         : [];
     $volverUrl = $usesExcentricosCaptureProfile
-        ? $analisisRoute('excentricos.index', ['linea_id' => $linea->id])
+        ? $analisisRoute('excentricos.index', array_merge(['linea_id' => $linea->id], $componenteSeleccionado !== 'EXCENTRICOS' ? ['componente' => $componenteSeleccionado] : []))
         : $analisisRoute('index', ['linea_id' => $linea->id]);
 @endphp
 
@@ -125,7 +125,7 @@
                 <i class="fas fa-arrow-left text-xl"></i>
             </a>
             <h1 class="text-3xl font-bold text-gray-800">
-                {{ $usesExcentricosCaptureProfile ? 'Capturar Excentricos' : 'Agregar Analisis' }}
+                {{ $usesExcentricosCaptureProfile ? 'Capturar ' . (\App\Models\AnalisisPasteurizadora::COMPONENTES_LUBRICADOR[$componenteSeleccionado] ?? $componenteSeleccionado) : 'Agregar Analisis' }}
             </h1>
         </div>
 
