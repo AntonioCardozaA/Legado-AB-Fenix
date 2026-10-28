@@ -22,8 +22,11 @@ class EnsureCustomPermissionAccess
         if ($user?->usesPasteurizadoraExcentricosAccessProfile()
             && in_array($routeName, [
                 'pasteurizadora.analisis-pasteurizadora.excentricos.index',
+                'pasteurizadora.analisis-pasteurizadora.historial',
                 'pasteurizadora.analisis-pasteurizadora.create-quick',
                 'pasteurizadora.analisis-pasteurizadora.store-quick',
+                'pasteurizadora.analisis-pasteurizadora.edit',
+                'pasteurizadora.analisis-pasteurizadora.update',
             ], true)
         ) {
             return $next($request);

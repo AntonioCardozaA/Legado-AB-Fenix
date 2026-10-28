@@ -1030,6 +1030,99 @@ class AnalisisPasteurizadora extends Model
             ->first();
     }
 
+    /**
+     * Obtiene el ultimo indicador pendiente por componente numerado y ubicacion fisica.
+     *
+     * Un registro en Buen estado solo resuelve la misma clave de componente,
+     * nivel, lado y alcance que registro la anomalia. El resto del historial se
+     * conserva y los estados no anomalos distintos de Buen estado no ocultan un
+     * indicador que aun no ha sido resuelto.
+     */
+    public static function getIndicadoresActivos($registros, ?string $lineaNombre = null, ?string $componente = null): array
+    {
+        $registros = self::ordenarRegistrosCronologicamente($registros);
+
+        if ($registros->isEmpty()) {
+            return [];
+        }
+
+        $lineaNombre ??= $registros->first()->linea?->nombre;
+        $componente ??= $registros->first()->componente;
+        $alcanceRevision = self::getAlcanceRevisionPorLineaYComponente($lineaNombre, $componente);
+        $activos = [];
+
+        foreach ($registros as $registro) {
+            $estado = self::normalizarEstado($registro->estado);
+            $componentes = self::normalizarComponentesRevisados($registro->componentes_revisados);
+
+            if ($componentes === [] && $lineaNombre) {
+                $componentes = array_slice(
+                    self::getNumerosComponentesPorModulo($lineaNombre, $componente, (int) $registro->modulo),
+                    0,
+                    max(0, (int) $registro->cantidad_componentes_revisados)
+                );
+            }
+
+            foreach ($componentes as $numeroComponente) {
+                $numeroComponente = (int) $numeroComponente;
+                if ($numeroComponente <= 0) {
+                    continue;
+                }
+
+                $clave = self::claveIndicadorActivo($numeroComponente, $registro, $alcanceRevision);
+
+                if (self::esEstadoBueno($estado)) {
+                    unset($activos[$clave]);
+                    continue;
+                }
+
+                if (!self::esEstadoSeguimientoReinspeccion($estado)) {
+                    continue;
+                }
+
+                $activos[$clave] = [
+                    'clave' => $clave,
+                    'numero_componente' => $numeroComponente,
+                    'estado' => $estado,
+                    'nivel' => $registro->nivel,
+                    'lado' => $registro->lado,
+                    'registro_id' => $registro->id,
+                    'registro' => $registro,
+                ];
+            }
+        }
+
+        return collect($activos)
+            ->sortByDesc(function (array $indicador) {
+                $registro = $indicador['registro'];
+
+                return implode('-', [
+                    $registro->fecha_analisis?->format('Ymd') ?? '00000000',
+                    str_pad((string) ($registro->created_at?->timestamp ?? 0), 12, '0', STR_PAD_LEFT),
+                    str_pad((string) ($registro->id ?? 0), 10, '0', STR_PAD_LEFT),
+                ]);
+            })
+            ->values()
+            ->all();
+    }
+
+    private static function claveIndicadorActivo(int $numeroComponente, $registro, string $alcanceRevision): string
+    {
+        $nivel = strtoupper(trim((string) ($registro->nivel ?? '')));
+        $lado = strtoupper(trim((string) ($registro->lado ?? '')));
+
+        $ubicacion = match ($alcanceRevision) {
+            self::ALCANCE_REVISION_MODULO => 'MODULO',
+            self::ALCANCE_REVISION_NIVEL => 'NIVEL:' . ($nivel !== '' ? $nivel : 'SIN_NIVEL'),
+            default => implode('|', [
+                'NIVEL:' . ($nivel !== '' ? $nivel : 'SIN_NIVEL'),
+                'LADO:' . ($lado !== '' ? $lado : 'SIN_LADO'),
+            ]),
+        };
+
+        return 'COMPONENTE:' . $numeroComponente . '|' . $ubicacion;
+    }
+
     // ============================================================
     // RELACIONES
     // ============================================================

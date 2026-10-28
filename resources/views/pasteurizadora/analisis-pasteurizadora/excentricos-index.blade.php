@@ -125,6 +125,14 @@
         min-width: 0;
     }
 
+    .indicator-carousel-state[hidden] {
+        display: none;
+    }
+
+    .indicator-carousel-state {
+        transition: opacity 0.45s ease, transform 0.45s ease;
+    }
+
     .excentricos-top-panel {
         background:
             linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.98) 56%, rgba(239, 246, 255, 0.98)),
@@ -463,6 +471,8 @@
             componentes: [],
             evidencias: [],
             capturarUrl: '#',
+            historialUrl: '#',
+            editarUrl: '#',
             creado: '',
             actualizado: ''
         },
@@ -733,22 +743,24 @@
                     @foreach ($modulos as $modulo)
                         @php
                             $ultimo = $modulo['ultimo_registro'];
-                            $estado = $ultimo?->estado;
+                            $indicadoresActivos = collect($modulo['indicadores_activos'] ?? []);
+                            $registroVisual = $indicadoresActivos->first()['registro'] ?? $ultimo;
+                            $estado = $indicadoresActivos->first()['estado'] ?? $registroVisual?->estado;
                             $meta = $estadoMeta($estado);
-                            $piezas = $ultimo?->componentes_revisados_lista ?? [];
+                            $piezas = $registroVisual?->componentes_revisados_lista ?? [];
                             $numerosDelModulo = \App\Models\AnalisisPasteurizadora::getNumerosComponentesPorModulo($linea->nombre, $modulo['componente_codigo'], $modulo['modulo']);
                             $piezasTexto = !empty($piezas)
                                 ? collect($piezas)->map(fn ($pieza) => '#' . $pieza)->implode(', ')
                                 : '0 de ' . $modulo['total_componentes'];
                             $detalleModal = null;
 
-                            if ($ultimo) {
+                            if ($registroVisual) {
                                 $componentesDetalle = collect($piezas)
                                     ->map(fn ($pieza) => (int) $pieza)
                                     ->values()
                                     ->all();
                                 $detalleModal = [
-                                    'id' => $ultimo->id,
+                                    'id' => $registroVisual->id,
                                     'linea' => $linea->nombre,
                                     'modulo' => 'Modulo ' . $modulo['modulo'],
                                     'componente' => $modulo['componente_nombre'] ?? 'Excentricos',
@@ -756,18 +768,30 @@
                                     'estadoClase' => $meta['pill'],
                                     'estadoModalClase' => $meta['modal'],
                                     'estadoIcono' => $meta['icon'],
-                                    'fecha' => $ultimo->fecha_analisis?->format('d/m/Y') ?? 'Sin fecha',
-                                    'hora' => $ultimo->created_at?->format('H:i') ?? '',
-                                    'nivel' => $ultimo->nivel ?: 'Sin nivel',
-                                    'lado' => $ultimo->lado ?: 'Sin lado',
-                                    'responsable' => $ultimo->usuario?->name ?? $ultimo->responsable ?? 'Sin usuario asignado',
-                                    'actividad' => $ultimo->actividad ?: 'Sin actividad registrada.',
+                                    'fecha' => $registroVisual->fecha_analisis?->format('d/m/Y') ?? 'Sin fecha',
+                                    'hora' => $registroVisual->created_at?->format('H:i') ?? '',
+                                    'nivel' => $registroVisual->nivel ?: 'Sin nivel',
+                                    'lado' => $registroVisual->lado ?: 'Sin lado',
+                                    'responsable' => $registroVisual->usuario?->name ?? $registroVisual->responsable ?? 'Sin usuario asignado',
+                                    'actividad' => $registroVisual->actividad ?: 'Sin actividad registrada.',
                                     'avance' => count($componentesDetalle) . ' de ' . $modulo['total_componentes'],
                                     'componentes' => $componentesDetalle,
-                                    'evidencias' => $evidenciaUrls($ultimo->evidencia_fotos),
+                                    'evidencias' => $evidenciaUrls($registroVisual->evidencia_fotos),
                                     'capturarUrl' => $modulo['capturar_url'],
-                                    'creado' => $ultimo->created_at?->format('d/m/Y H:i') ?? 'N/A',
-                                    'actualizado' => $ultimo->updated_at?->format('d/m/Y H:i') ?? 'N/A',
+                                    'historialUrl' => route('pasteurizadora.analisis-pasteurizadora.historial', [
+                                        'linea_id' => $linea->id,
+                                        'modulo' => $modulo['modulo'],
+                                        'componente' => $modulo['componente_codigo'],
+                                    ]),
+                                    'editarUrl' => route('pasteurizadora.analisis-pasteurizadora.edit', [
+                                        'analisispasteurizadora' => $registroVisual->id,
+                                        'redirect_to' => route('pasteurizadora.analisis-pasteurizadora.excentricos.index', [
+                                            'linea_id' => $linea->id,
+                                            'componente' => $modulo['componente_codigo'],
+                                        ]),
+                                    ]),
+                                    'creado' => $registroVisual->created_at?->format('d/m/Y H:i') ?? 'N/A',
+                                    'actualizado' => $registroVisual->updated_at?->format('d/m/Y H:i') ?? 'N/A',
                                 ];
                             }
                         @endphp
@@ -794,16 +818,39 @@
                                     <span class="block text-[10px] font-black uppercase tracking-wide text-slate-400">
                                         ESTADO
                                     </span>
-                                    <span class="mt-1 flex w-full items-start gap-1.5 rounded-lg px-2 py-2 text-[11px] font-black leading-tight ring-1 sm:px-2.5 sm:text-xs {{ $meta['pill'] }}" title="{{ $meta['label'] }}">
-                                        <i class="fas {{ $meta['icon'] }} mt-0.5 shrink-0"></i>
-                                        <span class="min-w-0 flex-1 break-words">{{ $meta['short'] }}</span>
-                                    </span>
+                                    @if($indicadoresActivos->isNotEmpty())
+                                        <span class="indicator-carousel mt-1 block" data-indicator-carousel data-interval="2000">
+                                            @foreach($indicadoresActivos as $indiceIndicador => $indicador)
+                                                @php $indicadorMeta = $estadoMeta($indicador['estado'] ?? null); @endphp
+                                                <span
+                                                    class="indicator-carousel-state flex w-full items-start gap-1.5 rounded-lg px-2 py-2 text-[11px] font-black leading-tight ring-1 sm:px-2.5 sm:text-xs {{ $indicadorMeta['pill'] }}"
+                                                    data-tile-class="{{ $indicadorMeta['tile'] }}"
+                                                    data-accent-class="{{ $indicadorMeta['accent'] }}"
+                                                    @if($indiceIndicador > 0) hidden @endif
+                                                >
+                                                    <i class="fas {{ $indicadorMeta['icon'] }} mt-0.5 shrink-0"></i>
+                                                    <span class="min-w-0 flex-1 break-words">
+                                                        {{ $indicadorMeta['short'] }}
+                                                        <span class="block text-[10px] font-bold opacity-75">
+                                                            {{ $modulo['componente_nombre'] ?? 'Componente' }} #{{ $indicador['numero_componente'] }}
+                                                            @if($indicador['lado']) · Lado {{ ucfirst(strtolower($indicador['lado'])) }} @endif
+                                                            @if($indicador['nivel']) · Nivel {{ ucfirst(strtolower($indicador['nivel'])) }} @endif
+                                                        </span>
+                                                    </span>
+                                                </span>
+                                            @endforeach
+                                        </span>
+                                    @else
+                                        <span class="mt-1 flex w-full items-start gap-1.5 rounded-lg px-2 py-2 text-[11px] font-black leading-tight ring-1 sm:px-2.5 sm:text-xs {{ $meta['pill'] }}" title="{{ $meta['label'] }}">
+                                            <i class="fas {{ $meta['icon'] }} mt-0.5 shrink-0"></i>
+                                            <span class="min-w-0 flex-1 break-words">{{ $meta['short'] }}</span>
+                                        </span>
+                                    @endif
                                 </span>
 
                                 <span class="block min-w-0 text-xs font-bold text-slate-600">
-                                    @if($ultimo)
-                                        <span class="block truncate">{{ $ultimo->fecha_analisis?->format('d/m/Y') }}</span>
-                                        <span class="mt-0.5 block truncate text-slate-400">{{ $piezasTexto }}</span>
+                                    @if($registroVisual)
+                                        <span class="block truncate">{{ $registroVisual->fecha_analisis?->format('d/m/Y') }}</span>
                                     @else
                                         <span class="block text-slate-400">Sin registro</span>
                                         <span class="mt-0.5 block text-slate-400">{{ $piezasTexto }}</span>
@@ -812,7 +859,7 @@
                             </span>
 
                             <div class="mt-3 grid gap-2">
-                                @if($ultimo)
+                                @if($registroVisual)
                                     <button
                                         type="button"
                                         class="inline-flex min-h-9 w-full items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-2 text-xs font-black text-slate-700 shadow-sm transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 sm:px-3"
@@ -1075,6 +1122,22 @@
 
                 <div class="mt-6 flex flex-col gap-3 border-t border-gray-200 pt-4 sm:mt-8 sm:flex-row sm:justify-end">
                     <a
+                        :href="detalle.historialUrl"
+                        class="flex w-full items-center justify-center gap-2 rounded-lg border border-blue-600 bg-blue-50 px-4 py-3 text-center font-medium text-blue-700 shadow-md transition-all hover:bg-blue-100 hover:shadow-lg sm:w-auto sm:px-6"
+                    >
+                        <i class="fas fa-history"></i>
+                        <span class="break-words leading-tight">Ver historial</span>
+                    </a>
+
+                    <a
+                        :href="detalle.editarUrl"
+                        class="flex w-full items-center justify-center gap-2 rounded-lg border border-amber-500 bg-amber-50 px-4 py-3 text-center font-medium text-amber-700 shadow-md transition-all hover:bg-amber-100 hover:shadow-lg sm:w-auto sm:px-6"
+                    >
+                        <i class="fas fa-edit"></i>
+                        <span class="break-words leading-tight">Editar registro</span>
+                    </a>
+
+                    <a
                         :href="detalle.capturarUrl"
                         class="flex w-full items-center justify-center gap-2 rounded-lg border border-gray-700 bg-gray-800 px-4 py-3 text-center font-medium text-white shadow-md transition-all hover:bg-gray-900 hover:shadow-lg sm:w-auto sm:px-6"
                     >
@@ -1164,4 +1227,45 @@
         </div>
     </div>
 </div>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('[data-indicator-carousel]').forEach(function (carousel) {
+        const states = Array.from(carousel.querySelectorAll('.indicator-carousel-state'));
+        if (states.length < 2) {
+            return;
+        }
+
+        let activeIndex = 0;
+        const tile = carousel.closest('.excentricos-module-tile');
+        const accent = tile?.querySelector(':scope > .absolute');
+        const tileClasses = [
+            'border-green-200', 'bg-green-50/80', 'hover:border-green-300', 'hover:bg-green-50',
+            'border-blue-200', 'bg-blue-50/80', 'hover:border-blue-300', 'hover:bg-blue-50',
+            'border-red-200', 'bg-red-50/80', 'hover:border-red-300', 'hover:bg-red-50',
+            'border-yellow-200', 'bg-yellow-50/90', 'hover:border-yellow-300', 'hover:bg-yellow-50',
+            'border-orange-200', 'bg-orange-50/85', 'hover:border-orange-300', 'hover:bg-orange-50',
+            'border-slate-200', 'bg-white',
+        ];
+        const accentClasses = ['bg-green-500', 'bg-blue-500', 'bg-red-500', 'bg-yellow-500', 'bg-orange-500', 'bg-slate-300'];
+
+        window.setInterval(function () {
+            activeIndex = (activeIndex + 1) % states.length;
+            states.forEach(function (state, stateIndex) {
+                state.hidden = stateIndex !== activeIndex;
+            });
+
+            const activeState = states[activeIndex];
+            if (tile && activeState.dataset.tileClass) {
+                tile.classList.remove(...tileClasses);
+                tile.classList.add(...activeState.dataset.tileClass.split(/\s+/).filter(Boolean));
+            }
+            if (accent && activeState.dataset.accentClass) {
+                accent.classList.remove(...accentClasses);
+                accent.classList.add(...activeState.dataset.accentClass.split(/\s+/).filter(Boolean));
+            }
+
+        }, Number(carousel.dataset.interval || 2000));
+    });
+});
+</script>
 @endsection

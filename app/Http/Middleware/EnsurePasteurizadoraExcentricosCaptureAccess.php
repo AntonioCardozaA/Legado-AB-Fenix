@@ -10,8 +10,11 @@ class EnsurePasteurizadoraExcentricosCaptureAccess
 {
     private const ALLOWED_ROUTES = [
         'pasteurizadora.analisis-pasteurizadora.excentricos.index',
+        'pasteurizadora.analisis-pasteurizadora.historial',
         'pasteurizadora.analisis-pasteurizadora.create-quick',
         'pasteurizadora.analisis-pasteurizadora.store-quick',
+        'pasteurizadora.analisis-pasteurizadora.edit',
+        'pasteurizadora.analisis-pasteurizadora.update',
         'logout',
     ];
 

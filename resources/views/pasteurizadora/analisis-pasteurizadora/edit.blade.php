@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Editar Analisis - Pasteurizadora')
+@section('title', 'Editar análisis - Pasteurizadora')
 
 @section('content')
 @php
@@ -54,6 +54,180 @@
         overflow-x: clip;
     }
 
+    .pasteur-edit-page {
+        min-height: 100%;
+        background: linear-gradient(135deg, #f8fafc 0%, #eef4ff 52%, #f8fafc 100%);
+    }
+
+    .pasteur-edit-header {
+        display: flex;
+        align-items: flex-start;
+        gap: .85rem;
+    }
+
+    .pasteur-edit-back {
+        display: inline-flex;
+        width: 2.75rem;
+        height: 2.75rem;
+        flex: 0 0 auto;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid #bfdbfe;
+        border-radius: .85rem;
+        background: rgba(255, 255, 255, .9);
+        color: #2563eb;
+        box-shadow: 0 4px 12px rgba(37, 99, 235, .10);
+        transition: .2s ease;
+    }
+
+    .pasteur-edit-back:hover {
+        border-color: #2563eb;
+        background: #eff6ff;
+        transform: translateX(-2px);
+    }
+
+    .pasteur-edit-heading {
+        min-width: 0;
+    }
+
+    .pasteur-edit-title {
+        color: #0f172a;
+        font-size: clamp(1.45rem, 3vw, 2rem);
+        font-weight: 800;
+        letter-spacing: -.025em;
+        line-height: 1.15;
+    }
+
+    .pasteur-edit-subtitle {
+        margin-top: .35rem;
+        color: #64748b;
+        font-size: .82rem;
+        font-weight: 600;
+    }
+
+    .pasteur-context {
+        background: linear-gradient(135deg, rgba(255, 255, 255, .96), rgba(239, 246, 255, .92));
+        border: 1px solid #dbeafe;
+        border-radius: 1rem;
+        box-shadow: 0 8px 20px rgba(30, 64, 175, .08);
+        padding: 1.15rem;
+    }
+
+    .pasteur-context-item {
+        min-height: 4.25rem;
+        padding: .75rem .85rem;
+        border: 1px solid #e2e8f0;
+        border-radius: .75rem;
+        background: rgba(255, 255, 255, .78);
+    }
+
+    .pasteur-context-label {
+        color: #64748b;
+        font-size: .66rem;
+        font-weight: 800;
+        letter-spacing: .08em;
+        text-transform: uppercase;
+    }
+
+    .pasteur-context-value {
+        margin-top: .35rem;
+        color: #0f172a;
+        font-size: .9rem;
+        font-weight: 700;
+    }
+
+    .pasteur-form-card {
+        border: 1px solid #e2e8f0;
+        border-radius: 1.15rem;
+        box-shadow: 0 16px 32px rgba(15, 23, 42, .09);
+        padding: clamp(1rem, 3vw, 1.75rem);
+    }
+
+    .pasteur-form-intro {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        margin-bottom: 1.35rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid #e2e8f0;
+    }
+
+    .pasteur-form-intro h2 {
+        color: #0f172a;
+        font-size: 1.05rem;
+        font-weight: 800;
+    }
+
+    .pasteur-form-intro p {
+        margin-top: .25rem;
+        color: #64748b;
+        font-size: .78rem;
+    }
+
+    .pasteur-evidence-card {
+        overflow: hidden;
+    }
+
+    .pasteur-evidence-actions {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: .5rem;
+        flex-wrap: nowrap;
+    }
+
+    .pasteur-evidence-actions button,
+    .pasteur-evidence-actions label,
+    .pasteur-evidence-actions span {
+        flex: 0 0 auto;
+        white-space: nowrap;
+    }
+
+    .pasteur-form-status {
+        display: inline-flex;
+        align-items: center;
+        gap: .4rem;
+        flex: 0 0 auto;
+        border: 1px solid #bfdbfe;
+        border-radius: 999px;
+        background: #eff6ff;
+        color: #1d4ed8;
+        padding: .45rem .7rem;
+        font-size: .7rem;
+        font-weight: 800;
+        white-space: nowrap;
+    }
+
+    .pasteur-form-card label {
+        color: #334155;
+        font-weight: 700;
+    }
+
+    .pasteur-form-card input:not([type="hidden"]),
+    .pasteur-form-card select,
+    .pasteur-form-card textarea {
+        border-color: #cbd5e1;
+        border-radius: .7rem;
+        transition: border-color .2s ease, box-shadow .2s ease;
+    }
+
+    .pasteur-form-card input:not([type="hidden"]):focus,
+    .pasteur-form-card select:focus,
+    .pasteur-form-card textarea:focus {
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, .14);
+        outline: none;
+    }
+
+    .pasteur-form-actions {
+        display: flex;
+        gap: .75rem;
+        margin-top: 1.5rem;
+        padding-top: 1.25rem;
+        border-top: 1px solid #e2e8f0;
+    }
+
     .pasteur-form-shell * {
         box-sizing: border-box;
         min-width: 0;
@@ -99,8 +273,34 @@
     }
 
     @media (max-width: 640px) {
+        .pasteur-edit-page {
+            padding: .5rem 0;
+        }
+
         .pasteur-form-shell {
             padding: 1.25rem 0.75rem;
+        }
+
+        .pasteur-edit-header {
+            gap: .65rem;
+        }
+
+        .pasteur-edit-back {
+            width: 2.4rem;
+            height: 2.4rem;
+        }
+
+        .pasteur-form-intro {
+            align-items: flex-start;
+            flex-direction: column;
+        }
+
+        .pasteur-form-status {
+            white-space: normal;
+        }
+
+        .pasteur-form-actions {
+            flex-direction: column-reverse;
         }
 
         .pasteur-form-shell h1 {
@@ -126,18 +326,19 @@
     }
 </style>
 
-<div class="pasteur-form-shell max-w-4xl mx-auto py-10 px-4">
+<div class="pasteur-edit-page">
+<div class="pasteur-form-shell max-w-5xl mx-auto py-8 px-4 sm:py-10">
     <div class="mb-8">
-        <div class="flex items-start gap-3 mb-4">
-            <a href="{{ $backUrl }}" class="mt-1 text-gray-400 hover:text-blue-600 transition" aria-label="Volver">
-                <i class="fas fa-arrow-left text-xl"></i>
+        <div class="pasteur-edit-header mb-5">
+            <a href="{{ $backUrl }}" class="pasteur-edit-back" aria-label="Volver">
+                <i class="fas fa-arrow-left"></i>
             </a>
-            <div class="min-w-0">
-                <h1 class="text-2xl sm:text-3xl font-bold text-gray-800">Editar Analisis de Pasteurizadora</h1>
-                <p class="text-gray-600 text-sm mt-1">
-                    ID: #{{ $analisis->id }}
+            <div class="pasteur-edit-heading">
+                <h1 class="pasteur-edit-title">Editar análisis de Pasteurizadora</h1>
+                <p class="pasteur-edit-subtitle">
+                    Registro #{{ $analisis->id }}
                     @if($analisis->numero_orden)
-                        <span class="mx-1">|</span> Orden: {{ $analisis->numero_orden }}
+                        <span class="mx-1 text-slate-300">·</span> Orden {{ $analisis->numero_orden }}
                     @endif
                 </p>
             </div>
@@ -163,44 +364,53 @@
 
         <div class="pasteur-context">
             <div class="grid grid-cols-1 gap-4 text-sm sm:grid-cols-2 lg:grid-cols-4 lg:items-center">
-                <div>
-                    <p class="font-semibold text-gray-600">Linea</p>
-                    <p class="text-gray-900">{{ $analisis->linea->nombre ?? 'N/A' }}</p>
+                <div class="pasteur-context-item">
+                    <p class="pasteur-context-label">Línea</p>
+                    <p class="pasteur-context-value">{{ $analisis->linea->nombre ?? 'N/A' }}</p>
                 </div>
-                <div>
-                    <p class="font-semibold text-gray-600">Modulo</p>
-                    <p class="text-gray-900">Modulo {{ $analisis->modulo }}</p>
+                <div class="pasteur-context-item">
+                    <p class="pasteur-context-label">Módulo</p>
+                    <p class="pasteur-context-value">Módulo {{ $analisis->modulo }}</p>
                 </div>
-                <div>
-                    <p class="font-semibold text-gray-600">Componente</p>
-                    <p class="text-gray-900">{{ $analisis->componente_nombre }}</p>
+                <div class="pasteur-context-item">
+                    <p class="pasteur-context-label">Componente</p>
+                    <p class="pasteur-context-value">{{ $analisis->componente_nombre }}</p>
                 </div>
-                <div>
-                    <p class="font-semibold text-gray-600">Estado actual</p>
+                <div class="pasteur-context-item">
+                    <p class="pasteur-context-label">Estado actual</p>
                     <span class="mt-1 inline-flex rounded-full border px-3 py-1 text-xs font-semibold {{ $estadoBadge }}">
                         {{ $estadoActualLabel }}
                     </span>
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 gap-4 mt-4 pt-4 border-t border-gray-300 text-sm sm:grid-cols-3">
-                <div>
-                    <p class="font-semibold text-gray-600">Nivel</p>
-                    <p class="text-gray-900">{{ $analisis->nivel ?: 'Sin nivel' }}</p>
+            <div class="mt-4 grid grid-cols-1 gap-4 border-t border-blue-100 pt-4 text-sm sm:grid-cols-3">
+                <div class="pasteur-context-item">
+                    <p class="pasteur-context-label">Nivel</p>
+                    <p class="pasteur-context-value">{{ $analisis->nivel ?: 'Sin nivel' }}</p>
                 </div>
-                <div>
-                    <p class="font-semibold text-gray-600">Lado</p>
-                    <p class="text-gray-900">{{ $analisis->lado ?: 'Sin lado' }}</p>
+                <div class="pasteur-context-item">
+                    <p class="pasteur-context-label">Lado</p>
+                    <p class="pasteur-context-value">{{ $analisis->lado ?: 'Sin lado' }}</p>
                 </div>
-                <div>
-                    <p class="font-semibold text-gray-600">Fecha de creacion</p>
-                    <p class="text-gray-900">{{ optional($analisis->created_at)->format('d/m/Y H:i') ?: 'N/A' }}</p>
+                <div class="pasteur-context-item">
+                    <p class="pasteur-context-label">Fecha de creación</p>
+                    <p class="pasteur-context-value">{{ optional($analisis->created_at)->format('d/m/Y') ?: 'N/A' }}</p>
                 </div>
             </div>
         </div>
     </div>
 
     <div class="pasteur-form-card">
+        <div class="pasteur-form-intro">
+            <div>
+                <h2>Datos de la revisión</h2>
+            </div>
+            <span class="pasteur-form-status">
+                <i class="fas fa-pen-to-square"></i>
+                Edición activa
+            </span>
+        </div>
         <form method="POST"
               action="{{ $analisisRoute('update', $analisis->id) }}"
               enctype="multipart/form-data"
@@ -230,7 +440,7 @@
                 <div>
                     <label for="fecha_analisis" class="block text-sm font-medium text-gray-700 mb-1">
                         <i class="far fa-calendar-alt text-blue-600 mr-1"></i>
-                        Fecha de Analisis *
+                        Fecha de análisis *
                     </label>
                     <input type="date"
                            name="fecha_analisis"
@@ -270,7 +480,7 @@
                 <div>
                     <label for="numero_orden" class="block text-sm font-medium text-gray-700 mb-1">
                         <i class="fas fa-hashtag text-blue-600 mr-1"></i>
-                        Numero de Orden
+                        Número de orden
                     </label>
                     <input type="text"
                            name="numero_orden"
@@ -283,7 +493,6 @@
                            placeholder="Ej: 35221456"
                            oninput="this.value = this.value.replace(/[^0-9]/g, '')"
                            class="w-full rounded-lg border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 @error('numero_orden') border-red-500 @enderror">
-                    <p class="text-xs text-gray-500 mt-1">Opcional. Solo numeros, sin letras ni guiones.</p>
                     @error('numero_orden')<p class="text-red-500 text-sm mt-1">{{ $message }}</p>@enderror
                 </div>
 
@@ -342,7 +551,7 @@
                 <div class="mb-6 rounded-xl border border-indigo-200 bg-indigo-50 p-4">
                     <label for="numero_componente" class="block text-sm font-semibold text-indigo-900 mb-2">
                         <i class="fas fa-list-ol mr-1"></i>
-                        Numero especifico del componente
+                        Número específico del componente
                     </label>
 
                     @if($esBrazoTorsion)
@@ -391,25 +600,25 @@
                         <i class="fas fa-images text-blue-600 mr-1"></i>
                         Evidencias actuales
                     </label>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                    <div class="pasteur-evidence-grid grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                         @foreach($evidencias as $index => $foto)
                             @php
                                 $fotoUrl = asset('storage/' . ltrim(str_replace('\\', '/', $foto), '/'));
                             @endphp
-                            <div class="relative group border border-gray-200 rounded-lg p-2 bg-gray-50 hover:bg-gray-100 transition">
+                            <div class="pasteur-evidence-card relative group border border-gray-200 rounded-lg p-2 bg-gray-50 hover:bg-gray-100 transition">
                                 <img src="{{ $fotoUrl }}"
                                      alt="Evidencia {{ $loop->iteration }}"
-                                     class="w-full h-32 object-cover rounded-md border border-gray-300 mb-2">
+                                     class="w-full h-36 object-cover rounded-md border border-gray-300 mb-2 sm:h-40">
 
-                                <div class="flex items-center justify-between gap-2">
+                                <div class="pasteur-evidence-actions">
                                     <button type="button"
                                        data-current-evidence-index="{{ $index }}"
-                                       class="inline-flex min-h-10 items-center justify-center gap-1 rounded-lg px-3 text-sm font-semibold text-blue-600 transition hover:bg-blue-50 hover:text-blue-800">
+                                       class="inline-flex min-h-10 shrink-0 items-center justify-center gap-1 whitespace-nowrap rounded-lg px-3 text-sm font-semibold text-blue-600 transition hover:bg-blue-50 hover:text-blue-800">
                                         <i class="fas fa-expand text-xs"></i>
-                                        <span>Ver</span>
+                                        <span class="whitespace-nowrap">Ver</span>
                                     </button>
 
-                                    <label class="inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-lg px-3 transition hover:bg-red-50">
+                                    <label class="inline-flex min-h-10 shrink-0 cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-lg px-3 transition hover:bg-red-50">
                                         <input type="checkbox"
                                                name="eliminar_fotos[]"
                                                value="{{ $index }}"
@@ -463,7 +672,7 @@
                 @error('evidencia_fotos.*')<p class="text-red-500 text-sm mt-1">{{ $message }}</p>@enderror
             </div>
 
-            <div class="responsive-actions pt-6 border-t border-gray-200">
+            <div class="pasteur-form-actions responsive-actions">
                 <a href="{{ $cancelUrl }}"
                    class="responsive-action responsive-action--secondary flex-1">
                     <i class="fas fa-times mr-2"></i>
@@ -472,11 +681,12 @@
                 <button type="submit"
                         class="responsive-action flex-1">
                     <i class="fas fa-save mr-2"></i>
-                    Actualizar Analisis
+                    Actualizar análisis
                 </button>
             </div>
         </form>
     </div>
+</div>
 </div>
 
 <div id="editEvidenceModal" class="fixed inset-0 z-[80] hidden items-center justify-center bg-black/75 p-2 sm:p-4">

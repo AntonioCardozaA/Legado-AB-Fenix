@@ -8,6 +8,17 @@
     $analisisRoute = fn ($name, $params = []) => route($analisisRoutePrefix . '.' . $name, $params);
     $analisisBaseUrl = $analisisBaseUrl ?? '/pasteurizadora/analisis-pasteurizadora';
     $canDeleteAnalysis = $canDeleteAnalysis ?? (auth()->user()?->canDeletePasteurizadoraAnalysis() ?? false);
+    $estadoIndicadorStyle = function (?string $estado): array {
+        if (\App\Models\AnalisisPasteurizadora::esEstadoDanado($estado)) {
+            return ['cell' => 'cell-danger', 'badge' => 'bg-red-100 text-red-800 border-red-200', 'icon' => 'fa-times-circle'];
+        }
+
+        if (\App\Models\AnalisisPasteurizadora::esEstadoRequiereRevision($estado)) {
+            return ['cell' => 'cell-review', 'badge' => 'bg-yellow-100 text-yellow-800 border-yellow-200', 'icon' => 'fa-tools'];
+        }
+
+        return ['cell' => 'cell-warning', 'badge' => 'bg-orange-100 text-orange-800 border-orange-200', 'icon' => 'fa-exclamation-triangle'];
+    };
 @endphp
 <style>
     /* VARIABLES CSS PARA CONSISTENCIA */
@@ -33,6 +44,10 @@
     .cell-changed { background-color: #eff6ff; border-left: 4px solid var(--changed-blue); }
     .cell-empty { background-color: var(--light-gray); }
     .cell-header { background-color: #eff6ff; }
+    .pasteur-indicator-carousel { min-height: 28px; }
+    .pasteur-indicator-state { transition: opacity 0.45s ease, transform 0.45s ease; }
+    .pasteur-indicator-state[hidden] { display: none; }
+    .indicator-location { font-size: 0.68rem; color: #64748b; }
     
     .compact-table td, .compact-table th {
         padding: 12px !important;
@@ -2230,6 +2245,13 @@
                                         @foreach($componentesLinea as $codigo => $compData)
                                             @php
                                                 $celdaSeguimiento = $seguimientoLinea['celdas'][$moduloNumero][$codigo] ?? null;
+                                                $indicadoresActivos = collect($celdaSeguimiento['indicadores_activos'] ?? []);
+                                                $indicadorPrincipal = $indicadoresActivos->first();
+                                                $indicadoresVisuales = $indicadoresActivos->map(function (array $indicador) use ($estadoIndicadorStyle) {
+                                                    $estilo = $estadoIndicadorStyle($indicador['estado'] ?? null);
+
+                                                    return array_merge($indicador, $estilo);
+                                                });
                                                 $registrosQuick = collect($celdaSeguimiento['registros_visibles'] ?? []);
                                                 $registroQuick = $registrosQuick->sortByDesc(function ($item) {
                                                     return ($item->created_at?->timestamp ?? 0) . '-' . str_pad((string) $item->id, 10, '0', STR_PAD_LEFT);
@@ -2315,10 +2337,16 @@
                                                         $borderColor = '';
                                                     }
 
-                                                    if ($mostrarProcesoCompletado) {
+                                                    if ($mostrarProcesoCompletado && $indicadoresActivos->isEmpty()) {
                                                         $bgColor = 'cell-ok';
                                                         $borderColor = 'ring-1 ring-green-200';
                                                     }
+                                                }
+
+                                                if ($indicadorPrincipal) {
+                                                    $estadoActual = $indicadorPrincipal['estado'];
+                                                    $bgColor = $indicadoresVisuales->first()['cell'];
+                                                    $borderColor = '';
                                                 }
 
                                                 $statusClass = 'bg-green-100 text-green-800 border-green-200';
@@ -2436,12 +2464,24 @@
                                                                 <i class="fas fa-map-marker-alt text-blue-600 text-xs"></i>
                                                                 <span class="info-label">Ubicacion:</span>
                                                                 <span class="font-semibold text-gray-800">
-                                                                    {{ collect($numerosAnalisis)->map(fn ($numero) => '#' . $numero)->implode(', ') }}
-                                                                    @if($requiereLadoComponente)
-                                                                        {{ $registro->lado ? ucfirst(strtolower($registro->lado)) : 'Sin lado' }}
-                                                                        {{ $registro->nivel ? '- ' . ucfirst(strtolower($registro->nivel)) : '' }}
+                                                                    @if($indicadoresVisuales->isNotEmpty())
+                                                                        <span class="pasteur-indicator-location-carousel">
+                                                                            @foreach($indicadoresVisuales as $indiceIndicador => $indicadorVisual)
+                                                                                <span class="pasteur-indicator-state" @if($indiceIndicador > 0) hidden @endif>
+                                                                                    {{ $compData['nombre'] ?? $codigo }} #{{ $indicadorVisual['numero_componente'] }}
+                                                                                    @if($indicadorVisual['lado']) · Lado {{ ucfirst(strtolower($indicadorVisual['lado'])) }} @endif
+                                                                                    @if($indicadorVisual['nivel']) · Nivel {{ ucfirst(strtolower($indicadorVisual['nivel'])) }} @endif
+                                                                                </span>
+                                                                            @endforeach
+                                                                        </span>
                                                                     @else
-                                                                        {{ $registro->nivel ? 'Nivel ' . ucfirst(strtolower($registro->nivel)) : 'Sin nivel' }}
+                                                                        {{ collect($numerosAnalisis)->map(fn ($numero) => '#' . $numero)->implode(', ') }}
+                                                                        @if($requiereLadoComponente)
+                                                                            {{ $registro->lado ? 'Lado ' . ucfirst(strtolower($registro->lado)) : 'Sin lado' }}
+                                                                            {{ $registro->nivel ? '- ' . ucfirst(strtolower($registro->nivel)) : '' }}
+                                                                        @else
+                                                                            {{ $registro->nivel ? 'Nivel ' . ucfirst(strtolower($registro->nivel)) : 'Sin nivel' }}
+                                                                        @endif
                                                                     @endif
                                                                 </span>
                                                             </div>
@@ -2449,10 +2489,32 @@
                                                         </div>
 
                                                         <div class="mb-2">
-                                                            <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium border {{ $statusClass }}">
-                                                                <i class="fas {{ $statusIcon }} mr-1"></i>
-                                                                {{ \Illuminate\Support\Str::limit($estadoActual, 20) }}
-                                                            </span>
+                                                            @if($indicadoresVisuales->isNotEmpty())
+                                                                <div class="pasteur-indicator-carousel" data-indicator-carousel data-interval="2000">
+                                                                    @foreach($indicadoresVisuales as $indiceIndicador => $indicadorVisual)
+                                                                        <span
+                                                                            class="pasteur-indicator-state inline-flex items-center px-2 py-1 rounded text-xs font-medium border {{ $indicadorVisual['badge'] }}"
+                                                                            data-cell-class="{{ $indicadorVisual['cell'] }}"
+                                                                            @if($indiceIndicador > 0) hidden @endif
+                                                                        >
+                                                                            <i class="fas {{ $indicadorVisual['icon'] }} mr-1"></i>
+                                                                            <span>
+                                                                                {{ \Illuminate\Support\Str::limit($indicadorVisual['estado'], 20) }}
+                                                                                <span class="indicator-location block" hidden style="display: none !important;">
+                                                                                    {{ $compData['nombre'] ?? $codigo }} #{{ $indicadorVisual['numero_componente'] }}
+                                                                                    @if($indicadorVisual['lado']) · Lado {{ ucfirst(strtolower($indicadorVisual['lado'])) }} @endif
+                                                                                    @if($indicadorVisual['nivel']) · Nivel {{ ucfirst(strtolower($indicadorVisual['nivel'])) }} @endif
+                                                                                </span>
+                                                                            </span>
+                                                                        </span>
+                                                                    @endforeach
+                                                                </div>
+                                                            @else
+                                                                <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium border {{ $statusClass }}">
+                                                                    <i class="fas {{ $statusIcon }} mr-1"></i>
+                                                                    {{ \Illuminate\Support\Str::limit($estadoActual, 20) }}
+                                                                </span>
+                                                            @endif
                                                             <span class="mt-1 inline-flex items-center px-2 py-1 rounded text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200">
                                                                 <i class="fas fa-user-check mr-1"></i>
                                                                 Realizado por: {{ $registro->usuario?->name ?? $registro->responsable ?? 'Usuario no registrado' }}
@@ -3432,8 +3494,45 @@ function toggleAdvancedFilters() {
     icon.style.transform = panel.classList.contains('show') ? 'rotate(180deg)' : 'rotate(0deg)';
 }
 
+function initializeIndicatorCarousels() {
+    document.querySelectorAll('[data-indicator-carousel]').forEach((carousel) => {
+        const cell = carousel.closest('td');
+        const linkedCarousels = [
+            carousel,
+            ...(cell ? Array.from(cell.querySelectorAll('.pasteur-indicator-location-carousel')) : []),
+        ];
+        const states = Array.from(carousel.querySelectorAll('.pasteur-indicator-state'));
+        if (states.length < 2) {
+            return;
+        }
+
+        const cellClasses = ['cell-ok', 'cell-review', 'cell-warning', 'cell-danger', 'cell-changed'];
+        let activeIndex = 0;
+
+        const showState = (index) => {
+            linkedCarousels.forEach((linkedCarousel) => {
+                linkedCarousel.querySelectorAll('.pasteur-indicator-state').forEach((state, stateIndex) => {
+                    state.hidden = stateIndex !== index;
+                });
+            });
+
+            if (cell) {
+                cell.classList.remove(...cellClasses);
+                cell.classList.add(states[index].dataset.cellClass || 'cell-warning');
+            }
+        };
+
+        showState(activeIndex);
+        window.setInterval(() => {
+            activeIndex = (activeIndex + 1) % states.length;
+            showState(activeIndex);
+        }, Number(carousel.dataset.interval || 2000));
+    });
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     setupSingleImageSwipe();
+    initializeIndicatorCarousels();
 
     if (OPEN_ANALYSIS_DATA) {
         openAnalysisDetail(OPEN_ANALYSIS_DATA);

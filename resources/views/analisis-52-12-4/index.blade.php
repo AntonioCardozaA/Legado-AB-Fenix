@@ -386,7 +386,7 @@
                 <button class="lef-action secondary" type="button" data-trend-toggle style="margin-right: 10px;">
                     <i class="fas fa-chart-line"></i>
                     <span data-trend-label>Ver tendencia</span>
-                </button>
+                </button> 
                 <button class="lef-action secondary" type="button" data-cost-trend-toggle style="margin-right: 10px;">
                     <i class="fas fa-coins"></i>
                     <span data-cost-trend-label>Tendencia de costos</span>

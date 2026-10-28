@@ -6,6 +6,7 @@
 @php
     $analisisRoutePrefix = $analisisRoutePrefix ?? 'pasteurizadora.analisis-pasteurizadora';
     $analisisRoute = fn ($name, $params = []) => route($analisisRoutePrefix . '.' . $name, $params);
+    $historialBackRoute = ($usesExcentricosCaptureProfile ?? false) ? 'excentricos.index' : 'index';
 @endphp
 <style>
     /* Estilos personalizados adicionales */
@@ -243,7 +244,7 @@
             </div>
         </div>
 
-        <a href="{{ $analisisRoute('index') }}"
+        <a href="{{ $analisisRoute($historialBackRoute) }}"
            class="responsive-action responsive-action--secondary group">
             <svg class="w-5 h-5 mr-2 group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
@@ -571,6 +572,23 @@
                                         <p class="font-medium text-gray-800">{{ $item->componente_nombre ?? $item->componente ?? 'N/A' }}</p>
                                     </div>
 
+                                    @php
+                                        $numerosComponentes = collect($item->componentes_revisados_lista ?? [])
+                                            ->filter(fn ($numero) => is_numeric($numero))
+                                            ->map(fn ($numero) => '#' . (int) $numero)
+                                            ->values();
+                                    @endphp
+
+                                    <div class="bg-gradient-to-br" style="background: linear-gradient(to bottom right, rgba(31, 35, 72, 0.05), white); border-color: rgba(31, 35, 72, 0.2); border-width: 1px; border-style: solid; border-radius: 0.75rem; padding: 1rem;">
+                                        <div class="flex items-center gap-2 mb-2">
+                                            <i class="fas fa-hashtag" style="color: rgb(31, 35, 72);"></i>
+                                            <span class="text-xs font-semibold uppercase tracking-wider" style="color: rgb(31, 35, 72);">Número de componente</span>
+                                        </div>
+                                        <p class="font-medium text-gray-800">
+                                            {{ $numerosComponentes->isNotEmpty() ? $numerosComponentes->implode(', ') : 'N/A' }}
+                                        </p>
+                                    </div>
+
                                     <div class="bg-gradient-to-br" style="background: linear-gradient(to bottom right, rgba(31, 35, 72, 0.05), white); border-color: rgba(31, 35, 72, 0.2); border-width: 1px; border-style: solid; border-radius: 0.75rem; padding: 1rem;">
                                         <div class="flex items-center gap-2 mb-2">
                                             <i class="fas fa-compress-alt" style="color: rgb(31, 35, 72);"></i>
@@ -601,43 +619,6 @@
                                 </div>
 
                                 {{-- Información de componentes revisadas --}}
-                                @php
-                                $componentesRevisados = $item->componentes_revisados_lista;
-                                $totalComponentes = (int) ($item->total_componentes ?? 0);
-                                $revisadas = count($componentesRevisados);
-                                $porcentaje = $totalComponentes > 0 ? (int) round(($revisadas / $totalComponentes) * 100) : 0;
-                                @endphp
-
-                                @if($totalComponentes > 0)
-                                <div class="bg-gradient-to-br from-indigo-50 to-white rounded-xl p-5 border border-indigo-100 mb-4">
-                                    <div class="flex items-center justify-between mb-3">
-                                        <div class="flex items-center gap-2">
-                                            <div class="w-6 h-6 rounded-lg bg-indigo-100 flex items-center justify-center">
-                                                <i class="fas fa-tasks text-indigo-600 text-xs"></i>
-                                            </div>
-                                            <h4 class="text-xs font-semibold text-indigo-600 uppercase tracking-wider">
-                                                Progreso de Componentes
-                                            </h4>
-                                        </div>
-                                        <span class="text-sm font-bold text-indigo-700">{{ $revisadas }}/{{ $totalComponentes }} ({{ $porcentaje }}%)</span>
-                                    </div>
-                                    <div class="w-full bg-gray-200 rounded-full h-2">
-                                        <div class="bg-indigo-500 h-2 rounded-full" style="width: {{ $porcentaje }}%"></div>
-                                    </div>
-                                    @if($revisadas > 0 && count($componentesRevisados) > 0)
-                                        <div class="flex flex-wrap gap-1 mt-3">
-                                            @foreach($componentesRevisados as $num)
-                                                @if(is_numeric($num))
-                                                    <span class="inline-flex items-center px-2 py-0.5 rounded-md bg-green-100 text-green-700 text-xs font-medium">
-                                                        #{{ (int)$num }}
-                                                    </span>
-                                                @endif
-                                            @endforeach
-                                        </div>
-                                    @endif
-                                </div>
-                                @endif
-
                                 {{-- Actividad con estilo mejorado --}}
                                 <div class="bg-gradient-to-br from-gray-50 to-white rounded-xl p-5 border border-gray-200 mb-4">
                                     <div class="flex items-center gap-2 mb-3">
@@ -717,13 +698,15 @@
                                 @endif
 
                                 {{-- Acciones --}}
-                                <div class="responsive-actions responsive-actions--end mt-4">
-                                    <a href="{{ $analisisRoute('edit', $item->id) }}"
-                                    class="responsive-action responsive-action--compact">
-                                        <i class="fas fa-edit"></i>
-                                        Editar Registro
-                                    </a>
-                                </div>
+                                @unless($usesExcentricosCaptureProfile ?? false)
+                                    <div class="responsive-actions responsive-actions--end mt-4">
+                                        <a href="{{ $analisisRoute('edit', $item->id) }}"
+                                        class="responsive-action responsive-action--compact">
+                                            <i class="fas fa-edit"></i>
+                                            Editar Registro
+                                        </a>
+                                    </div>
+                                @endunless
                             </div>
                         </div>
                     </div>
@@ -748,7 +731,7 @@
             </div>
             <h3 class="text-xl font-bold text-gray-800 mb-2">No hay registros disponibles</h3>
             <p class="text-gray-500 mb-6">Comienza realizando un nuevo análisis para ver el historial.</p>
-            <a href="{{ $analisisRoute('index') }}"
+            <a href="{{ $analisisRoute($historialBackRoute) }}"
                class="create-action">
                 <i class="fas fa-plus-circle"></i>
                 Nuevo Análisis

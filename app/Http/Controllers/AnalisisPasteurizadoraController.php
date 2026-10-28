@@ -481,28 +481,6 @@ class AnalisisPasteurizadoraController extends Controller
 
         $analisis = $query->latest('fecha_analisis')->get();
 
-        // Filtrar análisis incompletos o pendientes si no son del día actual
-        $hoy = now()->toDateString();
-        $analisis = $analisis->filter(function($item) use ($hoy) {
-            $fechaAnalisis = $item->fecha_analisis?->toDateString();
-
-            if ($item->es_registro_normal) {
-                return true;
-            }
-
-            // Si es del hoy, mostrar siempre
-            if ($fechaAnalisis === $hoy) {
-                return true;
-            }
-
-            // Si no es de hoy, solo mostrar si está "Cambiado", "Buen estado" o en revisión operativa
-            return in_array($item->estado, [
-                AnalisisPasteurizadora::ESTADO_CAMBIADO,
-                AnalisisPasteurizadora::ESTADO_BUENO,
-                AnalisisPasteurizadora::ESTADO_REQUIERE_REVISION,
-            ], true);
-        });
-
         $totalAnalisis = $analisis->count();
         $totalDanados = $analisis->whereIn('estado', AnalisisPasteurizadora::estadosDanado())->count();
         $totalCambiados = $analisis->where('estado', AnalisisPasteurizadora::ESTADO_CAMBIADO)->count();
@@ -575,6 +553,11 @@ class AnalisisPasteurizadoraController extends Controller
                     $clave = $linea->id . '|' . $modulo;
                     $registrosModulo = $registrosAgrupados->get($clave, collect());
                     $ultimoRegistro = $registrosModulo->first();
+                    $indicadoresActivos = AnalisisPasteurizadora::getIndicadoresActivos(
+                        $registrosModulo,
+                        $linea->nombre,
+                        $componente
+                    );
 
                     return [
                         'linea' => $linea,
@@ -584,6 +567,7 @@ class AnalisisPasteurizadoraController extends Controller
                         'total_componentes' => (int) ($resolved['config']['cantidad'] ?? 0),
                         'historial_count' => $registrosModulo->count(),
                         'ultimo_registro' => $ultimoRegistro,
+                        'indicadores_activos' => $indicadoresActivos,
                         'capturar_url' => route($this->routeName('create-quick'), [
                             'linea_id' => $linea->id,
                             'modulo' => $modulo,
@@ -1202,9 +1186,10 @@ class AnalisisPasteurizadoraController extends Controller
         return $this->renderView('show', compact('analisis', 'tendencia52124', 'tendencia30147'));
     }
 
-    public function edit($id)
+    public function edit(Request $request, $id)
     {
         $analisis = $this->analisisQuery()->with('usuario')->findOrFail($id);
+        $this->ensureLubricadorComponentForRestrictedProfile($request, $analisis->componente);
         $lineas = Linea::all();
         return $this->renderView('edit', compact('analisis', 'lineas'));
     }
@@ -1212,6 +1197,7 @@ class AnalisisPasteurizadoraController extends Controller
     public function update(Request $request, $id)
     {
         $analisis = $this->analisisQuery()->findOrFail($id);
+        $this->ensureLubricadorComponentForRestrictedProfile($request, $analisis->componente);
         $esQuick = $analisis->es_registro_quick;
         $componenteAnterior = $analisis->componente;
 
@@ -1253,6 +1239,7 @@ class AnalisisPasteurizadoraController extends Controller
             )
             : $this->resolverSeleccionAnalisisNormal($request, $analisis->linea, $contextoActualizado);
         $validated['componente'] = $seleccionComponentes['componente'];
+        $this->ensureLubricadorComponentForRestrictedProfile($request, $validated['componente']);
         $validated['lado'] = $this->resolverLadoValidado($analisis->linea, $validated['componente'], $contextoActualizado['lado'] ?? null);
 
         if (
@@ -1320,6 +1307,18 @@ class AnalisisPasteurizadoraController extends Controller
 
         $mensajeIa = $this->procesarMantenimientoAutomaticoSafely($analisis->fresh(['linea', 'usuario']));
 
+        if ($this->isExcentricosCaptureProfile($request)) {
+            $redirect = redirect()
+                ->route($this->routeName('excentricos.index'), $this->lubricadorIndexParameters($analisis->linea_id, $analisis->componente))
+                ->with('success', 'Revision actualizada correctamente.');
+
+            if ($mensajeIa) {
+                $redirect->with('warning', $mensajeIa);
+            }
+
+            return $redirect;
+        }
+
         $redirect = redirect()
             ->route($this->routeName('index'), ['linea_id' => $analisis->linea_id])
             ->with('success', 'Análisis actualizado correctamente.');
@@ -1384,6 +1383,10 @@ class AnalisisPasteurizadoraController extends Controller
         $query = $this->analisisQuery()
             ->with(['linea', 'usuario'])
             ->orderBy('fecha_analisis', 'desc');
+
+        if ($this->isExcentricosCaptureProfile($request)) {
+            $query->whereIn('componente', array_keys(AnalisisPasteurizadora::COMPONENTES_LUBRICADOR));
+        }
 
         if ($request->filled('linea_id')) {
             $query->where('linea_id', $request->linea_id);
@@ -2111,22 +2114,26 @@ class AnalisisPasteurizadoraController extends Controller
         }
 
         $registrosPorLinea = $this->analisisQuery()
-            ->quick()
             ->with('usuario')
             ->whereIn('linea_id', $lineaIds)
             ->where('resuelto_por_cambio', false)
             ->orderBy('fecha_analisis')
             ->orderBy('created_at')
             ->orderBy('id')
-            ->get()
+            ->get();
+
+        $registrosQuickPorLinea = $registrosPorLinea
+            ->filter(fn (AnalisisPasteurizadora $registro) => $registro->es_registro_quick)
             ->groupBy('linea_id');
+        $registrosPorLinea = $registrosPorLinea->groupBy('linea_id');
 
         $seguimiento = [];
 
         foreach ($lineas as $linea) {
             $componentes = AnalisisPasteurizadora::getComponentesPorLinea($linea->nombre);
             $totalModulos = AnalisisPasteurizadora::getModulosPorLinea($linea->nombre);
-            $registrosLinea = $registrosPorLinea->get($linea->id, collect());
+            $registrosLinea = $registrosQuickPorLinea->get($linea->id, collect());
+            $registrosIndicadoresLinea = $registrosPorLinea->get($linea->id, collect());
             $modulos = [];
             $celdasTotales = 0;
             $celdasCompletadas = 0;
@@ -2145,6 +2152,10 @@ class AnalisisPasteurizadoraController extends Controller
 
                     $totalComponentes = (int) ($config['cantidad'] ?? 0);
                     $registrosComponente = $registrosLinea
+                        ->where('modulo', $modulo)
+                        ->where('componente', $codigo)
+                        ->values();
+                    $registrosIndicadoresComponente = $registrosIndicadoresLinea
                         ->where('modulo', $modulo)
                         ->where('componente', $codigo)
                         ->values();
@@ -2176,6 +2187,11 @@ class AnalisisPasteurizadoraController extends Controller
                         'siguiente_revision' => $siguienteRevision,
                         'registros_visibles' => $resumenCiclo['registros_visibles'],
                         'registros_actuales' => $resumenCiclo['registros_actuales'],
+                        'indicadores_activos' => AnalisisPasteurizadora::getIndicadoresActivos(
+                            $registrosIndicadoresComponente,
+                            $linea->nombre,
+                            $codigo
+                        ),
                         'tiene_ciclo_activo' => $resumenCiclo['tiene_ciclo_activo'],
                         'tiene_ciclo_completado' => $resumenCiclo['tiene_ciclo_completado'],
                     ];
