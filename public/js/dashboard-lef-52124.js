@@ -117,7 +117,7 @@
         paretoWidth.style.width = `${Math.max(paretoWrap.clientWidth, rows.length * 145)}px`;
         const selectedIndex = rows.findIndex((row) => row.highlight);
         position.textContent = selectedIndex >= 0
-            ? `${name}: posición ${selectedIndex + 1} de ${rows.length} según LEF de 52 semanas`
+            ? `${name}: posición ${selectedIndex + 1} de ${rows.length} según LEF`
             : 'No se identificó la máquina lavadora en esta importación.';
 
         const canvas = document.getElementById('lefDashboardParetoChart');
