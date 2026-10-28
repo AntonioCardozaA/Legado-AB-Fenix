@@ -80,7 +80,7 @@ test('the washer selector updates both LEF charts and the Pareto highlight', () 
     assert.equal(element('lefDashboardLinea').value, '1');
     assert.deepEqual(Array.from(chartInstances[0].data.datasets[0].data), [0.38, 0.26, 0.3]);
     assert.deepEqual(Array.from(chartInstances[1].data.labels), ['TRANSPORTADOR', 'LAVADORA']);
-    assert.match(element('lefDashboardPosition').textContent, /posición 2 de 2/);
+    assert.equal(element('lefDashboardPosition').textContent, 'L-04: posición 2 de 2 según LEF');
     assert.match(chartInstances[1].data.datasets[0].backgroundColor[1], /^rgba\(13,148,136/);
     assert.equal(timers.size, 1);
 
@@ -96,7 +96,7 @@ test('the washer selector updates both LEF charts and the Pareto highlight', () 
     element('lefDashboardLinea').value = '3';
     callbacks['lefDashboardLinea:change']();
     assert.deepEqual(Array.from(chartInstances.at(-2).data.datasets[0].data), [0.8, 0.7, 0.6]);
-    assert.match(element('lefDashboardPosition').textContent, /posición 1 de 1/);
+    assert.equal(element('lefDashboardPosition').textContent, 'L-06: posición 1 de 1 según LEF');
 
     motion.matches = true;
     callbacks.motion();

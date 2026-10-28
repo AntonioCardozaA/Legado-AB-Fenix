@@ -3590,7 +3590,7 @@
         <div class="chart-card trend-card trend-card-primary lef-dashboard-card">
             <div class="lef-dashboard-header">
                 <div>
-                    <h3><i class="fas fa-chart-line"></i> <span>Análisis 52-12-4 | Tendencia de daños</span></h3>
+                    <h3><i class="fas fa-chart-line"></i> <span>52-12-4</span></h3>
                     <p class="lef-dashboard-period">Periodo de análisis: {{ $lefDashboard['period_label'] ?? 'Sin datos disponibles' }}</p>
                 </div>
                 <div class="lef-dashboard-filter">
@@ -3606,7 +3606,6 @@
             <div id="lefDashboardEmpty" class="lef-dashboard-message" role="status" hidden></div>
             <div id="lefDashboardCharts" hidden>
                 <section class="lef-dashboard-section" aria-labelledby="lefWasherTitle">
-                    <h4 id="lefWasherTitle">Solo lavadora</h4>
                     <p id="lefWasherEmpty" class="lef-dashboard-message" hidden></p>
                     <div id="lefWasherChartWrap" class="lef-dashboard-chart"><canvas id="lefDashboardWasherChart" role="img" aria-label="Valores LEF de 52, 12 y 4 semanas de la lavadora seleccionada"></canvas></div>
                 </section>
