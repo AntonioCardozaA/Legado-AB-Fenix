@@ -14,6 +14,7 @@ use App\Models\AnalisisPasteurizadora;
 use App\Models\CentralHidraulicaConfiguracion;
 use App\Models\User;
 use App\Services\TendenciaDanosService;
+use App\Services\Lef52124DataService;
 use App\Services\LavadoraCostAnalyticsService;
 use App\Services\NotificationVisibilityService;
 use App\Support\EtiquetadoraCatalog;
@@ -272,9 +273,6 @@ class DashboardController extends Controller
             ->orderBy('nombre')
             ->get();
 
-        $trend52124Range = $this->resolveLavadoraTrendDateRange($request, 'trend_52124_desde', 'trend_52124_hasta');
-        $trend30147Range = $this->resolveLavadoraTrendDateRange($request, 'trend_30147_desde', 'trend_30147_hasta');
-
         $analisisActuales = $this->getAnalisisActualesLavadoras($lineasLavadora);
         $analisisHistoricos = $this->getAnalisisHistoricosLavadoras($lineasLavadora);
 
@@ -293,33 +291,7 @@ class DashboardController extends Controller
                 'budget_year' => now()->year,
             ])
             : null;
-        $tendenciaDanos = app(TendenciaDanosService::class);
-        $analisis52124 = $tendenciaDanos->construirDashboard(
-            $lineasLavadora,
-            TendenciaDanosService::TIPO_LAVADORAS,
-            $tendenciaDanos->ventanas52124(),
-            $trend52124Range
-        );
-        $analisis30147 = $tendenciaDanos->construirDashboard(
-            $lineasLavadora,
-            TendenciaDanosService::TIPO_LAVADORAS,
-            $tendenciaDanos->ventanas30147(),
-            $trend30147Range
-        );
-        $trendFilters = [
-            'tendencia' => [
-                'from_input' => $trend52124Range['from_input'],
-                'to_input' => $trend52124Range['to_input'],
-                'from_param' => 'trend_52124_desde',
-                'to_param' => 'trend_52124_hasta',
-            ],
-            'tendencia30147' => [
-                'from_input' => $trend30147Range['from_input'],
-                'to_input' => $trend30147Range['to_input'],
-                'from_param' => 'trend_30147_desde',
-                'to_param' => 'trend_30147_hasta',
-            ],
-        ];
+        $lefDashboard = app(Lef52124DataService::class)->latestMonthDashboardPayload();
 
         return view('dashboard_lavadora', compact(
             'lineasLavadora',
@@ -333,9 +305,7 @@ class DashboardController extends Controller
             'historicoRevisiones',
             'lavadoraCostSummary',
             'canViewLavadoraCostsModule',
-            'analisis52124',
-            'analisis30147',
-            'trendFilters'
+            'lefDashboard'
         ));
     }
 

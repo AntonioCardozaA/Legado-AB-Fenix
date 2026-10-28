@@ -96,6 +96,58 @@ class Lef52124DataService
         ];
     }
 
+    public function latestMonthDashboardPayload(): array
+    {
+        $lineas = Linea::query()
+            ->whereIn('id', Lef52124Import::query()->select('linea_id')->where('status', 'success')->whereHas('items'))
+            ->orderBy('nombre')
+            ->get(['id', 'nombre']);
+
+        $latestDate = Lef52124Import::query()
+            ->where('status', 'success')
+            ->whereHas('items')
+            ->max('data_date');
+
+        if (!$latestDate) {
+            return ['period' => null, 'period_label' => null, 'lineas' => []];
+        }
+
+        $month = Carbon::parse($latestDate)->startOfMonth();
+        $imports = Lef52124Import::query()
+            ->with(['items' => fn ($query) => $query->where('type', Lef52124Item::TYPE_MACHINE)])
+            ->where('status', 'success')
+            ->whereHas('items')
+            ->whereDate('data_date', '>=', $month->toDateString())
+            ->whereDate('data_date', '<=', $month->copy()->endOfMonth()->toDateString())
+            ->orderByDesc('data_date')
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->get()
+            ->unique('linea_id')
+            ->keyBy('linea_id');
+
+        return [
+            'period' => $month->format('Y-m'),
+            'period_label' => ucfirst($month->locale('es')->translatedFormat('F Y')),
+            'lineas' => $lineas->map(function (Linea $linea) use ($imports): array {
+                $import = $imports->get($linea->id);
+                $items = $import?->items ?? collect();
+                $machines = $import
+                    ? $this->itemsPayload($items, 'value_52_weeks', true)
+                    : [];
+                $washer = collect($machines)->firstWhere('highlight', true);
+
+                return [
+                    'id' => $linea->id,
+                    'nombre' => $linea->nombre,
+                    'import_id' => $import?->id,
+                    'washer' => $washer,
+                    'machines' => $machines,
+                ];
+            })->values()->all(),
+        ];
+    }
+
     public function washerMachineTrendPayload(int $lineaId): array
     {
         $years = [2025, 2026];
@@ -300,7 +352,7 @@ class Lef52124DataService
             ->sortByDesc(fn (Lef52124Item $item) => (float) $item->{$sortColumn})
             ->values()
             ->map(fn (Lef52124Item $item) => array_merge($this->itemPayload($item), [
-                'highlight' => $highlightWasher && str_contains($this->normalizeName($item->item_name), 'lavadora de botella'),
+                'highlight' => $highlightWasher && str_contains($this->normalizeName($item->item_name), 'lavadora'),
             ]))
             ->all();
     }
