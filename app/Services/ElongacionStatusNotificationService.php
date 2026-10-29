@@ -11,7 +11,8 @@ use Illuminate\Support\Facades\Log;
 class ElongacionStatusNotificationService
 {
     public function __construct(
-        private readonly NotificationRecipientService $notificationRecipientService
+        private readonly NotificationRecipientService $notificationRecipientService,
+        private readonly ConfiguredAlertRecipientService $configuredAlertRecipientService
     ) {
     }
 
@@ -110,6 +111,24 @@ class ElongacionStatusNotificationService
         }
 
         $elongacion->loadMissing('cadenaCiclo');
+        if (!$dryRun) {
+            $this->configuredAlertRecipientService->dispatch(
+                'elongacion_status',
+                sprintf(
+                    'ALERTA DE ELONGACIÓN: la línea %s requiere %s. Bombas: %s%%. Vapor: %s%%.',
+                    $elongacion->linea,
+                    $statusType === 'cambio' ? 'cambio inmediato' : 'considerar compra',
+                    round((float) $elongacion->bombas_porcentaje, 2),
+                    round((float) $elongacion->vapor_porcentaje, 2)
+                ),
+                sprintf('elongacion-status:%d:%s', $elongacion->id, $statusType),
+                [
+                    'elongacion_id' => $elongacion->id,
+                    'linea_id' => $elongacion->linea_id,
+                    'status_type' => $statusType,
+                ]
+            );
+        }
         $recipients = $this->notificationRecipientService->getInternalRecipients('elongacion_status');
         $result = [
             'recipients' => 0,

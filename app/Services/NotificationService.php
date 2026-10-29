@@ -15,7 +15,8 @@ use Illuminate\Support\Facades\Notification;
 class NotificationService
 {
     public function __construct(
-        private readonly NotificationRecipientService $notificationRecipientService
+        private readonly NotificationRecipientService $notificationRecipientService,
+        private readonly ConfiguredAlertRecipientService $configuredAlertRecipientService
     ) {
     }
 
@@ -60,6 +61,10 @@ class NotificationService
         $alerts = $this->buildPlanAlerts($plans, $today);
         $recipients = $this->notificationRecipientService->getInternalRecipients('plan_accion_due');
         $results = $this->dispatchAlerts($alerts, $recipients, $now, $dryRun);
+
+        if (!$dryRun) {
+            $this->dispatchConfiguredPlanAlerts($alerts);
+        }
 
         return [
             'date' => $today->toDateString(),
@@ -377,5 +382,33 @@ class NotificationService
     private function timezone(): string
     {
         return (string) config('elongacion-alerts.timezone', 'America/Mexico_City');
+    }
+
+    /** @param Collection<int, array<string, mixed>> $alerts */
+    private function dispatchConfiguredPlanAlerts(Collection $alerts): void
+    {
+        foreach ($alerts as $alert) {
+            $plan = $alert['plan'];
+            $area = $alert['area_pasteurizadora_label'] ?? null;
+            $message = sprintf(
+                'ALERTA: el plan "%s" de la %s vence el %s (%s).%s',
+                $alert['actividad'] ?: 'Sin actividad',
+                $alert['linea'],
+                $alert['due_date']->format('d/m/Y'),
+                strtoupper((string) $alert['pcm']),
+                $area ? ' Parte: ' . $area . '.' : ''
+            );
+
+            $this->configuredAlertRecipientService->dispatch(
+                'plan_accion_due',
+                $message,
+                sprintf('plan-accion:%d:%s:%s', $alert['plan_id'], $alert['pcm_key'], $alert['due_date']->toDateString()),
+                [
+                    'plan_id' => $plan->id,
+                    'linea_id' => $alert['linea_id'],
+                    'pcm' => $alert['pcm'],
+                ]
+            );
+        }
     }
 }

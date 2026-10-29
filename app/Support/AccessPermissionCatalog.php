@@ -512,6 +512,8 @@ class AccessPermissionCatalog
 
             ['routes' => ['admin.users.index', 'admin.users.edit'], 'methods' => ['GET'], 'permission' => 'gestionar usuarios'],
             ['routes' => ['admin.users.store', 'admin.users.update', 'admin.users.destroy', 'admin.users.permissions.update'], 'permission' => 'gestionar usuarios'],
+            ['routes' => ['admin.alert-recipients.index'], 'methods' => ['GET'], 'permission' => 'gestionar usuarios'],
+            ['routes' => ['admin.alert-recipients.store', 'admin.alert-recipients.update', 'admin.alert-recipients.destroy'], 'permission' => 'gestionar usuarios'],
             ['routes' => ['admin.ai-observability.index'], 'methods' => ['GET'], 'permission' => User::PERMISSION_VIEW_AI_OBSERVABILITY],
 
             ['routes' => ['lavadora.costos.index', 'analisis-lavadora.costos.manage', 'admin.costos.index'], 'methods' => ['GET'], 'permission' => User::PERMISSION_ACCESS_LAVADORA_COSTS],

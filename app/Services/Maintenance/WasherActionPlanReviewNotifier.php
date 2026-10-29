@@ -6,12 +6,14 @@ use App\Models\PlanAccion;
 use App\Models\User;
 use App\Notifications\WasherAiPlanPendingReviewNotification;
 use App\Services\NotificationRecipientService;
+use App\Services\ConfiguredAlertRecipientService;
 use Illuminate\Support\Facades\Notification;
 
 class WasherActionPlanReviewNotifier
 {
     public function __construct(
-        private readonly NotificationRecipientService $notificationRecipientService
+        private readonly NotificationRecipientService $notificationRecipientService,
+        private readonly ConfiguredAlertRecipientService $configuredAlertRecipientService
     ) {
     }
 
@@ -31,6 +33,14 @@ class WasherActionPlanReviewNotifier
             })
             ->pluck('user')
             ->values();
+
+        $component = $plan->maintenanceEvent?->componente?->nombre ?? 'Cadena de lavadora';
+        $this->configuredAlertRecipientService->dispatch(
+            'washer_ai_plan_pending_review',
+            sprintf('Nuevo plan sugerido por IA pendiente de revisión para %s - %s.', $plan->linea?->nombre ?? 'lavadora', $component),
+            'washer-ai-plan:' . $plan->id,
+            ['plan_id' => $plan->id, 'linea_id' => $plan->linea_id]
+        );
 
         if ($recipients->isEmpty()) {
             return 0;

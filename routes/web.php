@@ -21,6 +21,7 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\NotificationSettingsController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\AdminUserController;
+use App\Http\Controllers\AlertRecipientController;
 use App\Http\Controllers\LavadoraCostController;
 use App\Http\Controllers\ControlGastosController;
 use App\Http\Controllers\AssistantChatController;
@@ -200,6 +201,17 @@ Route::prefix('pasteurizadora')->group(function () {
             Route::put('/{user}', 'update')->name('update');
             Route::delete('/{user}', 'destroy')->name('destroy');
             Route::patch('/{user}/permisos', 'updatePermissions')->name('permissions.update');
+        });
+
+    Route::prefix('admin/destinatarios-alertas')
+        ->name('admin.alert-recipients.')
+        ->middleware('role:admin')
+        ->controller(AlertRecipientController::class)
+        ->group(function () {
+            Route::get('/', 'index')->name('index');
+            Route::post('/', 'store')->name('store');
+            Route::put('/{alertRecipient}', 'update')->name('update');
+            Route::delete('/{alertRecipient}', 'destroy')->name('destroy');
         });
 
     Route::prefix('admin/control-gastos')

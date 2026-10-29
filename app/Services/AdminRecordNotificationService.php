@@ -18,6 +18,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Str;
 use Throwable;
 
 class AdminRecordNotificationService
@@ -35,7 +36,8 @@ class AdminRecordNotificationService
     ];
 
     public function __construct(
-        private readonly NotificationRecipientService $notificationRecipientService
+        private readonly NotificationRecipientService $notificationRecipientService,
+        private readonly ConfiguredAlertRecipientService $configuredAlertRecipientService
     ) {
     }
 
@@ -147,6 +149,8 @@ class AdminRecordNotificationService
      */
     private function sendToAdmins(array $payload): int
     {
+        $this->dispatchExternalAlert($payload);
+
         $admins = User::query()
             ->where('activo', true)
             ->whereHas('roles', fn ($query) => $query->where('name', User::ROLE_ADMIN))
@@ -168,6 +172,7 @@ class AdminRecordNotificationService
         }
 
         $payload = $this->buildPayloadForComponentAlert($record);
+        $this->dispatchExternalAlert($payload);
         $lineaId = $payload['linea_id'] !== null ? (int) $payload['linea_id'] : null;
         $recipients = $this->notificationRecipientService
             ->getInternalRecipients('component_alert')
@@ -191,6 +196,29 @@ class AdminRecordNotificationService
         Notification::send($recipients, new AdminRegistroCreadoNotification($payload));
 
         return $recipients->count();
+    }
+
+    /** @param array<string, mixed> $payload */
+    private function dispatchExternalAlert(array $payload): void
+    {
+        $type = (string) ($payload['type'] ?? '');
+        $recordId = $payload['record_id'] ?? 'none';
+        $createdAt = (string) ($payload['created_at'] ?? now()->toIso8601String());
+
+        if ($type === '') {
+            return;
+        }
+
+        $this->configuredAlertRecipientService->dispatch(
+            $type,
+            (string) ($payload['mensaje'] ?? $payload['message'] ?? $payload['title'] ?? 'Nueva alerta del sistema.'),
+            sprintf('%s:%s:%s', $type, $recordId, sha1($createdAt)),
+            [
+                'record_type' => $payload['record_type'] ?? null,
+                'record_id' => $recordId,
+                'linea_id' => $payload['linea_id'] ?? null,
+            ]
+        );
     }
 
     private function canReceiveComponentAlerts(User $user): bool
@@ -536,25 +564,23 @@ class AdminRecordNotificationService
 
     private function shouldSendComponentAlert(Model $record): bool
     {
-        if ($record instanceof AnalisisEtiquetadora) {
-            return AnalisisLavadora::esEstadoDanado($record->estado)
-                || AnalisisLavadora::esEstadoDesgaste($record->estado)
-                || AnalisisLavadora::esEstadoRequiereRevision($record->estado);
+        if (!($record instanceof AnalisisEtiquetadora)
+            && !($record instanceof AnalisisLavadora)
+            && !($record instanceof AnalisisPasteurizadora)) {
+            return false;
         }
 
-        if ($record instanceof AnalisisLavadora) {
-            return AnalisisLavadora::esEstadoDanado($record->estado)
-                || AnalisisLavadora::esEstadoDesgaste($record->estado)
-                || AnalisisLavadora::esEstadoRequiereRevision($record->estado);
-        }
+        $estado = Str::of((string) $record->estado)
+            ->ascii()
+            ->lower()
+            ->replaceMatches('/\s+/', ' ')
+            ->trim()
+            ->toString();
 
-        if ($record instanceof AnalisisPasteurizadora) {
-            return AnalisisPasteurizadora::esEstadoDanado($record->estado)
-                || AnalisisPasteurizadora::esEstadoDesgaste($record->estado)
-                || AnalisisPasteurizadora::esEstadoRequiereRevision($record->estado);
-        }
-
-        return false;
+        return str_contains($estado, 'requiere revision')
+            || str_contains($estado, 'desgaste moderado')
+            || str_contains($estado, 'desgaste severo')
+            || str_contains($estado, 'requiere cambio');
     }
 
     private function componentAlertPriority(Model $record): string

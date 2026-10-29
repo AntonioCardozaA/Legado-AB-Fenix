@@ -922,11 +922,11 @@ $componente = Componente::firstOrCreate(
             $data['lado'] = $request->lado;
         }
         Log::info('Análisis creado', ['id' => $analisis->id]);
-        // 🚨 ENVIAR WHATSAPP SI ESTÁ DAÑADO
-        if ($request->estado === AnalisisLavadora::ESTADO_DANADO) {
+        // 🚨 ENVIAR WHATSAPP PARA CUALQUIER ESTADO QUE REQUIERA ATENCIÓN
+        if (AnalisisLavadora::requiereCierreAdministrativo($request->estado)) {
             $numeroOrdenTexto = $numeroOrden ?: 'Sin orden';
 
-            $mensaje = "🚨 *ALERTA DE COMPONENTE DAÑADO* 🚨\n\n"
+            $mensaje = "🚨 *ALERTA DE COMPONENTE - {$analisis->estado}* 🚨\n\n"
                 . "🔧 Línea: {$linea->nombre}\n"
                 . "⚙️ Componente: " . LavadoraCatalog::nombreVisibleComponente($componente->nombre, $componente->codigo) . "\n"
                 . "📍 Reductor: {$request->reductor}\n"
