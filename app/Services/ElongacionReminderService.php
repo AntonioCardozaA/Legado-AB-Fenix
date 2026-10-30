@@ -20,7 +20,8 @@ class ElongacionReminderService
 {
     public function __construct(
         private readonly WhatsAppService $whatsAppService,
-        private readonly NotificationRecipientService $notificationRecipientService
+        private readonly NotificationRecipientService $notificationRecipientService,
+        private readonly ConfiguredAlertRecipientService $configuredAlertRecipientService
     ) {
     }
 
@@ -150,6 +151,18 @@ class ElongacionReminderService
                     'error' => $exception->getMessage(),
                 ];
             }
+        }
+
+        if (!$dryRun) {
+            $this->configuredAlertRecipientService->dispatch(
+                'elongacion_reminder',
+                $this->buildMessage($pendingAlerts),
+                'elongacion-reminder:' . $today->toDateString(),
+                [
+                    'notification_date' => $today->toDateString(),
+                    'lineas' => $pendingAlerts->pluck('linea')->values()->all(),
+                ]
+            );
         }
 
         return $results;

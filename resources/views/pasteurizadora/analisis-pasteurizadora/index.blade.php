@@ -2451,13 +2451,35 @@
                                                                 <i class="fas fa-calendar-alt text-blue-600"></i>
                                                                 <span class="info-label">Fecha:</span>
                                                                 <span class="info-value-pill">
-                                                                    {{ $registro->fecha_analisis ? $registro->fecha_analisis->format('d/m/Y') : $registro->created_at->format('d/m/Y') }}
+                                                                    @if($indicadoresVisuales->isNotEmpty())
+                                                                        <span class="pasteur-indicator-sync" data-indicator-sync>
+                                                                            @foreach($indicadoresVisuales as $indiceIndicador => $indicadorVisual)
+                                                                                @php $registroIndicador = $indicadorVisual['registro']; @endphp
+                                                                                <span class="pasteur-indicator-state" @if($indiceIndicador > 0) hidden @endif>
+                                                                                    {{ $registroIndicador->fecha_analisis ? $registroIndicador->fecha_analisis->format('d/m/Y') : $registroIndicador->created_at?->format('d/m/Y') }}
+                                                                                </span>
+                                                                            @endforeach
+                                                                        </span>
+                                                                    @else
+                                                                        {{ $registro->fecha_analisis ? $registro->fecha_analisis->format('d/m/Y') : $registro->created_at->format('d/m/Y') }}
+                                                                    @endif
                                                                 </span>
                                                             </div>
                                                             <div class="info-line">
                                                                 <i class="fas fa-hashtag text-blue-600 text-xs"></i>
                                                                 <span class="font-bold text-gray-800">
-                                                                    Orden: {{ $registro->numero_orden ? '#' . $registro->numero_orden : 'Sin orden' }}
+                                                                    @if($indicadoresVisuales->isNotEmpty())
+                                                                        <span class="pasteur-indicator-sync" data-indicator-sync>
+                                                                            @foreach($indicadoresVisuales as $indiceIndicador => $indicadorVisual)
+                                                                                @php $registroIndicador = $indicadorVisual['registro']; @endphp
+                                                                                <span class="pasteur-indicator-state" @if($indiceIndicador > 0) hidden @endif>
+                                                                                    Orden: {{ $registroIndicador->numero_orden ? '#' . $registroIndicador->numero_orden : 'Sin orden' }}
+                                                                                </span>
+                                                                            @endforeach
+                                                                        </span>
+                                                                    @else
+                                                                        Orden: {{ $registro->numero_orden ? '#' . $registro->numero_orden : 'Sin orden' }}
+                                                                    @endif
                                                                 </span>
                                                             </div>
                                                             <div class="info-line">
@@ -2465,7 +2487,7 @@
                                                                 <span class="info-label">Ubicacion:</span>
                                                                 <span class="font-semibold text-gray-800">
                                                                     @if($indicadoresVisuales->isNotEmpty())
-                                                                        <span class="pasteur-indicator-location-carousel">
+                                                                        <span class="pasteur-indicator-location-carousel pasteur-indicator-sync" data-indicator-sync>
                                                                             @foreach($indicadoresVisuales as $indiceIndicador => $indicadorVisual)
                                                                                 <span class="pasteur-indicator-state" @if($indiceIndicador > 0) hidden @endif>
                                                                                     {{ $compData['nombre'] ?? $codigo }} #{{ $indicadorVisual['numero_componente'] }}
@@ -2521,11 +2543,22 @@
                                                             </span>
                                                         </div>
 
-                                                        @if(filled($registro->actividad))
+                                                        @if($indicadoresVisuales->isNotEmpty() || filled($registro->actividad))
                                                             <div>
-                                                                <p class="pasteur-cell-activity">
-                                                                    {{ \Illuminate\Support\Str::limit(trim($registro->actividad), 80) }}
-                                                                </p>
+                                                                @if($indicadoresVisuales->isNotEmpty())
+                                                                    <p class="pasteur-cell-activity pasteur-indicator-sync" data-indicator-sync>
+                                                                        @foreach($indicadoresVisuales as $indiceIndicador => $indicadorVisual)
+                                                                            @php $registroIndicador = $indicadorVisual['registro']; @endphp
+                                                                            <span class="pasteur-indicator-state" @if($indiceIndicador > 0) hidden @endif>
+                                                                                {{ \Illuminate\Support\Str::limit(trim($registroIndicador->actividad ?: 'Sin actividad registrada.'), 80) }}
+                                                                            </span>
+                                                                        @endforeach
+                                                                    </p>
+                                                                @else
+                                                                    <p class="pasteur-cell-activity">
+                                                                        {{ \Illuminate\Support\Str::limit(trim($registro->actividad), 80) }}
+                                                                    </p>
+                                                                @endif
                                                             </div>
                                                         @endif
 
@@ -3499,7 +3532,7 @@ function initializeIndicatorCarousels() {
         const cell = carousel.closest('td');
         const linkedCarousels = [
             carousel,
-            ...(cell ? Array.from(cell.querySelectorAll('.pasteur-indicator-location-carousel')) : []),
+            ...(cell ? Array.from(cell.querySelectorAll('[data-indicator-sync]')) : []),
         ];
         const states = Array.from(carousel.querySelectorAll('.pasteur-indicator-state'));
         if (states.length < 2) {

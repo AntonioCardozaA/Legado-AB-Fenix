@@ -774,6 +774,13 @@
                         <i class="fas fa-user-shield w-5 mr-3 text-gray-500"></i>
                         Gestion de usuarios
                     </a>
+                    <a href="{{ route('admin.alert-recipients.index') }}"
+                       @click="if (!isDesktop) sidebarOpen = false"
+                       aria-label="Destinatarios de alertas"
+                       class="nav-link flex items-center px-4 py-3 rounded-lg {{ request()->routeIs('admin.alert-recipients.*') ? 'nav-active' : '' }}">
+                        <i class="fas fa-mobile-screen-button w-5 mr-3 text-gray-500"></i>
+                        Destinatarios de alertas
+                    </a>
                 @endif
 
                 @if($puedeVerObservabilidadIa)
@@ -1090,6 +1097,8 @@
     </div>
 
 </div>
+
+@include('pasteurizadora.partials.responsive-styles')
 
 @auth
     @if(auth()->user()?->canUseCustomPermission('usar asistente ia') && ! auth()->user()?->usesPasteurizadoraExcentricosAccessProfile())

@@ -424,11 +424,11 @@
 
     @media (max-width: 380px) {
         .excentricos-selector-grid {
-            grid-template-columns: repeat(3, minmax(0, 1fr));
+            grid-template-columns: repeat(2, minmax(0, 1fr));
         }
 
         .excentricos-selector-btn {
-            font-size: 0.72rem;
+            font-size: 0.74rem;
             padding-inline: 0.35rem;
         }
 
@@ -849,11 +849,31 @@
                                 </span>
 
                                 <span class="block min-w-0 text-xs font-bold text-slate-600">
-                                    @if($registroVisual)
-                                        <span class="block truncate">{{ $registroVisual->fecha_analisis?->format('d/m/Y') }}</span>
+                                    @if($indicadoresActivos->isNotEmpty())
+                                        <span class="indicator-sync block" data-indicator-sync>
+                                            @foreach($indicadoresActivos as $indiceIndicador => $indicador)
+                                                @php $registroIndicador = $indicador['registro']; @endphp
+                                                <span class="indicator-carousel-state" @if($indiceIndicador > 0) hidden @endif>
+                                                    {{ $registroIndicador->fecha_analisis?->format('d/m/Y') ?? 'Sin fecha' }}
+                                                </span>
+                                            @endforeach
+                                        </span>
+                                        <span class="indicator-sync mt-0.5 block truncate text-slate-500" data-indicator-sync>
+                                            @foreach($indicadoresActivos as $indiceIndicador => $indicador)
+                                                @php $registroIndicador = $indicador['registro']; @endphp
+                                                <span class="indicator-carousel-state" @if($indiceIndicador > 0) hidden @endif>
+                                                    {{ \Illuminate\Support\Str::limit(trim($registroIndicador->actividad ?: 'Sin actividad registrada.'), 70) }}
+                                                </span>
+                                            @endforeach
+                                        </span>
                                     @else
-                                        <span class="block text-slate-400">Sin registro</span>
-                                        <span class="mt-0.5 block text-slate-400">{{ $piezasTexto }}</span>
+                                        @if($registroVisual)
+                                            <span class="block truncate">{{ $registroVisual->fecha_analisis?->format('d/m/Y') ?? 'Sin fecha' }}</span>
+                                            <span class="mt-0.5 block truncate text-slate-500">{{ \Illuminate\Support\Str::limit(trim($registroVisual->actividad ?: 'Sin actividad registrada.'), 70) }}</span>
+                                        @else
+                                            <span class="block text-slate-400">Sin registro</span>
+                                            <span class="mt-0.5 block text-slate-400">{{ $piezasTexto }}</span>
+                                        @endif
                                     @endif
                                 </span>
                             </span>
@@ -1237,6 +1257,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
         let activeIndex = 0;
         const tile = carousel.closest('.excentricos-module-tile');
+        const linkedCarousels = [
+            carousel,
+            ...(tile ? Array.from(tile.querySelectorAll('[data-indicator-sync], [data-indicator-location-carousel]')) : []),
+        ];
         const accent = tile?.querySelector(':scope > .absolute');
         const tileClasses = [
             'border-green-200', 'bg-green-50/80', 'hover:border-green-300', 'hover:bg-green-50',
@@ -1250,8 +1274,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
         window.setInterval(function () {
             activeIndex = (activeIndex + 1) % states.length;
-            states.forEach(function (state, stateIndex) {
-                state.hidden = stateIndex !== activeIndex;
+            linkedCarousels.forEach(function (linkedCarousel) {
+                linkedCarousel.querySelectorAll('.indicator-carousel-state').forEach(function (state, stateIndex) {
+                    state.hidden = stateIndex !== activeIndex;
+                });
             });
 
             const activeState = states[activeIndex];

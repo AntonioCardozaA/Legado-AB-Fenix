@@ -334,12 +334,10 @@
             $historialSecciones = collect([
                 'VAPOR' => [
                     'titulo' => 'Lado Vapor',
-                    'subtitulo' => 'Historial capturado para el lado vapor.',
                     'icono' => 'fa-cloud',
                 ],
                 'PASILLO' => [
                     'titulo' => 'Lado Pasillo',
-                    'subtitulo' => 'Historial capturado para el lado pasillo.',
                     'icono' => 'fa-walking',
                 ],
             ])->map(function (array $seccion, string $lado) use ($gruposOrdenados): array {
@@ -362,54 +360,13 @@
                 $historialSecciones->push([
                     'key' => 'SIN_LADO',
                     'titulo' => 'Sin lado registrado',
-                    'subtitulo' => 'Registros anteriores sin lado asignado.',
                     'icono' => 'fa-question-circle',
                     'grupos' => $gruposSinLado,
                     'total' => $gruposSinLado->sum(fn (array $grupo): int => (int) ($grupo['total_registros'] ?? count($grupo['registros'] ?? []))),
                 ]);
             }
 
-            $totalRegistros = $analisis->count();
-            $conImagenes = $analisis->filter(function($item) {
-                $imagenes = $item->evidencia_fotos ?? null;
-                if (is_string($imagenes)) {
-                    $imagenes = json_decode($imagenes, true) ?? [];
-                } elseif (is_array($imagenes)) {
-                    $imagenes = $imagenes;
-                } else {
-                    $imagenes = [];
-                }
-                return count($imagenes) > 0;
-            })->count();
         @endphp
-
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
-            <div class="rounded-xl p-5 shadow-sm"
-                style="background: linear-gradient(to bottom right, rgba(31, 35, 72, 0.05), white); border: 1px solid rgba(31, 35, 72, 0.2);">
-                <div class="flex items-center gap-4">
-                    <div class="p-3 rounded-lg" style="background-color: rgba(31, 35, 72, 0.1);">
-                        <i class="fas fa-clipboard-list" style="color: rgb(31, 35, 72); font-size: 1.25rem;"></i>
-                    </div>
-                    <div>
-                        <p class="text-sm font-medium uppercase tracking-wider" style="color: rgb(31, 35, 72);">Total Registros</p>
-                        <p class="text-3xl font-bold text-gray-800">{{ $totalRegistros }}</p>
-                    </div>
-                </div>
-            </div>
-
-            <div class="rounded-xl p-5 shadow-sm"
-                style="background: linear-gradient(to bottom right, rgba(31, 35, 72, 0.05), white); border: 1px solid rgba(31, 35, 72, 0.2);">
-                <div class="flex items-center gap-4">
-                    <div class="p-3 rounded-lg" style="background-color: rgba(31, 35, 72, 0.1);">
-                        <i class="fas fa-images" style="color: rgb(31, 35, 72); font-size: 1.25rem;"></i>
-                    </div>
-                    <div>
-                        <p class="text-sm font-medium uppercase tracking-wider" style="color: rgb(31, 35, 72);">Con Evidencia</p>
-                        <p class="text-3xl font-bold text-gray-800">{{ $conImagenes }}</p>
-                    </div>
-                </div>
-            </div>
-        </div>
 
         {{-- Timeline mejorado --}}
         <div class="pasteur-history-layout">
@@ -423,7 +380,6 @@
                                 </div>
                                 <div class="min-w-0">
                                     <h2 class="text-lg font-bold text-gray-800">{{ $seccion['titulo'] }}</h2>
-                                    <p class="text-sm text-gray-500">{{ $seccion['subtitulo'] }}</p>
                                 </div>
                             </div>
                             <span class="inline-flex w-fit max-w-full items-center justify-center rounded-full bg-blue-50 px-3 py-1 text-sm font-semibold text-blue-700">
@@ -632,9 +588,9 @@
 
                                 {{-- Sección de imágenes mejorada --}}
                                 @if($totalImagenes > 0)
-                                    <div class="bg-gradient-to-br from-indigo-50 to-white rounded-xl p-5 border border-indigo-100">
-                                        <div class="flex items-center justify-between mb-4">
-                                            <div class="flex items-center gap-2">
+                                    <div class="history-evidence-section bg-gradient-to-br from-indigo-50 to-white rounded-xl p-5 border border-indigo-100">
+                                        <div class="history-evidence-header flex items-center justify-between mb-4">
+                                            <div class="history-evidence-title flex items-center gap-2">
                                                 <div class="w-6 h-6 rounded-lg bg-indigo-100 flex items-center justify-center">
                                                     <i class="fas fa-images text-indigo-600 text-xs"></i>
                                                 </div>
