@@ -2,9 +2,9 @@
 
 namespace App\Services\Maintenance;
 
-use App\Models\PlanAccion;
 use App\Models\PasteurizadoraKnowledgeChunk;
 use App\Models\PasteurizadoraKnowledgeDocument;
+use App\Models\PlanAccion;
 use App\Models\User;
 use App\Models\WasherKnowledgeChunk;
 use App\Models\WasherKnowledgeDocument;
@@ -18,8 +18,7 @@ class AssistantKnowledgeSearchService
     public function __construct(
         private readonly PromptSafetySanitizer $sanitizer,
         private readonly HybridKnowledgeRanker $ranker
-    ) {
-    }
+    ) {}
 
     /**
      * @param  array<string, mixed>  $pageContext
@@ -119,35 +118,35 @@ class AssistantKnowledgeSearchService
                 }
 
                 $summary = implode(' | ', array_filter([
-                    $plan->actividad ? 'Actividad: ' . $plan->actividad : null,
-                    $plan->linea?->nombre ? 'Linea: ' . $plan->linea->nombre : null,
+                    $plan->actividad ? 'Actividad: '.$plan->actividad : null,
+                    $plan->linea?->nombre ? 'Linea: '.$plan->linea->nombre : null,
                     ($plan->maintenanceEvent?->componente?->nombre
                         ?? data_get($plan->source_metadata, 'component_name')
                         ?? data_get($plan->maintenanceEvent?->context_data, 'component_name'))
-                        ? 'Componente: ' . (
+                        ? 'Componente: '.(
                             $plan->maintenanceEvent?->componente?->nombre
                             ?? data_get($plan->source_metadata, 'component_name')
                             ?? data_get($plan->maintenanceEvent?->context_data, 'component_name')
                         )
                         : null,
-                    data_get($plan->source_metadata, 'component_code') ? 'Codigo: ' . data_get($plan->source_metadata, 'component_code') : null,
-                    data_get($plan->source_metadata, 'modulo') ? 'Modulo: ' . data_get($plan->source_metadata, 'modulo') : null,
+                    data_get($plan->source_metadata, 'component_code') ? 'Codigo: '.data_get($plan->source_metadata, 'component_code') : null,
+                    data_get($plan->source_metadata, 'modulo') ? 'Modulo: '.data_get($plan->source_metadata, 'modulo') : null,
                     (data_get($plan->source_metadata, 'piso_label') ?? data_get($plan->source_metadata, 'piso'))
-                        ? 'Piso: ' . (data_get($plan->source_metadata, 'piso_label') ?? data_get($plan->source_metadata, 'piso'))
+                        ? 'Piso: '.(data_get($plan->source_metadata, 'piso_label') ?? data_get($plan->source_metadata, 'piso'))
                         : null,
-                    data_get($plan->source_metadata, 'nivel') ? 'Nivel: ' . data_get($plan->source_metadata, 'nivel') : null,
+                    data_get($plan->source_metadata, 'nivel') ? 'Nivel: '.data_get($plan->source_metadata, 'nivel') : null,
                     (data_get($plan->source_metadata, 'lado_label') ?? data_get($plan->source_metadata, 'lado'))
-                        ? 'Lado: ' . (data_get($plan->source_metadata, 'lado_label') ?? data_get($plan->source_metadata, 'lado'))
+                        ? 'Lado: '.(data_get($plan->source_metadata, 'lado_label') ?? data_get($plan->source_metadata, 'lado'))
                         : null,
-                    $plan->detected_problem ? 'Problema: ' . $plan->detected_problem : null,
-                    $plan->technical_justification ? 'Justificacion: ' . $plan->technical_justification : null,
-                    $plan->risk_if_not_executed ? 'Riesgo: ' . $plan->risk_if_not_executed : null,
+                    $plan->detected_problem ? 'Problema: '.$plan->detected_problem : null,
+                    $plan->technical_justification ? 'Justificacion: '.$plan->technical_justification : null,
+                    $plan->risk_if_not_executed ? 'Riesgo: '.$plan->risk_if_not_executed : null,
                 ]));
 
                 return [
                     'score' => $score,
                     'type' => 'operational_plan',
-                    'reference' => 'Plan #' . $plan->id,
+                    'reference' => 'Plan #'.$plan->id,
                     'content' => $this->sanitizer->sanitizeText($summary, 900),
                     'module' => $plan->tipo_equipo,
                 ];
@@ -167,26 +166,26 @@ class AssistantKnowledgeSearchService
 
     private function userCanViewPlan(?User $user, PlanAccion $plan): bool
     {
-        if (!$user) {
+        if (! $user) {
             return false;
         }
 
         $tipo = $this->normalizeModule($plan->tipo_equipo) ?: User::MODULE_LAVADORA;
 
-        if (!$user->canViewPlanActionType($tipo)) {
+        if (! $user->canViewPlanActionType($tipo)) {
             return false;
         }
 
         if ($tipo === User::MODULE_PASTEURIZADORA
             && $plan->area_pasteurizadora
-            && !$user->canAccessPasteurizadoraArea($plan->area_pasteurizadora)) {
+            && ! $user->canAccessPasteurizadoraArea($plan->area_pasteurizadora)) {
             return false;
         }
 
-        return !($plan->source === 'ai'
+        return ! ($plan->source === 'ai'
             && in_array($tipo, [User::MODULE_LAVADORA, User::MODULE_PASTEURIZADORA], true)
             && $plan->estado !== 'approved'
-            && !$user->canReviewAiPlansForModule($tipo, $plan->area_pasteurizadora));
+            && ! $user->canReviewAiPlansForModule($tipo, $plan->area_pasteurizadora));
     }
 
     /**
@@ -236,13 +235,13 @@ class AssistantKnowledgeSearchService
                     ]))
                 );
                 $summary = implode(' | ', array_filter([
-                    'Documento: ' . $document->title,
-                    $document->document_type ? 'Tipo: ' . $document->document_type : null,
-                    $document->linea?->nombre ? 'Linea: ' . $document->linea->nombre : null,
+                    'Documento: '.$document->title,
+                    $document->document_type ? 'Tipo: '.$document->document_type : null,
+                    $document->linea?->nombre ? 'Linea: '.$document->linea->nombre : null,
                     ($document->componente?->nombre ?? $document->component_name ?? $document->component_code ?? null)
-                        ? 'Componente: ' . ($document->componente?->nombre ?? $document->component_name ?? $document->component_code)
+                        ? 'Componente: '.($document->componente?->nombre ?? $document->component_name ?? $document->component_code)
                         : null,
-                    ($document->area ?? null) ? 'Area: ' . $document->area : null,
+                    ($document->area ?? null) ? 'Area: '.$document->area : null,
                     $this->sanitizer->sanitizeText((string) ($document->extracted_text ?: $document->title), 700),
                 ]));
 
@@ -494,7 +493,7 @@ class AssistantKnowledgeSearchService
 
         if (preg_match_all('/(?:lavadora|linea|l)\s*[-#]?\s*0*(\d{1,2})\b/u', $normalized, $lineMatches)) {
             foreach ($lineMatches[1] as $lineNumber) {
-                $lineas[] = 'L-' . str_pad((string) $lineNumber, 2, '0', STR_PAD_LEFT);
+                $lineas[] = 'L-'.str_pad((string) $lineNumber, 2, '0', STR_PAD_LEFT);
             }
         }
 
@@ -565,7 +564,7 @@ class AssistantKnowledgeSearchService
         $normalized = Str::lower(trim($type));
 
         return match ($normalized) {
-            'procedimiento', 'estandar interno', 'instructivo' => 'procedure',
+            'procedimiento', 'procedimiento interno', 'estandar interno', 'instructivo' => 'procedure',
             'plan anterior' => 'historical_plan',
             'reporte' => 'revision',
             default => 'manual',

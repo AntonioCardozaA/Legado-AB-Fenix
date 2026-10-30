@@ -55,8 +55,10 @@ class StructuredOutputGroundingVerifier
         $adjustedConfidence = $originalConfidence;
         $warnings = [];
 
-        if ($citedCount === 0 && $availableSources !== []) {
-            $warnings[] = 'La respuesta no cito fuentes verificables aunque habia contexto disponible.';
+        if ($citedCount === 0) {
+            $warnings[] = $availableSources !== []
+                ? 'La respuesta no cito fuentes verificables aunque habia contexto disponible.'
+                : 'No hay fuentes verificables disponibles; se requiere evidencia antes de aprobar.';
             $adjustedConfidence = $this->capConfidence($adjustedConfidence, (float) config('maintenance_ai.grounding.ungrounded_confidence_cap', 0.45));
         } elseif ($validCount === 0 && $citedCount > 0) {
             $warnings[] = 'Ninguna fuente citada coincide con el contexto tecnico, RAG o web entregado.';

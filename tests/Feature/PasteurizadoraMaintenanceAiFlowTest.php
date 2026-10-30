@@ -4,23 +4,27 @@ namespace Tests\Feature;
 
 use App\Contracts\AiProviderInterface;
 use App\Jobs\GeneratePasteurizadoraActionPlan;
+use App\Jobs\IndexMaintenanceHistoryRecord;
 use App\Models\AnalisisCentralHidraulica;
 use App\Models\AnalisisPasteurizadora;
 use App\Models\CentralHidraulicaComponente;
 use App\Models\CentralHidraulicaConfiguracion;
 use App\Models\Linea;
 use App\Models\MaintenanceEvent;
+use App\Models\MaintenanceHistoryChunk;
 use App\Models\PasteurizadoraKnowledgeChunk;
 use App\Models\PasteurizadoraKnowledgeDocument;
 use App\Models\PlanAccion;
 use App\Models\User;
 use App\Notifications\PasteurizadoraAiPlanPendingReviewNotification;
+use App\Services\Maintenance\MaintenanceHistoryIndexer;
 use App\Services\Maintenance\PasteurizadoraActionPlanGenerator;
 use App\Services\Maintenance\PasteurizadoraMaintenanceOrchestrator;
 use App\Services\Maintenance\PasteurizadoraTechnicalContextRetriever;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Facades\Storage;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
@@ -28,6 +32,134 @@ use Tests\TestCase;
 class PasteurizadoraMaintenanceAiFlowTest extends TestCase
 {
     use RefreshDatabase;
+
+    public function test_generator_accepts_empty_sources_but_does_not_allow_approval_without_evidence(): void
+    {
+        Notification::fake();
+        config(['maintenance_ai.enabled' => true, 'maintenance_ai.web_search.enabled' => false]);
+        $admin = $this->userWithRole(User::ROLE_ADMIN, true);
+        $analysis = $this->createDamagedAnalysis($admin);
+        $event = $this->createEventForAnalysis($analysis);
+        $structured = $this->structuredActionPlan(['knowledge_sources' => [], 'confidence' => 0.95]);
+        $this->mock(AiProviderInterface::class, function ($mock) use ($structured): void {
+            $mock->shouldReceive('generateStructuredActionPlan')->once()->andReturn([
+                'data' => $structured, 'raw' => [], 'meta' => ['provider' => 'fake', 'model' => 'fake'],
+            ]);
+        });
+
+        $plan = app(PasteurizadoraActionPlanGenerator::class)->generate($event);
+
+        $this->assertSame('pending_review', $plan->estado);
+        $this->assertSame([], $plan->knowledge_sources);
+        $this->assertLessThanOrEqual(0.45, (float) $plan->confidence_level);
+        $this->assertNotEmpty($plan->missing_information);
+        $this->actingAs($admin)->postJson(route('plan-accion.ai.pasteurizadora.approve', ['planAccion' => $plan->id]), $structured)
+            ->assertUnprocessable()->assertJsonValidationErrors('knowledge_sources');
+        $this->assertSame('pending_review', $plan->fresh()->estado);
+    }
+
+    public function test_history_index_includes_both_pasteurizadora_areas_and_is_idempotent(): void
+    {
+        config(['maintenance_ai.history_index.embeddings_enabled' => false]);
+        $mechanical = $this->createDamagedAnalysis();
+        $central = $this->createDamagedCentralAnalysis();
+        $plan = $this->createPendingAiPlan($mechanical->usuario);
+        $plan->update(['completado' => true, 'execution_result' => 'Prueba de funcionamiento satisfactoria', 'effectiveness' => 'effective']);
+        $indexer = app(MaintenanceHistoryIndexer::class);
+
+        $summary = $indexer->indexAll(User::MODULE_PASTEURIZADORA);
+        $this->assertSame(0, array_sum(array_column($summary['sources'], 'errors')));
+        $count = MaintenanceHistoryChunk::count();
+        $this->assertGreaterThan(0, $count);
+        $chunk = MaintenanceHistoryChunk::where('source_type', 'analisis_central_hidraulica')->where('source_id', $central->id)->firstOrFail();
+        $this->assertNull($chunk->componente_id);
+        $this->assertSame(User::MODULE_PASTEURIZADORA, $chunk->module);
+        $this->assertSame(AnalisisPasteurizadora::AREA_CENTRAL_HIDRAULICA, data_get($chunk->metadata, 'extra.area'));
+        $this->assertSame('ELECTROVALVULAS', data_get($chunk->metadata, 'extra.component_code'));
+        $this->assertDatabaseHas('maintenance_history_chunks', ['source_type' => 'analisis_pasteurizadora', 'source_id' => $mechanical->id]);
+        $this->assertTrue(MaintenanceHistoryChunk::where('source_type', 'plan_accion')->where('source_id', $plan->id)
+            ->where('content', 'like', '%Prueba de funcionamiento satisfactoria%')->exists());
+
+        $indexer->indexAll(User::MODULE_PASTEURIZADORA);
+        $this->assertSame($count, MaintenanceHistoryChunk::count());
+        $indexer->indexAll(User::MODULE_LAVADORA);
+        $this->assertSame(0, MaintenanceHistoryChunk::where('module', User::MODULE_LAVADORA)->count());
+
+        $central->delete();
+        $indexer->indexSource('analisis_central_hidraulica', $central->id, User::MODULE_PASTEURIZADORA);
+        $this->assertDatabaseMissing('maintenance_history_chunks', ['source_type' => 'analisis_central_hidraulica', 'source_id' => $central->id]);
+    }
+
+    public function test_legacy_fallback_plan_cannot_be_approved_with_empty_sources(): void
+    {
+        $admin = $this->userWithRole(User::ROLE_ADMIN, true);
+        $plan = $this->createPendingAiPlan($admin);
+        $structured = $this->structuredActionPlan(['knowledge_sources' => []]);
+        $plan->update(['knowledge_sources' => [], 'original_generated_content' => $structured]);
+
+        $this->actingAs($admin)->postJson(route('plan-accion.ai.pasteurizadora.approve', ['planAccion' => $plan->id]), $structured)
+            ->assertUnprocessable()->assertJsonValidationErrors('knowledge_sources');
+        $this->assertSame('pending_review', $plan->fresh()->estado);
+    }
+
+    public function test_new_pasteurizadora_records_dispatch_index_jobs_in_their_module(): void
+    {
+        Queue::fake();
+        config(['maintenance_ai.history_index.auto_index' => true]);
+        app(MaintenanceHistoryIndexer::class)->registerModelEvents();
+        $analysis = $this->createDamagedAnalysis();
+
+        Queue::assertPushed(IndexMaintenanceHistoryRecord::class, fn ($job) => $job->sourceType === 'analisis_pasteurizadora'
+            && $job->sourceId === $analysis->id && $job->module === User::MODULE_PASTEURIZADORA && ! $job->delete);
+        $analysis->delete();
+        Queue::assertPushed(IndexMaintenanceHistoryRecord::class, fn ($job) => $job->sourceId === $analysis->id
+            && $job->module === User::MODULE_PASTEURIZADORA && $job->delete);
+    }
+
+    public function test_retrieval_consumes_local_history_and_excludes_unapproved_ai_plan_chunks(): void
+    {
+        config([
+            'maintenance_ai.enabled' => false,
+            'maintenance_ai.knowledge.semantic_query_enabled' => false,
+            'maintenance_ai.technical_context.history_limit_per_bucket' => 20,
+            'maintenance_ai.technical_context.total_history_limit' => 60,
+        ]);
+        $analysis = $this->createDamagedAnalysis();
+        $plan = $this->createPendingAiPlan($analysis->usuario);
+        app(MaintenanceHistoryIndexer::class)->indexAll(User::MODULE_PASTEURIZADORA);
+
+        $context = app(PasteurizadoraTechnicalContextRetriever::class)->forQuestion('Anillas con desgaste en pasteurizadora P-03', ['linea_id' => $analysis->linea_id]);
+        $indexed = collect($context['historical_sources'])->flatten(1)->where('type', 'maintenance_history_chunk');
+        $this->assertTrue($indexed->where('source_type', 'analisis_pasteurizadora')->isNotEmpty());
+        $this->assertFalse($indexed->where('source_type', 'plan_accion')->where('source_id', $plan->id)->isNotEmpty());
+        $this->assertNotNull($indexed->first()['chunk_id']);
+    }
+
+    public function test_import_internal_documentation_is_traceable_and_does_not_duplicate_documents(): void
+    {
+        Storage::fake('local');
+        $this->mock(AiProviderInterface::class, fn ($mock) => $mock->shouldNotReceive('createEmbedding'));
+        $this->artisan('pasteurizadora:knowledge:import-internal', ['--without-embeddings' => true])->assertSuccessful();
+        $this->assertDatabaseCount('pasteurizadora_knowledge_documents', 2);
+        $documents = PasteurizadoraKnowledgeDocument::orderBy('id')->get();
+        $chunkIds = PasteurizadoraKnowledgeChunk::orderBy('id')->pluck('id')->all();
+        foreach ($documents as $document) {
+            $this->assertSame('indexed', $document->indexing_status);
+            $this->assertSame('repository_internal_documentation', $document->metadata['origin']);
+            $this->assertFalse($document->metadata['manufacturer_manual']);
+            Storage::disk('local')->assertExists($document->storage_path);
+            $this->assertGreaterThan(0, $document->chunks()->count());
+        }
+        $this->artisan('pasteurizadora:knowledge:import-internal', ['--without-embeddings' => true])->assertSuccessful();
+        $this->assertDatabaseCount('pasteurizadora_knowledge_documents', 2);
+        $this->assertSame($chunkIds, PasteurizadoraKnowledgeChunk::orderBy('id')->pluck('id')->all());
+
+        config(['maintenance_ai.knowledge.semantic_query_enabled' => false]);
+        $context = app(PasteurizadoraTechnicalContextRetriever::class)->forQuestion('Anillas y numeracion de componentes de pasteurizadora P-03');
+        $sources = collect($context['technical_sources']);
+        $this->assertTrue($sources->isNotEmpty());
+        $this->assertSame(['procedure'], $sources->pluck('type')->unique()->values()->all());
+    }
 
     public function test_orchestrator_dispatches_a_single_job_for_the_same_pasteurizadora_detection(): void
     {
@@ -190,9 +322,7 @@ class PasteurizadoraMaintenanceAiFlowTest extends TestCase
 
         $this->app->instance(AiProviderInterface::class, new class($structured) implements AiProviderInterface
         {
-            public function __construct(private readonly array $structured)
-            {
-            }
+            public function __construct(private readonly array $structured) {}
 
             public function generateStructuredActionPlan(array $payload): array
             {
@@ -711,7 +841,7 @@ class PasteurizadoraMaintenanceAiFlowTest extends TestCase
                     'component_code' => 'ELECTROVALVULAS',
                     'piso' => CentralHidraulicaConfiguracion::PISO_SUPERIOR,
                     'lado' => AnalisisCentralHidraulica::LADO_1,
-                    'current_path' => '/pasteurizadora/central-hidraulica/' . $analysis->id,
+                    'current_path' => '/pasteurizadora/central-hidraulica/'.$analysis->id,
                 ],
             ])
             ->assertOk();
@@ -800,7 +930,7 @@ class PasteurizadoraMaintenanceAiFlowTest extends TestCase
                 'lado' => $analysis->lado,
             ],
             'status' => MaintenanceEvent::STATUS_DETECTED,
-            'fingerprint' => sha1('pasteurizadora-component-damaged|' . $analysis->id),
+            'fingerprint' => sha1('pasteurizadora-component-damaged|'.$analysis->id),
             'detected_at' => now(),
         ]);
     }
@@ -832,7 +962,7 @@ class PasteurizadoraMaintenanceAiFlowTest extends TestCase
                 'lado_label' => $analysis->lado_label,
             ],
             'status' => MaintenanceEvent::STATUS_DETECTED,
-            'fingerprint' => sha1('pasteurizadora-central-component-damaged|' . $analysis->id),
+            'fingerprint' => sha1('pasteurizadora-central-component-damaged|'.$analysis->id),
             'detected_at' => now(),
         ]);
     }

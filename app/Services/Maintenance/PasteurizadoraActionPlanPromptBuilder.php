@@ -6,8 +6,7 @@ class PasteurizadoraActionPlanPromptBuilder
 {
     public function __construct(
         private readonly PromptSafetySanitizer $sanitizer
-    ) {
-    }
+    ) {}
 
     /**
      * @param  array<string, mixed>  $context
@@ -41,6 +40,7 @@ class PasteurizadoraActionPlanPromptBuilder
             'Limit recommended_actions to at most 3 items.',
             'Return only valid JSON matching the required schema.',
             'If data is missing, explicitly report it in missing_information.',
+            'If no source supports the proposal, return knowledge_sources as an empty array and explain the missing evidence in missing_information. Never fabricate a citation.',
         ]);
 
         $knowledge = array_map(function (array $source): array {
@@ -91,7 +91,7 @@ class PasteurizadoraActionPlanPromptBuilder
             'system_prompt' => $systemPrompt,
             'user_prompt' => $userPrompt ?: '{}',
             'prompt_version' => $version,
-            'prompt_snapshot' => $systemPrompt . "\n\n" . ($userPrompt ?: '{}'),
+            'prompt_snapshot' => $systemPrompt."\n\n".($userPrompt ?: '{}'),
         ];
     }
 }

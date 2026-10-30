@@ -11,8 +11,9 @@ class IndexMaintenanceHistory extends Command
 {
     protected $signature = 'maintenance:history:index
                             {--module=lavadora : Modulo operativo a indexar}
-                            {--source= : Fuente especifica: analisis_lavadora, maintenance_event, plan_accion, elongacion, lavadora_cost_entry}
-                            {--fresh : Elimina los chunks existentes del alcance seleccionado antes de indexar}';
+                            {--source= : Fuente especifica del modulo seleccionado}
+                            {--fresh : Elimina los chunks existentes del alcance seleccionado antes de indexar}
+                            {--without-embeddings : Indexa texto y metadatos sin llamadas al proveedor IA}';
 
     protected $description = 'Crea o actualiza el indice semantico del historial real para la IA de mantenimiento.';
 
@@ -24,27 +25,41 @@ class IndexMaintenanceHistory extends Command
 
     public function handle(): int
     {
+        $embeddingsEnabled = config('maintenance_ai.history_index.embeddings_enabled', true);
+        if ($this->option('without-embeddings')) {
+            config(['maintenance_ai.history_index.embeddings_enabled' => false]);
+        }
+
+        try {
+            return $this->indexHistory();
+        } finally {
+            config(['maintenance_ai.history_index.embeddings_enabled' => $embeddingsEnabled]);
+        }
+    }
+
+    private function indexHistory(): int
+    {
         $module = trim((string) $this->option('module')) ?: User::MODULE_LAVADORA;
         $source = trim((string) $this->option('source')) ?: null;
         $fresh = (bool) $this->option('fresh');
         $availableSources = $this->indexer->sourceTypesForModule($module);
 
         if ($availableSources === []) {
-            $this->error('No hay fuentes historicas configuradas para el modulo: ' . $module);
+            $this->error('No hay fuentes historicas configuradas para el modulo: '.$module);
 
             return self::FAILURE;
         }
 
-        if ($source !== null && !in_array($source, $availableSources, true)) {
-            $this->error('Fuente no soportada: ' . $source);
-            $this->line('Fuentes disponibles: ' . implode(', ', $availableSources));
+        if ($source !== null && ! in_array($source, $availableSources, true)) {
+            $this->error('Fuente no soportada: '.$source);
+            $this->line('Fuentes disponibles: '.implode(', ', $availableSources));
 
             return self::FAILURE;
         }
 
         $this->info('Indexando historial real para IA...');
-        $this->line('Modulo: ' . $module);
-        $this->line('Fuentes: ' . ($source ?: implode(', ', $availableSources)));
+        $this->line('Modulo: '.$module);
+        $this->line('Fuentes: '.($source ?: implode(', ', $availableSources)));
 
         if ($fresh) {
             $this->warn('Modo fresh activo: se eliminaran chunks existentes del alcance seleccionado.');
@@ -59,8 +74,8 @@ class IndexMaintenanceHistory extends Command
                 return self::FAILURE;
             }
 
-            $this->line('Chunks eliminados: ' . ($summary['deleted_chunks'] ?? 0));
-            $this->line('Chunks indexados: ' . ($summary['indexed_chunks'] ?? 0));
+            $this->line('Chunks eliminados: '.($summary['deleted_chunks'] ?? 0));
+            $this->line('Chunks indexados: '.($summary['indexed_chunks'] ?? 0));
 
             foreach (($summary['sources'] ?? []) as $sourceType => $sourceSummary) {
                 $this->line(sprintf(
@@ -72,7 +87,14 @@ class IndexMaintenanceHistory extends Command
                 ));
             }
 
-            $this->info('Indice semantico del historial actualizado.');
+            $errors = array_sum(array_column($summary['sources'] ?? [], 'errors'));
+            if ($errors > 0) {
+                $this->error('La indexacion termino con errores. Revisa las fuentes indicadas.');
+
+                return self::FAILURE;
+            }
+
+            $this->info('Indice del historial actualizado.');
 
             return self::SUCCESS;
         } catch (Throwable $exception) {

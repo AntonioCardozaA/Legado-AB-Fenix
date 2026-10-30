@@ -77,6 +77,9 @@ return [
         'min_internal_items_before_skip' => (int) env('AI_WEB_SEARCH_MIN_INTERNAL_ITEMS_BEFORE_SKIP', 1),
         'openai_model' => env('OPENAI_WEB_SEARCH_MODEL', env('OPENAI_MODEL', env('AI_MODEL', 'gpt-5.6'))),
         'gemini_model' => env('GEMINI_WEB_SEARCH_MODEL', env('GEMINI_MODEL', env('AI_MODEL', 'gemini-3.6-flash'))),
+        'gemini_fallback_models' => array_values(array_filter(array_map(
+            'trim', explode(',', (string) env('GEMINI_WEB_SEARCH_FALLBACK_MODELS', env('GEMINI_FALLBACK_MODELS', '')))
+        ))),
     ],
     'platform_context' => [
         'schema_table_limit' => (int) env('AI_PLATFORM_SCHEMA_TABLE_LIMIT', 8),
@@ -92,6 +95,7 @@ return [
         'document_limit' => (int) env('AI_TECHNICAL_CONTEXT_DOCUMENT_LIMIT', 4),
     ],
     'history_index' => [
+        'embeddings_enabled' => (bool) env('AI_HISTORY_INDEX_EMBEDDINGS_ENABLED', true),
         'auto_index' => (bool) env('AI_HISTORY_INDEX_AUTO', env('AI_ENABLED', false)),
         'queue' => env('AI_HISTORY_INDEX_QUEUE', 'default'),
         'max_retries' => (int) env('AI_HISTORY_INDEX_MAX_RETRIES', 2),

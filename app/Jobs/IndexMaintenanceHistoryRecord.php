@@ -19,6 +19,7 @@ class IndexMaintenanceHistoryRecord implements ShouldQueue
     use SerializesModels;
 
     public int $tries;
+
     public int $timeout;
 
     public function __construct(
@@ -45,7 +46,7 @@ class IndexMaintenanceHistoryRecord implements ShouldQueue
             return;
         }
 
-        $indexer->indexSource($this->sourceType, $this->sourceId);
+        $indexer->indexSource($this->sourceType, $this->sourceId, $this->module);
     }
 
     public function failed(Throwable $exception): void

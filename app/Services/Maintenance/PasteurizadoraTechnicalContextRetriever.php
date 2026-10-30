@@ -11,6 +11,7 @@ use App\Models\MaintenanceHistoryChunk;
 use App\Models\PasteurizadoraKnowledgeChunk;
 use App\Models\PlanAccion;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
@@ -18,8 +19,11 @@ use Illuminate\Support\Str;
 class PasteurizadoraTechnicalContextRetriever
 {
     private const BUCKET_SAME_COMPONENT_SAME_POSITION = 'same_component_same_pasteurizer_position';
+
     private const BUCKET_SAME_COMPONENT_SAME_PASTEURIZER = 'same_component_same_pasteurizer';
+
     private const BUCKET_SAME_COMPONENT_OTHER_PASTEURIZERS = 'same_component_other_pasteurizers';
+
     private const BUCKET_SIMILAR_FAILURE_OTHER_COMPONENTS = 'similar_failure_other_components';
 
     private const BUCKET_LABELS = [
@@ -115,8 +119,7 @@ class PasteurizadoraTechnicalContextRetriever
     public function __construct(
         private readonly PromptSafetySanitizer $sanitizer,
         private readonly HybridKnowledgeRanker $ranker
-    ) {
-    }
+    ) {}
 
     /**
      * @param  array<string, mixed>  $pageContext
@@ -124,7 +127,7 @@ class PasteurizadoraTechnicalContextRetriever
      */
     public function forQuestion(string $question, array $pageContext = [], ?User $user = null): array
     {
-        if ($user && !$user->canAccessModule(User::MODULE_PASTEURIZADORA)) {
+        if ($user && ! $user->canAccessModule(User::MODULE_PASTEURIZADORA)) {
             return $this->emptyContext('El usuario no tiene acceso al modulo de pasteurizadora.');
         }
 
@@ -217,12 +220,12 @@ class PasteurizadoraTechnicalContextRetriever
      */
     private function buildContext(array $profile, ?User $user): array
     {
-        if (!$this->hasTechnicalSignal($profile)) {
+        if (! $this->hasTechnicalSignal($profile)) {
             return $this->emptyContext('No se detecto una falla, componente o pasteurizadora especifica para recuperar antecedentes tecnicos.');
         }
 
         $historicalSources = $this->historicalSources($profile, $user);
-        $technicalSources = $this->technicalSources($profile);
+        $technicalSources = $this->technicalSources($profile, $user);
         $bucketCounts = collect($historicalSources)
             ->map(fn (array $items): int => count($items))
             ->all();
@@ -258,7 +261,7 @@ class PasteurizadoraTechnicalContextRetriever
     private function buildProfile(string $query, array $pageContext = []): array
     {
         $rankerProfile = $this->ranker->profile($query, $pageContext);
-        $normalizedQuery = Str::lower(Str::ascii($query . ' ' . json_encode($pageContext, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)));
+        $normalizedQuery = Str::lower(Str::ascii($query.' '.json_encode($pageContext, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)));
         $lineas = array_values(array_unique(array_merge(
             $this->lineReferences((string) ($rankerProfile['query'] ?? $query)),
             $this->lineReferences((string) ($pageContext['linea_nombre'] ?? ''))
@@ -291,7 +294,7 @@ class PasteurizadoraTechnicalContextRetriever
                 $componentCodes = array_values(array_unique(array_filter(array_merge($componentCodes, [$record->componente]))));
                 $componentTerms = array_values(array_unique(array_merge(
                     $componentTerms,
-                    $this->ranker->tokenize($record->componente . ' ' . $record->componente_nombre)
+                    $this->ranker->tokenize($record->componente.' '.$record->componente_nombre)
                 )));
             };
 
@@ -301,7 +304,7 @@ class PasteurizadoraTechnicalContextRetriever
                 $componentCodes = array_values(array_unique(array_filter(array_merge($componentCodes, [$record->componente?->codigo]))));
                 $componentTerms = array_values(array_unique(array_merge(
                     $componentTerms,
-                    $this->ranker->tokenize(($record->componente?->codigo ?? '') . ' ' . $record->componente_nombre)
+                    $this->ranker->tokenize(($record->componente?->codigo ?? '').' '.$record->componente_nombre)
                 )));
             };
 
@@ -355,7 +358,7 @@ class PasteurizadoraTechnicalContextRetriever
             'modulos' => $this->modulos($normalizedQuery, $pageContext),
             'niveles' => $this->niveles($normalizedQuery, $pageContext),
             'lados' => $this->lados($normalizedQuery, $pageContext),
-            'damage' => $this->damageProfile($query . ' ' . (string) ($pageContext['estado'] ?? '')),
+            'damage' => $this->damageProfile($query.' '.(string) ($pageContext['estado'] ?? '')),
             'severity' => $this->extractSeverity($normalizedQuery),
         ];
     }
@@ -464,7 +467,7 @@ class PasteurizadoraTechnicalContextRetriever
             ->map(function (AnalisisPasteurizadora $analysis) use ($profile): ?array {
                 $bucket = $this->classifyAnalysis($analysis, $profile);
 
-                if (!$bucket) {
+                if (! $bucket) {
                     return null;
                 }
 
@@ -503,7 +506,7 @@ class PasteurizadoraTechnicalContextRetriever
             ->map(function (MaintenanceEvent $event) use ($profile): ?array {
                 $bucket = $this->classifyEvent($event, $profile);
 
-                if (!$bucket) {
+                if (! $bucket) {
                     return null;
                 }
 
@@ -545,7 +548,7 @@ class PasteurizadoraTechnicalContextRetriever
             ->map(function (AnalisisCentralHidraulica $analysis) use ($profile): ?array {
                 $bucket = $this->classifyCentralAnalysis($analysis, $profile);
 
-                if (!$bucket) {
+                if (! $bucket) {
                     return null;
                 }
 
@@ -588,7 +591,7 @@ class PasteurizadoraTechnicalContextRetriever
             ->map(function (PlanAccion $plan) use ($profile): ?array {
                 $bucket = $this->classifyPlan($plan, $profile);
 
-                if (!$bucket) {
+                if (! $bucket) {
                     return null;
                 }
 
@@ -613,7 +616,7 @@ class PasteurizadoraTechnicalContextRetriever
      */
     private function semanticHistoryItems(array $profile, ?User $user): Collection
     {
-        if (!Schema::hasTable('maintenance_history_chunks')) {
+        if (! Schema::hasTable('maintenance_history_chunks')) {
             return collect();
         }
 
@@ -624,7 +627,25 @@ class PasteurizadoraTechnicalContextRetriever
             ->latest('updated_at')
             ->limit($this->historyIndexCandidateLimit())
             ->get()
-            ->filter(fn (MaintenanceHistoryChunk $chunk): bool => !$user || $user->canAccessModule(User::MODULE_PASTEURIZADORA))
+            ->filter(function (MaintenanceHistoryChunk $chunk) use ($user): bool {
+                if ($chunk->source_type === 'plan_accion') {
+                    if (data_get($chunk->metadata, 'extra.source') === 'ai'
+                        && data_get($chunk->metadata, 'extra.estado') !== 'approved') {
+                        return false;
+                    }
+                    if ($user && ! $user->canViewPlanActionType(User::MODULE_PASTEURIZADORA)) {
+                        return false;
+                    }
+                }
+                if (! $user) {
+                    return true;
+                }
+
+                $area = data_get($chunk->metadata, 'extra.area') ?: AnalisisPasteurizadora::AREA_MECANICA;
+
+                return $user->canAccessModule(User::MODULE_PASTEURIZADORA)
+                    && $user->canAccessPasteurizadoraArea($area);
+            })
             ->map(function (MaintenanceHistoryChunk $chunk) use ($profile): ?array {
                 $haystack = $this->historyChunkHaystack($chunk);
                 $bucket = $this->classifyArraySource([
@@ -640,14 +661,18 @@ class PasteurizadoraTechnicalContextRetriever
                 ], $profile);
                 $lexicalScore = $this->ranker->lexicalScore($profile['tokens'] ?? [], $haystack);
 
-                if (!$bucket || $lexicalScore < $this->historyIndexMinScore()) {
+                if (! $bucket || $lexicalScore < $this->historyIndexMinScore()) {
                     return null;
                 }
 
                 return [
                     'source_group' => 'historial_semantico',
                     'type' => 'maintenance_history_chunk',
-                    'reference' => 'Historial indexado #' . $chunk->source_id . ' fragmento ' . $chunk->chunk_index,
+                    'reference' => 'Historial '.$chunk->source_type.' #'.$chunk->source_id.' fragmento '.$chunk->chunk_index,
+                    'source_type' => $chunk->source_type,
+                    'source_id' => $chunk->source_id,
+                    'chunk_id' => $chunk->id,
+                    'chunk_index' => $chunk->chunk_index,
                     'date' => optional($chunk->source_date ?: $chunk->updated_at)->toDateString(),
                     'linea' => $chunk->linea?->nombre ?? data_get($chunk->metadata, 'linea.nombre'),
                     'component' => [
@@ -758,7 +783,7 @@ class PasteurizadoraTechnicalContextRetriever
             return self::BUCKET_SAME_COMPONENT_SAME_PASTEURIZER;
         }
 
-        if (!$sameLine && $sameComponent) {
+        if (! $sameLine && $sameComponent) {
             return self::BUCKET_SAME_COMPONENT_OTHER_PASTEURIZERS;
         }
 
@@ -776,7 +801,7 @@ class PasteurizadoraTechnicalContextRetriever
             $analysis->area,
             $analysis->componente,
             $analysis->componente_nombre,
-            $analysis->modulo ? 'modulo ' . $analysis->modulo : null,
+            $analysis->modulo ? 'modulo '.$analysis->modulo : null,
             $analysis->nivel,
             $analysis->lado,
             $analysis->estado,
@@ -793,7 +818,7 @@ class PasteurizadoraTechnicalContextRetriever
             AnalisisPasteurizadora::AREA_CENTRAL_HIDRAULICA,
             $analysis->componente?->codigo,
             $analysis->componente_nombre,
-            $analysis->piso ? 'piso ' . $analysis->piso : null,
+            $analysis->piso ? 'piso '.$analysis->piso : null,
             $analysis->piso,
             $analysis->lado,
             $analysis->lado_label,
@@ -857,7 +882,7 @@ class PasteurizadoraTechnicalContextRetriever
         return [
             'source_group' => 'historial_operativo',
             'type' => 'pasteurizadora_analysis',
-            'reference' => 'Analisis pasteurizadora #' . $analysis->id,
+            'reference' => 'Analisis pasteurizadora #'.$analysis->id,
             'date' => optional($analysis->fecha_analisis ?: $analysis->created_at)->toDateString(),
             'linea' => $analysis->linea?->nombre,
             'area' => $analysis->area,
@@ -891,7 +916,7 @@ class PasteurizadoraTechnicalContextRetriever
         return [
             'source_group' => 'historial_operativo',
             'type' => 'central_hidraulica_analysis',
-            'reference' => 'Analisis central hidraulica #' . $analysis->id,
+            'reference' => 'Analisis central hidraulica #'.$analysis->id,
             'date' => optional($analysis->fecha_analisis ?: $analysis->created_at)->toDateString(),
             'linea' => $analysis->linea?->nombre,
             'area' => AnalisisPasteurizadora::AREA_CENTRAL_HIDRAULICA,
@@ -927,7 +952,7 @@ class PasteurizadoraTechnicalContextRetriever
         return [
             'source_group' => 'evento_mantenimiento',
             'type' => 'maintenance_event',
-            'reference' => 'Evento #' . $event->id,
+            'reference' => 'Evento #'.$event->id,
             'date' => optional($event->detected_at ?: $event->created_at)->toDateString(),
             'linea' => $event->linea?->nombre ?? data_get($event->context_data, 'linea_nombre'),
             'area' => data_get($event->context_data, 'area'),
@@ -958,7 +983,7 @@ class PasteurizadoraTechnicalContextRetriever
         return [
             'source_group' => 'plan_accion',
             'type' => $plan->source === 'ai' ? 'ai_action_plan' : 'action_plan',
-            'reference' => 'Plan #' . $plan->id,
+            'reference' => 'Plan #'.$plan->id,
             'date' => optional($plan->fecha_ejecucion ?: $plan->updated_at)->toDateString(),
             'linea' => $plan->linea?->nombre,
             'area' => $plan->area_pasteurizadora,
@@ -1005,11 +1030,11 @@ class PasteurizadoraTechnicalContextRetriever
 
     private function recencyScore(?string $date): float
     {
-        if (!$date) {
+        if (! $date) {
             return 0.0;
         }
 
-        $days = now()->startOfDay()->diffInDays(\Carbon\Carbon::parse($date)->startOfDay(), false);
+        $days = now()->startOfDay()->diffInDays(Carbon::parse($date)->startOfDay(), false);
         $age = abs(min(0, $days));
 
         return max(0.0, 20.0 - min(20.0, $age / 30.0));
@@ -1026,7 +1051,7 @@ class PasteurizadoraTechnicalContextRetriever
             || ($profile['niveles'] ?? []) !== []
             || ($profile['lados'] ?? []) !== [];
 
-        if (!$hasRequestedPosition) {
+        if (! $hasRequestedPosition) {
             return false;
         }
 
@@ -1111,7 +1136,7 @@ class PasteurizadoraTechnicalContextRetriever
      * @param  array<string, mixed>  $profile
      * @return array<int, array<string, mixed>>
      */
-    private function technicalSources(array $profile): array
+    private function technicalSources(array $profile, ?User $user = null): array
     {
         $queryEmbedding = $this->ranker->queryEmbedding((string) ($profile['query'] ?? ''));
         $context = [
@@ -1130,6 +1155,8 @@ class PasteurizadoraTechnicalContextRetriever
             ->latest('updated_at')
             ->limit($this->candidateLimit())
             ->get()
+            ->filter(fn (PasteurizadoraKnowledgeChunk $chunk): bool => ! $user || ! $chunk->document?->area
+                || $user->canAccessPasteurizadoraArea($chunk->document->area))
             ->map(function (PasteurizadoraKnowledgeChunk $chunk) use ($profile, $queryEmbedding, $context): array {
                 $ranking = $this->ranker->rankChunk($chunk, $profile, $context, $queryEmbedding);
                 $ranking['score'] += $this->technicalSourceBoost($chunk, $profile);
@@ -1231,7 +1258,7 @@ class PasteurizadoraTechnicalContextRetriever
         foreach ($searchLineas as $lineaNombre) {
             foreach (AnalisisPasteurizadora::getComponentesPorLinea($lineaNombre) as $code => $config) {
                 $name = (string) ($config['nombre'] ?? $code);
-                $candidateTokens = $this->ranker->tokenize($code . ' ' . $name);
+                $candidateTokens = $this->ranker->tokenize($code.' '.$name);
                 $score = count(array_intersect($tokens, $candidateTokens));
 
                 if (Str::upper((string) ($pageContext['component_code'] ?? '')) === Str::upper((string) $code)) {
@@ -1260,7 +1287,7 @@ class PasteurizadoraTechnicalContextRetriever
                 ->each(function (CentralHidraulicaComponente $component) use (&$candidates, $tokens, $pageContext): void {
                     $code = (string) $component->codigo;
                     $name = $component->nombre_display;
-                    $candidateTokens = $this->ranker->tokenize($code . ' ' . $name);
+                    $candidateTokens = $this->ranker->tokenize($code.' '.$name);
                     $score = count(array_intersect($tokens, $candidateTokens));
 
                     if (Str::upper((string) ($pageContext['component_code'] ?? '')) === Str::upper($code)) {
@@ -1283,7 +1310,7 @@ class PasteurizadoraTechnicalContextRetriever
 
         return collect($candidates)
             ->sortByDesc('score')
-            ->unique(fn (array $candidate): string => $candidate['linea'] . '|' . $candidate['code'])
+            ->unique(fn (array $candidate): string => $candidate['linea'].'|'.$candidate['code'])
             ->values()
             ->all();
     }
@@ -1382,11 +1409,11 @@ class PasteurizadoraTechnicalContextRetriever
     {
         $niveles = [];
 
-        if (!empty($pageContext['nivel'])) {
+        if (! empty($pageContext['nivel'])) {
             $niveles[] = Str::lower(Str::ascii((string) $pageContext['nivel']));
         }
 
-        if (!empty($pageContext['piso'])) {
+        if (! empty($pageContext['piso'])) {
             $niveles[] = Str::lower(Str::ascii((string) $pageContext['piso']));
         }
 
@@ -1406,7 +1433,7 @@ class PasteurizadoraTechnicalContextRetriever
     {
         $lados = [];
 
-        if (!empty($pageContext['lado'])) {
+        if (! empty($pageContext['lado'])) {
             $lados[] = Str::lower(Str::ascii((string) $pageContext['lado']));
         }
 
@@ -1418,7 +1445,7 @@ class PasteurizadoraTechnicalContextRetriever
 
         if (preg_match_all('/\blado\s*[-#_]?\s*([12])\b/', $normalizedQuery, $matches)) {
             foreach ($matches[1] as $number) {
-                $lados[] = 'lado_' . $number;
+                $lados[] = 'lado_'.$number;
             }
         }
 
@@ -1515,11 +1542,11 @@ class PasteurizadoraTechnicalContextRetriever
     {
         $warnings = [];
 
-        if (!$hasHistory) {
+        if (! $hasHistory) {
             $warnings[] = 'No se encontraron antecedentes internos de Pasteurizadora para el contexto detectado.';
         }
 
-        if (!$hasTechnicalSources) {
+        if (! $hasTechnicalSources) {
             $warnings[] = 'No se encontraron documentos tecnicos indexados de Pasteurizadora para este contexto.';
         }
 
@@ -1569,37 +1596,37 @@ class PasteurizadoraTechnicalContextRetriever
 
     private function userCanViewAnalysis(?User $user, AnalisisPasteurizadora $analysis): bool
     {
-        return !$user || $user->canAccessPasteurizadoraArea($analysis->area);
+        return ! $user || $user->canAccessPasteurizadoraArea($analysis->area);
     }
 
     private function userCanViewCentralAnalysis(?User $user, AnalisisCentralHidraulica $analysis): bool
     {
-        return !$user || $user->canAccessPasteurizadoraArea(AnalisisPasteurizadora::AREA_CENTRAL_HIDRAULICA);
+        return ! $user || $user->canAccessPasteurizadoraArea(AnalisisPasteurizadora::AREA_CENTRAL_HIDRAULICA);
     }
 
     private function userCanViewEvent(?User $user, MaintenanceEvent $event): bool
     {
         $area = data_get($event->context_data, 'area');
 
-        return !$user || !$area || $user->canAccessPasteurizadoraArea((string) $area);
+        return ! $user || ! $area || $user->canAccessPasteurizadoraArea((string) $area);
     }
 
     private function userCanViewPlan(?User $user, PlanAccion $plan): bool
     {
-        if (!$user) {
+        if (! $user) {
             return true;
         }
 
-        if (!$user->canViewPlanActionType(User::MODULE_PASTEURIZADORA)) {
+        if (! $user->canViewPlanActionType(User::MODULE_PASTEURIZADORA)) {
             return false;
         }
 
-        if ($plan->area_pasteurizadora && !$user->canAccessPasteurizadoraArea($plan->area_pasteurizadora)) {
+        if ($plan->area_pasteurizadora && ! $user->canAccessPasteurizadoraArea($plan->area_pasteurizadora)) {
             return false;
         }
 
-        return !($plan->source === 'ai'
+        return ! ($plan->source === 'ai'
             && $plan->estado !== 'approved'
-            && !$user->canReviewPasteurizadoraAiPlans($plan->area_pasteurizadora));
+            && ! $user->canReviewPasteurizadoraAiPlans($plan->area_pasteurizadora));
     }
 }

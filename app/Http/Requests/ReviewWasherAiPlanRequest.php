@@ -35,6 +35,7 @@ class ReviewWasherAiPlanRequest extends FormRequest
         return array_merge(
             WasherActionPlanSchema::rules(),
             [
+                'knowledge_sources' => ['required', 'array', 'min:1'],
                 'review_notes' => ['nullable', 'string', 'max:2000'],
             ]
         );
@@ -90,7 +91,7 @@ class ReviewWasherAiPlanRequest extends FormRequest
     {
         $plan = $this->route('planAccion');
 
-        if (!$plan instanceof PlanAccion) {
+        if (! $plan instanceof PlanAccion) {
             return [];
         }
 
@@ -98,12 +99,11 @@ class ReviewWasherAiPlanRequest extends FormRequest
     }
 
     /**
-     * @param  mixed  $actions
      * @return array<int, array<string, mixed>>
      */
     private function normalizedActions(mixed $actions): array
     {
-        if (!is_array($actions)) {
+        if (! is_array($actions)) {
             return [];
         }
 
@@ -121,7 +121,6 @@ class ReviewWasherAiPlanRequest extends FormRequest
     }
 
     /**
-     * @param  mixed  $estimatedCost
      * @return array<string, mixed>
      */
     private function normalizedEstimatedCost(mixed $estimatedCost): array

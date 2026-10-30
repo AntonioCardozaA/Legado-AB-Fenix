@@ -2,8 +2,8 @@
 
 namespace App\Services\Maintenance;
 
-use Illuminate\Http\Client\Factory as HttpFactory;
 use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\Client\Factory as HttpFactory;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Log;
@@ -15,8 +15,7 @@ class AssistantWebSearchService
     public function __construct(
         private readonly HttpFactory $http,
         private readonly PromptSafetySanitizer $sanitizer
-    ) {
-    }
+    ) {}
 
     /**
      * @param  array<int, array<string, mixed>>  $knowledge
@@ -26,7 +25,7 @@ class AssistantWebSearchService
      */
     public function searchIfNeeded(string $question, array $knowledge, array $platformContext, array $technicalContext): array
     {
-        if (!(bool) config('maintenance_ai.web_search.enabled', false)) {
+        if (! (bool) config('maintenance_ai.web_search.enabled', false)) {
             return $this->disabledContext('disabled');
         }
 
@@ -36,7 +35,7 @@ class AssistantWebSearchService
 
         $decision = $this->shouldSearch($question, $knowledge, $platformContext, $technicalContext);
 
-        if (!($decision['search'] ?? false)) {
+        if (! ($decision['search'] ?? false)) {
             return [
                 'enabled' => true,
                 'used' => false,
@@ -229,7 +228,7 @@ class AssistantWebSearchService
         ] as $provider) {
             $provider = Str::lower(trim($provider));
 
-            if (!in_array($provider, ['gemini', 'openai'], true) || in_array($provider, $providers, true)) {
+            if (! in_array($provider, ['gemini', 'openai'], true) || in_array($provider, $providers, true)) {
                 continue;
             }
 
@@ -243,8 +242,8 @@ class AssistantWebSearchService
 
     private function hasConfiguredProvider(string $provider): bool
     {
-        $apiKey = trim((string) data_get(config('maintenance_ai'), 'providers.' . $provider . '.api_key', ''));
-        $baseUrl = trim((string) data_get(config('maintenance_ai'), 'providers.' . $provider . '.base_url', ''));
+        $apiKey = trim((string) data_get(config('maintenance_ai'), 'providers.'.$provider.'.api_key', ''));
+        $baseUrl = trim((string) data_get(config('maintenance_ai'), 'providers.'.$provider.'.base_url', ''));
 
         return $apiKey !== '' && $baseUrl !== '';
     }
@@ -282,7 +281,7 @@ class AssistantWebSearchService
             ->retry((int) config('maintenance_ai.max_retries', 2), 500)
             ->withToken((string) ($config['api_key'] ?? ''))
             ->acceptJson()
-            ->post(rtrim((string) ($config['base_url'] ?? ''), '/') . '/responses', $request);
+            ->post(rtrim((string) ($config['base_url'] ?? ''), '/').'/responses', $request);
 
         if ($response->failed()) {
             throw new RequestException($response);
@@ -309,6 +308,29 @@ class AssistantWebSearchService
     {
         $config = (array) config('maintenance_ai.providers.gemini');
         $model = GeminiRequestSupport::normalizeModelName((string) (config('maintenance_ai.web_search.gemini_model') ?: ($config['model'] ?? 'gemini-3.6-flash')));
+        $models = array_values(array_unique(array_filter(array_merge(
+            [$model],
+            (array) config('maintenance_ai.web_search.gemini_fallback_models', $config['fallback_models'] ?? [])
+        ))));
+
+        foreach ($models as $index => $candidate) {
+            try {
+                return $this->searchWithGeminiModel($question, (string) $candidate);
+            } catch (RequestException $exception) {
+                if ($index === count($models) - 1
+                    || ! in_array($exception->response->status(), GeminiRequestSupport::TRANSIENT_HTTP_STATUSES, true)) {
+                    throw $exception;
+                }
+            }
+        }
+
+        throw new \RuntimeException('No Gemini web search model is configured.');
+    }
+
+    private function searchWithGeminiModel(string $question, string $model): array
+    {
+        $config = (array) config('maintenance_ai.providers.gemini');
+        $model = GeminiRequestSupport::normalizeModelName($model);
         $endpoint = GeminiRequestSupport::endpoint($config, 'interactions');
         $startedAt = microtime(true);
         $apiKey = trim((string) ($config['api_key'] ?? ''));
@@ -322,7 +344,7 @@ class AssistantWebSearchService
                 ->connectTimeout(GeminiRequestSupport::connectionTimeout())
                 ->timeout(GeminiRequestSupport::totalTimeout())
                 ->retry((int) config('maintenance_ai.max_retries', 2), 500, function ($exception): bool {
-                    return !($exception instanceof ConnectionException
+                    return ! ($exception instanceof ConnectionException
                         && GeminiRequestSupport::isDnsResolutionError($exception));
                 })
                 ->withHeaders([
@@ -365,7 +387,7 @@ class AssistantWebSearchService
     private function webQuery(string $question): string
     {
         return implode("\n", [
-            'Consulta del usuario: ' . $this->sanitizer->sanitizeText($question, 500),
+            'Consulta del usuario: '.$this->sanitizer->sanitizeText($question, 500),
             'Prioridad: informacion tecnica, vigente y verificable.',
             'Si hay datos de fabricante, manual oficial, ficha tecnica, norma o precio actual, priorizalos.',
             'Para lavadoras industriales, reductores, cadenas, elongacion, aceites, refacciones y mantenimiento, busca informacion actualizada de fabricante, manuales, fichas tecnicas, compatibilidades y criterios de inspeccion.',
@@ -411,7 +433,7 @@ class AssistantWebSearchService
             $actionSources = Arr::get($item, 'action.sources', []);
 
             foreach (is_array($actionSources) ? $actionSources : [] as $source) {
-                if (!is_array($source)) {
+                if (! is_array($source)) {
                     continue;
                 }
 

@@ -4,7 +4,9 @@ namespace App\Services\Maintenance;
 
 use App\Contracts\AiProviderInterface;
 use App\Jobs\IndexMaintenanceHistoryRecord;
+use App\Models\AnalisisCentralHidraulica;
 use App\Models\AnalisisLavadora;
+use App\Models\AnalisisPasteurizadora;
 use App\Models\Componente;
 use App\Models\Elongacion;
 use App\Models\LavadoraCostEntry;
@@ -15,6 +17,7 @@ use App\Models\User;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Throwable;
@@ -22,13 +25,23 @@ use Throwable;
 class MaintenanceHistoryIndexer
 {
     public const SOURCE_ANALISIS_LAVADORA = 'analisis_lavadora';
+
+    public const SOURCE_ANALISIS_PASTEURIZADORA = 'analisis_pasteurizadora';
+
+    public const SOURCE_ANALISIS_CENTRAL = 'analisis_central_hidraulica';
+
     public const SOURCE_MAINTENANCE_EVENT = 'maintenance_event';
+
     public const SOURCE_PLAN_ACCION = 'plan_accion';
+
     public const SOURCE_ELONGACION = 'elongacion';
+
     public const SOURCE_LAVADORA_COST_ENTRY = 'lavadora_cost_entry';
 
     private const SOURCE_MODEL_MAP = [
         self::SOURCE_ANALISIS_LAVADORA => AnalisisLavadora::class,
+        self::SOURCE_ANALISIS_PASTEURIZADORA => AnalisisPasteurizadora::class,
+        self::SOURCE_ANALISIS_CENTRAL => AnalisisCentralHidraulica::class,
         self::SOURCE_MAINTENANCE_EVENT => MaintenanceEvent::class,
         self::SOURCE_PLAN_ACCION => PlanAccion::class,
         self::SOURCE_ELONGACION => Elongacion::class,
@@ -69,8 +82,7 @@ class MaintenanceHistoryIndexer
     public function __construct(
         private readonly PromptSafetySanitizer $sanitizer,
         private readonly AiProviderInterface $aiProvider
-    ) {
-    }
+    ) {}
 
     /**
      * @return array<string, mixed>
@@ -80,7 +92,7 @@ class MaintenanceHistoryIndexer
         ?string $sourceType = null,
         bool $fresh = false
     ): array {
-        if (!$this->historyTableExists()) {
+        if (! $this->historyTableExists()) {
             return [
                 'indexed_chunks' => 0,
                 'deleted_chunks' => 0,
@@ -120,7 +132,7 @@ class MaintenanceHistoryIndexer
                 'errors' => 0,
             ];
 
-            $this->queryForSource($currentSourceType)
+            $this->queryForSource($currentSourceType, $module)
                 ->chunkById(100, function ($records) use (&$sourceSummary, &$summary): void {
                     foreach ($records as $record) {
                         $sourceSummary['records']++;
@@ -143,25 +155,36 @@ class MaintenanceHistoryIndexer
 
     public function indexRecord(Model $record): int
     {
-        if (!$this->historyTableExists()) {
+        if (! $this->historyTableExists()) {
             return 0;
         }
 
         $payload = $this->payloadForRecord($record);
+        $module = $this->moduleForRecord($record);
 
-        if ($payload === null) {
+        if ($payload === null || $module === null) {
             return 0;
         }
+
+        $payload['module'] = $module;
+
+        MaintenanceHistoryChunk::query()
+            ->where('source_type', $payload['source_type'])
+            ->where('source_id', $payload['source_id'])
+            ->where('module', '!=', $module)
+            ->delete();
 
         return $this->indexPayload($payload);
     }
 
-    public function indexSource(string $sourceType, int $sourceId): int
+    public function indexSource(string $sourceType, int $sourceId, ?string $module = null): int
     {
         $record = $this->findSourceRecord($sourceType, $sourceId);
 
-        if (!$record) {
-            $this->deleteFor(User::MODULE_LAVADORA, $sourceType, $sourceId);
+        if (! $record) {
+            foreach ($module ? [$module] : [User::MODULE_LAVADORA, User::MODULE_PASTEURIZADORA] as $scope) {
+                $this->deleteFor($scope, $sourceType, $sourceId);
+            }
 
             return 0;
         }
@@ -171,7 +194,7 @@ class MaintenanceHistoryIndexer
 
     public function deleteFor(string $module, string $sourceType, int $sourceId): int
     {
-        if (!$this->historyTableExists()) {
+        if (! $this->historyTableExists()) {
             return 0;
         }
 
@@ -184,17 +207,21 @@ class MaintenanceHistoryIndexer
 
     public function registerModelEvents(): void
     {
-        if (!(bool) config('maintenance_ai.history_index.auto_index', false)) {
+        if (! (bool) config('maintenance_ai.history_index.auto_index', false)) {
             return;
         }
 
         foreach (self::SOURCE_MODEL_MAP as $sourceType => $modelClass) {
             $modelClass::saved(function (Model $model) use ($sourceType): void {
-                $this->dispatchIndex($sourceType, (int) $model->getKey());
+                if ($module = $this->moduleForRecord($model)) {
+                    $this->dispatchIndex($sourceType, (int) $model->getKey(), $module);
+                }
             });
 
             $modelClass::deleted(function (Model $model) use ($sourceType): void {
-                $this->dispatchDelete($sourceType, (int) $model->getKey());
+                if ($module = $this->moduleForRecord($model)) {
+                    $this->dispatchDelete($sourceType, (int) $model->getKey(), $module);
+                }
             });
         }
     }
@@ -204,15 +231,40 @@ class MaintenanceHistoryIndexer
      */
     public function sourceTypesForModule(string $module): array
     {
-        return $module === User::MODULE_LAVADORA
-            ? array_keys(self::SOURCE_MODEL_MAP)
-            : [];
+        return match ($module) {
+            User::MODULE_LAVADORA => [self::SOURCE_ANALISIS_LAVADORA, self::SOURCE_MAINTENANCE_EVENT, self::SOURCE_PLAN_ACCION, self::SOURCE_ELONGACION, self::SOURCE_LAVADORA_COST_ENTRY],
+            User::MODULE_PASTEURIZADORA => [self::SOURCE_ANALISIS_PASTEURIZADORA, self::SOURCE_ANALISIS_CENTRAL, self::SOURCE_MAINTENANCE_EVENT, self::SOURCE_PLAN_ACCION],
+            default => [],
+        };
     }
 
-    private function dispatchIndex(string $sourceType, int $sourceId): void
+    private function moduleForRecord(Model $record): ?string
+    {
+        if ($record instanceof AnalisisPasteurizadora || $record instanceof AnalisisCentralHidraulica) {
+            return User::MODULE_PASTEURIZADORA;
+        }
+
+        if ($record instanceof MaintenanceEvent) {
+            return match ($record->source_type) {
+                self::SOURCE_ANALISIS_PASTEURIZADORA, self::SOURCE_ANALISIS_CENTRAL => User::MODULE_PASTEURIZADORA,
+                self::SOURCE_ANALISIS_LAVADORA, self::SOURCE_ELONGACION => User::MODULE_LAVADORA,
+                default => null,
+            };
+        }
+
+        if ($record instanceof PlanAccion) {
+            $module = $record->tipo_equipo ?: User::MODULE_LAVADORA;
+
+            return in_array($module, [User::MODULE_LAVADORA, User::MODULE_PASTEURIZADORA], true) ? $module : null;
+        }
+
+        return User::MODULE_LAVADORA;
+    }
+
+    private function dispatchIndex(string $sourceType, int $sourceId, string $module): void
     {
         $dispatch = IndexMaintenanceHistoryRecord::dispatch(
-            User::MODULE_LAVADORA,
+            $module,
             $sourceType,
             $sourceId
         )->onQueue((string) config('maintenance_ai.history_index.queue', config('maintenance_ai.queue', 'default')));
@@ -222,10 +274,10 @@ class MaintenanceHistoryIndexer
         }
     }
 
-    private function dispatchDelete(string $sourceType, int $sourceId): void
+    private function dispatchDelete(string $sourceType, int $sourceId, string $module): void
     {
         $dispatch = IndexMaintenanceHistoryRecord::dispatch(
-            User::MODULE_LAVADORA,
+            $module,
             $sourceType,
             $sourceId,
             true
@@ -241,9 +293,14 @@ class MaintenanceHistoryIndexer
         return Schema::hasTable('maintenance_history_chunks');
     }
 
-    private function queryForSource(string $sourceType): Builder
+    private function queryForSource(string $sourceType, ?string $module = null): Builder
     {
-        return match ($sourceType) {
+        $query = match ($sourceType) {
+            self::SOURCE_ANALISIS_PASTEURIZADORA => AnalisisPasteurizadora::query()
+                ->withoutGlobalScope(AnalisisPasteurizadora::DEFAULT_AREA_GLOBAL_SCOPE)
+                ->with(['linea', 'usuario'])->orderBy('id'),
+            self::SOURCE_ANALISIS_CENTRAL => AnalisisCentralHidraulica::query()
+                ->with(['linea', 'usuario', 'componente'])->orderBy('id'),
             self::SOURCE_ANALISIS_LAVADORA => AnalisisLavadora::query()
                 ->with(['linea', 'componente', 'usuario'])
                 ->orderBy('id'),
@@ -259,30 +316,32 @@ class MaintenanceHistoryIndexer
             self::SOURCE_LAVADORA_COST_ENTRY => LavadoraCostEntry::query()
                 ->with(['linea', 'componente', 'catalogItem', 'analisisLavadora.componente', 'elongacion'])
                 ->orderBy('id'),
-            default => throw new \InvalidArgumentException('Tipo de fuente historica no soportado: ' . $sourceType),
+            default => throw new \InvalidArgumentException('Tipo de fuente historica no soportado: '.$sourceType),
         };
+
+        if ($module !== null && $sourceType === self::SOURCE_MAINTENANCE_EVENT) {
+            $query->whereIn('source_type', $module === User::MODULE_PASTEURIZADORA
+                ? [self::SOURCE_ANALISIS_PASTEURIZADORA, self::SOURCE_ANALISIS_CENTRAL]
+                : [self::SOURCE_ANALISIS_LAVADORA, self::SOURCE_ELONGACION]);
+        }
+
+        if ($module !== null && $sourceType === self::SOURCE_PLAN_ACCION) {
+            $query->where(function (Builder $scope) use ($module): void {
+                $scope->where('tipo_equipo', $module);
+                if ($module === User::MODULE_LAVADORA) {
+                    $scope->orWhereNull('tipo_equipo')->orWhere('tipo_equipo', '');
+                }
+            });
+        }
+
+        return $query;
     }
 
     private function findSourceRecord(string $sourceType, int $sourceId): ?Model
     {
-        return match ($sourceType) {
-            self::SOURCE_ANALISIS_LAVADORA => AnalisisLavadora::query()
-                ->with(['linea', 'componente', 'usuario'])
-                ->find($sourceId),
-            self::SOURCE_MAINTENANCE_EVENT => MaintenanceEvent::query()
-                ->with(['linea', 'componente'])
-                ->find($sourceId),
-            self::SOURCE_PLAN_ACCION => PlanAccion::query()
-                ->with(['linea', 'maintenanceEvent.componente', 'responsable', 'ejecutadoPor'])
-                ->find($sourceId),
-            self::SOURCE_ELONGACION => Elongacion::query()
-                ->with(['lineaModel', 'cadenaCiclo'])
-                ->find($sourceId),
-            self::SOURCE_LAVADORA_COST_ENTRY => LavadoraCostEntry::query()
-                ->with(['linea', 'componente', 'catalogItem', 'analisisLavadora.componente', 'elongacion'])
-                ->find($sourceId),
-            default => null,
-        };
+        return isset(self::SOURCE_MODEL_MAP[$sourceType])
+            ? $this->queryForSource($sourceType)->find($sourceId)
+            : null;
     }
 
     /**
@@ -291,6 +350,7 @@ class MaintenanceHistoryIndexer
     private function payloadForRecord(Model $record): ?array
     {
         return match (true) {
+            $record instanceof AnalisisPasteurizadora, $record instanceof AnalisisCentralHidraulica => $this->pasteurizadoraAnalysisPayload($record),
             $record instanceof AnalisisLavadora => $this->analysisPayload($record),
             $record instanceof MaintenanceEvent => $this->eventPayload($record),
             $record instanceof PlanAccion => $this->planPayload($record),
@@ -325,7 +385,7 @@ class MaintenanceHistoryIndexer
                 'chunk_count' => count($chunks),
                 'damage_terms' => $this->damageTermsFor($chunk['content']),
             ]);
-            $contentHash = hash('sha256', $chunk['content'] . '|' . json_encode($chunkMetadata));
+            $contentHash = hash('sha256', $chunk['content'].'|'.json_encode($chunkMetadata));
             $attributes = [
                 'module' => (string) $payload['module'],
                 'source_type' => (string) $payload['source_type'],
@@ -391,7 +451,7 @@ class MaintenanceHistoryIndexer
             $part = mb_substr($content, $position, $sliceLength);
             $isLastSlice = $position + $sliceLength >= $length;
 
-            if (!$isLastSlice) {
+            if (! $isLastSlice) {
                 $lastSpace = mb_strrpos($part, ' ');
 
                 if ($lastSpace !== false && $lastSpace > (int) ($chunkSize * 0.6)) {
@@ -445,7 +505,7 @@ class MaintenanceHistoryIndexer
      */
     private function embeddingFor(string $content): ?array
     {
-        if (!(bool) config('maintenance_ai.enabled', false)) {
+        if (! (bool) config('maintenance_ai.enabled', false) || ! (bool) config('maintenance_ai.history_index.embeddings_enabled', true)) {
             return null;
         }
 
@@ -472,12 +532,11 @@ class MaintenanceHistoryIndexer
     }
 
     /**
-     * @param  mixed  $vector
      * @return array<int, float>
      */
     private function normalizeVector(mixed $vector): array
     {
-        if (!is_array($vector)) {
+        if (! is_array($vector)) {
             return [];
         }
 
@@ -489,7 +548,7 @@ class MaintenanceHistoryIndexer
 
     private function embeddingModelName(): ?string
     {
-        if (!(bool) config('maintenance_ai.enabled', false)) {
+        if (! (bool) config('maintenance_ai.enabled', false)) {
             return null;
         }
 
@@ -497,7 +556,7 @@ class MaintenanceHistoryIndexer
 
         return (string) data_get(
             config('maintenance_ai.providers', []),
-            $provider . '.embedding_model',
+            $provider.'.embedding_model',
             config('maintenance_ai.providers.openai.embedding_model')
         );
     }
@@ -513,7 +572,7 @@ class MaintenanceHistoryIndexer
         $sourceDate = $analysis->fecha_analisis ?: $analysis->created_at;
         $title = $this->titleFor('Analisis lavadora', $analysis->id, $lineaNombre, $component);
         $content = $this->sections([
-            'Origen' => 'Analisis de lavadora #' . $analysis->id,
+            'Origen' => 'Analisis de lavadora #'.$analysis->id,
             'Linea' => $lineaNombre,
             'Componente' => $this->componentLabel($component),
             'Subcomponente' => $this->subcomponentLabel($analysis->reductor, $analysis->lado),
@@ -569,7 +628,7 @@ class MaintenanceHistoryIndexer
         $sourceDate = $event->detected_at ?: $event->created_at;
         $title = $event->title ?: $this->titleFor('Evento mantenimiento', $event->id, $lineaNombre, $component);
         $content = $this->sections([
-            'Origen' => 'Evento de mantenimiento #' . $event->id,
+            'Origen' => 'Evento de mantenimiento #'.$event->id,
             'Linea' => $lineaNombre,
             'Componente' => $this->componentLabel($component),
             'Fecha de deteccion' => $this->dateString($sourceDate),
@@ -581,7 +640,7 @@ class MaintenanceHistoryIndexer
             'Valor detectado' => $event->detected_value,
             'Limite' => $event->limit_value,
             'Datos de contexto' => $this->jsonText($event->context_data),
-            'Origen del registro' => trim((string) $event->source_type . ' #' . $event->source_id),
+            'Origen del registro' => trim((string) $event->source_type.' #'.$event->source_id),
         ]);
 
         return $this->payload(
@@ -592,13 +651,13 @@ class MaintenanceHistoryIndexer
             $sourceDate,
             $title,
             $content,
-            $this->metadata($event, $lineaNombre, $component, [
+            $this->metadata($event, $lineaNombre, $component, array_merge($this->pasteurizadoraScope((array) $event->context_data), [
                 'event_type' => $event->event_type,
                 'severity' => $event->severity,
                 'status' => $event->status,
                 'origin_source_type' => $event->source_type,
                 'origin_source_id' => $event->source_id,
-            ])
+            ]))
         );
     }
 
@@ -615,10 +674,10 @@ class MaintenanceHistoryIndexer
         $title = $this->titleFor('Plan accion', $plan->id, $lineaNombre, $component);
         $generatedContent = $plan->approved_content ?: $plan->original_generated_content;
         $content = $this->sections([
-            'Origen' => 'Plan de accion #' . $plan->id,
+            'Origen' => 'Plan de accion #'.$plan->id,
             'Linea' => $lineaNombre,
             'Componente' => $this->componentLabel($component),
-            'Evento asociado' => $event ? 'Evento #' . $event->id . ' - ' . $event->title : null,
+            'Evento asociado' => $event ? 'Evento #'.$event->id.' - '.$event->title : null,
             'Actividad recomendada o ejecutada' => $plan->actividad,
             'Problema detectado' => $plan->detected_problem,
             'Justificacion tecnica' => $plan->technical_justification,
@@ -650,7 +709,7 @@ class MaintenanceHistoryIndexer
             $sourceDate,
             $title,
             $content,
-            $this->metadata($plan, $lineaNombre, $component, [
+            $this->metadata($plan, $lineaNombre, $component, array_merge($this->pasteurizadoraScope(array_merge((array) $event?->context_data, (array) $plan->source_metadata, ['area' => $plan->area_pasteurizadora])), [
                 'event_id' => $event?->id,
                 'event_type' => $event?->event_type,
                 'event_severity' => $event?->severity,
@@ -661,7 +720,46 @@ class MaintenanceHistoryIndexer
                 'maintenance_type' => $plan->maintenance_type,
                 'completed' => (bool) $plan->completado,
                 'effectiveness' => $plan->effectiveness,
-            ])
+            ]))
+        );
+    }
+
+    private function pasteurizadoraScope(array $context): array
+    {
+        return Arr::only($context, ['area', 'component_code', 'component_name', 'modulo', 'nivel', 'piso', 'lado']);
+    }
+
+    private function pasteurizadoraAnalysisPayload(AnalisisPasteurizadora|AnalisisCentralHidraulica $analysis): array
+    {
+        $central = $analysis instanceof AnalisisCentralHidraulica;
+        $analysis->loadMissing($central ? ['linea', 'usuario', 'componente'] : ['linea', 'usuario']);
+        $scope = [
+            'area' => $central ? AnalisisPasteurizadora::AREA_CENTRAL_HIDRAULICA : $analysis->area,
+            'component_code' => $central ? $analysis->componente?->codigo : $analysis->componente,
+            'component_name' => $central ? $analysis->componente_nombre : $analysis->componente,
+            'modulo' => $central ? null : $analysis->modulo,
+            'nivel' => $central ? $analysis->piso : $analysis->nivel,
+            'piso' => $central ? $analysis->piso : null,
+            'lado' => $analysis->lado,
+        ];
+        $sourceType = $central ? self::SOURCE_ANALISIS_CENTRAL : self::SOURCE_ANALISIS_PASTEURIZADORA;
+        $title = ($central ? 'Analisis central hidraulica #' : 'Analisis pasteurizadora #').$analysis->id;
+
+        return $this->payload(
+            $sourceType, (int) $analysis->id, $analysis->linea_id, null,
+            $analysis->fecha_analisis ?: $analysis->created_at, $title,
+            $this->sections(array_merge([
+                'Origen' => $title,
+                'Linea' => $analysis->linea?->nombre,
+                'Fecha del analisis' => $this->dateString($analysis->fecha_analisis),
+                'Estado observado' => $analysis->estado,
+                'Actividad' => $analysis->actividad,
+                'Observaciones' => $analysis->observaciones,
+                'Componentes revisados' => $analysis->componentes_revisados,
+                'Resuelto por cambio' => (bool) $analysis->resuelto_por_cambio,
+                'Nota de resolucion' => $analysis->nota_resolucion,
+            ], $scope)),
+            $this->metadata($analysis, $analysis->linea?->nombre, null, $scope)
         );
     }
 
@@ -673,9 +771,9 @@ class MaintenanceHistoryIndexer
         $elongacion->loadMissing(['lineaModel', 'cadenaCiclo']);
         $lineaNombre = $elongacion->lineaModel?->nombre ?: $elongacion->linea;
         $sourceDate = $elongacion->created_at;
-        $title = 'Elongacion cadena lavadora #' . $elongacion->id . ($lineaNombre ? ' - ' . $lineaNombre : '');
+        $title = 'Elongacion cadena lavadora #'.$elongacion->id.($lineaNombre ? ' - '.$lineaNombre : '');
         $content = $this->sections([
-            'Origen' => 'Revision de elongacion #' . $elongacion->id,
+            'Origen' => 'Revision de elongacion #'.$elongacion->id,
             'Linea' => $lineaNombre,
             'Componente principal' => 'Cadena de lavadora, rodajas, bujes, guias y tensores asociados',
             'Proveedor' => $elongacion->proveedor,
@@ -724,7 +822,7 @@ class MaintenanceHistoryIndexer
         $sourceDate = $entry->cost_date ?: $entry->created_at;
         $title = $this->titleFor('Costo lavadora', $entry->id, $lineaNombre, $component);
         $content = $this->sections([
-            'Origen' => 'Costo historico de lavadora #' . $entry->id,
+            'Origen' => 'Costo historico de lavadora #'.$entry->id,
             'Linea' => $lineaNombre,
             'Componente' => $this->componentLabel($component),
             'Fecha de costo' => $this->dateString($sourceDate),
@@ -825,7 +923,7 @@ class MaintenanceHistoryIndexer
      */
     private function componentMetadata(?Componente $component): ?array
     {
-        if (!$component) {
+        if (! $component) {
             return null;
         }
 
@@ -862,7 +960,7 @@ class MaintenanceHistoryIndexer
                 $value = $this->jsonText($value);
             }
 
-            $lines[] = $label . ': ' . $this->sanitizer->sanitizeText((string) $value, 2500);
+            $lines[] = $label.': '.$this->sanitizer->sanitizeText((string) $value, 2500);
         }
 
         return implode("\n", $lines);
@@ -870,13 +968,13 @@ class MaintenanceHistoryIndexer
 
     private function componentLabel(?Componente $component): ?string
     {
-        if (!$component) {
+        if (! $component) {
             return null;
         }
 
         return trim(implode(' ', array_filter([
             $component->nombre,
-            '(' . $component->codigo . ')',
+            '('.$component->codigo.')',
             $component->reductor ?: $component->ubicacion,
         ])));
     }
@@ -884,8 +982,8 @@ class MaintenanceHistoryIndexer
     private function subcomponentLabel(mixed $reductor, mixed $lado): ?string
     {
         $parts = array_filter([
-            $reductor ? 'Reductor/ubicacion: ' . $reductor : null,
-            $lado ? 'Lado: ' . $lado : null,
+            $reductor ? 'Reductor/ubicacion: '.$reductor : null,
+            $lado ? 'Lado: '.$lado : null,
         ]);
 
         return $parts !== [] ? implode(' | ', $parts) : null;
@@ -894,7 +992,7 @@ class MaintenanceHistoryIndexer
     private function titleFor(string $prefix, int $id, ?string $lineaNombre, ?Componente $component): string
     {
         return trim(implode(' - ', array_filter([
-            $prefix . ' #' . $id,
+            $prefix.' #'.$id,
             $lineaNombre,
             $component?->nombre,
             $component?->codigo,

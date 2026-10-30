@@ -33,8 +33,7 @@ class HybridKnowledgeRanker
     public function __construct(
         private readonly PromptSafetySanitizer $sanitizer,
         private readonly AiProviderInterface $aiProvider
-    ) {
-    }
+    ) {}
 
     /**
      * @param  array<string, mixed>  $context
@@ -78,8 +77,8 @@ class HybridKnowledgeRanker
      */
     public function queryEmbedding(string $query): array
     {
-        if (!(bool) config('maintenance_ai.enabled', false)
-            || !(bool) config('maintenance_ai.knowledge.semantic_query_enabled', true)) {
+        if (! (bool) config('maintenance_ai.enabled', false)
+            || ! (bool) config('maintenance_ai.knowledge.semantic_query_enabled', true)) {
             return [];
         }
 
@@ -151,7 +150,7 @@ class HybridKnowledgeRanker
         return [
             'score' => $ranking['score'],
             'type' => $this->documentTypeToKnowledgeType((string) ($document?->document_type ?? 'manual')),
-            'reference' => trim((string) ($document?->title ?? 'Documento tecnico')) . ' - fragmento ' . $chunk->chunk_index,
+            'reference' => trim((string) ($document?->title ?? 'Documento tecnico')).' - fragmento '.$chunk->chunk_index,
             'content' => $this->sanitizer->sanitizeText((string) $chunk->content, $contentLimit),
             'document_id' => $document?->getKey(),
             'chunk_id' => $chunk->getKey(),
@@ -278,7 +277,7 @@ class HybridKnowledgeRanker
 
         if (preg_match_all('/(?:lavadora|linea|l)\s*[-#]?\s*0*(\d{1,2})\b/u', $normalized, $lineMatches)) {
             foreach ($lineMatches[1] as $lineNumber) {
-                $lineas[] = 'L-' . str_pad((string) $lineNumber, 2, '0', STR_PAD_LEFT);
+                $lineas[] = 'L-'.str_pad((string) $lineNumber, 2, '0', STR_PAD_LEFT);
             }
         }
 
@@ -396,11 +395,10 @@ class HybridKnowledgeRanker
 
     /**
      * @param  array<int, float>  $queryEmbedding
-     * @param  mixed  $chunkEmbedding
      */
     private function semanticScore(array $queryEmbedding, mixed $chunkEmbedding): float
     {
-        if ($queryEmbedding === [] || !is_array($chunkEmbedding)) {
+        if ($queryEmbedding === [] || ! is_array($chunkEmbedding)) {
             return 0.0;
         }
 
@@ -429,12 +427,11 @@ class HybridKnowledgeRanker
     }
 
     /**
-     * @param  mixed  $vector
      * @return array<int, float>
      */
     private function normalizeVector(mixed $vector): array
     {
-        if (!is_array($vector)) {
+        if (! is_array($vector)) {
             return [];
         }
 
@@ -448,7 +445,7 @@ class HybridKnowledgeRanker
     {
         return match (Str::lower(trim($documentType))) {
             'manual tecnico', 'manual de usuario' => 'manual',
-            'procedimiento', 'estandar interno', 'instructivo' => 'procedure',
+            'procedimiento', 'procedimiento interno', 'estandar interno', 'instructivo' => 'procedure',
             'plan anterior' => 'historical_plan',
             'reporte' => 'revision',
             'costos', 'catalogo costos' => 'cost_history',
@@ -456,4 +453,3 @@ class HybridKnowledgeRanker
         };
     }
 }
-

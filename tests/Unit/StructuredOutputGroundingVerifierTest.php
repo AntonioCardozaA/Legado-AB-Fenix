@@ -9,13 +9,25 @@ use Tests\TestCase;
 
 class StructuredOutputGroundingVerifierTest extends TestCase
 {
+    public function test_empty_context_and_sources_require_evidence_and_cap_confidence(): void
+    {
+        $verifier = new StructuredOutputGroundingVerifier;
+        $result = $verifier->assessActionPlan(['knowledge_sources' => [], 'confidence' => 0.95, 'missing_information' => []], []);
+
+        $this->assertSame(0.45, $result['structured']['confidence']);
+        $this->assertNotEmpty($result['structured']['missing_information']);
+        $this->assertSame(0, $result['report']['valid_source_count']);
+        $this->expectException(ValidationException::class);
+        $verifier->assertApprovalGrounded(new PlanAccion(['source_metadata' => ['grounding' => $result['report']]]), $result['structured']);
+    }
+
     public function test_it_caps_confidence_when_sources_are_not_grounded_in_context(): void
     {
         config([
             'maintenance_ai.grounding.ungrounded_confidence_cap' => 0.45,
         ]);
 
-        $verifier = new StructuredOutputGroundingVerifier();
+        $verifier = new StructuredOutputGroundingVerifier;
         $result = $verifier->assessActionPlan([
             'knowledge_sources' => [
                 [
@@ -47,7 +59,7 @@ class StructuredOutputGroundingVerifierTest extends TestCase
 
     public function test_it_allows_approval_only_when_new_plan_sources_match_grounding_metadata(): void
     {
-        $verifier = new StructuredOutputGroundingVerifier();
+        $verifier = new StructuredOutputGroundingVerifier;
         $plan = new PlanAccion([
             'source_metadata' => [
                 'grounding' => [
