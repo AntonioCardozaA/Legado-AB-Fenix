@@ -1427,7 +1427,7 @@ function refreshNotifications() {
     });
 }
 
-refreshNotifications();
+// Blade ya entrega la campana actualizada; el primer refresco sera a los 30 segundos.
 setInterval(refreshNotifications, 30000);
 
 (function() {
