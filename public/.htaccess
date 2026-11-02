@@ -31,6 +31,7 @@ DirectoryIndex index.php
     RewriteRule ^(.*)$ index.php/$1 [L]
 </IfModule>
 
+
 <FilesMatch "-[A-Za-z0-9_-]{8,}\.css\.gz$">
     ForceType text/css
     <IfModule mod_env.c>
