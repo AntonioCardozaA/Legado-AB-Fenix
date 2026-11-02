@@ -19,7 +19,7 @@ use Spatie\Permission\Models\Role;
 
 class AdminUserController extends Controller
 {
-    public function index(Request $request): View
+    public function index(Request $request): View|\Illuminate\Http\Response
     {
         $filters = $this->filtersFromRequest($request);
         $users = User::query()
@@ -46,14 +46,21 @@ class AdminUserController extends Controller
             })
             ->orderByDesc('activo')
             ->orderBy('name')
-            ->get();
+            ->orderBy('id')
+            ->paginate(25)
+            ->withQueryString();
 
-        return view('admin.users.index', [
+        $data = [
             'users' => $users,
             'roleOptions' => $this->roleOptions(),
             'permissionGroups' => User::configurablePermissionGroups(),
             'filters' => $filters,
-        ]);
+        ];
+        if ($request->header('X-Directory-Fragment') === '1') {
+            return response()->view('admin.users.partials.directory', $data)
+                ->header('Vary', 'X-Directory-Fragment')->header('Cache-Control', 'private, no-store');
+        }
+        return view('admin.users.index', $data);
     }
 
     public function edit(Request $request, User $user): View

@@ -263,29 +263,21 @@ class MaintenanceHistoryIndexer
 
     private function dispatchIndex(string $sourceType, int $sourceId, string $module): void
     {
-        $dispatch = IndexMaintenanceHistoryRecord::dispatch(
+        app(MaintenanceHistoryDispatcher::class)->dispatch(new IndexMaintenanceHistoryRecord(
             $module,
             $sourceType,
             $sourceId
-        )->onQueue((string) config('maintenance_ai.history_index.queue', config('maintenance_ai.queue', 'default')));
-
-        if (method_exists($dispatch, 'afterCommit')) {
-            $dispatch->afterCommit();
-        }
+        ));
     }
 
     private function dispatchDelete(string $sourceType, int $sourceId, string $module): void
     {
-        $dispatch = IndexMaintenanceHistoryRecord::dispatch(
+        app(MaintenanceHistoryDispatcher::class)->dispatch(new IndexMaintenanceHistoryRecord(
             $module,
             $sourceType,
             $sourceId,
             true
-        )->onQueue((string) config('maintenance_ai.history_index.queue', config('maintenance_ai.queue', 'default')));
-
-        if (method_exists($dispatch, 'afterCommit')) {
-            $dispatch->afterCommit();
-        }
+        ));
     }
 
     private function historyTableExists(): bool

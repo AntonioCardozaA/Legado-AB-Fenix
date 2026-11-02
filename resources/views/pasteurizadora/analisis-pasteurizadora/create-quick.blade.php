@@ -183,7 +183,7 @@
               method="POST"
               enctype="multipart/form-data"
               class="space-y-6"
-              id="analisisQuickNormalForm">
+              id="analisisQuickNormalForm" data-prevent-duplicate-submit data-submit-loading="true">
             @csrf
 
             <input type="hidden" name="linea_id" value="{{ $linea->id }}">
@@ -388,6 +388,7 @@
     </div>
 </div>
 
+<script src="{{ asset('js/prevent-duplicate-submit.js') }}?v={{ filemtime(public_path('js/prevent-duplicate-submit.js')) }}"></script>
 <script src="{{ asset('js/evidence-image-compression.js') }}"></script>
 <script>
 const componentesConfiguracion = @json($componentesConfiguracion);
@@ -544,7 +545,6 @@ const previewFotos = document.getElementById('preview_fotos');
 const btnGaleria = document.getElementById('btn_evidencia_fotos_galeria');
 const btnCamara = document.getElementById('btn_evidencia_fotos_camara');
 const quickForm = document.getElementById('analisisQuickNormalForm');
-const submitButton = quickForm?.querySelector('button[type="submit"]');
 const imageCompression = window.EvidenceImageCompression;
 const maxFotoSize = imageCompression?.MAX_INPUT_BYTES ?? 12 * 1024 * 1024;
 const maxFotoSizeMb = Math.round(maxFotoSize / 1024 / 1024);
@@ -751,11 +751,6 @@ quickForm?.addEventListener('submit', function(e) {
         return;
     }
 
-    if (submitButton) {
-        submitButton.disabled = true;
-        submitButton.classList.add('opacity-75', 'cursor-wait');
-        submitButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Guardando...';
-    }
 });
 
 renderChecklist();

@@ -13,6 +13,7 @@ use App\Services\ElongacionChainCostService;
 use App\Services\ElongacionStatusNotificationService;
 use App\Services\Maintenance\WasherMaintenanceOrchestrator;
 use App\Services\WhatsAppService;
+use App\Jobs\SendElongacionWhatsApp;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -298,7 +299,9 @@ class ElongacionController extends Controller
                     $chainCostService->syncInstallationCosts($elongacion);
                 }
 
-                $this->enviarNotificacionWhatsApp($request, $bombasPorcentaje, $vaporPorcentaje, $ciclo);
+                DB::afterCommit(function () use ($request, $bombasPorcentaje, $vaporPorcentaje, $ciclo): void {
+                    $this->enviarNotificacionWhatsApp($request, $bombasPorcentaje, $vaporPorcentaje, $ciclo);
+                });
 
                 return $elongacion;
             });
@@ -726,20 +729,29 @@ class ElongacionController extends Controller
         }
 
         if ($mensaje && class_exists(WhatsAppService::class)) {
-            try {
-                WhatsAppService::enviarMensaje($numero, $mensaje);
-
-                Log::info('WhatsApp elongacion enviado', [
+            $job = new SendElongacionWhatsApp($numero, $mensaje, [
                     'linea' => $request->linea,
                     'ciclo' => $ciclo->codigo,
                     'bombas' => $bombasPorcentaje,
                     'vapor' => $vaporPorcentaje,
                     'estado_bombas' => $bombasEstado,
                     'estado_vapor' => $vaporEstado,
-                ]);
-
-            } catch (\Exception $e) {
-                Log::error('Error WhatsApp elongacion: ' . $e->getMessage());
+            ]);
+            $job->onQueue((string) config('elongacion-alerts.whatsapp_queue', 'default'));
+            $dispatcher = app(\Illuminate\Contracts\Bus\Dispatcher::class);
+            $mode = config('elongacion-alerts.whatsapp_dispatch_mode', 'after_response');
+            if ($mode === 'after_response' && !app()->runningInConsole()) {
+                $executed = false;
+                app()->terminating(function () use ($dispatcher, $job, &$executed): void {
+                    // A reused application may terminate more than once (tests/long-lived servers).
+                    if ($executed) return;
+                    $executed = true;
+                    $dispatcher->dispatchSync($job);
+                });
+            } elseif ($mode === 'queue') {
+                $dispatcher->dispatch($job);
+            } else {
+                $dispatcher->dispatchSync($job);
             }
         }
     }

@@ -52,7 +52,7 @@ class AnalisisLavadoraUserTest extends TestCase
 
     public function test_reductor_model_is_assigned_by_location_on_target_line(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->withRole(User::ROLE_TECNICO)->create();
         $linea = Linea::create([
             'nombre' => 'L-05',
             'descripcion' => 'Lavadora de prueba',

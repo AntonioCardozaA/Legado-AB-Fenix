@@ -180,7 +180,7 @@
               method="POST"
               enctype="multipart/form-data"
               class="space-y-6"
-              id="analisisNormalForm">
+              id="analisisNormalForm" data-prevent-duplicate-submit>
             @csrf
 
             <input type="hidden" name="linea_id" value="{{ $linea->id }}">
@@ -427,6 +427,7 @@
     </div>
 </div>
 
+<script src="{{ asset('js/prevent-duplicate-submit.js') }}?v={{ filemtime(public_path('js/prevent-duplicate-submit.js')) }}"></script>
 <script src="{{ asset('js/evidence-image-compression.js') }}"></script>
 <script>
 const componentesConfiguracion = @json($componentesConfiguracion);

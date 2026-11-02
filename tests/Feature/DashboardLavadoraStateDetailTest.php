@@ -157,6 +157,59 @@ class DashboardLavadoraStateDetailTest extends TestCase
         $this->assertSame($elongacionActiva->id, $estado['ultima_elongacion']?->id);
     }
 
+    public function test_summary_reuses_the_card_states_without_recalculating_them(): void
+    {
+        $linea = Linea::create([
+            'nombre' => 'L-04', 'descripcion' => 'Lavadora de prueba',
+            'tipo' => 'lavadora', 'activo' => true,
+        ]);
+        $this->crearAnalisis($linea, 'SUMMARY_CRITICAL', 'Componente critico', 'Reductor 1', AnalisisLavadora::ESTADO_DANADO, '2026-07-10');
+        $controller = app(DashboardController::class);
+        $lineas = collect([$linea]);
+        $states = (new ReflectionMethod($controller, 'getEstadoLavadoras'))->invoke($controller, $lineas);
+
+        \Illuminate\Support\Facades\DB::enableQueryLog();
+        $summary = (new ReflectionMethod($controller, 'getResumenGeneral'))->invoke($controller, $lineas, $states);
+        $queries = \Illuminate\Support\Facades\DB::getQueryLog();
+        \Illuminate\Support\Facades\DB::disableQueryLog();
+
+        $this->assertSame(1, $summary['alertas_criticas']);
+        $this->assertSame(1, $summary['total_lavadoras']);
+        $this->assertSame(1, $summary['total_analisis']);
+        $this->assertCount(2, $queries, 'Only aggregate counts should run after the card states have been loaded.');
+    }
+
+    public function test_batch_cards_match_individual_rules_for_mixed_lines_cycles_plans_and_ties(): void
+    {
+        $lines = collect(['L-04', 'L-05', 'L-06', 'L-07'])->map(fn ($name) => Linea::create(['nombre' => $name, 'activo' => $name !== 'L-07']));
+        $this->crearAnalisis($lines[0], 'BATCH_DAMAGE', 'Damaged fixture', 'Reductor 1', AnalisisLavadora::ESTADO_DANADO, '2026-07-10');
+        $this->crearAnalisis($lines[1], 'BATCH_REVIEW', 'Review fixture', 'Reductor 2', AnalisisLavadora::ESTADO_REQUIERE_REVISION, '2026-07-10');
+        $old = $this->crearCiclo($lines[0], 1, true);
+        $current = $this->crearCiclo($lines[0], 2, true);
+        $this->crearElongacion($old, 1.8, 1.8, '2026-08-01 10:00:00');
+        $this->crearElongacion($current, 0.2, 0.2, '2026-07-10 10:00:00');
+        $latest = $this->crearElongacion($current, 0.3, 0.3, '2026-07-10 10:00:00');
+        foreach ([[null, false], ['lavadora', false], ['pasteurizadora', false], ['lavadora', true]] as [$type, $done]) {
+            \App\Models\PlanAccion::withoutEvents(fn () => \App\Models\PlanAccion::create([
+                'linea_id' => $lines[1]->id, 'actividad' => 'Plan fixture', 'tipo_equipo' => $type, 'completado' => $done,
+            ]));
+        }
+        $controller = app(DashboardController::class);
+        $individual = new ReflectionMethod($controller, 'calcularEstadoLavadora');
+        $expected = $lines->map(fn ($line) => ['id' => $line->id, 'nombre' => $line->nombre, 'estado' => $individual->invoke($controller, $line->id)])->all();
+        \Illuminate\Support\Facades\DB::flushQueryLog();
+        \Illuminate\Support\Facades\DB::enableQueryLog();
+        $actual = (new ReflectionMethod($controller, 'getEstadoLavadoras'))->invoke($controller, $lines);
+        $queries = \Illuminate\Support\Facades\DB::getQueryLog();
+        \Illuminate\Support\Facades\DB::disableQueryLog();
+        $this->assertSame(json_encode($expected), json_encode($actual));
+        $this->assertCount(6, $queries);
+        $this->assertSame($latest->id, $actual[0]['estado']['ultima_elongacion']->id);
+        $this->assertSame(2, $actual[1]['estado']['acciones_pendientes']);
+        $this->assertNull($actual[2]['estado']['ultima_elongacion']);
+        $this->assertSame('bueno', $actual[3]['estado']['nivel']);
+    }
+
     private function crearAnalisis(
         Linea $linea,
         string $codigo,

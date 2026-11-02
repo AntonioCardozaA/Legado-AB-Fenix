@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\AnalisisPasteurizadora;
 use App\Models\HistoricoRevisados;
 use App\Models\Linea;
-use App\Exports\AnalisisPasteurizadoraExport;
 use App\Services\AnalysisDeletionLogger;
 use App\Services\ImageEvidenceOptimizer;
 use App\Services\Maintenance\PasteurizadoraMaintenanceOrchestrator;
@@ -1381,7 +1380,7 @@ class AnalisisPasteurizadoraController extends Controller
     public function historial(Request $request)
     {
         $query = $this->analisisQuery()
-            ->with(['linea', 'usuario'])
+            ->with('linea')
             ->orderBy('fecha_analisis', 'desc');
 
         if ($this->isExcentricosCaptureProfile($request)) {
@@ -1410,7 +1409,7 @@ class AnalisisPasteurizadoraController extends Controller
             $query->whereDate('fecha_analisis', '<=', $request->fecha_fin);
         }
 
-        $analisis = $query->get();
+        $analisis = (clone $query)->select(\App\Support\PasteurizadoraHistoryPages::METADATA_COLUMNS)->get();
 
         // Filtrar análisis incompletos o pendientes si no son del día actual
         $hoy = now()->toDateString();
@@ -1436,7 +1435,14 @@ class AnalisisPasteurizadoraController extends Controller
 
         $lineas = $this->getLineasPasteurizadora();
 
-        return $this->renderView('historial', compact('analisis', 'lineas'));
+        $history = app(\App\Support\PasteurizadoraHistoryPages::class)->build(
+            $analisis,
+            $request,
+            fn ($ids) => $ids->chunk(500)->flatMap(fn ($chunk) => (clone $query)
+                ->whereKey($chunk->all())->with('usuario')->get())
+        );
+
+        return $this->renderView('historial', $history + compact('lineas'));
     }
 
     // ============================================================
@@ -1530,10 +1536,35 @@ class AnalisisPasteurizadoraController extends Controller
 
     public function exportExcel(Request $request)
     {
-        $analisis = $this->getAnalisisPasteurizadoraParaExportar($request);
+        $query = $this->getConsultaAnalisisPasteurizadoraParaExportar($request);
         $filename = 'analisis_pasteurizadora_' . now()->format('Ymd_His') . '.xlsx';
 
-        return Excel::download(new AnalisisPasteurizadoraExport($analisis), $filename);
+        if (!$this->supportsChunkedExportSnapshot($query->getConnection())) {
+            return Excel::download(new \App\Exports\AnalisisPasteurizadoraExport($query->get()), $filename);
+        }
+
+        return $query->getConnection()->transaction(fn () => Excel::download(
+            new \App\Exports\AnalisisPasteurizadoraQueryExport($query), $filename
+        ));
+    }
+
+    private function supportsChunkedExportSnapshot(\Illuminate\Database\Connection $connection): bool
+    {
+        $driver = $connection->getDriverName();
+        if ($driver === 'sqlite') return true;
+        if (!in_array($driver, ['mysql', 'mariadb'], true)) return false;
+        $variables = method_exists($connection, 'isMaria') && $connection->isMaria()
+            ? ['tx_isolation', 'transaction_isolation'] : ['transaction_isolation', 'tx_isolation'];
+        foreach ($variables as $variable) {
+            try {
+                $isolation = $connection->selectOne("SELECT @@{$variable} AS isolation_level");
+                return strtoupper((string) $isolation->isolation_level) === 'REPEATABLE-READ';
+            } catch (\Illuminate\Database\QueryException $exception) {
+                // Older MySQL exposes tx_isolation only. Do not hide other SQL errors.
+                if ((int) ($exception->errorInfo[1] ?? 0) !== 1193) throw $exception;
+            }
+        }
+        return false;
     }
 
     public function exportPdf(Request $request)
@@ -1628,15 +1659,17 @@ class AnalisisPasteurizadoraController extends Controller
             ], 400);
         }
 
-        $componentesDisponibles = AnalisisPasteurizadora::getComponentesDisponiblesSeguimiento($lineaId, $modulo, $componente, $lado, $nivel, null, $this->currentArea());
+        $linea = is_scalar($lineaId) ? Linea::find($lineaId) : null;
+        $revisionContext = $linea ? new \App\Support\PasteurizadoraRevisionContext($linea) : null;
+        $componentesDisponibles = AnalisisPasteurizadora::getComponentesDisponiblesSeguimiento($lineaId, $modulo, $componente, $lado, $nivel, null, $this->currentArea(), $revisionContext);
         $componentesPendientes = count($componentesDisponibles);
 
         // Obtener los componentes ya revisados que no se pueden reabrir en seguimiento
-        $componentesYaRevisados = AnalisisPasteurizadora::getComponentesBloqueadosSeguimiento($lineaId, $modulo, $componente, $lado, $nivel, null, $this->currentArea());
+        $componentesYaRevisados = AnalisisPasteurizadora::getComponentesBloqueadosSeguimiento($lineaId, $modulo, $componente, $lado, $nivel, null, $this->currentArea(), $revisionContext);
         $cantidadComponentesRevisados = count($componentesYaRevisados);
 
         // Obtener lados pendientes
-        $ladosPendientes = AnalisisPasteurizadora::getLadosPendientes($lineaId, $modulo, $componente, $nivel, $this->currentArea(), AnalisisPasteurizadora::TIPO_REGISTRO_QUICK);
+        $ladosPendientes = AnalisisPasteurizadora::getLadosPendientes($lineaId, $modulo, $componente, $nivel, $this->currentArea(), AnalisisPasteurizadora::TIPO_REGISTRO_QUICK, $revisionContext);
 
         return response()->json([
             'success' => true,
@@ -2046,6 +2079,11 @@ class AnalisisPasteurizadoraController extends Controller
 
     private function getAnalisisPasteurizadoraParaExportar(Request $request)
     {
+        return $this->getConsultaAnalisisPasteurizadoraParaExportar($request)->get();
+    }
+
+    private function getConsultaAnalisisPasteurizadoraParaExportar(Request $request): \Illuminate\Database\Eloquent\Builder
+    {
         $lineaIds = $this->getLineasPasteurizadora()->pluck('id');
 
         return $this->analisisQuery()
@@ -2058,8 +2096,7 @@ class AnalisisPasteurizadoraController extends Controller
             ->when($request->filled('fecha_inicio'), fn ($query) => $query->whereDate('fecha_analisis', '>=', $request->fecha_inicio))
             ->when($request->filled('fecha_fin'), fn ($query) => $query->whereDate('fecha_analisis', '<=', $request->fecha_fin))
             ->latest('fecha_analisis')
-            ->latest('created_at')
-            ->get();
+            ->latest('created_at');
     }
 
     private function renderAnalisisPasteurizadoraPdf($analisis): string
@@ -2234,6 +2271,7 @@ class AnalisisPasteurizadoraController extends Controller
 
     private function resolveRevisionContext(Linea $linea, $modulo, $componente, $lado, $nivel): array
     {
+        $revisionContext = new \App\Support\PasteurizadoraRevisionContext($linea);
         $resolved = AnalisisPasteurizadora::resolveComponentePorLinea($linea->nombre, $componente);
         $componenteKey = $resolved['key'] ?? $componente;
         $componentConfig = $resolved['config'] ?? null;
@@ -2252,8 +2290,8 @@ class AnalisisPasteurizadoraController extends Controller
                 $effectiveLado = null;
             }
 
-            $estadoRevision = AnalisisPasteurizadora::getEstadoRevision($linea->id, $modulo, $componenteKey, null, $this->currentArea(), AnalisisPasteurizadora::TIPO_REGISTRO_QUICK);
-            $siguienteRevision = AnalisisPasteurizadora::getSiguienteRevisionContexto($linea->id, $modulo, $componenteKey, $nivel, $lado, $this->currentArea(), AnalisisPasteurizadora::TIPO_REGISTRO_QUICK);
+            $estadoRevision = AnalisisPasteurizadora::getEstadoRevision($linea->id, $modulo, $componenteKey, null, $this->currentArea(), AnalisisPasteurizadora::TIPO_REGISTRO_QUICK, $revisionContext);
+            $siguienteRevision = AnalisisPasteurizadora::getSiguienteRevisionContexto($linea->id, $modulo, $componenteKey, $nivel, $lado, $this->currentArea(), AnalisisPasteurizadora::TIPO_REGISTRO_QUICK, $revisionContext);
             $effectiveNivel = $effectiveNivel ?: ($siguienteRevision['nivel'] ?? null);
             $effectiveLado = $effectiveLado ?: ($siguienteRevision['lado'] ?? null);
 
@@ -2264,7 +2302,8 @@ class AnalisisPasteurizadoraController extends Controller
                 $effectiveLado,
                 $effectiveNivel,
                 null,
-                $this->currentArea()
+                $this->currentArea(),
+                $revisionContext
             );
             $registrosYaRealizados = $this->analisisQuery()
                 ->quick()
@@ -2284,12 +2323,13 @@ class AnalisisPasteurizadoraController extends Controller
                 $effectiveLado,
                 $effectiveNivel,
                 null,
-                $this->currentArea()
+                $this->currentArea(),
+                $revisionContext
             );
             $componentesPendientes = count($componentesDisponibles);
             $cantidadComponentesRevisados = count($componentesYaRevisados);
             $ladosPendientes = $effectiveNivel
-                ? AnalisisPasteurizadora::getLadosPendientes($linea->id, $modulo, $componenteKey, $effectiveNivel, $this->currentArea(), AnalisisPasteurizadora::TIPO_REGISTRO_QUICK)
+                ? AnalisisPasteurizadora::getLadosPendientes($linea->id, $modulo, $componenteKey, $effectiveNivel, $this->currentArea(), AnalisisPasteurizadora::TIPO_REGISTRO_QUICK, $revisionContext)
                 : [];
         }
 

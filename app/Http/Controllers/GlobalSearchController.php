@@ -17,6 +17,7 @@ use Illuminate\Http\Request;
 use Illuminate\Routing\Route as RouteItem;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 class GlobalSearchController extends Controller
@@ -58,6 +59,7 @@ class GlobalSearchController extends Controller
         $limit = (int) ($validated['limit'] ?? ($query === '' ? self::EMPTY_QUERY_LIMIT : self::DEFAULT_QUERY_LIMIT));
 
         $items = $this->shortcutResults($user, $query);
+        $unavailableSources = [];
 
         if (mb_strlen($query) >= 2) {
             $items = $items
@@ -66,13 +68,22 @@ class GlobalSearchController extends Controller
                 ->merge($this->labelerAnalysisResults($user, $query))
                 ->merge($this->pasteurizerAnalysisResults($user, $query))
                 ->merge($this->actionPlanResults($user, $query))
-                ->merge($this->elongationResults($user, $query))
-                ->merge($this->legacyAnalysisResults($user, $query));
+                ->merge($this->elongationResults($user, $query));
+
+            if ($user->canUseCustomPermission('ver analisis legado')) {
+                $model = new Analisis();
+                if (Schema::connection($model->getConnectionName())->hasTable($model->getTable())) {
+                    $items = $items->merge($this->legacyAnalysisResults($user, $query));
+                } else {
+                    $unavailableSources[] = 'legacy_analyses';
+                }
+            }
         }
 
         return response()->json([
             'query' => $query,
             'items' => $items->take($limit)->values(),
+            'unavailable_sources' => $unavailableSources,
         ]);
     }
 

@@ -76,8 +76,9 @@ class Lef52124DashboardDataTest extends TestCase
         $this->get(route('dashboard.global.lavadoras'))
             ->assertOk()
             ->assertSee('Periodo de análisis: Octubre 2026')
-            ->assertSee('Solo lavadora')
+            ->assertSee('id="lefDashboardWasherChart"', false)
             ->assertSee('Pareto LEF - Máquinas')
+            ->assertSee('id="lefDashboardParetoChart"', false)
             ->assertSee('lefDashboardLinea', false)
             ->assertDontSee('analisis52124Chart', false);
     }

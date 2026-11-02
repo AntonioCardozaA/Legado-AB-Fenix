@@ -107,7 +107,7 @@
 
     <section class="rounded-xl border border-gray-200 bg-white shadow-sm">
         <div class="border-b border-gray-100 px-5 py-4">
-            <h2 class="text-lg font-bold text-gray-900">{{ $analisis->count() }} registros encontrados</h2>
+            <h2 class="text-lg font-bold text-gray-900">{{ $analisis->total() }} registros encontrados</h2>
         </div>
         <div class="divide-y divide-gray-100">
             @forelse($analisis as $item)
@@ -152,6 +152,11 @@
                 <div class="p-10 text-center text-gray-500">No hay registros en el historial con los filtros actuales.</div>
             @endforelse
         </div>
+        @if($analisis->hasPages())
+            <div class="border-t border-gray-100 px-5 py-4">
+                {{ $analisis->links() }}
+            </div>
+        @endif
     </section>
 </div>
 @endsection

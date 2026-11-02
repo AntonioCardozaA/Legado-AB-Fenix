@@ -63,6 +63,22 @@ class LavadoraRevisionPeriodicityService
     {
         $componentesLinea = LavadoraCatalog::componentesDeLinea($linea->nombre);
         $estadisticas = [];
+        $componentIds = Componente::query()
+            ->select('id', 'codigo', 'linea', 'activo')
+            ->where(fn ($query) => $query->where('linea', $linea->nombre)->orWhereNull('linea'))
+            ->get()
+            ->groupBy(fn (Componente $componente) => AnalisisLavadora::codigoBaseComponente($componente->codigo))
+            ->map(fn (Collection $items) => $items->pluck('id')->all());
+        $allIds = $componentIds->only(array_keys($componentesLinea))->flatten()->all();
+        $contexto = [
+            'component_ids' => $componentIds,
+            'analisis' => empty($allIds) ? collect() : AnalisisLavadora::query()
+                ->with(['linea', 'componente', 'historialRestablecimientos'])
+                ->where('linea_id', $linea->id)->whereIn('componente_id', $allIds)->orderBy('id')->get(),
+            'resets' => empty($allIds) ? collect() : HistorialRestablecimiento::query()
+                ->where('linea_id', $linea->id)->whereIn('componente_id', $allIds)
+                ->orderByDesc('fecha_restablecimiento')->get(),
+        ];
 
         foreach ($componentesLinea as $codigo => $nombre) {
             $estadisticas[$codigo] = $this->resumenComponenteLinea(
@@ -70,7 +86,8 @@ class LavadoraRevisionPeriodicityService
                 $codigo,
                 $nombre,
                 $this->cantidadTotalComponenteLinea($linea->nombre, $codigo),
-                $fechaReferencia
+                $fechaReferencia,
+                $contexto
             );
         }
 
@@ -334,12 +351,16 @@ class LavadoraRevisionPeriodicityService
         string $codigoBase,
         string $nombre,
         int $cantidadTotal,
-        ?CarbonInterface $fechaReferencia = null
+        ?CarbonInterface $fechaReferencia = null,
+        ?array $contexto = null
     ): array {
         $fechaReferencia = $this->normalizarFechaReferencia($fechaReferencia);
         $periodoMeses = self::PERIODICIDAD_MESES[$codigoBase] ?? 12;
-        $componentIds = $this->resolverComponenteIdsPorCodigoBase($codigoBase, $linea->nombre);
-        $identidades = $this->identidadesComponenteLinea($linea, $codigoBase, $fechaReferencia, $componentIds);
+        $componentIds = $contexto === null
+            ? $this->resolverComponenteIdsPorCodigoBase($codigoBase, $linea->nombre)
+            : $contexto['component_ids']->get($codigoBase, []);
+        $precargados = $contexto === null ? null : $contexto['analisis']->whereIn('componente_id', $componentIds)->values();
+        $identidades = $this->identidadesComponenteLinea($linea, $codigoBase, $fechaReferencia, $componentIds, $precargados);
 
         $revisados = $identidades
             ->filter(fn (array $item): bool => $item['vigente'])
@@ -350,7 +371,9 @@ class LavadoraRevisionPeriodicityService
 
         $ultimaRevision = $this->fechaMaxima($identidades->pluck('fecha_revision_at'));
         $proximoVencimiento = $this->fechaMinima($identidades->pluck('proximo_vencimiento_at'));
-        $ultimoReset = $this->ultimoResetComponente($linea, $componentIds);
+        $ultimoReset = $contexto === null
+            ? $this->ultimoResetComponente($linea, $componentIds)
+            : $contexto['resets']->whereIn('componente_id', $componentIds)->first();
         $pendientesReset = $identidades->where('estado', 'pendiente')->sum('pendientes_reset');
         $estado = $this->estadoResumen($identidades, $pendientesReset);
         $detalleUbicaciones = $this->detalleUbicacionesComponente(
@@ -402,17 +425,18 @@ class LavadoraRevisionPeriodicityService
         Linea $linea,
         string $codigoBase,
         Carbon $fechaReferencia,
-        array $componentIds
+        array $componentIds,
+        ?Collection $analisisPrecargados = null
     ): Collection {
         $identidadesEsperadas = $this->identidadesEsperadasComponente($linea, $codigoBase);
 
-        $analisis = empty($componentIds)
+        $analisis = $analisisPrecargados ?? (empty($componentIds)
             ? collect()
             : AnalisisLavadora::query()
                 ->with(['linea', 'componente', 'historialRestablecimientos'])
                 ->where('linea_id', $linea->id)
                 ->whereIn('componente_id', $componentIds)
-                ->get();
+                ->get());
 
         $analisisPorIdentidad = $this->agruparAnalisisPorIdentidad($analisis);
 

@@ -17,6 +17,51 @@ class PasteurizadoraAnalysisCycleTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_operation_context_matches_existing_rules_and_reuses_only_identical_reads(): void
+    {
+        $linea = Linea::create(['nombre' => 'P-03', 'activo' => true]);
+        foreach ([['quick', 'VAPOR', [1]], ['normal', 'VAPOR', [2]], ['quick', 'PASILLO', [1, 2]]] as [$type, $side, $numbers]) {
+            $this->crearAnalisis($linea, [
+                'tipo_registro' => $type, 'modulo' => 1, 'componente' => 'ANILLAS', 'nivel' => 'SUPERIOR',
+                'lado' => $side, 'componentes_revisados' => $numbers, 'cantidad_componentes_revisados' => count($numbers),
+                'total_componentes' => 3,
+            ]);
+        }
+        $context = new \App\Support\PasteurizadoraRevisionContext($linea);
+        foreach ([null, 'quick', 'normal'] as $type) {
+            $this->assertSame(
+                AnalisisPasteurizadora::getEstadoRevision($linea->id, 1, 'ANILLAS', null, null, $type),
+                AnalisisPasteurizadora::getEstadoRevision($linea->id, 1, 'ANILLAS', null, null, $type, $context)
+            );
+            $this->assertSame(
+                AnalisisPasteurizadora::getSiguienteRevisionContexto($linea->id, 1, 'ANILLAS', 'SUPERIOR', 'VAPOR', null, $type),
+                AnalisisPasteurizadora::getSiguienteRevisionContexto($linea->id, 1, 'ANILLAS', 'SUPERIOR', 'VAPOR', null, $type, $context)
+            );
+        }
+        foreach (['VAPOR', 'PASILLO'] as $side) {
+            $this->assertSame(
+                AnalisisPasteurizadora::getComponentesDisponiblesSeguimiento($linea->id, 1, 'ANILLAS', $side, 'SUPERIOR'),
+                AnalisisPasteurizadora::getComponentesDisponiblesSeguimiento($linea->id, 1, 'ANILLAS', $side, 'SUPERIOR', null, null, $context)
+            );
+            $this->assertSame(
+                AnalisisPasteurizadora::getComponentesBloqueadosSeguimiento($linea->id, 1, 'ANILLAS', $side, 'SUPERIOR'),
+                AnalisisPasteurizadora::getComponentesBloqueadosSeguimiento($linea->id, 1, 'ANILLAS', $side, 'SUPERIOR', null, null, $context)
+            );
+        }
+        \Illuminate\Support\Facades\DB::flushQueryLog();
+        \Illuminate\Support\Facades\DB::enableQueryLog();
+        AnalisisPasteurizadora::getEstadoRevision($linea->id, 1, 'ANILLAS', null, null, 'quick', $context);
+        $queries = \Illuminate\Support\Facades\DB::getQueryLog();
+        \Illuminate\Support\Facades\DB::disableQueryLog();
+        $this->assertCount(0, $queries, 'The same read snapshot has already loaded this line and query.');
+        $this->crearAnalisis($linea, ['modulo' => 1, 'componente' => 'ANILLAS', 'nivel' => 'INFERIOR', 'lado' => 'VAPOR', 'componentes_revisados' => [3], 'total_componentes' => 3]);
+        $freshContext = new \App\Support\PasteurizadoraRevisionContext($linea);
+        $this->assertSame(
+            AnalisisPasteurizadora::getEstadoRevision($linea->id, 1, 'ANILLAS', null, null, 'quick'),
+            AnalisisPasteurizadora::getEstadoRevision($linea->id, 1, 'ANILLAS', null, null, 'quick', $freshContext)
+        );
+    }
+
     public function test_completed_component_can_start_a_new_cycle_from_zero(): void
     {
         $user = $this->userWithRole(User::ROLE_ADMIN);

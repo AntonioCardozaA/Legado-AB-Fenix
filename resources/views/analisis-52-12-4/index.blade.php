@@ -565,6 +565,8 @@ document.addEventListener('DOMContentLoaded', function () {
         period: 'all',
         analysis: 'all',
         loadingPeriods: false,
+        periodsRequestId: 0,
+        activePeriodsController: null,
         dataRequestId: 0,
         activeDataController: null,
         trendVisible: false,
@@ -934,25 +936,45 @@ document.addEventListener('DOMContentLoaded', function () {
         loadData({ clear: true });
     }
     function loadPeriods(resetImport) {
-        if (!state.lineaId || state.loadingPeriods) return;
+        if (!state.lineaId) return;
+        const requestId = ++state.periodsRequestId;
+        state.activePeriodsController?.abort();
+        state.activePeriodsController = new AbortController();
         state.loadingPeriods = true;
-        fetch(`${endpoints.periods}?linea_id=${encodeURIComponent(state.lineaId)}`, { headers: { 'Accept': 'application/json' } })
+        if (resetImport) {
+            if (nodes.date) nodes.date.value = '';
+            state.dataDate = null;
+        }
+        if (nodes.date) {
+            nodes.date.min = '';
+            nodes.date.max = '';
+            nodes.date.disabled = true;
+        }
+        loadData();
+        fetch(`${endpoints.periods}?linea_id=${encodeURIComponent(state.lineaId)}`, { headers: { 'Accept': 'application/json' }, signal: state.activePeriodsController.signal })
             .then((response) => {
                 if (!response.ok) throw new Error('No se pudieron consultar los periodos disponibles.');
                 return response.json();
             })
             .then((data) => {
+                if (requestId !== state.periodsRequestId) return;
                 const imports = data.items || [];
                 if (nodes.date) {
-                    if (resetImport) nodes.date.value = '';
                     nodes.date.min = imports.length ? imports[imports.length - 1].data_date : '';
                     nodes.date.max = imports.length ? imports[0].data_date : '';
                     nodes.date.disabled = false;
                     state.dataDate = nodes.date.value || null;
                 }
             })
-            .catch((error) => showFeedback(error.message || 'No se pudieron consultar los periodos disponibles.', 'error'))
-            .finally(() => { state.loadingPeriods = false; loadData(); });
+            .catch((error) => {
+                if (requestId !== state.periodsRequestId || error.name === 'AbortError') return;
+                showFeedback(error.message || 'No se pudieron consultar los periodos disponibles.', 'error');
+            })
+            .finally(() => {
+                if (requestId !== state.periodsRequestId) return;
+                state.loadingPeriods = false;
+                if (nodes.date) nodes.date.disabled = false;
+            });
     }
     function loadData(options = {}) {
         syncStateFromControls();
@@ -974,7 +996,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 renderDashboard(payload);
             })
             .catch((error) => {
-                if (error.name === 'AbortError') return;
+                if (requestId !== state.dataRequestId || error.name === 'AbortError') return;
                 renderEmpty(error.message || 'No se pudieron cargar los datos 52-12-4.');
             })
             .finally(() => {

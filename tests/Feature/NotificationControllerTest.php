@@ -482,6 +482,17 @@ class NotificationControllerTest extends TestCase
             'message' => 'Plan de accion de pasteurizadora',
         ]);
 
+        $this->assertFalse($user->canAccessPasteurizadoraArea(AnalisisPasteurizadora::AREA_CENTRAL_HIDRAULICA));
+        $this->actingAs($user)
+            ->get(route('notifications.open', $notificationId))
+            ->assertRedirect(route('notifications.index'))
+            ->assertSessionHas('notification_warning', 'No cuentas con autorizacion para visualizar este contenido.');
+
+        $user->givePermissionTo([
+            \Spatie\Permission\Models\Permission::findOrCreate(User::PERMISSION_ACCESS_PASTEURIZADORA, 'web'),
+            \Spatie\Permission\Models\Permission::findOrCreate(User::PERMISSION_ACCESS_PASTEURIZADORA_CENTRAL_HIDRAULICA, 'web'),
+        ]);
+        $this->assertTrue($user->canAccessPasteurizadoraArea(AnalisisPasteurizadora::AREA_CENTRAL_HIDRAULICA));
         $this->actingAs($user)
             ->get(route('notifications.open', $notificationId))
             ->assertRedirect(route('plan-accion.index', [

@@ -7,567 +7,13 @@
 
     @include('layouts.partials.site-icons')
 
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    @unless($__env->hasSection('without-charts'))
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    @endunless
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
 
-    <style>
-        :root {
-            --primary-blue: #1e40af;
-            --secondary-blue: #3b82f6;
-            --accent-yellow: #f59e0b;
-            --accent-red: #ef4444;
-        }
-
-        body,
-        .sidebar,
-        header,
-        .card,
-        .notification-elegant-panel,
-        .global-search-panel {
-            transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
-        }
-
-        [x-cloak] {
-            display: none !important;
-        }
-
-        .sidebar {
-            background: white;
-            border-right: 1px solid #e5e7eb;
-        }
-
-        .nav-link {
-            transition: all 0.2s ease-in-out;
-            color: #374151;
-        }
-
-        .nav-link:hover {
-            background-color: #f3f4f6;
-            color: #1e40af;
-            padding-left: 1.25rem;
-        }
-
-        .nav-active {
-            background-color: #e6f0ff;
-            border-left: 4px solid var(--primary-blue);
-            color: var(--primary-blue);
-            font-weight: 600;
-        }
-
-        .nav-active i {
-            color: var(--primary-blue);
-        }
-
-        .card {
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.08);
-        }
-
-        .notifications-dropdown {
-            width: 350px;
-            max-height: 400px;
-            overflow-y: auto;
-        }
-
-        .notification-item {
-            transition: background-color 0.2s;
-        }
-
-        .notification-item:hover {
-            background-color: #f3f4f6;
-        }
-
-        .notification-unread {
-            background-color: #eff6ff;
-        }
-
-        .badge-notification {
-            font-size: 10px;
-            transform: translate(-30%, -50%);
-        }
-
-        .notification-bell-button {
-            transform: translateZ(0);
-        }
-
-        .notification-elegant-panel,
-        .global-search-panel {
-            border: 1px solid rgba(209, 213, 219, 0.9);
-            box-shadow: 0 24px 60px rgba(15, 23, 42, 0.16);
-        }
-
-        .notification-elegant-item {
-            position: relative;
-        }
-
-        .notification-elegant-item::before {
-            content: "";
-            position: absolute;
-            left: 0;
-            top: 0.75rem;
-            bottom: 0.75rem;
-            width: 3px;
-            border-radius: 999px;
-            background: transparent;
-        }
-
-        .notification-elegant-item.is-unread::before {
-            background: linear-gradient(180deg, #2563eb, #60a5fa);
-        }
-
-        .global-search-button {
-            min-height: 2.5rem;
-            border: 1px solid #e5e7eb;
-            box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
-        }
-
-        .global-search-button:hover,
-        .global-search-button.is-open {
-            border-color: #bfdbfe;
-            background: #eff6ff;
-            color: #1d4ed8;
-        }
-
-        .global-search-result {
-            transition: background-color 0.15s ease, transform 0.15s ease;
-        }
-
-        .global-search-result:hover,
-        .global-search-result.is-active {
-            background: #eff6ff;
-            transform: translateX(2px);
-        }
-
-        @media (max-width: 640px) {
-            .global-search-shell {
-                position: static;
-            }
-
-            .global-search-button {
-                width: 2.5rem;
-                padding-left: 0;
-                padding-right: 0;
-            }
-
-            .global-search-panel {
-                position: fixed !important;
-                left: 0.75rem !important;
-                right: 0.75rem !important;
-                top: calc(env(safe-area-inset-top, 0px) + 4.75rem) !important;
-                width: auto !important;
-                max-height: calc(100vh - 5.75rem);
-                border-radius: 1rem;
-            }
-
-            .global-search-results {
-                max-height: calc(100vh - 11rem);
-            }
-        }
-
-        .notification-bell-icon {
-            display: inline-block;
-            transform-origin: 50% 0;
-            transition: transform 0.2s ease, color 0.2s ease;
-        }
-
-        .notification-bell-button.has-unread:not(.is-open) .notification-bell-icon {
-            animation: notification-bell-ring 7s cubic-bezier(0.36, 0.07, 0.19, 0.97) infinite;
-            will-change: transform;
-        }
-
-        .notification-bell-button.has-unread:not(.is-open) .notification-badge-pulse {
-            animation: notification-badge-pulse 2.6s ease-out infinite;
-        }
-
-        @keyframes notification-bell-ring {
-            0%, 18%, 100% {
-                transform: rotate(0deg);
-            }
-
-            2% {
-                transform: rotate(14deg);
-            }
-
-            4% {
-                transform: rotate(-12deg);
-            }
-
-            6% {
-                transform: rotate(10deg);
-            }
-
-            9% {
-                transform: rotate(-8deg);
-            }
-
-            12% {
-                transform: rotate(5deg);
-            }
-
-            15% {
-                transform: rotate(-3deg);
-            }
-        }
-
-        @keyframes notification-badge-pulse {
-            0%, 100% {
-                box-shadow: 0 0 0 0 rgba(220, 38, 38, 0);
-            }
-
-            20% {
-                box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.3);
-            }
-
-            70% {
-                box-shadow: 0 0 0 7px rgba(220, 38, 38, 0);
-            }
-        }
-
-        .logo-text {
-            color: #1e40af;
-        }
-
-        .logo-text span {
-            color: #f59e0b;
-        }
-
-        *,
-        *::before,
-        *::after {
-            box-sizing: border-box;
-        }
-
-        html,
-        body {
-            max-width: 100%;
-            overflow-x: hidden;
-        }
-
-        img,
-        video,
-        canvas,
-        svg {
-            max-width: 100%;
-        }
-
-        .app-shell {
-            width: 100%;
-            min-width: 0;
-        }
-
-        .app-shell-main,
-        .app-content {
-            width: 100%;
-            min-width: 0;
-            max-width: 100%;
-        }
-
-        .app-content {
-            overflow-x: hidden;
-        }
-
-        .app-content :where(.grid, .flex) > * {
-            min-width: 0;
-        }
-
-        .app-content :where(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), select, textarea) {
-            max-width: 100%;
-            min-width: 0;
-        }
-
-        .app-content :where(.overflow-x-auto, .table-wrapper, .table-container, .table-shell, .responsive-table, .industrial-table-container, .etq-table-wrapper) {
-            max-width: 100%;
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
-        }
-
-        .app-content :where(.overflow-x-auto, .table-wrapper, .table-container, .table-shell, .responsive-table, .industrial-table-container, .etq-table-wrapper) > table {
-            min-width: 100%;
-        }
-
-        .app-content :where(td, th) {
-            overflow-wrap: anywhere;
-        }
-
-        .app-content :where(.card, section, article, form) {
-            max-width: 100%;
-        }
-
-        .logo-sequence {
-            position: relative;
-            display: inline-block;
-            line-height: 0;
-        }
-
-        .logo-sequence-base {
-            display: block;
-        }
-
-        .logo-sequence-frame {
-            position: absolute;
-            inset: 0;
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-            opacity: 0;
-            pointer-events: none;
-            user-select: none;
-            backface-visibility: hidden;
-            transform: translateZ(0);
-            will-change: opacity;
-            animation-duration: 480ms;
-            animation-iteration-count: infinite;
-            animation-timing-function: steps(1, end);
-            animation-fill-mode: both;
-        }
-
-        .logo-sequence-frame--2 {
-            animation-name: logo-sequence-frame-2;
-        }
-
-        .logo-sequence-frame--3 {
-            animation-name: logo-sequence-frame-3;
-        }
-
-        .logo-sequence-frame--4 {
-            animation-name: logo-sequence-frame-4;
-        }
-
-        @keyframes logo-sequence-frame-2 {
-            0%, 24.99%, 50%, 100% {
-                opacity: 0;
-            }
-
-            25%, 49.99% {
-                opacity: 1;
-            }
-        }
-
-        @keyframes logo-sequence-frame-3 {
-            0%, 49.99%, 75%, 100% {
-                opacity: 0;
-            }
-
-            50%, 74.99% {
-                opacity: 1;
-            }
-        }
-
-        @keyframes logo-sequence-frame-4 {
-            0%, 74.99%, 100% {
-                opacity: 0;
-            }
-
-            75%, 99.99% {
-                opacity: 1;
-            }
-        }
-
-        @media (prefers-reduced-motion: reduce) {
-            .logo-sequence-frame,
-            .notification-bell-button.has-unread .notification-bell-icon,
-            .notification-bell-button.has-unread .notification-badge-pulse {
-                animation: none;
-            }
-        }
-
-        textarea[name="actividad"],
-        input[name="actividad"] {
-            text-transform: uppercase;
-        }
-
-        .create-actions,
-        .responsive-actions {
-            display: flex;
-            flex-wrap: wrap;
-            align-items: center;
-            gap: 0.75rem;
-            max-width: 100%;
-            min-width: 0;
-        }
-
-        .create-actions--end,
-        .responsive-actions--end {
-            justify-content: flex-end;
-        }
-
-        .create-actions > .create-action,
-        .responsive-actions > .responsive-action {
-            flex: 0 1 auto;
-        }
-
-        .create-actions > .create-action.flex-1,
-        .responsive-actions > .responsive-action.flex-1 {
-            flex: 1 1 12rem;
-        }
-
-        .create-action,
-        .responsive-action {
-            --create-action-bg: linear-gradient(135deg, #2563eb, #1e40af);
-            --create-action-bg-hover: linear-gradient(135deg, #1d4ed8, #1e3a8a);
-            --create-action-border: rgba(30, 64, 175, 0.85);
-            --create-action-color: #ffffff;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.55rem;
-            box-sizing: border-box;
-            min-height: 2.75rem;
-            min-width: 0;
-            max-width: 100%;
-            padding: 0.72rem 1.15rem;
-            border: 1px solid var(--create-action-border);
-            border-radius: 0.65rem;
-            background: var(--create-action-bg);
-            color: var(--create-action-color) !important;
-            font-size: 0.875rem;
-            font-weight: 700;
-            line-height: 1.2;
-            text-align: center;
-            text-decoration: none;
-            white-space: normal;
-            overflow-wrap: anywhere;
-            box-shadow: 0 12px 22px rgba(30, 64, 175, 0.2);
-            transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease, border-color 0.2s ease;
-            touch-action: manipulation;
-        }
-
-        .create-action:hover,
-        .responsive-action:hover {
-            background: var(--create-action-bg-hover);
-            box-shadow: 0 16px 26px rgba(30, 64, 175, 0.26);
-            transform: translateY(-1px);
-        }
-
-        .create-action:focus-visible,
-        .responsive-action:focus-visible {
-            outline: 3px solid rgba(59, 130, 246, 0.35);
-            outline-offset: 3px;
-        }
-
-        .create-action i,
-        .create-action svg,
-        .responsive-action i,
-        .responsive-action svg {
-            flex: 0 0 auto;
-        }
-
-        .create-action.hidden,
-        .responsive-action.hidden {
-            display: none !important;
-        }
-
-        .create-action--compact,
-        .responsive-action--compact {
-            min-height: 2.25rem;
-            padding: 0.48rem 0.78rem;
-            border-radius: 0.5rem;
-            gap: 0.38rem;
-            font-size: 0.75rem;
-            box-shadow: 0 6px 12px rgba(30, 64, 175, 0.12);
-        }
-
-        .create-action--compact:hover,
-        .responsive-action--compact:hover {
-            box-shadow: 0 8px 16px rgba(30, 64, 175, 0.18);
-        }
-
-        .create-action--success,
-        .responsive-action--success {
-            --create-action-bg: #dcfce7;
-            --create-action-bg-hover: #bbf7d0;
-            --create-action-border: #86efac;
-            --create-action-color: #166534;
-            box-shadow: none;
-        }
-
-        .create-action--secondary,
-        .responsive-action--secondary {
-            --create-action-bg: #f8fafc;
-            --create-action-bg-hover: #e2e8f0;
-            --create-action-border: #cbd5e1;
-            --create-action-color: #334155;
-            box-shadow: none;
-        }
-
-        .create-action--danger,
-        .responsive-action--danger {
-            --create-action-bg: #dc2626;
-            --create-action-bg-hover: #b91c1c;
-            --create-action-border: #b91c1c;
-            --create-action-color: #ffffff;
-            box-shadow: none;
-        }
-
-        .create-action--on-dark,
-        .responsive-action--on-dark {
-            --create-action-bg: rgba(255, 255, 255, 0.14);
-            --create-action-bg-hover: rgba(255, 255, 255, 0.24);
-            --create-action-border: rgba(255, 255, 255, 0.34);
-            --create-action-color: #ffffff;
-            box-shadow: none;
-            backdrop-filter: blur(8px);
-        }
-
-        @media (pointer: coarse) {
-            .create-action,
-            .responsive-action {
-                min-height: 3rem;
-            }
-
-            .create-action--compact,
-            .responsive-action--compact {
-                min-height: 2.75rem;
-            }
-        }
-
-        @media (max-width: 768px) {
-            .app-shell-main {
-                padding: 0.75rem;
-            }
-
-            .app-content :where(.overflow-x-auto, .table-wrapper, .table-container, .table-shell, .responsive-table, .industrial-table-container, .etq-table-wrapper) {
-                margin-inline: -0.75rem;
-                padding-inline: 0.75rem;
-            }
-
-            .app-content :where(div:not(.overflow-x-auto):not(.table-wrapper):not(.table-container):not(.table-shell):not(.responsive-table):not(.industrial-table-container):not(.etq-table-wrapper)) > table {
-                display: block;
-                width: 100%;
-                max-width: 100%;
-                overflow-x: auto;
-                -webkit-overflow-scrolling: touch;
-            }
-
-            .create-actions,
-            .responsive-actions {
-                width: 100%;
-                align-items: stretch;
-            }
-
-            .create-actions--end,
-            .responsive-actions--end {
-                justify-content: stretch;
-            }
-
-            .create-action,
-            .responsive-action {
-                width: 100%;
-                min-width: 0;
-                padding-inline: 1rem;
-            }
-
-            .analysis-create-action--save-mobile {
-                order: 1;
-            }
-
-            .analysis-create-action--cancel-mobile {
-                order: 2;
-            }
-        }
-    </style>
+    <link rel="stylesheet" href="{{ asset('css/layout-app.css') }}?v={{ substr(hash_file('sha256', public_path('css/layout-app.css')), 0, 12) }}">
+    @vite('resources/css/auth-tailwind.css')
 
 </head>
 
@@ -620,30 +66,42 @@
                     role="img"
                     aria-label="Logo Legado Ave Fenix"
                 >
+                <picture style="display: contents">
+                <source srcset="{{ asset('images/optimized/logo1-32489536c283.webp') }}" type="image/webp">
                 <img
                     src="{{ asset('images/logo1.png') }}"
                     alt=""
                     aria-hidden="true"
                     class="logo-sequence-base w-30 h-30"
                 >
+                </picture>
+                    <picture style="display: contents">
+                    <source srcset="{{ asset('images/optimized/logo2-2ef164b28259.webp') }}" type="image/webp">
                     <img
                         src="{{ asset('images/logo2.png') }}"
                         alt=""
                         aria-hidden="true"
                         class="logo-sequence-frame logo-sequence-frame--2"
                     >
+                    </picture>
+                    <picture style="display: contents">
+                    <source srcset="{{ asset('images/optimized/logo3-d5f55659541f.webp') }}" type="image/webp">
                     <img
                         src="{{ asset('images/logo3.png') }}"
                         alt=""
                         aria-hidden="true"
                         class="logo-sequence-frame logo-sequence-frame--3"
                     >
+                    </picture>
+                    <picture style="display: contents">
+                    <source srcset="{{ asset('images/optimized/logo4-6b27cb0fdc70.webp') }}" type="image/webp">
                     <img
                         src="{{ asset('images/logo4.png') }}"
                         alt=""
                         aria-hidden="true"
                         class="logo-sequence-frame logo-sequence-frame--4"
                     >
+                    </picture>
                 </div>
                 <h1 class="text-sm font-semibold tracking-wide leading-tight logo-text">
                     LEGADO AB<br>
@@ -895,6 +353,10 @@
                                     <div class="px-4 py-4 text-sm font-medium text-red-600" x-text="error"></div>
                                 </template>
 
+                                <template x-if="!loading && legacyUnavailable">
+                                    <div class="px-4 py-3 text-sm text-amber-700" role="status">La búsqueda de análisis legado no está disponible. Se muestran los demás resultados.</div>
+                                </template>
+
                                 <template x-if="!loading && !error && results.length === 0">
                                     <div class="px-4 py-8 text-center text-sm text-gray-500">
                                         <i class="fas fa-magnifying-glass text-2xl text-gray-300"></i>
@@ -936,7 +398,7 @@
                         $availableNotifications = $notificationVisibility->availableNotificationsFor(auth()->user());
                         $notificationItems = $availableNotifications->take(10);
                         $notificationsCount = $availableNotifications->count();
-                        $unreadCount = $notificationVisibility->availableUnreadNotificationsCountFor(auth()->user());
+                        $unreadCount = $availableNotifications->whereNull('read_at')->count();
                     @endphp
                     <div class="relative" x-data="{ open: false }" @click.away="open = false">
                         <button @click="open = !open"
@@ -1119,6 +581,7 @@ function globalSearch() {
         open: false,
         query: '',
         results: [],
+        legacyUnavailable: false,
         loading: false,
         error: '',
         activeIndex: 0,
@@ -1161,6 +624,7 @@ function globalSearch() {
 
             this.loading = true;
             this.error = '';
+            this.legacyUnavailable = false;
             this.abortController = new AbortController();
 
             const url = new URL(globalSearchUrl, window.location.origin);
@@ -1186,6 +650,7 @@ function globalSearch() {
                 })
                 .then(data => {
                     this.results = data.items || [];
+                    this.legacyUnavailable = (data.unavailable_sources || []).includes('legacy_analyses');
                     this.activeIndex = 0;
                 })
                 .catch(error => {
@@ -1406,29 +871,44 @@ function updateNotificationControls(data) {
     }
 }
 
+let notificationRefreshPending = false;
+
 function refreshNotifications() {
+    if (document.hidden || notificationRefreshPending) {
+        return;
+    }
     if (!document.getElementById('notification-badge') && !document.getElementById('notifications-list')) {
         return;
     }
 
-    fetch(notificationsUnreadCountUrl, {
+    notificationRefreshPending = true;
+    return fetch(notificationsUnreadCountUrl, {
         headers: {
             'X-CSRF-TOKEN': '{{ csrf_token() }}',
             'Accept': 'application/json'
         }
     })
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok) throw new Error('No se pudieron consultar las notificaciones.');
+        return response.json();
+    })
     .then(data => {
         updateNotificationControls(data);
         renderNotifications(data.items || []);
     })
     .catch(error => {
         console.error('Error al actualizar notificaciones:', error);
+    })
+    .finally(() => {
+        notificationRefreshPending = false;
     });
 }
 
 // Blade ya entrega la campana actualizada; el primer refresco sera a los 30 segundos.
 setInterval(refreshNotifications, 30000);
+document.addEventListener('visibilitychange', function () {
+    if (!document.hidden) refreshNotifications();
+});
 
 (function() {
     const actividadSelector = 'textarea[name="actividad"], input[name="actividad"]';
@@ -1574,6 +1054,11 @@ setInterval(refreshNotifications, 30000);
 
     function submitFilter(form) {
         if (!(form instanceof HTMLFormElement) || form.dataset.autoFilterLoading === 'true') {
+            return;
+        }
+
+        if (form.matches('[data-user-directory-filter]') && typeof window.navigateUserDirectory === 'function') {
+            window.navigateUserDirectory(buildFilterUrl(form));
             return;
         }
 

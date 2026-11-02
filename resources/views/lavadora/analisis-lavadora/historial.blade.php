@@ -185,22 +185,8 @@
         </a>
     </div>
 
-    @if($analisis->count() > 0)
+    @if($totalRegistros > 0)
         {{-- Estadísticas rápidas --}}
-        @php
-            $totalRegistros = $analisis->count();
-            $conImagenes = $analisis->filter(function($item) {
-                $imagenes = $item->evidencia_fotos ?? null;
-                if (is_string($imagenes)) {
-                    $imagenes = json_decode($imagenes, true) ?? [];
-                } elseif (is_array($imagenes)) {
-                    $imagenes = $imagenes;
-                } else {
-                    $imagenes = [];
-                }
-                return count($imagenes) > 0;
-            })->count();
-        @endphp
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
                     <div class="rounded-xl p-5 shadow-sm" 
@@ -318,7 +304,7 @@
                     <div class="relative pl-12 sm:pl-16 history-card">
                         {{-- Dot del timeline con número --}}
                         <div class="absolute left-3 top-6 w-8 h-8 bg-gradient-to-r from-blue-600 to-blue-700 rounded-full border-4 border-white shadow-lg timeline-dot flex items-center justify-center text-white text-xs font-bold">
-                            {{ $index + 1 }}
+                            {{ ($seccion['paginador']->firstItem() ?? 1) + $index }}
                         </div>
 
                         {{-- Tarjeta principal --}}
@@ -485,6 +471,9 @@
                         @endforeach
                     </div>
                 </div>
+                @if($seccion['paginador']->hasPages())
+                    <div class="mt-6">{{ $seccion['paginador']->links() }}</div>
+                @endif
                 @if($separarHistorialPorLado)
                     </section>
                 @endif

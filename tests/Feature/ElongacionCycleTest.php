@@ -14,6 +14,47 @@ class ElongacionCycleTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_automatic_whatsapp_runs_after_the_record_transaction_has_committed(): void
+    {
+        config(['services.ultramsg.instance' => 'fixture', 'services.ultramsg.token' => 'fixture', 'services.ultramsg.url' => 'https://fixture.invalid']);
+        $levels = [];
+        \Illuminate\Support\Facades\Http::fake(function () use (&$levels) {
+            $levels[] = \Illuminate\Support\Facades\DB::transactionLevel();
+            return \Illuminate\Support\Facades\Http::response(['sent' => true]);
+        });
+        $user = User::factory()->withRole(User::ROLE_TECNICO)->create();
+        $linea = $this->crearLinea('L-04');
+        $this->crearCiclo('L-04', 1, 'Transaction fixture', ['linea_id' => $linea->id]);
+        $payload = $this->payloadBase();
+        for ($i = 1; $i <= 10; $i++) $payload['bombas_' . $i] = $payload['vapor_' . $i] = 175.6;
+        $initialLevel = \Illuminate\Support\Facades\DB::transactionLevel();
+        $this->postElongacion($user, $payload)->assertRedirect(route('elongaciones.index', ['linea' => 'L-04']));
+        $this->assertSame([$initialLevel], $levels, 'No provider request may hold the record transaction open.');
+        \Illuminate\Support\Facades\Http::assertSentCount(1);
+        $this->assertDatabaseCount('elongaciones', 1);
+    }
+
+    public function test_rolled_back_record_does_not_send_automatic_whatsapp(): void
+    {
+        config(['services.ultramsg.instance' => 'fixture', 'services.ultramsg.token' => 'fixture', 'services.ultramsg.url' => 'https://fixture.invalid']);
+        \Illuminate\Support\Facades\Http::fake();
+        $user = User::factory()->withRole(User::ROLE_TECNICO)->create();
+        $linea = $this->crearLinea('L-04');
+        $this->crearCiclo('L-04', 1, 'Rollback fixture', ['linea_id' => $linea->id]);
+        $payload = $this->payloadBase();
+        for ($i = 1; $i <= 10; $i++) $payload['bombas_' . $i] = $payload['vapor_' . $i] = 175.6;
+        try {
+            \Illuminate\Support\Facades\DB::transaction(function () use ($user, $payload) {
+                $this->postElongacion($user, $payload)->assertRedirect(route('elongaciones.index', ['linea' => 'L-04']));
+                throw new \RuntimeException('fixture rollback');
+            });
+        } catch (\RuntimeException $exception) {
+            $this->assertSame('fixture rollback', $exception->getMessage());
+        }
+        \Illuminate\Support\Facades\Http::assertNothingSent();
+        $this->assertDatabaseCount('elongaciones', 0);
+    }
+
     public function test_index_without_filters_shows_only_latest_record_per_line(): void
     {
         $this->crearLinea('L-04');

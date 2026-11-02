@@ -15,6 +15,16 @@ class LavadoraCostAnalyticsService
 {
     public function dashboardData(array $filters = []): array
     {
+        return $this->buildDashboardData($filters, false);
+    }
+
+    public function globalSummaryData(array $filters = []): array
+    {
+        return $this->buildDashboardData($filters, true);
+    }
+
+    private function buildDashboardData(array $filters, bool $summaryOnly): array
+    {
         [$from, $to, $preset, $rangeLabel] = $this->resolveRange($filters);
         $budgetYear = (int) ($filters['budget_year'] ?? now()->year);
         $selectedLinea = !empty($filters['linea_id'])
@@ -23,6 +33,13 @@ class LavadoraCostAnalyticsService
 
         $entryQuery = LavadoraCostEntry::query()
             ->with('linea');
+
+        if ($summaryOnly) {
+            $entryQuery->select([
+                'id', 'linea_id', 'analisis_lavadora_id', 'source_type',
+                'total_cost', 'component_snapshot', 'metadata',
+            ]);
+        }
 
         $this->applyDateRange($entryQuery, $from, $to);
 
@@ -57,6 +74,17 @@ class LavadoraCostAnalyticsService
             ->sortDesc()
             ->map(fn (int $total, string $label) => ['label' => $label, 'total' => $total])
             ->values();
+
+        if ($summaryOnly) {
+            return [
+                'summary' => [
+                    'year_total' => $this->sumForRange($selectedLinea?->id, now()->copy()->startOfYear(), now()->copy()->endOfYear()),
+                    'top_component' => $byComponent->first(),
+                    'top_replacement' => $replacements->first(),
+                ],
+                'by_lavadora' => $byLavadora,
+            ];
+        }
 
         $history = $entries
             ->sortByDesc(fn (LavadoraCostEntry $entry) => sprintf(
@@ -309,7 +337,7 @@ class LavadoraCostAnalyticsService
 
     private function buildCorrectionSummary(?int $lineaId, Carbon $from, Carbon $to): array
     {
-        $pendingQuery = AnalisisLavadora::ultimosPorComponente()
+        $pendingQuery = AnalisisLavadora::ultimosPorComponente($lineaId ? [$lineaId] : null)
             ->with('componente')
             ->where('estado', AnalisisLavadora::ESTADO_DANADO)
             ->where(function ($query): void {
@@ -333,7 +361,7 @@ class LavadoraCostAnalyticsService
         }
 
         $closed = $closedQuery->get();
-        $pending = $pendingQuery->get();
+        $pending = $pendingQuery->orderBy('id')->get();
 
         return [
             'pending' => $pending->count(),

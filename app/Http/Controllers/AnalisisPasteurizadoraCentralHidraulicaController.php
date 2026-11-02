@@ -134,9 +134,11 @@ class AnalisisPasteurizadoraCentralHidraulicaController extends Controller
 
     public function show($id)
     {
-        $analisis = AnalisisCentralHidraulica::with(['linea', 'configuracion', 'componente', 'usuario'])
+        $analisis = AnalisisCentralHidraulica::with(['linea', 'configuracion.componente:id,codigo', 'componente', 'usuario'])
             ->findOrFail($id);
-        $historial = $this->historialContexto($analisis)->latest('fecha_analisis')->latest('created_at')->get();
+        $historial = $this->historialContexto($analisis)
+            ->latest('fecha_analisis')->latest('created_at')->latest('id')
+            ->paginate(25, ['*'], 'historial_page')->withQueryString();
 
         return view('pasteurizadora.central-hidraulica.show', $this->sharedViewData(compact('analisis', 'historial')));
     }
@@ -191,9 +193,12 @@ class AnalisisPasteurizadoraCentralHidraulicaController extends Controller
     {
         $lineas = $this->getLineasPasteurizadora();
         $analisis = $this->filteredAnalisisQuery($request)
+            ->with('configuracion.componente:id,codigo')
             ->latest('fecha_analisis')
             ->latest('created_at')
-            ->get();
+            ->latest('id')
+            ->paginate(25)
+            ->withQueryString();
 
         return view('pasteurizadora.central-hidraulica.historial', $this->sharedViewData(compact('analisis', 'lineas')));
     }
@@ -599,7 +604,7 @@ class AnalisisPasteurizadoraCentralHidraulicaController extends Controller
 
     private function historialContexto(AnalisisCentralHidraulica $analisis)
     {
-        return AnalisisCentralHidraulica::with(['linea', 'configuracion', 'componente', 'usuario'])
+        return AnalisisCentralHidraulica::with(['linea', 'configuracion.componente:id,codigo', 'componente', 'usuario'])
             ->where('linea_id', $analisis->linea_id)
             ->where('configuracion_id', $analisis->configuracion_id)
             ->where('lado', $analisis->lado);

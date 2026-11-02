@@ -128,8 +128,11 @@ class AssistantChatController extends Controller
             ->where('user_id', $user->id)
             ->where('conversation_id', $conversation->id)
             ->whereKeyNot($userMessage->id)
-            ->oldest('id')
+            ->latest('id')
+            ->limit(max(1, (int) config('maintenance_ai.chat.history_window', 8)))
             ->get(['role', 'content'])
+            ->reverse()
+            ->values()
             ->map(fn (AssistantMessage $message): array => [
                 'role' => $message->role,
                 'content' => $message->content,

@@ -1,4 +1,5 @@
 @extends('layouts.app')
+@section('without-charts', '1')
 
 @section('title', "Editar Análisis de Componente")
 

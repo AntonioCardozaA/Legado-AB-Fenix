@@ -10,8 +10,7 @@
     $manifestVersion = file_exists($manifestPath) ? filemtime($manifestPath) : $logoVersion;
 @endphp
 
-<link rel="icon" type="image/png" sizes="32x32" href="{{ asset('images/logo1.png') }}?v={{ $logoVersion }}">
-<link rel="shortcut icon" href="{{ asset('images/logo1.png') }}?v={{ $logoVersion }}">
+<link rel="shortcut icon" type="image/png" href="{{ asset('images/icon-192.png') }}?v={{ $icon192Version }}">
 <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('images/icon-192.png') }}?v={{ $icon192Version }}">
 <link rel="icon" type="image/png" sizes="192x192" href="{{ asset('images/icon-192.png') }}?v={{ $icon192Version }}">
 <link rel="icon" type="image/png" sizes="512x512" href="{{ asset('images/icon-512.png') }}?v={{ $icon512Version }}">

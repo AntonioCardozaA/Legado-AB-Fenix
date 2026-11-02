@@ -18,6 +18,28 @@ use Illuminate\Support\Facades\RateLimiter;
 
 class AppServiceProvider extends ServiceProvider
 {
+    private const COMMON_CONTEXT_VIEWS = [
+        'analisis.show',
+        'dashboard_etiquetadora',
+        'dashboard_lavadora',
+        'dashboard_pasteurizadora',
+        'tecnico.dashboard',
+        'layouts.app',
+        'layouts.navigation',
+        'lavadora.analisis-lavadora.show',
+        'lavadora.analisis-lavadora.index',
+        'lavadora.analisis-lavadora.edit',
+        'etiquetadora.analisis-etiquetadora.show',
+        'etiquetadora.analisis-etiquetadora.index',
+        'etiquetadora.analisis-etiquetadora.partials.tabla-industrial',
+        'etiquetadora.analisis-etiquetadora.partials.modals',
+        'historico-revisados.index',
+        'reportes.index',
+        'reportes.paros',
+        'pasteurizadora.analisis-pasteurizadora.show',
+        'pasteurizadora.analisis-pasteurizadora.index',
+    ];
+
     public function register(): void
     {
         $this->app->singleton(AiProviderInterface::class, function ($app) {
@@ -42,8 +64,8 @@ class AppServiceProvider extends ServiceProvider
         app(AdminRecordNotificationService::class)->registerModelEvents();
         app(MaintenanceHistoryIndexer::class)->registerModelEvents();
         
-        // Compartir datos comunes con todas las vistas
-        view()->composer('*', function ($view) {
+        // Only consumers need this context. Recompute for the current user on every composition.
+        view()->composer(self::COMMON_CONTEXT_VIEWS, function ($view) {
             $user = auth()->user();
             if ($user) {
                 $canAccessPasteurizadora = $user->canAccessModule(User::MODULE_PASTEURIZADORA);

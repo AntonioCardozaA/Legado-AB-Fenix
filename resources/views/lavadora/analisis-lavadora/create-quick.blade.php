@@ -1,4 +1,5 @@
 @extends('layouts.app')
+@section('without-charts', '1')
 
 @section('title', 'Agregar Análisis')
 
@@ -76,7 +77,7 @@
         </div>
         
         {{-- Formulario --}}
-        <form action="{{ route('analisis-lavadora.store') }}" 
+        <form data-prevent-duplicate-submit action="{{ route('analisis-lavadora.store') }}"
               method="POST"
               enctype="multipart/form-data"
               class="space-y-6">
@@ -286,6 +287,7 @@
 @endsection
 
 @section('scripts')
+<script src="{{ asset('js/prevent-duplicate-submit.js') }}?v={{ filemtime(public_path('js/prevent-duplicate-submit.js')) }}"></script>
 <script src="{{ asset('js/evidence-image-compression.js') }}"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {

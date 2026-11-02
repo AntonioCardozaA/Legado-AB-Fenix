@@ -276,8 +276,8 @@ class DashboardController extends Controller
         $analisisActuales = $this->getAnalisisActualesLavadoras($lineasLavadora);
         $analisisHistoricos = $this->getAnalisisHistoricosLavadoras($lineasLavadora);
 
-        $resumenGeneral = $this->getResumenGeneral($lineasLavadora);
         $estadoLavadoras = $this->getEstadoLavadoras($lineasLavadora);
+        $resumenGeneral = $this->getResumenGeneral($lineasLavadora, $estadoLavadoras);
         $fallasPorLinea = $this->getFallasPorLinea($lineasLavadora, $analisisActuales);
         $planesAccionDashboard = $this->getPlanesAccionDashboard($lineasLavadora);
         $componentesDanados = [];
@@ -286,7 +286,7 @@ class DashboardController extends Controller
         $historicoRevisiones = $this->getHistoricoRevisiones($lineasLavadora, $analisisHistoricos);
         $canViewLavadoraCostsModule = $request->user()?->canViewLavadoraCostModule() ?? false;
         $lavadoraCostSummary = $canViewLavadoraCostsModule
-            ? app(LavadoraCostAnalyticsService::class)->dashboardData([
+            ? app(LavadoraCostAnalyticsService::class)->globalSummaryData([
                 'preset' => 'anual',
                 'budget_year' => now()->year,
             ])
@@ -473,11 +473,10 @@ class DashboardController extends Controller
             ->get();
 
         // 2. Datos para las tarjetas de resumen
-        $resumenGeneral = $this->getResumenGeneral($lineasLavadora);
+        $estadoLavadoras = $this->getEstadoLavadoras($lineasLavadora);
+        $resumenGeneral = $this->getResumenGeneral($lineasLavadora, $estadoLavadoras);
 
         // 3. Datos para la tabla de estado de lavadoras y alertas
-        $estadoLavadoras = $this->getEstadoLavadoras($lineasLavadora);
-
         // 4. Datos para el ranking de lavadoras con mayor daño (predictivo)
         $rankingDanos = $this->getRankingDanos($lineasLavadora);
 
@@ -1410,9 +1409,7 @@ public function pasteurizadoraOperativo(Request $request)
         $notificaciones = $service->availableNotificationsFor($user)
             ->filter(fn ($notification) => $this->isEtiquetadoraNotification($notification->data ?? []))
             ->values();
-        $noLeidas = $service->availableUnreadNotificationsFor($user)
-            ->filter(fn ($notification) => $this->isEtiquetadoraNotification($notification->data ?? []))
-            ->values();
+        $noLeidas = $notificaciones->whereNull('read_at');
 
         return [
             'total' => $notificaciones->count(),
@@ -1466,7 +1463,7 @@ public function pasteurizadoraOperativo(Request $request)
     /**
      * Obtiene el resumen general de todas las lavadoras.
      */
-    private function getResumenGeneral($lineasLavadora)
+    private function getResumenGeneral($lineasLavadora, array $estadoLavadoras)
     {
         $totalLavadoras = $lineasLavadora->count();
         $totalAnalisis = AnalisisLavadora::whereIn('linea_id', $lineasLavadora->pluck('id'))->count();
@@ -1482,8 +1479,8 @@ public function pasteurizadoraOperativo(Request $request)
             ->where('completado', false)
             ->count();
 
-        foreach ($lineasLavadora as $linea) {
-            $estado = $this->calcularEstadoLavadora($linea->id);
+        foreach ($estadoLavadoras as $item) {
+            $estado = $item['estado'];
             if ($estado['nivel'] === 'critico') {
                 $totalAlertasCriticas++;
             } elseif ($estado['nivel'] === 'riesgo') {
@@ -1511,9 +1508,24 @@ public function pasteurizadoraOperativo(Request $request)
      */
     private function getEstadoLavadoras($lineasLavadora)
     {
+        $lineasLavadora = collect($lineasLavadora);
+        if ($lineasLavadora->isEmpty()) {
+            return [];
+        }
+        $ids = $lineasLavadora->pluck('id')->all();
+        $analisis = AnalisisLavadora::ultimosPorComponente($ids)
+            ->whereIn('linea_id', $ids)->with('componente')->ordenVigente()->get()->groupBy('linea_id');
+        $elongaciones = Elongacion::latestForCurrentActiveCycles()->groupBy('linea');
+        $planes = PlanAccion::whereIn('linea_id', $ids)
+            ->where(fn ($query) => $query->where('tipo_equipo', 'lavadora')->orWhereNull('tipo_equipo'))
+            ->where('completado', false)->selectRaw('linea_id, COUNT(*) as total')->groupBy('linea_id')->pluck('total', 'linea_id');
         $estadoLavadoras = [];
         foreach ($lineasLavadora as $linea) {
-            $estado = $this->calcularEstadoLavadora($linea->id);
+            $estado = $this->calcularEstadoLavadora($linea->id, [
+                'ultima_elongacion' => $elongaciones->get($linea->nombre, collect())->first(),
+                'analisis' => $analisis->get($linea->id, collect()),
+                'acciones_pendientes' => (int) $planes->get($linea->id, 0),
+            ]);
             $estadoLavadoras[] = [
                 'id' => $linea->id,
                 'nombre' => $linea->nombre,
@@ -1527,21 +1539,24 @@ public function pasteurizadoraOperativo(Request $request)
      * Calcula el estado de una lavadora específica, calcula se refiere a decir cuantos componentes se encuentra en, buen estado,
      * Requiere revicion, desgaste severo/moderado o critico requiere.
      */
-    private function calcularEstadoLavadora($lineaId)
+    private function calcularEstadoLavadora($lineaId, ?array $contexto = null)
     {
-        $lineaNombre = Linea::whereKey($lineaId)->value('nombre');
+        if ($contexto === null) {
+            $lineaNombre = Linea::whereKey($lineaId)->value('nombre');
+            $ultimaElongacion = $lineaNombre
+                ? Elongacion::latestForCurrentActiveCycles((string) $lineaNombre)->first()
+                : null;
+        } else {
+            $ultimaElongacion = $contexto['ultima_elongacion'];
+        }
 
-        $ultimaElongacion = $lineaNombre
-            ? Elongacion::latestForCurrentActiveCycles((string) $lineaNombre)->first()
-            : null;
-
-        $analisisPorEstado = $this->getLavadoraDashboardAnalysesByState($lineaId);
+        $analisisPorEstado = $this->getLavadoraDashboardAnalysesByState($lineaId, $contexto['analisis'] ?? null);
         $analisisCriticos = $analisisPorEstado['critico'];
         $analisisSeveros = $analisisPorEstado['severo'];
         $analisisModerados = $analisisPorEstado['moderado'];
         $analisisRevision = $analisisPorEstado['revision'];
 
-        $accionesPendientes = PlanAccion::where('linea_id', $lineaId)
+        $accionesPendientes = $contexto['acciones_pendientes'] ?? PlanAccion::where('linea_id', $lineaId)
             ->where(function ($query) {
                 $query->where('tipo_equipo', 'lavadora')
                     ->orWhereNull('tipo_equipo');
@@ -1665,13 +1680,13 @@ public function pasteurizadoraOperativo(Request $request)
     /**
      * Agrupa los análisis vigentes de la lavadora por severidad para el dashboard.
      */
-    private function getLavadoraDashboardAnalysesByState(int $lineaId): array
+    private function getLavadoraDashboardAnalysesByState(int $lineaId, ?\Illuminate\Support\Collection $analisisFuente = null): array
     {
-        $analisisLinea = AnalisisLavadora::ultimosPorComponente()
+        $analisisLinea = ($analisisFuente ?? AnalisisLavadora::ultimosPorComponente([$lineaId])
             ->where('linea_id', $lineaId)
             ->with('componente')
             ->ordenVigente()
-            ->get()
+            ->get())
             ->map(fn (AnalisisLavadora $analisis) => $this->attachLavadoraComponentIcon($analisis))
             ->values();
 
@@ -1738,7 +1753,7 @@ public function pasteurizadoraOperativo(Request $request)
             return collect();
         }
 
-        return AnalisisLavadora::ultimosPorComponente()
+        return AnalisisLavadora::ultimosPorComponente($lineasLavadora->pluck('id')->all())
             ->whereIn('linea_id', $lineasLavadora->pluck('id'))
             ->with(['linea:id,nombre', 'componente:id,nombre,codigo', 'usuario:id,name'])
             ->ordenVigente()
@@ -2201,29 +2216,23 @@ public function pasteurizadoraOperativo(Request $request)
             ];
         };
 
-        $series = [
-            'Todas' => $meses
-                ->map(function (Carbon $mes) use ($analisisOrdenados) {
-                    return $analisisOrdenados->filter(function ($item) use ($mes) {
-                        return $item->fecha_analisis
-                            && $item->fecha_analisis->isSameMonth($mes)
-                            && $item->fecha_analisis->year === $mes->year;
-                    })->count();
-                })
-                ->all(),
-        ];
+        $totalesPorMes = [];
+        $totalesPorLineaMes = [];
+        foreach ($analisisOrdenados as $item) {
+            $fecha = $item->fecha_analisis;
+            if (!$fecha) continue;
+            $mesKey = $fecha->format('Y-m');
+            // Preserve the original strict comparison of the foreign key and line ID.
+            $lineaKey = gettype($item->linea_id) . ':' . $item->linea_id;
+            $totalesPorMes[$mesKey] = ($totalesPorMes[$mesKey] ?? 0) + 1;
+            $totalesPorLineaMes[$lineaKey][$mesKey] = ($totalesPorLineaMes[$lineaKey][$mesKey] ?? 0) + 1;
+        }
 
+        $series = ['Todas' => $meses->map(fn (Carbon $mes) => $totalesPorMes[$mes->format('Y-m')] ?? 0)->all()];
         foreach ($lineasLavadora as $linea) {
-            $series[$linea->nombre] = $meses
-                ->map(function (Carbon $mes) use ($analisisOrdenados, $linea) {
-                    return $analisisOrdenados->filter(function ($item) use ($mes, $linea) {
-                        return $item->linea_id === $linea->id
-                            && $item->fecha_analisis
-                            && $item->fecha_analisis->isSameMonth($mes)
-                            && $item->fecha_analisis->year === $mes->year;
-                    })->count();
-                })
-                ->all();
+            $lineaKey = gettype($linea->id) . ':' . $linea->id;
+            $conteos = $totalesPorLineaMes[$lineaKey] ?? [];
+            $series[$linea->nombre] = $meses->map(fn (Carbon $mes) => $conteos[$mes->format('Y-m')] ?? 0)->all();
         }
 
         $registrosPorAlcance = [

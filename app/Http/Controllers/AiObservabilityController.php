@@ -127,9 +127,14 @@ class AiObservabilityController extends Controller
         $fallback = (int) ($statusTotals['fallback'] ?? 0);
         $failed = (int) ($statusTotals['failed'] ?? 0);
 
-        $averageLatency = (clone $baseQuery)
-            ->whereNotNull('response_time_ms')
-            ->avg('response_time_ms');
+        $aggregates = (clone $baseQuery)->toBase()->selectRaw(
+            'AVG(response_time_ms) AS average_latency, AVG(grounding_score) AS average_grounding, '
+            . 'SUM(total_tokens) AS total_tokens, SUM(prompt_tokens) AS prompt_tokens, '
+            . 'SUM(completion_tokens) AS completion_tokens, SUM(invalid_sources_count) AS invalid_sources, '
+            . 'SUM(valid_sources_count) AS valid_sources, SUM(estimated_cost_usd) AS estimated_cost, '
+            . 'SUM(input_chars) AS input_chars, SUM(output_chars) AS output_chars'
+        )->first();
+        $averageLatency = $aggregates->average_latency;
 
         $latencies = (clone $baseQuery)
             ->whereNotNull('response_time_ms')
@@ -148,15 +153,15 @@ class AiObservabilityController extends Controller
             'failure_rate' => $this->rate($failed, $total),
             'avg_latency_ms' => $averageLatency !== null ? (int) round((float) $averageLatency) : null,
             'p95_latency_ms' => $this->percentile($latencies, 0.95),
-            'total_tokens' => (int) (clone $baseQuery)->sum('total_tokens'),
-            'prompt_tokens' => (int) (clone $baseQuery)->sum('prompt_tokens'),
-            'completion_tokens' => (int) (clone $baseQuery)->sum('completion_tokens'),
-            'avg_grounding_score' => $this->averagePercentage($baseQuery, 'grounding_score'),
-            'invalid_sources_total' => (int) (clone $baseQuery)->sum('invalid_sources_count'),
-            'valid_sources_total' => (int) (clone $baseQuery)->sum('valid_sources_count'),
-            'estimated_cost_usd' => (float) (clone $baseQuery)->sum('estimated_cost_usd'),
-            'input_chars' => (int) (clone $baseQuery)->sum('input_chars'),
-            'output_chars' => (int) (clone $baseQuery)->sum('output_chars'),
+            'total_tokens' => (int) $aggregates->total_tokens,
+            'prompt_tokens' => (int) $aggregates->prompt_tokens,
+            'completion_tokens' => (int) $aggregates->completion_tokens,
+            'avg_grounding_score' => $aggregates->average_grounding !== null ? round((float) $aggregates->average_grounding * 100, 1) : null,
+            'invalid_sources_total' => (int) $aggregates->invalid_sources,
+            'valid_sources_total' => (int) $aggregates->valid_sources,
+            'estimated_cost_usd' => (float) $aggregates->estimated_cost,
+            'input_chars' => (int) $aggregates->input_chars,
+            'output_chars' => (int) $aggregates->output_chars,
             'provider_breakdown' => $this->countsBy($baseQuery, 'provider', 8),
             'action_breakdown' => $this->countsBy($baseQuery, 'action_type', 8),
             'status_breakdown' => $statusBreakdown,
@@ -249,11 +254,19 @@ class AiObservabilityController extends Controller
 
     private function documentLifecycleFor(Builder $query): array
     {
-        $total = (clone $query)->count();
-        $current = (clone $query)->where('lifecycle_status', 'vigente')->count();
-        $obsolete = (clone $query)->where('lifecycle_status', 'obsoleto')->count();
-        $indexed = (clone $query)->where('indexing_status', 'indexed')->count();
-        $failed = (clone $query)->where('indexing_status', 'failed')->count();
+        $counts = (clone $query)->toBase()->selectRaw(
+            'COUNT(*) AS total, '
+            . 'SUM(CASE WHEN lifecycle_status = ? THEN 1 ELSE 0 END) AS current_count, '
+            . 'SUM(CASE WHEN lifecycle_status = ? THEN 1 ELSE 0 END) AS obsolete_count, '
+            . 'SUM(CASE WHEN indexing_status = ? THEN 1 ELSE 0 END) AS indexed_count, '
+            . 'SUM(CASE WHEN indexing_status = ? THEN 1 ELSE 0 END) AS failed_count',
+            ['vigente', 'obsoleto', 'indexed', 'failed']
+        )->first();
+        $total = (int) $counts->total;
+        $current = (int) $counts->current_count;
+        $obsolete = (int) $counts->obsolete_count;
+        $indexed = (int) $counts->indexed_count;
+        $failed = (int) $counts->failed_count;
 
         return [
             'total' => $total,

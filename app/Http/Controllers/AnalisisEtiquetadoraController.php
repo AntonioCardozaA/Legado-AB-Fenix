@@ -391,13 +391,6 @@ class AnalisisEtiquetadoraController extends Controller
         $catalogoQuery = $this->catalogoBase()
             ->whereIn('linea', $lineaNombres);
 
-        $historicoQuery = AnalisisEtiquetadora::with(['linea', 'componente', 'usuario'])
-            ->whereIn('linea_id', $lineaIds)
-            ->whereHas('componente', fn ($query) => $query
-                ->where('tipo_equipo', EtiquetadoraCatalog::TIPO_EQUIPO)
-                ->where('activo', true)
-                ->whereIn('linea', $lineaNombres));
-
         $query = AnalisisEtiquetadora::with(['linea', 'componente', 'usuario'])
             ->whereIn('linea_id', $lineaIds)
             ->whereHas('componente', fn ($query) => $query
@@ -412,15 +405,11 @@ class AnalisisEtiquetadoraController extends Controller
                 ->where('linea_id', $request->linea_id)
                 ->whereHas('componente', fn ($subQuery) => $subQuery->where('linea', $lineaSeleccionada->nombre));
             $catalogoQuery->where('linea', $lineaSeleccionada->nombre);
-            $historicoQuery
-                ->where('linea_id', $lineaSeleccionada->id)
-                ->whereHas('componente', fn ($subQuery) => $subQuery->where('linea', $lineaSeleccionada->nombre));
         }
 
         if ($request->filled('componente_id')) {
             $query->where('componente_id', $request->componente_id);
             $catalogoQuery->whereKey($request->componente_id);
-            $historicoQuery->where('componente_id', $request->componente_id);
         }
 
         if ($request->filled('maquina')) {
@@ -431,22 +420,16 @@ class AnalisisEtiquetadoraController extends Controller
                 ->where('maquina', $maquina)
                 ->whereHas('componente', fn ($subQuery) => $subQuery->where('reductor', $maquinaLabel));
             $catalogoQuery->where('reductor', $maquinaLabel);
-            $historicoQuery
-                ->where('maquina', $maquina)
-                ->whereHas('componente', fn ($subQuery) => $subQuery->where('reductor', $maquinaLabel));
         }
 
         $catalogo = $this->catalogoAplicable($catalogoQuery);
-        $analisisHistorico = $historicoQuery->get()
-            ->filter(fn (AnalisisEtiquetadora $registro): bool => $this->analisisPerteneceACatalogoEtiquetadora($registro))
-            ->values();
         $analisis = $query->get()
             ->filter(fn (AnalisisEtiquetadora $registro): bool => $this->analisisPerteneceACatalogoEtiquetadora($registro))
             ->values();
 
         $historico = $this->historicoRevisadosEtiquetadora(
             $catalogo,
-            $analisisHistorico
+            $analisis
         );
 
         return view('etiquetadora.analisis-etiquetadora.historial', [

@@ -18,6 +18,60 @@ class LavadoraCostModuleTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_global_summary_preserves_displayed_totals_and_rankings_without_loading_module_details(): void
+    {
+        $linea = $this->createLavadoraLinea();
+        foreach ([['Servo', 100.25, 'manual'], ['Guia', 220.50, 'estado_cambiado'], ['Guia', 10.00, 'manual']] as [$component, $total, $source]) {
+            LavadoraCostEntry::create([
+                'linea_id' => $linea->id, 'source_type' => $source, 'cost_date' => now()->toDateString(),
+                'quantity' => 1, 'unit_cost' => $total, 'total_cost' => $total,
+                'component_snapshot' => $component, 'catalog_name_snapshot' => 'Cost fixture', 'sync_key' => (string) \Illuminate\Support\Str::uuid(),
+            ]);
+        }
+        $service = app(\App\Services\LavadoraCostAnalyticsService::class);
+        foreach ([[], ['linea_id' => $linea->id]] as $filters) {
+            $full = $service->dashboardData($filters);
+            \Illuminate\Support\Facades\DB::flushQueryLog();
+            \Illuminate\Support\Facades\DB::enableQueryLog();
+            $summary = $service->globalSummaryData($filters);
+            $queries = \Illuminate\Support\Facades\DB::getQueryLog();
+            \Illuminate\Support\Facades\DB::disableQueryLog();
+            $this->assertSame(\Illuminate\Support\Arr::only($full['summary'], ['year_total', 'top_component', 'top_replacement']), $summary['summary']);
+            $this->assertSame($full['by_lavadora']->all(), $summary['by_lavadora']->all());
+            $this->assertSame(330.75, $summary['summary']['year_total']);
+            $this->assertArrayHasKey('correction_summary', $full);
+            $this->assertArrayHasKey('history', $full);
+            $this->assertLessThanOrEqual($filters === [] ? 3 : 4, count($queries));
+        }
+    }
+
+    public function test_summary_projection_preserves_metadata_labels_ties_corrections_and_date_filters(): void
+    {
+        $line = $this->createLavadoraLinea();
+        $other = Linea::firstOrCreate(['nombre' => 'L-05'], ['tipo' => User::MODULE_LAVADORA, 'activo' => true]);
+        foreach (range(0, 23) as $index) {
+            LavadoraCostEntry::create([
+                'linea_id' => $index % 2 ? $line->id : $other->id,
+                'source_type' => $index % 3 ? 'manual' : 'estado_cambiado',
+                'cost_date' => sprintf('%d-%02d-15', $index < 12 ? now()->year : now()->year - 1, $index % 12 + 1),
+                'quantity' => 1, 'unit_cost' => 12.35, 'total_cost' => $index % 5 ? 12.35 : -12.35,
+                'component_snapshot' => $index % 2 ? '' : 'RV200', 'catalog_name_snapshot' => 'Projection fixture',
+                'notas' => str_repeat('Full note must remain available. ', 100),
+                'metadata' => ['component_code' => 'SERVO_CHICO', 'estado_correccion' => $index % 4 ? null : AnalisisLavadora::CORRECCION_COMPONENTE_CAMBIADO],
+                'sync_key' => 'projection-' . $index,
+            ]);
+        }
+        $service = app(\App\Services\LavadoraCostAnalyticsService::class);
+        foreach ([[], ['preset' => 'mensual'], ['preset' => 'custom', 'from' => now()->copy()->subYear()->toDateString(), 'to' => now()->toDateString()],
+            ['linea_id' => $line->id], ['linea_id' => $other->id], ['preset' => 'custom', 'from' => '2000-01-01', 'to' => '2000-01-02']] as $filters) {
+            $full = $service->dashboardData($filters);
+            $summary = $service->globalSummaryData($filters);
+            $this->assertSame(\Illuminate\Support\Arr::only($full['summary'], ['year_total', 'top_component', 'top_replacement']), $summary['summary']);
+            $this->assertSame($full['by_lavadora']->all(), $summary['by_lavadora']->all());
+        }
+        $this->assertStringContainsString('Full note must remain available.', LavadoraCostEntry::firstOrFail()->notas);
+    }
+
     public function test_changed_state_generates_automatic_cost_entry(): void
     {
         $user = $this->userWithRole(User::ROLE_TECNICO);

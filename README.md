@@ -2,6 +2,8 @@
 
 Sistema Laravel para seguimiento operativo de lavadoras, pasteurizadoras, elongaciones de cadena, planes de accion, reportes y notificaciones.
 
+El [seguimiento de rendimiento](docs/OPTIMIZACION_RENDIMIENTO_PROGRESO.md) registra los 33 hallazgos de la auditoría, cambios medidos y pendientes. Consulta el [cierre del código autorizado](docs/OPTIMIZACION_RENDIMIENTO_67_CIERRE_CODIGO.md) y la [propuesta de despliegue](docs/OPTIMIZACION_RENDIMIENTO_48_DESPLIEGUE.md) antes de entregar estas optimizaciones.
+
 Este repositorio esta orientado a operacion interna. La aplicacion ya contiene modulos funcionales para registro de analisis, dashboards, historial, reportes PDF/Excel y alertas por correo/WhatsApp.
 
 ## Modulos Principales
@@ -15,7 +17,7 @@ Este repositorio esta orientado a operacion interna. La aplicacion ya contiene m
 
 ## Requisitos
 
-- PHP 8.2 o superior
+- PHP 8.4.1 o superior dentro de la rama 8.x, de 64 bits (CLI, servidor web y workers)
 - Composer
 - Node.js y npm
 - MySQL o MariaDB
@@ -70,6 +72,12 @@ php artisan storage:link
 ```bash
 npm run build
 ```
+
+El layout autenticado usa `resources/css/auth-tailwind.css` compilado por Vite, con clases dinámicas en `tailwind.auth.config.cjs`. Compila antes de activar una revisión y entrega también `public/build` y su manifiesto (no están versionados en Git). Un manifiesto anterior sin este entrypoint no es compatible. Al añadir clases construidas dinámicamente en PHP/JS, actualiza su safelist y comprueba la vista. CLI/PHPUnit y servidor deben usar el mismo build; no se requiere el compilador Tailwind CDN en el layout autenticado.
+
+`npm run build` genera además sidecars `.gz` de CSS/JS. Entrégalos junto a los originales: `public/.htaccess` negocia gzip y conserva la variante sin compresión. La caché larga se limita a archivos existentes con hash. Las reglas se verificaron con Apache 2.4 local; valida también las cabeceras en el servidor de destino.
+
+El aviso automático de elongación usa `ELONGACION_WHATSAPP_DISPATCH_MODE=after_response` por defecto en web; `sync` recupera el envío antes de responder y `queue` requiere backend/worker revisados por separado. `ELONGACION_WHATSAPP_QUEUE` elige cola (default). El job se crea después del commit, conserva mensaje/datos del evento y no añade reintentos de job. after_response ocupa PHP y no es durable: valida SAPI/buffering y entrega en staging antes de desplegar. No actives queue ni cambies retry_after en producción sin la revisión operativa correspondiente.
 
 8. Levantar el servidor local:
 

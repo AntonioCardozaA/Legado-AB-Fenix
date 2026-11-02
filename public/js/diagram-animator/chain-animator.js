@@ -63,11 +63,30 @@ function initializeDiagram(diagramId, imagePath) {
             chainOffset: 0,
             isPlaying: false,
             animationSpeed: 1.0,
+            needsRender: true,
             lastFrameTime: Date.now()
         };
 
+        const previous = window.diagramInstances[diagramId];
+        if (previous?.animationFrameId != null) cancelAnimationFrame(previous.animationFrameId);
+        previous?.visibilityObserver?.disconnect();
+
         // Guardar la instancia global
         window.diagramInstances[diagramId] = animatorInstance;
+
+        if (typeof IntersectionObserver === 'function') {
+            animatorInstance.visibilityObserver = new IntersectionObserver((entries) => {
+                if (window.diagramInstances[diagramId] !== animatorInstance) return;
+                animatorInstance.inViewport = entries[0].isIntersecting;
+                if (!animatorInstance.inViewport && animatorInstance.animationFrameId != null) {
+                    cancelAnimationFrame(animatorInstance.animationFrameId);
+                    animatorInstance.animationFrameId = null;
+                } else if (animatorInstance.inViewport && (animatorInstance.isPlaying || animatorInstance.needsRender)) {
+                    animate(diagramId);
+                }
+            });
+            animatorInstance.visibilityObserver.observe(canvas);
+        }
 
         // Iniciar el loop de animaciÃ³n
         animate(diagramId);
@@ -298,6 +317,12 @@ function getDiagramConfig_Line07() {
 function animate(diagramId) {
     const instance = window.diagramInstances[diagramId];
     if (!instance) return;
+    if (instance.animationFrameId != null) cancelAnimationFrame(instance.animationFrameId);
+    instance.animationFrameId = null;
+    if (document.hidden || instance.inViewport === false) {
+        instance.needsRender = true;
+        return;
+    }
 
     const { canvas, ctx, img, config, isPlaying, animationSpeed } = instance;
 
@@ -306,6 +331,7 @@ function animate(diagramId) {
 
     // Dibujar imagen de fondo
     ctx.drawImage(img, 0, 0);
+    instance.needsRender = false;
 
     // Si estÃ¡ en pausa, saltar animaciÃ³n de cadena
     if (isPlaying) {
@@ -321,8 +347,24 @@ function animate(diagramId) {
     }
 
     // Solicitar siguiente frame
-    requestAnimationFrame(() => animate(diagramId));
+    if (isPlaying) {
+        instance.animationFrameId = requestAnimationFrame(() => {
+            instance.animationFrameId = null;
+            animate(diagramId);
+        });
+    }
 }
+
+document.addEventListener('visibilitychange', function () {
+    Object.entries(window.diagramInstances || {}).forEach(([id, instance]) => {
+        if (document.hidden) {
+            if (instance.animationFrameId != null) cancelAnimationFrame(instance.animationFrameId);
+            instance.animationFrameId = null;
+        } else if (instance.isPlaying || instance.needsRender) {
+            animate(id);
+        }
+    });
+});
 
 /**
  * Calcula la longitud total del recorrido de la cadena

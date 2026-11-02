@@ -47,18 +47,45 @@ document.addEventListener('DOMContentLoaded', function () {
                 return target.severities.length > 1;
             });
 
-        if (targets.length === 0) {
-            return;
-        }
-
-        // Un solo intervalo controla todas las ubicaciones del diagrama.
-        diagrama._monitorColorAlternationTimer = window.setInterval(function () {
-            targets.forEach(function (target) {
-                target.index = (target.index + 1) % target.severities.length;
-                applyMonitorSeverity(target.element, target.severities[target.index]);
+        diagrama._syncMonitorAnimation = function () {
+            var suspended = document.hidden || diagrama._monitorInViewport === false;
+            diagrama.classList.toggle('is-background-paused', Boolean(suspended));
+            diagrama.querySelectorAll('svg').forEach(function (svg) {
+                if (typeof svg.pauseAnimations !== 'function' || typeof svg.unpauseAnimations !== 'function') return;
+                if (suspended || diagrama.classList.contains('is-paused')) svg.pauseAnimations();
+                else svg.unpauseAnimations();
             });
-        }, monitorCycleInterval);
+            if (suspended) {
+                if (diagrama._monitorColorAlternationTimer) window.clearInterval(diagrama._monitorColorAlternationTimer);
+                diagrama._monitorColorAlternationTimer = null;
+                return;
+            }
+            if (targets.length === 0 || diagrama._monitorColorAlternationTimer) return;
+            // Keep target indexes across suspension and use a single interval per diagram.
+            diagrama._monitorColorAlternationTimer = window.setInterval(function () {
+                targets.forEach(function (target) {
+                    target.index = (target.index + 1) % target.severities.length;
+                    applyMonitorSeverity(target.element, target.severities[target.index]);
+                });
+            }, monitorCycleInterval);
+        };
+        diagrama._syncMonitorAnimation();
     }
+
+    var diagramVisibilityObserver = typeof IntersectionObserver === 'function'
+        ? new IntersectionObserver(function (entries) {
+            entries.forEach(function (entry) {
+                entry.target._monitorInViewport = entry.isIntersecting;
+                entry.target._syncMonitorAnimation?.();
+            });
+        })
+        : null;
+
+    document.addEventListener('visibilitychange', function () {
+        document.querySelectorAll('[data-diagrama-lavadora]').forEach(function (diagrama) {
+            diagrama._syncMonitorAnimation?.();
+        });
+    });
 
     document.querySelectorAll('[data-diagrama-lavadora]').forEach(function (diagrama) {
         var toggle = diagrama.querySelector('[data-action="toggle-animation"]');
@@ -86,6 +113,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         }
                     }
                 });
+                diagrama._syncMonitorAnimation?.();
             });
         }
 
@@ -106,6 +134,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 window.setTimeout(function () {
                     diagrama.classList.remove('is-resetting');
                 }, 30);
+                diagrama._syncMonitorAnimation?.();
             });
         }
 
@@ -121,6 +150,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         setupMonitorColorAlternation(diagrama);
+        diagramVisibilityObserver?.observe(diagrama);
 
         // Permite que la alternancia se recalcule si el contenido del diagrama
         // se reemplaza dinámicamente sin crear intervalos duplicados.

@@ -12,6 +12,33 @@ class GlobalSearchTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_missing_legacy_source_preserves_other_results_and_reports_its_availability(): void
+    {
+        \Illuminate\Support\Facades\Schema::drop('analisis');
+        $admin = $this->userWithRole(User::ROLE_ADMIN);
+        $response = $this->actingAs($admin)->getJson(route('global-search.index', ['q' => 'lavadora', 'limit' => 50]))->assertOk();
+        $response->assertJsonPath('unavailable_sources', ['legacy_analyses']);
+        $this->assertTrue(collect($response->json('items'))->contains('url', route('lavadora.dashboard', [], false)));
+    }
+
+    public function test_existing_legacy_source_remains_searchable_with_its_original_permission(): void
+    {
+        $admin = $this->userWithRole(User::ROLE_ADMIN);
+        $linea = \App\Models\Linea::firstOrCreate(['nombre' => 'L-04'], ['activo' => true]);
+        $analysis = \App\Models\Analisis::create([
+            'linea_id' => $linea->id, 'usuario_id' => $admin->id, 'fecha_analisis' => '2026-07-10',
+            'numero_orden' => '12345678', 'actividad' => 'LEGACYPERFMATCH',
+        ]);
+        $response = $this->actingAs($admin)->getJson(route('global-search.index', ['q' => 'LEGACYPERFMATCH', 'limit' => 50]))->assertOk();
+        $response->assertJsonPath('unavailable_sources', []);
+        $this->assertTrue(collect($response->json('items'))->contains('url', route('analisis.show', $analysis->id, false)));
+        $technician = $this->userWithRole(User::ROLE_TECNICO);
+        $this->enableCustomPermissions($technician, ['ver analisis legado']);
+        $this->assertFalse($technician->fresh()->canUseCustomPermission('ver analisis legado'));
+        $items = $this->searchItems($technician->fresh(), 'LEGACYPERFMATCH');
+        $this->assertFalse($items->contains('url', route('analisis.show', $analysis->id, false)));
+    }
+
     public function test_admin_can_find_direct_views_across_modules(): void
     {
         $admin = $this->userWithRole(User::ROLE_ADMIN);

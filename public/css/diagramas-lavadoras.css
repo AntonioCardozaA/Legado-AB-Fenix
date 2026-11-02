@@ -386,6 +386,7 @@
     stroke-width: 3;
 }
 
+.diagrama-lavadora.is-background-paused *,
 .diagrama-lavadora.is-paused .cadena-animada,
 .diagrama-lavadora.is-paused .cadena-brillo,
 .diagrama-lavadora.is-paused .cadena-exacta-eslabon-sombra,

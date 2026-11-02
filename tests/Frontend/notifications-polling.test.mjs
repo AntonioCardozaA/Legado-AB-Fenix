@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { runInNewContext } from 'node:vm';
 
 const layout = readFileSync(new URL('../../resources/views/layouts/app.blade.php', import.meta.url), 'utf8');
-const start = layout.indexOf('function refreshNotifications() {');
+const start = layout.indexOf('let notificationRefreshPending = false;');
 const end = layout.indexOf('\n(function() {', start);
 assert.ok(start >= 0 && end > start, 'Notification polling script must be present in the layout');
 const source = layout.slice(start, end);
@@ -16,10 +16,13 @@ function notificationPage({ hasBell = true, respond } = {}) {
     const requests = [];
     const errors = [];
     const intervals = [];
+    const listeners = {};
     let now = 0;
     const payload = { count: 2, notifications_count: 2, items: [{ id: 'new', message: 'New notification' }] };
     const context = {
         document: {
+            hidden: false,
+            addEventListener(type, listener) { listeners[type] = listener; },
             getElementById(id) {
                 if (!hasBell) return null;
                 return id === 'notification-badge' ? badge : id === 'notifications-list' ? list : null;
@@ -28,7 +31,7 @@ function notificationPage({ hasBell = true, respond } = {}) {
         notificationsUnreadCountUrl: '/notifications/unread-count',
         fetch(url, options) {
             requests.push({ url, options });
-            return respond ? respond(requests.length, payload) : Promise.resolve({ json: () => payload });
+            return respond ? respond(requests.length, payload) : Promise.resolve({ ok: true, json: () => payload });
         },
         updateNotificationControls(data) { badge.textContent = String(data.count); },
         renderNotifications(items) { list.items = items; },
@@ -42,6 +45,11 @@ function notificationPage({ hasBell = true, respond } = {}) {
 
     return {
         badge, list, requests, errors, initialItems, context,
+        async visibility(hidden) {
+            context.document.hidden = hidden;
+            listeners.visibilitychange();
+            await new Promise((resolve) => setImmediate(resolve));
+        },
         async advance(milliseconds) {
             const until = now + milliseconds;
             for (;;) {
@@ -92,7 +100,7 @@ test('a failed refresh preserves the current items and recovers on the next inte
     const page = notificationPage({
         respond: (attempt, payload) => attempt === 1
             ? Promise.reject(new Error('Temporary network failure'))
-            : Promise.resolve({ json: () => payload }),
+            : Promise.resolve({ ok: true, json: () => payload }),
     });
     await page.advance(30000);
     assert.equal(page.list.items, page.initialItems);
@@ -111,4 +119,39 @@ test('an explicit refresh can still retrieve notifications immediately', async (
     await new Promise((resolve) => setImmediate(resolve));
     assert.equal(page.requests.length, 1);
     assert.equal(page.list.items[0].id, 'new');
+});
+
+test('slow responses cannot overlap polling or explicit refreshes', async () => {
+    let finish;
+    const page = notificationPage({ respond: (_, payload) => new Promise((resolve) => { finish = () => resolve({ ok: true, json: () => payload }); }) });
+    await page.advance(90000);
+    page.context.refreshNotifications();
+    assert.equal(page.requests.length, 1);
+    finish();
+    await new Promise((resolve) => setImmediate(resolve));
+    await page.advance(30000);
+    assert.equal(page.requests.length, 2);
+    finish();
+});
+
+test('hidden tabs skip polling and revalidate when visible', async () => {
+    const page = notificationPage();
+    await page.visibility(true);
+    await page.advance(600000);
+    assert.equal(page.requests.length, 0);
+    await page.visibility(false);
+    assert.equal(page.requests.length, 1);
+    assert.equal(page.badge.textContent, '2');
+    await page.advance(30000);
+    assert.equal(page.requests.length, 2);
+});
+
+test('an HTTP failure preserves items and releases the pending request', async () => {
+    const page = notificationPage({ respond: (attempt, payload) => Promise.resolve({ ok: attempt !== 1, json: () => payload }) });
+    await page.advance(30000);
+    assert.equal(page.list.items, page.initialItems);
+    assert.equal(page.errors.length, 1);
+    await page.advance(30000);
+    assert.equal(page.requests.length, 2);
+    assert.equal(page.badge.textContent, '2');
 });

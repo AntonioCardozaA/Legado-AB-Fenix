@@ -97,6 +97,7 @@ return [
     'history_index' => [
         'embeddings_enabled' => (bool) env('AI_HISTORY_INDEX_EMBEDDINGS_ENABLED', true),
         'auto_index' => (bool) env('AI_HISTORY_INDEX_AUTO', env('AI_ENABLED', false)),
+        'dispatch_mode' => env('AI_HISTORY_INDEX_DISPATCH_MODE'),
         'queue' => env('AI_HISTORY_INDEX_QUEUE', 'default'),
         'max_retries' => (int) env('AI_HISTORY_INDEX_MAX_RETRIES', 2),
         'job_timeout' => (int) env('AI_HISTORY_INDEX_JOB_TIMEOUT', 120),

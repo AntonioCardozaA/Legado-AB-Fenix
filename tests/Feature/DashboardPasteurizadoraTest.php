@@ -48,6 +48,7 @@ class DashboardPasteurizadoraTest extends TestCase
         ]));
 
         $response->assertOk();
+        $this->assertSame(1, substr_count($response->getContent(), 'https://cdn.jsdelivr.net/npm/chart.js'));
         $response->assertSee(route('pasteurizadora.analisis-pasteurizadora.index'), false);
         $response->assertSee(route('pasteurizadora.analisis-pasteurizadora.plan-accion.index'), false);
         $response->assertDontSee('quick-actions-grid', false);

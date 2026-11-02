@@ -48,8 +48,7 @@ class NotificationController extends Controller
                 'query' => $request->query(),
             ]
         );
-        $unreadCount = $this->notificationVisibilityService
-            ->availableUnreadNotificationsCountFor($request->user());
+        $unreadCount = $availableNotifications->whereNull('read_at')->count();
 
         return view('notifications.index', compact('notifications', 'unreadCount', 'returnUrl'));
     }
@@ -121,12 +120,10 @@ class NotificationController extends Controller
     {
         $visibleNotifications = $this->notificationVisibilityService
             ->availableNotificationsFor($request->user());
-        $unreadNotifications = $this->notificationVisibilityService
-            ->availableUnreadNotificationsFor($request->user());
         $notifications = $visibleNotifications->take(10);
 
         return response()->json([
-            'count' => $unreadNotifications->count(),
+            'count' => $visibleNotifications->whereNull('read_at')->count(),
             'notifications_count' => $visibleNotifications->count(),
             'items' => $notifications->map(fn ($notification): array => [
                 'id' => $notification->id,

@@ -554,7 +554,7 @@ class ReporteController extends Controller
         $lineaIds = $lineas->pluck('id');
         $reporteGeneral = [];
 
-        $estadoActual = AnalisisLavadora::ultimosPorComponente()
+        $estadoActual = AnalisisLavadora::ultimosPorComponente($lineaIds->all())
             ->with('componente:id,codigo')
             ->whereIn('linea_id', $lineaIds)
             ->get(['id', 'linea_id', 'componente_id', 'reductor', 'lado', 'estado', 'fecha_analisis', 'evidencia_fotos', 'created_at'])
@@ -588,14 +588,8 @@ class ReporteController extends Controller
 
         // 3. Análisis de tendencia (UNA consulta)
         $tendenciaService = app(TendenciaDanosService::class);
-        $filasTendenciaPorLinea = $lineas->mapWithKeys(fn (Linea $linea) => [
-            $linea->id => $tendenciaService->construirFilasMensuales(
-                $linea,
-                TendenciaDanosService::TIPO_LAVADORAS,
-                12,
-                $fechaFin
-            ),
-        ]);
+        $tendenciasReporte = $tendenciaService->construirResumenReporte($lineas, TendenciaDanosService::TIPO_LAVADORAS, $fechaFin);
+        $filasTendenciaPorLinea = $tendenciasReporte['mensual'];
 
         // 4. Historial de revisiones (UNA consulta)
         $historicos = HistorialRestablecimiento::whereIn('linea_id', $lineaIds)
@@ -628,18 +622,8 @@ class ReporteController extends Controller
             ->get(['linea_id'])
             ->groupBy('linea_id');
 
-        $analisis52124Reporte = $tendenciaService->calcularPorLineas(
-            $lineas,
-            TendenciaDanosService::TIPO_LAVADORAS,
-            $fechaFin,
-            $tendenciaService->ventanas52124()
-        );
-        $analisis30147Reporte = $tendenciaService->calcularPorLineas(
-            $lineas,
-            TendenciaDanosService::TIPO_LAVADORAS,
-            $fechaFin,
-            $tendenciaService->ventanas30147()
-        );
+        $analisis52124Reporte = $tendenciasReporte['52124'];
+        $analisis30147Reporte = $tendenciasReporte['30147'];
 
         // Construir reporte para cada línea - VERSIÓN CORREGIDA (ELIMINADAS LAS LÍNEAS SUELTAS)
         foreach ($lineas as $linea) {
@@ -963,24 +947,10 @@ class ReporteController extends Controller
             ->count();
 
         $tendenciaService = app(TendenciaDanosService::class);
-        $analisisTendencia = $tendenciaService->construirFilasMensuales(
-            $linea,
-            TendenciaDanosService::TIPO_LAVADORAS,
-            12,
-            $fechaFin
-        );
-        $analisis52124Reporte = $tendenciaService->calcularParaLinea(
-            $linea,
-            TendenciaDanosService::TIPO_LAVADORAS,
-            $fechaFin,
-            $tendenciaService->ventanas52124()
-        );
-        $analisis30147Reporte = $tendenciaService->calcularParaLinea(
-            $linea,
-            TendenciaDanosService::TIPO_LAVADORAS,
-            $fechaFin,
-            $tendenciaService->ventanas30147()
-        );
+        $tendenciasReporte = $tendenciaService->construirResumenReporte(collect([$linea]), TendenciaDanosService::TIPO_LAVADORAS, $fechaFin);
+        $analisisTendencia = $tendenciasReporte['mensual']->get($linea->id, collect());
+        $analisis52124Reporte = $tendenciasReporte['52124'][$linea->id];
+        $analisis30147Reporte = $tendenciasReporte['30147'][$linea->id];
 
         $componentes = $this->procesarComponentesLavadora($analisisHistorico, $linea, $analisis);
         $reductores = $this->procesarReductoresLavadora($analisis, $elongaciones);
@@ -1522,14 +1492,8 @@ class ReporteController extends Controller
             ->groupBy('linea_id');
 
         $tendenciaService = app(TendenciaDanosService::class);
-        $filasTendenciaPorLinea = $lineas->mapWithKeys(fn (Linea $linea) => [
-            $linea->id => $tendenciaService->construirFilasMensuales(
-                $linea,
-                TendenciaDanosService::TIPO_PASTEURIZADORAS,
-                12,
-                $fechaFin
-            ),
-        ]);
+        $tendenciasReporte = $tendenciaService->construirResumenReporte($lineas, TendenciaDanosService::TIPO_PASTEURIZADORAS, $fechaFin);
+        $filasTendenciaPorLinea = $tendenciasReporte['mensual'];
 
         $ultimasRevisiones = AnalisisPasteurizadora::queryForArea(AnalisisPasteurizadora::AREA_MECANICA)
             ->whereIn('linea_id', $lineaIds)
@@ -1552,18 +1516,8 @@ class ReporteController extends Controller
             ->groupBy('linea_id');
 
         $seguimientoActual = $this->calcularSeguimientoActualPasteurizadora($lineas);
-        $analisis52124Reporte = $tendenciaService->calcularPorLineas(
-            $lineas,
-            TendenciaDanosService::TIPO_PASTEURIZADORAS,
-            $fechaFin,
-            $tendenciaService->ventanas52124()
-        );
-        $analisis30147Reporte = $tendenciaService->calcularPorLineas(
-            $lineas,
-            TendenciaDanosService::TIPO_PASTEURIZADORAS,
-            $fechaFin,
-            $tendenciaService->ventanas30147()
-        );
+        $analisis52124Reporte = $tendenciasReporte['52124'];
+        $analisis30147Reporte = $tendenciasReporte['30147'];
 
         $reporteGeneral = [];
 
@@ -1669,24 +1623,10 @@ class ReporteController extends Controller
             ->count();
 
         $tendenciaService = app(TendenciaDanosService::class);
-        $analisisTendencia = $tendenciaService->construirFilasMensuales(
-            $linea,
-            TendenciaDanosService::TIPO_PASTEURIZADORAS,
-            12,
-            $fechaFin
-        );
-        $analisis52124Reporte = $tendenciaService->calcularParaLinea(
-            $linea,
-            TendenciaDanosService::TIPO_PASTEURIZADORAS,
-            $fechaFin,
-            $tendenciaService->ventanas52124()
-        );
-        $analisis30147Reporte = $tendenciaService->calcularParaLinea(
-            $linea,
-            TendenciaDanosService::TIPO_PASTEURIZADORAS,
-            $fechaFin,
-            $tendenciaService->ventanas30147()
-        );
+        $tendenciasReporte = $tendenciaService->construirResumenReporte(collect([$linea]), TendenciaDanosService::TIPO_PASTEURIZADORAS, $fechaFin);
+        $analisisTendencia = $tendenciasReporte['mensual']->get($linea->id, collect());
+        $analisis52124Reporte = $tendenciasReporte['52124'][$linea->id];
+        $analisis30147Reporte = $tendenciasReporte['30147'][$linea->id];
 
         $componentes = $this->procesarComponentesPasteurizadora($linea, $analisisHistorico, $analisis);
         $avance = $this->calcularAvanceModulosPasteurizadora($linea, $analisis);
@@ -2525,25 +2465,12 @@ class ReporteController extends Controller
         $linea = Linea::findOrFail($lineaId);
         $this->ensureCanAccessLinea($linea);
 
-        $reporte = $this->getReporteDetalladoLinea(
-            $linea,
-            $fechaInicio,
-            $fechaFin,
-            $tipoEquipo
-        );
-
         return Excel::download(
             new ReporteLavadoraGeneralExcel($fechaInicio, $fechaFin, $lineaId),
             "reporte_{$linea->nombre}_{$fechaInicio->format('Ymd')}_{$fechaFin->format('Ymd')}.xlsx"
         );
 
     } else {
-
-        $reporte = $this->generarReporteGeneralOptimizado(
-            $tipoEquipo,
-            $fechaInicio,
-            $fechaFin
-        );
 
         return Excel::download(
             new ReporteLavadoraGeneralExcel($fechaInicio, $fechaFin),

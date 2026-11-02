@@ -169,8 +169,65 @@ class NotificationVisibilityService
      */
     private function filterExistingTargets(Collection $notifications): Collection
     {
+        $targets = [];
+        $groups = [];
+
+        foreach ($notifications as $key => $notification) {
+            $data = $notification->data ?? [];
+            if (in_array($data['type'] ?? '', ['elongacion_change_alert', 'elongacion_purchase_alert', 'elongacion_reminder'], true)) {
+                continue;
+            }
+
+            $planId = $this->planActionIdFromData($data);
+            $target = filled($planId)
+                ? ['class' => PlanAccion::class, 'id' => $planId]
+                : $this->analysisTargetFromData($data);
+
+            // Keep legacy database coercion for unusual identifiers on the original path.
+            $id = $target['id'] ?? null;
+            if (!is_int($id) && !(is_string($id) && ctype_digit($id) && (string) (int) $id === $id)) {
+                continue;
+            }
+
+            $targets[$key] = $target;
+            $groups[$target['class']][(string) $id] = $id;
+        }
+
+        $existing = [];
+        foreach ($groups as $class => $ids) {
+            $existing[$class] = [];
+            foreach (array_chunk(array_values($ids), 400) as $chunk) {
+                $model = new $class();
+                foreach ($class::query()->withoutGlobalScopes()->whereKey($chunk)->pluck($model->getKeyName()) as $id) {
+                    $existing[$class][(string) $id] = true;
+                }
+            }
+        }
+
+        // Local to this read: never retain cycle/due decisions across requests or writes.
+        $elongacionChecks = [];
+
         return $notifications
-            ->filter(fn (DatabaseNotification $notification): bool => $this->notificationTargetExists($notification))
+            ->filter(function (DatabaseNotification $notification, mixed $key) use ($targets, $existing, &$elongacionChecks): bool {
+                $data = $notification->data ?? [];
+                if (in_array($data['type'] ?? '', ['elongacion_change_alert', 'elongacion_purchase_alert', 'elongacion_reminder'], true)) {
+                    // Include only inputs consumed by the original validation, keeping their types.
+                    $checkKey = serialize([$data['type'], $data['elongacion_id'] ?? null, $data['detalles'] ?? []]);
+                    if (!array_key_exists($checkKey, $elongacionChecks)) {
+                        $elongacionChecks[$checkKey] = $this->notificationTargetExists($notification);
+                    }
+
+                    return $elongacionChecks[$checkKey];
+                }
+
+                if (isset($targets[$key])) {
+                    $target = $targets[$key];
+
+                    return isset($existing[$target['class']][(string) $target['id']]);
+                }
+
+                return $this->notificationTargetExists($notification);
+            })
             ->values();
     }
 

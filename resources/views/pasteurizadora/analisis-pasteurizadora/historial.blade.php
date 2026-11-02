@@ -254,119 +254,9 @@
     </div>
 
 
-    @if($analisis->count() > 0)
+    @if($totalAnalisis > 0)
         {{-- Agrupación de análisis --}}
-        @php
-            $agrupados = [];
 
-            foreach($analisis as $item) {
-                $key = $item->linea_id . '|' . $item->modulo . '|' . $item->componente . '|' . ($item->lado ?? 'SIN_LADO') . '|' . ($item->nivel ?? 'SIN_NIVEL');
-
-                if (!isset($agrupados[$key])) {
-                    $agrupados[$key] = [
-                        'linea_nombre' => $item->linea->nombre ?? 'N/A',
-                        'modulo' => (int) $item->modulo,
-                        'componente_nombre' => $item->componente_nombre ?? 'N/A',
-                        'lado' => $item->lado,
-                        'nivel' => $item->nivel,
-                        'registros' => [],
-                        'total_componentes' => (int) $item->total_componentes,
-                        'todas_componentes_revisadas' => [],
-                        'fecha_inicio' => null,
-                        'fecha_fin' => null,
-                        'fecha_ultima_actualizacion' => null,
-                        'total_registros' => 0
-                    ];
-                }
-
-                $agrupados[$key]['registros'][] = $item;
-                $agrupados[$key]['total_registros']++;
-
-                $componentes = $item->componentes_revisados_lista;
-
-                // Acumular componentes revisadas
-                foreach ($componentes as $num) {
-                    if (is_numeric($num) && (int)$num > 0) {
-                        $agrupados[$key]['todas_componentes_revisadas'][] = (int)$num;
-                    }
-                }
-
-                $agrupados[$key]['todas_componentes_revisadas'] = array_unique($agrupados[$key]['todas_componentes_revisadas']);
-
-                // Fechas
-                $fecha = $item->fecha_analisis ?? $item->created_at;
-                if ($fecha) {
-                    if (!$agrupados[$key]['fecha_inicio'] || $fecha < $agrupados[$key]['fecha_inicio']) {
-                        $agrupados[$key]['fecha_inicio'] = $fecha;
-                    }
-                    if (!$agrupados[$key]['fecha_fin'] || $fecha > $agrupados[$key]['fecha_fin']) {
-                        $agrupados[$key]['fecha_fin'] = $fecha;
-                    }
-                }
-
-                $fechaActualizacion = $item->created_at ?? $fecha;
-                if ($fechaActualizacion) {
-                    if (
-                        !$agrupados[$key]['fecha_ultima_actualizacion'] ||
-                        $fechaActualizacion > $agrupados[$key]['fecha_ultima_actualizacion']
-                    ) {
-                        $agrupados[$key]['fecha_ultima_actualizacion'] = $fechaActualizacion;
-                    }
-                }
-            }
-
-            foreach ($agrupados as &$grupoOrdenado) {
-                usort($grupoOrdenado['registros'], function ($a, $b) {
-                    $valorA = ($a->created_at?->timestamp ?? 0) . '-' . str_pad((string) $a->id, 10, '0', STR_PAD_LEFT);
-                    $valorB = ($b->created_at?->timestamp ?? 0) . '-' . str_pad((string) $b->id, 10, '0', STR_PAD_LEFT);
-                    return strcmp($valorB, $valorA);
-                });
-            }
-            unset($grupoOrdenado);
-
-            // Ordenar grupos por última actualización descendente
-            uasort($agrupados, function($a, $b) {
-                return strtotime((string) $b['fecha_ultima_actualizacion']) - strtotime((string) $a['fecha_ultima_actualizacion']);
-            });
-
-            // Estadísticas rápidas
-            $gruposOrdenados = collect($agrupados);
-            $historialSecciones = collect([
-                'VAPOR' => [
-                    'titulo' => 'Lado Vapor',
-                    'icono' => 'fa-cloud',
-                ],
-                'PASILLO' => [
-                    'titulo' => 'Lado Pasillo',
-                    'icono' => 'fa-walking',
-                ],
-            ])->map(function (array $seccion, string $lado) use ($gruposOrdenados): array {
-                $grupos = $gruposOrdenados
-                    ->filter(fn (array $grupo): bool => strtoupper(trim((string) ($grupo['lado'] ?? ''))) === $lado)
-                    ->values();
-
-                return array_merge($seccion, [
-                    'key' => $lado,
-                    'grupos' => $grupos,
-                    'total' => $grupos->sum(fn (array $grupo): int => (int) ($grupo['total_registros'] ?? count($grupo['registros'] ?? []))),
-                ]);
-            })->values();
-
-            $gruposSinLado = $gruposOrdenados
-                ->filter(fn (array $grupo): bool => !in_array(strtoupper(trim((string) ($grupo['lado'] ?? ''))), ['VAPOR', 'PASILLO'], true))
-                ->values();
-
-            if ($gruposSinLado->isNotEmpty()) {
-                $historialSecciones->push([
-                    'key' => 'SIN_LADO',
-                    'titulo' => 'Sin lado registrado',
-                    'icono' => 'fa-question-circle',
-                    'grupos' => $gruposSinLado,
-                    'total' => $gruposSinLado->sum(fn (array $grupo): int => (int) ($grupo['total_registros'] ?? count($grupo['registros'] ?? []))),
-                ]);
-            }
-
-        @endphp
 
         {{-- Timeline mejorado --}}
         <div class="pasteur-history-layout">
@@ -400,7 +290,7 @@
             <div class="space-y-8">
                 @foreach($seccion['grupos'] as $grupoIndex => $grupo)
                     {{-- Encabezado del grupo --}}
-                    <div class="relative pl-16">
+                    <div class="relative pl-16" id="{{ $grupo['paginador']->getPageName() }}">
                         <div class="absolute left-3 top-2 w-8 h-8 bg-gradient-to-r from-indigo-600 to-indigo-700 rounded-full border-4 border-white shadow-lg timeline-dot flex items-center justify-center text-white text-xs font-bold">
                             {{ $loop->index + 1 }}
                         </div>
@@ -667,6 +557,11 @@
                         </div>
                     </div>
                 @endforeach
+                @if($grupo['paginador']->hasPages())
+                    <div class="mt-4">
+                        {{ $grupo['paginador']->links() }}
+                    </div>
+                @endif
                     </div>
                 </div>
             </div>

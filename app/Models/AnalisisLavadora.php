@@ -372,7 +372,41 @@ class AnalisisLavadora extends Model
         );
     }
 
-    public function scopeUltimosPorComponente(Builder $query): Builder
+    public function scopeUltimosPorComponente(Builder $query, ?array $lineaIds = null): Builder
+    {
+        $connection = $query->getConnection();
+        $driver = $connection->getDriverName();
+        $version = $connection->getServerVersion();
+        $supportsWindows = match ($driver) {
+            'sqlite' => version_compare($version, '3.25.0', '>='),
+            'mysql', 'mariadb' => version_compare($version, method_exists($connection, 'isMaria') && $connection->isMaria() ? '10.2.0' : '8.0.0', '>='),
+            'pgsql' => true,
+            default => false,
+        };
+
+        if (!$supportsWindows) {
+            $query = $this->ultimosPorComponenteCorrelacionado($query);
+
+            return $lineaIds === null ? $query : $query->whereIn($this->qualifyColumn('linea_id'), $lineaIds);
+        }
+
+        $codigo = self::sqlCodigoBaseComponente('componente_actual');
+        $ranked = $connection->table('analisis_componentes as actual')
+            ->leftJoin('componentes as componente_actual', 'actual.componente_id', '=', 'componente_actual.id')
+            ->where(function ($query): void {
+                $query->where('actual.tipo_equipo', self::TIPO_EQUIPO)->orWhereNull('actual.tipo_equipo');
+            })
+            ->when($lineaIds !== null, fn ($query) => $query->whereIn('actual.linea_id', $lineaIds))
+            ->select('actual.id')
+            ->selectRaw("ROW_NUMBER() OVER (PARTITION BY actual.linea_id, CASE WHEN actual.linea_id IS NULL THEN actual.id ELSE 0 END, COALESCE(actual.reductor, ''), COALESCE(actual.lado, ''), {$codigo} ORDER BY COALESCE(actual.fecha_analisis, actual.created_at, '1000-01-01') DESC, actual.id DESC) AS analysis_rank");
+
+        $latestIds = $connection->query()->fromSub($ranked, 'ranked_analyses')
+            ->where('analysis_rank', 1)->select('id');
+
+        return $query->whereIn($this->qualifyColumn('id'), $latestIds);
+    }
+
+    private function ultimosPorComponenteCorrelacionado(Builder $query): Builder
     {
         $fechaActual = "COALESCE(actual.fecha_analisis, actual.created_at, '1000-01-01')";
         $fechaMasReciente = "COALESCE(mas_reciente.fecha_analisis, mas_reciente.created_at, '1000-01-01')";
@@ -411,6 +445,21 @@ class AnalisisLavadora extends Model
     }
 
     public static function codigoBaseComponente(?string $codigo): string
+    {
+        // Pure mapping of a code and fixed class constants; never caches database or user data.
+        static $cache = [];
+        $key = strtoupper(trim((string) $codigo));
+        if (array_key_exists($key, $cache)) {
+            return $cache[$key];
+        }
+        if (count($cache) >= 2048) {
+            unset($cache[array_key_first($cache)]);
+        }
+
+        return $cache[$key] = self::calcularCodigoBaseComponente($codigo);
+    }
+
+    private static function calcularCodigoBaseComponente(?string $codigo): string
     {
         $codigo = strtoupper(trim((string) $codigo));
         $codigoNormalizado = self::normalizarCodigoBusqueda($codigo);

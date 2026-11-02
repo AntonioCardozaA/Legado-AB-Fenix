@@ -26,7 +26,7 @@ return [
         ],
         'artifactPathValidation' => null,
         'log_output_file' => null,
-        'enable_font_subsetting' => false,
+        'enable_font_subsetting' => true,
         'pdf_backend' => 'CPDF',
         'default_media_type' => 'screen',
         'default_paper_size' => 'letter',

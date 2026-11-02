@@ -1,4 +1,5 @@
 @extends('layouts.app')
+@section('without-charts', '1')
 
 @section('title', 'Crear Análisis de Componente')
 
@@ -49,7 +50,7 @@
 
     {{-- Card Form --}}
     <div class="bg-white rounded-2xl shadow-lg p-8">
-        <form method="POST" action="{{ route('analisis-lavadora.store') }}" enctype="multipart/form-data">
+        <form method="POST" action="{{ route('analisis-lavadora.store') }}" enctype="multipart/form-data" data-prevent-duplicate-submit>
             @csrf
             @error('error')
                 <div class="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
@@ -280,6 +281,7 @@
 @endsection
 
 @section('scripts')
+<script src="{{ asset('js/prevent-duplicate-submit.js') }}?v={{ filemtime(public_path('js/prevent-duplicate-submit.js')) }}"></script>
 <script src="{{ asset('js/evidence-image-compression.js') }}"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {

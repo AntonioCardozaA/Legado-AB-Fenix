@@ -56,7 +56,7 @@ class TendenciaDanosService
         ];
     }
 
-    public function calcularPorLineas($lineas, string $tipoEquipo, Carbon $referencia, array $ventanas): array
+    public function calcularPorLineas($lineas, string $tipoEquipo, Carbon $referencia, array $ventanas, ?Collection $eventosFuente = null): array
     {
         $lineas = collect($lineas)->values();
 
@@ -72,10 +72,10 @@ class TendenciaDanosService
             ->sortBy(fn (Carbon $fecha) => $fecha->getTimestamp())
             ->first() ?? $referencia->copy()->startOfDay();
 
-        $eventos = $this->obtenerEventos($lineas, $tipoEquipo, [
-            'from' => $inicioFuente,
-            'to' => $referencia,
-        ])->groupBy('linea_id');
+        $eventos = ($eventosFuente === null
+            ? $this->obtenerEventos($lineas, $tipoEquipo, ['from' => $inicioFuente, 'to' => $referencia])
+            : $this->eventosDentroDeRango($eventosFuente, $inicioFuente, $referencia))
+            ->groupBy('linea_id');
 
         return $lineas
             ->mapWithKeys(function (Linea $linea) use ($eventos, $ventanas, $referencia) {
@@ -211,7 +211,8 @@ class TendenciaDanosService
         int $meses = 12,
         ?Carbon $fin = null,
         ?Carbon $inicioFiltro = null,
-        ?string $areaPasteurizadora = null
+        ?string $areaPasteurizadora = null,
+        ?Collection $eventosFuente = null
     ): Collection
     {
         $inicioFiltro = $inicioFiltro?->copy()->startOfDay();
@@ -227,10 +228,10 @@ class TendenciaDanosService
             ->sortBy(fn (Carbon $fecha) => $fecha->getTimestamp())
             ->first();
 
-        $eventos = $this->obtenerEventos(collect([$linea]), $tipoEquipo, [
-            'from' => $inicioFiltro ?: $inicioFuente,
-            'to' => $fin,
-        ], $areaPasteurizadora)->where('linea_id', $linea->id)->values();
+        $eventos = ($eventosFuente === null
+            ? $this->obtenerEventos(collect([$linea]), $tipoEquipo, ['from' => $inicioFiltro ?: $inicioFuente, 'to' => $fin], $areaPasteurizadora)
+            : $this->eventosDentroDeRango($eventosFuente, $inicioFiltro ?: $inicioFuente, $fin))
+            ->where('linea_id', $linea->id)->values();
 
         $filas = collect();
         $cursor = $inicio->copy();
@@ -289,6 +290,39 @@ class TendenciaDanosService
             })
             ->sortByDesc(fn ($fila) => sprintf('%04d%02d', $fila->anio, $fila->mes))
             ->values();
+    }
+
+    /** Read events once for this report only; every calculation retains its own source bounds. */
+    public function construirResumenReporte($lineas, string $tipoEquipo, Carbon $fin, int $meses = 12, ?Carbon $inicioFiltro = null): array
+    {
+        $lineas = collect($lineas)->values();
+        $fin = $fin->copy()->endOfDay();
+        $inicio = $inicioFiltro
+            ? $inicioFiltro->copy()->startOfMonth()
+            : $fin->copy()->subMonthsNoOverflow(max($meses - 1, 0))->startOfMonth();
+        $ventanas = array_merge($this->ventanas52124(), $this->ventanas30147());
+        $inicios = collect($ventanas)->map(fn ($ventana) => $this->resolverRangosVentana($ventana, $fin)['previous_start']);
+        $inicioMensual = $inicioFiltro?->copy()->startOfDay() ?? collect($ventanas)
+            ->map(fn ($ventana) => $this->resolverRangoActual($ventana, $inicio->copy()->endOfMonth())['current_start'])
+            ->sortBy(fn (Carbon $fecha) => $fecha->getTimestamp())->first();
+        $desde = $inicios->push($inicioMensual)->sortBy(fn (Carbon $fecha) => $fecha->getTimestamp())->first();
+        $eventos = $this->obtenerEventos($lineas, $tipoEquipo, ['from' => $desde, 'to' => $fin]);
+
+        return [
+            'mensual' => $lineas->mapWithKeys(fn (Linea $linea) => [
+                $linea->id => $this->construirFilasMensuales($linea, $tipoEquipo, $meses, $fin, $inicioFiltro, null, $eventos),
+            ]),
+            '52124' => $this->calcularPorLineas($lineas, $tipoEquipo, $fin, $this->ventanas52124(), $eventos),
+            '30147' => $this->calcularPorLineas($lineas, $tipoEquipo, $fin, $this->ventanas30147(), $eventos),
+        ];
+    }
+
+    private function eventosDentroDeRango(Collection $eventos, Carbon $desde, Carbon $hasta): Collection
+    {
+        $desde = $desde->copy()->startOfDay();
+        $hasta = $hasta->copy()->endOfDay();
+
+        return $eventos->filter(fn (array $evento) => $evento['occurred_at']->betweenIncluded($desde, $hasta))->values();
     }
 
     public function obtenerEventos($lineas, string $tipoEquipo, ?array $rango = null, ?string $areaPasteurizadora = null): Collection

@@ -3,16 +3,19 @@
 namespace App\Http\Controllers;
 
 use App\Exports\Lef52124WorkbookExport;
+use App\Models\Lef52124CostEntry;
 use App\Models\Lef52124Import;
 use App\Models\Lef52124Item;
 use App\Models\Linea;
 use App\Models\User;
 use App\Services\Lef52124DataService;
+use App\Services\Lef52124CostImportService;
 use App\Services\Lef52124ImportService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use Maatwebsite\Excel\Facades\Excel;
@@ -161,6 +164,29 @@ class Lef52124Controller extends Controller
             'monthly' => $monthly,
             'by_line' => $byLine,
         ]);
+    }
+
+    public function importCosts(Request $request, Lef52124CostImportService $service): RedirectResponse
+    {
+        $this->ensureAdmin($request);
+        $validated = $request->validate([
+            'fallback_linea_id' => ['nullable', 'integer', 'exists:lineas,id'],
+            'archivo_costos' => ['required', 'file', 'mimes:xls,xlsx', 'max:20480'],
+        ]);
+
+        try {
+            $service->import(
+                $request->file('archivo_costos'),
+                isset($validated['fallback_linea_id']) ? Linea::findOrFail($validated['fallback_linea_id']) : null,
+                $request->user()
+            );
+        } catch (\Throwable $exception) {
+            throw ValidationException::withMessages(['archivo_costos' => $exception->getMessage()]);
+        }
+
+        return redirect()
+            ->route('lef52124.index', array_filter(['linea_id' => $validated['fallback_linea_id'] ?? null], fn ($value) => $value !== null))
+            ->with('success', 'Importacion de costos completada correctamente.');
     }
 
     public function store(Request $request, Lef52124ImportService $service): RedirectResponse

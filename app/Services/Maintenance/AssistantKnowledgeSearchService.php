@@ -28,7 +28,10 @@ class AssistantKnowledgeSearchService
     {
         $user ??= auth()->user();
         $profile = $this->ranker->profile($query, $pageContext);
-        $queryEmbedding = $this->ranker->queryEmbedding((string) ($profile['query'] ?? $query));
+        $embedding = null;
+        $queryEmbedding = function () use (&$embedding, $profile, $query): array {
+            return $embedding ??= $this->ranker->queryEmbedding((string) ($profile['query'] ?? $query));
+        };
         $module = $this->normalizeModule($pageContext['module'] ?? null);
         $recordId = isset($pageContext['record_id']) && is_numeric($pageContext['record_id'])
             ? (int) $pageContext['record_id']
@@ -259,13 +262,15 @@ class AssistantKnowledgeSearchService
 
     /**
      * @param  array<string, mixed>  $profile
-     * @param  array<int, float>  $queryEmbedding
+     * @param  \Closure(): array<int, float>  $resolveQueryEmbedding
      * @param  array<int, int>  $preferredDocumentIds
      * @return Collection<int, array<string, mixed>>
      */
-    private function searchKnowledgeChunks(array $profile, array $queryEmbedding = [], array $preferredDocumentIds = [], string $chunkClass = WasherKnowledgeChunk::class, string $module = User::MODULE_LAVADORA): Collection
+    private function searchKnowledgeChunks(array $profile, \Closure $resolveQueryEmbedding, array $preferredDocumentIds = [], string $chunkClass = WasherKnowledgeChunk::class, string $module = User::MODULE_LAVADORA): Collection
     {
         $tokens = $profile['tokens'] ?? [];
+        // Keep the original semantic-only behavior for queries without lexical tokens.
+        $queryEmbedding = $tokens === [] ? $resolveQueryEmbedding() : null;
 
         if ($tokens === [] && $queryEmbedding === []) {
             return collect();
@@ -286,6 +291,12 @@ class AssistantKnowledgeSearchService
                 (int) config('maintenance_ai.knowledge.candidate_limit', 80)
             ))
             ->get();
+
+        if ($chunks->isEmpty()) {
+            return collect();
+        }
+
+        $queryEmbedding ??= $resolveQueryEmbedding();
 
         return $chunks
             ->map(function (Model $chunk) use ($profile, $preferredDocumentIds, $queryEmbedding, $module): array {

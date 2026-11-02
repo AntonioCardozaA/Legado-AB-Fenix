@@ -12,7 +12,8 @@ export default {
     theme: {
         extend: {
             fontFamily: {
-                sans: ['Figtree', ...defaultTheme.fontFamily.sans],
+                // Preserve the effective font stack previously supplied by Tailwind CDN.
+                sans: [...defaultTheme.fontFamily.sans],
             },
         },
     },

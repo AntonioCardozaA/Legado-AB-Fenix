@@ -64,6 +64,29 @@ class AdminUserManagementTest extends TestCase
             ->assertSee('Si considera que requiere acceso a este contenido');
     }
 
+    public function test_directory_pages_preserve_filtered_total_and_reach_every_matching_user_once(): void
+    {
+        $admin = $this->userWithRole(User::ROLE_ADMIN, ['name' => 'Admin only']);
+        for ($i = 0; $i < 58; $i++) {
+            $this->userWithRole(User::ROLE_TECNICO, ['name' => 'Fixture Same Name', 'activo' => $i % 5 !== 0]);
+        }
+        $filters = ['search' => 'Fixture', 'role' => User::ROLE_TECNICO, 'status' => 'active'];
+        $ids = [];
+        foreach ([1, 2] as $page) {
+            $response = $this->actingAs($admin)->get(route('admin.users.index', $filters + ['page' => $page]))
+                ->assertOk()->assertSee('46 resultado(s)');
+            $users = $response->viewData('users');
+            $this->assertSame(46, $users->total());
+            $this->assertCount($page === 1 ? 25 : 21, $users);
+            $ids = array_merge($ids, $users->pluck('id')->all());
+            parse_str(parse_url($users->url(2), PHP_URL_QUERY), $params);
+            foreach ($filters as $key => $value) $this->assertSame($value, $params[$key]);
+        }
+        $expected = User::role(User::ROLE_TECNICO)->where('activo', true)->orderBy('name')->orderBy('id')->pluck('id')->all();
+        $this->assertSame($expected, $ids);
+        $this->assertCount(46, array_unique($ids));
+    }
+
     public function test_admin_can_open_dedicated_edit_view_for_a_user(): void
     {
         $admin = $this->userWithRole(User::ROLE_ADMIN);

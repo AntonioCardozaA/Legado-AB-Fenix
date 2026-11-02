@@ -15,6 +15,31 @@ class LavadoraRevisionPeriodicityServiceTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_preloaded_statistics_match_each_original_component_calculation_and_refresh_after_writes(): void
+    {
+        $linea = $this->crearLinea();
+        $component = $this->crearComponente($linea, 'CATARINAS', 'Reductor 1');
+        $this->crearAnalisis($linea, $component, 'Reductor 1', '2026-01-10', 'OT-BATCH-OLD', 'VAPOR');
+        $service = app(LavadoraRevisionPeriodicityService::class);
+        $reference = Carbon::parse('2026-08-10');
+        $legacy = new \ReflectionMethod($service, 'resumenComponenteLinea');
+        $original = [];
+        foreach (\App\Support\LavadoraCatalog::componentesDeLinea($linea->nombre) as $code => $name) {
+            $original[$code] = $legacy->invoke($service, $linea, $code, $name, $service->cantidadTotalComponenteLinea($linea->nombre, $code), $reference);
+        }
+        \Illuminate\Support\Facades\DB::flushQueryLog();
+        \Illuminate\Support\Facades\DB::enableQueryLog();
+        $actual = $service->estadisticasLinea($linea, $reference);
+        $queries = \Illuminate\Support\Facades\DB::getQueryLog();
+        \Illuminate\Support\Facades\DB::disableQueryLog();
+        $this->assertSame($original, $actual);
+        $this->assertCount(6, $queries, 'One catalogue, analyses with three relations and resets per line.');
+        $this->crearAnalisis($linea, $component, 'Reductor 1', '2026-08-05', 'OT-BATCH-NEW', 'VAPOR');
+        $refreshed = $service->estadisticasLinea($linea, $reference);
+        $this->assertSame('2026-08-05', $refreshed['CATARINAS']['ultima_revision']);
+        $this->assertSame('programado', $refreshed['CATARINAS']['estado_periodicidad']);
+    }
+
     public function test_stats_use_latest_revision_for_each_component_identity(): void
     {
         $linea = $this->crearLinea();

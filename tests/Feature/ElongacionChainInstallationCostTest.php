@@ -7,6 +7,7 @@ use App\Models\CostCatalogItem;
 use App\Models\Elongacion;
 use App\Models\LavadoraCostEntry;
 use App\Models\Linea;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
@@ -17,6 +18,9 @@ class ElongacionChainInstallationCostTest extends TestCase
 
     public function test_store_chain_installation_cost_flow_covers_supported_groups_and_rollback_rules(): void
     {
+        $this->actingAs(User::factory()->withRole(User::ROLE_ADMIN)->create());
+        \Illuminate\Support\Facades\Http::fake();
+
         $cases = [
             'L-05' => [
                 'expected_total' => 1605102.82,

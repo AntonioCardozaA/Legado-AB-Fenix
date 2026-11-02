@@ -258,7 +258,7 @@ class LavadoraRevisionGeneralService
             return collect();
         }
 
-        return AnalisisLavadora::ultimosPorComponente()
+        return AnalisisLavadora::ultimosPorComponente([$linea->id])
             ->with(['componente', 'historialRestablecimientos'])
             ->where('linea_id', $linea->id)
             ->whereIn('componente_id', $componenteIds->all())

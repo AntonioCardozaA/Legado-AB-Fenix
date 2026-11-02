@@ -10,6 +10,8 @@ use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Log;
@@ -56,7 +58,7 @@ public function index(Request $request)
         $request->merge(['linea_id' => $lineaId]);
     }
 
-    $query = AnalisisLavadora::ultimosPorComponente()
+    $query = AnalisisLavadora::ultimosPorComponente($lineaId ? [$lineaId] : null)
         ->with(['linea', 'componente', 'usuario', 'usuarioCorreccion'])
         ->ordenVigente();
 
@@ -97,10 +99,9 @@ public function index(Request $request)
     }
 
     $analisis = $query->get();
-    $this->attachHistorialCountsToCurrentAnalyses($analisis);
     
     // Calcular estadísticas basadas en los últimos registros por componente (estado actual)
-    $queryEstadisticas = AnalisisLavadora::ultimosPorComponente()
+    $queryEstadisticas = AnalisisLavadora::ultimosPorComponente($lineaId ? [$lineaId] : null)
         ->with(['linea', 'componente', 'usuario', 'usuarioCorreccion']);
     
     // Aplicar los mismos filtros que al listado
@@ -129,7 +130,11 @@ public function index(Request $request)
     }
     
     // Para estadísticas, no filtrar por estado ni fecha, ya que queremos el estado actual
-    $analisisParaEstadisticas = $queryEstadisticas->get();
+    $listadoSinOrden = (clone $query)->reorder();
+    $analisisParaEstadisticas = $listadoSinOrden->toSql() === $queryEstadisticas->toSql()
+        && $listadoSinOrden->getBindings() === $queryEstadisticas->getBindings()
+        ? $analisis
+        : $queryEstadisticas->get();
     
     $estadisticas = [
         'total' => $analisisParaEstadisticas->count(),
@@ -159,12 +164,17 @@ public function index(Request $request)
     $analisisMonitorDiagrama = collect();
 
     if ($lineaSeleccionadaParaDiagrama) {
-        $analisisMonitorDiagrama = AnalisisLavadora::ultimosPorComponente()
+        $monitorQuery = AnalisisLavadora::ultimosPorComponente([$lineaSeleccionadaParaDiagrama->id])
             ->with(['linea', 'componente', 'usuario', 'usuarioCorreccion'])
             ->where('linea_id', $lineaSeleccionadaParaDiagrama->id)
-            ->ordenVigente()
-            ->get();
+            ->ordenVigente();
+        $analisisMonitorDiagrama = $query->toSql() === $monitorQuery->toSql()
+            && $query->getBindings() === $monitorQuery->getBindings()
+            ? $analisis->map(fn (AnalisisLavadora $item) => clone $item)
+            : $monitorQuery->get();
     }
+
+    $this->attachHistorialCountsToCurrentAnalyses($analisis);
 
     $openAnalysisData = $this->modalPayloadForAnalysisId($request->input('open_analysis_id'));
 
@@ -684,7 +694,7 @@ public function index(Request $request)
             'reductor'           => 'required|string',
         ]);
 
-        Log::info('Creando análisis rápido con:', $request->all());
+        Log::debug('Abriendo análisis rápido', $request->only(['linea_id', 'componente_codigo', 'reductor']));
 
         $linea = Linea::findOrFail($request->linea_id);
 
@@ -692,74 +702,26 @@ public function index(Request $request)
             return $redirect;
         }
         
-        // Buscar el componente por código (sin filtrar por línea primero)
-        $componente = Componente::where('codigo', $request->componente_codigo)
-            ->first();
+        $componente = Componente::where('codigo', $request->componente_codigo)->first();
+        $codigoFormulario = $request->componente_codigo;
 
-        // Si no existe el componente en la base de datos
-        if (!$componente) {
-            Log::info('Componente no encontrado, creando nuevo: ' . $request->componente_codigo);
-            
-            try {
-                $componente = Componente::create([
-                    'codigo' => $request->componente_codigo,
-                    'nombre' => $this->getNombreComponente($request->componente_codigo, $linea->nombre, $request->reductor),
-                    'reductor' => $request->reductor,
-                    'ubicacion' => $request->reductor,
-                    'linea' => $linea->nombre,
-                    'cantidad_total' => 1,
-                    'activo' => true,
-                ]);
-                
-                Log::info('Componente creado con ID: ' . $componente->id);
-            } catch (\Illuminate\Database\QueryException $e) {
-                // Si hay error de duplicado, buscar el componente existente
-                if ($e->getCode() == '23000') {
-                    Log::warning('Error de duplicado, buscando componente existente...');
-                    $componente = Componente::where('codigo', $request->componente_codigo)
-                        ->first();
-                    
-                    if ($componente) {
-                        Log::info('Componente encontrado después de error de duplicado: ' . $componente->id);
-                    } else {
-                        Log::error('No se pudo encontrar el componente después del error de duplicado');
-                        return back()->withErrors(['error' => 'Error al crear el componente. Ya existe un componente con este código.']);
-                    }
-                } else {
-                    Log::error('Error al crear componente:', ['error' => $e->getMessage()]);
-                    return back()->withErrors(['error' => 'Error al crear el componente: ' . $e->getMessage()]);
-                }
-            }
-        } else {
-            Log::info('Componente encontrado con ID: ' . $componente->id);
-            
-            // Si el componente existe pero no tiene la línea correcta, actualizarlo
-            if ($componente->linea !== $linea->nombre) {
-                Log::info('Actualizando línea del componente de ' . $componente->linea . ' a ' . $linea->nombre);
-                
-                // Crear un nuevo componente específico para esta línea
-                try {
-                    $nuevoComponente = Componente::firstOrCreate(
-                        ['codigo' => $request->componente_codigo . '_' . str_replace('-', '_', $linea->nombre)],
-                        [
-                        'nombre' => $this->getNombreComponente($request->componente_codigo, $linea->nombre, $request->reductor),
-                        'reductor' => $request->reductor,
-                        'ubicacion' => $request->reductor,
-                        'linea' => $linea->nombre,
-                        'cantidad_total' => 1,
-                        'activo' => true,
-                        ]
-                    );
-                    
-                    $componente = $nuevoComponente;
-                    Log::info('Nuevo componente creado para línea específica con ID: ' . $componente->id);
-                } catch (\Exception $e) {
-                    Log::error('Error al crear componente para línea específica:', ['error' => $e->getMessage()]);
-                }
-            }
+        if ($componente && $componente->linea !== $linea->nombre) {
+            $codigoFormulario .= '_' . str_replace('-', '_', $linea->nombre);
+            $componente = Componente::where('codigo', $codigoFormulario)->first();
         }
 
-        $analisisRealizados = AnalisisLavadora::with('usuario')
+        // The validated POST already resolves and creates the contextual component.
+        $componente ??= new Componente([
+            'codigo' => $codigoFormulario,
+            'nombre' => $this->getNombreComponente($request->componente_codigo, $linea->nombre, $request->reductor),
+            'reductor' => $request->reductor,
+            'ubicacion' => $request->reductor,
+            'linea' => $linea->nombre,
+            'cantidad_total' => 1,
+            'activo' => true,
+        ]);
+
+        $analisisRealizados = !$componente->exists ? collect() : AnalisisLavadora::with('usuario')
             ->where('linea_id', $linea->id)
             ->where('componente_id', $componente->id)
             ->where('reductor', $request->reductor)
@@ -782,7 +744,7 @@ public function index(Request $request)
      */
     public function store(Request $request)
 {
-    Log::info('Iniciando store', $request->except(['evidencia_fotos']));
+    Log::debug('Iniciando análisis de lavadora', $request->only(['linea_id', 'componente_id', 'componente_codigo', 'reductor']));
 
     /**
      * ===============================
@@ -829,7 +791,6 @@ public function index(Request $request)
         return $redirect;
     }
 
-    Log::info('Línea:', [$linea->nombre]);
 
     $componente = null;
 
@@ -864,10 +825,6 @@ $componente = Componente::firstOrCreate(
     ]
 );
 
-        Log::info('Componente usado (rápido)', [
-            'id' => $componente->id,
-            'codigo' => $componente->codigo
-        ]);
     }
 
     // 🔹 CASO B: CREATE NORMAL (componente_id)
@@ -881,10 +838,6 @@ $componente = Componente::firstOrCreate(
             ])->withInput();
         }
 
-        Log::info('Componente usado (normal)', [
-            'id' => $componente->id,
-            'codigo' => $componente->codigo
-        ]);
     }
 
     $codigoBaseComponente = AnalisisLavadora::codigoBaseComponente($componente->codigo);
@@ -1627,15 +1580,66 @@ private function procesarMantenimientoAutomaticoSafely(AnalisisLavadora $analisi
             ->orderByDesc('created_at')
             ->orderByDesc('id');
 
-        // Cargar el historial completo permite separar ambos lados.
-        $analisis = $query->get();
-        $historialSecciones = $this->historialSecciones($analisis, $separarHistorialPorLado);
+        // Count lightweight metadata using the same legacy evidence/side rules.
+        // Full models and relations are loaded only for the visible pages.
+        $totalRegistros = 0;
+        $conImagenes = 0;
+        $counts = [];
+        $sideValues = [];
+        $evidenceModel = new AnalisisLavadora;
+        foreach ((clone $query)->reorder()->withoutEagerLoads()->toBase()->select(['lado', 'evidencia_fotos'])->cursor() as $row) {
+            $totalRegistros++;
+            $evidenceModel->setRawAttributes(['evidencia_fotos' => $row->evidencia_fotos]);
+            $conImagenes += count($evidenceModel->evidencia_fotos ?? []) > 0 ? 1 : 0;
+            $side = strtoupper(trim((string) $row->lado));
+            $key = !$separarHistorialPorLado ? 'GENERAL' : ($side === '' ? 'SIN_LADO' : $side);
+            $counts[$key] = ($counts[$key] ?? 0) + 1;
+            $sideValues[$key][serialize($row->lado)] = $row->lado;
+        }
+
+        // Reuse the section labels and order; counts come from the full history.
+        $sectionSamples = !$separarHistorialPorLado ? collect() : collect(['VAPOR', 'PASILLO', null])
+            ->map(fn ($side) => (new AnalisisLavadora)->setRawAttributes(['lado' => $side]));
+        $historialSecciones = $this->historialSecciones($sectionSamples, $separarHistorialPorLado)
+            ->filter(fn ($section) => ($counts[$section['key']] ?? 0) > 0)
+            ->map(function ($section) use ($query, $counts, $sideValues, $separarHistorialPorLado, $request) {
+                $key = $section['key'];
+                $pageName = $key === 'GENERAL' ? 'page' : strtolower($key) . '_page';
+                $perPage = $separarHistorialPorLado ? 25 : 50;
+                $page = Paginator::resolveCurrentPage($pageName);
+                $pageQuery = clone $query;
+                if ($separarHistorialPorLado) {
+                    $values = array_values($sideValues[$key]);
+                    $pageQuery->where(function ($sideQuery) use ($values, $query) {
+                        $nonNull = array_values(array_filter($values, fn ($value) => $value !== null));
+                        if ($nonNull !== []) {
+                            // MySQL's default collation can equate accented legacy side names.
+                            $column = in_array($query->getConnection()->getDriverName(), ['mysql', 'mariadb'], true)
+                                ? DB::raw('CAST(lado AS BINARY)') : 'lado';
+                            $sideQuery->whereIn($column, $nonNull);
+                        }
+                        if (in_array(null, $values, true)) {
+                            $nonNull === [] ? $sideQuery->whereNull('lado') : $sideQuery->orWhereNull('lado');
+                        }
+                    });
+                }
+                $items = $pageQuery->forPage($page, $perPage)->get();
+                $paginator = new LengthAwarePaginator($items, $counts[$key], $perPage, $page, [
+                    'path' => $request->url(), 'pageName' => $pageName,
+                ]);
+                $paginator->appends($request->except($pageName));
+
+                return array_merge($section, ['registros' => $items, 'total' => $counts[$key], 'paginador' => $paginator]);
+            })->values();
+        $analisis = $historialSecciones->flatMap(fn ($section) => $section['registros']);
 
         return view('lavadora/analisis-lavadora.historial', compact(
             'analisis',
             'codigoBaseHistorial',
             'historialSecciones',
-            'separarHistorialPorLado'
+            'separarHistorialPorLado',
+            'totalRegistros',
+            'conImagenes'
         ));
     }
 public function analisis52124 (Request $request)
@@ -1775,7 +1779,7 @@ public function historicoRevisados(Request $request)
         
         // Calcular cuántos reductores tienen análisis para este componente
         // Solo considerar el último registro por componente (último análisis)
-        $reductoresConAnalisis = AnalisisLavadora::ultimosPorComponente()
+        $reductoresConAnalisis = AnalisisLavadora::ultimosPorComponente([$lineaSeleccionadaId])
             ->where('linea_id', $lineaSeleccionadaId)
             ->whereHas('componente', function($q) use ($codigo) {
                 $q->where('codigo', $codigo);
@@ -1870,7 +1874,7 @@ public function getEstadisticasProgreso(Request $request)
         foreach ($reductores as $reductor) {
             foreach ($componentes as $codigo => $nombre) {
                 // Buscar el último análisis para esta combinación
-                $analisis = AnalisisLavadora::ultimosPorComponente()
+                $analisis = AnalisisLavadora::ultimosPorComponente([$linea->id])
                     ->where('linea_id', $linea->id)
                     ->where('reductor', $reductor)
                     ->whereHas('componente', function($q) use ($codigo) {

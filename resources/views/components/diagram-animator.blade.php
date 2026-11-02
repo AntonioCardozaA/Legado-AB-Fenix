@@ -73,6 +73,7 @@
     function toggleDiagramAnimation(diagramId) {
         if (window.diagramInstances[diagramId]) {
             window.diagramInstances[diagramId].isPlaying = !window.diagramInstances[diagramId].isPlaying;
+            animate(diagramId);
             const button = document.getElementById('toggle-' + diagramId);
             button.textContent = window.diagramInstances[diagramId].isPlaying ? '⏸ Pausar' : '▶ Iniciar animación';
         }
@@ -82,6 +83,7 @@
         if (window.diagramInstances[diagramId]) {
             window.diagramInstances[diagramId].chainOffset = 0;
             window.diagramInstances[diagramId].isPlaying = false;
+            animate(diagramId);
             const button = document.getElementById('toggle-' + diagramId);
             button.textContent = '▶ Iniciar animación';
         }

@@ -62,7 +62,13 @@ class PasteurizadoraNumeracionTest extends TestCase
         $this->get(route('pasteurizadora.analisis-pasteurizadora.historial', ['linea_id' => $linea->id]))->assertOk()->assertSee('#7');
         $indice = $this->get(route('pasteurizadora.analisis-pasteurizadora.index', ['linea_id' => $linea->id]));
         $indice->assertOk();
-        $this->assertStringContainsString('Ubicacion: #7 Vapor - Superior', preg_replace('/\s+/', ' ', strip_tags($indice->getContent())));
+        $document = new \DOMDocument();
+        @$document->loadHTML('<?xml encoding="UTF-8">' . $indice->getContent());
+        $locations = (new \DOMXPath($document))->query('//*[contains(concat(" ", normalize-space(@class), " "), " info-line ")][span[contains(@class, "info-label") and contains(., "Ubicacion:")]]');
+        $locationTexts = [];
+        foreach ($locations as $location) $locationTexts[] = preg_replace('/\s+/u', ' ', trim($location->textContent));
+        $this->assertNotEmpty($locationTexts);
+        $this->assertContains('Ubicacion: #7 Lado Vapor - Superior', $locationTexts);
         $this->assertSame('7', (new AnalisisPasteurizadoraExport(collect([$registro])))->map($registro)[11]);
         $this->assertDatabaseCount('analisis_pasteurizadora', 1);
     }
@@ -201,9 +207,12 @@ class PasteurizadoraNumeracionTest extends TestCase
         ])->assertOk()->assertJsonPath('componentes_disponibles', [31, 32]);
         $this->get(route('pasteurizadora.analisis-pasteurizadora.create-quick', [
             'linea_id' => $linea->id, 'modulo' => 16, 'componente' => 'EXCENTRICOS',
-        ]))->assertOk()->assertSee('numeros_por_modulo', false)->assertSee('[31,32]', false);
+        ]))->assertOk()->assertSee('numeros_por_modulo', false)->assertSee('[31,32]', false)
+            ->assertSee('data-prevent-duplicate-submit', false)->assertSee('data-submit-loading="true"', false)
+            ->assertSee('js/prevent-duplicate-submit.js', false);
         $this->get(route('pasteurizadora.analisis-pasteurizadora.create', ['linea' => $linea->id, 'linea_id' => $linea->id]))
-            ->assertOk()->assertSee('[76,77,78,79,80]', false);
+            ->assertOk()->assertSee('[76,77,78,79,80]', false)
+            ->assertSee('data-prevent-duplicate-submit', false)->assertSee('js/prevent-duplicate-submit.js', false);
         $this->get(route('pasteurizadora.analisis-pasteurizadora.excentricos.index', ['linea_id' => $linea->id]))
             ->assertOk()->assertSee('#31–#32', false);
     }

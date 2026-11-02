@@ -1,6 +1,8 @@
 <?php
 
 return [
+    'whatsapp_dispatch_mode' => env('ELONGACION_WHATSAPP_DISPATCH_MODE', 'after_response'),
+    'whatsapp_queue' => env('ELONGACION_WHATSAPP_QUEUE', 'default'),
     'timezone' => env('ELONGACION_ALERT_TIMEZONE', 'America/Mexico_City'),
     'interval_months' => (int) env('ELONGACION_ALERT_INTERVAL_MONTHS', 2),
     'lead_days' => (int) env('ELONGACION_ALERT_LEAD_DAYS', 3),
