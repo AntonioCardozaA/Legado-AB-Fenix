@@ -11,8 +11,17 @@
     $puedeVerPlanesLavadora = $usuarioActual?->canViewPlanActionType(\App\Models\User::MODULE_LAVADORA) ?? false;
     $puedeVerTendenciasLavadora = $usuarioActual?->canUseCustomPermission('ver tendencias lavadora') ?? false;
     $puedeVerCostosLavadora = $canViewLavadoraCostsModule ?? ($usuarioActual?->canViewLavadoraCostModule() ?? false);
+    $tarjetasLavadora = collect([
+        $puedeVerAnalisisLavadora ? ['route' => route('analisis-lavadora.index'), 'eyebrow' => 'Diagnóstico / mantenimiento', 'title' => 'ANÁLISIS LAVADORA', 'description' => 'Registra y consulta el estado de los componentes.', 'asset' => 'images/componentes-lavadora/RV200.png', 'alt' => 'Reductor industrial azul para análisis de lavadora', 'accent' => '#2f8cff', 'class' => 'analysis'] : null,
+        $puedeVerElongaciones ? ['route' => route('elongaciones.index'), 'eyebrow' => 'Medición / condición', 'title' => 'ELONGACIÓN CADENA', 'description' => 'Controla el desgaste y la elongación de cada cadena.', 'asset' => 'images/Diagramas-Lavadoras/cadenas/linea12-mask.png', 'alt' => 'Cadena industrial de la línea 12', 'accent' => '#18c7b1', 'class' => 'chain'] : null,
+        $puedeVerHistoricoRevisados ? ['route' => route('historico-revisados.index'), 'eyebrow' => 'Trazabilidad / registros', 'title' => 'HISTÓRICO DE REVISADOS', 'description' => 'Consulta inspecciones y componentes ya revisados.', 'asset' => 'images/lavadora-menu/clipboard.svg', 'alt' => 'Portapapeles con historial de inspecciones', 'accent' => '#9b7cff', 'class' => 'history'] : null,
+        $puedeVerPlanesLavadora ? ['route' => route('plan-accion.index'), 'eyebrow' => 'Seguimiento / ejecución', 'title' => 'PLAN DE ACCIÓN', 'description' => 'Administra acciones preventivas y correctivas.', 'asset' => 'images/lavadora-menu/action-plan.svg', 'alt' => 'Lista de acciones de mantenimiento con engranaje', 'accent' => '#f59b45', 'class' => 'action'] : null,
+        $puedeVerTendenciasLavadora ? ['route' => route('analisis-tendencia-mensual.lavadora.index'), 'eyebrow' => 'Tendencias / indicadores', 'title' => 'ANÁLISIS 52-12-4 / 30-14-7', 'description' => 'Visualiza la tendencia de daños e indicadores LEF.', 'asset' => 'images/lavadora-menu/trends.svg', 'alt' => 'Gráfica industrial de tendencias y barras', 'accent' => '#ef6672', 'class' => 'trends'] : null,
+        $puedeVerCostosLavadora ? ['route' => route('lavadora.costos.index'), 'eyebrow' => 'Presupuesto / impacto', 'title' => 'COSTOS', 'description' => 'Analiza gastos, presupuestos y reemplazos.', 'asset' => 'images/lavadora-menu/costs.svg', 'alt' => 'Monedas y calculadora para costos de mantenimiento', 'accent' => '#e5b84c', 'class' => 'costs'] : null,
+    ])->filter()->values();
 @endphp
-<div class="lavadora-menu min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-6 sm:py-8">
+@vite('resources/css/lavadora-menu.css')
+<div class="lavadora-menu min-h-screen py-6 sm:py-8">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {{-- HEADER MEJORADO --}}
@@ -49,8 +58,36 @@
             </div>
         </div>
 
-        {{-- GRID DE OPCIONES MEJORADO CON COLOR RGB 31 35 72 --}}
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
+        {{-- GRID VISUAL DE MODULOS --}}
+        <div class="lavadora-menu-grid mt-8" aria-label="Módulos de Lavadora">
+            @foreach($tarjetasLavadora as $tarjeta)
+                <a href="{{ $tarjeta['route'] }}"
+                   class="lavadora-module-card lavadora-module-card--{{ $tarjeta['class'] }}"
+                   style="--module-accent: {{ $tarjeta['accent'] }};"
+                   aria-label="Abrir {{ $tarjeta['title'] }}">
+                    <span class="lavadora-module-card__shine" aria-hidden="true"></span>
+                    <span class="lavadora-module-card__topline" aria-hidden="true"></span>
+                    <span class="lavadora-module-card__content">
+                        <span class="lavadora-module-card__media" aria-hidden="true">
+                            <span class="lavadora-module-card__glow"></span>
+                            <img src="{{ asset($tarjeta['asset']) }}" alt="{{ $tarjeta['alt'] }}" width="320" height="190" @if($loop->index > 2) loading="lazy" @endif decoding="async">
+                            @if($tarjeta['class'] === 'chain')
+                                <span class="lavadora-module-card__measurement"><i></i><b>Δ L</b><i></i></span>
+                            @endif
+                        </span>
+                        <span class="lavadora-module-card__copy">
+                            <span class="lavadora-module-card__eyebrow">{{ $tarjeta['eyebrow'] }}</span>
+                            <span class="lavadora-module-card__title">{{ $tarjeta['title'] }}</span>
+                            <span class="lavadora-module-card__description">{{ $tarjeta['description'] }}</span>
+                        </span>
+                        <span class="lavadora-module-card__action"><span>Acceder al módulo</span><i class="fas fa-arrow-up-right-from-square" aria-hidden="true"></i></span>
+                    </span>
+                </a>
+            @endforeach
+        </div>
+
+        {{-- GRID LEGACY CONSERVADO PARA NO ALTERAR LOGICA EXISTENTE --}}
+        <div class="lavadora-legacy-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
             
             @if($puedeVerAnalisisLavadora)
             {{-- ANALISIS LAVADORA --}}

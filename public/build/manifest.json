@@ -1,0 +1,65 @@
+{
+  "resources/css/app.css": {
+    "file": "assets/app-BzvFTCW7.css",
+    "src": "resources/css/app.css",
+    "isEntry": true,
+    "name": "app",
+    "names": [
+      "app.css"
+    ]
+  },
+  "resources/css/auth-tailwind.css": {
+    "file": "assets/auth-tailwind-BvHJV9Zx.css",
+    "src": "resources/css/auth-tailwind.css",
+    "isEntry": true,
+    "name": "auth-tailwind",
+    "names": [
+      "auth-tailwind.css"
+    ]
+  },
+  "resources/css/dashboard-lavadora.css": {
+    "file": "assets/dashboard-lavadora-BmTTjWUS.css",
+    "src": "resources/css/dashboard-lavadora.css",
+    "isEntry": true,
+    "name": "dashboard-lavadora",
+    "names": [
+      "dashboard-lavadora.css"
+    ]
+  },
+  "resources/css/dashboard-pasteurizadora.css": {
+    "file": "assets/dashboard-pasteurizadora-lsVVYkep.css",
+    "src": "resources/css/dashboard-pasteurizadora.css",
+    "isEntry": true,
+    "name": "dashboard-pasteurizadora",
+    "names": [
+      "dashboard-pasteurizadora.css"
+    ]
+  },
+  "resources/css/lavadora-menu.css": {
+    "file": "assets/lavadora-menu-CcEY5b5R.css",
+    "src": "resources/css/lavadora-menu.css",
+    "isEntry": true,
+    "name": "lavadora-menu",
+    "names": [
+      "lavadora-menu.css"
+    ]
+  },
+  "resources/js/app.js": {
+    "file": "assets/app-BXS-Op9n.js",
+    "name": "app",
+    "src": "resources/js/app.js",
+    "isEntry": true
+  },
+  "resources/js/dashboard-lavadora-panels.js": {
+    "file": "assets/dashboard-lavadora-panels-CaghyotJ.js",
+    "name": "dashboard-lavadora-panels",
+    "src": "resources/js/dashboard-lavadora-panels.js",
+    "isEntry": true
+  },
+  "resources/js/dashboard-pasteurizadora.js": {
+    "file": "assets/dashboard-pasteurizadora-ArhOH6Zk.js",
+    "name": "dashboard-pasteurizadora",
+    "src": "resources/js/dashboard-pasteurizadora.js",
+    "isEntry": true
+  }
+}
