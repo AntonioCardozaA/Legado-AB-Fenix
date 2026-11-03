@@ -35,15 +35,6 @@
       "dashboard-pasteurizadora.css"
     ]
   },
-  "resources/css/lavadora-menu.css": {
-    "file": "assets/lavadora-menu-CcEY5b5R.css",
-    "src": "resources/css/lavadora-menu.css",
-    "isEntry": true,
-    "name": "lavadora-menu",
-    "names": [
-      "lavadora-menu.css"
-    ]
-  },
   "resources/js/app.js": {
     "file": "assets/app-BXS-Op9n.js",
     "name": "app",

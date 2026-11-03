@@ -39,7 +39,7 @@
                         <div class="flex items-center gap-3">
                             <div class="flex items-center gap-2">
                                 <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                                <span class="text-sm font-medium text-gray-700">Legado Ave Fenix</span>
+                                <span class="text-sm font-medium text-gray-700">Legado AB Fénix</span>
                             </div>
                             <div class="h-4 w-px bg-gray-300"></div>
                             <span class="text-sm text-gray-500">{{ now()->format('d/m/Y') }}</span>
@@ -49,8 +49,126 @@
             </div>
         </div>
 
-        {{-- GRID DE OPCIONES MEJORADO CON COLOR RGB 31 35 72 --}}
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
+        {{-- MENU INDUSTRIAL --}}
+        <div class="lavadora-menu-grid" aria-label="Módulos de Lavadora">
+            @if($puedeVerAnalisisLavadora)
+            <a href="{{ route('analisis-lavadora.index') }}" class="lavadora-menu-card" data-number="01" style="--card-accent: #2aa9ff; --card-glow: rgba(42, 169, 255, .34);">
+                <span class="lavadora-menu-card__shine" aria-hidden="true"></span>
+                <span class="lavadora-menu-card__topline" aria-hidden="true"></span>
+                <span class="lavadora-menu-card__visual">
+                    <span class="lavadora-menu-card__visual-glow" aria-hidden="true"></span>
+                    <img src="{{ asset('images/lavadora/menu/analisis-lavadora-collage.webp') }}" width="960" height="639" alt="Pantalla de análisis con componentes industriales de lavadora" loading="eager" decoding="async">
+                    <span class="lavadora-menu-card__visual-tag">01 / MONITOR</span>
+                </span>
+                <span class="lavadora-menu-card__body">
+                    <span class="lavadora-menu-card__eyebrow">Diagnóstico industrial</span>
+                    <span class="lavadora-menu-card__title">AN&Aacute;LISIS LAVADORA</span>
+                    <span class="lavadora-menu-card__description">Registra y consulta los an&aacute;lisis de componentes.</span>
+                    <span class="lavadora-menu-card__action">Abrir m&oacute;dulo <i class="fas fa-arrow-up-right-from-square" aria-hidden="true"></i></span>
+                </span>
+            </a>
+            @endif
+
+            @if($puedeVerElongaciones)
+            <a href="{{ route('elongaciones.index') }}" class="lavadora-menu-card" data-number="02" style="--card-accent: #19d3b1; --card-glow: rgba(25, 211, 177, .34);">
+                <span class="lavadora-menu-card__shine" aria-hidden="true"></span>
+                <span class="lavadora-menu-card__topline" aria-hidden="true"></span>
+                <span class="lavadora-menu-card__visual">
+                    <span class="lavadora-menu-card__visual-glow" aria-hidden="true"></span>
+                    {{-- Recurso generado a partir de la referencia real de la cadena de Lavadora. --}}
+                    <img src="{{ asset('images/lavadora/menu/elongacion-cadena.webp') }}" width="960" height="549" alt="Cadena industrial de lavadora con medición de elongación" loading="eager" decoding="async">
+                    <span class="lavadora-menu-card__visual-tag">02 / MEDICI&Oacute;N</span>
+                </span>
+                <span class="lavadora-menu-card__body">
+                    <span class="lavadora-menu-card__eyebrow">Control dimensional</span>
+                    <span class="lavadora-menu-card__title">ELONGACI&Oacute;N CADENA</span>
+                    <span class="lavadora-menu-card__description">Registro y seguimiento de elongaciones de cadena.</span>
+                    <span class="lavadora-menu-card__action">Abrir m&oacute;dulo <i class="fas fa-arrow-up-right-from-square" aria-hidden="true"></i></span>
+                </span>
+            </a>
+            @endif
+
+            @if($puedeVerHistoricoRevisados)
+            <a href="{{ route('historico-revisados.index') }}" class="lavadora-menu-card" data-number="03" style="--card-accent: #9a7bff; --card-glow: rgba(154, 123, 255, .34);">
+                <span class="lavadora-menu-card__shine" aria-hidden="true"></span>
+                <span class="lavadora-menu-card__topline" aria-hidden="true"></span>
+                <span class="lavadora-menu-card__visual">
+                    <span class="lavadora-menu-card__visual-glow" aria-hidden="true"></span>
+                    <img src="{{ asset('images/lavadora/menu/historico-revisados.webp') }}" width="960" height="800" alt="Portapapeles industrial con historial de revisiones" loading="eager" decoding="async">
+                    <span class="lavadora-menu-card__visual-tag">03 / HISTORIAL</span>
+                </span>
+                <span class="lavadora-menu-card__body">
+                    <span class="lavadora-menu-card__eyebrow">Trazabilidad</span>
+                    <span class="lavadora-menu-card__title">HIST&Oacute;RICO DE REVISADOS</span>
+                    <span class="lavadora-menu-card__description">Visualiza registros de componentes revisados.</span>
+                    <span class="lavadora-menu-card__action">Abrir m&oacute;dulo <i class="fas fa-arrow-up-right-from-square" aria-hidden="true"></i></span>
+                </span>
+            </a>
+            @endif
+
+            @if($puedeVerPlanesLavadora)
+            <a href="{{ route('plan-accion.index') }}" class="lavadora-menu-card" data-number="04" style="--card-accent: #ff9f43; --card-glow: rgba(255, 159, 67, .34);">
+                <span class="lavadora-menu-card__shine" aria-hidden="true"></span>
+                <span class="lavadora-menu-card__topline" aria-hidden="true"></span>
+                <span class="lavadora-menu-card__visual">
+                    <span class="lavadora-menu-card__visual-glow" aria-hidden="true"></span>
+                    <img src="{{ asset('images/lavadora/menu/plan-accion.webp') }}" width="960" height="802" alt="Plan de acción de mantenimiento con herramientas y engranajes" loading="lazy" decoding="async">
+                    <span class="lavadora-menu-card__visual-tag">04 / EJECUCI&Oacute;N</span>
+                </span>
+                <span class="lavadora-menu-card__body">
+                    <span class="lavadora-menu-card__eyebrow">Mantenimiento activo</span>
+                    <span class="lavadora-menu-card__title">PLAN DE ACCI&Oacute;N</span>
+                    <span class="lavadora-menu-card__description">Administra y da seguimiento a acciones preventivas.</span>
+                    <span class="lavadora-menu-card__action">Abrir m&oacute;dulo <i class="fas fa-arrow-up-right-from-square" aria-hidden="true"></i></span>
+                </span>
+            </a>
+            @endif
+
+            @if($puedeVerTendenciasLavadora)
+            <a href="{{ route('analisis-tendencia-mensual.lavadora.index') }}" class="lavadora-menu-card" data-number="05" style="--card-accent: #ff5b68; --card-glow: rgba(255, 91, 104, .34);">
+                <span class="lavadora-menu-card__shine" aria-hidden="true"></span>
+                <span class="lavadora-menu-card__topline" aria-hidden="true"></span>
+                <span class="lavadora-menu-card__visual">
+                    <span class="lavadora-menu-card__visual-glow" aria-hidden="true"></span>
+                    <img src="{{ asset('images/lavadora/menu/analisis-tendencias.webp') }}" width="960" height="640" alt="Panel industrial de análisis de tendencias y daños" loading="lazy" decoding="async">
+                    <span class="lavadora-menu-card__visual-tag">05 / TENDENCIAS</span>
+                </span>
+                <span class="lavadora-menu-card__body">
+                    <span class="lavadora-menu-card__eyebrow">Indicadores de daño</span>
+                    <span class="lavadora-menu-card__title">AN&Aacute;LISIS 52-12-4 / 30-14-7</span>
+                    <span class="lavadora-menu-card__description">Visualizaci&oacute;n  de tendencia de fallas.</span>
+                    <span class="lavadora-menu-card__action">Abrir m&oacute;dulo <i class="fas fa-arrow-up-right-from-square" aria-hidden="true"></i></span>
+                </span>
+            </a>
+            @endif
+
+            @if($puedeVerCostosLavadora)
+            <a href="{{ route('lavadora.costos.index') }}" class="lavadora-menu-card" data-number="06" style="--card-accent: #f2c14e; --card-glow: rgba(242, 193, 78, .34);">
+                <span class="lavadora-menu-card__shine" aria-hidden="true"></span>
+                <span class="lavadora-menu-card__topline" aria-hidden="true"></span>
+                <span class="lavadora-menu-card__visual">
+                    <span class="lavadora-menu-card__visual-glow" aria-hidden="true"></span>
+                    <img src="{{ asset('images/lavadora/menu/costos.webp') }}" width="960" height="640" alt="Costos de mantenimiento con monedas, calculadora y engranajes" loading="lazy" decoding="async">
+                    <span class="lavadora-menu-card__visual-tag">06 / COSTOS</span>
+                </span>
+                <span class="lavadora-menu-card__body">
+                    <span class="lavadora-menu-card__eyebrow">Planeaci&oacute;n financiera</span>
+                    <span class="lavadora-menu-card__title">COSTOS</span>
+                    <span class="lavadora-menu-card__description">Visualiza gastos, presupuestos y tendencias por componente.</span>
+                    <span class="lavadora-menu-card__action">Abrir m&oacute;dulo <i class="fas fa-arrow-up-right-from-square" aria-hidden="true"></i></span>
+                </span>
+            </a>
+            @endif
+
+            @unless($puedeVerAnalisisLavadora || $puedeVerElongaciones || $puedeVerHistoricoRevisados || $puedeVerPlanesLavadora || $puedeVerTendenciasLavadora || $puedeVerCostosLavadora)
+                <div class="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-sm font-semibold text-amber-800 md:col-span-2 lg:col-span-3">
+                    No tiene vistas disponibles en este modulo. Solicite al administrador la asignacion del permiso correspondiente.
+                </div>
+            @endunless
+        </div>
+
+        {{-- VERSION ANTERIOR CONSERVADA PARA NO TOCAR LA LOGICA EXISTENTE --}}
+        <div class="legacy-menu-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
             
             @if($puedeVerAnalisisLavadora)
             {{-- ANALISIS LAVADORA --}}
@@ -1254,6 +1372,555 @@
 
         .dashboard-trend-chart-wrap {
             height: 320px;
+        }
+    }
+</style>
+<style>
+    .lavadora-menu {
+        position: relative;
+        isolation: isolate;
+        background:
+            radial-gradient(circle at 12% 8%, rgba(42, 169, 255, .10), transparent 27rem),
+            radial-gradient(circle at 88% 18%, rgba(154, 123, 255, .08), transparent 25rem),
+            linear-gradient(135deg, #f7faff 0%, #eef3f8 52%, #f9fbfd 100%);
+    }
+
+    .lavadora-menu::before {
+        position: absolute;
+        inset: 0;
+        z-index: -1;
+        pointer-events: none;
+        content: "";
+        opacity: .42;
+        background-image: linear-gradient(rgba(31, 35, 72, .035) 1px, transparent 1px), linear-gradient(90deg, rgba(31, 35, 72, .035) 1px, transparent 1px);
+        background-size: 34px 34px;
+        mask-image: linear-gradient(to bottom, rgba(0, 0, 0, .72), transparent 68%);
+    }
+
+    .lavadora-menu > .max-w-7xl > .mb-10 {
+        margin-bottom: 2rem;
+        padding: clamp(1rem, 2vw, 1.4rem) clamp(1rem, 2.5vw, 1.7rem);
+        border: 0;
+        border-radius: 0;
+        background: transparent;
+        box-shadow: none;
+        backdrop-filter: none;
+    }
+
+    .lavadora-menu .menu-hero-brand {
+        gap: 1rem;
+    }
+
+    .lavadora-menu .menu-hero-icon {
+        width: clamp(4.25rem, 11vw, 6.5rem);
+        height: clamp(4.25rem, 11vw, 6.5rem);
+        filter: drop-shadow(0 12px 16px rgba(31, 35, 72, .15));
+    }
+
+    .lavadora-menu .menu-hero-copy {
+        gap: .8rem;
+    }
+
+    .lavadora-menu .menu-hero-accent {
+        width: .3rem;
+        flex-basis: .3rem;
+        height: 3.5rem;
+        background: linear-gradient(to bottom, #1f2348, #2aa9ff);
+        box-shadow: 0 0 16px rgba(42, 169, 255, .28);
+    }
+
+    .lavadora-menu .menu-hero-title {
+        font-size: clamp(1.8rem, 4vw, 3.4rem);
+        letter-spacing: .08em;
+    }
+
+    .lavadora-menu-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: clamp(1rem, 2vw, 1.35rem);
+        margin-top: .75rem;
+    }
+
+    .lavadora-menu-card {
+        position: relative;
+        display: flex;
+        min-width: 0;
+        min-height: 27rem;
+        flex-direction: column;
+        overflow: hidden;
+        color: #111827;
+        text-decoration: none;
+        border: 1px solid rgba(148, 163, 184, .22);
+        border-radius: 24px;
+        background: linear-gradient(145deg, rgba(255, 255, 255, .98), rgba(241, 245, 249, .94));
+        box-shadow: 0 14px 30px rgba(31, 35, 72, .09), inset 0 1px 0 rgba(255, 255, 255, .88);
+        transition: transform 300ms cubic-bezier(.2, .75, .25, 1), box-shadow 300ms ease, border-color 300ms ease;
+    }
+
+    .lavadora-menu-card::after {
+        position: absolute;
+        right: -3.5rem;
+        bottom: -4rem;
+        width: 10rem;
+        height: 10rem;
+        pointer-events: none;
+        content: "";
+        opacity: .14;
+        border-radius: 999px;
+        background: var(--card-accent);
+        filter: blur(34px);
+        transition: opacity 300ms ease, transform 300ms ease;
+    }
+
+    .lavadora-menu-card:hover {
+        transform: translateY(-5px);
+        border-color: color-mix(in srgb, var(--card-accent) 42%, white);
+        box-shadow: 0 24px 42px rgba(31, 35, 72, .15), 0 0 0 1px rgba(255, 255, 255, .72) inset;
+    }
+
+    .lavadora-menu-card:hover::after {
+        opacity: .28;
+        transform: scale(1.2);
+    }
+
+    .lavadora-menu-card:active {
+        transform: translateY(-1px) scale(.985);
+        transition-duration: 120ms;
+    }
+
+    .lavadora-menu-card:focus-visible {
+        outline: 3px solid var(--card-accent);
+        outline-offset: 4px;
+    }
+
+    .lavadora-menu-card__shine {
+        position: absolute;
+        inset: 0;
+        z-index: 3;
+        pointer-events: none;
+        transform: translateX(-120%);
+        background: linear-gradient(105deg, transparent 32%, rgba(255, 255, 255, .32) 48%, transparent 64%);
+        transition: transform 700ms ease;
+    }
+
+    .lavadora-menu-card:hover .lavadora-menu-card__shine {
+        transform: translateX(120%);
+    }
+
+    .lavadora-menu-card__topline {
+        position: absolute;
+        top: 0;
+        left: 1.2rem;
+        right: 1.2rem;
+        z-index: 4;
+        height: 3px;
+        border-radius: 99px;
+        background: var(--card-accent);
+        box-shadow: 0 0 14px var(--card-glow);
+        transition: box-shadow 300ms ease;
+    }
+
+    .lavadora-menu-card:hover .lavadora-menu-card__topline {
+        box-shadow: 0 0 24px var(--card-glow), 0 0 6px var(--card-accent);
+    }
+
+    .lavadora-menu-card__visual {
+        position: relative;
+        display: grid;
+        place-items: center;
+        height: 14.6rem;
+        flex: 0 0 14.6rem;
+        margin: .7rem .7rem 0;
+        overflow: hidden;
+        border-radius: 19px;
+        background:
+            radial-gradient(circle at 50% 48%, var(--card-glow), transparent 47%),
+            linear-gradient(145deg, #172033 0%, #0b1220 100%);
+    }
+
+    .lavadora-menu-card__visual::before {
+        position: absolute;
+        inset: .55rem;
+        content: "";
+        border: 1px solid rgba(255, 255, 255, .11);
+        border-radius: 14px;
+        background-image: linear-gradient(rgba(255, 255, 255, .06) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, .06) 1px, transparent 1px);
+        background-size: 24px 24px;
+        mask-image: radial-gradient(circle at center, black, transparent 74%);
+    }
+
+    .lavadora-menu-card__visual-glow {
+        position: absolute;
+        width: 58%;
+        height: 58%;
+        border-radius: 50%;
+        background: var(--card-accent);
+        opacity: .2;
+        filter: blur(28px);
+        transition: opacity 300ms ease, transform 300ms ease;
+    }
+
+    .lavadora-menu-card__visual img {
+        position: relative;
+        z-index: 1;
+        display: block;
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        object-position: center;
+        transform: translateY(2px) scale(.94);
+        filter: drop-shadow(0 18px 14px rgba(0, 0, 0, .28));
+        transition: transform 320ms cubic-bezier(.2, .75, .25, 1), filter 320ms ease;
+    }
+
+    .lavadora-menu-card:hover .lavadora-menu-card__visual img {
+        transform: translateY(-6px) scale(1.02);
+        filter: drop-shadow(0 24px 18px rgba(0, 0, 0, .32));
+    }
+
+    .lavadora-menu-card:hover .lavadora-menu-card__visual-glow {
+        opacity: .34;
+        transform: scale(1.15);
+    }
+
+    .lavadora-menu-card__visual-tag {
+        position: absolute;
+        right: .85rem;
+        bottom: .8rem;
+        z-index: 2;
+        padding: .28rem .5rem;
+        color: rgba(255, 255, 255, .82);
+        border: 1px solid rgba(255, 255, 255, .16);
+        border-radius: 999px;
+        background: rgba(7, 13, 26, .54);
+        font-size: .58rem;
+        font-weight: 800;
+        letter-spacing: .12em;
+        line-height: 1;
+    }
+
+    .lavadora-menu-card__body {
+        position: relative;
+        z-index: 2;
+        display: flex;
+        min-height: 11.35rem;
+        flex: 1;
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 1rem 1.15rem 1.15rem;
+    }
+
+    .lavadora-menu-card__eyebrow {
+        margin-bottom: .45rem;
+        color: var(--card-accent);
+        font-size: .65rem;
+        font-weight: 800;
+        letter-spacing: .13em;
+        line-height: 1.2;
+        text-transform: uppercase;
+    }
+
+    .lavadora-menu-card__title {
+        max-width: 100%;
+        color: #182033;
+        font-size: clamp(1.03rem, 1.5vw, 1.24rem);
+        font-weight: 900;
+        letter-spacing: -.025em;
+        line-height: 1.15;
+        text-wrap: balance;
+    }
+
+    .lavadora-menu-card__description {
+        max-width: 32rem;
+        margin-top: .55rem;
+        color: #64748b;
+        font-size: .82rem;
+        line-height: 1.45;
+    }
+
+    .lavadora-menu-card__action {
+        display: inline-flex;
+        align-items: center;
+        gap: .45rem;
+        margin-top: auto;
+        padding-top: .8rem;
+        color: #334155;
+        font-size: .74rem;
+        font-weight: 800;
+        letter-spacing: .02em;
+        transition: color 250ms ease, gap 250ms ease;
+    }
+
+    .lavadora-menu-card__action i {
+        color: var(--card-accent);
+        font-size: .72rem;
+    }
+
+    .lavadora-menu-card:hover .lavadora-menu-card__action {
+        gap: .65rem;
+        color: #111827;
+    }
+
+    .legacy-menu-grid {
+        display: none !important;
+    }
+
+    @media (max-width: 1100px) {
+        .lavadora-menu-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+
+    @media (max-width: 640px) {
+        .lavadora-menu {
+            padding-top: 1rem;
+        }
+
+        .lavadora-menu > .max-w-7xl {
+            padding-right: .85rem;
+            padding-left: .85rem;
+        }
+
+        .lavadora-menu > .max-w-7xl > .mb-10 {
+            padding: .9rem;
+            border-radius: 20px;
+        }
+
+        .lavadora-menu .menu-hero-title {
+            font-size: 1.7rem;
+        }
+
+        .lavadora-menu-grid {
+            grid-template-columns: 1fr;
+            gap: 1rem;
+        }
+
+        .lavadora-menu-card {
+            min-height: 25.5rem;
+        }
+
+        .lavadora-menu-card__visual {
+            height: 14rem;
+            flex-basis: 14rem;
+        }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .lavadora-menu-card,
+        .lavadora-menu-card::after,
+        .lavadora-menu-card__shine,
+        .lavadora-menu-card__visual img,
+        .lavadora-menu-card__visual-glow,
+        .lavadora-menu-card__action {
+            transition: none;
+        }
+
+        .lavadora-menu-card:hover,
+        .lavadora-menu-card:active,
+        .lavadora-menu-card:hover .lavadora-menu-card__visual img {
+            transform: none;
+        }
+    }
+</style>
+<style>
+    /* Composición horizontal tipo ficha industrial */
+    .lavadora-menu-grid {
+        gap: clamp(1rem, 1.8vw, 1.3rem);
+    }
+
+    .lavadora-menu-card {
+        display: block;
+        min-height: 14.25rem;
+        border-radius: 22px;
+        background: rgba(255, 255, 255, .94);
+        box-shadow: 0 12px 25px rgba(31, 35, 72, .10), inset 0 1px 0 rgba(255, 255, 255, .92);
+    }
+
+    .lavadora-menu-card::before {
+        position: absolute;
+        top: 1rem;
+        left: 1.35rem;
+        z-index: 4;
+        color: color-mix(in srgb, var(--card-accent) 72%, #ffffff);
+        content: attr(data-number);
+        font-size: 2.15rem;
+        font-weight: 900;
+        letter-spacing: -.06em;
+        line-height: 1;
+    }
+
+    .lavadora-menu-card::after {
+        right: -1px;
+        bottom: -1px;
+        width: 65%;
+        height: 100%;
+        z-index: 0;
+        opacity: .16;
+        border-radius: 0 22px 22px 0;
+        background: linear-gradient(135deg, transparent 0 25%, var(--card-accent) 25%, color-mix(in srgb, var(--card-accent) 65%, white) 100%);
+        filter: none;
+        clip-path: polygon(35% 0, 100% 0, 100% 100%, 0 100%);
+        transition: opacity 300ms ease, transform 300ms ease;
+    }
+
+    .lavadora-menu-card:hover::after {
+        opacity: .24;
+        transform: scale(1.03);
+    }
+
+    .lavadora-menu-card__topline {
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        z-index: 5;
+        border-radius: 22px 22px 0 0;
+    }
+
+    .lavadora-menu-card__visual {
+        position: absolute;
+        inset: 0 0 0 47%;
+        z-index: 1;
+        display: grid;
+        height: auto;
+        flex: none;
+        margin: 0;
+        overflow: hidden;
+        border-radius: 0 22px 22px 0;
+        background: transparent;
+    }
+
+    .lavadora-menu-card__visual::before {
+        display: none;
+    }
+
+    .lavadora-menu-card__visual-glow {
+        width: 70%;
+        height: 70%;
+        opacity: .18;
+        filter: blur(32px);
+    }
+
+    .lavadora-menu-card__visual img {
+        width: 100%;
+        height: 100%;
+        transform: translateY(1px) scale(.98);
+        filter: drop-shadow(0 17px 13px rgba(31, 35, 72, .22));
+    }
+
+    .lavadora-menu-card:hover .lavadora-menu-card__visual img {
+        transform: translateY(-4px) scale(1.06);
+        filter: drop-shadow(0 22px 16px rgba(31, 35, 72, .26));
+    }
+
+    .lavadora-menu-card__visual-tag {
+        display: none;
+    }
+
+    .lavadora-menu-card__body {
+        position: relative;
+        z-index: 3;
+        display: flex;
+        width: 47%;
+        min-height: 14.25rem;
+        padding: 3.65rem .75rem 1rem 1.35rem;
+        align-items: flex-start;
+        background: linear-gradient(90deg, rgba(255, 255, 255, .98) 0%, rgba(255, 255, 255, .94) 84%, rgba(255, 255, 255, 0) 100%);
+    }
+
+    .lavadora-menu-card__eyebrow {
+        display: none;
+    }
+
+    .lavadora-menu-card__title {
+        max-width: 15rem;
+        color: #14213d;
+        font-size: clamp(1rem, 1.55vw, 1.2rem);
+        line-height: 1.08;
+    }
+
+    .lavadora-menu-card__description {
+        max-width: 14rem;
+        margin-top: .65rem;
+        color: #64748b;
+        font-size: .78rem;
+        line-height: 1.45;
+    }
+
+    .lavadora-menu-card__action {
+        gap: .55rem;
+        margin-top: auto;
+        padding: .28rem .68rem .28rem .28rem;
+        color: #1e293b;
+        border: 1px solid rgba(148, 163, 184, .18);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, .76);
+        box-shadow: 0 7px 15px rgba(31, 35, 72, .08);
+        font-size: .74rem;
+        white-space: nowrap;
+    }
+
+    .lavadora-menu-card__action i {
+        order: -1;
+        display: grid;
+        width: 1.85rem;
+        height: 1.85rem;
+        place-items: center;
+        color: #fff;
+        border-radius: 999px;
+        background: var(--card-accent);
+        box-shadow: 0 5px 10px var(--card-glow);
+        font-size: .68rem;
+    }
+
+    @media (max-width: 640px) {
+        .lavadora-menu-card {
+            display: flex;
+            min-height: 0;
+            flex-direction: column;
+        }
+
+        .lavadora-menu-card::before {
+            top: .85rem;
+            left: 1rem;
+            font-size: 1.9rem;
+        }
+
+        .lavadora-menu-card__visual {
+            position: relative;
+            inset: auto;
+            width: 100%;
+            height: 11.25rem;
+            flex: 0 0 11.25rem;
+            border-radius: 0;
+        }
+
+        .lavadora-menu-card__visual img {
+            transform: translateY(1px) scale(.96);
+        }
+
+        .lavadora-menu-card:hover .lavadora-menu-card__visual img {
+            transform: translateY(-4px) scale(1.03);
+        }
+
+        .lavadora-menu-card__body {
+            width: 100%;
+            min-height: 0;
+            padding: 1rem 1rem 1.1rem;
+            background: rgba(255, 255, 255, .96);
+        }
+
+        .lavadora-menu-card__title {
+            font-size: .95rem;
+        }
+
+        .lavadora-menu-card__description {
+            max-width: 100%;
+            font-size: .72rem;
+        }
+
+        .lavadora-menu-card__action {
+            font-size: .68rem;
         }
     }
 </style>
