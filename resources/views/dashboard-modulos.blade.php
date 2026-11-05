@@ -77,6 +77,7 @@
         --machine-cover-hover-scale: 1.06;
         --machine-cover-position: center 44%;
         --machine-tint: rgba(59, 130, 246, 0.18);
+        --machine-trend-fill: rgba(37, 99, 235, 0.16);
     }
 
     .modulo-card.modulo-card-machine.modulo-card-pasteurizadora {
@@ -84,6 +85,7 @@
         --machine-cover-hover-scale: 1.07;
         --machine-cover-position: center 46%;
         --machine-tint: rgba(249, 115, 22, 0.18);
+        --machine-trend-fill: rgba(234, 88, 12, 0.16);
         --machine-title-accent-start: #ea580c;
         --machine-title-accent-end: #f59e0b;
         --machine-title-glow: rgba(234, 88, 12, 0.32);
@@ -94,6 +96,7 @@
         --machine-cover-hover-scale: 1.03;
         --machine-cover-position: center 44%;
         --machine-tint: rgba(16, 185, 129, 0.15);
+        --machine-trend-fill: rgba(5, 150, 105, 0.16);
         --machine-title-accent-start: #059669;
         --machine-title-accent-end: #10b981;
         --machine-title-glow: rgba(5, 150, 105, 0.28);
@@ -150,6 +153,43 @@
         -webkit-text-fill-color: transparent;
         background-clip: text;
         text-shadow: none;
+    }
+
+    .modulo-title-row {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 14px;
+        flex-wrap: wrap;
+    }
+
+    .modulo-title-row h2 {
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+    }
+
+    .modulo-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 11px;
+        border-radius: 999px;
+        color: #047857;
+        background: #dff7eb;
+        border: 1px solid rgba(16, 185, 129, 0.2);
+        font-size: 0.72rem;
+        font-weight: 800;
+        white-space: nowrap;
+    }
+
+    .modulo-status--attention {
+        color: #b91c1c;
+        background: #fee2e2;
+        border-color: rgba(220, 38, 38, 0.2);
+    }
+
+    .modulo-status--attention i {
+        animation: criticalPulse 1s ease-in-out infinite;
     }
 
     .modulo-card.modulo-card-machine .modulo-copy h2::after {
@@ -311,6 +351,21 @@
         border-bottom: 1px solid rgba(226, 232, 240, 0.9);
     }
 
+    .modulo-update {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 7px;
+        padding: 0 26px 12px;
+        color: #64748b;
+        font-size: 0.72rem;
+        font-weight: 700;
+    }
+
+    .modulo-update i {
+        color: #64748b;
+    }
+
     .modulo-card.modulo-card-machine .btn-acceder {
         background: linear-gradient(135deg, #1e293b 0%, #31466b 100%);
         box-shadow: 0 16px 24px -20px rgba(15, 23, 42, 0.78);
@@ -447,6 +502,34 @@
         color: #b91c1c;
     }
 
+    .critical-indicator {
+        display: inline-block;
+        width: 7px;
+        height: 7px;
+        margin-left: 4px;
+        border-radius: 999px;
+        background: #dc2626;
+        box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.5);
+        vertical-align: middle;
+    }
+
+    .stat-item.has-critics .critical-indicator {
+        animation: criticalDotPulse 1s ease-in-out infinite;
+    }
+
+    @keyframes criticalDotPulse {
+        0%, 100% {
+            opacity: 0.55;
+            transform: scale(0.85);
+            box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.45);
+        }
+        50% {
+            opacity: 1;
+            transform: scale(1.2);
+            box-shadow: 0 0 0 6px rgba(220, 38, 38, 0.12), 0 0 12px rgba(220, 38, 38, 0.45);
+        }
+    }
+
     /* Contenedor para el número con efecto de pulso */
     .critical-number {
         display: inline-block;
@@ -469,6 +552,133 @@
         padding: 20px 24px;
         text-align: center;
         background: white;
+    }
+
+    .modulo-trend {
+        padding: 18px 24px 16px;
+        background: linear-gradient(180deg, #f8fbff 0%, #ffffff 100%);
+        border-top: 1px solid rgba(226, 232, 240, 0.9);
+    }
+
+    .modulo-trend-heading {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 7px;
+        color: #334155;
+        font-size: 0.78rem;
+        font-weight: 800;
+    }
+
+    .modulo-trend-heading span:first-child {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+    }
+
+    .modulo-trend-heading i {
+        color: var(--machine-title-accent-start, #2563eb);
+    }
+
+    .modulo-trend-total {
+        color: #64748b;
+        font-size: 0.7rem;
+        font-weight: 700;
+    }
+
+    .modulo-trend-chart-wrap {
+        position: relative;
+        padding: 6px 8px 0;
+        border-radius: 14px;
+        background: linear-gradient(135deg, rgba(248, 250, 252, 0.95), var(--machine-trend-fill, rgba(37, 99, 235, 0.08)));
+    }
+
+    .modulo-trend-chart {
+        display: block;
+        width: 100%;
+        height: 94px;
+        overflow: visible;
+    }
+
+    .modulo-trend-gridline {
+        stroke: #e2e8f0;
+        stroke-width: 1;
+        stroke-dasharray: 3 4;
+    }
+
+    .modulo-trend-area {
+        fill: var(--machine-trend-fill, rgba(37, 99, 235, 0.12));
+    }
+
+    .modulo-trend-line {
+        fill: none;
+        stroke: var(--machine-title-accent-start, #2563eb);
+        stroke-width: 2.5;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+    }
+
+    .modulo-trend-point {
+        fill: #ffffff;
+        stroke: var(--machine-title-accent-start, #2563eb);
+        stroke-width: 2;
+        cursor: help;
+        outline: none;
+        transition: transform 0.15s ease, stroke-width 0.15s ease;
+        transform-box: fill-box;
+        transform-origin: center;
+    }
+
+    .modulo-trend-point:hover,
+    .modulo-trend-point:focus-visible {
+        stroke-width: 3;
+        transform: scale(1.8);
+    }
+
+    .modulo-trend-tooltip {
+        position: absolute;
+        z-index: 10;
+        display: none;
+        width: min(270px, calc(100% - 24px));
+        max-width: calc(100% - 24px);
+        max-height: 150px;
+        box-sizing: border-box;
+        padding: 8px 10px;
+        border: 1px solid rgba(255, 255, 255, 0.28);
+        border-radius: 10px;
+        background: #17243d;
+        color: #ffffff;
+        box-shadow: 0 12px 24px -14px rgba(15, 23, 42, 0.72);
+        font-size: 0.72rem;
+        font-weight: 700;
+        line-height: 1.4;
+        pointer-events: none;
+        overflow-y: auto;
+        white-space: pre-line;
+        transform: translate(-50%, 0);
+    }
+
+    .modulo-trend-tooltip.is-visible {
+        display: block;
+    }
+
+    .modulo-trend-labels {
+        display: flex;
+        justify-content: space-between;
+        color: #94a3b8;
+        font-size: 0.63rem;
+        font-weight: 700;
+        text-transform: capitalize;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .stat-item.has-critics,
+        .critical-number.blinking,
+        .modulo-status--attention i,
+        .stat-item.has-critics .critical-indicator {
+            animation: none !important;
+        }
     }
 
     .btn-acceder {
@@ -550,6 +760,15 @@
             padding-bottom: 10px;
         }
 
+        .modulo-title-row {
+            gap: 8px;
+        }
+
+        .modulo-status {
+            font-size: 0.66rem;
+            padding: 5px 9px;
+        }
+
         .modulo-card.modulo-card-machine .modulo-copy h2::after {
             width: 64px;
         }
@@ -559,6 +778,7 @@
             min-width: 100%;
             height: 190px;
         }
+
     }
 </style>
 
@@ -581,6 +801,32 @@
             $mensajeBloqueo = $modulo['mensaje_bloqueo'] ?? 'Estamos trabajando en ello, estara disponible muy pronto.';
             // La ruta está definida en el controlador dentro de cada módulo
             $rutaModulo = $modulo['ruta'] ?? route('dashboard_etiquetadora');
+            $requiereAtencion = $hasCriticos
+                || (($modulo['estadisticas']['en_riesgo'] ?? 0) > 0)
+                || (($modulo['estadisticas']['requiere_revision'] ?? 0) > 0);
+            $tendencia = $modulo['estadisticas']['tendencia'] ?? [];
+            $trendValues = array_values(array_map('intval', $tendencia['values'] ?? array_fill(0, 7, 0)));
+            $trendValues = count($trendValues) > 1 ? $trendValues : array_fill(0, 7, 0);
+            $trendLabels = array_values($tendencia['labels'] ?? ['lu', 'ma', 'mi', 'ju', 'vi', 'sá', 'do']);
+            $estadoLabels = [
+                'critico' => 'Crítico',
+                'riesgo' => 'Riesgo',
+                'operativo' => 'Requiere revisión',
+                'bueno' => 'Buen estado',
+                'sin_datos' => 'Sin datos',
+            ];
+            $estadoPreview = $modulo['estadisticas']['estado_preview'] ?? [];
+            $estadoPreviewText = collect($estadoPreview)->map(function (array $estado) use ($estadoLabels) {
+                $nivel = $estado['nivel'] ?? 'sin_datos';
+                return ($estado['nombre'] ?? 'Equipo') . ': ' . ($estadoLabels[$nivel] ?? 'Sin datos');
+            })->implode(' · ');
+            $trendMax = max(1, max($trendValues));
+            $trendPoints = collect($trendValues)->map(function ($value, $index) use ($trendValues, $trendMax) {
+                $x = count($trendValues) > 1 ? round(($index * 100) / (count($trendValues) - 1), 2) : 50;
+                $y = round(48 - (($value / $trendMax) * 36), 2);
+                return $x . ',' . $y;
+            })->implode(' ');
+            $trendAreaPoints = '0,54 ' . $trendPoints . ' 100,54';
         @endphp
                 <div class="modulo-card {{ in_array($modulo['id'] ?? '', ['lavadora', 'pasteurizadora', 'etiquetadora'], true) ? 'modulo-card-machine modulo-card-' . ($modulo['id'] ?? '') : '' }}"
                      @if($bloqueado)
@@ -605,9 +851,20 @@
                             @endif
                         </div>
                         <div class="modulo-copy">
-                            <h2>{{ $modulo['nombre'] }}</h2>
+                            <div class="modulo-title-row">
+                                <h2>{{ $modulo['nombre'] }}</h2>
+                                <span class="modulo-status {{ $requiereAtencion ? 'modulo-status--attention' : '' }}">
+                                    <i class="fas {{ $requiereAtencion ? 'fa-exclamation-triangle' : 'fa-check-circle' }}" aria-hidden="true"></i>
+                                    {{ $requiereAtencion ? 'Requiere atención' : 'Operativo' }}
+                                </span>
+                            </div>
                             <p>{{ $modulo['descripcion'] }}</p>
                         </div>
+                    </div>
+
+                    <div class="modulo-update">
+                        <i class="fas fa-clock" aria-hidden="true"></i>
+                        Última actualización: {{ $modulo['estadisticas']['ultima_actualizacion'] ?? 'Ahora' }}
                     </div>
                     
                     <div class="modulo-stats">
@@ -622,6 +879,9 @@
                             <div class="stat-label">
                                 <i class="fas fa-exclamation-triangle mr-1"></i>
                                 Alertas Críticas
+                                @if($hasCriticos)
+                                    <span class="critical-indicator" aria-label="Alerta crítica activa"></span>
+                                @endif
                             </div>
                             <div class="stat-value critico">
                                 <span class="critical-number {{ $hasCriticos ? 'blinking' : '' }}">
@@ -651,6 +911,49 @@
                                 Buen Estado
                             </div>
                             <div class="stat-value bueno">{{ $modulo['estadisticas']['buen_estado'] }}</div>
+                        </div>
+                    </div>
+
+                    <div class="modulo-trend" aria-label="Tendencia de actividad de los últimos siete días">
+                        <div class="modulo-trend-heading">
+                            <span>
+                                <i class="fas fa-chart-line" aria-hidden="true"></i>
+                                Tendencia (7 días)
+                            </span>
+                            <span class="modulo-trend-total">
+                                Estado actual
+                            </span>
+                        </div>
+                        <div class="modulo-trend-chart-wrap">
+                        <svg class="modulo-trend-chart" viewBox="0 0 100 60" role="img" aria-label="Tendencia de análisis de {{ $modulo['nombre'] }}">
+                            <line class="modulo-trend-gridline" x1="0" y1="12" x2="100" y2="12"></line>
+                            <line class="modulo-trend-gridline" x1="0" y1="30" x2="100" y2="30"></line>
+                            <line class="modulo-trend-gridline" x1="0" y1="48" x2="100" y2="48"></line>
+                            <polygon class="modulo-trend-area" points="{{ $trendAreaPoints }}"></polygon>
+                            <polyline class="modulo-trend-line" points="{{ $trendPoints }}"></polyline>
+                            @foreach($trendValues as $trendIndex => $trendValue)
+                                @php
+                                    $pointX = count($trendValues) > 1 ? round(($trendIndex * 100) / (count($trendValues) - 1), 2) : 50;
+                                    $pointY = round(48 - (($trendValue / $trendMax) * 36), 2);
+                                @endphp
+                                <circle class="modulo-trend-point"
+                                        cx="{{ $pointX }}"
+                                        cy="{{ $pointY }}"
+                                        r="1.6"
+                                        tabindex="0"
+                                        role="img"
+                                        data-status-preview="{{ $estadoPreviewText }}"
+                                        data-point-y="{{ $pointY }}"
+                                        aria-label="Estado actual por equipo: {{ $estadoPreviewText }}">
+                                </circle>
+                            @endforeach
+                        </svg>
+                        <div class="modulo-trend-tooltip" role="status" aria-live="polite"></div>
+                        </div>
+                        <div class="modulo-trend-labels" aria-hidden="true">
+                            @foreach($trendLabels as $trendLabel)
+                                <span>{{ $trendLabel }}</span>
+                            @endforeach
                         </div>
                     </div>
                     
@@ -690,7 +993,7 @@
 
     <div class="last-update">
         <i class="fas fa-sync-alt mr-2"></i>
-        Última actualización de datos: {{ $modulos[0]['estadisticas']['ultima_actualizacion'] ?? now()->format('d/m/Y H:i') }}
+        Última actualización de datos: {{ $modulos[0]['estadisticas']['ultima_actualizacion'] ?? now()->format('d/m/Y') }}
     </div>
 </div>
 
@@ -706,6 +1009,56 @@
                 card.style.opacity = '1';
                 card.style.transform = 'translateY(0)';
             }, index * 100);
+        });
+
+        document.querySelectorAll('.modulo-trend-chart').forEach(chart => {
+            const wrapper = chart.parentElement;
+            const tooltip = wrapper?.querySelector('.modulo-trend-tooltip');
+
+            if (!wrapper || !tooltip) {
+                return;
+            }
+
+            const hideTrendTooltip = () => {
+                tooltip.classList.remove('is-visible');
+            };
+
+            const showTrendTooltip = point => {
+                const pointY = Number(point.dataset.pointY || 0);
+
+                const statusPreview = point.dataset.statusPreview || 'Sin estados disponibles';
+                tooltip.textContent = `Estado actual por equipo:\n${statusPreview}`;
+                tooltip.classList.add('is-visible');
+
+                const chartHeight = chart.getBoundingClientRect().height;
+                const wrapperWidth = wrapper.getBoundingClientRect().width;
+                const wrapperHeight = wrapper.getBoundingClientRect().height;
+                const pointTop = Math.max(12, chart.offsetTop + ((pointY / 60) * chartHeight));
+                const tooltipHeight = tooltip.getBoundingClientRect().height;
+                const innerMargin = 12;
+                const left = wrapperWidth / 2;
+                const spaceAbove = pointTop - innerMargin;
+                const spaceBelow = wrapperHeight - pointTop - innerMargin;
+                const showBelow = spaceAbove < tooltipHeight && spaceBelow >= tooltipHeight;
+                const top = spaceAbove >= tooltipHeight
+                    ? pointTop
+                    : (showBelow
+                        ? pointTop
+                        : Math.max(innerMargin, (wrapperHeight - tooltipHeight) / 2));
+
+                tooltip.style.left = `${left}px`;
+                tooltip.style.top = `${top}px`;
+                tooltip.style.transform = spaceAbove >= tooltipHeight
+                    ? 'translate(-50%, calc(-100% - 10px))'
+                    : 'translate(-50%, 0)';
+            };
+
+            chart.querySelectorAll('.modulo-trend-point').forEach(point => {
+                point.addEventListener('mouseenter', () => showTrendTooltip(point));
+                point.addEventListener('focus', () => showTrendTooltip(point));
+                point.addEventListener('mouseleave', hideTrendTooltip);
+                point.addEventListener('blur', hideTrendTooltip);
+            });
         });
 
         document.querySelectorAll('[data-coming-soon-message]').forEach(card => {

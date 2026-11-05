@@ -38,9 +38,109 @@ class NotificationController extends Controller
         $page = LengthAwarePaginator::resolveCurrentPage();
         $availableNotifications = $this->notificationVisibilityService
             ->availableNotificationsFor($request->user());
+        $totalNotifications = $availableNotifications->count();
+        $unreadCount = $availableNotifications->whereNull('read_at')->count();
+        $activeFilter = $request->string('filter')->lower()->value();
+        $searchTerm = trim((string) $request->input('search', ''));
+        $priorityFilter = strtolower(trim((string) $request->input('priority', '')));
+        $typeFilter = trim((string) $request->input('type', ''));
+        $lineFilter = trim((string) $request->input('line', ''));
+        $sortOrder = strtolower(trim((string) $request->input('sort', 'recent')));
+
+        $typeOptions = $availableNotifications
+            ->mapWithKeys(function ($notification): array {
+                $data = $notification->data ?? [];
+                $typeKey = $this->notificationTypeKey($data);
+
+                return [$typeKey => $this->notificationTypeLabel($data)];
+            })
+            ->sort()
+            ->all();
+        $lineOptions = $availableNotifications
+            ->map(fn ($notification): string => $this->notificationLine($notification->data ?? []))
+            ->filter()
+            ->unique()
+            ->sort()
+            ->values()
+            ->all();
+
+        if (! in_array($activeFilter, ['all', 'unread', 'read'], true)) {
+            $activeFilter = 'all';
+        }
+        if (! in_array($priorityFilter, ['alta', 'media', 'baja'], true)) {
+            $priorityFilter = '';
+        }
+        if (! array_key_exists($typeFilter, $typeOptions)) {
+            $typeFilter = '';
+        }
+        if (! in_array($lineFilter, $lineOptions, true)) {
+            $lineFilter = '';
+        }
+        if (! in_array($sortOrder, ['recent', 'oldest', 'priority'], true)) {
+            $sortOrder = 'recent';
+        }
+
+        $filteredNotifications = match ($activeFilter) {
+            'unread' => $availableNotifications->whereNull('read_at'),
+            'read' => $availableNotifications->whereNotNull('read_at'),
+            default => $availableNotifications,
+        };
+
+        if ($searchTerm !== '') {
+            $normalizedSearch = strtolower(\Illuminate\Support\Str::ascii($searchTerm));
+            $filteredNotifications = $filteredNotifications->filter(function ($notification) use ($normalizedSearch): bool {
+                $data = $notification->data ?? [];
+                $searchableText = implode(' ', array_filter([
+                    $data['title'] ?? null,
+                    $data['message'] ?? $data['mensaje'] ?? null,
+                    $data['actor_name'] ?? null,
+                    $data['linea'] ?? $data['linea_nombre'] ?? null,
+                    $data['detail'] ?? null,
+                    $data['estado'] ?? $data['component_state'] ?? null,
+                    $this->notificationTypeLabel($data),
+                ], fn ($value): bool => filled($value)));
+
+                return str_contains(
+                    strtolower(\Illuminate\Support\Str::ascii($searchableText)),
+                    $normalizedSearch
+                );
+            });
+        }
+
+        if ($priorityFilter !== '') {
+            $filteredNotifications = $filteredNotifications->filter(
+                fn ($notification): bool => strtolower((string) (($notification->data ?? [])['prioridad'] ?? 'baja')) === $priorityFilter
+            );
+        }
+
+        if ($typeFilter !== '') {
+            $filteredNotifications = $filteredNotifications->filter(
+                fn ($notification): bool => $this->notificationTypeKey($notification->data ?? []) === $typeFilter
+            );
+        }
+
+        if ($lineFilter !== '') {
+            $filteredNotifications = $filteredNotifications->filter(
+                fn ($notification): bool => $this->notificationLine($notification->data ?? []) === $lineFilter
+            );
+        }
+
+        $priorityRank = ['baja' => 1, 'media' => 2, 'alta' => 3];
+        $filteredNotifications = match ($sortOrder) {
+            'oldest' => $filteredNotifications
+                ->sortBy(fn ($notification): int => $notification->created_at?->getTimestamp() ?? 0)
+                ->values(),
+            'priority' => $filteredNotifications
+                ->sortByDesc(fn ($notification): int => $priorityRank[strtolower((string) (($notification->data ?? [])['prioridad'] ?? 'baja'))] ?? 1)
+                ->values(),
+            default => $filteredNotifications
+                ->sortByDesc(fn ($notification): int => $notification->created_at?->getTimestamp() ?? 0)
+                ->values(),
+        };
+
         $notifications = new LengthAwarePaginator(
-            $availableNotifications->forPage($page, $perPage)->values(),
-            $availableNotifications->count(),
+            $filteredNotifications->forPage($page, $perPage)->values(),
+            $filteredNotifications->count(),
             $perPage,
             $page,
             [
@@ -48,9 +148,50 @@ class NotificationController extends Controller
                 'query' => $request->query(),
             ]
         );
-        $unreadCount = $availableNotifications->whereNull('read_at')->count();
 
-        return view('notifications.index', compact('notifications', 'unreadCount', 'returnUrl'));
+        return view('notifications.index', compact(
+            'notifications',
+            'unreadCount',
+            'returnUrl',
+            'totalNotifications',
+            'activeFilter',
+            'searchTerm',
+            'priorityFilter',
+            'typeFilter',
+            'lineFilter',
+            'sortOrder',
+            'typeOptions',
+            'lineOptions'
+        ));
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    private function notificationTypeKey(array $data): string
+    {
+        return (string) ($data['type'] ?? $data['record_type'] ?? 'notification');
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    private function notificationTypeLabel(array $data): string
+    {
+        return (string) ($data['record_label'] ?? match ($data['type'] ?? null) {
+            'plan_accion_due' => 'Plan de accion',
+            'component_alert' => 'Alerta de componente',
+            'admin_analysis_deleted' => 'Analisis eliminado',
+            default => 'Notificacion',
+        });
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    private function notificationLine(array $data): string
+    {
+        return trim((string) ($data['linea'] ?? $data['linea_nombre'] ?? ''));
     }
 
     public function markAsRead(Request $request, string $id): JsonResponse|RedirectResponse

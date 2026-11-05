@@ -143,7 +143,7 @@
             @endif
 
             @if($puedeVerCentralHidraulica)
-            <a href="{{ route('pasteurizadora.central-hidraulica.index') }}" class="industrial-menu-card" data-number="06" style="--card-accent: #19d3b1; --card-glow: rgba(25, 211, 177, .34);">
+            <a href="{{ route('pasteurizadora.central-hidraulica.index') }}" class="industrial-menu-card" data-number="05" style="--card-accent: #19d3b1; --card-glow: rgba(25, 211, 177, .34);">
                 <span class="industrial-menu-card__shine" aria-hidden="true"></span>
                 <span class="industrial-menu-card__topline" aria-hidden="true"></span>
                 <span class="industrial-menu-card__visual" aria-hidden="true">
@@ -156,7 +156,7 @@
                     <span class="industrial-menu-card__action">Abrir módulo <i class="fas fa-arrow-up-right-from-square" aria-hidden="true"></i></span>
                 </span>
             </a>
-            <a href="{{ route('pasteurizadora.central-hidraulica.historico-revisados') }}" class="industrial-menu-card" data-number="07" style="--card-accent: #9a7bff; --card-glow: rgba(154, 123, 255, .34);">
+            <a href="{{ route('pasteurizadora.central-hidraulica.historico-revisados') }}" class="industrial-menu-card" data-number="06" style="--card-accent: #9a7bff; --card-glow: rgba(154, 123, 255, .34);">
                 <span class="industrial-menu-card__shine" aria-hidden="true"></span>
                 <span class="industrial-menu-card__topline" aria-hidden="true"></span>
                 <span class="industrial-menu-card__visual" aria-hidden="true">
@@ -301,4 +301,54 @@
 
 </style>
 @include('partials.industrial-menu-styles')
+
+{{-- Ajuste exclusivo del menú de Pasteurizadora para aprovechar mejor el ancho disponible. --}}
+<style>
+    @media (min-width: 1101px) {
+        .pasteur-menu > .max-w-7xl {
+            width: min(100%, 92rem);
+            max-width: 92rem;
+        }
+
+        .pasteur-menu .industrial-menu-grid {
+            gap: clamp(1.25rem, 1.8vw, 1.6rem);
+        }
+
+        .pasteur-menu .industrial-menu-card,
+        .pasteur-menu .industrial-menu-card__body {
+            min-height: clamp(15.5rem, 17vw, 17.5rem);
+        }
+
+        .pasteur-menu .industrial-menu-card__visual {
+            left: 45%;
+        }
+
+        .pasteur-menu .industrial-menu-card__body {
+            width: 45%;
+            padding: 4rem 1rem 1.15rem 1.45rem;
+        }
+
+        .pasteur-menu .industrial-menu-card__title {
+            max-width: 16rem;
+            font-size: clamp(1.05rem, 1.55vw, 1.3rem);
+        }
+
+        .pasteur-menu .industrial-menu-card__description {
+            max-width: 15rem;
+            font-size: .84rem;
+        }
+
+    }
+
+    @media (max-width: 1100px) and (min-width: 641px) {
+        .pasteur-menu .industrial-menu-card,
+        .pasteur-menu .industrial-menu-card__body {
+            min-height: 15.5rem;
+        }
+    }
+
+    .pasteur-menu .industrial-menu-card[aria-disabled="true"] {
+        display: none;
+    }
+</style>
 @endsection

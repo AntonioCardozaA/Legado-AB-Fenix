@@ -1377,4 +1377,49 @@
     }
 </style>
 @include('partials.industrial-menu-styles')
+
+{{-- Ajuste exclusivo del menú de Lavadora para aprovechar mejor el ancho disponible. --}}
+<style>
+    @media (min-width: 1101px) {
+        .lavadora-menu > .max-w-7xl {
+            width: min(100%, 92rem);
+            max-width: 92rem;
+        }
+
+        .lavadora-menu .industrial-menu-grid {
+            gap: clamp(1.25rem, 1.8vw, 1.6rem);
+        }
+
+        .lavadora-menu .industrial-menu-card,
+        .lavadora-menu .industrial-menu-card__body {
+            min-height: clamp(15.5rem, 17vw, 17.5rem);
+        }
+
+        .lavadora-menu .industrial-menu-card__visual {
+            left: 45%;
+        }
+
+        .lavadora-menu .industrial-menu-card__body {
+            width: 45%;
+            padding: 4rem 1rem 1.15rem 1.45rem;
+        }
+
+        .lavadora-menu .industrial-menu-card__title {
+            max-width: 16rem;
+            font-size: clamp(1.05rem, 1.55vw, 1.3rem);
+        }
+
+        .lavadora-menu .industrial-menu-card__description {
+            max-width: 15rem;
+            font-size: .84rem;
+        }
+    }
+
+    @media (max-width: 1100px) and (min-width: 641px) {
+        .lavadora-menu .industrial-menu-card,
+        .lavadora-menu .industrial-menu-card__body {
+            min-height: 15.5rem;
+        }
+    }
+</style>
 @endsection
