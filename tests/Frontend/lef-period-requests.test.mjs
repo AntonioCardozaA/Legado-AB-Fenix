@@ -72,6 +72,74 @@ function page() {
     return { context, state, date, calls, rendered, errors };
 }
 
+test('all lines loads its total trend and late individual failures cannot replace it', async () => {
+    const p = page();
+    Object.assign(p.state, { lineaId: 'all', trendVisible: true, trendRequestId: 0 });
+    Object.assign(p.context, {
+        setTrendLoading() {},
+        renderTrend: (payload) => p.rendered.push(payload),
+        renderTrendEmpty: (message) => p.errors.push(message),
+    });
+    p.context.endpoints.trend = '/trend';
+    runInNewContext(view.slice(view.indexOf('    function loadTrend('), view.indexOf('    function setTrendLoading(')), p.context);
+    p.context.loadTrend();
+    assert.equal(p.calls[0].url, '/trend?scope=all');
+    p.calls[0].finish({ all_lines: true });
+    await flush();
+    assert.equal(p.rendered[0].all_lines, true);
+
+    p.state.lineaId = 1;
+    p.context.loadTrend();
+    assert.equal(p.calls[1].url, '/trend?linea_id=1');
+    p.state.lineaId = 'all';
+    p.context.loadTrend();
+    assert.equal(p.calls[1].signal.aborted, true);
+    p.calls[2].finish({ all_lines: true, total: 11 });
+    p.calls[1].reject(new Error('Stale individual trend failure'));
+    await flush();
+    assert.equal(p.rendered.at(-1).total, 11);
+    assert.equal(p.errors.length, 0);
+});
+
+test('the trend chart plots total LEF in all windows for both years and can return to one line', () => {
+    const charts = {};
+    const nodes = { trendHeading: {}, trendTitle: {}, trendEmpty: {}, trendChartWrap: {} };
+    const context = {
+        charts, nodes, document: { getElementById: () => ({}) },
+        compactQuery: { matches: false }, valueLabelPlugin: {},
+        periodDefinitions: ['52', '12', '4'].map((period) => ({ key: period, label: `${period} SEM`, valueKey: `value_${period}_weeks` })),
+        currentLineName: () => 'Todas las lineas', trendChartOptions: () => ({}),
+        Chart: class {
+            constructor(canvas, config) { this.config = config; this.data = config.data; }
+            destroy() { this.destroyed = true; }
+        },
+    };
+    runInNewContext(view.slice(view.indexOf('    function renderTrend('), view.indexOf('    function renderTrendEmpty(')), context);
+    const payload = {
+        has_data: true, all_lines: true, linea: 'Todas las lineas', machine_name: 'LAVADORAS - LEF TOTAL',
+        years: [2025, 2026], months: ['Ene', 'Feb'],
+        series: {
+            2025: [{ value_52_weeks: 15, value_12_weeks: 10, value_4_weeks: 5 }, { value_52_weeks: null, value_12_weeks: null, value_4_weeks: null }],
+            2026: [{ value_52_weeks: 11, value_12_weeks: 7, value_4_weeks: 5 }, { value_52_weeks: 0, value_12_weeks: 0, value_4_weeks: 0 }],
+        },
+    };
+    context.renderTrend(payload);
+    const totalChart = charts.washerTrendChart;
+    assert.equal(totalChart.config.type, 'line');
+    assert.equal(totalChart.data.datasets.length, 6);
+    assert.deepEqual(Array.from(totalChart.data.datasets[0].data), [15, null]);
+    assert.deepEqual(Array.from(totalChart.data.datasets[3].data), [11, 0]);
+    assert.deepEqual(Array.from(totalChart.data.datasets[4].data), [7, 0]);
+    assert.deepEqual(Array.from(totalChart.data.datasets[5].data), [5, 0]);
+    assert.match(nodes.trendHeading.textContent, /LEF total/);
+    assert.match(nodes.trendTitle.textContent, /Todas las lineas/);
+    assert.equal(nodes.trendChartWrap.hidden, false);
+    context.renderTrend({ ...payload, all_lines: false, linea: 'L-04', machine_name: 'LAVADORA' });
+    assert.equal(totalChart.destroyed, true);
+    assert.match(nodes.trendHeading.textContent, /Maquina LAVADORA/);
+    assert.match(nodes.trendTitle.textContent, /L-04/);
+});
+
 test('data starts before periods finish and runs only once', async () => {
     const p = page();
     p.context.loadPeriods(true);

@@ -104,10 +104,13 @@ class Lef52124Controller extends Controller
     public function washerMachineTrend(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'linea_id' => ['required', 'integer', 'exists:lineas,id'],
+            'scope' => ['nullable', 'in:all'],
+            'linea_id' => ['required_without:scope', 'integer', 'exists:lineas,id'],
         ]);
 
-        return response()->json($this->dataService->washerMachineTrendPayload((int) $validated['linea_id']));
+        return response()->json($this->dataService->washerMachineTrendPayload(
+            ($validated['scope'] ?? null) === 'all' ? null : (int) $validated['linea_id']
+        ));
     }
 
     public function costData(Request $request): JsonResponse

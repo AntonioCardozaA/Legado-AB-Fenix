@@ -51,6 +51,79 @@ class Lef52124LineTrendComparisonTest extends TestCase
         $this->getJson(route('lef52124.trend.washer-machine', ['linea_id' => 999999]))->assertUnprocessable();
     }
 
+    public function test_all_lines_trend_sums_the_latest_washer_per_line_and_month(): void
+    {
+        $this->actingAs($this->userWithRole(User::ROLE_ADMIN));
+        $l04 = Linea::create(['nombre' => 'L-04', 'activo' => true]);
+        $l05 = Linea::create(['nombre' => 'L-05', 'activo' => true]);
+        $inactive = Linea::create(['nombre' => 'L-06', 'activo' => false]);
+        $other = Linea::create(['nombre' => 'L-99', 'activo' => true]);
+
+        $this->createImport($l04, '2025-01-31', washerValue: 10, lineValue: 100);
+        $this->createImport($l05, '2025-01-20', washerValue: 5, lineValue: 100);
+        $this->createImport($l04, '2026-01-10', washerValue: 100, lineValue: 100);
+        $this->createImport($l04, '2026-01-31', washerValue: 20, lineValue: 100);
+        $latest = $this->createImport($l04, '2026-01-31', washerValue: 8, lineValue: 100);
+        $latest->items()->where('item_name', 'LAVADORA DE BOTELLA')->update([
+            'value_12_weeks' => 4,
+            'value_4_weeks' => 2,
+        ]);
+        $this->createImport($l05, '2026-01-20', washerValue: 3, lineValue: 100);
+        $failed = $this->createImport($l05, '2026-01-31', washerValue: 100, lineValue: 100);
+        $failed->update(['status' => 'failed']);
+        $this->createImport($inactive, '2026-01-31', washerValue: 100, lineValue: 100);
+        $this->createImport($other, '2026-01-31', washerValue: 100, lineValue: 100);
+        $this->createImport($l04, '2026-02-28', washerValue: 0, lineValue: 100);
+        $this->createImport($l04, '2024-12-31', washerValue: 100, lineValue: 100);
+
+        $payload = $this->getJson(route('lef52124.trend.washer-machine', ['scope' => 'all']))
+            ->assertOk()
+            ->assertJsonPath('has_data', true)
+            ->assertJsonPath('all_lines', true)
+            ->assertJsonPath('linea', 'Todas las lineas')
+            ->assertJsonPath('machine_name', 'LAVADORAS - LEF TOTAL')
+            ->json();
+
+        $this->assertCount(12, $payload['series'][2025]);
+        $this->assertCount(12, $payload['series'][2026]);
+        foreach (['value_52_weeks' => 11, 'value_12_weeks' => 7, 'value_4_weeks' => 5] as $window => $total) {
+            $this->assertEquals(15, $payload['series'][2025][0][$window]);
+            $this->assertEquals($total, $payload['series'][2026][0][$window]);
+            $this->assertEquals(0, $payload['series'][2026][1][$window]);
+            $this->assertNotNull($payload['series'][2026][1][$window]);
+            $this->assertNull($payload['series'][2026][2][$window]);
+        }
+        $this->assertSame(2, $payload['series'][2026][0]['lines_count']);
+        $this->assertSame(1, $payload['series'][2026][1]['lines_count']);
+        $this->assertSame('2026-01-31', $payload['series'][2026][0]['data_date']);
+        $this->assertNull($payload['series'][2026][0]['import_id']);
+        $this->getJson(route('lef52124.trend.washer-machine', ['linea_id' => $l04->id]))
+            ->assertOk()
+            ->assertJsonPath('all_lines', false)
+            ->assertJsonPath('series.2026.0.import_id', $latest->id);
+    }
+
+    public function test_all_lines_trend_returns_no_data_when_there_are_no_washer_records(): void
+    {
+        $this->actingAs($this->userWithRole(User::ROLE_ADMIN));
+        $line = Linea::create(['nombre' => 'L-04', 'activo' => true]);
+        $import = $this->createImport($line, '2026-01-31', washerValue: 5, lineValue: 100);
+        $import->items()->where('item_name', 'LAVADORA DE BOTELLA')->delete();
+
+        $payload = $this->getJson(route('lef52124.trend.washer-machine', ['scope' => 'all']))
+            ->assertOk()
+            ->assertJsonPath('has_data', false)
+            ->json();
+        foreach ([2025, 2026] as $year) {
+            foreach ($payload['series'][$year] as $month) {
+                $this->assertNull($month['value_52_weeks']);
+                $this->assertNull($month['value_12_weeks']);
+                $this->assertNull($month['value_4_weeks']);
+            }
+        }
+        $this->getJson(route('lef52124.trend.washer-machine', ['scope' => 'invalid']))->assertUnprocessable();
+    }
+
     public function test_current_export_downloads_all_lines_workbook_and_requires_authenticated_access(): void
     {
         $this->travelTo(\Carbon\Carbon::parse('2026-10-31 12:00:00'));
@@ -99,7 +172,7 @@ class Lef52124LineTrendComparisonTest extends TestCase
         $this->get(route('lef52124.export'))->assertRedirect(route('login'));
     }
 
-    private function createImport(Linea $linea, string $date, float $washerValue, float $lineValue): void
+    private function createImport(Linea $linea, string $date, float $washerValue, float $lineValue): Lef52124Import
     {
         $import = Lef52124Import::create([
             'linea_id' => $linea->id,
@@ -140,6 +213,8 @@ class Lef52124LineTrendComparisonTest extends TestCase
             'value_12_weeks' => $lineValue,
             'value_4_weeks' => $lineValue,
         ]);
+
+        return $import;
     }
 
     private function userWithRole(string $role): User

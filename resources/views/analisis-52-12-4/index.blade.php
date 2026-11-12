@@ -424,7 +424,7 @@
     <section class="lef-panel" data-trend-panel hidden>
         <div class="lef-panel-header">
             <div>
-                <h2 class="lef-panel-title">Tendencia 52-12-4 - Maquina LAVADORA</h2>
+                <h2 class="lef-panel-title" data-trend-heading>Tendencia 52-12-4 - Maquina LAVADORA</h2>
                 <p style="margin: 4px 0 0; color: #64748b; font-size: 0.84rem;" data-trend-title>
                     Enero a diciembre 2025 y 2026
                 </p>
@@ -614,6 +614,7 @@ document.addEventListener('DOMContentLoaded', function () {
         trendButton: document.querySelector('[data-trend-toggle]'),
         trendLabel: document.querySelector('[data-trend-label]'),
         trendPanel: document.querySelector('[data-trend-panel]'),
+        trendHeading: document.querySelector('[data-trend-heading]'),
         trendTitle: document.querySelector('[data-trend-title]'),
         trendEmpty: document.querySelector('[data-trend-empty]'),
         trendChartWrap: document.querySelector('[data-trend-chart-wrap]'),
@@ -813,15 +814,11 @@ document.addEventListener('DOMContentLoaded', function () {
         if (!state.lineaId || !state.trendVisible) return;
         const requestId = ++state.trendRequestId;
         state.activeTrendController?.abort();
-        if (state.lineaId === 'all') {
-            setTrendLoading(false);
-            renderTrendEmpty('Selecciona una linea para ver la tendencia de su lavadora.');
-            return;
-        }
         state.activeTrendController = new AbortController();
         setTrendLoading(true);
 
-        fetch(`${endpoints.trend}?linea_id=${encodeURIComponent(state.lineaId)}`, {
+        const lineQuery = state.lineaId === 'all' ? 'scope=all' : `linea_id=${encodeURIComponent(state.lineaId)}`;
+        fetch(`${endpoints.trend}?${lineQuery}`, {
             headers: { 'Accept': 'application/json' },
             signal: state.activeTrendController.signal
         })
@@ -834,7 +831,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 renderTrend(payload);
             })
             .catch((error) => {
-                if (error.name === 'AbortError') return;
+                if (requestId !== state.trendRequestId || error.name === 'AbortError') return;
                 renderTrendEmpty(error.message || 'No se pudo cargar la tendencia de Lavadora.');
             })
             .finally(() => {
@@ -850,6 +847,9 @@ document.addEventListener('DOMContentLoaded', function () {
         if (nodes.trendLabel) nodes.trendLabel.textContent = isLoading ? 'Cargando...' : (state.trendVisible ? 'Ocultar tendencia' : 'Ver tendencia');
     }
     function renderTrend(payload) {
+        if (nodes.trendHeading) {
+            nodes.trendHeading.textContent = payload.all_lines ? 'Tendencia 52-12-4 - LEF total LAVADORAS' : 'Tendencia 52-12-4 - Maquina LAVADORA';
+        }
         if (!payload.has_data) {
             renderTrendEmpty(`No existen registros mensuales 52-12-4 para la maquina Lavadora en ${currentLineName()} durante 2025 o 2026.`);
             return;

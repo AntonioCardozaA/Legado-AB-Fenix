@@ -227,41 +227,39 @@ class Lef52124DataService
         ];
     }
 
-    public function washerMachineTrendPayload(int $lineaId): array
+    public function washerMachineTrendPayload(?int $lineaId): array
     {
         $years = [2025, 2026];
         $imports = Lef52124Import::with([
             'linea:id,nombre',
             'items' => fn ($query) => $query->where('type', Lef52124Item::TYPE_MACHINE),
         ])
-            ->where('linea_id', $lineaId)
+            ->when($lineaId !== null,
+                fn ($query) => $query->where('linea_id', $lineaId),
+                fn ($query) => $query->whereIn('linea_id', $this->lineas()->modelKeys()))
             ->where('status', 'success')
             ->whereBetween('data_date', ['2025-01-01', '2026-12-31'])
             ->orderByDesc('data_date')
             ->orderByDesc('created_at')
+            ->orderByDesc('id')
             ->get();
 
         $machineName = null;
         $series = collect($years)
-            ->mapWithKeys(function (int $year) use ($imports, &$machineName) {
+            ->mapWithKeys(function (int $year) use ($imports, $lineaId, &$machineName) {
                 $months = collect(range(1, 12))
-                    ->map(function (int $month) use ($imports, $year, &$machineName) {
+                    ->map(function (int $month) use ($imports, $year, $lineaId, &$machineName) {
                         $monthImports = $imports
                             ->filter(fn (Lef52124Import $item) => (int) $item->data_date->year === $year
                                 && (int) $item->data_date->month === $month);
-                        $import = null;
-                        $machine = null;
-
-                        foreach ($monthImports as $candidateImport) {
-                            $candidateMachine = $candidateImport->items
-                                ->first(fn (Lef52124Item $item) => str_contains($this->normalizeName($item->item_name), 'lavadora'));
-
-                            if ($candidateMachine) {
-                                $import = $candidateImport;
-                                $machine = $candidateMachine;
-                                break;
-                            }
-                        }
+                        $selectedImports = $monthImports
+                            ->groupBy('linea_id')
+                            ->map(fn (Collection $rows) => $rows->first(fn (Lef52124Import $import) => $import->items
+                                ->contains(fn (Lef52124Item $item) => str_contains($this->normalizeName($item->item_name), 'lavadora'))))
+                            ->filter();
+                        $machines = $selectedImports->map(fn (Lef52124Import $import) => $import->items
+                            ->first(fn (Lef52124Item $item) => str_contains($this->normalizeName($item->item_name), 'lavadora')));
+                        $machine = $machines->first();
 
                         if ($machine && !$machineName) {
                             $machineName = $machine->item_name;
@@ -269,11 +267,12 @@ class Lef52124DataService
 
                         return [
                             'month' => $month,
-                            'import_id' => $import?->id,
-                            'data_date' => $import?->data_date?->format('Y-m-d'),
-                            'value_52_weeks' => $machine ? (float) $machine->value_52_weeks : null,
-                            'value_12_weeks' => $machine ? (float) $machine->value_12_weeks : null,
-                            'value_4_weeks' => $machine ? (float) $machine->value_4_weeks : null,
+                            'import_id' => $lineaId !== null ? $selectedImports->first()?->id : null,
+                            'data_date' => $selectedImports->max(fn (Lef52124Import $import) => $import->data_date->format('Y-m-d')),
+                            'lines_count' => $selectedImports->count(),
+                            'value_52_weeks' => $machine ? (float) $machines->sum('value_52_weeks') : null,
+                            'value_12_weeks' => $machine ? (float) $machines->sum('value_12_weeks') : null,
+                            'value_4_weeks' => $machine ? (float) $machines->sum('value_4_weeks') : null,
                         ];
                     })
                     ->values();
@@ -290,8 +289,9 @@ class Lef52124DataService
 
         return [
             'has_data' => $hasData,
-            'linea' => $imports->first()?->linea?->nombre ?: Linea::find($lineaId)?->nombre,
-            'machine_name' => $machineName ?: 'LAVADORA',
+            'all_lines' => $lineaId === null,
+            'linea' => $lineaId === null ? 'Todas las lineas' : ($imports->first()?->linea?->nombre ?: Linea::find($lineaId)?->nombre),
+            'machine_name' => $lineaId === null ? 'LAVADORAS - LEF TOTAL' : ($machineName ?: 'LAVADORA'),
             'years' => $years,
             'months' => [
                 'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
