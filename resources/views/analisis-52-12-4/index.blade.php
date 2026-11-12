@@ -234,7 +234,7 @@
     .lef-alert.error { background: #fee2e2; color: #991b1b; }
     .lef-alert.info { background: #eff6ff; color: #1e40af; border-color: #bfdbfe; }
     .lef-table-wrap { overflow-x: auto; max-width: 100%; -webkit-overflow-scrolling: touch; }
-    .lef-table { width: 100%; min-width: 1110px; border-collapse: collapse; table-layout: fixed; font-size: 0.86rem; }
+    .lef-table { width: 100%; min-width: 1230px; border-collapse: collapse; table-layout: fixed; font-size: 0.86rem; }
     .lef-table th, .lef-table td { padding: 10px 12px; border-bottom: 1px solid #e2e8f0; text-align: left; vertical-align: middle; overflow-wrap: anywhere; }
     .lef-table th { background: #f8fafc; color: #475569; text-transform: uppercase; font-size: 0.72rem; line-height: 1.25; letter-spacing: 0.04em; overflow-wrap: normal; word-break: normal; }
     .lef-table th:nth-child(1), .lef-table td:nth-child(1) { width: 58px; }
@@ -245,7 +245,8 @@
     .lef-table th:nth-child(6), .lef-table td:nth-child(6),
     .lef-table th:nth-child(7), .lef-table td:nth-child(7),
     .lef-table th:nth-child(8), .lef-table td:nth-child(8) { width: 88px; }
-    .lef-table th:nth-child(9), .lef-table td:nth-child(9) { width: 92px; text-align: right; }
+    .lef-table th:nth-child(9), .lef-table td:nth-child(9) { width: 190px; text-align: right; }
+    .lef-actions { display: flex; justify-content: flex-end; align-items: center; gap: 7px; flex-wrap: wrap; }
     .lef-delete {
         display: inline-flex;
         align-items: center;
@@ -262,6 +263,20 @@
         cursor: pointer;
     }
     .lef-delete:hover { background: #fee2e2; color: #991b1b; }
+    .lef-download {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 34px;
+        border-radius: 999px;
+        padding: 0 12px;
+        background: #eff6ff;
+        color: #1d4ed8;
+        font-weight: 900;
+        line-height: 1;
+        white-space: nowrap;
+    }
+    .lef-download:hover { background: #dbeafe; color: #1e3a8a; }
     .lef-action.is-loading i { animation: lef-spin 0.8s linear infinite; }
     @keyframes lef-spin { to { transform: rotate(360deg); } }
     @media (min-width: 1180px) { .lef-grid.two { grid-template-columns: minmax(0, 1fr); } }
@@ -283,7 +298,8 @@
         .lef-table td[colspan] { display: block; text-align: center !important; color: #64748b; }
         .lef-table td[colspan]::before { content: none; }
         .lef-table td[data-label="Acciones"] { align-items: center; }
-        .lef-delete { width: 100%; max-width: 160px; }
+        .lef-actions { justify-content: flex-start; }
+        .lef-delete, .lef-download { width: 100%; max-width: 160px; }
     }
     @media (max-width: 480px) {
         .lef-title-icon { display: none; }
@@ -516,7 +532,7 @@
             <div class="lef-panel-header"><h2 class="lef-panel-title">Historial de importaciones</h2></div>
             <div class="lef-table-wrap">
                 <table class="lef-table">
-                    <thead><tr><th>Linea</th><th>Archivo</th><th>Fecha informacion</th><th>Fecha importacion</th><th>Usuario</th><th>Maquinas</th><th>Partes</th><th>Estado</th><th></th></tr></thead>
+                    <thead><tr><th>Linea</th><th>Archivo</th><th>Fecha informacion</th><th>Fecha importacion</th><th>Usuario</th><th>Maquinas</th><th>Partes</th><th>Estado</th><th>Acciones</th></tr></thead>
                     <tbody>
                         @forelse($imports as $import)
                             <tr>
@@ -529,10 +545,15 @@
                                 <td data-label="Partes">{{ $import->parts_count }}</td>
                                 <td data-label="Estado">{{ ucfirst($import->status) }}</td>
                                 <td data-label="Acciones">
-                                    <form method="POST" action="{{ route('lef52124.destroy', $import) }}" data-delete-import>
-                                        @csrf @method('DELETE')
-                                        <button class="lef-delete" type="submit">Eliminar</button>
-                                    </form>
+                                    <div class="lef-actions">
+                                        <a class="lef-download" href="{{ route('lef52124.download', $import) }}">
+                                            <i class="fas fa-download"></i> Descargar
+                                        </a>
+                                        <form method="POST" action="{{ route('lef52124.destroy', $import) }}" data-delete-import>
+                                            @csrf @method('DELETE')
+                                            <button class="lef-delete" type="submit">Eliminar</button>
+                                        </form>
+                                    </div>
                                 </td>
                             </tr>
                         @empty

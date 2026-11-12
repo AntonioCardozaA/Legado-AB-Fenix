@@ -17,6 +17,7 @@ class Lef52124Import extends Model
         'linea_id',
         'data_date',
         'source_filename',
+        'source_path',
         'observations',
         'status',
         'machines_count',

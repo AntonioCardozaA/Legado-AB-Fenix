@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Exports\Lef52124WorkbookExport;
+use App\Exports\Lef52124SingleImportExport;
 use App\Models\Lef52124CostEntry;
 use App\Models\Lef52124Import;
 use App\Models\Lef52124Item;
@@ -16,6 +17,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use Maatwebsite\Excel\Facades\Excel;
@@ -99,6 +101,20 @@ class Lef52124Controller extends Controller
             new Lef52124WorkbookExport($imports, $lineas, $startDate, $endDate),
             '52-12-4-todas-las-lineas-2025-a-'.now()->format('Y-m-d').'.xlsx'
         );
+    }
+
+    public function download(Request $request, Lef52124Import $import)
+    {
+        $this->ensureAdmin($request);
+        $import->load(['items', 'linea:id,nombre']);
+
+        if ($import->source_path && Storage::disk('local')->exists($import->source_path)) {
+            return Storage::disk('local')->download($import->source_path, $import->source_filename);
+        }
+
+        $filename = pathinfo($import->source_filename, PATHINFO_FILENAME).'.xlsx';
+
+        return Excel::download(new Lef52124SingleImportExport($import), $filename);
     }
 
     public function washerMachineTrend(Request $request): JsonResponse
@@ -232,7 +248,12 @@ class Lef52124Controller extends Controller
     {
         $this->ensureAdmin($request);
         $lineaId = $import->linea_id;
+        $sourcePath = $import->source_path;
         $import->delete();
+
+        if ($sourcePath) {
+            Storage::disk('local')->delete($sourcePath);
+        }
 
         return redirect()
             ->route('lef52124.index', ['linea_id' => $lineaId])

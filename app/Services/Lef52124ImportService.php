@@ -9,6 +9,7 @@ use App\Models\User;
 use Carbon\CarbonInterface;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\IOFactory;
@@ -56,35 +57,48 @@ class Lef52124ImportService
             $rows[$key] = $this->parseSheet($sheets[$key], $config);
         }
 
-        return DB::transaction(function () use ($linea, $dataDate, $observations, $user, $file, $rows) {
-            $import = Lef52124Import::create([
-                'linea_id' => $linea->id,
-                'data_date' => $dataDate->toDateString(),
-                'source_filename' => $file->getClientOriginalName(),
-                'observations' => $observations,
-                'status' => 'success',
-                'machines_count' => count($rows['machines']),
-                'parts_count' => count($rows['parts']),
-                'line_items_count' => count($rows['lines']),
-                'imported_by' => $user->id,
-            ]);
+        $sourcePath = $file->store('lef52124/imports', 'local');
 
-            foreach (self::SHEETS as $key => $config) {
-                foreach ($rows[$key] as $row) {
-                    Lef52124Item::create([
-                        'lef52124_import_id' => $import->id,
-                        'linea_id' => $linea->id,
-                        'type' => $config['type'],
-                        'item_name' => $row['name'],
-                        'value_52_weeks' => $row['value_52_weeks'],
-                        'value_12_weeks' => $row['value_12_weeks'],
-                        'value_4_weeks' => $row['value_4_weeks'],
-                    ]);
+        if (!$sourcePath) {
+            throw new \RuntimeException('No se pudo guardar el archivo Excel importado.');
+        }
+
+        try {
+            return DB::transaction(function () use ($linea, $dataDate, $observations, $user, $file, $rows, $sourcePath) {
+                $import = Lef52124Import::create([
+                    'linea_id' => $linea->id,
+                    'data_date' => $dataDate->toDateString(),
+                    'source_filename' => $file->getClientOriginalName(),
+                    'source_path' => $sourcePath,
+                    'observations' => $observations,
+                    'status' => 'success',
+                    'machines_count' => count($rows['machines']),
+                    'parts_count' => count($rows['parts']),
+                    'line_items_count' => count($rows['lines']),
+                    'imported_by' => $user->id,
+                ]);
+
+                foreach (self::SHEETS as $key => $config) {
+                    foreach ($rows[$key] as $row) {
+                        Lef52124Item::create([
+                            'lef52124_import_id' => $import->id,
+                            'linea_id' => $linea->id,
+                            'type' => $config['type'],
+                            'item_name' => $row['name'],
+                            'value_52_weeks' => $row['value_52_weeks'],
+                            'value_12_weeks' => $row['value_12_weeks'],
+                            'value_4_weeks' => $row['value_4_weeks'],
+                        ]);
+                    }
                 }
-            }
 
-            return $import;
-        });
+                return $import;
+            });
+        } catch (\Throwable $exception) {
+            Storage::disk('local')->delete($sourcePath);
+
+            throw $exception;
+        }
     }
 
     private function validateExtension(UploadedFile $file): void
