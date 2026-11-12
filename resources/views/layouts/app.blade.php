@@ -268,7 +268,7 @@
         <div class="px-4 py-4 border-t border-gray-200">
             <div class="flex items-center space-x-3 px-4 py-2 text-xs text-gray-500">
                 <i class="fas fa-copyright"></i>
-                <span>v2.2.5</span>
+                <span>v2.5.2</span>
             </div>
         </div>
     </aside>
