@@ -130,7 +130,17 @@ class Lef52124DataService
 
             return $row;
         }));
-        $machines = $items->where('type', Lef52124Item::TYPE_MACHINE)->values();
+        $machineItems = $imports->flatMap(fn (Lef52124Import $import) => $import->items->where('type', Lef52124Item::TYPE_MACHINE));
+        $machines = $machineItems
+            ->groupBy(fn (Lef52124Item $item) => $this->normalizeName(Str::squish($item->item_name)))
+            ->map(fn (Collection $rows) => new Lef52124Item([
+                'type' => Lef52124Item::TYPE_MACHINE,
+                'item_name' => Str::squish($rows->first()->item_name),
+                'value_52_weeks' => $rows->avg('value_52_weeks'),
+                'value_12_weeks' => $rows->avg('value_12_weeks'),
+                'value_4_weeks' => $rows->avg('value_4_weeks'),
+            ]))
+            ->values();
         $sortColumn = $this->periodColumn($filters['period'] ?? 'all');
         $lines = $lineas->map(function (Linea $linea) use ($imports): array {
             $import = $imports->get($linea->id);
@@ -152,7 +162,7 @@ class Lef52124DataService
             'all_lines' => true,
             'summary' => [
                 'linea' => 'Todas las lineas',
-                'machines_count' => $machines->count(),
+                'machines_count' => $machineItems->count(),
                 'lines_count' => $imports->count(),
                 'top_52' => $this->topItem($machines, 'value_52_weeks'),
                 'top_12' => $this->topItem($machines, 'value_12_weeks'),

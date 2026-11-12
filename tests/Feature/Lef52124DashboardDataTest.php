@@ -68,7 +68,7 @@ class Lef52124DashboardDataTest extends TestCase
         );
     }
 
-    public function test_all_lines_includes_each_machine_once_and_keeps_line_values_separate(): void
+    public function test_all_lines_averages_each_machine_between_lines_and_keeps_line_values_separate(): void
     {
         $this->withoutMiddleware();
         $l04 = $this->line('L-04');
@@ -86,12 +86,18 @@ class Lef52124DashboardDataTest extends TestCase
             ->assertJsonPath('all_lines', true)
             ->assertJsonPath('summary.machines_count', 4)
             ->assertJsonPath('summary.lines_count', 2)
-            ->assertJsonCount(4, 'machines')
+            ->assertJsonCount(2, 'machines')
             ->assertJsonCount(3, 'comparison')
             ->json();
 
-        $this->assertSame('L-05 - TRANSPORTADOR', $payload['machines'][0]['name']);
-        $this->assertEquals(6, $payload['machines'][0]['value_52_weeks']);
+        $this->assertSame('TRANSPORTADOR', $payload['machines'][0]['name']);
+        foreach (['value_52_weeks', 'value_12_weeks', 'value_4_weeks'] as $column) {
+            $this->assertEquals(5, $payload['machines'][0][$column]);
+            $this->assertEquals(2.5, $payload['machines'][1][$column]);
+        }
+        $this->assertSame('5.00', $payload['machines'][0]['formatted_52']);
+        $this->assertSame('TRANSPORTADOR', $payload['summary']['top_52']['name']);
+        $this->assertSame('5.00', $payload['summary']['top_52']['value']);
         $this->assertEquals(4, $payload['comparison'][0]['value_52_weeks']);
         $this->assertEquals(6, $payload['comparison'][1]['value_52_weeks']);
         $this->assertNull($payload['comparison'][2]['value_52_weeks']);
@@ -108,6 +114,42 @@ class Lef52124DashboardDataTest extends TestCase
             ->assertOk()
             ->assertViewHas('selectedLineaId', 'all')
             ->assertSee('data-linea-id="all">Todas</button>', false);
+    }
+
+    public function test_machine_averages_include_zero_and_only_lines_with_that_machine_for_each_window(): void
+    {
+        $l04 = $this->import($this->line('L-04'), '2026-10-31', 4);
+        $l05 = $this->import($this->line('L-05'), '2026-10-20', 8);
+        $l06 = $this->import($this->line('L-06'), '2026-10-20', 0);
+        $l04->items()->where('item_name', 'TRANSPORTADOR')->update([
+            'value_12_weeks' => 6,
+            'value_4_weeks' => 3,
+        ]);
+        $l05->items()->where('item_name', 'TRANSPORTADOR')->update([
+            'item_name' => '  transportador  ',
+            'value_12_weeks' => 12,
+            'value_4_weeks' => 3,
+        ]);
+        $l06->items()->where('item_name', 'LAVADORA DE BOTELLAS')->delete();
+
+        $service = app(Lef52124DataService::class);
+        $payload = $service->dataPayload(['scope' => 'all']);
+        $this->assertSame(5, $payload['summary']['machines_count']);
+        $this->assertCount(2, $payload['machines']);
+        $transporter = $payload['machines'][0];
+        $this->assertSame('TRANSPORTADOR', $transporter['name']);
+        $this->assertEquals(4, $transporter['value_52_weeks']);
+        $this->assertEquals(6, $transporter['value_12_weeks']);
+        $this->assertEquals(2, $transporter['value_4_weeks']);
+        $this->assertSame('6.00', $transporter['formatted_12']);
+        $this->assertSame('2.00', $transporter['formatted_4']);
+        $this->assertEquals(3, $payload['machines'][1]['value_52_weeks']);
+
+        $fourWeeks = $service->dataPayload(['scope' => 'all', 'period' => '4']);
+        $this->assertSame('LAVADORA DE BOTELLAS', $fourWeeks['machines'][0]['name']);
+        $this->assertSame('LAVADORA DE BOTELLAS', $fourWeeks['summary']['top_4']['name']);
+        $this->assertSame('3.00', $fourWeeks['summary']['top_4']['value']);
+        $this->assertEquals(4, $l04->items()->where('item_name', 'TRANSPORTADOR')->first()->value_52_weeks);
     }
 
     public function test_all_lines_respects_the_selected_date_and_returns_empty_for_missing_dates(): void
