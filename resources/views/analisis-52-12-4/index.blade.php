@@ -1022,7 +1022,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (payload.all_lines) nodes.washerKpis.innerHTML = '';
         else renderWasherKpis(payload.washer);
         renderVisibility();
-        nodes.machinesTitle.textContent = payload.all_lines ? 'LEF-52-12-4 - Promedio por maquina entre lineas' : 'Pareto de LEF - Maquinas';
+        nodes.machinesTitle.textContent = payload.all_lines ? 'LEF-52-12-4 - LEF total por maquina' : 'Pareto de LEF - Maquinas';
         nodes.washerTitle.textContent = payload.all_lines ? 'LEF 52-12-4 - Lineas general' : 'LEF 52-12-4 - Linea general';
         renderGroupedBar('machinesChart', payload.machines || [], 'Maquina', false);
         renderGroupedBar('partsChart', payload.parts || [], 'Parte', false);
@@ -1066,7 +1066,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         periods.forEach((period) => {
             const top = summary[period.topKey];
-            cards.push([`${state.lineaId === 'all' ? 'Mayor afectacion promedio' : 'Mayor afectacion'} ${period.label}`, top?.name || 'Sin dato', top?.value || '']);
+            cards.push([`${state.lineaId === 'all' ? 'Mayor afectacion total' : 'Mayor afectacion'} ${period.label}`, top?.name || 'Sin dato', top?.value || '']);
         });
 
         if (state.lineaId !== 'all') periods.forEach((period) => {

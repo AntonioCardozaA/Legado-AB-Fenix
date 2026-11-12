@@ -136,9 +136,9 @@ class Lef52124DataService
             ->map(fn (Collection $rows) => new Lef52124Item([
                 'type' => Lef52124Item::TYPE_MACHINE,
                 'item_name' => Str::squish($rows->first()->item_name),
-                'value_52_weeks' => $rows->avg('value_52_weeks'),
-                'value_12_weeks' => $rows->avg('value_12_weeks'),
-                'value_4_weeks' => $rows->avg('value_4_weeks'),
+                'value_52_weeks' => $rows->sum('value_52_weeks'),
+                'value_12_weeks' => $rows->sum('value_12_weeks'),
+                'value_4_weeks' => $rows->sum('value_4_weeks'),
             ]))
             ->values();
         $sortColumn = $this->periodColumn($filters['period'] ?? 'all');
