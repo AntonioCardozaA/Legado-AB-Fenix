@@ -135,6 +135,80 @@ class DashboardController extends Controller
         return view('dashboard-modulos', compact('modulos'));
     }
 
+    /**
+     * Construye una tendencia compacta de actividad para las tarjetas del dashboard.
+     * Cada punto representa la cantidad de análisis registrados en los últimos siete días.
+     */
+    private function getModuleTrend(string $module, Collection $lineas): array
+    {
+        $end = now()->startOfDay();
+        $start = $end->copy()->subDays(6);
+        $lineaIds = $lineas->pluck('id')->filter()->values();
+
+        if ($lineaIds->isEmpty()) {
+            return [
+                'labels' => [],
+                'values' => [],
+                'details' => [],
+                'total' => 0,
+            ];
+        }
+
+        $query = match ($module) {
+            'lavadora' => AnalisisLavadora::query(),
+            'etiquetadora' => AnalisisEtiquetadora::query(),
+            'pasteurizadora' => AnalisisPasteurizadora::query()->where('resuelto_por_cambio', false),
+            default => null,
+        };
+
+        if ($query === null) {
+            return [
+                'labels' => [],
+                'values' => [],
+                'details' => [],
+                'total' => 0,
+            ];
+        }
+
+        $records = $query
+            ->whereIn('linea_id', $lineaIds)
+            ->whereNotNull('fecha_analisis')
+            ->whereBetween('fecha_analisis', [$start->toDateString(), $end->toDateString()])
+            ->get(['fecha_analisis', 'linea_id']);
+
+        $recordsByDay = $records->groupBy(function ($record) {
+            return optional($record->fecha_analisis)->format('Y-m-d');
+        });
+        $lineaNames = $lineas->pluck('nombre', 'id');
+
+        $labels = [];
+        $values = [];
+        $details = [];
+
+        for ($offset = 6; $offset >= 0; $offset--) {
+            $day = $end->copy()->subDays($offset);
+            $key = $day->toDateString();
+            $dayRecords = $recordsByDay->get($key, collect());
+            $labels[] = $day->locale('es')->isoFormat('dd');
+            $values[] = $dayRecords->count();
+            $details[] = $dayRecords
+                ->groupBy('linea_id')
+                ->map(function (Collection $lineRecords, $lineaId) use ($lineaNames) {
+                    $lineaName = $lineaNames->get($lineaId, 'Equipo');
+                    return $lineaName . ': ' . $lineRecords->count() . ' análisis';
+                })
+                ->values()
+                ->implode(' · ') ?: 'Sin análisis registrados';
+        }
+
+        return [
+            'labels' => $labels,
+            'values' => $values,
+            'details' => $details,
+            'total' => array_sum($values),
+        ];
+    }
+
     public function tecnico()
     {
         $resumen = [
@@ -690,9 +764,15 @@ public function pasteurizadoraOperativo(Request $request)
         $enRiesgo = 0;
         $requiereRevision = 0;
         $buenEstado = 0;
+        $estadoPreview = [];
 
         foreach ($lineasLavadora as $linea) {
             $estado = $this->calcularEstadoLavadora($linea->id);
+            $estadoPreview[] = [
+                'nombre' => $linea->nombre,
+                'nivel' => $estado['nivel'],
+                'mensaje' => $estado['mensaje'],
+            ];
             if ($estado['nivel'] === 'critico') {
                 $alertasCriticas++;
             } elseif ($estado['nivel'] === 'riesgo') {
@@ -710,7 +790,9 @@ public function pasteurizadoraOperativo(Request $request)
             'en_riesgo' => $enRiesgo,
             'requiere_revision' => $requiereRevision,
             'buen_estado' => $buenEstado,
-            'ultima_actualizacion' => now()->format('d/m/Y H:i')
+            'estado_preview' => $estadoPreview,
+            'tendencia' => $this->getModuleTrend('lavadora', $lineasLavadora),
+            'ultima_actualizacion' => now()->format('d/m/Y')
         ];
     }
 
@@ -732,7 +814,13 @@ public function pasteurizadoraOperativo(Request $request)
             'en_riesgo' => $estadoPasteurizadoras->where('estado.nivel', 'riesgo')->count(),
             'requiere_revision' => $estadoPasteurizadoras->where('estado.nivel', 'operativo')->count(),
             'buen_estado' => $estadoPasteurizadoras->where('estado.nivel', 'bueno')->count(),
-            'ultima_actualizacion' => now()->format('d/m/Y H:i')
+            'estado_preview' => $estadoPasteurizadoras->map(fn (array $item) => [
+                'nombre' => $item['nombre'],
+                'nivel' => $item['estado']['nivel'],
+                'mensaje' => $item['estado']['mensaje'],
+            ])->values()->all(),
+            'tendencia' => $this->getModuleTrend('pasteurizadora', $pasteurizadoras),
+            'ultima_actualizacion' => now()->format('d/m/Y')
         ];
     }
 
@@ -749,7 +837,13 @@ public function pasteurizadoraOperativo(Request $request)
             'en_riesgo' => $estadoEtiquetadoras->where('estado.nivel', 'riesgo')->count(),
             'requiere_revision' => $estadoEtiquetadoras->where('estado.nivel', 'operativo')->count(),
             'buen_estado' => $estadoEtiquetadoras->where('estado.nivel', 'bueno')->count(),
-            'ultima_actualizacion' => now()->format('d/m/Y H:i'),
+            'estado_preview' => $estadoEtiquetadoras->map(fn (array $item) => [
+                'nombre' => $item['nombre'],
+                'nivel' => $item['estado']['nivel'],
+                'mensaje' => $item['estado']['mensaje'],
+            ])->values()->all(),
+            'tendencia' => $this->getModuleTrend('etiquetadora', $lineas),
+            'ultima_actualizacion' => now()->format('d/m/Y'),
         ];
     }
 

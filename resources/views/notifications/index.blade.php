@@ -4,9 +4,19 @@
 
 @section('content')
 @php
-    $totalNotifications = method_exists($notifications, 'total') ? $notifications->total() : $notifications->count();
+    $totalNotifications = $totalNotifications ?? (method_exists($notifications, 'total') ? $notifications->total() : $notifications->count());
     $pendingNotifications = $unreadCount ?? 0;
     $reviewedNotifications = max($totalNotifications - $pendingNotifications, 0);
+    $activeFilter = $activeFilter ?? 'all';
+    $searchTerm = $searchTerm ?? '';
+    $priorityFilter = $priorityFilter ?? '';
+    $typeFilter = $typeFilter ?? '';
+    $lineFilter = $lineFilter ?? '';
+    $sortOrder = $sortOrder ?? 'recent';
+    $typeOptions = $typeOptions ?? [];
+    $lineOptions = $lineOptions ?? [];
+    $filterQuery = request()->except('page');
+    $hasAdvancedFilters = filled($searchTerm) || filled($priorityFilter) || filled($typeFilter) || filled($lineFilter) || $sortOrder !== 'recent';
 @endphp
 
 <div class="mx-auto max-w-7xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
@@ -49,17 +59,21 @@
             </div>
         </div>
 
-        <div class="rounded-xl border border-blue-200 bg-blue-50 px-5 py-4 shadow-sm">
+        <a
+            href="{{ route('notifications.index', ['filter' => 'unread']) }}"
+            aria-current="{{ $activeFilter === 'unread' ? 'page' : 'false' }}"
+            class="group rounded-xl border border-blue-200 bg-blue-50 px-5 py-4 shadow-sm transition hover:border-blue-400 hover:bg-blue-100 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 {{ $activeFilter === 'unread' ? 'ring-2 ring-blue-500 ring-offset-2' : '' }}"
+        >
             <div class="flex items-center justify-between gap-4">
                 <div>
                     <p class="text-xs font-bold uppercase tracking-wide text-blue-700">Nuevas</p>
                     <p class="mt-1 text-2xl font-black text-blue-950">{{ $pendingNotifications }}</p>
                 </div>
-                <span class="flex h-11 w-11 items-center justify-center rounded-xl bg-white text-blue-700 shadow-sm">
+                <span class="flex h-11 w-11 items-center justify-center rounded-xl bg-white text-blue-700 shadow-sm transition group-hover:scale-105">
                     <i class="fas fa-bell"></i>
                 </span>
             </div>
-        </div>
+        </a>
 
         <div class="rounded-xl border border-emerald-200 bg-emerald-50 px-5 py-4 shadow-sm">
             <div class="flex items-center justify-between gap-4">
@@ -74,6 +88,99 @@
         </div>
     </div>
 
+    <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
+        <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <p class="text-sm font-black text-gray-950">Filtrar notificaciones</p>
+
+            <div class="flex flex-wrap gap-2" aria-label="Filtros de notificaciones">
+                @foreach([
+                    'all' => ['label' => 'Todas', 'icon' => 'fa-inbox'],
+                    'unread' => ['label' => 'Nuevas', 'icon' => 'fa-bell'],
+                    'read' => ['label' => 'Revisadas', 'icon' => 'fa-circle-check'],
+                ] as $filter => $option)
+                    <a
+                        href="{{ route('notifications.index', array_merge($filterQuery, ['filter' => $filter])) }}"
+                        aria-current="{{ $activeFilter === $filter ? 'page' : 'false' }}"
+                        class="inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-bold transition focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 {{ $activeFilter === $filter ? 'border-blue-600 bg-blue-600 text-white shadow-sm' : 'border-gray-200 bg-white text-gray-700 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700' }}"
+                    >
+                        <i class="fas {{ $option['icon'] }}"></i>
+                        {{ $option['label'] }}
+                        @if($filter === 'unread')
+                            <span class="rounded-full px-1.5 py-0.5 text-xs {{ $activeFilter === $filter ? 'bg-white/20 text-white' : 'bg-blue-100 text-blue-700' }}">{{ $pendingNotifications }}</span>
+                        @elseif($filter === 'read')
+                            <span class="rounded-full px-1.5 py-0.5 text-xs {{ $activeFilter === $filter ? 'bg-white/20 text-white' : 'bg-emerald-100 text-emerald-700' }}">{{ $reviewedNotifications }}</span>
+                        @endif
+                    </a>
+                @endforeach
+            </div>
+        </div>
+
+        <form action="{{ route('notifications.index') }}" method="GET" class="mt-4 space-y-3" data-auto-filter-form>
+            <input type="hidden" name="filter" value="{{ $activeFilter }}">
+
+            <div class="grid gap-3 lg:grid-cols-5">
+                <label class="relative block lg:col-span-2">
+                    <span class="sr-only">Buscar notificaciones</span>
+                    <i class="fas fa-search pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                    <input
+                        type="search"
+                        name="search"
+                        value="{{ $searchTerm }}"
+                        placeholder="Buscar notificaciones"
+                        class="w-full rounded-lg border border-gray-200 bg-gray-50 py-2.5 pl-10 pr-3 text-sm font-medium text-gray-800 placeholder:text-gray-400 focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100"
+                    >
+                </label>
+
+                <label>
+                    <span class="sr-only">Prioridad</span>
+                    <select name="priority" class="w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm font-semibold text-gray-700 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100">
+                        <option value="">Todas las prioridades</option>
+                        <option value="alta" @selected($priorityFilter === 'alta')>Prioridad alta</option>
+                        <option value="media" @selected($priorityFilter === 'media')>Prioridad media</option>
+                        <option value="baja" @selected($priorityFilter === 'baja')>Prioridad baja</option>
+                    </select>
+                </label>
+
+                <label>
+                    <span class="sr-only">Tipo</span>
+                    <select name="type" class="w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm font-semibold text-gray-700 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100">
+                        <option value="">Todos los tipos</option>
+                        @foreach($typeOptions as $typeKey => $typeLabel)
+                            <option value="{{ $typeKey }}" @selected($typeFilter === $typeKey)>{{ $typeLabel }}</option>
+                        @endforeach
+                    </select>
+                </label>
+
+                <label>
+                    <span class="sr-only">Línea</span>
+                    <select name="line" class="w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm font-semibold text-gray-700 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100">
+                        <option value="">Todas las líneas</option>
+                        @foreach($lineOptions as $lineOption)
+                            <option value="{{ $lineOption }}" @selected($lineFilter === $lineOption)>{{ $lineOption }}</option>
+                        @endforeach
+                    </select>
+                </label>
+            </div>
+
+            <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
+                <label class="flex items-center gap-2 text-sm font-semibold text-gray-600">
+                    <span>Ordenar:</span>
+                    <select name="sort" class="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100">
+                        <option value="recent" @selected($sortOrder === 'recent')>Más recientes</option>
+                        <option value="oldest" @selected($sortOrder === 'oldest')>Más antiguas</option>
+                        <option value="priority" @selected($sortOrder === 'priority')>Mayor prioridad</option>
+                    </select>
+                </label>
+                @if($hasAdvancedFilters)
+                    <a href="{{ route('notifications.index', ['filter' => $activeFilter]) }}" class="inline-flex items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-gray-700 transition hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                        <i class="fas fa-rotate-left"></i>
+                        Limpiar
+                    </a>
+                @endif
+            </div>
+        </form>
+    </div>
+
     @if(session('notification_warning'))
         <div class="rounded-xl border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm font-semibold text-yellow-900 shadow-sm">
             <i class="fas fa-triangle-exclamation mr-2"></i>
@@ -81,6 +188,9 @@
         </div>
     @endif
 
+    @php
+        $previousDateGroup = null;
+    @endphp
     <div class="space-y-3">
         @forelse($notifications as $notification)
             @php
@@ -186,6 +296,19 @@
                     ['Fecha y hora', $activityDateDisplay, 'fa-clock'],
                 ])->filter(fn ($item) => filled($item[1]));
             @endphp
+
+            @php
+                $notificationDateGroup = $notification->created_at->isToday()
+                    ? 'Hoy'
+                    : ($notification->created_at->isYesterday() ? 'Ayer' : $notification->created_at->format('d/m/Y'));
+            @endphp
+
+            @if($notificationDateGroup !== $previousDateGroup)
+                <h2 class="pt-2 text-base font-black text-gray-950">{{ $notificationDateGroup }}</h2>
+                @php
+                    $previousDateGroup = $notificationDateGroup;
+                @endphp
+            @endif
 
             <article class="relative overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition hover:border-blue-200 hover:shadow-md {{ $notification->read_at ? '' : 'ring-1 ring-blue-100' }}">
                 <div class="absolute inset-y-0 left-0 w-1.5 {{ $statusConfig['rail'] }}"></div>

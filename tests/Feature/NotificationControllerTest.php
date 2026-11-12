@@ -96,6 +96,64 @@ class NotificationControllerTest extends TestCase
         $this->assertSame('/notifications/' . $notificationId . '/open', $response['items'][0]['open_url']);
     }
 
+    public function test_notification_page_can_filter_only_new_notifications(): void
+    {
+        $user = User::factory()->create();
+        $this->notifyDatabase($user, ['message' => 'Nueva visible']);
+        $readNotificationId = $this->notifyDatabase($user, ['message' => 'Revisada oculta']);
+        $user->notifications()->whereKey($readNotificationId)->update(['read_at' => now()]);
+
+        $response = $this->actingAs($user)
+            ->get(route('notifications.index', ['filter' => 'unread']))
+            ->assertOk();
+
+        $this->assertSame('unread', $response->viewData('activeFilter'));
+        $this->assertSame(1, $response->viewData('notifications')->total());
+        $this->assertSame(2, $response->viewData('totalNotifications'));
+        $this->assertSame(
+            ['Nueva visible'],
+            $response->viewData('notifications')->getCollection()->map(fn ($notification) => $notification->data['message'])->all()
+        );
+        $response
+            ->assertSee('Nueva visible')
+            ->assertSee('href="' . route('notifications.index', ['filter' => 'unread']) . '"', false);
+    }
+
+    public function test_notification_page_can_combine_search_and_metadata_filters(): void
+    {
+        $user = $this->userWithRole(User::ROLE_ADMIN);
+        $this->notifyDatabase($user, [
+            'title' => 'Alerta del Servo Chico',
+            'message' => 'Requiere revision en el componente.',
+            'type' => 'component_alert',
+            'prioridad' => 'alta',
+            'linea' => 'L-08',
+        ]);
+        $this->notifyDatabase($user, [
+            'title' => 'Plan preventivo',
+            'message' => 'Revision programada.',
+            'type' => 'plan_accion_due',
+            'prioridad' => 'media',
+            'linea' => 'L-02',
+        ]);
+
+        $response = $this->actingAs($user)
+            ->get(route('notifications.index', [
+                'search' => 'servo',
+                'priority' => 'alta',
+                'type' => 'component_alert',
+                'line' => 'L-08',
+                'sort' => 'priority',
+            ]))
+            ->assertOk();
+
+        $this->assertSame(1, $response->viewData('notifications')->total());
+        $this->assertSame(
+            ['Alerta del Servo Chico'],
+            $response->viewData('notifications')->getCollection()->map(fn ($notification) => $notification->data['title'])->all()
+        );
+    }
+
     public function test_manager_feed_hides_analysis_audit_notifications_only(): void
     {
         $user = $this->userWithRole(User::ROLE_GERENTE_MANTENIMIENTO);
