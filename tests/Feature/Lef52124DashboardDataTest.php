@@ -68,6 +68,75 @@ class Lef52124DashboardDataTest extends TestCase
         );
     }
 
+    public function test_all_lines_includes_each_machine_once_and_keeps_line_values_separate(): void
+    {
+        $this->withoutMiddleware();
+        $l04 = $this->line('L-04');
+        $l05 = $this->line('L-05');
+        $this->line('L-06');
+        $this->import($l04, '2026-09-30', 50);
+        $this->import($l04, '2026-10-31', 9);
+        $latest = $this->import($l04, '2026-10-31', 4);
+        $l05Import = $this->import($l05, '2026-10-20', 6);
+        $this->import($l05, '2026-11-30', 100, 'failed');
+        $this->import($this->line('L-99'), '2026-11-30', 100);
+
+        $payload = $this->getJson(route('lef52124.data', ['scope' => 'all']))
+            ->assertOk()
+            ->assertJsonPath('all_lines', true)
+            ->assertJsonPath('summary.machines_count', 4)
+            ->assertJsonPath('summary.lines_count', 2)
+            ->assertJsonCount(4, 'machines')
+            ->assertJsonCount(3, 'comparison')
+            ->json();
+
+        $this->assertSame('L-05 - TRANSPORTADOR', $payload['machines'][0]['name']);
+        $this->assertEquals(6, $payload['machines'][0]['value_52_weeks']);
+        $this->assertEquals(4, $payload['comparison'][0]['value_52_weeks']);
+        $this->assertEquals(6, $payload['comparison'][1]['value_52_weeks']);
+        $this->assertNull($payload['comparison'][2]['value_52_weeks']);
+        $this->assertSame($latest->id, $payload['comparison'][0]['import_id']);
+        $this->assertSame($l05Import->id, $payload['comparison'][1]['import_id']);
+
+        $this->getJson(route('lef52124.data', ['linea_id' => $l04->id]))
+            ->assertOk()
+            ->assertJsonCount(2, 'machines')
+            ->assertJsonPath('machines.0.name', 'TRANSPORTADOR')
+            ->assertJsonPath('import.id', $latest->id);
+        app('view')->share('errors', new \Illuminate\Support\ViewErrorBag);
+        $this->get(route('lef52124.index', ['scope' => 'all']))
+            ->assertOk()
+            ->assertViewHas('selectedLineaId', 'all')
+            ->assertSee('data-linea-id="all">Todas</button>', false);
+    }
+
+    public function test_all_lines_respects_the_selected_date_and_returns_empty_for_missing_dates(): void
+    {
+        $this->withoutMiddleware();
+        $l04 = $this->line('L-04');
+        $l05 = $this->line('L-05');
+        $this->import($l04, '2026-09-30', 2);
+        $this->import($l04, '2026-10-31', 8);
+        $this->import($l05, '2026-10-31', 10);
+
+        $this->getJson(route('lef52124.data', ['scope' => 'all', 'data_date' => '2026-09-30', 'period' => '4']))
+            ->assertOk()
+            ->assertJsonPath('summary.machines_count', 2)
+            ->assertJsonPath('summary.lines_count', 1)
+            ->assertJsonPath('comparison.1.import_id', null);
+        $this->getJson(route('lef52124.data', ['scope' => 'all', 'data_date' => '2020-01-01']))
+            ->assertOk()
+            ->assertJsonPath('has_data', false);
+
+        $this->getJson(route('lef52124.periods', ['scope' => 'all']))
+            ->assertOk()
+            ->assertJsonCount(3, 'items')
+            ->assertJsonPath('items.0.data_date', '2026-10-31')
+            ->assertJsonPath('items.2.data_date', '2026-09-30');
+        $this->getJson(route('lef52124.periods'))->assertUnprocessable();
+        $this->getJson(route('lef52124.data', ['scope' => 'invalid']))->assertUnprocessable();
+    }
+
     public function test_lavadoras_dashboard_renders_latest_lef_period_and_both_charts(): void
     {
         $this->withoutMiddleware();

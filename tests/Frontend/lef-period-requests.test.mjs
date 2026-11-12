@@ -1,11 +1,53 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { runInNewContext } from 'node:vm';
+import { runInNewContext, Script } from 'node:vm';
 
 const view = readFileSync(new URL('../../resources/views/analisis-52-12-4/index.blade.php', import.meta.url), 'utf8');
 const source = view.slice(view.indexOf('    function loadPeriods('), view.indexOf('    function renderDashboard('));
 const flush = () => new Promise((resolve) => setImmediate(resolve));
+
+test('the complete dashboard script parses after Blade values are inserted', () => {
+    const script = view.slice(view.indexOf('<script>') + '<script>'.length, view.lastIndexOf('</script>'))
+        .replace(/@json\(\$lineasPayload\)/g, '[]')
+        .replace(/@json\(\$selectedLineaId\)/g, '"all"')
+        .replace(/@json\(route\('[^']+'\)\)/g, '"/test"');
+    assert.doesNotThrow(() => new Script(script));
+});
+
+test('the general chart shows all lines and restores the individual line chart', () => {
+    const chartSource = view.slice(view.indexOf('    function renderWasherChart('), view.indexOf('    function renderComparisonChart('));
+    const width = { style: { minWidth: '' } };
+    const charts = {};
+    const periods = [
+        { label: '52 SEM', datasetLabel: '52', valueKey: 'value_52_weeks', color: 'orange' },
+        { label: '4 SEM', datasetLabel: '4', valueKey: 'value_4_weeks', color: 'yellow' },
+    ];
+    const context = {
+        document: { getElementById: () => ({}), querySelector: () => width },
+        charts, selectedPeriodDefinitions: () => periods, valueLabelPlugin: {},
+        dataset: (label, data) => ({ label, data }), baseChartOptions: () => ({}),
+        setChartWidth: () => { width.style.minWidth = '900px'; },
+        Chart: class {
+            constructor(canvas, config) { this.data = config.data; }
+            destroy() { this.destroyed = true; }
+        },
+    };
+    runInNewContext(chartSource, context);
+    context.renderWasherChart(null, [
+        { linea: 'L-04', value_52_weeks: 4, value_4_weeks: 2 },
+        { linea: 'L-05', value_52_weeks: null, value_4_weeks: null },
+    ]);
+    const allChart = charts.washerChart;
+    assert.deepEqual(Array.from(allChart.data.labels), ['L-04', 'L-05']);
+    assert.deepEqual(Array.from(allChart.data.datasets[0].data), [4, null]);
+    assert.equal(width.style.minWidth, '900px');
+    context.renderWasherChart({ name: 'LINEA COMPLETA', value_52_weeks: 5, value_4_weeks: 3 });
+    assert.equal(allChart.destroyed, true);
+    assert.deepEqual(Array.from(charts.washerChart.data.labels), ['52 SEM', '4 SEM']);
+    assert.deepEqual(Array.from(charts.washerChart.data.datasets[0].data), [5, 3]);
+    assert.equal(width.style.minWidth, '');
+});
 
 function page() {
     const calls = [], rendered = [], errors = [];
@@ -45,6 +87,28 @@ test('data starts before periods finish and runs only once', async () => {
     assert.equal(p.date.min, '2026-07-01');
     assert.equal(p.date.max, '2026-08-01');
     assert.equal(p.date.disabled, false);
+});
+
+test('all lines loads data and periods without sending an invalid line ID and can switch back', async () => {
+    const p = page();
+    p.context.loadPeriods(true);
+    p.state.lineaId = 'all';
+    p.context.loadPeriods(true);
+    assert.equal(p.calls[0].signal.aborted, true);
+    assert.equal(p.calls[1].signal.aborted, true);
+    assert.equal(new URL(p.calls[2].url, 'http://localhost').searchParams.get('scope'), 'all');
+    assert.equal(new URL(p.calls[2].url, 'http://localhost').searchParams.has('linea_id'), false);
+    assert.equal(p.calls[3].url, '/periods?scope=all');
+    p.calls[2].finish({ all_lines: true });
+    p.calls[3].finish({ items: [{ data_date: '2026-10-31' }, { data_date: '2026-09-30' }] });
+    await flush();
+    assert.equal(p.rendered[0].all_lines, true);
+    assert.equal(p.date.min, '2026-09-30');
+    assert.equal(p.date.max, '2026-10-31');
+    p.state.lineaId = 2;
+    p.context.loadPeriods(true);
+    assert.match(p.calls[4].url, /linea_id=2/);
+    assert.doesNotMatch(p.calls[4].url, /scope=all/);
 });
 
 test('rapid line changes cancel old requests and discard late data and periods', async () => {

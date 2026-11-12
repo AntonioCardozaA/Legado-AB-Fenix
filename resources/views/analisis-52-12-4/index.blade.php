@@ -316,6 +316,7 @@
     @if($errors->any()) <div class="lef-alert error">{{ $errors->first() }}</div> @endif
 
     <div class="lef-lines" role="tablist" aria-label="Lineas 52-12-4">
+        <button type="button" class="lef-line-tab {{ $selectedLineaId === 'all' ? 'active' : '' }}" data-line-tab data-linea-id="all">Todas</button>
         @forelse($lineas as $linea)
             <button type="button" class="lef-line-tab {{ (int) $selectedLineaId === (int) $linea->id ? 'active' : '' }}" data-line-tab data-linea-id="{{ $linea->id }}">{{ $linea->nombre }}</button>
         @empty
@@ -411,8 +412,8 @@
             <div class="lef-panel-body"><div class="lef-chart-wrap"><div class="lef-chart-inner" data-chart-width="parts"><canvas id="partsChart"></canvas></div></div></div>
         </section>
         <section class="lef-panel" data-card="washer">
-            <div class="lef-panel-header"><h2 class="lef-panel-title">LEF 52-12-4 - Linea general</h2></div>
-            <div class="lef-panel-body"><div class="lef-kpis" data-washer-kpis></div><div class="lef-chart-wrap"><div class="lef-chart-inner compact"><canvas id="washerChart"></canvas></div></div></div>
+            <div class="lef-panel-header"><h2 class="lef-panel-title" data-washer-title>LEF 52-12-4 - Linea general</h2></div>
+            <div class="lef-panel-body"><div class="lef-kpis" data-washer-kpis></div><div class="lef-chart-wrap"><div class="lef-chart-inner compact" data-chart-width="washer"><canvas id="washerChart"></canvas></div></div></div>
         </section>
         <section class="lef-panel" data-card="comparison">
             <div class="lef-panel-header"><h2 class="lef-panel-title">Comparativo 52-12-4 general entre lineas</h2></div>
@@ -558,7 +559,7 @@ document.addEventListener('DOMContentLoaded', function () {
         trend: @json(route('lef52124.trend.washer-machine')),
         costs: @json(route('lef52124.costs.data')),
     };
-    const initialFilters = { lineaId: Number(@json($selectedLineaId)), dataDate: null, period: 'all', analysis: 'all' };
+    const initialFilters = { lineaId: @json($selectedLineaId), dataDate: null, period: 'all', analysis: 'all' };
     const state = {
         lineaId: initialFilters.lineaId,
         dataDate: null,
@@ -633,6 +634,7 @@ document.addEventListener('DOMContentLoaded', function () {
         washerKpis: document.querySelector('[data-washer-kpis]'),
         charts: document.querySelector('[data-charts]'),
         machinesTitle: document.querySelector('[data-machines-title]'),
+        washerTitle: document.querySelector('[data-washer-title]'),
     };
 
     document.querySelector('[data-toggle-import]')?.addEventListener('click', toggleImportPanel);
@@ -641,7 +643,7 @@ document.addEventListener('DOMContentLoaded', function () {
     nodes.costImportButton?.addEventListener('click', toggleCostImportPanel);
     nodes.clear?.addEventListener('click', resetFilters);
     document.querySelectorAll('[data-line-tab]').forEach((button) => button.addEventListener('click', () => {
-        state.lineaId = Number(button.dataset.lineaId);
+        state.lineaId = button.dataset.lineaId === 'all' ? 'all' : Number(button.dataset.lineaId);
         state.dataDate = null;
         if (nodes.date) nodes.date.value = '';
         selectLineTab();
@@ -811,6 +813,11 @@ document.addEventListener('DOMContentLoaded', function () {
         if (!state.lineaId || !state.trendVisible) return;
         const requestId = ++state.trendRequestId;
         state.activeTrendController?.abort();
+        if (state.lineaId === 'all') {
+            setTrendLoading(false);
+            renderTrendEmpty('Selecciona una linea para ver la tendencia de su lavadora.');
+            return;
+        }
         state.activeTrendController = new AbortController();
         setTrendLoading(true);
 
@@ -908,7 +915,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
     function selectLineTab() {
-        document.querySelectorAll('[data-line-tab]').forEach((button) => button.classList.toggle('active', Number(button.dataset.lineaId) === Number(state.lineaId)));
+        document.querySelectorAll('[data-line-tab]').forEach((button) => button.classList.toggle('active', String(button.dataset.lineaId) === String(state.lineaId)));
     }
     function syncStateFromControls() {
         if (nodes.date) state.dataDate = nodes.date.value || null;
@@ -917,7 +924,7 @@ document.addEventListener('DOMContentLoaded', function () {
         selectLineTab();
     }
     function resetFilters() {
-        const lineChanged = Number(state.lineaId) !== Number(initialFilters.lineaId);
+        const lineChanged = String(state.lineaId) !== String(initialFilters.lineaId);
         state.lineaId = initialFilters.lineaId;
         state.dataDate = initialFilters.dataDate;
         state.period = initialFilters.period;
@@ -927,6 +934,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (nodes.period) nodes.period.value = initialFilters.period;
         selectLineTab();
         hideFeedback();
+        if (state.trendVisible) loadTrend();
 
         if (lineChanged) {
             loadPeriods(true);
@@ -951,7 +959,8 @@ document.addEventListener('DOMContentLoaded', function () {
             nodes.date.disabled = true;
         }
         loadData();
-        fetch(`${endpoints.periods}?linea_id=${encodeURIComponent(state.lineaId)}`, { headers: { 'Accept': 'application/json' }, signal: state.activePeriodsController.signal })
+        const lineQuery = state.lineaId === 'all' ? 'scope=all' : `linea_id=${encodeURIComponent(state.lineaId)}`;
+        fetch(`${endpoints.periods}?${lineQuery}`, { headers: { 'Accept': 'application/json' }, signal: state.activePeriodsController.signal })
             .then((response) => {
                 if (!response.ok) throw new Error('No se pudieron consultar los periodos disponibles.');
                 return response.json();
@@ -983,7 +992,9 @@ document.addEventListener('DOMContentLoaded', function () {
         state.activeDataController?.abort();
         state.activeDataController = new AbortController();
         if (options.clear) setClearLoading(true);
-        const params = new URLSearchParams({ linea_id: state.lineaId, period: state.period, analysis_type: state.analysis });
+        const params = new URLSearchParams({ period: state.period, analysis_type: state.analysis });
+        if (state.lineaId === 'all') params.set('scope', 'all');
+        else params.set('linea_id', state.lineaId);
         if (state.dataDate) params.set('data_date', state.dataDate);
         fetch(`${endpoints.data}?${params.toString()}`, { headers: { 'Accept': 'application/json' }, signal: state.activeDataController.signal })
             .then((response) => {
@@ -1008,12 +1019,14 @@ document.addEventListener('DOMContentLoaded', function () {
         if (!payload.has_data) return renderEmpty(payload.message || 'No existen datos 52-12-4 para la linea seleccionada.');
         nodes.charts.hidden = false;
         renderKpis(payload.summary || {});
-        renderWasherKpis(payload.washer);
+        if (payload.all_lines) nodes.washerKpis.innerHTML = '';
+        else renderWasherKpis(payload.washer);
         renderVisibility();
-        nodes.machinesTitle.textContent = 'Pareto de LEF - Maquinas';
+        nodes.machinesTitle.textContent = payload.all_lines ? 'LEF-52-12-4 - Total de maquinas' : 'Pareto de LEF - Maquinas';
+        nodes.washerTitle.textContent = payload.all_lines ? 'LEF 52-12-4 - Lineas general' : 'LEF 52-12-4 - Linea general';
         renderGroupedBar('machinesChart', payload.machines || [], 'Maquina', false);
         renderGroupedBar('partsChart', payload.parts || [], 'Parte', false);
-        renderWasherChart(payload.washer);
+        renderWasherChart(payload.washer, payload.all_lines ? payload.comparison : null);
         renderComparisonChart(payload.comparison || []);
     }
     function renderEmpty(message) {
@@ -1041,19 +1054,22 @@ document.addEventListener('DOMContentLoaded', function () {
         nodes.feedback.hidden = true;
     }
     function renderVisibility() {
-        const visible = { machines: ['all', 'machines'].includes(state.analysis), parts: ['all', 'parts'].includes(state.analysis), washer: ['all', 'washer'].includes(state.analysis), comparison: ['all', 'comparison'].includes(state.analysis) };
+        const visible = { machines: ['all', 'machines'].includes(state.analysis), parts: ['all', 'parts'].includes(state.analysis), washer: ['all', 'washer'].includes(state.analysis), comparison: state.analysis === 'comparison' || (state.lineaId !== 'all' && state.analysis === 'all') };
         Object.entries(visible).forEach(([key, show]) => { const card = document.querySelector(`[data-card="${key}"]`); if (card) card.hidden = !show; });
     }
     function renderKpis(summary) {
         const periods = selectedPeriodDefinitions();
         const cards = [['Linea seleccionada', summary.linea || currentLineName(), '']];
+        if (state.lineaId === 'all') {
+            cards.push(['Total de maquinas', summary.machines_count ?? 0, `${summary.lines_count ?? 0} lineas con datos`]);
+        }
 
         periods.forEach((period) => {
             const top = summary[period.topKey];
             cards.push([`Mayor afectacion ${period.label}`, top?.name || 'Sin dato', top?.value || '']);
         });
 
-        periods.forEach((period) => {
+        if (state.lineaId !== 'all') periods.forEach((period) => {
             cards.push([`LEF linea general ${period.label}`, summary[period.washerKey] || 'Sin dato', '']);
         });
 
@@ -1075,11 +1091,18 @@ document.addEventListener('DOMContentLoaded', function () {
         charts[canvasId]?.destroy();
         charts[canvasId] = new Chart(canvas, { type: 'bar', data: { labels: rows.map((row) => row.name), datasets: datasetsForRows(rows, highlightWasher) }, plugins: [valueLabelPlugin], options: baseChartOptions(xLabel, 'Valor LEF') });
     }
-    function renderWasherChart(row) {
+    function renderWasherChart(row, lines = null) {
         const canvas = document.getElementById('washerChart');
         if (!canvas) return;
         const periods = selectedPeriodDefinitions();
         charts.washerChart?.destroy();
+        const width = document.querySelector('[data-chart-width="washer"]');
+        if (lines) {
+            setChartWidth('washer', lines.length, lines.map((line) => line.linea));
+            charts.washerChart = new Chart(canvas, { type: 'bar', data: { labels: lines.map((line) => line.linea), datasets: periods.map((period) => dataset(period.datasetLabel, lines.map((line) => line[period.valueKey]), period.color)) }, plugins: [valueLabelPlugin], options: baseChartOptions('Linea', 'Valor LEF', false) });
+            return;
+        }
+        if (width) width.style.minWidth = '';
         charts.washerChart = new Chart(canvas, { type: 'bar', data: { labels: periods.map((period) => period.label), datasets: [{ label: row?.name || 'Linea general', data: periods.map((period) => row ? row[period.valueKey] : 0), backgroundColor: periods.map((period) => period.color), borderRadius: 8 }] }, plugins: [valueLabelPlugin], options: baseChartOptions('Periodo', 'Valor LEF', false) });
     }
     function renderComparisonChart(rows) {
@@ -1199,7 +1222,7 @@ document.addEventListener('DOMContentLoaded', function () {
         node.style.minWidth = `${Math.max(minimum, total * perItem)}px`;
     }
     function destroyAll() { Object.keys(charts).forEach((key) => { charts[key]?.destroy(); delete charts[key]; }); }
-    function currentLineName() { return lineas.find((linea) => Number(linea.id) === Number(state.lineaId))?.nombre || 'Sin linea'; }
+    function currentLineName() { return state.lineaId === 'all' ? 'Todas las lineas' : lineas.find((linea) => Number(linea.id) === Number(state.lineaId))?.nombre || 'Sin linea'; }
     function formatNumber(value) { if (value === null || value === undefined || Number.isNaN(Number(value))) return '0.00'; return Number(value).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
     function formatCurrency(value) { if (value === null || value === undefined || Number.isNaN(Number(value))) return '$0.00'; return Number(value).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' }); }
     function formatCompactCurrency(value) {

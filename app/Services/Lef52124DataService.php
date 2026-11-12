@@ -36,10 +36,13 @@ class Lef52124DataService
         return $lineas->first()?->id;
     }
 
-    public function periodsPayload(int $lineaId): array
+    public function periodsPayload(?int $lineaId): array
     {
         return [
-            'items' => Lef52124Import::where('linea_id', $lineaId)
+            'items' => Lef52124Import::query()
+                ->when($lineaId !== null,
+                    fn ($query) => $query->where('linea_id', $lineaId),
+                    fn ($query) => $query->whereIn('linea_id', $this->lineas()->modelKeys()))
                 ->where('status', 'success')
                 ->orderByDesc('data_date')
                 ->orderByDesc('created_at')
@@ -52,6 +55,10 @@ class Lef52124DataService
     public function dataPayload(array $filters): array
     {
         $lineas = $this->lineas();
+        if (($filters['scope'] ?? null) === 'all') {
+            return $this->allLinesPayload($lineas, $filters);
+        }
+
         $lineaId = (int) ($filters['linea_id'] ?? $this->defaultLineaId($lineas));
         $period = $filters['period'] ?? 'all';
         $import = $this->resolveImport($lineaId, $filters['import_id'] ?? null, $filters['data_date'] ?? null);
@@ -93,6 +100,68 @@ class Lef52124DataService
             'parts' => $parts,
             'washer' => $washer ? $this->itemPayload($washer) : null,
             'comparison' => $this->comparisonPayload($lineas, $import->data_date),
+        ];
+    }
+
+    private function allLinesPayload(Collection $lineas, array $filters): array
+    {
+        $imports = Lef52124Import::query()
+            ->with(['linea:id,nombre', 'items'])
+            ->whereIn('linea_id', $lineas->modelKeys())
+            ->where('status', 'success')
+            ->when($filters['data_date'] ?? null, fn ($query, $date) => $query->whereDate('data_date', $date))
+            ->orderByDesc('data_date')
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->get()
+            ->unique('linea_id')
+            ->keyBy('linea_id');
+
+        if ($imports->isEmpty()) {
+            return [
+                'has_data' => false,
+                'message' => 'No existen datos 52-12-4 para las lineas y la fecha seleccionadas.',
+            ];
+        }
+
+        $items = $imports->flatMap(fn (Lef52124Import $import) => $import->items->map(function (Lef52124Item $item) use ($import) {
+            $row = clone $item;
+            $row->item_name = $import->linea->nombre.' - '.$item->item_name;
+
+            return $row;
+        }));
+        $machines = $items->where('type', Lef52124Item::TYPE_MACHINE)->values();
+        $sortColumn = $this->periodColumn($filters['period'] ?? 'all');
+        $lines = $lineas->map(function (Linea $linea) use ($imports): array {
+            $import = $imports->get($linea->id);
+            $washer = $import?->items->firstWhere('type', Lef52124Item::TYPE_LINE);
+
+            return [
+                'linea_id' => $linea->id,
+                'linea' => $linea->nombre,
+                'import_id' => $import?->id,
+                'data_date' => $import?->data_date?->format('Y-m-d'),
+                'value_52_weeks' => $washer ? (float) $washer->value_52_weeks : null,
+                'value_12_weeks' => $washer ? (float) $washer->value_12_weeks : null,
+                'value_4_weeks' => $washer ? (float) $washer->value_4_weeks : null,
+            ];
+        })->values()->all();
+
+        return [
+            'has_data' => true,
+            'all_lines' => true,
+            'summary' => [
+                'linea' => 'Todas las lineas',
+                'machines_count' => $machines->count(),
+                'lines_count' => $imports->count(),
+                'top_52' => $this->topItem($machines, 'value_52_weeks'),
+                'top_12' => $this->topItem($machines, 'value_12_weeks'),
+                'top_4' => $this->topItem($machines, 'value_4_weeks'),
+            ],
+            'machines' => $this->itemsPayload($machines, $sortColumn),
+            'parts' => $this->itemsPayload($items->where('type', Lef52124Item::TYPE_PART)->values(), $sortColumn),
+            'washer' => null,
+            'comparison' => $lines,
         ];
     }
 

@@ -29,7 +29,9 @@ class Lef52124Controller extends Controller
     public function index(Request $request): View
     {
         $lineas = $this->dataService->lineas();
-        $selectedLineaId = (int) ($request->integer('linea_id') ?: $this->dataService->defaultLineaId($lineas));
+        $selectedLineaId = $request->query('scope') === 'all'
+            ? 'all'
+            : (int) ($request->integer('linea_id') ?: $this->dataService->defaultLineaId($lineas));
         $canManage = $this->canManage($request->user());
         $imports = $canManage
             ? Lef52124Import::with(['linea:id,nombre', 'user:id,name'])
@@ -45,15 +47,19 @@ class Lef52124Controller extends Controller
     public function periods(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'linea_id' => ['required', 'integer', 'exists:lineas,id'],
+            'scope' => ['nullable', 'in:all'],
+            'linea_id' => ['required_without:scope', 'integer', 'exists:lineas,id'],
         ]);
 
-        return response()->json($this->dataService->periodsPayload((int) $validated['linea_id']));
+        return response()->json($this->dataService->periodsPayload(
+            ($validated['scope'] ?? null) === 'all' ? null : (int) $validated['linea_id']
+        ));
     }
 
     public function data(Request $request): JsonResponse
     {
         $validated = $request->validate([
+            'scope' => ['nullable', 'in:all'],
             'linea_id' => ['nullable', 'integer', 'exists:lineas,id'],
             'import_id' => ['nullable', 'integer', 'exists:lef52124_imports,id'],
             'data_date' => ['nullable', 'date_format:Y-m-d'],
