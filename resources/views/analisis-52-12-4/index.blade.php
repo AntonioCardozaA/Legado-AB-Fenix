@@ -1081,9 +1081,7 @@ document.addEventListener('DOMContentLoaded', function () {
     function renderKpis(summary) {
         const periods = selectedPeriodDefinitions();
         const cards = [['Linea seleccionada', summary.linea || currentLineName(), '']];
-        if (state.lineaId === 'all') {
-            cards.push(['Total de maquinas', summary.machines_count ?? 0, `${summary.lines_count ?? 0} lineas con datos`]);
-        }
+      
 
         periods.forEach((period) => {
             const top = summary[period.topKey];
