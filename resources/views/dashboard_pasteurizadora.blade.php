@@ -21,13 +21,10 @@
     $fallasPorLineaPasteurizadora = collect($fallasPorLineaPasteurizadora ?? []);
     $componentesDanadosPasteurizadora = collect($componentesDanadosPasteurizadora ?? []);
     $historicoRevisionesPasteurizadora = collect($historicoRevisionesPasteurizadora ?? []);
-    $analisis52124Pasteurizadora = $analisis52124Pasteurizadora ?? ['lineas' => [], 'criterios' => []];
-    $analisis30147Pasteurizadora = $analisis30147Pasteurizadora ?? ['lineas' => [], 'criterios' => []];
     $planesAccionDashboardPasteurizadora = $planesAccionDashboardPasteurizadora ?? ['resumen' => [], 'estado_general' => [], 'por_linea' => [], 'planes' => []];
     $rankingDanosPasteurizadora = collect($rankingDanosPasteurizadora ?? []);
     $avanceRevisionPasteurizadora = $avanceRevisionPasteurizadora ?? ['labels' => [], 'porcentajes' => [], 'revisados' => [], 'totales' => [], 'lineas' => []];
     $ultimosAnalisisPasteurizadora = collect($ultimosAnalisisPasteurizadora ?? []);
-    $trendFilters = $trendFilters ?? [];
     $usuarioActual = auth()->user();
     $puedeVerMecanicaPasteurizadora = $usuarioActual?->canAccessPasteurizadoraArea(\App\Models\AnalisisPasteurizadora::AREA_MECANICA) ?? false;
     $puedeVerCentralHidraulicaPasteurizadora = $usuarioActual?->canAccessPasteurizadoraArea(\App\Models\AnalisisPasteurizadora::AREA_CENTRAL_HIDRAULICA) ?? false;
@@ -35,8 +32,7 @@
         && ($usuarioActual?->canViewPlanActionType(\App\Models\User::MODULE_PASTEURIZADORA) ?? false);
     $puedeVerPlanesCentralHidraulica = $puedeVerCentralHidraulicaPasteurizadora
         && ($usuarioActual?->canViewPlanActionType(\App\Models\User::MODULE_PASTEURIZADORA) ?? false);
-    $puedeVerTendenciasPasteurizadora = ($usuarioActual?->canAccessModule(\App\Models\User::MODULE_PASTEURIZADORA) ?? false)
-        && ($usuarioActual?->canUseCustomPermission('ver tendencias pasteurizadora') ?? false);
+    $puedeVerLef52124 = $usuarioActual?->canUseCustomPermission('ver 52-12-4') ?? false;
     $totalPasteurizadoras = max((int) ($resumenPasteurizadora['total_pasteurizadoras'] ?? $pasteurizadoras->count()), 1);
     $estadoLineas = [
         'bueno' => $pasteurizadoras->where('estado.nivel', 'bueno')->count(),
@@ -49,8 +45,6 @@
     $centralesHidraulicasPasteurizadora = collect($estadoCentralHidraulicaPasteurizadora ?? []);
     $fallasPorLineaCentralHidraulica = collect($fallasPorLineaCentralHidraulica ?? []);
     $historicoRevisionesCentralHidraulica = collect($historicoRevisionesCentralHidraulica ?? []);
-    $analisis52124CentralHidraulica = $analisis52124CentralHidraulica ?? ['lineas' => [], 'criterios' => []];
-    $analisis30147CentralHidraulica = $analisis30147CentralHidraulica ?? ['lineas' => [], 'criterios' => []];
     $planesAccionDashboardCentralHidraulica = $planesAccionDashboardCentralHidraulica ?? ['resumen' => [], 'estado_general' => [], 'por_linea' => [], 'planes' => []];
     $rankingDanosCentralHidraulica = collect($rankingDanosCentralHidraulica ?? []);
     $avanceRevisionCentralHidraulica = $avanceRevisionCentralHidraulica ?? ['labels' => [], 'porcentajes' => [], 'revisados' => [], 'totales' => [], 'lineas' => []];
@@ -554,183 +548,7 @@
                 @endif
             </div>
         </div>
-
-        <div class="chart-card trend-card trend-card-primary dashboard-panel dashboard-trend-card">
-            <h3>
-                <i class="fas fa-chart-line"></i>
-                <span>Análisis 52-12-4 | Tendencia de Daños</span>
-            </h3>
-            <div class="dashboard-trend-main-header">
-                <div class="dashboard-trend-title-block">
-                    <i class="fas fa-chart-line"></i>
-                    <div>
-                        <div class="dashboard-trend-eyebrow">Análisis de tendencia Pasteurizadora</div>
-                        <h3 class="dashboard-trend-heading">Análisis 52-12-4</h3>
-                        <p class="dashboard-trend-subcopy">Lectura ejecutiva por pasteurizadora con ventanas de 52, 12 y 4 semanas.</p>
-                    </div>
-                </div>
-            </div>
-            <form method="GET" action="{{ route('dashboard.global.pasteurizadoras') }}" class="trend-filter-form dashboard-trend-filters" data-auto-filter-form>
-                <input type="hidden" name="parte" value="{{ \App\Models\AnalisisPasteurizadora::AREA_MECANICA }}">
-                <select id="analisis52124PasteurizadoraLineaSelect" class="panel-select pasteur-trend-line-select" data-pasteur-trend-card="52124">
-                    @forelse(($analisis52124Pasteurizadora['lineas'] ?? []) as $lineaTrend)
-                        <option value="{{ $lineaTrend['linea_id'] }}" @selected((int) data_get($analisis52124Pasteurizadora, 'default_linea_id') === (int) $lineaTrend['linea_id'])>{{ $lineaTrend['linea'] }}</option>
-                    @empty
-                        <option value="">Sin pasteurizadoras</option>
-                    @endforelse
-                </select>
-                <input type="hidden" name="{{ data_get($trendFilters, 'tendencia30147.from_param', 'trend_30147_desde') }}" value="{{ data_get($trendFilters, 'tendencia30147.from_input', '') }}">
-                <input type="hidden" name="{{ data_get($trendFilters, 'tendencia30147.to_param', 'trend_30147_hasta') }}" value="{{ data_get($trendFilters, 'tendencia30147.to_input', '') }}">
-                <div class="trend-filter-field">
-                    <label>Desde</label>
-                    <input type="date" name="{{ data_get($trendFilters, 'tendencia.from_param', 'trend_52124_desde') }}" value="{{ data_get($trendFilters, 'tendencia.from_input', '') }}">
-                </div>
-                <div class="trend-filter-field">
-                    <label>Hasta</label>
-                    <input type="date" name="{{ data_get($trendFilters, 'tendencia.to_param', 'trend_52124_hasta') }}" value="{{ data_get($trendFilters, 'tendencia.to_input', '') }}">
-                </div>
-                <a href="{{ route('dashboard.global.pasteurizadoras', ['parte' => \App\Models\AnalisisPasteurizadora::AREA_MECANICA]) }}" class="trend-open-link">
-                    <i class="fas fa-rotate-left"></i>
-                    Limpiar
-                </a>
-                @if($puedeVerTendenciasPasteurizadora)
-                    <a href="{{ route('analisis-tendencia-mensual.pasteurizadora.analisis-52-12-4', ['area' => \App\Models\AnalisisPasteurizadora::AREA_MECANICA]) }}" class="trend-open-link">
-                        <i class="fas fa-up-right-from-square"></i>
-                        Abrir
-                    </a>
-                @endif
-            </form>
-            <div class="dashboard-trend-machine-strip">
-                <div class="dashboard-trend-machine-header">
-                    <i class="fas fa-industry"></i>
-                    <span>Pasteurizadoras incluidas</span>
-                </div>
-                <div id="trend52124MachineGrid" class="dashboard-trend-machine-grid"></div>
-            </div>
-            <div class="dashboard-trend-brief">
-                <div id="trend52124StatusCard" class="dashboard-trend-status dashboard-trend-status--neutral">
-                    <div class="dashboard-trend-eyebrow">Estado de seguimiento</div>
-                    <div id="trend52124StatusTitle" class="dashboard-trend-status-title">Leyendo tendencia reciente...</div>
-                    <p id="trend52124StatusCopy" class="dashboard-trend-status-copy">
-                        Se está calculando el comportamiento reciente con información de análisis de Pasteurizadora.
-                    </p>
-                    <div id="trend52124StatusNote" class="dashboard-trend-status-note">Ventanas: 52, 12 y 4 semanas.</div>
-                </div>
-                <div id="trend52124WindowCards" class="dashboard-trend-window-grid"></div>
-            </div>
-            <div class="dashboard-trend-chart-shell">
-                <div class="dashboard-trend-chart-header">
-                    <div class="dashboard-trend-chart-title">
-                        <i class="fas fa-chart-column"></i>
-                        <div>
-                            <h4>Comparativo por pasteurizadora</h4>
-                            <p>Último corte disponible para cada ventana de análisis.</p>
-                        </div>
-                    </div>
-                    <div class="dashboard-trend-view-selector">
-                        <button type="button" class="dashboard-trend-view-btn active" data-pasteur-trend-card="52124" data-pasteur-trend-type="bar">Barras</button>
-                        <button type="button" class="dashboard-trend-view-btn" data-pasteur-trend-card="52124" data-pasteur-trend-type="line">Línea</button>
-                    </div>
-                    <div id="trend52124Caption" class="dashboard-trend-caption">Corte actual de tendencia 52-12-4.</div>
-                </div>
-                <div class="chart-container dashboard-trend-chart-container">
-                    <canvas id="analisis52124PasteurizadoraChart"></canvas>
-                </div>
-            </div>
-            <div class="chart-description">
-                <i class="fas fa-info-circle"></i>
-                <span>Tendencia automática calculada desde daños registrados en los análisis de Pasteurizadora</span>
-            </div>
-        </div>
-        <div class="chart-card trend-card trend-card-side dashboard-panel dashboard-trend-card">
-            <h3>
-                <i class="fas fa-chart-line"></i>
-                <span>Análisis 30-14-7 | Tendencia de Daños</span>
-            </h3>
-            <div class="dashboard-trend-main-header">
-                <div class="dashboard-trend-title-block">
-                    <i class="fas fa-bolt"></i>
-                    <div>
-                        <div class="dashboard-trend-eyebrow">Análisis de tendencia Pasteurizadora</div>
-                        <h3 class="dashboard-trend-heading">Análisis 30-14-7</h3>
-                        <p class="dashboard-trend-subcopy">Lectura ejecutiva por pasteurizadora con ventanas de 30, 14 y 7 días.</p>
-                    </div>
-                </div>
-            </div>
-            <form method="GET" action="{{ route('dashboard.global.pasteurizadoras') }}" class="trend-filter-form dashboard-trend-filters" data-auto-filter-form>
-                <input type="hidden" name="parte" value="{{ \App\Models\AnalisisPasteurizadora::AREA_MECANICA }}">
-                <select id="analisis30147PasteurizadoraLineaSelect" class="panel-select pasteur-trend-line-select" data-pasteur-trend-card="30147">
-                    @forelse(($analisis30147Pasteurizadora['lineas'] ?? []) as $lineaTrend)
-                        <option value="{{ $lineaTrend['linea_id'] }}" @selected((int) data_get($analisis30147Pasteurizadora, 'default_linea_id') === (int) $lineaTrend['linea_id'])>{{ $lineaTrend['linea'] }}</option>
-                    @empty
-                        <option value="">Sin pasteurizadoras</option>
-                    @endforelse
-                </select>
-                <input type="hidden" name="{{ data_get($trendFilters, 'tendencia.from_param', 'trend_52124_desde') }}" value="{{ data_get($trendFilters, 'tendencia.from_input', '') }}">
-                <input type="hidden" name="{{ data_get($trendFilters, 'tendencia.to_param', 'trend_52124_hasta') }}" value="{{ data_get($trendFilters, 'tendencia.to_input', '') }}">
-                <div class="trend-filter-field">
-                    <label>Desde</label>
-                    <input type="date" name="{{ data_get($trendFilters, 'tendencia30147.from_param', 'trend_30147_desde') }}" value="{{ data_get($trendFilters, 'tendencia30147.from_input', '') }}">
-                </div>
-                <div class="trend-filter-field">
-                    <label>Hasta</label>
-                    <input type="date" name="{{ data_get($trendFilters, 'tendencia30147.to_param', 'trend_30147_hasta') }}" value="{{ data_get($trendFilters, 'tendencia30147.to_input', '') }}">
-                </div>
-                <a href="{{ route('dashboard.global.pasteurizadoras', ['parte' => \App\Models\AnalisisPasteurizadora::AREA_MECANICA]) }}" class="trend-open-link">
-                    <i class="fas fa-rotate-left"></i>
-                    Limpiar
-                </a>
-                @if($puedeVerTendenciasPasteurizadora)
-                    <a href="{{ route('analisis-tendencia-mensual.pasteurizadora.analisis-30-14-7', ['area' => \App\Models\AnalisisPasteurizadora::AREA_MECANICA]) }}" class="trend-open-link">
-                        <i class="fas fa-up-right-from-square"></i>
-                        Abrir
-                    </a>
-                @endif
-            </form>
-            <div class="dashboard-trend-machine-strip">
-                <div class="dashboard-trend-machine-header">
-                    <i class="fas fa-industry"></i>
-                    <span>Pasteurizadoras incluidas</span>
-                </div>
-                <div id="trend30147MachineGrid" class="dashboard-trend-machine-grid"></div>
-            </div>
-            <div class="dashboard-trend-brief">
-                <div id="trend30147StatusCard" class="dashboard-trend-status dashboard-trend-status--neutral">
-                    <div class="dashboard-trend-eyebrow">Estado de seguimiento</div>
-                    <div id="trend30147StatusTitle" class="dashboard-trend-status-title">Leyendo tendencia reciente...</div>
-                    <p id="trend30147StatusCopy" class="dashboard-trend-status-copy">
-                        Se está calculando el comportamiento reciente con información de análisis de Pasteurizadora.
-                    </p>
-                    <div id="trend30147StatusNote" class="dashboard-trend-status-note">Ventanas: 30, 14 y 7 días.</div>
-                </div>
-                <div id="trend30147WindowCards" class="dashboard-trend-window-grid"></div>
-            </div>
-            <div class="dashboard-trend-chart-shell">
-                <div class="dashboard-trend-chart-header">
-                    <div class="dashboard-trend-chart-title">
-                        <i class="fas fa-chart-column"></i>
-                        <div>
-                            <h4>Comparativo por pasteurizadora</h4>
-                            <p>Último corte disponible para cada ventana de análisis.</p>
-                        </div>
-                    </div>
-                    <div class="dashboard-trend-view-selector">
-                        <button type="button" class="dashboard-trend-view-btn active" data-pasteur-trend-card="30147" data-pasteur-trend-type="bar">Barras</button>
-                        <button type="button" class="dashboard-trend-view-btn" data-pasteur-trend-card="30147" data-pasteur-trend-type="line">Línea</button>
-                    </div>
-                    <div id="trend30147Caption" class="dashboard-trend-caption">Corte actual de tendencia 30-14-7.</div>
-                </div>
-                <div class="chart-container dashboard-trend-chart-container">
-                    <canvas id="analisis30147PasteurizadoraChart"></canvas>
-                </div>
-            </div>
-            <div class="chart-description">
-                <i class="fas fa-info-circle"></i>
-                <span>Seguimiento de fallas recientes calculado automáticamente desde los análisis registrados de Pasteurizadora</span>
-            </div>
-        </div>
     </div>
-</div>
 
     @elseif($esDashboardCentral)
         @php
@@ -1161,185 +979,14 @@
                     @endif
                 </div>
             </div>
-
-            <div class="chart-card trend-card trend-card-primary dashboard-panel dashboard-trend-card">
-                <h3>
-                    <i class="fas fa-chart-line"></i>
-                    <span>Central Hidraulica 52-12-4 | Tendencia de Daños</span>
-                </h3>
-                <div class="dashboard-trend-main-header">
-                    <div class="dashboard-trend-title-block">
-                        <i class="fas fa-droplet"></i>
-                        <div>
-                            <div class="dashboard-trend-eyebrow">Analisis de tendencia Central Hidraulica</div>
-                            <h3 class="dashboard-trend-heading">Analisis 52-12-4</h3>
-                            <p class="dashboard-trend-subcopy">Lectura ejecutiva por central con ventanas de 52, 12 y 4 semanas.</p>
-                        </div>
-                    </div>
-                </div>
-                <form method="GET" action="{{ route('dashboard.global.pasteurizadoras') }}" class="trend-filter-form dashboard-trend-filters" data-auto-filter-form>
-                    <input type="hidden" name="parte" value="{{ \App\Models\AnalisisPasteurizadora::AREA_CENTRAL_HIDRAULICA }}">
-                    <select id="analisis52124CentralHidraulicaLineaSelect" class="panel-select pasteur-trend-line-select" data-pasteur-trend-card="central52124">
-                        @forelse(($analisis52124CentralHidraulica['lineas'] ?? []) as $lineaTrend)
-                            <option value="{{ $lineaTrend['linea_id'] }}" @selected((int) data_get($analisis52124CentralHidraulica, 'default_linea_id') === (int) $lineaTrend['linea_id'])>{{ $lineaTrend['linea'] }}</option>
-                        @empty
-                            <option value="">Sin centrales</option>
-                        @endforelse
-                    </select>
-                    <input type="hidden" name="{{ data_get($trendFilters, 'tendencia30147.from_param', 'trend_30147_desde') }}" value="{{ data_get($trendFilters, 'tendencia30147.from_input', '') }}">
-                    <input type="hidden" name="{{ data_get($trendFilters, 'tendencia30147.to_param', 'trend_30147_hasta') }}" value="{{ data_get($trendFilters, 'tendencia30147.to_input', '') }}">
-                    <div class="trend-filter-field">
-                        <label>Desde</label>
-                        <input type="date" name="{{ data_get($trendFilters, 'tendencia.from_param', 'trend_52124_desde') }}" value="{{ data_get($trendFilters, 'tendencia.from_input', '') }}">
-                    </div>
-                    <div class="trend-filter-field">
-                        <label>Hasta</label>
-                        <input type="date" name="{{ data_get($trendFilters, 'tendencia.to_param', 'trend_52124_hasta') }}" value="{{ data_get($trendFilters, 'tendencia.to_input', '') }}">
-                    </div>
-                    <a href="{{ route('dashboard.global.pasteurizadoras', ['parte' => \App\Models\AnalisisPasteurizadora::AREA_CENTRAL_HIDRAULICA]) }}" class="trend-open-link">
-                        <i class="fas fa-rotate-left"></i>
-                        Limpiar
-                    </a>
-                    @if($puedeVerTendenciasPasteurizadora)
-                        <a href="{{ route('analisis-tendencia-mensual.pasteurizadora.analisis-52-12-4', ['area' => \App\Models\AnalisisPasteurizadora::AREA_CENTRAL_HIDRAULICA]) }}" class="trend-open-link">
-                            <i class="fas fa-up-right-from-square"></i>
-                            Abrir
-                        </a>
-                    @endif
-                </form>
-                <div class="dashboard-trend-machine-strip">
-                    <div class="dashboard-trend-machine-header">
-                        <i class="fas fa-industry"></i>
-                        <span>Centrales incluidas</span>
-                    </div>
-                    <div id="trendCentral52124MachineGrid" class="dashboard-trend-machine-grid"></div>
-                </div>
-                <div class="dashboard-trend-brief">
-                    <div id="trendCentral52124StatusCard" class="dashboard-trend-status dashboard-trend-status--neutral">
-                        <div class="dashboard-trend-eyebrow">Estado de seguimiento</div>
-                        <div id="trendCentral52124StatusTitle" class="dashboard-trend-status-title">Leyendo tendencia reciente...</div>
-                        <p id="trendCentral52124StatusCopy" class="dashboard-trend-status-copy">
-                            Se esta calculando el comportamiento reciente con informacion de Central Hidraulica.
-                        </p>
-                        <div id="trendCentral52124StatusNote" class="dashboard-trend-status-note">Ventanas: 52, 12 y 4 semanas.</div>
-                    </div>
-                    <div id="trendCentral52124WindowCards" class="dashboard-trend-window-grid"></div>
-                </div>
-                <div class="dashboard-trend-chart-shell">
-                    <div class="dashboard-trend-chart-header">
-                        <div class="dashboard-trend-chart-title">
-                            <i class="fas fa-chart-column"></i>
-                            <div>
-                                <h4>Comparativo por central</h4>
-                                <p>Ultimo corte disponible para cada ventana de analisis.</p>
-                            </div>
-                        </div>
-                        <div class="dashboard-trend-view-selector">
-                            <button type="button" class="dashboard-trend-view-btn active" data-pasteur-trend-card="central52124" data-pasteur-trend-type="bar">Barras</button>
-                            <button type="button" class="dashboard-trend-view-btn" data-pasteur-trend-card="central52124" data-pasteur-trend-type="line">Linea</button>
-                        </div>
-                        <div id="trendCentral52124Caption" class="dashboard-trend-caption">Corte actual de tendencia 52-12-4.</div>
-                    </div>
-                    <div class="chart-container dashboard-trend-chart-container">
-                        <canvas id="analisis52124CentralHidraulicaChart"></canvas>
-                    </div>
-                </div>
-                <div class="chart-description">
-                    <i class="fas fa-info-circle"></i>
-                    <span>Tendencia calculada solo con registros de Central Hidraulica</span>
-                </div>
-            </div>
-
-            <div class="chart-card trend-card trend-card-side dashboard-panel dashboard-trend-card">
-                <h3>
-                    <i class="fas fa-chart-line"></i>
-                    <span>Central Hidraulica 30-14-7 | Tendencia de Daños</span>
-                </h3>
-                <div class="dashboard-trend-main-header">
-                    <div class="dashboard-trend-title-block">
-                        <i class="fas fa-bolt"></i>
-                        <div>
-                            <div class="dashboard-trend-eyebrow">Analisis de tendencia Central Hidraulica</div>
-                            <h3 class="dashboard-trend-heading">Analisis 30-14-7</h3>
-                            <p class="dashboard-trend-subcopy">Lectura ejecutiva por central con ventanas de 30, 14 y 7 dias.</p>
-                        </div>
-                    </div>
-                </div>
-                <form method="GET" action="{{ route('dashboard.global.pasteurizadoras') }}" class="trend-filter-form dashboard-trend-filters" data-auto-filter-form>
-                    <input type="hidden" name="parte" value="{{ \App\Models\AnalisisPasteurizadora::AREA_CENTRAL_HIDRAULICA }}">
-                    <select id="analisis30147CentralHidraulicaLineaSelect" class="panel-select pasteur-trend-line-select" data-pasteur-trend-card="central30147">
-                        @forelse(($analisis30147CentralHidraulica['lineas'] ?? []) as $lineaTrend)
-                            <option value="{{ $lineaTrend['linea_id'] }}" @selected((int) data_get($analisis30147CentralHidraulica, 'default_linea_id') === (int) $lineaTrend['linea_id'])>{{ $lineaTrend['linea'] }}</option>
-                        @empty
-                            <option value="">Sin centrales</option>
-                        @endforelse
-                    </select>
-                    <input type="hidden" name="{{ data_get($trendFilters, 'tendencia.from_param', 'trend_52124_desde') }}" value="{{ data_get($trendFilters, 'tendencia.from_input', '') }}">
-                    <input type="hidden" name="{{ data_get($trendFilters, 'tendencia.to_param', 'trend_52124_hasta') }}" value="{{ data_get($trendFilters, 'tendencia.to_input', '') }}">
-                    <div class="trend-filter-field">
-                        <label>Desde</label>
-                        <input type="date" name="{{ data_get($trendFilters, 'tendencia30147.from_param', 'trend_30147_desde') }}" value="{{ data_get($trendFilters, 'tendencia30147.from_input', '') }}">
-                    </div>
-                    <div class="trend-filter-field">
-                        <label>Hasta</label>
-                        <input type="date" name="{{ data_get($trendFilters, 'tendencia30147.to_param', 'trend_30147_hasta') }}" value="{{ data_get($trendFilters, 'tendencia30147.to_input', '') }}">
-                    </div>
-                    <a href="{{ route('dashboard.global.pasteurizadoras', ['parte' => \App\Models\AnalisisPasteurizadora::AREA_CENTRAL_HIDRAULICA]) }}" class="trend-open-link">
-                        <i class="fas fa-rotate-left"></i>
-                        Limpiar
-                    </a>
-                    @if($puedeVerTendenciasPasteurizadora)
-                        <a href="{{ route('analisis-tendencia-mensual.pasteurizadora.analisis-30-14-7', ['area' => \App\Models\AnalisisPasteurizadora::AREA_CENTRAL_HIDRAULICA]) }}" class="trend-open-link">
-                            <i class="fas fa-up-right-from-square"></i>
-                            Abrir
-                        </a>
-                    @endif
-                </form>
-                <div class="dashboard-trend-machine-strip">
-                    <div class="dashboard-trend-machine-header">
-                        <i class="fas fa-industry"></i>
-                        <span>Centrales incluidas</span>
-                    </div>
-                    <div id="trendCentral30147MachineGrid" class="dashboard-trend-machine-grid"></div>
-                </div>
-                <div class="dashboard-trend-brief">
-                    <div id="trendCentral30147StatusCard" class="dashboard-trend-status dashboard-trend-status--neutral">
-                        <div class="dashboard-trend-eyebrow">Estado de seguimiento</div>
-                        <div id="trendCentral30147StatusTitle" class="dashboard-trend-status-title">Leyendo tendencia reciente...</div>
-                        <p id="trendCentral30147StatusCopy" class="dashboard-trend-status-copy">
-                            Se esta calculando el comportamiento reciente con informacion de Central Hidraulica.
-                        </p>
-                        <div id="trendCentral30147StatusNote" class="dashboard-trend-status-note">Ventanas: 30, 14 y 7 dias.</div>
-                    </div>
-                    <div id="trendCentral30147WindowCards" class="dashboard-trend-window-grid"></div>
-                </div>
-                <div class="dashboard-trend-chart-shell">
-                    <div class="dashboard-trend-chart-header">
-                        <div class="dashboard-trend-chart-title">
-                            <i class="fas fa-chart-column"></i>
-                            <div>
-                                <h4>Comparativo por central</h4>
-                                <p>Ultimo corte disponible para cada ventana de analisis.</p>
-                            </div>
-                        </div>
-                        <div class="dashboard-trend-view-selector">
-                            <button type="button" class="dashboard-trend-view-btn active" data-pasteur-trend-card="central30147" data-pasteur-trend-type="bar">Barras</button>
-                            <button type="button" class="dashboard-trend-view-btn" data-pasteur-trend-card="central30147" data-pasteur-trend-type="line">Linea</button>
-                        </div>
-                        <div id="trendCentral30147Caption" class="dashboard-trend-caption">Corte actual de tendencia 30-14-7.</div>
-                    </div>
-                    <div class="chart-container dashboard-trend-chart-container">
-                        <canvas id="analisis30147CentralHidraulicaChart"></canvas>
-                    </div>
-                </div>
-                <div class="chart-description">
-                    <i class="fas fa-info-circle"></i>
-                    <span>Seguimiento calculado solo con registros de Central Hidraulica</span>
-                </div>
-            </div>
         </div>
-    </div>
     @endif
+
+    @include('dashboard.partials.lef-52124', [
+        'equipmentName' => 'pasteurizadora',
+        'lefUrl' => $puedeVerLef52124 ? route('pasteurizadora.lef52124.index') : null,
+    ])
+</div>
 
 <div id="alertModal" class="modal">
     <div class="modal-content">
@@ -1360,14 +1007,10 @@
         'componentesDanadosPasteurizadora' => $esDashboardMecanica ? $componentesDanadosPasteurizadora->values() : [],
         'planesAccionDashboardPasteurizadora' => $esDashboardMecanica ? $planesAccionDashboardPasteurizadora : ['por_linea' => []],
         'avanceRevisionPasteurizadora' => $esDashboardMecanica ? $avanceRevisionPasteurizadora : ['labels' => [], 'porcentajes' => []],
-        'analisis52124Pasteurizadora' => $esDashboardMecanica ? $analisis52124Pasteurizadora : ['lineas' => []],
-        'analisis30147Pasteurizadora' => $esDashboardMecanica ? $analisis30147Pasteurizadora : ['lineas' => []],
         'centralesHidraulicasData' => $esDashboardCentral ? $centralesHidraulicasPasteurizadora->values() : [],
         'fallasPorLineaCentralHidraulica' => $esDashboardCentral ? $fallasPorLineaCentralHidraulica->values() : [],
         'planesAccionDashboardCentralHidraulica' => $esDashboardCentral ? $planesAccionDashboardCentralHidraulica : ['por_linea' => []],
         'avanceRevisionCentralHidraulica' => $esDashboardCentral ? $avanceRevisionCentralHidraulica : ['labels' => [], 'porcentajes' => []],
-        'analisis52124CentralHidraulica' => $esDashboardCentral ? $analisis52124CentralHidraulica : ['lineas' => []],
-        'analisis30147CentralHidraulica' => $esDashboardCentral ? $analisis30147CentralHidraulica : ['lineas' => []],
         'fallasCanvasId' => $esDashboardMecanica ? 'fallasPasteurizadoraChart' : '',
         'urls' => [
             'mechanicalPlans' => $puedeVerPlanesPasteurizadora ? route('pasteurizadora.analisis-pasteurizadora.plan-accion.index') : null,

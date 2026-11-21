@@ -1,6 +1,6 @@
 {
   "resources/css/app.css": {
-    "file": "assets/app-BzvFTCW7.css",
+    "file": "assets/app-CwuDTpjr.css",
     "src": "resources/css/app.css",
     "isEntry": true,
     "name": "app",
@@ -9,7 +9,7 @@
     ]
   },
   "resources/css/auth-tailwind.css": {
-    "file": "assets/auth-tailwind-BvHJV9Zx.css",
+    "file": "assets/auth-tailwind-DRvTeYGk.css",
     "src": "resources/css/auth-tailwind.css",
     "isEntry": true,
     "name": "auth-tailwind",
@@ -18,7 +18,7 @@
     ]
   },
   "resources/css/dashboard-lavadora.css": {
-    "file": "assets/dashboard-lavadora-BmTTjWUS.css",
+    "file": "assets/dashboard-lavadora-CAcro2xi.css",
     "src": "resources/css/dashboard-lavadora.css",
     "isEntry": true,
     "name": "dashboard-lavadora",
@@ -27,7 +27,7 @@
     ]
   },
   "resources/css/dashboard-pasteurizadora.css": {
-    "file": "assets/dashboard-pasteurizadora-lsVVYkep.css",
+    "file": "assets/dashboard-pasteurizadora-BP4uEM5n.css",
     "src": "resources/css/dashboard-pasteurizadora.css",
     "isEntry": true,
     "name": "dashboard-pasteurizadora",
@@ -48,7 +48,7 @@
     "isEntry": true
   },
   "resources/js/dashboard-pasteurizadora.js": {
-    "file": "assets/dashboard-pasteurizadora-ArhOH6Zk.js",
+    "file": "assets/dashboard-pasteurizadora-CaujXtDz.js",
     "name": "dashboard-pasteurizadora",
     "src": "resources/js/dashboard-pasteurizadora.js",
     "isEntry": true

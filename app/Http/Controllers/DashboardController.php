@@ -19,6 +19,7 @@ use App\Services\Lef52124DataService;
 use App\Services\LavadoraCostAnalyticsService;
 use App\Services\NotificationVisibilityService;
 use App\Support\EtiquetadoraCatalog;
+use App\Support\Lef52124Equipment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Collection;
@@ -411,9 +412,6 @@ class DashboardController extends Controller
         ->orderBy('nombre')
         ->get();
 
-    $trend52124Range = $this->resolveLavadoraTrendDateRange($request, 'trend_52124_desde', 'trend_52124_hasta');
-    $trend30147Range = $this->resolveLavadoraTrendDateRange($request, 'trend_30147_desde', 'trend_30147_hasta');
-
     $lineaIdsPasteurizadora = $pasteurizadoras->pluck('id');
 
     $analisis = AnalisisPasteurizadora::queryForArea(AnalisisPasteurizadora::AREA_MECANICA)
@@ -447,43 +445,10 @@ class DashboardController extends Controller
     $historicoRevisionesPasteurizadora = $this->getHistoricoRevisionesPasteurizadora($analisisHistorico);
     $rankingDanosPasteurizadora = $this->getRankingDanosPasteurizadora($pasteurizadoras, $analisis);
     $avanceRevisionPasteurizadora = $this->getAvanceRevisionPasteurizadora($estadoPasteurizadoras);
-    $tendenciaDanos = app(TendenciaDanosService::class);
-    $analisis52124Pasteurizadora = $tendenciaDanos->construirDashboard(
-        $pasteurizadoras,
-        TendenciaDanosService::TIPO_PASTEURIZADORAS,
-        $tendenciaDanos->ventanas52124(),
-        $trend52124Range,
-        AnalisisPasteurizadora::AREA_MECANICA
-    );
-    $analisis30147Pasteurizadora = $tendenciaDanos->construirDashboard(
-        $pasteurizadoras,
-        TendenciaDanosService::TIPO_PASTEURIZADORAS,
-        $tendenciaDanos->ventanas30147(),
-        $trend30147Range,
-        AnalisisPasteurizadora::AREA_MECANICA
-    );
-    // El selector debe iniciar con la primera pasteurizadora del catálogo,
-    // aunque otra línea sea la primera que tenga registros de tendencia.
-    $defaultPasteurizadoraLineaId = $pasteurizadoras->first()?->id;
-    $analisis52124Pasteurizadora['default_linea_id'] = $defaultPasteurizadoraLineaId;
-    $analisis30147Pasteurizadora['default_linea_id'] = $defaultPasteurizadoraLineaId;
-    $trendFilters = [
-        'tendencia' => [
-            'from_input' => $trend52124Range['from_input'],
-            'to_input' => $trend52124Range['to_input'],
-            'from_param' => 'trend_52124_desde',
-            'to_param' => 'trend_52124_hasta',
-        ],
-        'tendencia30147' => [
-            'from_input' => $trend30147Range['from_input'],
-            'to_input' => $trend30147Range['to_input'],
-            'from_param' => 'trend_30147_desde',
-            'to_param' => 'trend_30147_hasta',
-        ],
-    ];
+    $lefDashboard = (new Lef52124DataService(Lef52124Equipment::Pasteurizadora))->latestMonthDashboardPayload();
     $ultimosAnalisisPasteurizadora = $analisisHistorico->sortByDesc('fecha_analisis')->take(8)->values();
     $centralHidraulicaDashboard = $dashboardPasteurizadoraParte === AnalisisPasteurizadora::AREA_CENTRAL_HIDRAULICA
-        ? $this->getDashboardCentralHidraulicaPasteurizadoraData($trend52124Range, $trend30147Range)
+        ? $this->getDashboardCentralHidraulicaPasteurizadoraData()
         : [];
 
     return view('dashboard_pasteurizadora', array_merge(compact(
@@ -492,9 +457,7 @@ class DashboardController extends Controller
         'fallasPorLineaPasteurizadora',
         'componentesDanadosPasteurizadora',
         'historicoRevisionesPasteurizadora',
-        'analisis52124Pasteurizadora',
-        'analisis30147Pasteurizadora',
-        'trendFilters',
+        'lefDashboard',
         'planesPendientesPasteurizadora',
         'planesAccionDashboardPasteurizadora',
         'rankingDanosPasteurizadora',
@@ -3235,7 +3198,7 @@ public function pasteurizadoraOperativo(Request $request)
     /**
      * Obtiene componentes con daño o desgaste para la gráfica de pasteurizadoras.
      */
-    private function getDashboardCentralHidraulicaPasteurizadoraData(?array $trend52124Range = null, ?array $trend30147Range = null): array
+    private function getDashboardCentralHidraulicaPasteurizadoraData(): array
     {
         $lineasCentralHidraulica = $this->getLineasCentralHidraulicaPasteurizadora();
         $lineaIds = $lineasCentralHidraulica->pluck('id');
@@ -3311,21 +3274,6 @@ public function pasteurizadoraOperativo(Request $request)
             $analisisCentralHidraulica
         );
         $avanceRevisionCentralHidraulica = $this->getAvanceRevisionCentralHidraulica($estadoCentralHidraulicaPasteurizadora);
-        $tendenciaDanos = app(TendenciaDanosService::class);
-        $analisis52124CentralHidraulica = $tendenciaDanos->construirDashboard(
-            $lineasCentralHidraulica,
-            TendenciaDanosService::TIPO_PASTEURIZADORAS,
-            $tendenciaDanos->ventanas52124(),
-            $trend52124Range,
-            AnalisisPasteurizadora::AREA_CENTRAL_HIDRAULICA
-        );
-        $analisis30147CentralHidraulica = $tendenciaDanos->construirDashboard(
-            $lineasCentralHidraulica,
-            TendenciaDanosService::TIPO_PASTEURIZADORAS,
-            $tendenciaDanos->ventanas30147(),
-            $trend30147Range,
-            AnalisisPasteurizadora::AREA_CENTRAL_HIDRAULICA
-        );
         $ultimosAnalisisCentralHidraulica = $analisisHistoricoCentralHidraulica
             ->sortByDesc(fn (AnalisisCentralHidraulica $item) => $this->centralHidraulicaSortKey($item))
             ->take(8)
@@ -3338,8 +3286,6 @@ public function pasteurizadoraOperativo(Request $request)
             'fallasPorLineaCentralHidraulica',
             'componentesDanadosCentralHidraulica',
             'historicoRevisionesCentralHidraulica',
-            'analisis52124CentralHidraulica',
-            'analisis30147CentralHidraulica',
             'planesPendientesCentralHidraulicaPasteurizadora',
             'planesAccionDashboardCentralHidraulica',
             'rankingDanosCentralHidraulica',

@@ -68,6 +68,21 @@ class Lef52124CostUploadTest extends TestCase
         $this->post(route('lef52124.costs.import'))->assertRedirect(route('login'));
     }
 
+    public function test_the_same_unassigned_workbook_is_counted_once_per_equipment(): void
+    {
+        $this->actingAs(User::factory()->withRole(User::ROLE_ADMIN)->create());
+
+        foreach (['lef52124.', 'pasteurizadora.lef52124.'] as $prefix) {
+            for ($attempt = 0; $attempt < 2; $attempt++) {
+                $this->post(route($prefix.'costs.import'), ['archivo_costos' => $this->workbook()])
+                    ->assertSessionHasNoErrors()->assertRedirect(route($prefix.'index'));
+            }
+            $this->getJson(route($prefix.'costs.data'))->assertOk()->assertJsonPath('summary.records', 1);
+        }
+
+        $this->assertDatabaseCount('lef52124_cost_entries', 2);
+    }
+
     public function test_invalid_input_and_workbook_return_validation_errors_without_writes(): void
     {
         $this->actingAs(User::factory()->withRole(User::ROLE_ADMIN)->create());

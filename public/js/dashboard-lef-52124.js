@@ -4,6 +4,7 @@
     if (!source || !select) return;
 
     const payload = JSON.parse(source.textContent);
+    const equipment = source.dataset?.equipment || 'lavadora';
     const lines = Array.isArray(payload.lineas) ? payload.lineas : [];
     const loading = document.getElementById('lefDashboardLoading');
     const empty = document.getElementById('lefDashboardEmpty');
@@ -118,7 +119,7 @@
         const selectedIndex = rows.findIndex((row) => row.highlight);
         position.textContent = selectedIndex >= 0
             ? `${name}: posición ${selectedIndex + 1} de ${rows.length} según LEF`
-            : 'No se identificó la máquina lavadora en esta importación.';
+            : `No se identificó la máquina ${equipment} en esta importación.`;
 
         const canvas = document.getElementById('lefDashboardParetoChart');
         canvas.setAttribute('aria-label', `Pareto LEF de ${name}. ${position.textContent}`);
@@ -158,7 +159,7 @@
         if (!line || !line.import_id) {
             chartsNode.hidden = true;
             setMessage(empty, payload.period
-                ? 'Esta lavadora no tiene información cargada para el periodo de análisis.'
+                ? `Esta ${equipment} no tiene información cargada para el periodo de análisis.`
                 : 'Todavía no hay información 52-12-4 cargada.');
             return;
         }
@@ -174,7 +175,7 @@
         const hasMachines = Array.isArray(line.machines) && line.machines.length > 0;
         washerWrap.hidden = !hasWasher;
         paretoWrap.hidden = !hasMachines;
-        setMessage(washerEmpty, hasWasher ? '' : 'Esta carga no contiene datos de la lavadora.');
+        setMessage(washerEmpty, hasWasher ? '' : `Esta carga no contiene datos de la ${equipment}.`);
         setMessage(paretoEmpty, hasMachines ? '' : 'Esta carga no contiene datos de máquinas.');
         position.hidden = !hasMachines;
         if (hasWasher) drawWasher(line.washer, line.nombre);

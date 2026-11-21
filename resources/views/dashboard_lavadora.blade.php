@@ -436,40 +436,7 @@
 
     </div>
 
-    <div class="dashboard-panels-full">
-        <div class="chart-card trend-card trend-card-primary lef-dashboard-card">
-            <div class="lef-dashboard-header">
-                <div>
-                    <h3><i class="fas fa-chart-line"></i> <span>52-12-4</span></h3>
-                    <p class="lef-dashboard-period">Periodo de análisis: {{ $lefDashboard['period_label'] ?? 'Sin datos disponibles' }}</p>
-                </div>
-                <div class="lef-dashboard-filter">
-                    <label for="lefDashboardLinea">Lavadora</label>
-                    <select id="lefDashboardLinea" @disabled(empty($lefDashboard['lineas']))>
-                        @foreach($lefDashboard['lineas'] as $linea)
-                            <option value="{{ $linea['id'] }}">{{ $linea['nombre'] }}</option>
-                        @endforeach
-                    </select>
-                </div>
-            </div>
-            <div id="lefDashboardLoading" class="lef-dashboard-message" role="status">Cargando análisis...</div>
-            <div id="lefDashboardEmpty" class="lef-dashboard-message" role="status" hidden></div>
-            <div id="lefDashboardCharts" hidden>
-                <section class="lef-dashboard-section" aria-labelledby="lefWasherTitle">
-                    <p id="lefWasherEmpty" class="lef-dashboard-message" hidden></p>
-                    <div id="lefWasherChartWrap" class="lef-dashboard-chart"><canvas id="lefDashboardWasherChart" role="img" aria-label="Valores LEF de 52, 12 y 4 semanas de la lavadora seleccionada"></canvas></div>
-                </section>
-                <section class="lef-dashboard-section" aria-labelledby="lefParetoTitle">
-                    <h4 id="lefParetoTitle">Pareto LEF - Máquinas</h4>
-                    <p id="lefDashboardPosition" class="lef-dashboard-position" role="status" aria-live="polite"></p>
-                    <p id="lefParetoEmpty" class="lef-dashboard-message" hidden></p>
-                    <div id="lefParetoChartWrap" class="lef-dashboard-scroll">
-                        <div id="lefDashboardParetoWidth" class="lef-dashboard-pareto"><canvas id="lefDashboardParetoChart" role="img" aria-label="Valores LEF por máquina, ordenados de mayor a menor según 52 semanas"></canvas></div>
-                    </div>
-                </section>
-            </div>
-        </div>
-    </div>
+    @include('dashboard.partials.lef-52124', ['equipmentName' => 'lavadora'])
 </div>
 
 {{-- Modal para Detalle de Alerta --}}
@@ -1144,8 +1111,6 @@
 @endphp
 <script type="application/json" id="lavadoraPanelsData">@json($lavadoraPanelsData)</script>
 @vite('resources/js/dashboard-lavadora-panels.js')
-<script type="application/json" id="lefDashboardData">@json($lefDashboard)</script>
-<script src="{{ asset('js/dashboard-lef-52124.js') }}"></script>
 @if($canViewLavadoraCostsModule ?? false)
 <script>
 window.addEventListener('load', function () {

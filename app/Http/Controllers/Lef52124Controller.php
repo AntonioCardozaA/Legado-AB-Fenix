@@ -2,55 +2,70 @@
 
 namespace App\Http\Controllers;
 
-use App\Exports\Lef52124WorkbookExport;
 use App\Exports\Lef52124SingleImportExport;
+use App\Exports\Lef52124WorkbookExport;
 use App\Models\Lef52124CostEntry;
 use App\Models\Lef52124Import;
 use App\Models\Lef52124Item;
 use App\Models\Linea;
 use App\Models\User;
-use App\Services\Lef52124DataService;
 use App\Services\Lef52124CostImportService;
+use App\Services\Lef52124DataService;
 use App\Services\Lef52124ImportService;
+use App\Support\Lef52124Equipment;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Exists;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use Maatwebsite\Excel\Facades\Excel;
 
 class Lef52124Controller extends Controller
 {
-    public function __construct(private readonly Lef52124DataService $dataService)
+    protected const EQUIPMENT = Lef52124Equipment::Lavadora;
+
+    private readonly Lef52124DataService $dataService;
+
+    public function __construct()
     {
+        $this->dataService = new Lef52124DataService(static::EQUIPMENT);
     }
 
     public function index(Request $request): View
     {
+        $equipment = static::EQUIPMENT;
         $lineas = $this->dataService->lineas();
-        $selectedLineaId = $request->query('scope') === 'all'
-            ? 'all'
-            : (int) ($request->integer('linea_id') ?: $this->dataService->defaultLineaId($lineas));
+        $requestedLineaId = $request->integer('linea_id');
+        $selectedLineaId = 'all';
+        if ($request->query('scope') !== 'all') {
+            $belongsToEquipment = $requestedLineaId && ($lineas->contains('id', $requestedLineaId)
+                || $equipment->lineas()->whereKey($requestedLineaId)->exists());
+            $selectedLineaId = $belongsToEquipment ? $requestedLineaId : (int) $this->dataService->defaultLineaId($lineas);
+        }
         $canManage = $this->canManage($request->user());
+        $routePrefix = $equipment->routePrefix();
         $imports = $canManage
             ? Lef52124Import::with(['linea:id,nombre', 'user:id,name'])
+                ->whereIn('linea_id', $equipment->lineas()->select('id'))
                 ->latest()
                 ->paginate(10, ['*'], 'importaciones_page')
                 ->withQueryString()
                 ->fragment('historial-importaciones')
             : collect();
 
-        return view('analisis-52-12-4.index', compact('lineas', 'selectedLineaId', 'canManage', 'imports'));
+        return view('analisis-52-12-4.index', compact('lineas', 'selectedLineaId', 'canManage', 'imports', 'equipment', 'routePrefix'));
     }
 
     public function periods(Request $request): JsonResponse
     {
         $validated = $request->validate([
             'scope' => ['nullable', 'in:all'],
-            'linea_id' => ['required_without:scope', 'integer', 'exists:lineas,id'],
+            'linea_id' => ['required_without:scope', 'integer', $this->equipmentLineRule()],
         ]);
 
         return response()->json($this->dataService->periodsPayload(
@@ -62,8 +77,13 @@ class Lef52124Controller extends Controller
     {
         $validated = $request->validate([
             'scope' => ['nullable', 'in:all'],
-            'linea_id' => ['nullable', 'integer', 'exists:lineas,id'],
-            'import_id' => ['nullable', 'integer', 'exists:lef52124_imports,id'],
+            'linea_id' => ['nullable', 'integer', $this->equipmentLineRule()],
+            'import_id' => [
+                'nullable',
+                'integer',
+                Rule::exists('lef52124_imports', 'id')
+                    ->where(fn ($query) => $query->whereIn('linea_id', static::EQUIPMENT->lineas()->select('id'))),
+            ],
             'data_date' => ['nullable', 'date_format:Y-m-d'],
             'period' => ['nullable', 'in:all,52,12,4'],
             'analysis_type' => ['nullable', 'in:all,machines,parts,washer,comparison'],
@@ -93,12 +113,12 @@ class Lef52124Controller extends Controller
 
         if ($imports->isEmpty()) {
             return redirect()
-                ->route('lef52124.index')
+                ->route(static::EQUIPMENT->routePrefix().'index')
                 ->with('warning', 'No hay datos 52-12-4 entre 2025 y la fecha actual de 2026 para descargar.');
         }
 
         return Excel::download(
-            new Lef52124WorkbookExport($imports, $lineas, $startDate, $endDate),
+            new Lef52124WorkbookExport($imports, $lineas, $startDate, $endDate, static::EQUIPMENT),
             '52-12-4-todas-las-lineas-2025-a-'.now()->format('Y-m-d').'.xlsx'
         );
     }
@@ -106,6 +126,7 @@ class Lef52124Controller extends Controller
     public function download(Request $request, Lef52124Import $import)
     {
         $this->ensureAdmin($request);
+        $this->ensureEquipmentImport($import);
         $import->load(['items', 'linea:id,nombre']);
 
         if ($import->source_path && Storage::disk('local')->exists($import->source_path)) {
@@ -121,7 +142,7 @@ class Lef52124Controller extends Controller
     {
         $validated = $request->validate([
             'scope' => ['nullable', 'in:all'],
-            'linea_id' => ['required_without:scope', 'integer', 'exists:lineas,id'],
+            'linea_id' => ['required_without:scope', 'integer', $this->equipmentLineRule()],
         ]);
 
         return response()->json($this->dataService->washerMachineTrendPayload(
@@ -132,12 +153,13 @@ class Lef52124Controller extends Controller
     public function costData(Request $request): JsonResponse
     {
         $request->validate([
-            'linea_id' => ['nullable', 'integer', 'exists:lineas,id'],
+            'linea_id' => ['nullable', 'integer', $this->equipmentLineRule()],
         ]);
 
         $lineaId = $request->integer('linea_id') ?: null;
         $entries = Lef52124CostEntry::query()
             ->with('linea:id,nombre')
+            ->where('equipment', static::EQUIPMENT->value)
             ->whereIn('year', [2025, 2026])
             ->when($lineaId, fn ($query) => $query->where('linea_id', $lineaId))
             ->get();
@@ -177,7 +199,7 @@ class Lef52124Controller extends Controller
 
         return response()->json([
             'has_data' => $entries->isNotEmpty(),
-            'linea' => $lineaId ? Linea::find($lineaId)?->nombre : 'Todas las lavadoras',
+            'linea' => $lineaId ? Linea::find($lineaId)?->nombre : 'Todas las '.static::EQUIPMENT->value.'s',
             'summary' => [
                 'total' => round((float) $entries->sum('amount'), 2),
                 '2025' => $total2025,
@@ -195,7 +217,7 @@ class Lef52124Controller extends Controller
     {
         $this->ensureAdmin($request);
         $validated = $request->validate([
-            'fallback_linea_id' => ['nullable', 'integer', 'exists:lineas,id'],
+            'fallback_linea_id' => ['nullable', 'integer', $this->equipmentLineRule()],
             'archivo_costos' => ['required', 'file', 'mimes:xls,xlsx', 'max:20480'],
         ]);
 
@@ -203,14 +225,15 @@ class Lef52124Controller extends Controller
             $service->import(
                 $request->file('archivo_costos'),
                 isset($validated['fallback_linea_id']) ? Linea::findOrFail($validated['fallback_linea_id']) : null,
-                $request->user()
+                $request->user(),
+                static::EQUIPMENT
             );
         } catch (\Throwable $exception) {
             throw ValidationException::withMessages(['archivo_costos' => $exception->getMessage()]);
         }
 
         return redirect()
-            ->route('lef52124.index', array_filter(['linea_id' => $validated['fallback_linea_id'] ?? null], fn ($value) => $value !== null))
+            ->route(static::EQUIPMENT->routePrefix().'index', array_filter(['linea_id' => $validated['fallback_linea_id'] ?? null], fn ($value) => $value !== null))
             ->with('success', 'Importacion de costos completada correctamente.');
     }
 
@@ -219,7 +242,7 @@ class Lef52124Controller extends Controller
         $this->ensureAdmin($request);
 
         $validated = $request->validate([
-            'linea_id' => ['required', 'integer', 'exists:lineas,id'],
+            'linea_id' => ['required', 'integer', $this->equipmentLineRule()],
             'data_date' => ['required', 'date_format:Y-m-d'],
             'observations' => ['nullable', 'string', 'max:1000'],
             'archivo' => ['required', 'file', 'mimes:xls,xlsx', 'max:20480'],
@@ -240,13 +263,14 @@ class Lef52124Controller extends Controller
         }
 
         return redirect()
-            ->route('lef52124.index', ['linea_id' => $validated['linea_id']])
+            ->route(static::EQUIPMENT->routePrefix().'index', ['linea_id' => $validated['linea_id']])
             ->with('success', 'Importacion 52-12-4 completada correctamente.');
     }
 
     public function destroy(Request $request, Lef52124Import $import): RedirectResponse
     {
         $this->ensureAdmin($request);
+        $this->ensureEquipmentImport($import);
         $lineaId = $import->linea_id;
         $sourcePath = $import->source_path;
         $import->delete();
@@ -256,8 +280,19 @@ class Lef52124Controller extends Controller
         }
 
         return redirect()
-            ->route('lef52124.index', ['linea_id' => $lineaId])
+            ->route(static::EQUIPMENT->routePrefix().'index', ['linea_id' => $lineaId])
             ->with('success', 'Importacion eliminada correctamente.');
+    }
+
+    private function equipmentLineRule(): Exists
+    {
+        return Rule::exists('lineas', 'id')
+            ->where(fn ($query) => $query->where('nombre', 'like', static::EQUIPMENT->linePrefix().'-%'));
+    }
+
+    private function ensureEquipmentImport(Lef52124Import $import): void
+    {
+        abort_unless(static::EQUIPMENT->lineas()->whereKey($import->linea_id)->exists(), 404);
     }
 
     private function resolveImport(int $lineaId, ?int $importId, ?string $dataDate = null): ?Lef52124Import

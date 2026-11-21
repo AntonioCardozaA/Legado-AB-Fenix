@@ -1,10 +1,14 @@
 @extends('layouts.app')
 
-@section('title', '52-12-4')
+@section('title', '52-12-4 | '.ucfirst($equipment->value))
 
 @section('content')
 @php
     $lineasPayload = $lineas->map(fn ($linea) => ['id' => $linea->id, 'nombre' => $linea->nombre])->values();
+    $equipmentLabel = ucfirst($equipment->value);
+    $heading = $equipment === \App\Support\Lef52124Equipment::Pasteurizadora
+        ? 'LEF-52-12-4 | '.$equipmentLabel.'s'
+        : 'LEF-52-12-4';
 @endphp
 
 <style>
@@ -101,6 +105,8 @@
     .lef-action.secondary { background: #f8fafc; color: #334155 !important; border-color: #cbd5e1; box-shadow: none; }
     .lef-action.on-dark { background: var(--lef-navy); color: #fff !important; border-color: var(--lef-navy); box-shadow: 0 12px 24px rgba(31, 35, 72, 0.18); }
     .lef-action.on-dark:hover { background: #111827; border-color: #111827; box-shadow: 0 16px 28px rgba(31, 35, 72, 0.24); }
+    .lef-equipment-switch { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+    .lef-equipment-switch .lef-action:focus-visible { outline: 2px solid var(--lef-blue); outline-offset: 2px; }
     .lef-lines {
         display: flex;
         gap: 8px;
@@ -284,6 +290,7 @@
         .lef-header { align-items: stretch; border-radius: 18px; }
         .lef-title-wrap { align-items: flex-start; }
         .lef-action { width: 100%; }
+        .lef-equipment-switch .lef-action { flex: 1 1 auto; width: auto; }
         .lef-panel-header { align-items: stretch; }
         .lef-lines { margin-inline: -0.25rem; padding-inline: 0.25rem; }
         .lef-line-tab { padding-inline: 14px; }
@@ -311,22 +318,39 @@
     }
 </style>
 
-<div class="lef-shell" data-lef-dashboard>
+<div class="lef-shell" data-lef-dashboard
+    data-equipment="{{ $equipment->value }}"
+    data-data-url="{{ route($routePrefix.'data') }}"
+    data-periods-url="{{ route($routePrefix.'periods') }}"
+    data-trend-url="{{ route($routePrefix.'trend.washer-machine') }}"
+    data-costs-url="{{ route($routePrefix.'costs.data') }}">
     <div class="lef-header">
         <div class="lef-title-wrap">
             <span class="lef-title-icon" aria-hidden="true"><i class="fas fa-chart-column"></i></span>
             <div>
                 <span class="lef-kicker"></span>
-                <h1 class="lef-title">LEF-52-12-4</h1>
+                <h1 class="lef-title">{{ $heading }}</h1>
             </div>
         </div>
         @if($canManage)
             <button class="lef-action on-dark" type="button" data-toggle-import><i class="fas fa-file-import"></i>Importar datos 52-12-4</button>
         @endif
-        <a class="lef-action secondary" href="{{ route('lef52124.export') }}">
+        <a class="lef-action secondary" href="{{ route($routePrefix.'export') }}">
             <i class="fas fa-file-excel"></i>Descargar Excel de todas las líneas
         </a>
     </div>
+
+    @if(auth()->user()?->canAccessModule(\App\Models\User::MODULE_PASTEURIZADORA))
+        <nav class="lef-equipment-switch" aria-label="Equipo para el análisis 52-12-4">
+            @foreach(\App\Support\Lef52124Equipment::cases() as $option)
+                <a href="{{ route($option->routePrefix().'index') }}"
+                   class="lef-action {{ $equipment === $option ? 'on-dark' : 'secondary' }}"
+                   @if($equipment === $option) aria-current="page" @endif>
+                    {{ ucfirst($option->value) }}s
+                </a>
+            @endforeach
+        </nav>
+    @endif
 
     @if(session('success')) <div class="lef-alert success">{{ session('success') }}</div> @endif
     @if($errors->any()) <div class="lef-alert error">{{ $errors->first() }}</div> @endif
@@ -343,7 +367,7 @@
     @if($canManage)
         <div class="lef-panel" id="lefImportPanel" hidden>
             <div class="lef-panel-header"><h2 class="lef-panel-title">Importacion Excel</h2></div>
-            <form class="lef-panel-body" action="{{ route('lef52124.store') }}" method="POST" enctype="multipart/form-data">
+            <form class="lef-panel-body" action="{{ route($routePrefix.'store') }}" method="POST" enctype="multipart/form-data">
                 @csrf
                 <div class="lef-import-grid">
                     <div class="lef-field">
@@ -384,7 +408,7 @@
                     <select id="filter_analysis" data-filter-analysis>
                         <option value="all">Vista general</option>
                         <option value="machines">Maquinas</option>
-                        <option value="parts">Partes de Lavadora</option>
+                        <option value="parts">Partes de {{ $equipmentLabel }}</option>
                         <option value="washer">Linea general</option>
                         <option value="comparison">Comparacion entre lineas</option>
                     </select>
@@ -424,7 +448,7 @@
             <div class="lef-panel-body"><div class="lef-chart-wrap"><div class="lef-chart-inner" data-chart-width="machines"><canvas id="machinesChart"></canvas></div></div></div>
         </section>
         <section class="lef-panel" data-card="parts">
-            <div class="lef-panel-header"><h2 class="lef-panel-title">Pareto de LEF - Partes de Lavadora</h2></div>
+            <div class="lef-panel-header"><h2 class="lef-panel-title">Pareto de LEF - Partes de {{ $equipmentLabel }}</h2></div>
             <div class="lef-panel-body"><div class="lef-chart-wrap"><div class="lef-chart-inner" data-chart-width="parts"><canvas id="partsChart"></canvas></div></div></div>
         </section>
         <section class="lef-panel" data-card="washer">
@@ -440,7 +464,7 @@
     <section class="lef-panel" data-trend-panel hidden>
         <div class="lef-panel-header">
             <div>
-                <h2 class="lef-panel-title" data-trend-heading>Tendencia 52-12-4 - Maquina LAVADORA</h2>
+                <h2 class="lef-panel-title" data-trend-heading>Tendencia 52-12-4 - Máquina {{ strtoupper($equipmentLabel) }}</h2>
                 <p style="margin: 4px 0 0; color: #64748b; font-size: 0.84rem;" data-trend-title>
                     Enero a diciembre 2025 y 2026
                 </p>
@@ -471,7 +495,7 @@
                     <i class="fas fa-file-arrow-up"></i>
                     <span data-cost-import-label>Agregar documento de costos</span>
                 </button>
-                <form id="lefCostImportPanel" class="lef-import-grid" action="{{ route('lef52124.costs.import') }}" method="POST" enctype="multipart/form-data" hidden style="margin-top: 14px;">
+                <form id="lefCostImportPanel" class="lef-import-grid" action="{{ route($routePrefix.'costs.import') }}" method="POST" enctype="multipart/form-data" hidden style="margin-top: 14px;">
                     @csrf
                     <div class="lef-field">
                         <label for="archivo_costos">Documento de costos</label>
@@ -496,8 +520,8 @@
                 <div class="lef-cost-titlebar">
                     <div class="lef-cost-brand">
                         <div>
-                            <h3>Costos Lavadoras</h3>
-                            <p data-cost-line-title>Todas las lavadoras</p>
+                            <h3>Costos {{ $equipmentLabel }}s</h3>
+                            <p data-cost-line-title>Todas las {{ $equipment->value }}s</p>
                         </div>
                     </div>
                 </div>
@@ -546,10 +570,10 @@
                                 <td data-label="Estado">{{ ucfirst($import->status) }}</td>
                                 <td data-label="Acciones">
                                     <div class="lef-actions">
-                                        <a class="lef-download" href="{{ route('lef52124.download', $import) }}">
+                                        <a class="lef-download" href="{{ route($routePrefix.'download', $import) }}">
                                             <i class="fas fa-download"></i> Descargar
                                         </a>
-                                        <form method="POST" action="{{ route('lef52124.destroy', $import) }}" data-delete-import>
+                                        <form method="POST" action="{{ route($routePrefix.'destroy', $import) }}" data-delete-import>
                                             @csrf @method('DELETE')
                                             <button class="lef-delete" type="submit">Eliminar</button>
                                         </form>
@@ -574,11 +598,14 @@
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     const lineas = @json($lineasPayload);
+    const config = document.querySelector('[data-lef-dashboard]').dataset;
+    const equipment = config.equipment;
+    const equipmentTitle = equipment.toUpperCase();
     const endpoints = {
-        data: @json(route('lef52124.data')),
-        periods: @json(route('lef52124.periods')),
-        trend: @json(route('lef52124.trend.washer-machine')),
-        costs: @json(route('lef52124.costs.data')),
+        data: config.dataUrl,
+        periods: config.periodsUrl,
+        trend: config.trendUrl,
+        costs: config.costsUrl,
     };
     const initialFilters = { lineaId: @json($selectedLineaId), dataDate: null, period: 'all', analysis: 'all' };
     const state = {
@@ -745,7 +772,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (nodes.costEmpty) nodes.costEmpty.hidden = true;
         if (nodes.costNote) nodes.costNote.hidden = true;
         if (nodes.costCharts) nodes.costCharts.hidden = false;
-        if (nodes.costLineTitle) nodes.costLineTitle.textContent = payload.linea || 'Todas las lavadoras';
+        if (nodes.costLineTitle) nodes.costLineTitle.textContent = payload.linea || `Todas las ${equipment}s`;
         if (nodes.costKpis) {
             const summary = payload.summary || {};
             const savingsLabel = Number(summary.savings || 0) >= 0 ? 'Ahorro' : 'Incremento';
@@ -844,7 +871,7 @@ document.addEventListener('DOMContentLoaded', function () {
             signal: state.activeTrendController.signal
         })
             .then((response) => {
-                if (!response.ok) throw new Error('No se pudo cargar la tendencia de Lavadora.');
+                if (!response.ok) throw new Error('No se pudo cargar la tendencia de la máquina.');
                 return response.json();
             })
             .then((payload) => {
@@ -853,7 +880,7 @@ document.addEventListener('DOMContentLoaded', function () {
             })
             .catch((error) => {
                 if (requestId !== state.trendRequestId || error.name === 'AbortError') return;
-                renderTrendEmpty(error.message || 'No se pudo cargar la tendencia de Lavadora.');
+                renderTrendEmpty(error.message || 'No se pudo cargar la tendencia de la máquina.');
             })
             .finally(() => {
                 if (requestId !== state.trendRequestId) return;
@@ -869,15 +896,17 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     function renderTrend(payload) {
         if (nodes.trendHeading) {
-            nodes.trendHeading.textContent = payload.all_lines ? 'Tendencia 52-12-4 - LEF total LAVADORAS' : 'Tendencia 52-12-4 - Maquina LAVADORA';
+            nodes.trendHeading.textContent = payload.all_lines
+                ? `Tendencia 52-12-4 - LEF total ${equipmentTitle}S`
+                : `Tendencia 52-12-4 - Máquina ${equipmentTitle}`;
         }
         if (!payload.has_data) {
-            renderTrendEmpty(`No existen registros mensuales 52-12-4 para la maquina Lavadora en ${currentLineName()} durante 2025 o 2026.`);
+            renderTrendEmpty(`No existen registros mensuales 52-12-4 para la máquina ${equipment} en ${currentLineName()} durante 2025 o 2026.`);
             return;
         }
 
         if (nodes.trendTitle) {
-            nodes.trendTitle.textContent = `${payload.machine_name || 'LAVADORA'} | ${payload.linea || currentLineName()} | Enero-diciembre 2025 y 2026`;
+            nodes.trendTitle.textContent = `${payload.machine_name || equipmentTitle} | ${payload.linea || currentLineName()} | Enero-diciembre 2025 y 2026`;
         }
 
         if (nodes.trendEmpty) nodes.trendEmpty.hidden = true;

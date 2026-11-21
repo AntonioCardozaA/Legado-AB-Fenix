@@ -38,14 +38,10 @@ class PasteurizadoraFrontendAssetsTest extends TestCase
                     'componentesDanadosPasteurizadora' => $mechanical ? collect($raw['componentesDanadosPasteurizadora'] ?? [])->values() : [],
                     'planesAccionDashboardPasteurizadora' => $mechanical ? ($raw['planesAccionDashboardPasteurizadora'] ?? ['resumen' => [], 'estado_general' => [], 'por_linea' => [], 'planes' => []]) : ['por_linea' => []],
                     'avanceRevisionPasteurizadora' => $mechanical ? ($raw['avanceRevisionPasteurizadora'] ?? ['labels' => [], 'porcentajes' => [], 'revisados' => [], 'totales' => [], 'lineas' => []]) : ['labels' => [], 'porcentajes' => []],
-                    'analisis52124Pasteurizadora' => $mechanical ? ($raw['analisis52124Pasteurizadora'] ?? ['lineas' => [], 'criterios' => []]) : ['lineas' => []],
-                    'analisis30147Pasteurizadora' => $mechanical ? ($raw['analisis30147Pasteurizadora'] ?? ['lineas' => [], 'criterios' => []]) : ['lineas' => []],
                     'centralesHidraulicasData' => !$mechanical ? collect($raw['estadoCentralHidraulicaPasteurizadora'] ?? [])->values() : [],
                     'fallasPorLineaCentralHidraulica' => !$mechanical ? collect($raw['fallasPorLineaCentralHidraulica'] ?? [])->values() : [],
                     'planesAccionDashboardCentralHidraulica' => !$mechanical ? ($raw['planesAccionDashboardCentralHidraulica'] ?? ['resumen' => [], 'estado_general' => [], 'por_linea' => [], 'planes' => []]) : ['por_linea' => []],
                     'avanceRevisionCentralHidraulica' => !$mechanical ? ($raw['avanceRevisionCentralHidraulica'] ?? ['labels' => [], 'porcentajes' => []]) : ['labels' => [], 'porcentajes' => []],
-                    'analisis52124CentralHidraulica' => !$mechanical ? ($raw['analisis52124CentralHidraulica'] ?? ['lineas' => []]) : ['lineas' => []],
-                    'analisis30147CentralHidraulica' => !$mechanical ? ($raw['analisis30147CentralHidraulica'] ?? ['lineas' => []]) : ['lineas' => []],
                 ];
                 foreach ($expected as $key => $value) $this->assertSame(json_encode($value), json_encode($config[$key]), $key);
                 $this->assertSame($mechanical ? 'fallasPasteurizadoraChart' : '', $config['fallasCanvasId']);
@@ -53,6 +49,7 @@ class PasteurizadoraFrontendAssetsTest extends TestCase
                 $this->assertSame(!$mechanical && $allowPlans ? route('plan-accion.index', ['tipo' => User::MODULE_PASTEURIZADORA, 'area_pasteurizadora' => AnalisisPasteurizadora::AREA_CENTRAL_HIDRAULICA]) : null, $config['urls']['centralPlans']);
                 $this->assertSame(!$mechanical ? route('pasteurizadora.central-hidraulica.index') : null, $config['urls']['centralAnalyses']);
                 $response->assertSee('dashboard-pasteurizadora-', false);
+                $response->assertSee('id="lefDashboardData" data-equipment="pasteurizadora"', false);
             }
         }
     }

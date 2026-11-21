@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Lef52124CostEntry;
 use App\Models\Linea;
 use App\Models\User;
+use App\Support\Lef52124Equipment;
 use Carbon\Carbon;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Collection;
@@ -24,14 +25,17 @@ class Lef52124CostImportService
         'accounting_date' => ['fe.contab.', 'fe contab', 'fecha contable'],
     ];
 
-    public function import(UploadedFile $file, ?Linea $fallbackLinea, ?User $user): array
-    {
+    public function import(
+        UploadedFile $file,
+        ?Linea $fallbackLinea,
+        ?User $user,
+        Lef52124Equipment $equipmentType = Lef52124Equipment::Lavadora,
+    ): array {
         $reader = IOFactory::createReaderForFile($file->getRealPath());
         $reader->setReadDataOnly(true);
         $spreadsheet = $reader->load($file->getRealPath());
-        $lineas = Linea::query()
-            ->where('activo', true)
-            ->where('nombre', 'like', 'L-%')
+        $lineas = $equipmentType->lineas()
+            ->activos()
             ->get(['id', 'nombre']);
         $now = now();
         $rows = collect();
@@ -67,7 +71,8 @@ class Lef52124CostImportService
                 // equipo (columna AA).
                 $lineaId = $this->resolveLineaId(
                     $lineas,
-                    implode(' ', array_filter([$technicalLocation, $technicalDescription, $equipment, $description, $materialText, $orderText]))
+                    implode(' ', array_filter([$technicalLocation, $technicalDescription, $equipment, $description, $materialText, $orderText])),
+                    $equipmentType
                 ) ?? $fallbackLinea?->id;
                 $year = $sheetYear ?: (int) $accountingDate->year;
                 $syncParts = [
@@ -79,9 +84,13 @@ class Lef52124CostImportService
                     $accountingDate->toDateString(),
                     number_format($amount, 2, '.', ''),
                 ];
+                if ($equipmentType === Lef52124Equipment::Pasteurizadora) {
+                    array_unshift($syncParts, $equipmentType->value);
+                }
 
                 $rows->push([
                     'linea_id' => $lineaId,
+                    'equipment' => $equipmentType->value,
                     'year' => $year,
                     'month' => (int) $accountingDate->month,
                     'accounting_date' => $accountingDate->toDateString(),
@@ -226,9 +235,14 @@ class Lef52124CostImportService
         return isset($matches[0]) ? (int) $matches[0] : null;
     }
 
-    private function resolveLineaId(Collection $lineas, string $text): ?int
+    private function resolveLineaId(Collection $lineas, string $text, Lef52124Equipment $equipment): ?int
     {
         $normalized = Str::of(Str::ascii($text))->upper()->toString();
+        $prefix = $equipment->linePrefix();
+        $machineCode = match ($equipment) {
+            Lef52124Equipment::Lavadora => 'LAV',
+            Lef52124Equipment::Pasteurizadora => 'PAST(?:EURIZADOR(?:A)?)?',
+        };
 
         foreach ($lineas as $linea) {
             $number = ltrim(preg_replace('/\D+/', '', $linea->nombre) ?? '', '0');
@@ -237,9 +251,9 @@ class Lef52124CostImportService
             }
 
             $patterns = [
-                '/\bL\s*[-]?\s*0?'.$number.'\b/',
+                '/\b'.$prefix.'\s*[-]?\s*0?'.$number.'\b/',
                 '/\bLINEA\s*0?'.$number.'\b/',
-                '/\bLAV\s*0?'.$number.'\b/',
+                '/\b'.$machineCode.'\s*0?'.$number.'\b/',
             ];
 
             foreach ($patterns as $pattern) {

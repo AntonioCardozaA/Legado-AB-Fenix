@@ -34,6 +34,8 @@ use App\Http\Controllers\PasteurizadoraKnowledgeDocumentController;
 use App\Http\Controllers\WasherAiPlanReviewController;
 use App\Http\Controllers\WasherKnowledgeDocumentController;
 use App\Http\Controllers\Lef52124Controller;
+use App\Http\Controllers\PasteurizadoraLef52124Controller;
+use App\Support\Lef52124Equipment;
 
 /*
 |--------------------------------------------------------------------------
@@ -160,21 +162,25 @@ Route::prefix('pasteurizadora')->group(function () {
     Route::get('/global-search', GlobalSearchController::class)
         ->name('global-search.index');
 
-    Route::prefix('52-12-4')
-        ->name('lef52124.')
-        ->controller(Lef52124Controller::class)
-        ->group(function () {
-            Route::get('/', 'index')->name('index');
-            Route::get('/periodos', 'periods')->name('periods');
-            Route::get('/datos', 'data')->name('data');
-            Route::get('/exportar/excel', 'exportExcel')->name('export');
-            Route::get('/importaciones/{import}/descargar', 'download')->name('download');
-            Route::get('/tendencia-lavadora', 'washerMachineTrend')->name('trend.washer-machine');
-            Route::get('/costos/datos', 'costData')->name('costs.data');
-            Route::post('/costos/importar', 'importCosts')->name('costs.import');
-            Route::post('/importar', 'store')->name('store');
-            Route::delete('/importaciones/{import}', 'destroy')->name('destroy');
-        });
+    foreach (Lef52124Equipment::cases() as $equipment) {
+        $isLavadora = $equipment === Lef52124Equipment::Lavadora;
+
+        Route::prefix($isLavadora ? '52-12-4' : 'pasteurizadora/52-12-4')
+            ->name($equipment->routePrefix())
+            ->controller($isLavadora ? Lef52124Controller::class : PasteurizadoraLef52124Controller::class)
+            ->group(function () use ($equipment) {
+                Route::get('/', 'index')->name('index');
+                Route::get('/periodos', 'periods')->name('periods');
+                Route::get('/datos', 'data')->name('data');
+                Route::get('/exportar/excel', 'exportExcel')->name('export');
+                Route::get('/importaciones/{import}/descargar', 'download')->name('download');
+                Route::get('/tendencia-'.$equipment->value, 'washerMachineTrend')->name('trend.washer-machine');
+                Route::get('/costos/datos', 'costData')->name('costs.data');
+                Route::post('/costos/importar', 'importCosts')->name('costs.import');
+                Route::post('/importar', 'store')->name('store');
+                Route::delete('/importaciones/{import}', 'destroy')->name('destroy');
+            });
+    }
 
     Route::get('/api/danos-tendencia', [DashboardController::class, 'getDanosTendenciaApi'])
         ->name('api.danos-tendencia');

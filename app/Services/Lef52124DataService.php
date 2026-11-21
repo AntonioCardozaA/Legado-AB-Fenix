@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Lef52124Import;
 use App\Models\Lef52124Item;
 use App\Models\Linea;
+use App\Support\Lef52124Equipment;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
@@ -13,20 +14,26 @@ class Lef52124DataService
 {
     private const INITIAL_LINES = ['L-04', 'L-05', 'L-06', 'L-07', 'L-09', 'L-12', 'L-13'];
 
+    public function __construct(private readonly Lef52124Equipment $equipment = Lef52124Equipment::Lavadora)
+    {
+    }
+
     public function lineas(): Collection
     {
-        $lineas = Linea::whereIn('nombre', self::INITIAL_LINES)
-            ->where('activo', true)
-            ->get()
-            ->sortBy(fn (Linea $linea) => array_search($linea->nombre, self::INITIAL_LINES, true))
-            ->values();
+        if ($this->equipment === Lef52124Equipment::Lavadora) {
+            $lineas = $this->equipment->lineas()
+                ->whereIn('nombre', self::INITIAL_LINES)
+                ->activos()
+                ->orderBy('nombre')
+                ->get();
 
-        if ($lineas->isNotEmpty()) {
-            return $lineas;
+            if ($lineas->isNotEmpty()) {
+                return $lineas;
+            }
         }
 
-        return Linea::where('activo', true)
-            ->where('nombre', 'like', 'L-%')
+        return $this->equipment->lineas()
+            ->activos()
             ->orderBy('nombre')
             ->get();
     }
@@ -40,6 +47,7 @@ class Lef52124DataService
     {
         return [
             'items' => Lef52124Import::query()
+                ->whereIn('linea_id', $this->equipment->lineas()->select('id'))
                 ->when($lineaId !== null,
                     fn ($query) => $query->where('linea_id', $lineaId),
                     fn ($query) => $query->whereIn('linea_id', $this->lineas()->modelKeys()))
@@ -177,25 +185,24 @@ class Lef52124DataService
 
     public function latestMonthDashboardPayload(): array
     {
-        $lineas = Linea::query()
-            ->whereIn('id', Lef52124Import::query()->select('linea_id')->where('status', 'success')->whereHas('items'))
+        $availableImports = Lef52124Import::query()
+            ->whereIn('linea_id', $this->equipment->lineas()->select('id'))
+            ->where('status', 'success')
+            ->whereHas('items');
+        $lineas = $this->equipment->lineas()
+            ->whereIn('id', (clone $availableImports)->select('linea_id'))
             ->orderBy('nombre')
             ->get(['id', 'nombre']);
 
-        $latestDate = Lef52124Import::query()
-            ->where('status', 'success')
-            ->whereHas('items')
-            ->max('data_date');
+        $latestDate = (clone $availableImports)->max('data_date');
 
         if (!$latestDate) {
             return ['period' => null, 'period_label' => null, 'lineas' => []];
         }
 
         $month = Carbon::parse($latestDate)->startOfMonth();
-        $imports = Lef52124Import::query()
+        $imports = $availableImports
             ->with(['items' => fn ($query) => $query->where('type', Lef52124Item::TYPE_MACHINE)])
-            ->where('status', 'success')
-            ->whereHas('items')
             ->whereDate('data_date', '>=', $month->toDateString())
             ->whereDate('data_date', '<=', $month->copy()->endOfMonth()->toDateString())
             ->orderByDesc('data_date')
@@ -234,6 +241,7 @@ class Lef52124DataService
             'linea:id,nombre',
             'items' => fn ($query) => $query->where('type', Lef52124Item::TYPE_MACHINE),
         ])
+            ->whereIn('linea_id', $this->equipment->lineas()->select('id'))
             ->when($lineaId !== null,
                 fn ($query) => $query->where('linea_id', $lineaId),
                 fn ($query) => $query->whereIn('linea_id', $this->lineas()->modelKeys()))
@@ -255,10 +263,10 @@ class Lef52124DataService
                         $selectedImports = $monthImports
                             ->groupBy('linea_id')
                             ->map(fn (Collection $rows) => $rows->first(fn (Lef52124Import $import) => $import->items
-                                ->contains(fn (Lef52124Item $item) => str_contains($this->normalizeName($item->item_name), 'lavadora'))))
+                                ->contains(fn (Lef52124Item $item) => $this->equipment->matchesMachine($item->item_name))))
                             ->filter();
                         $machines = $selectedImports->map(fn (Lef52124Import $import) => $import->items
-                            ->first(fn (Lef52124Item $item) => str_contains($this->normalizeName($item->item_name), 'lavadora')));
+                            ->first(fn (Lef52124Item $item) => $this->equipment->matchesMachine($item->item_name)));
                         $machine = $machines->first();
 
                         if ($machine && !$machineName) {
@@ -287,11 +295,13 @@ class Lef52124DataService
                 || $month['value_12_weeks'] !== null
                 || $month['value_4_weeks'] !== null);
 
+        $equipmentLabel = strtoupper($this->equipment->value);
+
         return [
             'has_data' => $hasData,
             'all_lines' => $lineaId === null,
-            'linea' => $lineaId === null ? 'Todas las lineas' : ($imports->first()?->linea?->nombre ?: Linea::find($lineaId)?->nombre),
-            'machine_name' => $lineaId === null ? 'LAVADORAS - LEF TOTAL' : ($machineName ?: 'LAVADORA'),
+            'linea' => $lineaId === null ? 'Todas las lineas' : ($imports->first()?->linea?->nombre ?: $this->equipment->lineas()->find($lineaId)?->nombre),
+            'machine_name' => $lineaId === null ? $equipmentLabel.'S - LEF TOTAL' : ($machineName ?: $equipmentLabel),
             'years' => $years,
             'months' => [
                 'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
@@ -324,6 +334,7 @@ class Lef52124DataService
                 'items:id,lef52124_import_id,linea_id,type,item_name,value_52_weeks,value_12_weeks,value_4_weeks,created_at,updated_at',
             ])
             ->where('status', 'success')
+            ->whereIn('linea_id', $this->equipment->lineas()->select('id'))
             ->when($lineaIds->isNotEmpty(), fn ($builder) => $builder->whereIn('linea_id', $lineaIds))
             ->when(isset($filters['linea_id']), fn ($builder) => $builder->where('linea_id', $filters['linea_id']))
             ->when(isset($filters['import_id']), fn ($builder) => $builder->whereKey($filters['import_id']))
@@ -374,6 +385,7 @@ class Lef52124DataService
     private function resolveImport(int $lineaId, ?int $importId, ?string $dataDate = null): ?Lef52124Import
     {
         $query = Lef52124Import::with(['linea:id,nombre'])
+            ->whereIn('linea_id', $this->equipment->lineas()->select('id'))
             ->where('linea_id', $lineaId)
             ->where('status', 'success');
 
@@ -431,7 +443,7 @@ class Lef52124DataService
             ->sortByDesc(fn (Lef52124Item $item) => (float) $item->{$sortColumn})
             ->values()
             ->map(fn (Lef52124Item $item) => array_merge($this->itemPayload($item), [
-                'highlight' => $highlightWasher && str_contains($this->normalizeName($item->item_name), 'lavadora'),
+                'highlight' => $highlightWasher && $this->equipment->matchesMachine($item->item_name),
             ]))
             ->all();
     }

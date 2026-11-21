@@ -14,6 +14,7 @@ class Lef52124CostEntry extends Model
 
     protected $fillable = [
         'linea_id',
+        'equipment',
         'year',
         'month',
         'accounting_date',

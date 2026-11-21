@@ -5,9 +5,9 @@ namespace App\Exports;
 use App\Exports\Sheets\Lef52124WorkbookSheet;
 use App\Models\Lef52124Import;
 use App\Models\Lef52124Item;
+use App\Support\Lef52124Equipment;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Str;
 use Maatwebsite\Excel\Concerns\WithMultipleSheets;
 
 class Lef52124WorkbookExport implements WithMultipleSheets
@@ -28,25 +28,27 @@ class Lef52124WorkbookExport implements WithMultipleSheets
         private readonly Collection $imports,
         private readonly Collection $lineas,
         private readonly CarbonInterface $startDate,
-        private readonly CarbonInterface $endDate
+        private readonly CarbonInterface $endDate,
+        private readonly Lef52124Equipment $equipment = Lef52124Equipment::Lavadora
     ) {
     }
 
     public function sheets(): array
     {
         $washerByLineAndMonth = $this->washerByLineAndMonth();
+        $equipmentLabel = ucfirst($this->equipment->value);
         $coverage = 'Cobertura: '.$this->startDate->format('d/m/Y').' al '.$this->endDate->format('d/m/Y').' | Todas las lineas';
         $sheets = [];
 
         foreach (self::WINDOWS as $key => $window) {
-            $rows = [['Linea', 'Anio', 'Mes', 'Fecha de corte', 'LEF de Lavadora ('.$window['label'].')']];
+            $rows = [['Linea', 'Anio', 'Mes', 'Fecha de corte', 'LEF de '.$equipmentLabel.' ('.$window['label'].')']];
 
             foreach ($this->monthsInRange() as $month) {
                 foreach ($this->lineas as $linea) {
                     $import = $washerByLineAndMonth[$linea->id][$month->format('Y-m')] ?? null;
                     $washer = $import?->items->first(
                         fn (Lef52124Item $item) => $item->type === Lef52124Item::TYPE_MACHINE
-                            && Str::contains(Str::ascii(Str::lower($item->item_name)), 'lavadora')
+                            && $this->equipment->matchesMachine($item->item_name)
                     );
 
                     $rows[] = [
@@ -60,8 +62,8 @@ class Lef52124WorkbookExport implements WithMultipleSheets
             }
 
             $sheets[] = new Lef52124WorkbookSheet(
-                'Lavadora '.$key.' semanas',
-                'Tendencia de Lavadora - '.$window['label'],
+                $equipmentLabel.' '.$key.' semanas',
+                'Tendencia de '.$equipmentLabel.' - '.$window['label'],
                 $coverage,
                 $rows,
                 5
@@ -86,7 +88,7 @@ class Lef52124WorkbookExport implements WithMultipleSheets
         foreach ($this->imports as $import) {
             $hasWasher = $import->items->contains(
                 fn (Lef52124Item $item) => $item->type === Lef52124Item::TYPE_MACHINE
-                    && Str::contains(Str::ascii(Str::lower($item->item_name)), 'lavadora')
+                    && $this->equipment->matchesMachine($item->item_name)
             );
 
             if ($hasWasher && $import->data_date) {

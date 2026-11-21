@@ -9,8 +9,8 @@
     $puedeVerCentralHidraulica = $usuarioActual?->canAccessPasteurizadoraArea(\App\Models\AnalisisPasteurizadora::AREA_CENTRAL_HIDRAULICA) ?? false;
     $puedeVerPlanesPasteurizadora = $puedeVerMecanicaPasteurizadora
         && ($usuarioActual?->canViewPlanActionType(\App\Models\User::MODULE_PASTEURIZADORA) ?? false);
-    $puedeVerTendenciasPasteurizadora = ($usuarioActual?->canAccessModule(\App\Models\User::MODULE_PASTEURIZADORA) ?? false)
-        && ($usuarioActual?->canUseCustomPermission('ver tendencias pasteurizadora') ?? false);
+    $puedeVerLef52124 = ($usuarioActual?->canAccessModule(\App\Models\User::MODULE_PASTEURIZADORA) ?? false)
+        && ($usuarioActual?->canUseCustomPermission('ver 52-12-4') ?? false);
 @endphp
 <div class="pasteur-menu industrial-menu min-h-screen overflow-x-hidden bg-gradient-to-br from-gray-50 to-gray-100 py-6 sm:py-8">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -106,8 +106,8 @@
             </a>
             @endif
 
-            @if($puedeVerMecanicaPasteurizadora && $puedeVerTendenciasPasteurizadora)
-            <a href="{{ route('analisis-tendencia-mensual.pasteurizadora.index') }}" class="industrial-menu-card" data-number="04" style="--card-accent: #ff5b68; --card-glow: rgba(255, 91, 104, .34);">
+            @if($puedeVerLef52124)
+            <a href="{{ route('pasteurizadora.lef52124.index') }}" class="industrial-menu-card" data-number="04" style="--card-accent: #ff5b68; --card-glow: rgba(255, 91, 104, .34);">
                 <span class="industrial-menu-card__shine" aria-hidden="true"></span>
                 <span class="industrial-menu-card__topline" aria-hidden="true"></span>
                 <span class="industrial-menu-card__visual">
@@ -116,9 +116,9 @@
                     <span class="industrial-menu-card__visual-tag">04 / TENDENCIAS</span>
                 </span>
                 <span class="industrial-menu-card__body">
-                    <span class="industrial-menu-card__eyebrow">Indicadores de daño</span>
-                    <span class="industrial-menu-card__title">AN&Aacute;LISIS 52-12-4 / 30-14-7</span>
-                    <span class="industrial-menu-card__description">Visualizaci&oacute;n  de tendencia de fallas.</span>
+                    <span class="industrial-menu-card__eyebrow">Indicadores LEF</span>
+                    <span class="industrial-menu-card__title">AN&Aacute;LISIS 52-12-4</span>
+                    <span class="industrial-menu-card__description">Consulta gr&aacute;ficas y tendencias a partir de archivos Excel.</span>
                     <span class="industrial-menu-card__action">Abrir m&oacute;dulo <i class="fas fa-arrow-up-right-from-square" aria-hidden="true"></i></span>
                 </span>
             </a>
@@ -170,7 +170,7 @@
                 </span>
             </a>
             @endif
-            @unless($puedeVerMecanicaPasteurizadora || $puedeVerCentralHidraulica || $puedeVerPlanesPasteurizadora || $puedeVerTendenciasPasteurizadora)
+            @unless($puedeVerMecanicaPasteurizadora || $puedeVerCentralHidraulica || $puedeVerPlanesPasteurizadora || $puedeVerLef52124)
                 <div class="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-sm font-semibold text-amber-800 md:col-span-2 lg:col-span-3">
                     No tiene vistas disponibles en este modulo. Solicite al administrador la asignacion del permiso correspondiente.
                 </div>

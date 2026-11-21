@@ -106,6 +106,7 @@ test('the trend chart plots total LEF in all windows for both years and can retu
     const nodes = { trendHeading: {}, trendTitle: {}, trendEmpty: {}, trendChartWrap: {} };
     const context = {
         charts, nodes, document: { getElementById: () => ({}) },
+        equipment: 'lavadora', equipmentTitle: 'LAVADORA',
         compactQuery: { matches: false }, valueLabelPlugin: {},
         periodDefinitions: ['52', '12', '4'].map((period) => ({ key: period, label: `${period} SEM`, valueKey: `value_${period}_weeks` })),
         currentLineName: () => 'Todas las lineas', trendChartOptions: () => ({}),
@@ -136,7 +137,7 @@ test('the trend chart plots total LEF in all windows for both years and can retu
     assert.equal(nodes.trendChartWrap.hidden, false);
     context.renderTrend({ ...payload, all_lines: false, linea: 'L-04', machine_name: 'LAVADORA' });
     assert.equal(totalChart.destroyed, true);
-    assert.match(nodes.trendHeading.textContent, /Maquina LAVADORA/);
+    assert.match(nodes.trendHeading.textContent, /Máquina LAVADORA/);
     assert.match(nodes.trendTitle.textContent, /L-04/);
 });
 

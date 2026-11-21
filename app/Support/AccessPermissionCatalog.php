@@ -557,6 +557,9 @@ class AccessPermissionCatalog
             ['routes' => ['lef52124.index', 'lef52124.periods', 'lef52124.data', 'lef52124.export', 'lef52124.trend.washer-machine', 'lef52124.trend.lines', 'lef52124.impact', 'lef52124.impact.export-excel'], 'methods' => ['GET'], 'permission' => 'ver 52-12-4'],
             ['routes' => ['lef52124.store', 'lef52124.impact.costs.import', 'lef52124.impact.efficiency.import'], 'permission' => 'importar datos 52-12-4'],
             ['routes' => ['lef52124.destroy'], 'permission' => 'eliminar importaciones 52-12-4'],
+            ['routes' => ['pasteurizadora.lef52124.*'], 'methods' => ['GET'], 'permission' => 'ver 52-12-4'],
+            ['routes' => ['pasteurizadora.lef52124.store', 'pasteurizadora.lef52124.costs.import'], 'methods' => ['POST'], 'permission' => 'importar datos 52-12-4'],
+            ['routes' => ['pasteurizadora.lef52124.destroy'], 'methods' => ['DELETE'], 'permission' => 'eliminar importaciones 52-12-4'],
 
             ['routes' => ['historico-revisados.index'], 'methods' => ['GET'], 'permission' => 'ver historico revisados'],
             ['routes' => ['historico-revisados.reset-estadisticas', 'historico-revisados.check-reset-status'], 'permission' => 'restablecer historico revisados'],
