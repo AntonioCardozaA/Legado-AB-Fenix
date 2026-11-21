@@ -1662,11 +1662,16 @@
     {{-- DIAGRAMA DE LAVADORA SEGÚN LÍNEA SELECCIONADA --}}
     @if(!$mostrarTodas && isset($lineaSeleccionada) && is_object($lineaSeleccionada))
         <div class="mb-6 p-4 bg-white rounded-lg shadow-sm border border-gray-200">
-            <div class="flex items-center justify-between">
+            <div class="flex flex-wrap items-center gap-3">
                 <h2 class="text-lg font-semibold text-gray-700">
                     <i class="fas fa-diagram-project text-blue-600 mr-2"></i>
                      {{ $lineaSeleccionada->nombre }}
                 </h2>
+                @if($mostrarMttrLinea)
+                    <span class="inline-flex items-center gap-2 rounded-full bg-blue-50 px-3 py-1 text-sm font-semibold text-blue-700">
+                        MTTR <span>{{ $mttrLinea === null ? 'Sin registrar' : $mttrLinea . ' min' }}</span>
+                    </span>
+                @endif
             </div>
             <div class="mt-4">
                 @php

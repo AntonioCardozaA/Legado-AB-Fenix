@@ -229,6 +229,9 @@
                     @php
                         $conteoAlertas = $estado['conteo_alertas'] ?? [];
                         $totalAlertas = array_sum($conteoAlertas);
+                        $tieneElongacion = isset($estado['ultima_elongacion']);
+                        $mostrarMttr = in_array($lavadora['nombre'], \App\Models\MttrIndicador::LAVADORAS, true);
+                        $mttrMinutos = $indicadoresMttr->get($lavadora['nombre'])?->minutosParaMostrar();
                     @endphp
 
                     @if($totalAlertas > 0)
@@ -248,29 +251,37 @@
                         </div>
                     @endif
 
-                    @if(isset($estado['ultima_elongacion']))
-                    <div class="lavadora-metricas">
-                        <div class="metric-item">
-                            <div class="metric-label">Elongación Bombas</div>
-                            <div class="metric-value" style="color: {{ $estado['ultima_elongacion']['bombas_porcentaje'] >= 1.46 ? 'var(--danger-red)' : ($estado['ultima_elongacion']['bombas_porcentaje'] >= 1.3 ? 'var(--warning-yellow)' : 'var(--success-green)') }}">
-                                {{ $estado['ultima_elongacion']['bombas_porcentaje'] }}%
-                            </div>
+                    @if($tieneElongacion || $mostrarMttr)
+                        <div class="lavadora-metricas">
+                            @if($tieneElongacion)
+                                <div class="metric-item">
+                                    <div class="metric-label">Elongación Bombas</div>
+                                    <div class="metric-value" style="color: {{ $estado['ultima_elongacion']['bombas_porcentaje'] >= 1.46 ? 'var(--danger-red)' : ($estado['ultima_elongacion']['bombas_porcentaje'] >= 1.3 ? 'var(--warning-yellow)' : 'var(--success-green)') }}">
+                                        {{ $estado['ultima_elongacion']['bombas_porcentaje'] }}%
+                                    </div>
+                                </div>
+                                <div class="metric-item">
+                                    <div class="metric-label">Elongación Vapor</div>
+                                    <div class="metric-value" style="color: {{ $estado['ultima_elongacion']['vapor_porcentaje'] >= 1.46 ? 'var(--danger-red)' : ($estado['ultima_elongacion']['vapor_porcentaje'] >= 1.3 ? 'var(--warning-yellow)' : 'var(--success-green)') }}">
+                                        {{ $estado['ultima_elongacion']['vapor_porcentaje'] }}%
+                                    </div>
+                                </div>
+                                @if($totalAlertas > 0)
+                                    <div class="metric-item">
+                                        <div class="metric-label">Alertas Activas</div>
+                                        <div class="metric-value" style="color: {{ $estado['nivel'] === 'critico' ? 'var(--danger-red)' : ($estado['nivel'] === 'riesgo' ? 'var(--operational-orange)' : 'var(--warning-yellow)') }};">
+                                            {{ $totalAlertas }}
+                                        </div>
+                                    </div>
+                                @endif
+                            @endif
+                            @if($mostrarMttr)
+                                <div class="metric-item">
+                                    <div class="metric-label">MTTR</div>
+                                    <div class="metric-value">{{ $mttrMinutos === null ? 'Sin registrar' : $mttrMinutos . ' min' }}</div>
+                                </div>
+                            @endif
                         </div>
-                        <div class="metric-item">
-                            <div class="metric-label">Elongación Vapor</div>
-                            <div class="metric-value" style="color: {{ $estado['ultima_elongacion']['vapor_porcentaje'] >= 1.46 ? 'var(--danger-red)' : ($estado['ultima_elongacion']['vapor_porcentaje'] >= 1.3 ? 'var(--warning-yellow)' : 'var(--success-green)') }}">
-                                {{ $estado['ultima_elongacion']['vapor_porcentaje'] }}%
-                            </div>
-                        </div>
-                        @if($totalAlertas > 0)
-                        <div class="metric-item">
-                            <div class="metric-label">Alertas Activas</div>
-                            <div class="metric-value" style="color: {{ $estado['nivel'] === 'critico' ? 'var(--danger-red)' : ($estado['nivel'] === 'riesgo' ? 'var(--operational-orange)' : 'var(--warning-yellow)') }};">
-                                {{ $totalAlertas }}
-                            </div>
-                        </div>
-                        @endif
-                    </div>
                     @endif
                 </div>
                 <div class="lavadora-card-footer">
@@ -320,6 +331,10 @@
                 Planes activos
             </div>
         </div>
+    </div>
+
+    <div class="mb-5">
+        @include('lavadora.partials.mttr')
     </div>
 
     <div class="dashboard-panels-grid">

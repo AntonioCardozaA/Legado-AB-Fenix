@@ -22,6 +22,7 @@ use App\Http\Controllers\NotificationSettingsController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\AdminUserController;
 use App\Http\Controllers\AlertRecipientController;
+use App\Http\Controllers\MttrIndicadorController;
 use App\Http\Controllers\LavadoraCostController;
 use App\Http\Controllers\ControlGastosController;
 use App\Http\Controllers\AssistantChatController;
@@ -213,6 +214,15 @@ Route::prefix('pasteurizadora')->group(function () {
             Route::post('/', 'store')->name('store');
             Route::put('/{alertRecipient}', 'update')->name('update');
             Route::delete('/{alertRecipient}', 'destroy')->name('destroy');
+        });
+
+    Route::prefix('admin/mttr')
+        ->name('admin.mttr.')
+        ->middleware('role:'.User::ROLE_ADMIN)
+        ->controller(MttrIndicadorController::class)
+        ->group(function () {
+            Route::get('/', 'index')->name('index');
+            Route::put('/', 'update')->name('update');
         });
 
     Route::prefix('admin/control-gastos')

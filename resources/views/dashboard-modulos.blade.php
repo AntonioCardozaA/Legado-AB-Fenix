@@ -804,6 +804,7 @@
             $requiereAtencion = $hasCriticos
                 || (($modulo['estadisticas']['en_riesgo'] ?? 0) > 0)
                 || (($modulo['estadisticas']['requiere_revision'] ?? 0) > 0);
+            $mttrGeneral = $modulo['estadisticas']['mttr_general'] ?? null;
             $tendencia = $modulo['estadisticas']['tendencia'] ?? [];
             $trendValues = array_values(array_map('intval', $tendencia['values'] ?? array_fill(0, 7, 0)));
             $trendValues = count($trendValues) > 1 ? $trendValues : array_fill(0, 7, 0);
@@ -912,6 +913,21 @@
                             </div>
                             <div class="stat-value bueno">{{ $modulo['estadisticas']['buen_estado'] }}</div>
                         </div>
+                        @if($modulo['id'] === 'lavadora')
+                            <div class="stat-item min-w-0">
+                                <div class="stat-label">
+                                    <i class="fas fa-stopwatch mr-1" aria-hidden="true"></i>
+                                    MTTR 
+                                </div>
+                                <div class="stat-value break-words">
+                                    @if($mttrGeneral !== null)
+                                        {{ $mttrGeneral }} <span class="text-xs font-semibold text-slate-600">min</span>
+                                    @else
+                                        <span class="text-sm font-semibold text-slate-600">Sin registrar</span>
+                                    @endif
+                                </div>
+                            </div>
+                        @endif
                     </div>
 
                     <div class="modulo-trend" aria-label="Tendencia de actividad de los últimos siete días">

@@ -6,6 +6,7 @@ use App\Models\AnalisisLavadora;
 use App\Models\Linea;
 use App\Models\Componente;
 use App\Models\LavadoraCostEntry;
+use App\Models\MttrIndicador;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
@@ -177,6 +178,8 @@ public function index(Request $request)
     $this->attachHistorialCountsToCurrentAnalyses($analisis);
 
     $openAnalysisData = $this->modalPayloadForAnalysisId($request->input('open_analysis_id'));
+    $claveMttr = ($lineaSeleccionada ?? $lineaPorDefecto)?->nombre;
+    $mostrarMttrLinea = in_array($claveMttr, MttrIndicador::LAVADORAS, true);
 
     return view('lavadora/analisis-lavadora.index', [
         'analisis' => $analisis,
@@ -188,6 +191,10 @@ public function index(Request $request)
         'reductores' => $this->getReductoresFiltroGlobal(),
         'reductoresMostrar' => $reductoresMostrar,
         'lineaMostrar' => $lineaMostrar,
+        'mostrarMttrLinea' => $mostrarMttrLinea,
+        'mttrLinea' => $mostrarMttrLinea
+            ? MttrIndicador::where('clave', $claveMttr)->first(['minutos'])?->minutosParaMostrar()
+            : null,
         'filtros' => $request->all(),
         'estadisticas' => $estadisticas,
         'openAnalysisData' => $openAnalysisData,

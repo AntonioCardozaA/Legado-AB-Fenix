@@ -7,6 +7,7 @@ use App\Models\AnalisisEtiquetadora;
 use App\Models\CadenaCiclo;
 use App\Models\Componente;
 use App\Models\Linea;
+use App\Models\MttrIndicador;
 use App\Models\Elongacion;
 use App\Models\PlanAccion;
 use App\Models\AnalisisCentralHidraulica;
@@ -366,6 +367,7 @@ class DashboardController extends Controller
             ])
             : null;
         $lefDashboard = app(Lef52124DataService::class)->latestMonthDashboardPayload();
+        $indicadoresMttr = MttrIndicador::whereIn('clave', MttrIndicador::LAVADORAS)->get()->keyBy('clave');
 
         return view('dashboard_lavadora', compact(
             'lineasLavadora',
@@ -379,7 +381,8 @@ class DashboardController extends Controller
             'historicoRevisiones',
             'lavadoraCostSummary',
             'canViewLavadoraCostsModule',
-            'lefDashboard'
+            'lefDashboard',
+            'indicadoresMttr'
         ));
     }
 
@@ -790,6 +793,8 @@ public function pasteurizadoraOperativo(Request $request)
             'en_riesgo' => $enRiesgo,
             'requiere_revision' => $requiereRevision,
             'buen_estado' => $buenEstado,
+            'mttr_general' => MttrIndicador::where('clave', MttrIndicador::GENERAL)
+                ->first(['minutos'])?->minutosParaMostrar(),
             'estado_preview' => $estadoPreview,
             'tendencia' => $this->getModuleTrend('lavadora', $lineasLavadora),
             'ultima_actualizacion' => now()->format('d/m/Y')

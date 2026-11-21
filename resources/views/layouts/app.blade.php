@@ -241,6 +241,15 @@
                     </a>
                 @endif
 
+                @if($usuarioActual?->hasRole(\App\Models\User::ROLE_ADMIN))
+                    <a href="{{ route('admin.mttr.index') }}"
+                       @click="if (!isDesktop) sidebarOpen = false"
+                       class="nav-link flex items-center px-4 py-3 rounded-lg {{ request()->routeIs('admin.mttr.*') ? 'nav-active' : '' }}">
+                        <i class="fas fa-stopwatch w-5 mr-3 text-gray-500" aria-hidden="true"></i>
+                        Administración de MTTR
+                    </a>
+                @endif
+
                 @if($puedeVerObservabilidadIa)
                     <a href="{{ route('admin.ai-observability.index') }}"
                        @click="if (!isDesktop) sidebarOpen = false"
