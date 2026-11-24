@@ -10,6 +10,13 @@
 @endphp
 @vite('resources/css/dashboard-lavadora.css')
 
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+<script>
+    if (window.Chart && window.ChartDataLabels) {
+        window.Chart.register(window.ChartDataLabels);
+    }
+</script>
+
 <div class="dashboard-container">
     {{-- Header --}}
     <div class="mb-4">
@@ -127,7 +134,7 @@
     @endif
 
     {{-- ESTADO GENERAL DE LAVADORAS en Tarjetas --}}
-    <div class="section-title">
+    <div id="mttr" class="section-title">
         <i class="fas fa-washing-machine"></i>
         ESTADO GENERAL DE LAVADORAS
     </div>
@@ -333,10 +340,6 @@
         </div>
     </div>
 
-    <div class="mb-5">
-        @include('lavadora.partials.mttr')
-    </div>
-
     <div class="dashboard-panels-grid">
         {{-- Ranking: Lavadoras con Mayor Daño --}}
         <div class="chart-card ranking-card">
@@ -454,15 +457,10 @@
     </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
 <script>
     let fallasChart, componentesChart, elongacionesChart;
 
     document.addEventListener('DOMContentLoaded', function() {
-        if (window.ChartDataLabels) {
-            Chart.register(ChartDataLabels);
-        }
-
         if (typeof window.dashboardLavadoraInitCharts === 'function') {
             window.dashboardLavadoraInitCharts();
         } else {
