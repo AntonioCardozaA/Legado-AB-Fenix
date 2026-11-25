@@ -900,14 +900,14 @@
 
     <div class="lineas-section">
         <div class="lineas-title">
-            LÍNEAS DE PASTEURIZADORA
+            PASTEURIZADORES
         </div>
 
         <div class="lineas-grid">
             <a href="{{ route('plan-accion.index', ['tipo' => 'pasteurizadora']) }}"
                class="linea-btn todas {{ !request('linea_id') ? 'active' : '' }}">
                 <i class="fas fa-globe"></i>
-                Todas las líneas
+                Todos los pasteurizadores
             </a>
 
             @foreach($lineasTipo as $linea)

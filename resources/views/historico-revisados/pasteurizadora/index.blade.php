@@ -7,6 +7,14 @@
     $analisisRoutePrefix = $analisisRoutePrefix ?? 'pasteurizadora.analisis-pasteurizadora';
     $analisisRoute = fn ($name, $params = []) => route($analisisRoutePrefix . '.' . $name, $params);
     $analisisDashboardRoute = $analisisDashboardRoute ?? 'pasteurizadora.dashboard';
+    $pasteurizadorSeleccionadoNumero = isset($lineaSeleccionada)
+        ? preg_replace('/^P[-\s]?/i', '', trim((string) $lineaSeleccionada->nombre))
+        : null;
+    $pasteurizadorSeleccionadoLabel = $pasteurizadorSeleccionadoNumero
+        ? (preg_match('/^pasteurizador\b/i', $pasteurizadorSeleccionadoNumero)
+            ? $pasteurizadorSeleccionadoNumero
+            : 'Pasteurizador ' . $pasteurizadorSeleccionadoNumero)
+        : 'el pasteurizador seleccionado';
 @endphp
 <style>
     :root {
@@ -26,7 +34,7 @@
         width: 100%;
         max-width: min(1400px, 100%);
         margin: 0 auto;
-        padding: 24px;
+        padding: 30px clamp(16px, 3vw, 34px) 42px;
         overflow-x: clip;
     }
 
@@ -41,25 +49,108 @@
     .componentes-table {
         background: white;
         border: 1px solid var(--medium-gray);
-        box-shadow: 0 4px 6px rgba(15, 23, 42, 0.05);
+        box-shadow: 0 10px 26px rgba(15, 23, 42, 0.06);
+    }
+
+    .historico-page-header {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 20px;
+        margin-bottom: 30px !important;
+    }
+
+    .historico-header-content {
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+        width: 100%;
+    }
+
+    .historico-back-link {
+        width: fit-content;
+        min-height: 44px;
+        padding: 10px 17px !important;
+        border: 1px solid #cbd5e1 !important;
+        border-radius: 12px !important;
+        color: #1e3a5f !important;
+        background: rgba(255, 255, 255, 0.78) !important;
+        box-shadow: 0 3px 10px rgba(15, 23, 42, 0.04);
+        transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+    }
+
+    .historico-back-link:hover {
+        transform: translateX(-3px);
+        border-color: #60a5fa !important;
+        background: #ffffff !important;
+        box-shadow: 0 8px 16px rgba(37, 99, 235, 0.12);
+    }
+
+    .historico-title-row {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+    }
+
+    .historico-title-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 42px;
+        height: 42px;
+        flex-shrink: 0;
+        border: 1px solid #bfdbfe;
+        border-radius: 13px;
+        color: #2563eb;
+        background: linear-gradient(145deg, #dbeafe, #eff6ff);
+        box-shadow: 0 6px 14px rgba(37, 99, 235, 0.12);
+        font-size: 18px;
+    }
+
+    .historico-page-title {
+        margin: 0;
+        color: #0f2747;
+        font-size: clamp(24px, 3vw, 34px);
+        font-weight: 800;
+        letter-spacing: -0.025em;
+        line-height: 1.15;
     }
 
     .lineas-section {
-        border-radius: 16px;
-        padding: 20px;
-        margin-bottom: 24px;
+        position: relative;
+        overflow: hidden;
+        border-radius: 22px;
+        padding: 24px;
+        margin-bottom: 26px;
+    }
+
+    .lineas-section::before {
+        position: absolute;
+        inset: 0 0 auto;
+        height: 4px;
+        background: linear-gradient(90deg, #2563eb, #60a5fa, #8b5cf6);
+        content: '';
     }
 
     .lineas-title {
-        font-size: 14px;
-        font-weight: 700;
-        color: #1e293b;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        margin-bottom: 16px;
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: 10px;
+        margin-bottom: 18px;
+        color: #0f2747;
+        font-size: 13px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+    }
+
+    .lineas-title::before {
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        background: #2563eb;
+        box-shadow: 0 0 0 5px #dbeafe;
+        content: '';
     }
 
     .lineas-grid {
@@ -72,22 +163,24 @@
 
     .linea-btn {
         display: inline-flex;
+        flex: 0 0 94px;
         align-items: center;
         justify-content: center;
         text-align: center;
-        min-width: 110px;
-        padding: 10px 24px;
-        background: #f8fafc;
-        border: 2px solid #e2e8f0;
-        border-radius: 40px;
-        font-size: 15px;
-        font-weight: 600;
-        color: #475569;
-        transition: all 0.2s ease;
+        width: 94px;
+        min-width: 0;
+        min-height: 48px;
+        padding: 11px 12px;
+        border: 1px solid #dbe3ef;
+        border-radius: 15px;
+        color: #334155;
+        background: linear-gradient(145deg, #ffffff, #f8fafc);
+        box-shadow: 0 3px 8px rgba(15, 23, 42, 0.04);
+        font-size: 14px;
+        font-weight: 700;
+        transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, color 0.2s ease, background 0.2s ease;
         cursor: pointer;
         text-decoration: none;
-        min-height: 44px;
-        min-width: 0;
         max-width: 100%;
         line-height: 1.2;
         white-space: normal;
@@ -102,15 +195,36 @@
     }
 
     .linea-btn:hover {
-        background: #f1f5f9;
-        border-color: #94a3b8;
-        transform: translateY(-2px);
+        border-color: #93c5fd;
+        color: #1d4ed8;
+        background: #eff6ff;
+        box-shadow: 0 9px 18px rgba(37, 99, 235, 0.12);
+        transform: translateY(-3px);
     }
 
     .linea-btn.active {
         background: linear-gradient(135deg, #3b82f6, #2563eb);
         border-color: #2563eb;
         color: white;
+        box-shadow: 0 10px 20px rgba(37, 99, 235, 0.25), 0 0 0 4px rgba(59, 130, 246, 0.12);
+        transform: translateY(-2px);
+    }
+
+    .linea-btn:focus-visible {
+        outline: 3px solid rgba(59, 130, 246, 0.32);
+        outline-offset: 3px;
+    }
+
+    .linea-btn.active::after {
+        display: inline-block;
+        flex-shrink: 0;
+        width: 7px;
+        height: 7px;
+        margin-left: 9px;
+        border-radius: 50%;
+        background: #bfdbfe;
+        box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.18);
+        content: '';
     }
 
     .linea-btn.active i {
@@ -119,20 +233,78 @@
 
     .resumen-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr));
-        gap: 20px;
-        margin-bottom: 24px;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 18px;
+        margin-bottom: 28px;
     }
 
     .resumen-card {
-        border-radius: 16px;
-        padding: 20px;
+        position: relative;
+        min-height: 118px;
+        overflow: hidden;
+        border-radius: 20px;
+        padding: 20px 22px;
         display: flex;
         align-items: center;
         gap: 16px;
+        transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .resumen-card::before {
+        position: absolute;
+        inset: 0 auto 0 0;
+        width: 5px;
+        background: linear-gradient(180deg, #94a3b8, #475569);
+        content: '';
+        transition: width 0.2s ease;
+    }
+
+    .resumen-card::after {
+        position: absolute;
+        right: -38px;
+        bottom: -58px;
+        width: 150px;
+        height: 150px;
+        border-radius: 50%;
+        background: rgba(226, 232, 240, 0.5);
+        content: '';
+        pointer-events: none;
+        transition: transform 0.25s ease;
+    }
+
+    .resumen-card:hover {
+        border-color: #bfdbfe;
+        box-shadow: 0 16px 28px rgba(15, 23, 42, 0.11);
+        transform: translateY(-4px);
+    }
+
+    .resumen-card:hover::before {
+        width: 8px;
+    }
+
+    .resumen-card:hover::after {
+        transform: scale(1.3);
+    }
+
+    .resumen-card--revisado::before {
+        background: linear-gradient(180deg, #60a5fa, #2563eb);
+    }
+
+    .resumen-card--revisado::after {
+        background: rgba(219, 234, 254, 0.72);
+    }
+
+    .resumen-card--porcentaje::before {
+        background: linear-gradient(180deg, #34d399, #059669);
+    }
+
+    .resumen-card--porcentaje::after {
+        background: rgba(209, 250, 229, 0.72);
     }
 
     .resumen-icono {
+        position: relative;
+        z-index: 1;
         width: 48px;
         height: 48px;
         border-radius: 12px;
@@ -140,6 +312,12 @@
         align-items: center;
         justify-content: center;
         font-size: 24px;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .resumen-card:hover .resumen-icono {
+        transform: scale(1.08) rotate(-4deg);
+        box-shadow: 0 8px 16px rgba(37, 99, 235, 0.14);
     }
 
     .resumen-icono.total { background: #e2e8f0; color: #475569; }
@@ -147,6 +325,8 @@
     .resumen-icono.porcentaje { background: #d1fae5; color: #059669; }
 
     .resumen-info h4 {
+        position: relative;
+        z-index: 1;
         font-size: 14px;
         font-weight: 600;
         color: #64748b;
@@ -156,6 +336,8 @@
     }
 
     .resumen-info .valor {
+        position: relative;
+        z-index: 1;
         font-size: 28px;
         font-weight: 700;
         color: #1e293b;
@@ -429,11 +611,13 @@
         display: none;
         position: fixed;
         inset: 0;
-        background: rgba(15, 23, 42, 0.6);
+        background: rgba(15, 23, 42, 0.72);
+        backdrop-filter: blur(6px);
         z-index: 1000;
         align-items: center;
         justify-content: center;
-        padding: 20px;
+        padding: clamp(10px, 2vw, 28px);
+        overscroll-behavior: contain;
     }
 
     .modal.show {
@@ -441,17 +625,39 @@
     }
 
     .modal-content {
+        position: relative;
+        display: flex;
+        flex-direction: column;
         background: white;
-        border-radius: 24px;
-        width: min(1120px, 100%);
-        max-height: calc(100vh - 40px);
+        border: 1px solid rgba(148, 163, 184, 0.35);
+        border-radius: 26px;
+        width: min(1180px, 100%);
+        max-height: min(900px, calc(100vh - 32px));
         overflow: hidden;
-        box-shadow: 0 30px 60px rgba(15, 23, 42, 0.28);
+        box-shadow: 0 28px 80px rgba(15, 23, 42, 0.34), 0 8px 24px rgba(15, 23, 42, 0.12);
+    }
+
+    .modal.show .modal-content {
+        animation: modal-reveal 0.24s ease-out both;
+    }
+
+    @keyframes modal-reveal {
+        from {
+            opacity: 0;
+            transform: translateY(10px) scale(0.985);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
     }
 
     .modal-header {
-        padding: 20px 24px;
-        background: linear-gradient(135deg, #f8fafc, #eef2ff);
+        position: relative;
+        z-index: 1;
+        flex-shrink: 0;
+        padding: 20px 28px;
+        background: linear-gradient(135deg, #f8fbff 0%, #eef4ff 100%);
         border-bottom: 1px solid #e2e8f0;
         display: flex;
         justify-content: space-between;
@@ -459,9 +665,13 @@
         gap: 16px;
     }
 
+    .modal-header-copy {
+        min-width: 0;
+    }
+
     .modal-header h3 {
         margin: 0;
-        font-size: 22px;
+        font-size: clamp(20px, 2.2vw, 26px);
         font-weight: 800;
         color: #0f172a;
         display: flex;
@@ -469,18 +679,34 @@
         gap: 10px;
     }
 
+    .modal-header h3 i {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 36px;
+        height: 36px;
+        border-radius: 12px;
+        color: #2563eb;
+        background: #dbeafe;
+        font-size: 15px;
+    }
+
     .modal-subtitle {
         display: block;
-        margin-top: 4px;
+        margin-top: 7px;
         font-size: 13px;
         color: #64748b;
         font-weight: 600;
     }
 
     .modal-body {
-        padding: 24px;
+        flex: 1 1 auto;
+        min-height: 0;
+        padding: 26px 28px 30px;
         overflow-y: auto;
-        max-height: calc(100vh - 130px);
+        overscroll-behavior: contain;
+        scrollbar-color: #94a3b8 transparent;
+        scrollbar-width: thin;
     }
 
     .modal-close {
@@ -504,36 +730,186 @@
         border-color: #ef4444;
     }
 
+    .modal-close:focus-visible {
+        outline: 3px solid rgba(59, 130, 246, 0.35);
+        outline-offset: 3px;
+    }
+
     .modal-module-overview {
-        background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+        background: linear-gradient(135deg, #f8fbff 0%, #f8fafc 100%);
         color: #0f172a;
+        border: 1px solid #e2e8f0;
         border-radius: 20px;
-        padding: 20px;
-        margin-bottom: 22px;
+        padding: 18px;
+        margin-bottom: 26px;
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        grid-template-columns: repeat(4, minmax(0, 1fr));
         gap: 14px;
+        box-shadow: 0 8px 22px rgba(15, 23, 42, 0.05);
     }
 
     .modal-overview-item {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        min-height: 104px;
         background: #ffffff;
         border: 1px solid #e2e8f0;
         border-radius: 16px;
-        padding: 14px;
+        padding: 16px 18px;
+        overflow: hidden;
+        box-shadow: 0 3px 10px rgba(15, 23, 42, 0.04);
+        transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+    }
+
+    .modal-overview-item::before {
+        position: absolute;
+        inset: 0 auto 0 0;
+        width: 4px;
+        background: linear-gradient(180deg, #60a5fa, #2563eb);
+        content: '';
+        transition: width 0.2s ease, filter 0.2s ease;
+    }
+
+    .modal-overview-item::after {
+        position: absolute;
+        right: -34px;
+        bottom: -40px;
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        background: rgba(219, 234, 254, 0.45);
+        content: '';
+        pointer-events: none;
+        transition: transform 0.25s ease, opacity 0.2s ease;
+    }
+
+    .modal-overview-item:hover,
+    .modal-overview-item:focus-within {
+        transform: translateY(-4px);
+        border-color: #93c5fd;
+        background: #ffffff;
+        box-shadow: 0 14px 26px rgba(37, 99, 235, 0.13);
+    }
+
+    .modal-overview-item:hover::before,
+    .modal-overview-item:focus-within::before {
+        width: 7px;
+        filter: brightness(1.05);
+    }
+
+    .modal-overview-item:hover::after,
+    .modal-overview-item:focus-within::after {
+        transform: scale(1.35);
+        opacity: 0.85;
+    }
+
+    .modal-overview-top {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 10px;
+    }
+
+    .modal-overview-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        flex-shrink: 0;
+        border: 1px solid #dbeafe;
+        border-radius: 10px;
+        color: #2563eb;
+        background: #eff6ff;
+        font-size: 13px;
+        transition: transform 0.2s ease, background 0.2s ease, color 0.2s ease;
+    }
+
+    .modal-overview-item:hover .modal-overview-icon,
+    .modal-overview-item:focus-within .modal-overview-icon {
+        transform: rotate(-6deg) scale(1.08);
+        color: #ffffff;
+        background: #2563eb;
+    }
+
+    .modal-overview-item--line::before {
+        background: linear-gradient(180deg, #a78bfa, #7c3aed);
+    }
+
+    .modal-overview-item--line::after {
+        background: rgba(237, 233, 254, 0.65);
+    }
+
+    .modal-overview-item--line .modal-overview-icon {
+        border-color: #ddd6fe;
+        color: #7c3aed;
+        background: #f5f3ff;
+    }
+
+    .modal-overview-item--line:hover .modal-overview-icon,
+    .modal-overview-item--line:focus-within .modal-overview-icon {
+        background: #7c3aed;
+    }
+
+    .modal-overview-item--reviewed::before {
+        background: linear-gradient(180deg, #34d399, #059669);
+    }
+
+    .modal-overview-item--reviewed::after {
+        background: rgba(209, 250, 229, 0.65);
+    }
+
+    .modal-overview-item--reviewed .modal-overview-icon {
+        border-color: #a7f3d0;
+        color: #059669;
+        background: #ecfdf5;
+    }
+
+    .modal-overview-item--reviewed:hover .modal-overview-icon,
+    .modal-overview-item--reviewed:focus-within .modal-overview-icon {
+        background: #059669;
+    }
+
+    .modal-overview-item--progress::before {
+        background: linear-gradient(180deg, #fbbf24, #d97706);
+    }
+
+    .modal-overview-item--progress::after {
+        background: rgba(254, 243, 199, 0.72);
+    }
+
+    .modal-overview-item--progress .modal-overview-icon {
+        border-color: #fde68a;
+        color: #d97706;
+        background: #fffbeb;
+    }
+
+    .modal-overview-item--progress:hover .modal-overview-icon,
+    .modal-overview-item--progress:focus-within .modal-overview-icon {
+        background: #d97706;
     }
 
     .modal-overview-label {
+        position: relative;
+        z-index: 1;
         display: block;
         font-size: 11px;
         font-weight: 700;
         text-transform: uppercase;
         letter-spacing: 0.5px;
         color: #64748b;
-        margin-bottom: 6px;
+        margin-bottom: 8px;
     }
 
     .modal-overview-value {
-        font-size: 22px;
+        position: relative;
+        z-index: 1;
+        font-size: 24px;
+        line-height: 1.1;
         font-weight: 800;
         color: #0f172a;
     }
@@ -541,29 +917,47 @@
     .modal-levels-grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
-        gap: 18px;
+        align-items: start;
+        gap: 20px;
     }
 
     .modal-level-card {
         background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
-        border: 2px solid #dbe3ef;
-        border-radius: 22px;
-        padding: 20px;
+        border: 1px solid #dbe3ef;
+        border-radius: 24px;
+        padding: 22px;
         display: flex;
         flex-direction: column;
-        gap: 16px;
+        gap: 20px;
+        min-width: 0;
         cursor: pointer;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 8px 20px rgba(15, 23, 42, 0.05);
         transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
         color: #0f172a;
+    }
+
+    .modal-level-card::before {
+        position: absolute;
+        inset: 0 0 auto;
+        height: 4px;
+        background: #cbd5e1;
+        content: '';
     }
 
     .modal-level-card.nivel-inferior {
         background: linear-gradient(180deg, #ffffff 0%, #f1f5f9 100%);
     }
 
-    .modal-level-card:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 16px 26px rgba(15, 23, 42, 0.22);
+    .modal-level-card.nivel-inferior::before {
+        background: #94a3b8;
+    }
+
+    .modal-level-card:hover,
+    .modal-level-card.is-selected {
+        transform: translateY(-2px);
+        box-shadow: 0 16px 30px rgba(15, 23, 42, 0.12);
     }
 
     .modal-level-card:focus-visible {
@@ -573,7 +967,11 @@
 
     .modal-level-card.is-selected {
         border-color: #60a5fa;
-        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.16), 0 16px 26px rgba(15, 23, 42, 0.22);
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.14), 0 16px 30px rgba(15, 23, 42, 0.12);
+    }
+
+    .modal-level-card.is-selected::before {
+        background: linear-gradient(90deg, #2563eb, #60a5fa);
     }
 
     .modal-level-header,
@@ -587,7 +985,7 @@
     }
 
     .modal-level-title {
-        font-size: 28px;
+        font-size: clamp(24px, 3vw, 30px);
         font-weight: 800;
         line-height: 1.1;
         margin: 0;
@@ -605,9 +1003,13 @@
     }
 
     .modal-level-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
         background: #dbeafe;
+        border: 1px solid #bfdbfe;
         border-radius: 999px;
-        padding: 8px 12px;
+        padding: 8px 13px;
         font-size: 12px;
         font-weight: 700;
         white-space: nowrap;
@@ -615,11 +1017,23 @@
     }
 
     .modal-level-section-title {
+        display: flex;
+        align-items: center;
+        gap: 8px;
         font-size: 12px;
         font-weight: 700;
         text-transform: uppercase;
         letter-spacing: 0.6px;
         color: #64748b;
+    }
+
+    .modal-level-section-title::before {
+        width: 7px;
+        height: 7px;
+        flex-shrink: 0;
+        border-radius: 50%;
+        background: #60a5fa;
+        content: '';
     }
 
     .modal-level-progress-meta,
@@ -632,12 +1046,35 @@
         color: #334155;
     }
 
+    .modal-level-progress-meta {
+        margin: 10px 0 7px;
+    }
+
+    .modal-level-component-progress-meta {
+        margin-bottom: 7px;
+    }
+
     .modal-level-card .progress-container {
+        height: 14px;
+        border: 1px solid #dbe3ef;
+        border-radius: 999px;
         background: #e2e8f0;
+        box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.06);
     }
 
     .modal-level-card .progress-label {
         color: #1e293b;
+    }
+
+    .modal .progress-bar {
+        box-sizing: border-box;
+        min-width: 0;
+        border-radius: inherit;
+    }
+
+    .modal .progress-label {
+        left: 10px;
+        font-size: 11px;
     }
 
     .modal-level-sides,
@@ -652,21 +1089,22 @@
         background: #ffffff;
         border: 1px solid #e2e8f0;
         border-radius: 18px;
-        padding: 14px;
+        padding: 16px;
         display: flex;
         flex-direction: column;
         gap: 12px;
+        box-shadow: 0 4px 14px rgba(15, 23, 42, 0.04);
     }
 
     .modal-level-component {
-        background: #f8fafc;
-        border-radius: 16px;
-        padding: 12px;
-        gap: 10px;
+        background: #fbfdff;
+        border-radius: 15px;
+        padding: 14px;
+        gap: 12px;
     }
 
     .modal-side-title {
-        font-size: 15px;
+        font-size: 16px;
         font-weight: 800;
         color: #0f172a;
     }
@@ -683,13 +1121,18 @@
         gap: 12px;
         font-weight: 700;
         color: inherit;
+        flex: 1 1 220px;
         min-width: 0;
     }
 
     .componente-nombre span {
         display: block;
-        overflow: hidden;
-        text-overflow: ellipsis;
+        flex: 1 1 auto;
+        min-width: 0;
+        overflow: visible;
+        overflow-wrap: anywhere;
+        white-space: normal;
+        line-height: 1.35;
     }
 
     .componente-imagen {
@@ -735,8 +1178,9 @@
     }
 
     .modal-review-summary {
-        align-items: center;
+        align-items: flex-start;
         justify-content: space-between;
+        flex-wrap: wrap;
         min-width: 0;
     }
 
@@ -744,6 +1188,10 @@
         flex-wrap: wrap;
         align-items: center;
         justify-content: flex-end;
+        flex: 0 1 48%;
+        max-width: 54%;
+        min-width: 0;
+        line-height: 1.35;
         color: #64748b;
         font-size: 11px;
         font-weight: 700;
@@ -757,6 +1205,55 @@
 
     .modal-review-progress {
         min-width: 0;
+        padding-top: 2px;
+    }
+
+    .modal-review-card .progress-container,
+    .modal-side-block .progress-container {
+        height: 14px !important;
+        border: 1px solid #dbe3ef;
+        border-radius: 999px;
+        box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.06);
+    }
+
+    .modal-review-numbers {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 8px;
+        padding: 9px 10px;
+        border: 1px solid #dbe3ef;
+        border-radius: 12px;
+        background: #f8fafc;
+    }
+
+    .modal-review-numbers-label {
+        color: #64748b;
+        font-size: 11px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+    }
+
+    .modal-review-number-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+    }
+
+    .modal-review-number {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 24px;
+        height: 24px;
+        padding: 0 7px;
+        border: 1px solid #bfdbfe;
+        border-radius: 7px;
+        color: #1d4ed8;
+        background: #eff6ff;
+        font-size: 12px;
+        font-weight: 800;
     }
 
     .modal-no-side-section {
@@ -766,86 +1263,148 @@
     }
 
     .grafica-section {
-        border-radius: 16px;
+        position: relative;
+        overflow: hidden;
+        border-radius: 20px;
         padding: 24px;
         margin-bottom: 24px;
+        background: radial-gradient(circle at 8% 0%, rgba(219, 234, 254, 0.52), transparent 34%), #ffffff;
+    }
+
+    .grafica-heading {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 18px;
+        margin-bottom: 20px;
     }
 
     .grafica-title {
-        font-size: 18px;
-        font-weight: 700;
-        color: #1e293b;
-        margin-bottom: 10px;
+        margin: 0;
         display: flex;
         align-items: center;
         gap: 10px;
-    }
-
-    .grafica-subtitle {
-        font-size: 14px;
-        color: #64748b;
-        font-weight: 600;
-        margin-bottom: 22px;
-    }
-
-    .grafica-lineas-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr));
-        gap: 20px;
-    }
-
-    .grafica-linea-card {
-        background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
-        border: 1px solid #dbe3ef;
-        border-radius: 20px;
-        padding: 20px;
-        display: flex;
-        flex-direction: column;
-        gap: 18px;
-    }
-
-    .grafica-linea-title {
-        font-size: 20px;
+        color: #0f172a;
+        font-size: 19px;
         font-weight: 800;
-        color: var(--slate-900);
+        letter-spacing: -0.01em;
     }
 
-    .grafica-linea-summary {
-        font-size: 13px;
-        font-weight: 700;
-        color: #64748b;
+    .grafica-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        flex-shrink: 0;
+        padding: 8px 11px;
+        border: 1px solid #bfdbfe;
+        border-radius: 999px;
+        color: #1d4ed8;
+        background: #eff6ff;
+        font-size: 12px;
+        font-weight: 800;
+        white-space: nowrap;
     }
 
-    .grafica-pie-layout {
+    .grafica-status.is-empty {
+        border-color: #cbd5e1;
+        color: #475569;
+        background: #f8fafc;
+    }
+
+    .grafica-status.is-complete {
+        border-color: #a7f3d0;
+        color: #047857;
+        background: #ecfdf5;
+    }
+
+    .grafica-status-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: currentColor;
+        box-shadow: 0 0 0 3px currentColor;
+        opacity: 0.18;
+    }
+
+    .grafica-avance-layout {
         display: grid;
-        grid-template-columns: minmax(min(100%, 280px), 360px) minmax(0, 1fr);
-        gap: 20px;
-        align-items: center;
+        grid-template-columns: minmax(0, 1.12fr) minmax(280px, 0.88fr);
+        gap: 16px;
+        align-items: stretch;
     }
 
-    .grafica-pie-panel {
-        background: white;
-        border: 1px solid #e2e8f0;
-        border-radius: 20px;
-        padding: 18px;
+    .grafica-avance-panel,
+    .grafica-avance-resumen {
+        border: 1px solid #dbe3ef;
+        border-radius: 18px;
+    }
+
+    .grafica-avance-panel {
+        min-width: 0;
+        padding: 20px;
+        background: linear-gradient(145deg, #ffffff 0%, #f8fbff 100%);
+    }
+
+    .grafica-panel-heading,
+    .grafica-resumen-heading,
+    .grafica-comparacion-top,
+    .grafica-comparacion-meta {
         display: flex;
-        justify-content: center;
         align-items: center;
+        justify-content: space-between;
+        gap: 12px;
     }
 
-    .grafica-pie-wrapper {
-        width: 100%;
-        max-width: 320px;
-        aspect-ratio: 1;
+    .grafica-panel-heading {
+        justify-content: flex-end;
+    }
+
+    .grafica-eyebrow {
+        display: block;
+        margin-bottom: 4px;
+        color: #64748b;
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+    }
+
+    .grafica-panel-heading h3,
+    .grafica-resumen-heading h4 {
+        margin: 0;
+        color: #0f172a;
+        font-size: 17px;
+        font-weight: 800;
+    }
+
+    .grafica-panel-badge {
+        flex-shrink: 0;
+        padding: 7px 10px;
+        border-radius: 999px;
+        color: #1e40af;
+        background: #dbeafe;
+        font-size: 11px;
+        font-weight: 800;
+        white-space: nowrap;
+    }
+
+    .grafica-panel-badge {
+        border: 1px solid #bfdbfe;
+    }
+
+    .grafica-pastel-wrapper {
+        width: min(100%, 280px);
+        height: 252px;
+        margin: 12px auto 0;
         position: relative;
     }
 
-    .grafica-pie-canvas {
+    .grafica-avance-canvas {
         width: 100% !important;
         height: 100% !important;
     }
 
-    .grafica-pie-center {
+    .grafica-pastel-center {
         position: absolute;
         inset: 0;
         display: flex;
@@ -854,86 +1413,117 @@
         justify-content: center;
         pointer-events: none;
         text-align: center;
-        padding: 20px;
     }
 
-    .grafica-pie-center-value {
-        font-size: 34px;
+    .grafica-pastel-center strong {
+        color: #0f172a;
+        font-size: 42px;
         line-height: 1;
         font-weight: 800;
-        color: var(--slate-900);
+        letter-spacing: -0.04em;
     }
 
-    .grafica-pie-center-label {
-        margin-top: 6px;
-        font-size: 11px;
-        font-weight: 800;
-        text-transform: uppercase;
-        letter-spacing: 0.6px;
+    .grafica-pastel-center span {
+        margin-top: 8px;
         color: #64748b;
-    }
-
-    .grafica-legend {
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
-    }
-
-    .grafica-legend-title {
-        font-size: 13px;
-        font-weight: 800;
-        color: var(--slate-900);
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-    }
-
-    .grafica-legend-item {
-        background: white;
-        border: 1px solid #e2e8f0;
-        border-radius: 16px;
-        padding: 12px 14px;
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-    }
-
-    .grafica-legend-head {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 12px;
-    }
-
-    .grafica-legend-name {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        font-size: 14px;
-        font-weight: 800;
-        color: var(--slate-900);
-    }
-
-    .grafica-color-dot {
-        width: 12px;
-        height: 12px;
-        border-radius: 999px;
-        flex-shrink: 0;
-    }
-
-    .grafica-legend-value {
         font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+    }
+
+    .grafica-comparacion-track {
+        width: 100%;
+        height: 8px;
+        overflow: hidden;
+        border-radius: 999px;
+        background: #e2e8f0;
+    }
+
+    .grafica-comparacion-fill {
+        height: 100%;
+        border-radius: inherit;
+        background: linear-gradient(90deg, #2563eb, #0f9f8b);
+        transition: width 0.5s ease;
+    }
+
+    .grafica-avance-resumen {
+        min-width: 0;
+        padding: 20px;
+        background: #f8fafc;
+    }
+
+    .grafica-resumen-heading h4 {
+        font-size: 16px;
+    }
+
+    .grafica-comparacion-list {
+        display: grid;
+        gap: 14px;
+        margin-top: 16px;
+        max-height: 284px;
+        overflow-y: auto;
+        padding-right: 4px;
+    }
+
+    .grafica-comparacion-row {
+        min-width: 0;
+    }
+
+    .grafica-comparacion-empty {
+        padding: 14px;
+        border: 1px dashed #cbd5e1;
+        border-radius: 12px;
+        color: #64748b;
+        background: #ffffff;
+        font-size: 12px;
         font-weight: 700;
-        color: #475569;
+        line-height: 1.45;
+        text-align: center;
+    }
+
+    .grafica-comparacion-label,
+    .grafica-comparacion-top strong {
+        overflow: hidden;
+        color: #334155;
+        font-size: 12px;
+        font-weight: 800;
+        text-overflow: ellipsis;
         white-space: nowrap;
     }
 
-    .grafica-legend-meta {
-        display: flex;
-        justify-content: space-between;
-        gap: 12px;
-        font-size: 12px;
+    .grafica-comparacion-top strong {
+        flex-shrink: 0;
+        color: #0f172a;
+    }
+
+    .grafica-comparacion-track {
+        height: 7px;
+        margin-top: 7px;
+    }
+
+    .grafica-comparacion-meta {
+        margin-top: 5px;
+        color: #94a3b8;
+        font-size: 10px;
         font-weight: 700;
-        color: #64748b;
+    }
+
+    @media (max-width: 900px) {
+        .resumen-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .modal-module-overview {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .modal-review-context {
+            flex: 1 1 100%;
+            justify-content: flex-start;
+            max-width: none;
+            text-align: left;
+        }
     }
 
     .acciones {
@@ -962,8 +1552,7 @@
         .modulo-stats,
         .modulo-side-summary,
         .modal-levels-grid,
-        .grafica-lineas-grid,
-        .grafica-pie-layout {
+        .grafica-avance-layout {
             grid-template-columns: 1fr;
         }
 
@@ -971,9 +1560,7 @@
         .modulo-summary-header,
         .modal-level-header,
         .modal-side-header,
-        .modal-level-component-head,
-        .grafica-linea-header,
-        .grafica-legend-head {
+        .modal-level-component-head {
             flex-direction: column;
             align-items: stretch;
         }
@@ -999,6 +1586,8 @@
 
         .modal-review-context {
             justify-content: flex-start;
+            max-width: none;
+            text-align: left;
         }
 
         .lineas-grid,
@@ -1008,13 +1597,29 @@
             flex-direction: column;
         }
 
+        .lineas-grid {
+            grid-template-columns: 1fr;
+        }
+
         .linea-btn,
         .btn {
             width: 100%;
         }
 
-        .grafica-pie-panel {
+        .linea-btn {
+            flex: 1 1 100%;
+        }
+
+        .grafica-avance-panel {
             padding: 14px;
+        }
+
+        .grafica-heading {
+            flex-direction: column;
+        }
+
+        .grafica-status {
+            align-self: flex-start;
         }
     }
 
@@ -1028,14 +1633,26 @@
             padding: 16px;
         }
 
+        .resumen-grid {
+            grid-template-columns: 1fr;
+            gap: 12px;
+        }
+
+        .historico-title-row {
+            align-items: flex-start;
+        }
+
+        .historico-page-title {
+            font-size: 24px;
+        }
+
         .modulos-grid {
             padding: 14px;
             gap: 14px;
         }
 
         .resumen-card,
-        .modulo-summary-card,
-        .grafica-linea-card {
+        .modulo-summary-card {
             padding: 16px;
         }
 
@@ -1058,32 +1675,53 @@
             padding: 14px;
         }
 
-        .grafica-pie-center-value {
-            font-size: 28px;
+        .modal-module-overview {
+            grid-template-columns: 1fr;
+            padding: 12px;
+            gap: 10px;
         }
+
+        .modal-overview-item {
+            min-height: 76px;
+            padding: 14px 16px;
+        }
+
+        .modal-level-card {
+            padding: 18px;
+            gap: 17px;
+        }
+
+        .modal-level-title {
+            font-size: 24px;
+        }
+
     }
 </style>
 
 <div class="historico-container">
-    <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
+    <div class="historico-page-header mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div class="historico-header-content">
             <a href="{{ route($analisisDashboardRoute) }}"
-               class="responsive-action responsive-action--secondary mb-4">
+               class="historico-back-link responsive-action responsive-action--secondary">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
                 </svg>
                 <span class="font-medium">Volver</span>
             </a>
-            <h1 class="flex items-start gap-2 text-xl font-bold text-gray-800 sm:items-center sm:text-2xl">
-                <i class="fas fa-chart-bar text-blue-600"></i>
-                {{ $historicoRevisadosTitulo ?? 'Historico de Revisados - Pasteurizadora' }}
-            </h1>
+            <div class="historico-title-row">
+                <span class="historico-title-icon" aria-hidden="true">
+                    <i class="fas fa-chart-bar"></i>
+                </span>
+                <h1 class="historico-page-title">
+                    {{ $historicoRevisadosTitulo ?? 'Historico de Revisados - Pasteurizadora' }}
+                </h1>
+            </div>
         </div>
     </div>
 
     <div class="lineas-section">
         <div class="lineas-title">
-            Lineas de pasteurizadora
+            Pasteurizadores
         </div>
         <div class="lineas-grid">
             @foreach($lineas as $linea)
@@ -1097,16 +1735,16 @@
 
     @if(isset($estadisticas['resumen']))
         <div class="resumen-grid">
-            <div class="resumen-card">
+            <div class="resumen-card resumen-card--total">
                 <div class="resumen-icono total">
                     <i class="fas fa-cubes"></i>
                 </div>
                 <div class="resumen-info">
-                    <h4>Total Analisis</h4>
+                    <h4>Total análisis</h4>
                     <div class="valor">{{ $estadisticas['resumen']['total_general'] }}</div>
                 </div>
             </div>
-            <div class="resumen-card">
+            <div class="resumen-card resumen-card--revisado">
                 <div class="resumen-icono revisado">
                     <i class="fas fa-check-circle"></i>
                 </div>
@@ -1115,12 +1753,12 @@
                     <div class="valor">{{ $estadisticas['resumen']['total_revisado'] }}</div>
                 </div>
             </div>
-            <div class="resumen-card">
+            <div class="resumen-card resumen-card--porcentaje">
                 <div class="resumen-icono porcentaje">
                     <i class="fas fa-chart-line"></i>
                 </div>
                 <div class="resumen-info">
-                    <h4>Progreso General</h4>
+                    <h4>Progreso general</h4>
                     <div class="valor">{{ $estadisticas['resumen']['porcentaje_general'] }}%</div>
                 </div>
             </div>
@@ -1131,7 +1769,7 @@
         <div class="table-header">
             <h3>
                 <i class="fas fa-clipboard-list"></i>
-                Analisis de {{ isset($mostrarTodas) && $mostrarTodas ? 'todas las pasteurizadoras' : ($lineaSeleccionada->nombre ?? 'la linea seleccionada') }}
+                Revisiones de {{ isset($mostrarTodas) && $mostrarTodas ? 'todos los pasteurizadores' : $pasteurizadorSeleccionadoLabel }}
             </h3>
         </div>
 
@@ -1142,11 +1780,15 @@
                     $lineaRevisado = $lineaHistorico['totales']['revisado'] ?? 0;
                     $lineaPorcentaje = $lineaTotal > 0 ? round(($lineaRevisado / $lineaTotal) * 100) : 0;
                     $lineaColor = $lineaPorcentaje >= 80 ? 'success' : ($lineaPorcentaje >= 50 ? 'info' : ($lineaPorcentaje >= 20 ? 'warning' : 'danger'));
+                    $pasteurizadorNumero = preg_replace('/^P[-\s]?/i', '', trim((string) $lineaHistorico['linea_nombre']));
+                    $pasteurizadorLabel = preg_match('/^pasteurizador\b/i', $pasteurizadorNumero)
+                        ? $pasteurizadorNumero
+                        : 'Pasteurizador ' . $pasteurizadorNumero;
                 @endphp
 
                 <div class="linea-group-title">
                     <div class="linea-group-main">
-                        <span class="linea-group-name">Linea {{ $lineaHistorico['linea_nombre'] }}</span>
+                        <span class="linea-group-name">{{ $pasteurizadorLabel }}</span>
                     </div>
                     <div class="linea-group-progress">
                         <div class="progress-container">
@@ -1198,7 +1840,7 @@
                             <button
                                 type="button"
                                 class="btn btn-primary"
-                                onclick="abrirModalNiveles('modulo-template-{{ $lineaHistorico['linea_id'] }}-{{ $moduloData['numero'] }}', 'Modulo {{ $moduloData['numero'] }}', '{{ $lineaHistorico['linea_nombre'] }}')">
+                                onclick="abrirModalNiveles('modulo-template-{{ $lineaHistorico['linea_id'] }}-{{ $moduloData['numero'] }}', 'Módulo {{ $moduloData['numero'] }}', '{{ $lineaHistorico['linea_nombre'] }}')">
                                 <i class="fas fa-layer-group"></i>
                                 Ver Detalles
                             </button>
@@ -1207,20 +1849,32 @@
 
                     <template id="modulo-template-{{ $lineaHistorico['linea_id'] }}-{{ $moduloData['numero'] }}">
                         <div class="modal-module-overview">
-                            <div class="modal-overview-item">
-                                <span class="modal-overview-label">Modulo</span>
+                            <div class="modal-overview-item modal-overview-item--module">
+                                <div class="modal-overview-top">
+                                    <span class="modal-overview-label">Módulo</span>
+                                    <span class="modal-overview-icon" aria-hidden="true"><i class="fas fa-layer-group"></i></span>
+                                </div>
                                 <span class="modal-overview-value">{{ $moduloData['numero'] }}</span>
                             </div>
-                            <div class="modal-overview-item">
-                                <span class="modal-overview-label">Linea</span>
-                                <span class="modal-overview-value">{{ $lineaHistorico['linea_nombre'] }}</span>
+                            <div class="modal-overview-item modal-overview-item--line">
+                                <div class="modal-overview-top">
+                                    <span class="modal-overview-label">Pasteurizador</span>
+                                    <span class="modal-overview-icon" aria-hidden="true"><i class="fas fa-temperature-half"></i></span>
+                                </div>
+                                <span class="modal-overview-value">{{ $pasteurizadorNumero }}</span>
                             </div>
-                            <div class="modal-overview-item">
-                                <span class="modal-overview-label">Revisado</span>
+                            <div class="modal-overview-item modal-overview-item--reviewed">
+                                <div class="modal-overview-top">
+                                    <span class="modal-overview-label">Revisado</span>
+                                    <span class="modal-overview-icon" aria-hidden="true"><i class="fas fa-clipboard-check"></i></span>
+                                </div>
                                 <span class="modal-overview-value">{{ $moduloData['revisado'] }}/{{ $moduloData['total'] }}</span>
                             </div>
-                            <div class="modal-overview-item">
-                                <span class="modal-overview-label">Avance general</span>
+                            <div class="modal-overview-item modal-overview-item--progress">
+                                <div class="modal-overview-top">
+                                    <span class="modal-overview-label">Avance general</span>
+                                    <span class="modal-overview-icon" aria-hidden="true"><i class="fas fa-gauge-high"></i></span>
+                                </div>
                                 <span class="modal-overview-value">{{ $moduloData['porcentaje'] }}%</span>
                             </div>
                         </div>
@@ -1231,19 +1885,18 @@
                                     class="modal-level-card {{ $nivelData['key'] === 'INFERIOR' ? 'nivel-inferior' : '' }} {{ $loop->first ? 'is-selected' : '' }}"
                                     tabindex="0"
                                     role="button"
+                                    aria-label="{{ $nivelData['label'] }}: {{ $nivelData['porcentaje'] }}% de avance"
                                     aria-pressed="{{ $loop->first ? 'true' : 'false' }}"
                                     onclick="seleccionarNivelModal(this)"
                                     onkeydown="manejarNivelModal(event, this)">
                                     <div class="modal-level-header">
                                         <div>
                                             <h4 class="modal-level-title">{{ $nivelData['label'] }}</h4>
-                                            <span class="modal-level-subtitle">Modulo {{ $moduloData['numero'] }}</span>
                                         </div>
                                         <span class="modal-level-badge">{{ $nivelData['porcentaje'] }}%</span>
                                     </div>
 
                                     <div>
-                                        <div class="modal-level-section-title">Avance del historico</div>
                                         <div class="modal-level-progress-meta">
                                             <span>Revisados</span>
                                             <span>{{ $nivelData['revisado'] }}/{{ $nivelData['total'] }}</span>
@@ -1257,7 +1910,6 @@
                                     <div class="modal-level-sides">
                                         @if(!empty($nivelData['componentes_sin_lado']))
                                             <div class="modal-no-side-section">
-                                                <div class="modal-level-section-title">Revisiones por nivel</div>
                                                 @foreach($nivelData['componentes_sin_lado'] as $componenteData)
                                                     @include('historico-revisados.pasteurizadora.partials.revision-card', [
                                                         'componenteData' => $componenteData,
@@ -1269,9 +1921,6 @@
                                             </div>
                                         @endif
 
-                                        @if(!empty($nivelData['lados']))
-                                            <div class="modal-level-section-title">Revisiones por lado dentro de este nivel</div>
-                                        @endif
                                         @foreach($nivelData['lados'] as $ladoData)
                                             <div class="modal-side-block">
                                                 <div class="modal-side-header">
@@ -1317,85 +1966,121 @@
             @empty
                 <div class="empty-state">
                     <i class="fas fa-info-circle text-3xl mb-2"></i>
-                    <p>No hay datos disponibles para esta linea.</p>
+                    <p>No hay datos disponibles para este pasteurizador.</p>
                 </div>
             @endforelse
         </div>
     </div>
 
     @if($modulosHistorico->isNotEmpty())
+        @php
+            $chartData = $mostrarTodas
+                ? $modulosHistorico->map(function ($lineaHistorico) {
+                    $total = (int) ($lineaHistorico['totales']['total'] ?? 0);
+                    $revisado = (int) ($lineaHistorico['totales']['revisado'] ?? 0);
+
+                    return [
+                        'label' => (function () use ($lineaHistorico) {
+                            $numero = preg_replace('/^P[-\s]?/i', '', trim((string) $lineaHistorico['linea_nombre']));
+
+                            return preg_match('/^pasteurizador\b/i', $numero) ? $numero : 'Pasteurizador ' . $numero;
+                        })(),
+                        'total' => $total,
+                        'revisado' => $revisado,
+                        'porcentaje' => $total > 0 ? round(($revisado / $total) * 100) : 0,
+                    ];
+                })->values()
+                : $modulosHistorico->flatMap(fn ($lineaHistorico) => collect($lineaHistorico['modulos'] ?? [])->map(fn ($modulo) => [
+                    'label' => 'Modulo ' . $modulo['numero'],
+                    'total' => (int) ($modulo['total'] ?? 0),
+                    'revisado' => (int) ($modulo['revisado'] ?? 0),
+                    'porcentaje' => (int) ($modulo['porcentaje'] ?? 0),
+                ]))->values();
+
+            $chartTotal = $chartData->sum('total');
+            $chartRevisado = $chartData->sum('revisado');
+            $chartPendiente = max($chartTotal - $chartRevisado, 0);
+            $chartPorcentaje = $chartTotal > 0 ? round(($chartRevisado / $chartTotal) * 100) : 0;
+            $chartEstado = $chartPorcentaje >= 100
+                ? 'Completado'
+                : ($chartRevisado > 0 ? 'En progreso' : 'Sin revisiones');
+            $chartEstadoClass = $chartPorcentaje >= 100
+                ? 'is-complete'
+                : ($chartRevisado > 0 ? 'is-progress' : 'is-empty');
+            $chartMetaLabel = $mostrarTodas ? 'pasteurizadores' : 'módulos';
+            $chartPieData = [
+                'revisado' => $chartRevisado,
+                'pendiente' => $chartPendiente,
+                'total' => $chartTotal,
+                'porcentaje' => $chartPorcentaje,
+            ];
+        @endphp
+
         <div class="grafica-section">
-            <div class="grafica-title">
-                <i class="fas fa-chart-pie text-blue-600"></i>
-                Grafica.
+            <div class="grafica-heading">
+                <div>
+                    <div class="grafica-title">
+                        <i class="fas fa-chart-pie text-blue-600"></i>
+                        Avance de revisiones
+                    </div>
+                </div>
+                <span class="grafica-status {{ $chartEstadoClass }}">
+                    <span class="grafica-status-dot" aria-hidden="true"></span>
+                    {{ $chartEstado }}
+                </span>
             </div>
 
+            <div class="grafica-avance-layout">
+                <section class="grafica-avance-panel">
+                    <div class="grafica-panel-heading">
+                        <span class="grafica-panel-badge">{{ $chartData->count() }} {{ $chartMetaLabel }}</span>
+                    </div>
 
-            <div class="grafica-lineas-grid">
-                @foreach($modulosHistorico as $lineaHistorico)
-                    @php
-                        $lineaTotal = $lineaHistorico['totales']['total'] ?? 0;
-                        $lineaRevisado = $lineaHistorico['totales']['revisado'] ?? 0;
-                        $lineaPorcentaje = $lineaTotal > 0 ? round(($lineaRevisado / $lineaTotal) * 100) : 0;
-                        $chartId = 'grafica-pastel-' . $lineaHistorico['linea_id'];
-                        $palette = ['#2563eb', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#f97316', '#84cc16', '#ec4899', '#14b8a6', '#6366f1', '#eab308', '#22c55e', '#3b82f6', '#f43f5e', '#0ea5e9'];
-                        $chartModules = collect($lineaHistorico['modulos'])->values()->map(function ($modulo, $index) use ($palette) {
-                            return [
-                                'label' => 'Modulo ' . $modulo['numero'],
-                                'value' => (int) ($modulo['revisado'] ?? 0),
-                                'total' => (int) ($modulo['total'] ?? 0),
-                                'revisado' => (int) ($modulo['revisado'] ?? 0),
-                                'porcentaje' => (int) ($modulo['porcentaje'] ?? 0),
-                                'color' => $palette[$index % count($palette)],
-                            ];
-                        })->all();
-                    @endphp
-                    <div class="grafica-linea-card">
-                        <div class="grafica-linea-header">
-                            <div>
-                                <div class="grafica-linea-title">Linea {{ $lineaHistorico['linea_nombre'] }}</div>
-                                <div class="grafica-linea-summary">{{ $lineaPorcentaje }}% general</div>
-                            </div>
-                            <span class="modulo-summary-badge">{{ count($lineaHistorico['modulos']) }} modulos</span>
-                        </div>
-
-                        <div class="grafica-pie-layout">
-                            <div class="grafica-pie-panel">
-                                <div class="grafica-pie-wrapper">
-                                    <canvas id="{{ $chartId }}" class="grafica-pie-canvas" data-grafica-pastel='@json($chartModules)'></canvas>
-                                    <div class="grafica-pie-center">
-                                        <div class="grafica-pie-center-value">{{ $lineaPorcentaje }}%</div>
-                                        <div class="grafica-pie-center-label">avance general</div>
-                                       
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="grafica-legend">
-                                <div class="grafica-legend-title">Módulos</div>
-                                @foreach($chartModules as $moduloChart)
-                                    <div class="grafica-legend-item">
-                                        <div class="grafica-legend-head">
-                                            <div class="grafica-legend-name">
-                                                <span class="grafica-color-dot" style="background: {{ $moduloChart['color'] }};"></span>
-                                                <span>{{ $moduloChart['label'] }}</span>
-                                            </div>
-                                            <span class="grafica-legend-value">{{ $moduloChart['porcentaje'] }}%</span>
-                                        </div>
-                                        <div class="grafica-legend-meta">
-                                            <span>Revisados: {{ $moduloChart['revisado'] }}</span>
-                                            <span>Total: {{ $moduloChart['total'] }}</span>
-                                        </div>
-                                        <div class="progress-container" style="height: 14px;">
-                                            <span class="progress-label">{{ $moduloChart['porcentaje'] }}%</span>
-                                            <div class="progress-bar {{ $moduloChart['porcentaje'] >= 80 ? 'bg-success' : ($moduloChart['porcentaje'] >= 50 ? 'bg-info' : ($moduloChart['porcentaje'] >= 20 ? 'bg-warning' : 'bg-danger')) }}" style="width: {{ $moduloChart['porcentaje'] }}%;"></div>
-                                        </div>
-                                    </div>
-                                @endforeach
-                            </div>
+                    <div class="grafica-pastel-wrapper">
+                        <canvas
+                            id="grafica-avance-historico"
+                            class="grafica-avance-canvas"
+                            role="img"
+                            aria-label="Avance general: {{ $chartPorcentaje }} por ciento, {{ $chartRevisado }} revisados de {{ $chartTotal }}"
+                            data-grafica-avance='@json($chartPieData)'></canvas>
+                        <div class="grafica-pastel-center">
+                            <strong>{{ $chartPorcentaje }}%</strong>
+                            <span>avance general</span>
                         </div>
                     </div>
-                @endforeach
+                </section>
+
+                <aside class="grafica-avance-resumen" aria-labelledby="grafica-comparacion-titulo">
+                    <div class="grafica-resumen-heading">
+                        <div>
+                            <h4 id="grafica-comparacion-titulo">Comparación {{ $chartMetaLabel }}</h4>
+                        </div>
+                    </div>
+                    <div class="grafica-comparacion-list">
+                        @forelse($chartData as $chartItem)
+                            @php
+                                $itemPorcentaje = max(0, min((int) ($chartItem['porcentaje'] ?? 0), 100));
+                            @endphp
+                            <div class="grafica-comparacion-row">
+                                <div class="grafica-comparacion-top">
+                                    <span class="grafica-comparacion-label">{{ $chartItem['label'] }}</span>
+                                    <strong>{{ $chartItem['porcentaje'] }}%</strong>
+                                </div>
+                                <div class="grafica-comparacion-track" role="progressbar" aria-valuenow="{{ $itemPorcentaje }}" aria-valuemin="0" aria-valuemax="100" aria-label="{{ $chartItem['label'] }}">
+                                    <div class="grafica-comparacion-fill" style="width: {{ $itemPorcentaje }}%;"></div>
+                                </div>
+                                <div class="grafica-comparacion-meta">
+                                    <span>{{ $chartItem['revisado'] }} revisados</span>
+                                    <span>{{ $chartItem['total'] }} total</span>
+                                </div>
+                            </div>
+                        @empty
+                            <div class="grafica-comparacion-empty">
+                                No hay módulos disponibles para comparar en este histórico.
+                            </div>
+                        @endforelse
+                    </div>
+                </aside>
             </div>
         </div>
     @endif
@@ -1420,15 +2105,15 @@
     </div>
 </div>
 
-<div id="nivelesModal" class="modal" aria-hidden="true">
+<div id="nivelesModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitulo" aria-describedby="modalSubtitulo" aria-hidden="true" tabindex="-1">
     <div class="modal-content">
         <div class="modal-header">
-            <div>
+            <div class="modal-header-copy">
                 <h3>
                     <i class="fas fa-layer-group text-blue-600"></i>
-                    <span id="modalTitulo">Modulo</span>
+                    <span id="modalTitulo">Módulo</span>
                 </h3>
-                <span class="modal-subtitle" id="modalSubtitulo">Linea</span>
+                <span class="modal-subtitle" id="modalSubtitulo">Pasteurizador</span>
             </div>
             <button type="button" onclick="cerrarModalNiveles()" class="modal-close" aria-label="Cerrar modal">
                 <i class="fas fa-times"></i>
@@ -1439,6 +2124,9 @@
 </div>
 
 <script>
+let modalTriggerElement = null;
+let previousBodyOverflow = '';
+
 function abrirModalNiveles(templateId, titulo, linea) {
     const modal = document.getElementById('nivelesModal');
     const body = document.getElementById('modalNivelesBody');
@@ -1448,8 +2136,14 @@ function abrirModalNiveles(templateId, titulo, linea) {
         return;
     }
 
+    modalTriggerElement = document.activeElement;
+    previousBodyOverflow = document.body.style.overflow;
     document.getElementById('modalTitulo').textContent = titulo;
-    document.getElementById('modalSubtitulo').textContent = 'Linea ' + linea;
+    const lineaNormalizada = String(linea).trim().replace(/^P[-\s]?/i, '');
+    const pasteurizadorLabel = /^pasteurizador\b/i.test(lineaNormalizada)
+        ? lineaNormalizada
+        : 'Pasteurizador ' + lineaNormalizada;
+    document.getElementById('modalSubtitulo').textContent = pasteurizadorLabel;
     body.innerHTML = '';
     body.appendChild(template.content.cloneNode(true));
 
@@ -1461,13 +2155,28 @@ function abrirModalNiveles(templateId, titulo, linea) {
     modal.classList.add('show');
     modal.setAttribute('aria-hidden', 'false');
     document.body.style.overflow = 'hidden';
+
+    window.requestAnimationFrame(() => {
+        modal.querySelector('.modal-close')?.focus();
+    });
 }
 
 function cerrarModalNiveles() {
     const modal = document.getElementById('nivelesModal');
+
+    if (!modal.classList.contains('show')) {
+        return;
+    }
+
     modal.classList.remove('show');
     modal.setAttribute('aria-hidden', 'true');
-    document.body.style.overflow = '';
+    document.body.style.overflow = previousBodyOverflow;
+
+    if (modalTriggerElement && typeof modalTriggerElement.focus === 'function') {
+        modalTriggerElement.focus();
+    }
+
+    modalTriggerElement = null;
 }
 
 function seleccionarNivelModal(card) {
@@ -1488,55 +2197,65 @@ function manejarNivelModal(event, card) {
     }
 }
 
-function inicializarGraficasPastel() {
+function inicializarGraficaAvance() {
     if (typeof Chart === 'undefined') {
         return;
     }
 
-    document.querySelectorAll('[data-grafica-pastel]').forEach((canvas) => {
-        const rawData = canvas.getAttribute('data-grafica-pastel');
-        const modules = rawData ? JSON.parse(rawData) : [];
-        const hasProgress = modules.some((item) => Number(item.value) > 0);
-        const labels = hasProgress ? modules.map((item) => item.label) : ['Sin avance'];
-        const values = hasProgress ? modules.map((item) => item.value) : [1];
-        const colors = hasProgress ? modules.map((item) => item.color) : ['#cbd5e1'];
-        const ctx = canvas.getContext('2d');
+    const canvas = document.getElementById('grafica-avance-historico');
+    if (!canvas) {
+        return;
+    }
 
-        new Chart(ctx, {
-            type: 'doughnut',
-            data: {
-                labels,
-                datasets: [{
-                    data: values,
-                    backgroundColor: colors,
-                    borderColor: '#ffffff',
-                    borderWidth: 4,
-                    hoverOffset: 8,
-                }],
+    const rawData = canvas.getAttribute('data-grafica-avance');
+    const summary = rawData ? JSON.parse(rawData) : { revisado: 0, pendiente: 0, total: 0, porcentaje: 0 };
+    const hasData = Number(summary.total) > 0;
+    const labels = hasData ? ['Revisados', 'Pendientes'] : ['Sin datos'];
+    const values = hasData ? [Number(summary.revisado), Number(summary.pendiente)] : [1];
+    const colors = hasData ? ['#0f9f8b', '#dbe3ec'] : ['#dbe3ec'];
+
+    new Chart(canvas.getContext('2d'), {
+        type: 'doughnut',
+        data: {
+            labels,
+            datasets: [{
+                data: values,
+                backgroundColor: colors,
+                borderColor: '#ffffff',
+                borderWidth: 5,
+                borderRadius: 8,
+                spacing: 3,
+                hoverOffset: 6,
+            }],
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '72%',
+            animation: window.matchMedia('(prefers-reduced-motion: reduce)').matches
+                ? false
+                : { duration: 700, easing: 'easeOutCubic' },
+            interaction: {
+                intersect: false,
+                mode: 'nearest',
             },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                cutout: '68%',
-                plugins: {
-                    legend: {
-                        display: false,
-                    },
-                    tooltip: {
-                        callbacks: {
-                            label: function (context) {
-                                if (!hasProgress) {
-                                    return 'Sin avance registrado';
-                                }
-
-                                const modulo = modules[context.dataIndex];
-                                return modulo.label + ': ' + modulo.revisado + '/' + modulo.total + ' revisados (' + modulo.porcentaje + '%)';
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: function (context) {
+                            if (!hasData) {
+                                return ' Sin datos registrados';
                             }
-                        }
-                    }
-                }
-            }
-        });
+
+                            const value = Number(context.raw || 0);
+                            const percentage = Number(summary.total) > 0 ? Math.round((value / Number(summary.total)) * 100) : 0;
+                            return ' ' + context.label + ': ' + value + ' (' + percentage + '%)';
+                        },
+                    },
+                },
+            },
+        },
     });
 }
 
@@ -1547,13 +2266,13 @@ document.getElementById('nivelesModal').addEventListener('click', function (even
 });
 
 document.addEventListener('keydown', function (event) {
-    if (event.key === 'Escape') {
+    if (event.key === 'Escape' && document.getElementById('nivelesModal').classList.contains('show')) {
         cerrarModalNiveles();
     }
 });
 
 document.addEventListener('DOMContentLoaded', function () {
-    inicializarGraficasPastel();
+    inicializarGraficaAvance();
 });
 </script>
 @endsection

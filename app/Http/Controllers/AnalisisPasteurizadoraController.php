@@ -179,14 +179,16 @@ class AnalisisPasteurizadoraController extends Controller
         };
     }
 
-    private function getRevisionesAgrupadasHistorico($lineas): array
+    private function getRevisionesDetalladasHistorico($lineas): array
     {
         if ($lineas->isEmpty()) {
             return [];
         }
 
-        // Usar el método optimizado del modelo
-        return AnalisisPasteurizadora::getComponentesRevisadosAgrupadosParaHistorico($lineas->pluck('id')->all(), $this->currentArea());
+        return AnalisisPasteurizadora::getComponentesRevisadosDetalladosParaHistorico(
+            $lineas->pluck('id')->all(),
+            $this->currentArea()
+        );
     }
 
     private function buildHistoricoLinea(Linea $linea, array $revisionesAgrupadas, &$componentesModulos, array &$estadisticas): array
@@ -242,16 +244,19 @@ class AnalisisPasteurizadoraController extends Controller
                             $alcanceRevision === AnalisisPasteurizadora::ALCANCE_REVISION_NIVEL_LADO ? $lado : ''
                         );
                         $total = (int) ($compData['cantidad'] ?? 0);
-                        $revisadas = min(
-                            $revisionesAgrupadas[$claveHistorico] ?? 0,
+                        $revisadasLista = $this->getComponentesRevisadosHistorico(
+                            $revisionesAgrupadas,
+                            $claveHistorico,
                             $total
                         );
+                        $revisadas = count($revisadasLista);
                         $porcentaje = $total > 0 ? round(($revisadas / $total) * 100) : 0;
                         $color = $this->getColorClassByPercentage($porcentaje);
 
                         $estadisticas[$linea->id][$codigo][$modulo][$nivel][$lado] = [
                             'total' => $total,
                             'revisadas' => $revisadas,
+                            'revisadas_lista' => $revisadasLista,
                             'porcentaje' => $porcentaje,
                             'color' => $color,
                         ];
@@ -272,9 +277,11 @@ class AnalisisPasteurizadoraController extends Controller
                             'nombre' => $compData['nombre'],
                             'total' => $total,
                             'revisadas' => $revisadas,
+                            'revisadas_lista' => $revisadasLista,
                             'porcentaje' => $porcentaje,
                             'color' => $color,
                             'mostrar_lado' => $alcanceRevision === AnalisisPasteurizadora::ALCANCE_REVISION_NIVEL_LADO,
+                            'mostrar_nivel' => $alcanceRevision !== AnalisisPasteurizadora::ALCANCE_REVISION_MODULO,
                         ];
 
                         $ladoTotal += $total;
@@ -316,13 +323,19 @@ class AnalisisPasteurizadoraController extends Controller
 
                     $claveHistorico = $this->buildHistoricoKey($linea->id, $codigo, $modulo, $nivel, '');
                     $total = (int) ($compData['cantidad'] ?? 0);
-                    $revisadas = min($revisionesAgrupadas[$claveHistorico] ?? 0, $total);
+                    $revisadasLista = $this->getComponentesRevisadosHistorico(
+                        $revisionesAgrupadas,
+                        $claveHistorico,
+                        $total
+                    );
+                    $revisadas = count($revisadasLista);
                     $porcentaje = $total > 0 ? round(($revisadas / $total) * 100) : 0;
                     $color = $this->getColorClassByPercentage($porcentaje);
 
                     $estadisticas[$linea->id][$codigo][$modulo][$nivel]['SIN_LADO'] = [
                         'total' => $total,
                         'revisadas' => $revisadas,
+                        'revisadas_lista' => $revisadasLista,
                         'porcentaje' => $porcentaje,
                         'color' => $color,
                     ];
@@ -343,9 +356,11 @@ class AnalisisPasteurizadoraController extends Controller
                         'nombre' => $compData['nombre'],
                         'total' => $total,
                         'revisadas' => $revisadas,
+                        'revisadas_lista' => $revisadasLista,
                         'porcentaje' => $porcentaje,
                         'color' => $color,
                         'mostrar_lado' => false,
+                        'mostrar_nivel' => true,
                     ];
 
                     $nivelTotal += $total;
@@ -409,6 +424,21 @@ class AnalisisPasteurizadoraController extends Controller
             ],
             'modulos' => $modulos,
         ];
+    }
+
+    private function getComponentesRevisadosHistorico(array $revisionesAgrupadas, string $claveHistorico, int $total): array
+    {
+        if ($total <= 0) {
+            return [];
+        }
+
+        return collect($revisionesAgrupadas[$claveHistorico] ?? [])
+            ->map(fn ($numero) => (int) $numero)
+            ->filter(fn (int $numero) => $numero > 0)
+            ->unique()
+            ->sort()
+            ->values()
+            ->all();
     }
 
     private function buildHistoricoKey($lineaId, $componente, $modulo, $nivel, $lado): string
@@ -1499,7 +1529,7 @@ class AnalisisPasteurizadoraController extends Controller
             ? $lineasPasteurizadora
             : collect($lineaSeleccionada ? [$lineaSeleccionada] : []);
 
-        $revisionesAgrupadas = $this->getRevisionesAgrupadasHistorico($lineasHistorico);
+        $revisionesAgrupadas = $this->getRevisionesDetalladasHistorico($lineasHistorico);
 
         foreach ($lineasHistorico as $linea) {
             $historicoLinea = $this->buildHistoricoLinea(

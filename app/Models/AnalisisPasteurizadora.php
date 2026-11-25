@@ -956,10 +956,10 @@ class AnalisisPasteurizadora extends Model
     }
 
     /**
-     * Obtiene los componentes revisados únicos agrupados por clave (linea|componente|modulo|nivel|lado)
-     * Optimizado para extracción de datos del histórico de revisados
+     * Obtiene los números de componentes revisados agrupados por clave
+     * (linea|componente|modulo|nivel|lado).
      */
-    public static function getComponentesRevisadosAgrupadosParaHistorico($lineaIds, ?string $area = null): array
+    public static function getComponentesRevisadosDetalladosParaHistorico($lineaIds, ?string $area = null): array
     {
         if (empty($lineaIds)) {
             return [];
@@ -1001,7 +1001,17 @@ class AnalisisPasteurizadora extends Model
         foreach ($agrupado as $clave => $items) {
             $componentesUnicos = collect();
             foreach ($items as $item) {
-                $componentes = $item->componentesRevisadosEfectivos();
+                $lineaNombre = $lineasPorId[$item->linea_id] ?? null;
+                $componentes = self::normalizarComponentesRevisados($item->componentes_revisados);
+
+                // Compatibilidad con registros antiguos que solo guardaban la cantidad.
+                if ($componentes === []) {
+                    $componentes = array_slice(
+                        self::getNumerosComponentesPorModulo($lineaNombre, $item->componente, (int) $item->modulo),
+                        0,
+                        max(0, (int) $item->cantidad_componentes_revisados)
+                    );
+                }
 
                 $componentesUnicos = $componentesUnicos->merge($componentes);
             }
@@ -1009,10 +1019,22 @@ class AnalisisPasteurizadora extends Model
                 ->map(fn ($componente) => (int) $componente)
                 ->filter(fn ($componente) => $componente > 0)
                 ->unique()
-                ->count();
+                ->sort()
+                ->values()
+                ->all();
         }
 
         return $resultado;
+    }
+
+    /**
+     * Conserva la API de conteo usada por otros consumidores del histórico.
+     */
+    public static function getComponentesRevisadosAgrupadosParaHistorico($lineaIds, ?string $area = null): array
+    {
+        return collect(self::getComponentesRevisadosDetalladosParaHistorico($lineaIds, $area))
+            ->map(fn (array $componentes) => count($componentes))
+            ->all();
     }
 
     /**
