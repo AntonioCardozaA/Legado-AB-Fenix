@@ -35,6 +35,11 @@ class DashboardLavadoraFrontendAssetsTest extends TestCase
             }
             $this->assertSame($allowed ? route('plan-accion.lavadora.index') : null, $config['planesUrl']);
             $response->assertSee('dashboard-lavadora-panels-', false);
+            $response->assertSeeInOrder([
+                'chartjs-plugin-datalabels@2',
+                'window.Chart.register(window.ChartDataLabels)',
+                'js/dashboard-lef-52124.js',
+            ], false);
         }
     }
 }

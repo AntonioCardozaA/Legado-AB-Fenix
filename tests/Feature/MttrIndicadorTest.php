@@ -31,7 +31,7 @@ class MttrIndicadorTest extends TestCase
             $initial->viewData('indicadores')->keys()->all());
         $this->assertNull($initial->viewData('ultimaActualizacion'));
         $this->get(route('dashboard'))->assertOk()
-            ->assertSeeTextInOrder(['Buen Estado', 'MTTR general', 'Sin registrar']);
+            ->assertSeeTextInOrder(['Buen Estado', 'MTTR', 'Sin registrar']);
 
         $this->put(route('admin.mttr.update'), [
             'revision' => $initial->viewData('revision'),
@@ -54,13 +54,14 @@ class MttrIndicadorTest extends TestCase
         $supervisor = User::factory()->withRole(User::ROLE_SUPERVISOR)->create();
         $modules = $this->actingAs($supervisor)->get(route('dashboard'))
             ->assertOk()
-            ->assertSeeTextInOrder(['Buen Estado', 'MTTR general', '45.125 min'])
+            ->assertSeeTextInOrder(['Buen Estado', 'MTTR', '45.125 min'])
             ->assertDontSeeText('12.3456');
-        $this->assertSame(1, substr_count($modules->getContent(), 'MTTR general'));
+        $this->assertSame(1, preg_match_all('/>\s*MTTR\s*</', $modules->getContent()));
 
         $dashboard = $this->actingAs($technician)->get(route('dashboard.global.lavadoras'))
             ->assertOk()
-            ->assertSee('MTTR – Tiempo Medio de Reparación')
+            ->assertDontSee('MTTR – Tiempo Medio de Reparación')
+            ->assertSee('id="mttr"', false)
             ->assertSee('Componentes Más Dañados')
             ->assertDontSeeText('MTTR general')
             ->assertDontSeeText('45.125')
