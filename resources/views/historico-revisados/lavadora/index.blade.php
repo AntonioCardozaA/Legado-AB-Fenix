@@ -16,9 +16,11 @@
     }
 
     .historico-container {
+        width: 100%;
         max-width: 1400px;
         margin: 0 auto;
-        padding: 24px;
+        padding: 30px clamp(16px, 3vw, 34px) 42px;
+        overflow-x: clip;
     }
 
     .historico-container *,
@@ -30,70 +32,177 @@
         box-sizing: border-box;
     }
 
-    /* LÍNEAS EN FORMA DE BOTONES */
+    .historico-page-header {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 20px;
+        margin-bottom: 30px !important;
+    }
+
+    .historico-header-content {
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+        width: 100%;
+    }
+
+    .historico-back-link {
+        width: fit-content;
+        min-height: 44px;
+        padding: 10px 17px !important;
+        border: 1px solid #cbd5e1 !important;
+        border-radius: 12px !important;
+        color: #1e3a5f !important;
+        background: rgba(255, 255, 255, 0.78) !important;
+        box-shadow: 0 3px 10px rgba(15, 23, 42, 0.04);
+        transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+    }
+
+    .historico-back-link:hover {
+        transform: translateX(-3px);
+        border-color: #60a5fa !important;
+        background: #ffffff !important;
+        box-shadow: 0 8px 16px rgba(37, 99, 235, 0.12);
+    }
+
+    .historico-title-row {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+    }
+
+    .historico-title-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 42px;
+        height: 42px;
+        flex-shrink: 0;
+        border: 1px solid #bfdbfe;
+        border-radius: 13px;
+        color: #2563eb;
+        background: linear-gradient(145deg, #dbeafe, #eff6ff);
+        box-shadow: 0 6px 14px rgba(37, 99, 235, 0.12);
+        font-size: 18px;
+    }
+
+    .historico-page-title {
+        margin: 0;
+        color: #0f2747;
+        font-size: clamp(24px, 3vw, 34px);
+        font-weight: 800;
+        letter-spacing: -0.025em;
+        line-height: 1.15;
+    }
+
+    /* SELECTOR DE LAVADORAS */
     .lineas-section {
+        position: relative;
+        overflow: hidden;
+        border-radius: 22px;
+        padding: 24px;
+        margin-bottom: 26px;
         background: white;
-        border-radius: 16px;
-        padding: 20px;
-        margin-bottom: 24px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         border: 1px solid var(--medium-gray);
+        box-shadow: 0 10px 26px rgba(15, 23, 42, 0.06);
+    }
+
+    .lineas-section::before {
+        position: absolute;
+        inset: 0 0 auto;
+        height: 4px;
+        background: linear-gradient(90deg, #2563eb, #60a5fa, #8b5cf6);
+        content: '';
     }
 
     .lineas-title {
-        font-size: 14px;
-        font-weight: 700;
-        color: #1e293b;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        margin-bottom: 16px;
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: 10px;
+        margin-bottom: 18px;
+        color: #0f2747;
+        font-size: 13px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+    }
+
+    .lineas-title::before {
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        background: #2563eb;
+        box-shadow: 0 0 0 5px #dbeafe;
+        content: '';
     }
 
     .lineas-grid {
         display: flex;
         flex-wrap: wrap;
         gap: 12px;
+        max-width: 100%;
+        min-width: 0;
     }
 
     .linea-btn {
         display: inline-flex;
+        flex: 0 0 94px;
         align-items: center;
-        padding: 10px 24px;
-        background: #f8fafc;
-        border: 2px solid #e2e8f0;
-        border-radius: 40px;
-        font-size: 15px;
-        font-weight: 600;
-        color: #475569;
-        transition: all 0.2s ease;
+        justify-content: center;
+        text-align: center;
+        width: 94px;
+        min-width: 0;
+        min-height: 48px;
+        padding: 11px 12px;
+        border: 1px solid #dbe3ef;
+        border-radius: 15px;
+        color: #334155;
+        background: linear-gradient(145deg, #ffffff, #f8fafc);
+        box-shadow: 0 3px 8px rgba(15, 23, 42, 0.04);
+        font-size: 14px;
+        font-weight: 700;
+        line-height: 1.2;
+        transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, color 0.2s ease, background 0.2s ease;
         cursor: pointer;
         text-decoration: none;
-        white-space: nowrap;
-    }
-
-    .linea-btn i {
-        margin-right: 8px;
-        font-size: 14px;
-        color: #94a3b8;
+        max-width: 100%;
+        white-space: normal;
+        overflow-wrap: anywhere;
+        touch-action: manipulation;
     }
 
     .linea-btn:hover {
-        background: #f1f5f9;
-        border-color: #94a3b8;
-        transform: translateY(-2px);
+        border-color: #93c5fd;
+        color: #1d4ed8;
+        background: #eff6ff;
+        box-shadow: 0 9px 18px rgba(37, 99, 235, 0.12);
+        transform: translateY(-3px);
     }
 
     .linea-btn.active {
         background: linear-gradient(135deg, #3b82f6, #2563eb);
         border-color: #2563eb;
         color: white;
+        box-shadow: 0 10px 20px rgba(37, 99, 235, 0.25), 0 0 0 4px rgba(59, 130, 246, 0.12);
+        transform: translateY(-2px);
     }
 
-    .linea-btn.active i {
-        color: white;
+    .linea-btn:focus-visible {
+        outline: 3px solid rgba(59, 130, 246, 0.32);
+        outline-offset: 3px;
+    }
+
+    .linea-btn.active::after {
+        display: inline-block;
+        flex-shrink: 0;
+        width: 7px;
+        height: 7px;
+        margin-left: 9px;
+        border-radius: 50%;
+        background: #bfdbfe;
+        box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.18);
+        content: '';
     }
 
     /* TABLA DE COMPONENTES */
@@ -943,23 +1052,22 @@
         }
 
         .lineas-section {
-            padding: 14px;
+            padding: 18px;
             margin-bottom: 16px;
         }
 
         .lineas-grid {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
+            flex-direction: column;
             gap: 8px;
         }
 
         .linea-btn {
-            justify-content: center;
             width: 100%;
             min-height: 44px;
             padding: 10px 12px;
-            border-radius: 8px;
+            border-radius: 12px;
             font-size: 14px;
+            flex: 1 1 100%;
         }
 
         .resumen-grid {
@@ -1242,7 +1350,7 @@
         }
 
         .lineas-grid {
-            grid-template-columns: 1fr;
+            gap: 8px;
         }
 
         .table tbody {
@@ -1277,40 +1385,39 @@
 
 <div class="historico-container">
     {{-- HEADER --}}
-    <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
+    <div class="historico-page-header mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div class="historico-header-content">
             <a href="{{ route('lavadora.dashboard') }}" 
-               class="inline-flex w-full items-center justify-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 sm:w-auto
-                      bg-gray-100 hover:bg-gray-200 rounded-lg transition-all duration-300 mb-4">
+               class="historico-back-link inline-flex w-full items-center justify-center gap-2 sm:w-auto">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
                           d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
                 </svg>
                 <span class="font-medium">Volver</span>
             </a>
-            <h1 class="flex items-start gap-2 text-xl font-bold text-gray-800 sm:items-center sm:text-2xl">
-                <i class="fas fa-chart-bar text-blue-600"></i>
-                Histórico de Revisados
-            </h1>
+            <div class="historico-title-row">
+                <span class="historico-title-icon" aria-hidden="true">
+                    <i class="fas fa-chart-bar"></i>
+                </span>
+                <h1 class="historico-page-title">Histórico de Revisados - Lavadoras</h1>
+            </div>
         </div>
     </div>
 
-    {{-- SECCIÓN DE LÍNEAS DE LAVADORA --}}
+    {{-- SECCIÓN DE LAVADORAS --}}
     <div class="lineas-section">
         <div class="lineas-title">
-            <i class="fas fa-washing-machine"></i>
-            LÍNEAS DE LAVADORA
+            Lavadoras
         </div>
         
         <div class="lineas-grid">
             @forelse($lineasLavadora as $linea)
                 <a href="{{ route('historico-revisados.index', ['linea_id' => $linea->id]) }}" 
                    class="linea-btn {{ $lineaSeleccionada && $lineaSeleccionada->id == $linea->id ? 'active' : '' }}">
-                    <i class="fas fa-washing-machine"></i>
                     {{ $linea->nombre }}
                 </a>
             @empty
-                <div class="text-gray-500 py-2">No hay líneas de lavadora disponibles</div>
+                <div class="text-gray-500 py-2">No hay lavadoras disponibles</div>
             @endforelse
         </div>
     </div>
@@ -1324,7 +1431,6 @@
             <div class="resumen-info">
                 <h4>Total Análisis</h4>
                 <div class="valor">{{ $resumen['total_general'] }}</div>
-                <div class="subvalor">En toda la línea</div>
             </div>
         </div>
 

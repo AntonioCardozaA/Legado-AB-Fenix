@@ -754,6 +754,8 @@ class PasteurizadoraAnalysisCycleTest extends TestCase
         ]));
 
         $response->assertOk();
+        $response->assertSee('Números revisados');
+        $response->assertSee('modal-review-number-list', false);
         $response->assertViewHas('modulosHistorico', function ($modulosHistorico) use ($linea) {
             $lineaHistorico = collect($modulosHistorico)->firstWhere('linea_id', $linea->id);
             $modulo = collect($lineaHistorico['modulos'] ?? [])->firstWhere('numero', 1);
@@ -761,7 +763,8 @@ class PasteurizadoraAnalysisCycleTest extends TestCase
             $lado = collect($nivel['lados'] ?? [])->firstWhere('key', 'VAPOR');
             $anillas = collect($lado['componentes'] ?? [])->firstWhere('codigo', 'ANILLAS');
 
-            return (int) ($anillas['revisadas'] ?? 0) === 2;
+            return (int) ($anillas['revisadas'] ?? 0) === 2
+                && ($anillas['revisadas_lista'] ?? []) === [1, 2];
         });
     }
 
@@ -835,6 +838,9 @@ class PasteurizadoraAnalysisCycleTest extends TestCase
             return (int) ($reglillas['revisadas'] ?? 0) === 3
                 && (int) ($vigasFijas['revisadas'] ?? 0) === 1
                 && (int) ($anillas['revisadas'] ?? 0) === 1
+                && ($reglillas['revisadas_lista'] ?? []) === [1, 2, 3]
+                && ($vigasFijas['revisadas_lista'] ?? []) === [1]
+                && ($anillas['revisadas_lista'] ?? []) === [1]
                 && ($reglillas['mostrar_lado'] ?? true) === false
                 && ($vigasFijas['mostrar_lado'] ?? true) === false
                 && !$componentesPorLado->contains('codigo', 'REGLILLAS')
