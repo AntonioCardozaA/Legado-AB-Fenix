@@ -12,11 +12,17 @@ class PasswordResetTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_reset_password_link_screen_can_be_rendered(): void
+    public function test_forgot_password_screen_displays_contact_instructions(): void
     {
         $response = $this->get('/forgot-password');
 
-        $response->assertStatus(200);
+        $response->assertOk()
+            ->assertSeeText('Recuperación de contraseña')
+            ->assertSeeText('envíe un mensaje a whatsapp al número')
+            ->assertSeeText('4981239090')
+            ->assertSeeText('Volver al inicio de sesión')
+            ->assertSee('href="'.route('login').'"', false)
+            ->assertDontSee('<form', false);
     }
 
     public function test_reset_password_link_can_be_requested(): void

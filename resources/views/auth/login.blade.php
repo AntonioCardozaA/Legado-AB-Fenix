@@ -1,257 +1,146 @@
- <x-guest-layout>
-    <div class="min-h-screen relative flex items-center justify-center px-4 sm:px-6 lg:px-8 py-8 overflow-hidden">
+<x-guest-layout>
+    <x-slot:head>
+        <link rel="stylesheet" href="{{ asset('css/logo-sequence.css') }}?v={{ substr(hash_file('sha256', public_path('css/logo-sequence.css')), 0, 12) }}">
+        <link rel="stylesheet" href="{{ asset('css/login.css') }}?v={{ substr(hash_file('sha256', public_path('css/login.css')), 0, 12) }}">
+    </x-slot:head>
 
-        {{-- Fondo Cervecera --}}
-        <div class="absolute inset-0 bg-cover bg-center bg-no-repeat"
-             style="background-image: url('{{ asset('images/fondo.png') }}');">
-        </div>
+    <main class="login-page">
+        <div class="login-card">
+            <header class="login-brand">
+                <x-logo-sequence class="login-logo" />
 
-        {{-- Overlay Azul Industrial --}}
-        <div class="absolute inset-0 bg-gradient-to-br from-[#041c3c]/95 via-[#0b2957]/90 to-[#1f2937]/90"></div>
-
-        {{-- Líneas industriales --}}
-        <div class="absolute inset-0 opacity-10"
-             style="background-image:
-             linear-gradient(rgba(255,255,255,.08) 1px, transparent 1px),
-             linear-gradient(90deg, rgba(255,255,255,.08) 1px, transparent 1px);
-             background-size: 45px 45px;">
-        </div>
-
-        {{-- Brillos --}}
-        <div class="absolute top-0 right-0 w-96 h-96 bg-yellow-400/20 rounded-full blur-3xl"></div>
-        <div class="absolute bottom-0 left-0 w-96 h-96 bg-blue-500/20 rounded-full blur-3xl"></div>
-
-        {{-- Contenedor --}}
-        <div class="relative w-full max-w-md mx-auto flex items-center justify-center">
-
-            {{-- Tarjeta --}}
-            <div class="w-full overflow-hidden rounded-3xl border border-white/10 bg-white/10 backdrop-blur-2xl shadow-[0_0_50px_rgba(0,0,0,0.7)]">
-
-                {{-- Header --}}
-                <div class="relative px-6 sm:px-8 py-7 text-center bg-gradient-to-r from-[#0a1f44] via-[#12356d] to-[#d4a017]">
-
-                    {{-- Decoración --}}
-                    <div class="absolute inset-0 bg-black/10"></div>
-
-                  {{-- Logo --}}
-                <div class="relative mx-auto mb-6
-                            w-28 h-28
-                            sm:w-32 sm:h-32
-                            md:w-36 md:h-36
-                            rounded-full
-                            bg-white/95
-                            p-4
-                            shadow-[0_0_35px_rgba(255,196,0,0.45)]
-                            border-[5px] border-yellow-400
-                            flex items-center justify-center
-                            overflow-hidden
-                            backdrop-blur-md
-                            transition duration-300 hover:scale-105">
-
-                    {{-- Efecto brillo --}}
-                    <div class="absolute inset-0 rounded-full bg-gradient-to-br from-white/40 to-transparent opacity-70"></div>
-
-                    <img src="{{ asset('images/logo.png') }}"
-                         alt="Logo"
-                         class="relative z-10
-                                w-full h-full
-                                object-contain
-                                scale-125
-                                transition duration-300 hover:scale-135">
+                <div class="login-brand-copy">
+                    <p class="login-brand-name">Compañía Cervecera de Zacatecas</p>
+                    <p class="login-brand-department">Departamento de Envasado</p>
                 </div>
-                    <h1 class="relative text-2xl sm:text-3xl font-black text-white uppercase tracking-[3px]">
-                        Compañia Cervecera de Zacatecas
-                    </h1>
+            </header>
 
-                    <p class="relative mt-2 text-xs sm:text-sm font-semibold uppercase tracking-[2px] text-yellow-200">
-                        Departamento de Envasado
-                    </p>
+            <section class="login-panel" aria-labelledby="login-title">
+                <div class="login-panel-inner">
+                    <h1 id="login-title" class="login-title">Iniciar sesión</h1>
+                    <p class="login-intro">Accede con tu correo de la plataforma.</p>
 
-                    <div class="relative mt-2 w-20 h-1 bg-yellow-400 rounded-full mx-auto"></div>
-                </div>
-
-                {{-- Body --}}
-                <div class="px-6 sm:px-8 py-7 bg-white/5 backdrop-blur-xl">
-
-                    <x-auth-session-status class="mb-4" :status="session('status')" />
+                    <x-auth-session-status class="login-notice" role="status" :status="session('status')" />
 
                     <form id="loginForm"
+                          class="login-form"
                           method="POST"
                           action="{{ route('login', absolute: false) }}"
                           data-csrf-url="{{ route('csrf-token', absolute: false) }}">
                         @csrf
 
-                        {{-- Correo --}}
-                        <div class="mb-5">
-                            <label for="email"
-                                   class="block text-sm font-bold uppercase tracking-wide text-white mb-2">
-                                Correo electrónico
-                            </label>
-
-                            <div class="relative">
-                                <span class="absolute inset-y-0 left-0 flex items-center pl-4 text-yellow-400">
-                                    <i class="fa-solid fa-user"></i>
+                        <div>
+                            <label for="email" class="login-label">Correo electrónico</label>
+                            <div class="login-input-wrap">
+                                <span class="login-input-icon" aria-hidden="true">
+                                    <i class="fa-regular fa-envelope"></i>
                                 </span>
-
                                 <input id="email"
+                                       class="login-input"
                                        type="email"
                                        name="email"
                                        value="{{ old('email') }}"
-                                       required
-                                       autofocus
                                        autocomplete="username"
+                                       autocapitalize="none"
+                                       spellcheck="false"
                                        placeholder="usuario@legadoabfenix.com"
-                                       class="w-full pl-11 pr-4 py-3 rounded-xl 
-                                              border border-gray-500/30 
-                                              bg-white/10 
-                                              text-white 
-                                              placeholder-gray-300
-                                              shadow-inner
-                                              backdrop-blur-md
-                                              focus:border-yellow-400
-                                              focus:ring-2
-                                              focus:ring-yellow-400
-                                              focus:outline-none
-                                              transition duration-300">
+                                       @error('email') aria-invalid="true" aria-describedby="login-email-error" @enderror
+                                       required>
                             </div>
-
-                            <x-input-error :messages="$errors->get('email')" class="mt-2 text-red-300" />
+                            <x-input-error id="login-email-error" class="login-error" :messages="$errors->get('email')" />
                         </div>
 
-                        {{-- Password --}}
-                        <div class="mb-5">
-                            <label for="password"
-                                   class="block text-sm font-bold uppercase tracking-wide text-white mb-2">
-                                Contraseña
-                            </label>
-
-                            <div class="relative">
-                                <span class="absolute inset-y-0 left-0 flex items-center pl-4 text-yellow-400">
+                        <div>
+                            <label for="password" class="login-label">Contraseña</label>
+                            <div class="login-input-wrap">
+                                <span class="login-input-icon" aria-hidden="true">
                                     <i class="fa-solid fa-lock"></i>
                                 </span>
-
                                 <input id="password"
+                                       class="login-input login-password"
                                        type="password"
                                        name="password"
-                                       required
                                        autocomplete="current-password"
-                                       placeholder="********"
-                                       class="w-full pl-11 pr-12 py-3 rounded-xl
-                                              border border-gray-500/30
-                                              bg-white/10
-                                              text-white
-                                              placeholder-gray-300
-                                              shadow-inner
-                                              backdrop-blur-md
-                                              focus:border-yellow-400
-                                              focus:ring-2
-                                              focus:ring-yellow-400
-                                              focus:outline-none
-                                              transition duration-300">
-
-                                <button type="button"
-                                        onclick="togglePassword()"
-                                        class="absolute inset-y-0 right-0 flex items-center pr-4 text-gray-300 hover:text-yellow-400 transition">
-                                    <i id="passwordIcon" class="fa-solid fa-eye"></i>
-                                </button>
+                                       @error('password') aria-invalid="true" aria-describedby="login-password-error" @enderror
+                                       required>
+                                <button id="loginPasswordToggle"
+                                        class="login-password-toggle"
+                                        type="button"
+                                        aria-controls="password"
+                                        hidden>Mostrar</button>
                             </div>
-
-                            <x-input-error :messages="$errors->get('password')" class="mt-2 text-red-300" />
+                            <x-input-error id="login-password-error" class="login-error" :messages="$errors->get('password')" />
                         </div>
 
-                        {{-- Opciones --}}
-                        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
-
-                            <label for="remember_me"
-                                   class="inline-flex items-center cursor-pointer">
-
-                                <input id="remember_me"
-                                       type="checkbox"
-                                       name="remember"
-                                       class="rounded border-gray-400 text-yellow-400 focus:ring-yellow-400">
-
-                                <span class="ms-2 text-sm text-gray-200">
-                                    Recordarme
-                                </span>
+                        <div class="login-options">
+                            <label class="login-remember">
+                                <input id="remember_me" type="checkbox" name="remember" @checked(old('remember'))>
+                                Recordarme
                             </label>
 
+                            <a class="login-link" href="{{ route('password.request') }}">¿Olvidaste tu contraseña?</a>
                         </div>
 
-                        {{-- Botón --}}
-                        <button id="loginSubmitButton"
-                                type="submit"
-                                class="group relative w-full overflow-hidden rounded-xl bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-300 px-4 py-3 font-black uppercase tracking-[2px] text-[#0b2957] shadow-xl transition duration-300 hover:scale-[1.02] hover:shadow-yellow-500/40">
-
-                            <span class="relative z-10 flex items-center justify-center gap-2">
-                                <i class="fa-solid fa-right-to-bracket"></i>
-                                Ingresar
-                            </span>
-
-                            <div class="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition"></div>
+                        <button id="loginSubmitButton" class="login-submit" type="submit">
+                            <span id="loginSubmitLabel">Ingresar</span>
+                            <span class="login-submit-arrow" aria-hidden="true"><i class="fa-solid fa-arrow-right"></i></span>
+                            <span class="login-spinner" aria-hidden="true"></span>
                         </button>
-
-                        {{-- Volver --}}
-                        <div class="mt-5 text-center">
-                            <a href="{{ route('welcome') }}"
-                               class="text-sm font-semibold text-gray-200 hover:text-yellow-300 underline underline-offset-4 transition">
-                                Volver al inicio
-                            </a>
-                        </div>
-
-                        {{-- Error --}}
-                        @if ($errors->any())
-                            <div class="mt-5 rounded-xl border border-red-400/40 bg-red-500/10 px-4 py-3 text-sm text-red-200 backdrop-blur-md">
-                                <i class="fa-solid fa-triangle-exclamation mr-2"></i>
-                                Verifica tus credenciales e intenta nuevamente.
-                            </div>
-                        @endif
                     </form>
+                    <span id="loginProgress" class="login-visually-hidden" role="status"></span>
+
+                    <div class="login-footer">
+                        <a class="login-back" href="{{ route('welcome') }}">
+                            <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
+                            Volver al inicio
+                        </a>
+                    </div>
                 </div>
-            </div>
+            </section>
         </div>
-    </div>
+    </main>
 
     <script>
-        function togglePassword() {
+        (() => {
+            const form = document.getElementById('loginForm');
             const password = document.getElementById('password');
-            const icon = document.getElementById('passwordIcon');
+            const toggle = document.getElementById('loginPasswordToggle');
+            const submit = document.getElementById('loginSubmitButton');
+            const submitLabel = document.getElementById('loginSubmitLabel');
+            const progress = document.getElementById('loginProgress');
 
-            if (password.type === 'password') {
-                password.type = 'text';
-                icon.classList.remove('fa-eye');
-                icon.classList.add('fa-eye-slash');
-            } else {
-                password.type = 'password';
-                icon.classList.remove('fa-eye-slash');
-                icon.classList.add('fa-eye');
+            toggle.hidden = false;
+            toggle.addEventListener('click', () => {
+                const reveal = password.type === 'password';
+                password.type = reveal ? 'text' : 'password';
+                toggle.textContent = reveal ? 'Ocultar' : 'Mostrar';
+                toggle.setAttribute('aria-label', reveal ? 'Ocultar contraseña' : 'Mostrar contraseña');
+            });
+            toggle.setAttribute('aria-label', 'Mostrar contraseña');
+
+            function setSubmitting(submitting) {
+                submit.disabled = submitting;
+                form.setAttribute('aria-busy', String(submitting));
+                submitLabel.textContent = submitting ? 'Ingresando…' : 'Ingresar';
+                progress.textContent = submitting ? 'Ingresando…' : '';
             }
-        }
 
-        const loginForm = document.getElementById('loginForm');
+            window.addEventListener('pageshow', () => setSubmitting(false));
 
-        if (loginForm) {
-            let isSubmitting = false;
+            form.addEventListener('submit', async (event) => {
+                event.preventDefault();
 
-            loginForm.addEventListener('submit', async function (event) {
-                if (isSubmitting) {
+                if (submit.disabled) {
                     return;
                 }
 
-                event.preventDefault();
-                isSubmitting = true;
-
-                const submitButton = document.getElementById('loginSubmitButton');
-
-                if (submitButton) {
-                    submitButton.disabled = true;
-                    submitButton.classList.add('opacity-70', 'cursor-wait');
-                }
+                setSubmitting(true);
 
                 const abortController = new AbortController();
                 const timeout = setTimeout(() => abortController.abort(), 3000);
 
                 try {
-                    const response = await fetch(loginForm.dataset.csrfUrl, {
+                    const response = await fetch(form.dataset.csrfUrl, {
                         method: 'GET',
                         credentials: 'same-origin',
                         cache: 'no-store',
@@ -263,25 +152,21 @@
                     });
 
                     if (response.ok) {
-                        const data = await response.json();
-                        const tokenInput = loginForm.querySelector('input[name="_token"]');
-                        const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+                        const { token } = await response.json();
 
-                        if (data.token && tokenInput) {
-                            tokenInput.value = data.token;
-                        }
-
-                        if (data.token && csrfMeta) {
-                            csrfMeta.setAttribute('content', data.token);
+                        if (token) {
+                            form.elements.namedItem('_token').value = token;
+                            document.querySelector('meta[name="csrf-token"]').content = token;
                         }
                     }
-                } catch (error) {}
-                finally {
+                } catch {
+                    // The existing form token can still be valid if the refresh fails.
+                } finally {
                     clearTimeout(timeout);
                 }
 
-                HTMLFormElement.prototype.submit.call(loginForm);
+                HTMLFormElement.prototype.submit.call(form);
             });
-        }
+        })();
     </script>
 </x-guest-layout>

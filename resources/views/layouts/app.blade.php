@@ -13,6 +13,7 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
 
     <link rel="stylesheet" href="{{ asset('css/layout-app.css') }}?v={{ substr(hash_file('sha256', public_path('css/layout-app.css')), 0, 12) }}">
+    <link rel="stylesheet" href="{{ asset('css/logo-sequence.css') }}?v={{ substr(hash_file('sha256', public_path('css/logo-sequence.css')), 0, 12) }}">
     @vite('resources/css/auth-tailwind.css')
 
 </head>
@@ -61,48 +62,7 @@
         <!-- Logo -->
         <div class="px-6 py-6 border-b border-gray-200">
             <div class="flex flex-col items-center text-center">
-                <div
-                    class="logo-sequence mb-0 drop-shadow-lg"
-                    role="img"
-                    aria-label="Logo Legado Ave Fenix"
-                >
-                <picture style="display: contents">
-                <source srcset="{{ asset('images/optimized/logo1-32489536c283.webp') }}" type="image/webp">
-                <img
-                    src="{{ asset('images/logo1.png') }}"
-                    alt=""
-                    aria-hidden="true"
-                    class="logo-sequence-base w-30 h-30"
-                >
-                </picture>
-                    <picture style="display: contents">
-                    <source srcset="{{ asset('images/optimized/logo2-2ef164b28259.webp') }}" type="image/webp">
-                    <img
-                        src="{{ asset('images/logo2.png') }}"
-                        alt=""
-                        aria-hidden="true"
-                        class="logo-sequence-frame logo-sequence-frame--2"
-                    >
-                    </picture>
-                    <picture style="display: contents">
-                    <source srcset="{{ asset('images/optimized/logo3-d5f55659541f.webp') }}" type="image/webp">
-                    <img
-                        src="{{ asset('images/logo3.png') }}"
-                        alt=""
-                        aria-hidden="true"
-                        class="logo-sequence-frame logo-sequence-frame--3"
-                    >
-                    </picture>
-                    <picture style="display: contents">
-                    <source srcset="{{ asset('images/optimized/logo4-6b27cb0fdc70.webp') }}" type="image/webp">
-                    <img
-                        src="{{ asset('images/logo4.png') }}"
-                        alt=""
-                        aria-hidden="true"
-                        class="logo-sequence-frame logo-sequence-frame--4"
-                    >
-                    </picture>
-                </div>
+                <x-logo-sequence class="mb-0 drop-shadow-lg" label="Logo Legado Ave Fenix" base-class="w-30 h-30" />
                 <h1 class="text-sm font-semibold tracking-wide leading-tight logo-text">
                     LEGADO AB<br>
                     <span class="text-yellow-500 font-bold">FÉNIX</span>
