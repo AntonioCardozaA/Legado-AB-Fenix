@@ -84,7 +84,7 @@ class OperationsAssistantService
         $platformContext = $this->buildPlatformContext($user, $retrievalQuestion, $safePageContext);
 
         if (!$this->explicitlyRequestsExternalContext($retrievalQuestion)
-            && ($deterministicReply = $this->resolveDeterministicReply($question, $platformContext)) !== null) {
+            && ($deterministicReply = $this->resolveDeterministicReply($question, $platformContext, $conversation)) !== null) {
             $this->interactionLogger->fallback($user, 'assistant_chat', [
                 'provider' => data_get($deterministicReply, 'metadata.provider'),
                 'model' => data_get($deterministicReply, 'metadata.model'),
@@ -267,6 +267,8 @@ class OperationsAssistantService
                 'Si module_insights contiene lubrication_lookup o coincidencias de documentos indexados, usarlos antes de concluir que falta informacion.',
                 'Si module_insights contiene refaction_cost_lookup, usarlo como fuente principal para responder costos, SKUs, compatibilidad por linea y refacciones de lavadora.',
                 'Si module_insights contiene pasteurizadora, usarlo para responder sobre planes, hallazgos, recomendaciones, estado actual, modulos, niveles, lados y componentes de pasteurizadora.',
+                'Para el MTTR de lavadoras, usar module_insights.lavadora.mttr como fuente de los valores vigentes en minutos. Si configurado es falso, la línea carece de indicador. Si configurado es verdadero, un valor nulo está sin registrar y cero es un valor registrado.',
+                'La fecha de actualización del MTTR es la fecha de guardado. Si se solicita un periodo o un historial, aclarar que module_insights.lavadora.mttr contiene únicamente los valores vigentes.',
                 'Cuando relevant_context incluya documentos, priorizar fragmentos con document_id, chunk_index y mayor score_breakdown.',
                 'Si la pregunta pide maximos, minimos, ranking o comparativos, usar primero los resumenes comparativos presentes en platform_context.',
                 'Si retrieval_context_query existe, entenderlo solo como contexto de recuperacion interna para resolver referencias conversacionales como "esa lavadora", "ese reductor" o "ese componente"; responder siempre la question original.',
@@ -1054,9 +1056,13 @@ class OperationsAssistantService
      * @param  array<string, mixed>  $platformContext
      * @return array{content: string, metadata: array<string, mixed>}|null
      */
-    private function resolveDeterministicReply(string $question, array $platformContext): ?array
+    private function resolveDeterministicReply(string $question, array $platformContext, array $history): ?array
     {
         $normalized = Str::lower(Str::ascii($question));
+
+        if (($reply = $this->replyForWasherMttr($normalized, $platformContext, $history)) !== null) {
+            return $reply;
+        }
 
         if ($this->targetsPasteurizadora($normalized, $platformContext)) {
             if (($reply = $this->replyForMostDamagedPasteurizadoraComponents($normalized, $platformContext)) !== null) {
@@ -1105,6 +1111,65 @@ class OperationsAssistantService
      * @param  array<string, mixed>  $platformContext
      * @return array{content: string, metadata: array<string, mixed>}|null
      */
+    private function replyForWasherMttr(string $question, array $platformContext, array $history): ?array
+    {
+        $mttr = data_get($platformContext, 'module_insights.lavadora.mttr');
+        if ($mttr === null || Str::contains($question, ['pasteurizadora', 'etiquetadora'])
+            || preg_match('/\bp\s*[-#]?\s*0?\d{1,2}\b/', $question) === 1) {
+            return null;
+        }
+
+        if (!OperationsPlatformContextService::mentionsMttr($question)) {
+            $previousQuestion = collect($history)->last(fn (array $message): bool => $message['role'] === 'user');
+            if (!OperationsPlatformContextService::mentionsMttr($previousQuestion['content'] ?? '')
+                || preg_match('/^\s*\?*\s*y\s+(?:(?:la|el|de)\s+)*(?:lavadora|linea|l)\s*[-#]?\s*0*\d{1,2}\s*[?.!]*$/', $question) !== 1) {
+                return null;
+            }
+        }
+
+        if (preg_match('/\b(?:
+            general | histor\w* | tendencia | evolucion | periodo | fecha | cuando | actualiz\w*
+            | ayer | de\ hoy | lunes | martes | miercoles | jueves | viernes | sabado | domingo
+            | enero | febrero | marzo | abril | mayo | junio | julio | agosto | septiembre | octubre | noviembre | diciembre
+            | mes(?:es)? | semanas? | anos? | trimestres? | quincenas? | turnos? | 20\d{2}
+            | mayor | menor | maxim\w* | minim\w* | ranking | promedio\ de\ (?:los|las)
+            | como | que\ es | que\ mide | significa | definicion | por\ que | calcula\w* | mejorar
+        )\b/x', $question) === 1
+            || preg_match('/\b\d{1,2}[\/-]\d{1,2}\b/', $question) === 1) {
+            return null;
+        }
+
+        $lines = $this->extractLineReferences($question);
+        $pageModule = data_get($platformContext, 'page_context.module');
+        if ($lines === [] && $pageModule !== null && $pageModule !== User::MODULE_LAVADORA && !str_contains($question, 'lavadora')) {
+            return null;
+        }
+
+        if ($lines === [] && $pageModule === User::MODULE_LAVADORA && preg_match('/\b(?:todas|cada|lavadoras|por (?:linea|lavadora))\b/', $question) !== 1) {
+            $pageLine = Str::lower((string) data_get($platformContext, 'page_context.linea_nombre', ''));
+            $lines = $this->extractLineReferences($pageLine);
+        }
+
+        $lines = $lines === [] ? array_keys($mttr['lineas']) : $lines;
+        $values = array_map(static function (string $line) use ($mttr): string {
+            if (!($mttr['lineas'][$line]['configurado'] ?? false)) {
+                return "{$line} no tiene indicador de MTTR configurado.";
+            }
+
+            $minutes = $mttr['lineas'][$line]['minutos'];
+
+            return $minutes === null
+                ? "{$line} tiene el MTTR sin registrar."
+                : "{$line} tiene un MTTR registrado de {$minutes} min.";
+        }, $lines);
+
+        $answer = count($values) === 1
+            ? $values[0]
+            : "MTTR vigente por lavadora\n\n- ".implode("\n- ", $values);
+
+        return $this->deterministicResponse($answer, sources: [$mttr['source']]);
+    }
+
     private function replyForMostDamagedPasteurizadoraComponents(string $question, array $platformContext): ?array
     {
         if (!str_contains($question, 'component')) {

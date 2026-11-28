@@ -15,6 +15,7 @@ use App\Models\Elongacion;
 use App\Models\LavadoraCostEntry;
 use App\Models\Linea;
 use App\Models\MaintenanceEvent;
+use App\Models\MttrIndicador;
 use App\Models\PlanAccion;
 use App\Models\User;
 use App\Models\WasherKnowledgeChunk;
@@ -127,6 +128,11 @@ class OperationsPlatformContextService
     ) {
     }
 
+    public static function mentionsMttr(string $question): bool
+    {
+        return preg_match('/\b(?:mttr|tiempo (?:medio|promedio) de reparacion)\b/i', Str::ascii($question)) === 1;
+    }
+
     /**
      * @param  array<string, mixed>  $pageContext
      * @return array<string, mixed>
@@ -171,6 +177,10 @@ class OperationsPlatformContextService
                 'refaction_cost_lookup' => $this->washerRefactionCostLookup($question),
                 'lubrication_lookup' => $this->washerLubricationLookup($question),
             ];
+
+            if ($user->canAccessModule(User::MODULE_LAVADORA) && self::mentionsMttr($question) && $this->hasTable('mttr_indicadores')) {
+                $insights['lavadora']['mttr'] = $this->washerMttrIndicators();
+            }
         }
 
         if ($user->canAccessModule(User::MODULE_PASTEURIZADORA) || $this->shouldIncludeModule(User::MODULE_PASTEURIZADORA, $moduleHints)) {
@@ -188,6 +198,36 @@ class OperationsPlatformContextService
         }
 
         return $insights;
+    }
+
+    private function washerMttrIndicators(): array
+    {
+        $indicators = MttrIndicador::query()
+            ->whereIn('clave', MttrIndicador::LAVADORAS)
+            ->get(['clave', 'minutos', 'updated_at'])
+            ->keyBy('clave');
+
+        $lines = [];
+        foreach (LavadoraCatalog::LINEAS as $line) {
+            $indicator = $indicators->get($line);
+            $lines[$line] = [
+                'linea' => $line,
+                'configurado' => in_array($line, MttrIndicador::LAVADORAS, true),
+                'minutos' => $indicator?->minutosParaMostrar(),
+                'actualizado_en' => $indicator?->updated_at?->toIso8601String(),
+            ];
+        }
+
+        return [
+            'lineas' => $lines,
+            'source' => [
+                'type' => 'module_insights',
+                'reference' => 'MTTR por lavadora en el tablero',
+                'table' => 'mttr_indicadores',
+                'module' => User::MODULE_LAVADORA,
+                'url' => route('dashboard.global.lavadoras').'#mttr',
+            ],
+        ];
     }
 
     /**

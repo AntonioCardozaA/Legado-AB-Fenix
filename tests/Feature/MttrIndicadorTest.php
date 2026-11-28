@@ -146,6 +146,51 @@ class MttrIndicadorTest extends TestCase
         }
     }
 
+    public function test_assistant_reads_current_mttr_by_washer(): void
+    {
+        config(['maintenance_ai.enabled' => false]);
+        MttrIndicador::where('clave', 'GENERAL')->update(['minutos' => '955.5']);
+        MttrIndicador::where('clave', 'L-04')->update(['minutos' => 0]);
+        MttrIndicador::where('clave', 'L-05')->update(['minutos' => '12.3456']);
+
+        $this->actingAs(User::factory()->withRole(User::ROLE_TECNICO)->create());
+        $response = $this->postJson(route('assistant-chat.store'), [
+            'message' => '¿Cuál es el MTTR de la lavadora 5?',
+            'page_context' => ['module' => User::MODULE_LAVADORA, 'linea_nombre' => 'L-04'],
+        ])->assertOk()
+            ->assertJsonPath('message.content', 'L-05 tiene un MTTR registrado de 12.3456 min.')
+            ->assertJsonPath('message.metadata.sources.0.table', 'mttr_indicadores')
+            ->assertJsonPath('message.metadata.sources.0.url', route('dashboard.global.lavadoras').'#mttr');
+
+        $this->postJson(route('assistant-chat.store'), [
+            'message' => '¿Y la L-04?',
+            'conversation_id' => $response->json('conversation.id'),
+        ])->assertOk()->assertJsonPath('message.content', 'L-04 tiene un MTTR registrado de 0 min.');
+
+        MttrIndicador::where('clave', 'L-05')->update(['minutos' => '18.75']);
+
+        $this->postJson(route('assistant-chat.store'), [
+            'message' => '¿Cuál es el tiempo medio de reparación de esta lavadora?',
+            'page_context' => ['module' => User::MODULE_LAVADORA, 'linea_nombre' => 'L-05'],
+        ])->assertOk()->assertJsonPath('message.content', 'L-05 tiene un MTTR registrado de 18.75 min.');
+
+        $all = $this->postJson(route('assistant-chat.store'), [
+            'message' => 'Muéstrame los registros de MTTR de cada lavadora',
+            'page_context' => ['module' => User::MODULE_LAVADORA, 'linea_nombre' => 'L-04'],
+        ])->assertOk()->json('message.content');
+
+        foreach (MttrIndicador::LAVADORAS as $line) {
+            $this->assertStringContainsString($line, $all);
+        }
+        $this->assertStringContainsString('L-05 tiene un MTTR registrado de 18.75 min.', $all);
+        $this->assertStringContainsString('L-06 tiene el MTTR sin registrar.', $all);
+        $this->assertStringNotContainsString('955.5', $all);
+        $this->assertStringContainsString('L-08 no tiene indicador de MTTR configurado.', $all);
+
+        $this->postJson(route('assistant-chat.store'), ['message' => 'MTTR de la línea 8'])
+            ->assertOk()->assertJsonPath('message.content', 'L-08 no tiene indicador de MTTR configurado.');
+    }
+
     public function test_invalid_inputs_do_not_save_any_indicator(): void
     {
         $admin = User::factory()->withRole(User::ROLE_ADMIN)->create();
