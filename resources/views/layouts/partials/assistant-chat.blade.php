@@ -9,7 +9,7 @@
 >
     <div
         id="assistant-chat-panel"
-        class="mb-3 hidden h-[70vh] w-[calc(100vw-2rem)] max-w-md flex-col overflow-hidden rounded-[1.6rem] border border-slate-900/10 bg-white shadow-2xl shadow-slate-950/20 sm:h-[38rem]"
+        class="fixed hidden h-[70vh] w-[calc(100vw-2rem)] max-w-md flex-col overflow-hidden rounded-[1.6rem] border border-slate-900/10 bg-white shadow-2xl shadow-slate-950/20 sm:h-[38rem]"
     >
         <div class="assistant-chat-header border-b border-white/10 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 px-5 py-4 text-white">
             <div class="flex items-center justify-between gap-4">
@@ -99,7 +99,10 @@
     <button
         id="assistant-chat-toggle"
         type="button"
-        class="assistant-chat-trigger group inline-flex items-center gap-3 rounded-full border border-slate-700/80 bg-slate-950/95 px-4 py-3 text-sm font-semibold text-slate-50 shadow-xl shadow-slate-950/30 transition hover:translate-y-[-1px] hover:border-slate-600 hover:bg-slate-900"
+        aria-controls="assistant-chat-panel"
+        aria-expanded="false"
+        title="Arrastra para mover el chat"
+        class="assistant-chat-trigger group inline-flex items-center gap-3 rounded-full border border-slate-700/80 bg-slate-950/95 px-4 py-3 text-sm font-semibold text-slate-50 shadow-xl shadow-slate-950/30 transition-colors hover:border-slate-600 hover:bg-slate-900"
     >
         <span class="assistant-chat-trigger-avatar inline-flex h-11 w-11 items-center justify-center overflow-hidden rounded-full bg-white ring-1 ring-amber-300/40 shadow-inner shadow-slate-900/10">
             <img
@@ -107,6 +110,7 @@
                 alt="ABFenix.ai"
                 class="h-full w-full object-contain"
                 style="transform: scale(2.2);"
+                draggable="false"
             >
         </span>
         <span class="text-left leading-tight">
@@ -221,6 +225,21 @@
         border-color: rgba(51, 65, 85, 0.75);
         background: linear-gradient(135deg, rgba(2, 6, 23, 0.96) 0%, rgba(15, 23, 42, 0.94) 100%);
         box-shadow: 0 24px 45px rgba(15, 23, 42, 0.28);
+        cursor: grab;
+        touch-action: none;
+        user-select: none;
+    }
+
+    #assistant-chat-widget .assistant-chat-trigger.is-dragging {
+        cursor: grabbing;
+    }
+
+    #assistant-chat-widget .assistant-chat-trigger > * {
+        pointer-events: none;
+    }
+
+    #assistant-chat-widget .assistant-chat-trigger[aria-expanded="true"] {
+        visibility: hidden;
     }
 
     #assistant-chat-widget .assistant-chat-trigger:hover {
@@ -800,10 +819,141 @@
         }
     }
 
+    const positionKey = 'abfenix.assistant-chat.position';
+    const viewportMargin = 8;
+    const dragThreshold = 6;
+    const visualViewport = window.visualViewport;
+    let bubblePosition = null;
+    let drag = null;
+    let suppressPointerClick = false;
+
+    try {
+        const savedPosition = JSON.parse(window.localStorage.getItem(positionKey));
+        if (savedPosition && [savedPosition.x, savedPosition.y].every(value => Number.isFinite(value) && value >= 0 && value <= 1)) {
+            bubblePosition = savedPosition;
+        }
+    } catch {
+        // The chat also works when browser storage is unavailable.
+    }
+
+    function getViewportBounds() {
+        const left = visualViewport?.offsetLeft ?? 0;
+        const top = visualViewport?.offsetTop ?? 0;
+        return {
+            left: left + viewportMargin,
+            top: top + viewportMargin,
+            right: left + (visualViewport?.width ?? document.documentElement.clientWidth) - viewportMargin,
+            bottom: top + (visualViewport?.height ?? document.documentElement.clientHeight) - viewportMargin,
+        };
+    }
+
+    function clampPosition(value, min, max) {
+        return Math.max(min, Math.min(value, max));
+    }
+
+    function getBubbleTravel(bounds) {
+        return {
+            x: Math.max(0, bounds.right - bounds.left - toggleButton.offsetWidth),
+            y: Math.max(0, bounds.bottom - bounds.top - toggleButton.offsetHeight),
+        };
+    }
+
+    function setBubblePosition(left, top) {
+        widget.style.left = `${left}px`;
+        widget.style.top = `${top}px`;
+        widget.style.right = 'auto';
+        widget.style.bottom = 'auto';
+    }
+
+    function positionPanel(bounds) {
+        const bubble = toggleButton.getBoundingClientRect();
+        panel.style.maxWidth = `min(28rem, ${bounds.right - bounds.left}px)`;
+        panel.style.maxHeight = `${bounds.bottom - bounds.top}px`;
+
+        const width = panel.offsetWidth;
+        const height = panel.offsetHeight;
+        const left = clampPosition(bubble.right - width, bounds.left, bounds.right - width);
+        const top = clampPosition(bubble.bottom - height, bounds.top, bounds.bottom - height);
+        panel.style.left = `${left}px`;
+        panel.style.top = `${top}px`;
+    }
+
+    function updateChatPosition() {
+        const bounds = getViewportBounds();
+        if (bubblePosition) {
+            const travel = getBubbleTravel(bounds);
+            setBubblePosition(bounds.left + bubblePosition.x * travel.x, bounds.top + bubblePosition.y * travel.y);
+        }
+
+        if (!panel.classList.contains('hidden')) {
+            positionPanel(bounds);
+        }
+    }
+
+    function startBubbleDrag(event) {
+        if (!event.isPrimary || event.button !== 0 || drag) {
+            return;
+        }
+
+        const bubble = toggleButton.getBoundingClientRect();
+        drag = {
+            pointerId: event.pointerId,
+            startX: event.clientX,
+            startY: event.clientY,
+            offsetX: event.clientX - bubble.left,
+            offsetY: event.clientY - bubble.top,
+        };
+        suppressPointerClick = false;
+        toggleButton.setPointerCapture(event.pointerId);
+    }
+
+    function moveBubble(event) {
+        if (drag?.pointerId !== event.pointerId) {
+            return;
+        }
+
+        if (!suppressPointerClick) {
+            if (Math.hypot(event.clientX - drag.startX, event.clientY - drag.startY) < dragThreshold) {
+                return;
+            }
+
+            suppressPointerClick = true;
+            toggleButton.classList.add('is-dragging');
+        }
+
+        const bounds = getViewportBounds();
+        const travel = getBubbleTravel(bounds);
+        const x = clampPosition(event.clientX - drag.offsetX - bounds.left, 0, travel.x);
+        const y = clampPosition(event.clientY - drag.offsetY - bounds.top, 0, travel.y);
+        bubblePosition = {
+            x: travel.x ? x / travel.x : (bubblePosition?.x ?? 1),
+            y: travel.y ? y / travel.y : (bubblePosition?.y ?? 1),
+        };
+        setBubblePosition(bounds.left + x, bounds.top + y);
+    }
+
+    function finishBubbleDrag(event) {
+        if (drag?.pointerId !== event.pointerId) {
+            return;
+        }
+
+        drag = null;
+        toggleButton.classList.remove('is-dragging');
+        if (suppressPointerClick) {
+            try {
+                window.localStorage.setItem(positionKey, JSON.stringify(bubblePosition));
+            } catch {
+                // Keep the new position on this page when storage is unavailable.
+            }
+        }
+    }
+
     function openPanel() {
         panel.classList.remove('hidden');
         panel.classList.add('flex');
-        toggleButton.classList.add('hidden');
+        toggleButton.setAttribute('aria-expanded', 'true');
+        updateChatPosition();
+        closeButton?.focus({ preventScroll: true });
 
         if (!historyLoaded) {
             loadHistory();
@@ -815,10 +965,34 @@
     function closePanel() {
         panel.classList.add('hidden');
         panel.classList.remove('flex');
-        toggleButton.classList.remove('hidden');
+        toggleButton.setAttribute('aria-expanded', 'false');
+        toggleButton.focus({ preventScroll: true });
     }
 
-    toggleButton.addEventListener('click', openPanel);
+    toggleButton.addEventListener('pointerdown', startBubbleDrag);
+    toggleButton.addEventListener('pointermove', moveBubble);
+    toggleButton.addEventListener('pointerup', finishBubbleDrag);
+    toggleButton.addEventListener('pointercancel', finishBubbleDrag);
+    toggleButton.addEventListener('lostpointercapture', finishBubbleDrag);
+    toggleButton.addEventListener('touchend', event => {
+        event.preventDefault();
+        if (!suppressPointerClick && event.touches.length === 0) {
+            openPanel();
+        }
+    }, { passive: false });
+    toggleButton.addEventListener('click', event => {
+        if (event.detail > 0 && suppressPointerClick) {
+            suppressPointerClick = false;
+            return;
+        }
+
+        openPanel();
+    });
+    window.addEventListener('resize', updateChatPosition);
+    visualViewport?.addEventListener('resize', updateChatPosition);
+    visualViewport?.addEventListener('scroll', updateChatPosition);
+    updateChatPosition();
+
     closeButton?.addEventListener('click', closePanel);
     newChatButton?.addEventListener('click', startNewChat);
     historyButton?.addEventListener('click', toggleHistoryMenu);
